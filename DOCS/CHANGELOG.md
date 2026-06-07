@@ -4,6 +4,21 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-07c] - fix(critical): Supplier search + Staff profile 0 orders
+
+**Files thay đổi:**
+- `lib/data/db_helper.dart` — thêm `nameNorm TEXT` vào CREATE TABLE suppliers
+- `lib/widgets/supplier_picker_sheet.dart` — reset `_isLoading = false` khi search thay đổi
+- `lib/views/staff_public_profile_view.dart` — stat cards dùng all-time count; search sale theo cả email prefix
+
+| # | Bug | Root cause | Fix |
+|---|-----|-----------|-----|
+| 1 | Search NCC gõ "7" không ra "7 VIÊN" | `nameNorm` column chỉ được add qua v100 migration (onUpgrade). Fresh install chạy onCreate → không có `nameNorm` → `UPPER(nameNorm) LIKE ?` throw SQL error → caught silently → kết quả rỗng | Thêm `nameNorm TEXT` vào CREATE TABLE trong onCreate để column luôn tồn tại bất kể đường dẫn cài đặt |
+| 1b | Race condition khi type nhanh trong search | Scroll-triggered `_loadPage` có thể đang chạy (`_isLoading=true`) khi search timer fires → `_loadPage` guard return sớm → search không chạy | Reset `_isLoading = false` trong setState của `_onSearchChanged` và `_clearSearch` |
+| 2 | Hồ sơ nhân viên báo 0 đơn dù có đơn | (a) Stat cards dùng `monthlyRepairs/Sales.length` (tháng hiện tại) thay vì all-time; (b) `getSalesBySellerName` chỉ tìm theo display name 'MISS HỒNG' nhưng sale lưu `sellerName = 'HONG'` (email prefix) | (a) Đổi stat cards sang `repairs.length` / `sales.length` (all-time); (b) Fetch thêm sales theo email prefix và dedup bằng Set<id> |
+
+---
+
 ## [2026-06-07b] - fix: InventoryCheck type cast + Firestore product_categories permission
 
 **Files thay đổi:**

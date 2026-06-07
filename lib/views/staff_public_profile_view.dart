@@ -68,7 +68,16 @@ class _StaffPublicProfileViewState extends State<StaffPublicProfileView> {
     final emailPrefix = targetEmail.split('@').first.toUpperCase();
 
     final repairs = await _db.getRepairsByStaff(targetUpper, emailPrefix);
-    final sales = await _db.getSalesBySellerName(targetUpper);
+    // Also fetch sales by email prefix as fallback (sellerName may store prefix, not display name)
+    final salesByName = await _db.getSalesBySellerName(targetUpper);
+    final salesByPrefix = emailPrefix.isNotEmpty && emailPrefix != targetUpper
+        ? await _db.getSalesBySellerName(emailPrefix)
+        : <SaleOrder>[];
+    final seenIds = <int?>{...salesByName.map((s) => s.id)};
+    final sales = [
+      ...salesByName,
+      ...salesByPrefix.where((s) => seenIds.add(s.id)),
+    ];
     final attendance = await _db.getAttendanceByUser(targetUid, limit: 120);
 
     final monthlyRepairs = repairs
@@ -86,8 +95,9 @@ class _StaffPublicProfileViewState extends State<StaffPublicProfileView> {
     _monthlyRepairs = monthlyRepairs;
     _monthlySales = monthlySales;
     _recentAttendance = monthlyAttendance;
-    _repairsCount = monthlyRepairs.length;
-    _salesCount = monthlySales.length;
+    // Stat cards show all-time totals; "tháng này" sections below show monthly detail
+    _repairsCount = repairs.length;
+    _salesCount = sales.length;
     _attendanceCount = monthlyAttendance.length;
   }
 

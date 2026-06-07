@@ -102,6 +102,7 @@ class _SupplierPickerSheetState extends State<_SupplierPickerSheet> {
         _cursorName = null;
         _hasMore = true;
         _total = 0;
+        _isLoading = false;
       });
       _loadPage();
     });
@@ -115,6 +116,7 @@ class _SupplierPickerSheetState extends State<_SupplierPickerSheet> {
       _cursorName = null;
       _hasMore = true;
       _total = 0;
+      _isLoading = false;
     });
     _loadPage();
   }
