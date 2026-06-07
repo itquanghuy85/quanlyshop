@@ -5247,7 +5247,7 @@ class DBHelper {
     final maps = await (await database).query(
       'products',
       where:
-          'shopId = ? AND status = 1 AND quantity > 0 AND (deleted = 0 OR deleted IS NULL)',
+          'shopId = ? AND (status = 1 OR status IS NULL) AND quantity > 0 AND (deleted = 0 OR deleted IS NULL)',
       whereArgs: [shopId],
       orderBy: 'createdAt DESC',
     );
@@ -6359,6 +6359,74 @@ class DBHelper {
       debugPrint('🔧 deduplicateSuppliers: removed $removed duplicates total');
     }
     return removed;
+  }
+
+  /// Dọn dẹp điện thoại trùng IMEI — giữ bản có updatedAt mới nhất, soft-delete phần còn lại.
+  /// Cũng split bất kỳ record nào còn chứa '|' trong imei (chưa được migrate).
+  Future<Map<String, int>> deduplicateProductsByImei() async {
+    final db = await database;
+    final shopId = await _getCurrentShopId();
+    if (shopId == null) return {};
+
+    int splitFixed = 0;
+    int dedupRemoved = 0;
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    // 1. Split còn sót — phones vẫn còn '|' trong imei
+    final multiImeiRows = await db.rawQuery(
+      "SELECT * FROM products WHERE type = 'DIEN_THOAI' AND imei LIKE '%|%' AND (deleted = 0 OR deleted IS NULL) AND shopId = ?",
+      [shopId],
+    );
+    for (final row in multiImeiRows) {
+      final rawImei = (row['imei'] as String? ?? '');
+      final imeis = rawImei.split('|').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      if (imeis.length <= 1) continue;
+      final parentId = row['id'] as int;
+      final parentFid = (row['firestoreId'] as String?) ?? 'prod_${row['createdAt']}';
+      await db.update('products', {'imei': imeis[0], 'quantity': 1, 'updatedAt': now}, where: 'id = ?', whereArgs: [parentId]);
+      for (int i = 1; i < imeis.length; i++) {
+        final newFid = '${parentFid}__s$i';
+        final Map<String, dynamic> newRow = Map<String, dynamic>.from(row);
+        newRow.remove('id');
+        newRow['firestoreId'] = newFid;
+        newRow['imei'] = imeis[i];
+        newRow['quantity'] = 1;
+        newRow['isSynced'] = 0;
+        newRow['createdAt'] = now + i;
+        newRow['updatedAt'] = now;
+        await db.insert('products', newRow, conflictAlgorithm: ConflictAlgorithm.ignore);
+        splitFixed++;
+      }
+    }
+
+    // 2. Dedup — cùng IMEI nhưng 2 record khác nhau → giữ updatedAt mới nhất
+    final duplicates = await db.rawQuery('''
+      SELECT imei, shopId, COUNT(*) as cnt, GROUP_CONCAT(id) as ids
+      FROM products
+      WHERE (deleted = 0 OR deleted IS NULL)
+        AND imei IS NOT NULL AND imei != '' AND imei NOT LIKE '%|%'
+        AND type = 'DIEN_THOAI' AND shopId = ?
+      GROUP BY LOWER(imei), shopId
+      HAVING cnt > 1
+    ''', [shopId]);
+
+    for (final group in duplicates) {
+      final ids = (group['ids'] as String).split(',').map(int.parse).toList();
+      // Lấy tất cả rows để tìm updatedAt mới nhất
+      final rows = await db.query('products', where: 'id IN (${ids.join(',')})', orderBy: 'updatedAt DESC');
+      if (rows.isEmpty) continue;
+      final keepId = rows.first['id'] as int;
+      for (final r in rows.skip(1)) {
+        final deleteId = r['id'] as int;
+        await db.update('products', {'deleted': 1, 'isSynced': 0, 'updatedAt': now}, where: 'id = ?', whereArgs: [deleteId]);
+        dedupRemoved++;
+        debugPrint('🔧 Dedup IMEI: kept id=$keepId, removed id=$deleteId (imei=${r['imei']})');
+      }
+    }
+
+    if (splitFixed > 0) debugPrint('🔧 deduplicateProductsByImei: split $splitFixed multi-IMEI records');
+    if (dedupRemoved > 0) debugPrint('🔧 deduplicateProductsByImei: removed $dedupRemoved duplicate IMEI records');
+    return {'splitFixed': splitFixed, 'dedupRemoved': dedupRemoved};
   }
 
   Future<int> deleteSupplier(int id) async =>

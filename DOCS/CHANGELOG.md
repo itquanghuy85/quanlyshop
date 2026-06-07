@@ -4,6 +4,18 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-07j] - fix: kiểm kho thiếu 44 máy + double IMEI
+
+**Files thay đổi:**
+- `lib/data/db_helper.dart` — fix `getInStockProducts` dùng `(status=1 OR status IS NULL)` thay `status=1` strict; thêm `deduplicateProductsByImei()`
+- `lib/views/fast_inventory_check_view.dart` — gọi `deduplicateProductsByImei()` mỗi lần mở kiểm kho
+
+**Root cause:**
+1. **Kiểm kho thiếu máy**: `getInStockProducts` dùng `status = 1` strict — phones import từ KiotViet có `status = NULL` → bị loại khỏi kiểm kho dù vẫn còn trong kho. Tất cả query khác đều dùng `(status = 1 OR status IS NULL)`.
+2. **Double IMEI**: Một số phones vẫn còn `imei` dạng `IMEI1|IMEI2` chưa được split (v102 migration có thể bỏ sót nếu record được push từ Firestore sau migration). `deduplicateProductsByImei()` fix split sót + dedup nếu cùng IMEI xuất hiện 2 lần.
+
+---
+
 ## [2026-06-07i] - fix: bàn phím che nội dung khi bấm KTV/sửa thông tin trong đơn sửa
 
 **Files thay đổi:**

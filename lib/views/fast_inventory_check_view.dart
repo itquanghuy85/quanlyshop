@@ -198,6 +198,8 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
   Future<void> _loadInventoryData() async {
     setState(() => _isLoading = true);
     try {
+      // Fix split sót + dedup IMEI trước khi load
+      await db.deduplicateProductsByImei();
       final allProducts = await db.getInStockProducts();
       final (mainTypes, secondaryTypes) = _getProductTypesForBusiness();
 
