@@ -521,7 +521,7 @@ class DBHelper {
 
     final db = await openDatabase(
       path,
-      version: 102,
+      version: 103,
       onConfigure: (db) async {
         try {
           await db.execute('PRAGMA foreign_keys = ON');
@@ -2163,6 +2163,19 @@ class DBHelper {
             debugPrint('DB v102: split ${rows.length} DIEN_THOAI products → $created new IMEI records');
           } catch (e) {
             debugPrint('DB upgrade v102 error: $e');
+          }
+        }
+        if (oldV < 103) {
+          // v103: Restore DIEN_THOAI products incorrectly soft-deleted by deduplicateProductsByImei()
+          // (dedup was too aggressive — grouped short/partial IMEIs from KiotViet as duplicates)
+          try {
+            final restored = await db.rawUpdate(
+              "UPDATE products SET deleted = 0, isSynced = 0 WHERE type = 'DIEN_THOAI' AND deleted = 1 AND quantity > 0 AND updatedAt > ?",
+              [DateTime.now().subtract(const Duration(hours: 48)).millisecondsSinceEpoch],
+            );
+            if (restored > 0) debugPrint('DB v103: restored $restored DIEN_THOAI products incorrectly deleted by dedup');
+          } catch (e) {
+            debugPrint('DB upgrade v103 error: $e');
           }
         }
         if (oldV < 26) {

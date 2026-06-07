@@ -4,6 +4,17 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-07k] - fix(critical): khôi phục phones bị dedup xóa nhầm (DB v103)
+
+**Files thay đổi:**
+- `lib/data/db_helper.dart` — DB v103: restore DIEN_THOAI bị soft-delete trong 48h qua (deleted=1, qty>0); bỏ call deduplicateProductsByImei() khỏi fast_inventory_check_view
+
+**Root cause:** `deduplicateProductsByImei()` nhóm phones theo `LOWER(imei)` — IMEI từ KiotViet là mã ngắn 4-5 chữ số (không phải IMEI 15 chữ số chuẩn), nên nhiều máy khác nhau có cùng mã → bị xóa nhầm (82 phones). Migration v103 restore an toàn bằng filter `updatedAt > now-48h` để tránh restore phones user đã xóa cũ.
+
+**Lưu ý:** Chênh lệch kho(222) vs kiểm kho là bình thường — kiểm kho chỉ hiện phones có IMEI (để scan được). Phones không có IMEI không thể kiểm bằng scan.
+
+---
+
 ## [2026-06-07j] - fix: kiểm kho thiếu 44 máy + double IMEI
 
 **Files thay đổi:**
