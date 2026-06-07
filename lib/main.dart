@@ -325,11 +325,11 @@ class _MyAppState extends State<MyApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       // Edge-to-edge fix: some sub-screens get MediaQuery.padding.top=0 on Android 16
-      // even though the physical status bar is still present. Read the authoritative
-      // inset from the Flutter engine window and inject it if it's larger.
+      // even though the physical status bar is still present. Use viewPadding.top
+      // (stable system inset) instead of padding.top (can be 0 in edge-to-edge).
       builder: (context, child) {
         final view = View.of(context);
-        final rawTop = view.padding.top / view.devicePixelRatio;
+        final rawTop = view.viewPadding.top / view.devicePixelRatio;
         final mq = MediaQuery.of(context);
         final fixed = rawTop > mq.padding.top
             ? mq.copyWith(padding: mq.padding.copyWith(top: rawTop))

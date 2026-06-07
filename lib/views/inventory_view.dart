@@ -1406,21 +1406,30 @@ class _InventoryViewState extends State<InventoryView>
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       showDragHandle: false,
       builder: (outerCtx) => StatefulBuilder(
-        builder: (ctx, setS) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-          child: Container(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(ctx).size.height * 0.88 - MediaQuery.of(ctx).viewInsets.bottom,
-            ),
-            decoration: const BoxDecoration(
-              color: PopupTheme.bgDark,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(PopupTheme.radiusSheet)),
-            ),
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            child: SingleChildScrollView(child: Column(
+        builder: (ctx, setS) {
+          final keyboardInset = MediaQuery.viewInsetsOf(ctx).bottom;
+          final bottomInset = MediaQuery.paddingOf(ctx).bottom;
+
+          return AnimatedPadding(
+            duration: const Duration(milliseconds: 120),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.only(bottom: keyboardInset),
+            child: SafeArea(
+              top: false,
+              child: Container(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.sizeOf(ctx).height * 0.88,
+                ),
+                decoration: const BoxDecoration(
+                  color: PopupTheme.bgDark,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(PopupTheme.radiusSheet)),
+                ),
+                padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + bottomInset),
+                child: SingleChildScrollView(child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1549,8 +1558,10 @@ class _InventoryViewState extends State<InventoryView>
                 ),
               ],
             )),
-          ),
-        ),
+              ),
+            ),
+          );
+        },
       ),
     );
 

@@ -210,15 +210,26 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
       useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setS) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-            child: Column(
+        builder: (ctx, setS) {
+          final keyboardInset = MediaQuery.viewInsetsOf(ctx).bottom;
+          final bottomInset = MediaQuery.paddingOf(ctx).bottom;
+
+          return AnimatedPadding(
+            duration: const Duration(milliseconds: 120),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.only(bottom: keyboardInset),
+            child: SafeArea(
+              top: false,
+              child: Container(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.sizeOf(ctx).height * 0.88,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + bottomInset),
+                child: SingleChildScrollView(child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -291,7 +302,10 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
                 const SizedBox(height: 16),
                 Row(children: [
                   Expanded(child: OutlinedButton(
-                    onPressed: () => Navigator.pop(ctx),
+                    onPressed: () {
+                      FocusScope.of(ctx).unfocus();
+                      Navigator.pop(ctx);
+                    },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.grey.shade700,
                       side: BorderSide(color: Colors.grey.shade300),
@@ -318,9 +332,11 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
                   )),
                 ]),
               ],
+            )),
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
 

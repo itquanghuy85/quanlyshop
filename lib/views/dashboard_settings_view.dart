@@ -127,11 +127,9 @@ class _DashboardSettingsViewState extends State<DashboardSettingsView>
   @override
   Widget build(BuildContext context) {
     // Edge-to-edge: ensure AppBar has correct status-bar padding.
-    // On some Samsung devices, MediaQuery.padding.top can be 0 for this route
-    // even though the physical status bar is ~28-32 dp.  Read the authoritative
-    // value from the Flutter engine window and inject it if it is larger.
+    // Use viewPadding.top (stable inset) instead of padding.top.
     final view = View.of(context);
-    final rawStatusBar = view.padding.top / view.devicePixelRatio;
+    final rawStatusBar = view.viewPadding.top / view.devicePixelRatio;
     final mq = MediaQuery.of(context);
     final correctedMq = rawStatusBar > mq.padding.top
         ? mq.copyWith(padding: mq.padding.copyWith(top: rawStatusBar))
