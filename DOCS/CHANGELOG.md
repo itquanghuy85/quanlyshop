@@ -4,6 +4,18 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-08a] - fix: bulk xóa kho dùng soft-delete + fix đơn duyệt giao vẫn hiện chờ duyệt
+
+**Files thay đổi:**
+- `lib/views/inventory_view.dart` — đổi bulk delete từ `deleteProduct` (hard) sang `softDeleteProduct` để Firestore nhận `deleted:true` khi sync
+- `lib/views/repair_detail_view.dart` — trong `_protectLocalUnsyncedRepairFromStaleCloud`: thêm exception "nếu cloud có status=4 mà local<4, luôn accept cloud" → tránh manager duyệt trên máy khác bị block
+
+**Root cause:**
+1. **Bulk xóa kho**: Checkbox select → xóa gọi `db.deleteProduct(id)` = hard delete → record mất khỏi SQLite → không có gì để push `deleted:true` lên Firestore → máy khác vẫn thấy record đó.
+2. **Đơn chờ duyệt không update**: Staff submit chờ duyệt trên Phone A (isSynced=false), manager duyệt trên Phone B → Firestore có status=4. Phone A nhận cloud update nhưng protection logic block vì isSynced=false + timestamps gần nhau → Phone A vẫn hiện "Đang chờ duyệt".
+
+---
+
 ## [2026-06-07l] - fix(sync): đẩy deleted lên Firestore cho tất cả bảng
 
 **Files thay đổi:**

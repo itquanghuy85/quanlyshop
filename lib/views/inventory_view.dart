@@ -2270,16 +2270,19 @@ class _InventoryViewState extends State<InventoryView>
             targetId: p.imei,
             desc: "Đã xóa ${p.name} (${_terms.specialField1Label}: ${p.imei})",
           );
-          await db.deleteProduct(id);
+          // Soft delete để record còn trong DB với deleted=1, isSynced=0
+          // → syncAllToCloud sẽ push deleted:true lên Firestore
+          await db.softDeleteProduct(id);
 
-          // Queue delete sync via SyncOrchestrator
-          await SyncOrchestrator().enqueue(
-            entityType: SyncEntityType.product,
-            entityId: id,
-            firestoreId: p.firestoreId,
-            operation: SyncOperation.delete,
-            data: null,
-          );
+          if (p.firestoreId != null) {
+            await SyncOrchestrator().enqueue(
+              entityType: SyncEntityType.product,
+              entityId: id,
+              firestoreId: p.firestoreId,
+              operation: SyncOperation.update,
+              data: null,
+            );
+          }
         }
         HapticFeedback.mediumImpact();
         _refresh();

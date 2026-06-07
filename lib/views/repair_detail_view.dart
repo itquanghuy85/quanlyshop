@@ -332,6 +332,16 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       return cloudRepair;
     }
 
+    // Status 4 (đã giao) là trạng thái cuối — cloud approval luôn thắng.
+    // Tránh trường hợp: staff submit chờ duyệt (local unsynced),
+    // manager duyệt trên máy khác → cloud status=4 bị block bởi protection.
+    if (cloudRepair.status == 4 && localRepair.status < 4) {
+      debugPrint(
+        '🔓 [RepairDetailView] Cloud approved delivery (status 4) overrides local pending for $firestoreId',
+      );
+      return cloudRepair;
+    }
+
     final localTime = localRepair.lastCaredAt ?? localRepair.createdAt;
     final cloudTime = _extractCloudRepairTimeMs(cloudData);
 
