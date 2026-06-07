@@ -1409,14 +1409,14 @@ class _InventoryViewState extends State<InventoryView>
       backgroundColor: Colors.transparent,
       builder: (outerCtx) => StatefulBuilder(
         builder: (ctx, setS) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(outerCtx).viewInsets.bottom),
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
           child: Container(
             decoration: const BoxDecoration(
               color: PopupTheme.bgDark,
               borderRadius: BorderRadius.vertical(top: Radius.circular(PopupTheme.radiusSheet)),
             ),
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            child: Column(
+            child: SingleChildScrollView(child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1459,7 +1459,7 @@ class _InventoryViewState extends State<InventoryView>
                     ),
                   ),
                   dropdownColor: PopupTheme.bgDark,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Colors.black87),
                   items: ['TIỀN MẶT', 'CHUYỂN KHOẢN', 'CÔNG NỢ'].map((m) =>
                     DropdownMenuItem(value: m, child: Text(m)),
                   ).toList(),
@@ -1544,7 +1544,7 @@ class _InventoryViewState extends State<InventoryView>
                   ],
                 ),
               ],
-            ),
+            )),
           ),
         ),
       ),
