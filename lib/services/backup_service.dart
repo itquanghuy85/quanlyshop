@@ -336,24 +336,34 @@ class BackupService {
     final firestore = FirebaseFirestore.instance;
     int totalDeleted = 0;
 
+    // Soft-delete với staggered timestamps thay vì hard-delete:
+    // Hard-delete không có updatedAt → polling cursor trên máy khác không
+    // bao giờ nhận được sự kiện xóa → sản phẩm cũ vẫn còn local mãi mãi.
+    // Staggered timestamps (nowMs + i) đảm bảo mỗi doc có updatedAt unique
+    // → incremental poll (20 docs/lần) advance cursor đúng → auto-sync.
     Future<void> deleteByQuery(Query<Map<String, dynamic>> query) async {
-      while (true) {
-        final snapshot = await query.limit(400).get();
-        if (snapshot.docs.isEmpty) {
-          break;
-        }
+      final snapshot = await query.get();
+      if (snapshot.docs.isEmpty) return;
 
-        final batch = firestore.batch();
-        for (final doc in snapshot.docs) {
-          batch.delete(doc.reference);
-        }
-        await batch.commit();
-        totalDeleted += snapshot.docs.length;
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      WriteBatch batch = firestore.batch();
+      int batchCount = 0;
 
-        if (snapshot.docs.length < 400) {
-          break;
+      for (int i = 0; i < snapshot.docs.length; i++) {
+        batch.update(snapshot.docs[i].reference, {
+          'deleted': true,
+          'updatedAt': Timestamp.fromMillisecondsSinceEpoch(nowMs + i),
+        });
+        batchCount++;
+        totalDeleted++;
+
+        if (batchCount >= 400) {
+          await batch.commit();
+          batch = firestore.batch();
+          batchCount = 0;
         }
       }
+      if (batchCount > 0) await batch.commit();
     }
 
     final List<String> skipped = [];

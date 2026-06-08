@@ -14,6 +14,11 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Branch:** master  
 **Active Initiative:** ✅ Chuẩn hoá hiển thị giảm giá & format tiền — HOÀN THÀNH
 
+### ✅ Vừa hoàn thành (2026-06-08n): Xóa cloud → tự đồng bộ sang máy B/C (soft-delete + staggered timestamp)
+- **Root cause**: `deleteSelectedDataFromCloud` hard-delete → không có `updatedAt` → polling cursor không advance → máy B/C không nhận được sự kiện xóa.
+- **Fix**: `backup_service.dart` `deleteByQuery` dùng `batch.update({deleted: true, updatedAt: nowMs + i})` thay hard-delete. Staggered timestamps đảm bảo poll 20 docs/lần advance cursor đúng.
+- **Kết quả**: Máy A xóa kho + đẩy KiotViet → Máy B/C tự động nhận xóa + nhận hàng mới qua polling. Không cần thao tác thủ công trên máy B/C.
+
 ### ✅ Vừa hoàn thành (2026-06-08m): Fix "Nhận kho từ Cloud" đồng bộ sạch sau import KiotViet
 - **Bug**: `downloadAllFromCloud` chỉ upsert → sản phẩm cũ hard-deleted trên Firestore vẫn còn local trên máy B.
 - **Fix**: `settings_view._pullKhoFromCloud` xóa local products (`DELETE WHERE shopId`) trước khi pull.

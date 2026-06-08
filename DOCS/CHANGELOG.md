@@ -4,6 +4,17 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-08n] - fix: Xóa cloud dùng soft-delete + staggered timestamp → tự đồng bộ sang máy B/C
+
+**Files thay đổi:**
+- `lib/services/backup_service.dart` — `deleteSelectedDataFromCloud` → `deleteByQuery`: đổi từ `batch.delete(doc.reference)` (hard-delete) sang `batch.update({deleted: true, updatedAt: nowMs + i})` (soft-delete với timestamp staggered).
+
+**Root cause:** Hard-delete xóa document khỏi Firestore hoàn toàn — không có `updatedAt` mới → subscription polling trên máy B/C dùng cursor `updatedAt > T` không nhận được sự kiện → sản phẩm cũ còn nguyên local mãi mãi.
+
+**Cách hoạt động sau fix:** Mỗi doc được update với `updatedAt = nowMs + i` (unique, tăng dần). Máy B/C poll 20 docs/lần → cursor advance → poll tiếp 20 docs → ... → xử lý hết. `data['deleted'] == true` → `deleteProductByFirestoreId` → sản phẩm cũ tự xóa local. Sau đó khi Máy A push KiotViet mới lên Firestore (`updatedAt = now_after_import > cursor`) → Máy B/C poll → upsert sản phẩm mới. **Hoàn toàn tự động, không cần thao tác trên máy B/C.**
+
+---
+
 ## [2026-06-08m] - fix: "Nhận kho từ Cloud" xóa local trước khi pull (đồng bộ sau import KiotViet)
 
 **Files thay đổi:**
