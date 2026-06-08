@@ -1317,9 +1317,11 @@ class _SaleListViewState extends State<SaleListView> {
     );
   }
 
-  /// Tổng giảm giá của đơn = item-level discount (từ salePrice - unitPrice) + order discount
+  /// Tổng giảm giá của đơn = item-level discount (từ salePrice - unitPrice) + order discount.
+  /// Fallback: parse "(Giảm X.XXX)" từ productNames cho đơn cũ không có salePrice trong snapshot.
   int _totalItemDiscount(SaleOrder s) {
     int total = s.discount;
+    int itemLevelFromSnapshot = 0;
     final snapJson = s.itemSnapshotsJson;
     if (snapJson != null && snapJson.isNotEmpty) {
       try {
@@ -1329,11 +1331,25 @@ class _SaleListViewState extends State<SaleListView> {
             final sp = (item['salePrice'] as num?)?.toInt() ?? 0;
             final up = ((item['unitPrice'] ?? item['price']) as num?)?.toInt() ?? 0;
             final qty = (item['quantity'] as num?)?.toInt() ?? 1;
-            if (sp > up && up > 0) total += (sp - up) * qty;
+            if (sp > up && up > 0) itemLevelFromSnapshot += (sp - up) * qty;
           }
         }
       } catch (_) {}
     }
+    total += itemLevelFromSnapshot;
+
+    // Fallback for old orders: parse "(Giảm 1.000.000)" from productNames
+    if (itemLevelFromSnapshot == 0) {
+      final names = s.productNames;
+      final matches = RegExp(r'\(GI[AÀ]M\s+([\d.]+)\)', caseSensitive: false)
+          .allMatches(names);
+      for (final m in matches) {
+        final amtStr = (m.group(1) ?? '').replaceAll('.', '');
+        final amt = int.tryParse(amtStr) ?? 0;
+        total += amt;
+      }
+    }
+
     return total;
   }
 

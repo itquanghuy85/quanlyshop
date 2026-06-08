@@ -2999,7 +2999,8 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         setState(() {
           item['isGift'] = false;
           item['sellPrice'] = newPrice;
-          item['originalPrice'] = newPrice;
+          // Keep originalPrice unchanged so salePrice in snapshot = catalog price
+          // and discount = originalPrice - sellPrice is correctly tracked.
           _calculateTotal();
         });
         if (updateInventory && product.id != null) {

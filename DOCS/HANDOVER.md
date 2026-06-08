@@ -14,6 +14,12 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Branch:** master  
 **Active Initiative:** ✅ Chuẩn hoá hiển thị giảm giá & format tiền — HOÀN THÀNH
 
+### ✅ Vừa hoàn thành (2026-06-08i): Fix hiển thị giảm giá ở list bán & chi tiết đơn
+- **Root cause**: `set_price` case trong `create_sale_view.dart` update cả `originalPrice = newPrice` → `salePrice = unitPrice` → discount = 0.
+- **Fix 1 (create_sale_view)**: Bỏ dòng `item['originalPrice'] = newPrice` → giờ `originalPrice` giữ nguyên giá catalog.
+- **Fix 2 (sale_list_view)**: `_totalItemDiscount()` thêm fallback regex parse "(Giảm X)" từ productNames cho đơn cũ.
+- **Fix 3 (sale_detail_view)**: Builder giảm giá nay luôn hiển thị "Tổng giảm giá: -X Tr" khi totalDisc > 0.
+
 ### ✅ Vừa hoàn thành (2026-06-08h): Fix 4 bugs giảm giá & format tiền
 - **Giá vốn format**: `inventory_detail_view.dart` `_costRow` — `formatCurrency` → `formatCompactCurrency` (hiển thị `10 Tr` thay `10.000.000`).
 - **Scroll bị cắt**: `SingleChildScrollView` padding bottom tăng từ `16` → `32` px.

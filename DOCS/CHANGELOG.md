@@ -4,6 +4,19 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-08i] - fix: Hiển thị giảm giá đúng ở list bán & chi tiết đơn bán (3 bugs)
+
+**Files thay đổi:**
+- `lib/views/create_sale_view.dart` — `set_price` case: bỏ `item['originalPrice'] = newPrice`. Giờ `originalPrice` giữ nguyên giá catalog → `salePrice` trong snapshot = giá gốc, `unitPrice` = giá bán thực → discount = giá gốc - giá bán được track đúng.
+- `lib/views/sale_list_view.dart` — `_totalItemDiscount()`: thêm fallback regex `\(GI[AÀ]M\s+([\d.]+)\)` parse từ `productNames` cho đơn cũ không có `salePrice` trong snapshot (đơn tạo trước khi field `salePrice` được thêm vào snapshot).
+- `lib/views/sale_detail_view.dart` — Builder giảm giá: thay điều kiện `itemDisc > 0 && orderDisc > 0` để show "Tổng giảm giá" → nay hiện "Tổng giảm giá: -X Tr" bất cứ khi nào totalDisc > 0; khi có cả 2 loại mới break thành "Giảm sản phẩm" + "Giảm đơn" + "Tổng".
+
+**Root cause chính:** `set_price` case cập nhật cả `originalPrice = newPrice` → `salePrice = unitPrice` → discount = 0 → không có chip/row.
+
+**Backward compat:** Regex fallback hoạt động cho đơn cũ dùng "Giảm giá" (productNames có "(Giảm X)"). Đơn cũ dùng "Sửa giá bán" không có data để recover (originalPrice và sellPrice đều = giá mới, không lưu giá gốc).
+
+---
+
 ## [2026-06-08h] - fix: Chuẩn hoá format tiền & hiển thị giảm giá đầy đủ (4 bugs)
 
 **Files thay đổi:**

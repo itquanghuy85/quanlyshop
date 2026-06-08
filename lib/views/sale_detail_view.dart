@@ -1683,14 +1683,15 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                   final itemDisc = _totalItemLevelDiscount;
                   final orderDisc = s.discount;
                   final totalDisc = itemDisc + orderDisc;
+                  if (totalDisc <= 0) return const SizedBox.shrink();
+                  final hasBoth = itemDisc > 0 && orderDisc > 0;
                   return Column(
                     children: [
-                      if (itemDisc > 0)
+                      if (hasBoth) ...[
                         _item('Giảm sản phẩm', '-${_money(itemDisc)}', color: Colors.orange),
-                      if (orderDisc > 0)
-                        _item(AppLocalizations.of(ctx)!.itemDiscount, '-${_money(orderDisc)}', color: Colors.orange),
-                      if (itemDisc > 0 && orderDisc > 0)
-                        _item('Tổng giảm giá', '-${_money(totalDisc)}', color: Colors.deepOrange),
+                        _item('Giảm đơn', '-${_money(orderDisc)}', color: Colors.orange),
+                      ],
+                      _item('Tổng giảm giá', '-${_money(totalDisc)}', color: Colors.deepOrange),
                     ],
                   );
                 }),
