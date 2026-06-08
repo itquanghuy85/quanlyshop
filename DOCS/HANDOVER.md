@@ -14,6 +14,11 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Branch:** master  
 **Active Initiative:** ✅ Chuẩn hoá hiển thị giảm giá & format tiền — HOÀN THÀNH
 
+### ✅ Vừa hoàn thành (2026-06-08l): Fix 3 bugs còn sót sau audit lần 2
+- **Bulk delete (inventory_view:2282)**: `SyncOperation.update` → `SyncOperation.delete` (cùng bug như single delete đã fix, nhưng ở path xóa hàng loạt bằng checkbox).
+- **_handleUpdate normalize**: `sync_orchestrator.dart` — thêm `data['deleted'] = data['deleted'] == 1 || data['deleted'] == true` trước khi push Firestore. Bất kỳ SyncOperation.update nào mà data có `deleted=1` sẽ không corrupt Firestore.
+- **_pullKhoFromCloud safety**: `settings_view.dart` — `SyncOrchestrator().syncAll()` trước `downloadAllFromCloud(force: true)` → push pending trước khi pull đè tránh mất dữ liệu.
+
 ### ✅ Vừa hoàn thành (2026-06-08k): Fix pull paths bỏ sót deleted:1 — root cause chính lệch kho
 - **Root cause thực sự**: `syncAllToCloud` đã biết dùng `== 1 || == true` nhưng **tất cả subscription callbacks + downloadAllFromCloud** chỉ check `== true` → Firestore record `deleted: 1` (integer, từ bug cũ) không bị xóa local → ghost products restore lại khi pull.
 - **Fix**: `sync_service.dart` — replace all 30+ `data['deleted'] == true` → `data['deleted'] == true || data['deleted'] == 1` trong toàn bộ pull paths.

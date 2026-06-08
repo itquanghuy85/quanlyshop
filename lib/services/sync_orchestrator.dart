@@ -734,6 +734,11 @@ class SyncOrchestrator {
     data.remove('isSynced');
     data.remove('firestoreId');
 
+    // Normalize deleted: SQLite integer (1/0) → Firestore boolean (true/false)
+    if (data.containsKey('deleted')) {
+      data['deleted'] = data['deleted'] == 1 || data['deleted'] == true;
+    }
+
     await _withCloudWriteTimeout(
       _firestore
           .collection(collection)

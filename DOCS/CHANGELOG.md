@@ -4,6 +4,20 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-08l] - fix: 3 bugs còn sót sau audit lần 2
+
+**Files thay đổi:**
+- `lib/views/inventory_view.dart` (line 2282) — Bulk delete (checkbox chọn nhiều): `SyncOperation.update` → `SyncOperation.delete`. Cùng bug như single delete đã fix ở [2026-06-08j] nhưng ở đường xóa hàng loạt.
+- `lib/services/sync_orchestrator.dart` `_handleUpdate` — Thêm normalize `deleted` field trước khi push lên Firestore: `data['deleted'] = data['deleted'] == 1 || data['deleted'] == true`. Bất kỳ update nào mà sản phẩm có `deleted=1` trong SQLite (do race condition hoặc bug cũ trong queue) sẽ không push `deleted: 1` integer lên Firestore nữa.
+- `lib/views/settings_view.dart` `_pullKhoFromCloud` — Gọi `SyncOrchestrator().syncAll()` trước khi `downloadAllFromCloud(force: true)` để đảm bảo local pending changes được push trước, tránh mất dữ liệu chưa sync khi pull đè.
+
+**Root causes:**
+- Bulk delete path bị bỏ sót khi fix single delete.
+- `_handleUpdate` không normalize `deleted` → SQLite integer `1` truyền thẳng lên Firestore khi update bất kỳ record đã bị mark deleted trong queue.
+- `downloadAllFromCloud` có thể hard-delete local records có `isSynced=0` trước khi chúng được push lên cloud.
+
+---
+
 ## [2026-06-08k] - fix: Pull paths bỏ sót deleted:1 (integer) — sync_service subscriptions + downloadAllFromCloud
 
 **Files thay đổi:**

@@ -2279,7 +2279,7 @@ class _InventoryViewState extends State<InventoryView>
               entityType: SyncEntityType.product,
               entityId: id,
               firestoreId: p.firestoreId,
-              operation: SyncOperation.update,
+              operation: SyncOperation.delete,
               data: null,
             );
           }

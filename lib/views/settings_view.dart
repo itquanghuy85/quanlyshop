@@ -18,6 +18,7 @@ import '../services/notification_service.dart';
 import '../services/encryption_service.dart';
 import '../data/db_helper.dart';
 import '../services/sync_service.dart';
+import '../services/sync_orchestrator.dart';
 import '../utils/app_info.dart';
 import '../services/first_time_guide_service.dart';
 import '../widgets/unified_sync_button.dart';
@@ -189,6 +190,10 @@ class _SettingsViewState extends State<SettingsView> {
 
     setState(() => _isPullingFromCloud = true);
     try {
+      // Push any local pending changes first to avoid losing unsynced data
+      try {
+        await SyncOrchestrator().syncAll();
+      } catch (_) {}
       await SyncService.downloadAllFromCloud(force: true);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
