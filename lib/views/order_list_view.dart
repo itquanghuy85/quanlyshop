@@ -68,6 +68,7 @@ class OrderListViewState extends State<OrderListView> {
   bool _isRealtimeConnected = false;
   bool _useRealtimeIndexFallback = false;
   int _indexedFetchLimit = 50;
+  int _lastFirestoreDocCount = 0;
   bool _isLoadingMoreRealtime = false;
 
   AppLocalizations get loc => AppLocalizations.of(context)!;
@@ -231,7 +232,7 @@ class OrderListViewState extends State<OrderListView> {
 
     final pos = _listScrollController.position;
     if (pos.pixels < pos.maxScrollExtent - 220) return;
-    if (_displayedRepairs.length < _indexedFetchLimit) return;
+    if (_lastFirestoreDocCount < _indexedFetchLimit) return;
 
     setState(() => _isLoadingMoreRealtime = true);
     _indexedFetchLimit = (_indexedFetchLimit + 50).clamp(50, 500);
@@ -465,6 +466,7 @@ class OrderListViewState extends State<OrderListView> {
 
     if (!snapshot.metadata.isFromCache) {
       _receivedServerSnapshot = true;
+      _lastFirestoreDocCount = snapshot.docs.length;
     }
 
     var hasChanges = false;
