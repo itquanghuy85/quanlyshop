@@ -14,6 +14,11 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Branch:** master  
 **Active Initiative:** ✅ Chuẩn hoá hiển thị giảm giá & format tiền — HOÀN THÀNH
 
+### ✅ Vừa hoàn thành (2026-06-09e): Audit home_view — xóa 89 debugPrint
+- Xóa toàn bộ 89 debugPrint (trace/flow logs không ảnh hưởng logic)
+- Fix 2 warning phát sinh: `catch (e, stack)` → `catch (_)`, xóa `Stopwatch` không dùng
+- 0 errors, 0 warnings sau khi clean
+
 ### ✅ Vừa hoàn thành (2026-06-09d): Audit home_view — xóa dead navigator code
 - Xóa `_tabNavigatorKeys`, `_usesNestedNavigator`, `_navigatorKeyForTab` — không bao giờ được thực thi (nested Navigator tắt theo design)
 - Simplify `_maybePopCurrentTabNavigator` → `async => false`

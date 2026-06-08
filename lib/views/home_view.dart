@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -226,7 +226,6 @@ class _HomeViewState extends State<HomeView>
   AppLocalizations get loc => AppLocalizations.of(context)!;
 
   _HomeViewState() {
-    debugPrint('HomeView: _HomeViewState constructor called');
   }
 
   @override
@@ -258,7 +257,6 @@ class _HomeViewState extends State<HomeView>
       });
 
       _eventBusSub = EventBus().stream.listen((event) {
-        debugPrint('HomeView: Received event: $event');
         if ((event == 'debts_changed' ||
                 event == 'debt_payments_changed' ||
                 event == 'repair_partners_changed' ||
@@ -270,20 +268,17 @@ class _HomeViewState extends State<HomeView>
                 event == 'sales_returns_changed' ||
                 event == EventBus.financialChanged) &&
             mounted) {
-          debugPrint('HomeView: Loading stats for event: $event');
           _debouncedLoadStats();
           _debouncedLoadDebtOverview();
         }
 
         if ((event == 'users_changed' || event == 'user_profile_changed') &&
             mounted) {
-          debugPrint('HomeView: User profile changed, reloading greeting info');
           unawaited(_loadUserAndShopInfo());
         }
 
         // Handle shop change event - reload everything
         if (event == EventBus.shopChanged && mounted) {
-          debugPrint('HomeView: Shop changed, reloading all data');
           _initialSetup();
           _debouncedLoadStats();
           _debouncedLoadDebtOverview();
@@ -294,17 +289,14 @@ class _HomeViewState extends State<HomeView>
         // Handle settings change — reload shop settings để MissingInfoProductsView
         // và các view con nhận được giá trị mới nhất (allowPendingCost, enableSupplier...)
         if (event == 'settings_changed' && mounted) {
-          debugPrint('HomeView: Settings changed, reloading shop settings');
           unawaited(_loadShopSettings());
         }
-      }, onError: (e) => debugPrint('HomeView: EventBus error: $e'));
-
+      }, onError: (e) =>
       // NOTE: listenToNotifications already called in AuthGate (main.dart)
       // Removing duplicate listener to avoid double snackbar/notification on iOS
 
       Future.delayed(const Duration(seconds: 5), () {
         if (mounted && _permissions.isEmpty) {
-          debugPrint('Permissions not loaded, forcing update');
           _updatePermissions(forceRefresh: true);
         }
       });
@@ -322,7 +314,6 @@ class _HomeViewState extends State<HomeView>
         _restoredTabIndex = saved != null && saved >= 0 ? saved : null;
       });
     } catch (e) {
-      debugPrint('HomeView: Failed to load saved tab index: $e');
     }
   }
 
@@ -335,7 +326,6 @@ class _HomeViewState extends State<HomeView>
         _showHomeCommunityCard = saved ?? true;
       });
     } catch (e) {
-      debugPrint('HomeView: Failed to load community dashboard pref: $e');
     }
   }
 
@@ -348,7 +338,6 @@ class _HomeViewState extends State<HomeView>
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_showHomeCommunityCardPrefKey, value);
     } catch (e) {
-      debugPrint('HomeView: Failed to save community dashboard pref: $e');
     }
   }
 
@@ -363,7 +352,6 @@ class _HomeViewState extends State<HomeView>
             : CommunityService.streamPosts(shopId: shopId, limit: 5);
       });
     } catch (e) {
-      debugPrint('HomeView: Failed to refresh community stream: $e');
       if (!mounted) return;
       setState(() {
         _homeCommunityShopId = '';
@@ -485,7 +473,6 @@ class _HomeViewState extends State<HomeView>
       await prefs.setInt(_lastTabIndexPrefKey, index);
       await prefs.setString(_lastTabIdPrefKey, _tabIdAt(index));
     } catch (e) {
-      debugPrint('HomeView: Failed to persist tab index: $e');
     }
   }
 
@@ -1394,7 +1381,6 @@ class _HomeViewState extends State<HomeView>
       _autoSyncTimer?.cancel();
       _autoSyncTimer = null;
       _lastPausedAt = DateTime.now();
-      debugPrint('HomeView: App paused - paused sync timer');
     } else if (state == AppLifecycleState.resumed) {
       EventBus().emit('app_resumed');
 
@@ -1415,9 +1401,6 @@ class _HomeViewState extends State<HomeView>
         _debouncedLoadDebtOverview();
       } else {
         // Quick resume (camera, picker, etc.) — lightweight refresh only
-        debugPrint(
-          'HomeView: Quick resume (${pauseDuration.inMilliseconds}ms) - skipping heavy reload',
-        );
         _debouncedLoadStats();
       }
     }
@@ -1645,9 +1628,6 @@ class _HomeViewState extends State<HomeView>
       if (ensuredShopId == null || ensuredShopId.isEmpty) {
         final user = FirebaseAuth.instance.currentUser;
         if (user != null && user.email != null) {
-          debugPrint(
-            'HomeView: shopId missing, forcing syncUserInfo recovery...',
-          );
           await UserService.syncUserInfo(user.uid, user.email!);
           needsCloudDownload = true;
         }
@@ -1661,9 +1641,6 @@ class _HomeViewState extends State<HomeView>
       // Chỉ cần update lastUserId và sync lại từ cloud
       // Dữ liệu sẽ được lọc theo shopId trong các queries
       if (currentUser != null && currentUser.uid != lastUserId) {
-        debugPrint(
-          'HomeView: User changed from $lastUserId to ${currentUser.uid}',
-        );
         await prefs.setString('lastUserId', currentUser.uid);
         if (currentUser.email != null) {
           await UserService.syncUserInfo(currentUser.uid, currentUser.email!);
@@ -1676,15 +1653,10 @@ class _HomeViewState extends State<HomeView>
         if (!kIsWeb &&
             (SyncService.isRealTimeSyncActive ||
                 SyncService.isRealtimeInitializationInProgress)) {
-          debugPrint(
-            'HomeView: Skip cloud download vì realtime sync đang active/initializing',
-          );
         } else {
-          debugPrint('HomeView: Cần cloud download, gọi 1 lần duy nhất...');
           await SyncService.downloadAllFromCloud().timeout(
             const Duration(seconds: 20),
             onTimeout: () {
-              debugPrint('HomeView: Cloud download timeout');
             },
           );
         }
@@ -1699,7 +1671,6 @@ class _HomeViewState extends State<HomeView>
         db.cleanDuplicateData();
       });
     } catch (e) {
-      debugPrint('Error in _initialSetup: $e');
       // Still try to load permissions
       unawaited(_updatePermissions(forceRefresh: true));
     }
@@ -1719,9 +1690,7 @@ class _HomeViewState extends State<HomeView>
       }
 
       final user = FirebaseAuth.instance.currentUser;
-      debugPrint('_loadUserAndShopInfo: START, user=${user?.email}');
       if (user == null) {
-        debugPrint('_loadUserAndShopInfo: No user, returning');
         return;
       }
 
@@ -1743,7 +1712,6 @@ class _HomeViewState extends State<HomeView>
           }
         }
       } catch (roleError) {
-        debugPrint('_loadUserAndShopInfo: role fetch error=$roleError');
       }
 
       // ====== TỐI ƯU: Load từ cache trước, hiện UI ngay ======
@@ -1758,9 +1726,6 @@ class _HomeViewState extends State<HomeView>
           (prefs.getString('cached_shopLogoUrl_${user.uid}') ?? '').trim();
       final cachedShopCover =
           (prefs.getString('cached_shopCoverUrl_${user.uid}') ?? '').trim();
-      debugPrint(
-        '_loadUserAndShopInfo: Cache - userName=$cachedUserName, shopName=$cachedShopName',
-      );
 
       // Hiển thị cache ngay lập tức (nếu có và không rỗng)
       if ((cachedUserName != null && cachedUserName.isNotEmpty) ||
@@ -1775,30 +1740,21 @@ class _HomeViewState extends State<HomeView>
             if (cachedShopLogo.isNotEmpty) _shopLogoUrl = cachedShopLogo;
             if (cachedShopCover.isNotEmpty) _shopCoverUrl = cachedShopCover;
           });
-          debugPrint(
-            '_loadUserAndShopInfo: Set state from cache - userName=$_userName, shopName=$_shopName',
-          );
         }
       }
 
       // Lấy tên hiển thị qua UserService (ưu tiên Firestore profile -> Auth -> email fallback)
       // Reload Auth trước để đảm bảo displayName mới nhất (quan trọng cho tài khoản mới đăng ký)
-      debugPrint('_loadUserAndShopInfo: Reloading user auth profile...');
       try {
         await user.reload();
       } catch (_) {}
-      debugPrint(
-        '_loadUserAndShopInfo: Getting displayName via UserService...',
-      );
       String displayName = await UserService.getCurrentUserName();
-      debugPrint('_loadUserAndShopInfo: displayName=$displayName');
 
       String userPhotoUrl = '';
       try {
         final userInfo = await UserService.getUserInfo(user.uid);
         userPhotoUrl = (userInfo['photoUrl'] ?? '').toString().trim();
       } catch (e) {
-        debugPrint('_loadUserAndShopInfo: user photo fetch error=$e');
       }
       if (userPhotoUrl.isEmpty) {
         userPhotoUrl = (user.photoURL ?? '').trim();
@@ -1810,9 +1766,6 @@ class _HomeViewState extends State<HomeView>
         if (displayName.isNotEmpty) {
           displayName = displayName[0].toUpperCase() + displayName.substring(1);
         }
-        debugPrint(
-          '_loadUserAndShopInfo: Using email fallback displayName=$displayName',
-        );
       }
 
       // ====== SET userName NGAY khi đã có displayName (trước khi fetch shop) ======
@@ -1823,9 +1776,6 @@ class _HomeViewState extends State<HomeView>
           _runtimeRole = resolvedRole;
         });
         await prefs.setString('cached_userName_${user.uid}', displayName);
-        debugPrint(
-          '_loadUserAndShopInfo: SET userName=$displayName (before shop fetch)',
-        );
       }
 
       // Lấy tên shop (trong try-catch riêng để không ảnh hưởng userName)
@@ -1833,39 +1783,26 @@ class _HomeViewState extends State<HomeView>
       String shopLogoUrl = '';
       String shopCoverUrl = '';
       try {
-        debugPrint('_loadUserAndShopInfo: Getting shopId...');
         final shopId = await UserService.getCurrentShopId();
-        debugPrint('_loadUserAndShopInfo: shopId=$shopId');
         if (shopId != null) {
           // Force refresh token claims trước khi đọc shop doc
           // (tránh stale claims gây permission-denied)
           try {
             await user.getIdToken(true);
-            debugPrint(
-              '_loadUserAndShopInfo: Token refreshed before shop fetch',
-            );
           } catch (_) {}
-          debugPrint(
-            '_loadUserAndShopInfo: Fetching shop doc from Firestore...',
-          );
           final shopDoc = await FirebaseFirestore.instance
               .collection('shops')
               .doc(shopId)
               .get();
           if (shopDoc.exists) {
             final shopData = shopDoc.data();
-            debugPrint('_loadUserAndShopInfo: Shop doc data=$shopData');
             shopName = normalizeLegacyShopName(shopData?['name']?.toString());
             shopLogoUrl = (shopData?['logoUrl'] ?? '').toString().trim();
             shopCoverUrl =
                 (shopData?['coverUrl'] ?? shopData?['bannerUrl'] ?? '')
                     .toString()
                     .trim();
-            debugPrint(
-              '_loadUserAndShopInfo: shopName from Firestore=$shopName',
-            );
           } else {
-            debugPrint('_loadUserAndShopInfo: Shop doc does NOT exist');
           }
 
           // Legacy fallback: some shops save profile under settings/shop_profile.
@@ -1884,9 +1821,6 @@ class _HomeViewState extends State<HomeView>
                 );
                 if (fallbackName.isNotEmpty) {
                   shopName = fallbackName;
-                  debugPrint(
-                    '_loadUserAndShopInfo: shopName from shop_profile fallback=$shopName',
-                  );
                 }
                 if (shopLogoUrl.isEmpty) {
                   shopLogoUrl = (profileData?['logoUrl'] ?? '')
@@ -1903,32 +1837,22 @@ class _HomeViewState extends State<HomeView>
                 }
               }
             } catch (profileError) {
-              debugPrint(
-                '_loadUserAndShopInfo: shop_profile fallback error=$profileError',
-              );
             }
           }
         }
       } catch (shopError) {
-        debugPrint(
-          '_loadUserAndShopInfo: Shop fetch error (userName still safe): $shopError',
-        );
         // Fallback: lấy shopName từ SharedPreferences (set bởi SyncService hoặc ShopSettings)
         final fallbackShopName = normalizeLegacyShopName(
           prefs.getString('shop_name'),
         );
         if (fallbackShopName.isNotEmpty) {
           shopName = fallbackShopName;
-          debugPrint(
-            '_loadUserAndShopInfo: shopName from SharedPreferences fallback=$shopName',
-          );
         }
       }
 
       // ====== Cache & update shopName ======
       if (shopName.isNotEmpty) {
         await prefs.setString('cached_shopName_${user.uid}', shopName);
-        debugPrint('_loadUserAndShopInfo: Cached shopName=$shopName');
       }
       if (userPhotoUrl.isNotEmpty) {
         await prefs.setString('cached_userPhotoUrl_${user.uid}', userPhotoUrl);
@@ -1949,9 +1873,6 @@ class _HomeViewState extends State<HomeView>
           _shopCoverUrl = shopCoverUrl;
           _runtimeRole = resolvedRole;
         });
-        debugPrint(
-          '_loadUserAndShopInfo: FINAL setState - userName=$_userName, shopName=$_shopName, role=$_runtimeRole',
-        );
       }
       unawaited(_refreshHomeCommunityStream());
 
@@ -1967,14 +1888,11 @@ class _HomeViewState extends State<HomeView>
               final prefs = await SharedPreferences.getInstance();
               await prefs.setString('cached_userName_${user.uid}', retryName);
               setState(() => _userName = retryName);
-              debugPrint('_loadUserAndShopInfo: RETRY got userName=$retryName');
             }
           } catch (_) {}
         });
       }
     } catch (e) {
-      debugPrint('_loadUserAndShopInfo ERROR: $e');
-      debugPrint('_loadUserAndShopInfo STACK: ${StackTrace.current}');
       // Safety net: nếu _userName vẫn rỗng sau lỗi, dùng email prefix
       if (_userName.trim().isEmpty && mounted) {
         final user = FirebaseAuth.instance.currentUser;
@@ -1985,9 +1903,6 @@ class _HomeViewState extends State<HomeView>
               : '';
           if (fallbackName.isNotEmpty) {
             setState(() => _userName = fallbackName);
-            debugPrint(
-              '_loadUserAndShopInfo: ERROR FALLBACK userName=$fallbackName',
-            );
           }
         }
       }
@@ -2054,9 +1969,6 @@ class _HomeViewState extends State<HomeView>
         await user.updatePhotoURL(uploadedUrl);
         await user.reload();
       } catch (e) {
-        debugPrint(
-          'HomeView updatePhotoURL failed, fallback Firestore photo only: $e',
-        );
       }
 
       final prefs = await SharedPreferences.getInstance();
@@ -2105,7 +2017,6 @@ class _HomeViewState extends State<HomeView>
   }
 
   Future<void> _updatePermissions({bool forceRefresh = false}) async {
-    debugPrint('HomeView: _updatePermissions called');
     try {
       final perms = await UserService.getCurrentUserPermissions(
         forceRefresh: forceRefresh,
@@ -2129,7 +2040,6 @@ class _HomeViewState extends State<HomeView>
           newPerms.entries.every((e) => _permissions[e.key] == e.value);
       final lockedSame = _shopLocked == newShopLocked;
       if (permsSame && lockedSame && _permissions.isNotEmpty) {
-        debugPrint('HomeView: Permissions unchanged, skipping rebuild');
         return;
       }
 
@@ -2140,11 +2050,7 @@ class _HomeViewState extends State<HomeView>
         _permissions = newPerms;
         _updateAvailableTabs();
       });
-      debugPrint('HomeView permissions updated: $_permissions');
-      debugPrint('Locked by Admin: $_lockedByAdmin');
-      debugPrint('Locked by Owner: $_lockedByOwner');
     } catch (e) {
-      debugPrint('Error updating permissions: $e');
       if (!mounted) return;
       setState(() {
         _permissions = {'allowViewSettings': true}; // Minimal permissions
@@ -2164,7 +2070,6 @@ class _HomeViewState extends State<HomeView>
       EventBus().emit('sync_now_completed');
       await _loadStats();
     } catch (e) {
-      debugPrint("SYNC ERROR: $e");
     } finally {
       if (mounted) setState(() => _isSyncing = false);
     }
@@ -2197,7 +2102,6 @@ class _HomeViewState extends State<HomeView>
         totalDebtRemain = totalRemain;
       });
     } catch (e) {
-      debugPrint('HomeView._loadDebtOverview error: $e');
     }
   }
 
@@ -2218,7 +2122,6 @@ class _HomeViewState extends State<HomeView>
         });
       }
     } catch (e) {
-      debugPrint('HomeView: Error loading dashboard config: $e');
       if (mounted) {
         setState(() {
           _dashboardConfigs = DashboardConfigService.getDefaultLayout(
@@ -2242,7 +2145,6 @@ class _HomeViewState extends State<HomeView>
         });
       }
     } catch (e) {
-      debugPrint('HomeView: Error loading shortcut config: $e');
       if (mounted) {
         setState(() {
           _shortcutConfigs = ShortcutConfigService.getDefaultShortcuts();
@@ -2355,7 +2257,6 @@ class _HomeViewState extends State<HomeView>
       CategoryService().clearCache();
 
       final shopId = await UserService.getCurrentShopId();
-      debugPrint('🏠 HomeView: Loading settings for shopId=$shopId');
 
       final settings = await CategoryService().getShopSettings();
       // Always provide a default if shopId is known — even for owner/admin.
@@ -2367,13 +2268,6 @@ class _HomeViewState extends State<HomeView>
         final mergedSettings = (effectiveSettings != null && hasPendingOverride)
           ? effectiveSettings.copyWith(allowPendingCost: pendingOverride)
           : effectiveSettings;
-      debugPrint('🏠 HomeView: Loaded shop settings:');
-      debugPrint('   - businessType: ${settings?.businessType}');
-      debugPrint('   - enableRepair: ${settings?.enableRepair}');
-      debugPrint('   - enableSerial: ${settings?.enableSerial}');
-      debugPrint('   - enableExpiry: ${settings?.enableExpiry}');
-      debugPrint('   - enableVariants: ${settings?.enableVariants}');
-      debugPrint('   - isDefault: ${settings?.isDefault}');
 
       if (!mounted) return;
 
@@ -2401,9 +2295,6 @@ class _HomeViewState extends State<HomeView>
         }
         _expiryStats = expiryStats;
         _variantWarnings = variantWarnings;
-        debugPrint(
-          '🏠 HomeView: setState done - _enableRepair=$_enableRepair, _enableVariants=$_enableVariants, _allowPendingCost=$_allowPendingCost, _pendingCostOverride=$_pendingCostOverride, shopSettings.allowPendingCost=${_shopSettings?.allowPendingCost}',
-        );
         // Re-initialize tabs when shop settings change
         _initializeTabConfigs();
         _updateAvailableTabs();
@@ -2419,20 +2310,12 @@ class _HomeViewState extends State<HomeView>
       // Guard để tránh hiện wizard nhiều lần (do EventBus + onShopChanged cùng gọi)
       if (settings == null && mounted) {
         if (hasFullAccess && !_isShowingBusinessTypeWizard) {
-          debugPrint(
-            '🏠 HomeView: No settings found - showing business type wizard',
-          );
           _isShowingBusinessTypeWizard = true;
           _showBusinessTypeSetupDialog();
         } else {
-          debugPrint(
-            '🏠 HomeView: settings missing for staff role -> skip business type wizard',
-          );
         }
       }
-    } catch (e, stack) {
-      debugPrint('Error loading shop settings: $e');
-      debugPrint('Stack: $stack');
+    } catch (_) {
     }
   }
 
@@ -2513,20 +2396,17 @@ class _HomeViewState extends State<HomeView>
         });
       }
     } catch (e) {
-      debugPrint('HomeView: Error loading chat info: $e');
     }
   }
 
   Future<void> _loadStats() async {
     // Guard chống load nhiều lần liên tiếp
     if (_isLoadingStats) {
-      debugPrint('HomeView: _loadStats already running, skipping...');
       return;
     }
     _isLoadingStats = true;
 
     try {
-      final stopwatch = Stopwatch()..start();
       final now = DateTime.now();
       final todayStart = DateTime(now.year, now.month, now.day);
       final todayEnd = todayStart.add(const Duration(days: 1));
@@ -2683,9 +2563,6 @@ class _HomeViewState extends State<HomeView>
             )
             .catchError((_) => <Map<String, dynamic>>[]),
       ]);
-      debugPrint(
-        'HomeView: Batch 1 (13 queries) took ${stopwatch.elapsedMilliseconds}ms',
-      );
 
       final pendingR =
           Sqflite.firstIntValue(batch1[0] as List<Map<String, dynamic>>) ?? 0;
@@ -2770,9 +2647,6 @@ class _HomeViewState extends State<HomeView>
         // [5] previous day closing balance for "Quỹ hiện có"
         db.getPreviousDayClosing(DateFormat('yyyy-MM-dd').format(todayStart)),
       ]);
-      debugPrint(
-        'HomeView: Batch 2 (6 queries) took ${stopwatch.elapsedMilliseconds}ms',
-      );
 
       final repairsWarranty = batch2[0] as List<Map<String, dynamic>>;
       final salesWarranty = batch2[1] as List<Map<String, dynamic>>;
@@ -2814,16 +2688,10 @@ class _HomeViewState extends State<HomeView>
           !_cloudBootstrapTried &&
           !_cloudBootstrapRunning) {
         _cloudBootstrapTried = true;
-        debugPrint(
-          '🌐 HomeView: DB vẫn trống sau sync, thử bootstrap lần cuối...',
-        );
         // ignore: unawaited_futures
         _bootstrapCoreDataFromCloud();
       }
 
-      debugPrint(
-        'HomeView: _loadStats total took ${stopwatch.elapsedMilliseconds}ms',
-      );
 
       if (mounted) {
         setState(() {
@@ -2857,7 +2725,6 @@ class _HomeViewState extends State<HomeView>
       _loadChatInfo();
       _loadReminderCount();
     } catch (e) {
-      debugPrint('HomeView._loadStats error: $e');
       // Keep previous values on error — do not reset to 0
     } finally {
       _isLoadingStats = false;
@@ -2874,7 +2741,6 @@ class _HomeViewState extends State<HomeView>
         setState(() => _totalReminderCount = count);
       }
     } catch (e) {
-      debugPrint('HomeView._loadReminderCount error: $e');
     }
   }
 
@@ -2908,7 +2774,6 @@ class _HomeViewState extends State<HomeView>
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null || shopId.isEmpty) return;
 
-      debugPrint('🌐 HomeView bootstrap: start for shopId=$shopId');
 
       final fs = FirebaseFirestore.instance;
 
@@ -2982,15 +2847,11 @@ class _HomeViewState extends State<HomeView>
         await db.upsertDebt(Debt.fromMap(data));
       }
 
-      debugPrint(
-        '🌐 HomeView bootstrap: repairs=${repairsSnap.docs.length}, products=${productsSnap.docs.length}, sales=${salesSnap.docs.length}',
-      );
 
       if (mounted) {
         _debouncedLoadStats();
       }
     } catch (e) {
-      debugPrint('🌐 HomeView bootstrap failed: $e');
     } finally {
       _cloudBootstrapRunning = false;
     }
@@ -3003,7 +2864,6 @@ class _HomeViewState extends State<HomeView>
       setState(() {
         _notificationWorking = status['isFullyWorking'] ?? false;
       });
-      debugPrint('Notification status: $_notificationWorking');
     }
   }
 
@@ -3227,7 +3087,6 @@ class _HomeViewState extends State<HomeView>
         if (shouldContinue != true) return;
       }
     } catch (e) {
-      debugPrint('Logout pre-check error (skipping): $e');
     }
 
     // Always sign out — cleanup failures must not block logout
@@ -3252,7 +3111,6 @@ class _HomeViewState extends State<HomeView>
     try {
       await FirebaseAuth.instance.signOut();
     } catch (e) {
-      debugPrint('Logout signOut error: $e');
     }
   }
 
@@ -5855,7 +5713,6 @@ class _HomeViewState extends State<HomeView>
           color: Colors.orange,
         );
       } catch (e) {
-        debugPrint('HomeView: error opening feature "$featureName": $e');
         NotificationService.showSnackBar(
           'Không thể mở "$featureName" lúc này. Vui lòng thử lại.',
           color: Colors.red,
@@ -7097,7 +6954,6 @@ class _HomeViewState extends State<HomeView>
       try {
         await FirebaseAuth.instance.signOut();
       } catch (e) {
-        debugPrint('Logout error: $e');
       }
     }
   }

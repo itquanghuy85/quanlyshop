@@ -4,6 +4,13 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-09e] - refactor: Audit home_view — xóa 89 debugPrint + 2 unused vars
+
+**Files thay đổi:**
+- `lib/views/home_view.dart` — xóa toàn bộ 89 debugPrint statements (trace/flow logs, không ảnh hưởng logic), fix 2 warning phát sinh: `unused catch stack` → `catch (_)`, `unused stopwatch` → xóa Stopwatch khởi tạo.
+
+---
+
 ## [2026-06-09d] - refactor: Audit home_view — xóa dead navigator code
 
 **Files thay đổi:**
