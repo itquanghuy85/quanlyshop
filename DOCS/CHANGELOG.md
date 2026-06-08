@@ -4,6 +4,17 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-08k] - fix: Pull paths bỏ sót deleted:1 (integer) — sync_service subscriptions + downloadAllFromCloud
+
+**Files thay đổi:**
+- `lib/services/sync_service.dart` — Tất cả subscription `onChanged` callbacks (~30 chỗ) + `downloadAllFromCloud` (line 4753) + `continue` variant (line 3741): đổi `data['deleted'] == true` → `data['deleted'] == true || data['deleted'] == 1`
+
+**Root cause:** `syncAllToCloud` (push path) đã biết dùng dual-check `== 1 || == true` nhưng **pull paths** (subscription onChanged + downloadAllFromCloud) chỉ check `== true`. Firestore records bị push với `deleted: 1` (integer, từ bug cũ SyncOperation.update) → `1 != true` → không bị xóa local khi thiết bị khác pull về → ghost products tồn tại mãi + được restore lại khi bấm "Nhận kho từ cloud".
+
+**Phối hợp với [2026-06-08j]:** Fix đó ngăn tạo mới record `deleted:1` trong tương lai. Fix này dọn sạch record cũ đã bị push sai.
+
+---
+
 ## [2026-06-08j] - fix: Đồng bộ kho giữa các thiết bị (deleted type mismatch + nút Nhận kho từ Cloud)
 
 **Files thay đổi:**

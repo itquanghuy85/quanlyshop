@@ -1081,7 +1081,7 @@ class SyncService {
               "SYNC_TRACE: Received repair data from Firestore - docId: $docId, status: ${data['status']}, price: ${data['price']}, totalCost: ${data['totalCost']}, createdAt: ${data['createdAt']}, deliveredAt: ${data['deliveredAt']}, deleted: ${data['deleted']}",
             );
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteRepairByFirestoreId(docId);
               debugPrint(
                 "SYNC_TRACE: Deleted repair $docId from local DB (deleted=true in Firestore)",
@@ -1130,7 +1130,7 @@ class SyncService {
               "SYNC_TRACE: Received sale data from Firestore - docId: $docId, totalPrice: ${data['totalPrice']}, totalCost: ${data['totalCost']}, soldAt: ${data['soldAt']}, customerName: ${data['customerName']}, deleted: ${data['deleted']}",
             );
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteSaleByFirestoreId(docId);
               debugPrint(
                 "SYNC_TRACE: Deleted sale $docId from local DB (deleted=true in Firestore)",
@@ -1173,7 +1173,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteProductByFirestoreId(docId);
             } else {
               // CONFLICT RESOLUTION: So sánh updatedAt
@@ -1238,7 +1238,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteExpenseByFirestoreId(docId);
             } else {
               // CONFLICT RESOLUTION: So sánh updatedAt
@@ -1274,7 +1274,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteDebtByFirestoreId(docId);
             } else {
               // CONFLICT RESOLUTION: So sánh updatedAt
@@ -1311,7 +1311,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteDebtPaymentByFirestoreId(docId);
             } else {
               data['firestoreId'] = docId;
@@ -1434,7 +1434,7 @@ class SyncService {
           onChanged: (data, docId) async {
             try {
               final db = DBHelper();
-              if (data['deleted'] == true) {
+              if (data['deleted'] == true || data['deleted'] == 1) {
                 await db.deleteStorageLocationByFirestoreId(docId);
               } else {
                 data['firestoreId'] = docId;
@@ -1506,7 +1506,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteAttendanceByFirestoreId(docId);
             } else {
               data['firestoreId'] = docId;
@@ -1558,7 +1558,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteLeaveRequestByFirestoreId(docId);
             } else {
               data['firestoreId'] = docId;
@@ -1595,7 +1595,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteQuickInputCodeByFirestoreId(docId);
             } else {
               data['firestoreId'] = docId;
@@ -1626,7 +1626,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteSupplierPaymentByFirestoreId(docId);
             } else {
               data['firestoreId'] = docId;
@@ -1654,7 +1654,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteRepairPartnerPaymentByFirestoreId(docId);
             } else {
               data['firestoreId'] = docId;
@@ -1683,7 +1683,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteCustomerByFirestoreId(docId);
             } else {
               _convertTimestampFields(data);
@@ -1719,7 +1719,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteSupplierByFirestoreId(docId);
             } else {
               data['firestoreId'] = docId;
@@ -1751,7 +1751,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteRepairPartnerByFirestoreId(docId);
             } else {
               data['firestoreId'] = docId;
@@ -1782,7 +1782,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deletePartnerRepairHistoryByFirestoreId(docId);
             } else {
               data['firestoreId'] = docId;
@@ -1819,7 +1819,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteAuditLogByFirestoreId(docId);
             } else {
               data['firestoreId'] = docId;
@@ -1864,7 +1864,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteRepairPartByFirestoreId(docId);
             } else {
               data['firestoreId'] = docId;
@@ -1905,7 +1905,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteSupplierImportHistoryByFirestoreId(docId);
             } else {
               data['firestoreId'] = docId;
@@ -1934,7 +1934,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteSupplierProductPriceByFirestoreId(docId);
             } else {
               data['firestoreId'] = docId;
@@ -1963,7 +1963,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteImportOrderByFirestoreId(docId);
             } else {
               data['firestoreId'] = docId;
@@ -1992,7 +1992,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteImportOrderItemByFirestoreId(docId);
             } else {
               data['firestoreId'] = docId;
@@ -2022,7 +2022,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteCashClosingByFirestoreId(docId);
             } else {
               data['firestoreId'] = docId;
@@ -2054,7 +2054,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteAdjustmentEntryByFirestoreId(docId);
             } else {
               data['firestoreId'] = docId;
@@ -2083,7 +2083,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deletePurchaseOrderByFirestoreId(docId);
             } else {
               data['firestoreId'] = docId;
@@ -2113,7 +2113,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deletePaymentIntentByFirestoreId(docId);
             } else {
               data['firestoreId'] = docId;
@@ -2146,7 +2146,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deletePaymentRequestByFirestoreId(docId);
             } else {
               data['firestoreId'] = docId;
@@ -2178,7 +2178,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               // Không xóa hẳn, chỉ bỏ qua
               debugPrint("Work schedule $docId marked as deleted");
             } else {
@@ -2221,7 +2221,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteEmployeeSalarySettingsByFirestoreId(docId);
             } else {
               data['firestoreId'] = docId;
@@ -2465,7 +2465,7 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            if (data['deleted'] == true) {
+            if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteSalvagePhoneByFirestoreId(docId);
             } else {
               data['firestoreId'] = docId;
@@ -3738,7 +3738,7 @@ class SyncService {
           final Map<String, String> existingByName = {};
           for (var doc in existingSnapshot.docs) {
             final data = doc.data();
-            if (data['deleted'] == true) continue;
+            if (data['deleted'] == true || data['deleted'] == 1) continue;
             final decrypted = EncryptionService.decryptMap(data);
             final name = (decrypted['name'] ?? '')
                 .toString()
@@ -4750,7 +4750,7 @@ class SyncService {
             final doc = docs[i];
             try {
               var data = doc.data();
-              if (data['deleted'] == true) {
+              if (data['deleted'] == true || data['deleted'] == 1) {
                 // Xóa record local nếu đã bị soft-delete trên cloud
                 await _deleteLocalByFirestoreId(db, col, doc.id);
                 skipCount++;

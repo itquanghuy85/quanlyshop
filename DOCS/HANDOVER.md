@@ -14,6 +14,11 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Branch:** master  
 **Active Initiative:** ✅ Chuẩn hoá hiển thị giảm giá & format tiền — HOÀN THÀNH
 
+### ✅ Vừa hoàn thành (2026-06-08k): Fix pull paths bỏ sót deleted:1 — root cause chính lệch kho
+- **Root cause thực sự**: `syncAllToCloud` đã biết dùng `== 1 || == true` nhưng **tất cả subscription callbacks + downloadAllFromCloud** chỉ check `== true` → Firestore record `deleted: 1` (integer, từ bug cũ) không bị xóa local → ghost products restore lại khi pull.
+- **Fix**: `sync_service.dart` — replace all 30+ `data['deleted'] == true` → `data['deleted'] == true || data['deleted'] == 1` trong toàn bộ pull paths.
+- **Kết hợp với [2026-06-08j]**: Fix j ngăn tạo mới sai. Fix k dọn sạch cũ + ngăn restore.
+
 ### ✅ Vừa hoàn thành (2026-06-08j): Fix đồng bộ kho giữa các thiết bị
 - **Root cause**: `_deleteProductWithOptions` enqueue `SyncOperation.update` → orchestrator push `deleted: 1` (SQLite integer) lên Firestore → `data['deleted'] == true` trả về false → ghost products tồn tại trên thiết bị khác mãi.
 - **Fix 1 (inventory_view)**: Đổi `SyncOperation.update` → `SyncOperation.delete` → orchestrator gọi `_handleDelete()` → `softDeletePayload()` → `deleted: true` (boolean) đúng chuẩn.
