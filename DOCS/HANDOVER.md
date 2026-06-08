@@ -14,6 +14,11 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Branch:** master  
 **Active Initiative:** ✅ Chuẩn hoá hiển thị giảm giá & format tiền — HOÀN THÀNH
 
+### ✅ Vừa hoàn thành (2026-06-09d): Audit home_view — xóa dead navigator code
+- Xóa `_tabNavigatorKeys`, `_usesNestedNavigator`, `_navigatorKeyForTab` — không bao giờ được thực thi (nested Navigator tắt theo design)
+- Simplify `_maybePopCurrentTabNavigator` → `async => false`
+- 0 errors sau khi xóa
+
 ### ✅ Vừa hoàn thành (2026-06-09c): Audit shop_settings_view — 5 fixes
 - **Xóa 3 duplicate links** khỏi Quick Actions (đã có trong settings_view)
 - **Flatten ExpansionTile** → Card + ListTile cho Advanced Settings

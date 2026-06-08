@@ -217,7 +217,6 @@ class _HomeViewState extends State<HomeView>
   int _currentIndex = 0; // Bottom navigation index
   int? _restoredTabIndex;
   String? _restoredTabId;
-  final Map<String, GlobalKey<NavigatorState>> _tabNavigatorKeys = {};
   final Map<String, int> _tabHostVersions = {};
 
   // Quick Action Bubble
@@ -414,16 +413,6 @@ class _HomeViewState extends State<HomeView>
     return source[index]['id'] as String? ?? 'tab_$index';
   }
 
-  bool _usesNestedNavigator(int index) => false;
-
-  GlobalKey<NavigatorState> _navigatorKeyForTab(int index) {
-    final tabId = _tabIdAt(index);
-    return _tabNavigatorKeys.putIfAbsent(
-      tabId,
-      () => GlobalKey<NavigatorState>(debugLabel: 'home_tab_$tabId'),
-    );
-  }
-
   Future<T?> _pushRoute<T>(BuildContext context, Route<T> route) {
     return Navigator.of(context, rootNavigator: true).push(route);
   }
@@ -462,13 +451,7 @@ class _HomeViewState extends State<HomeView>
     );
   }
 
-  Future<bool> _maybePopCurrentTabNavigator() async {
-    final index = _currentIndex.clamp(0, _tabConfigs.length - 1);
-    if (!_usesNestedNavigator(index)) return false;
-    final navigator = _navigatorKeyForTab(index).currentState;
-    if (navigator == null) return false;
-    return navigator.maybePop();
-  }
+  Future<bool> _maybePopCurrentTabNavigator() async => false;
 
   Widget _buildTabHost(int index) {
     final tabId = _tabIdAt(index);
@@ -1307,9 +1290,6 @@ class _HomeViewState extends State<HomeView>
 
       final previousAccess = _tabAccessState[tabId];
       if (previousAccess != null && previousAccess != hasPermission) {
-        _tabNavigatorKeys[tabId] = GlobalKey<NavigatorState>(
-          debugLabel: 'home_tab_$tabId',
-        );
         _tabHostVersions[tabId] = (_tabHostVersions[tabId] ?? 0) + 1;
       }
       _tabAccessState[tabId] = hasPermission;

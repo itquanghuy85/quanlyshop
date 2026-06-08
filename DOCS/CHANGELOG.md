@@ -4,6 +4,19 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-09d] - refactor: Audit home_view — xóa dead navigator code
+
+**Files thay đổi:**
+- `lib/views/home_view.dart` — xóa 3 thứ dead code không ảnh hưởng chức năng:
+  1. Field `_tabNavigatorKeys` (Map không bao giờ được đọc)
+  2. Method `_usesNestedNavigator` (luôn trả về `false`)
+  3. Method `_navigatorKeyForTab` (chỉ được gọi từ dead path)
+  4. Simplify `_maybePopCurrentTabNavigator` → `async => false` (behavior không đổi)
+
+**Root cause:** Nested Navigator đã bị tắt theo design ("Không dùng nested Navigator — route push qua root navigator"), nhưng infrastructure code vẫn còn. `_usesNestedNavigator` luôn `false` → toàn bộ navigator logic bên dưới không bao giờ chạy.
+
+---
+
 ## [2026-06-09c] - refactor: Audit shop_settings_view — bỏ duplicate, flatten, cache members, gộp upload
 
 **Files thay đổi:**
