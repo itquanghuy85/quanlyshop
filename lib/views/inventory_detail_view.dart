@@ -19,6 +19,7 @@ class InventoryDetailView extends StatefulWidget {
   final Product product;
   final int? soldQty;
   final int? soldPrice;
+  final int? salePrice;
   final String? soldImei;
 
   const InventoryDetailView({
@@ -26,6 +27,7 @@ class InventoryDetailView extends StatefulWidget {
     required this.product,
     this.soldQty,
     this.soldPrice,
+    this.salePrice,
     this.soldImei,
   });
 
@@ -274,18 +276,43 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
                     ),
                   ],
                   _divider(),
-                  _row('Giá bán', MoneyUtils.formatCurrency(product.price),
-                      valueColor: Colors.green.shade700),
-                  if (widget.soldPrice != null &&
-                      widget.soldPrice! > 0 &&
-                      widget.soldPrice != product.price) ...[
-                    _divider(),
-                    _row(
-                      'Giá bán trong đơn',
-                      MoneyUtils.formatCurrency(widget.soldPrice!),
-                      valueColor: Colors.indigo.shade600,
-                    ),
-                  ],
+                  Builder(builder: (ctx) {
+                    final basePrice = widget.salePrice ?? product.price;
+                    final sp = widget.soldPrice;
+                    final hasDiscount = sp != null && sp > 0 && basePrice > sp;
+                    final discount = hasDiscount ? basePrice - sp : 0;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _row(
+                          hasDiscount ? 'Giá bán gốc' : 'Giá bán',
+                          MoneyUtils.formatCompactCurrency(basePrice),
+                          valueColor: Colors.green.shade700,
+                        ),
+                        if (hasDiscount) ...[
+                          _divider(),
+                          _row(
+                            'Đã giảm',
+                            '-${MoneyUtils.formatCompactCurrency(discount)}',
+                            valueColor: Colors.orange.shade700,
+                          ),
+                          _divider(),
+                          _row(
+                            'Giá bán trong đơn',
+                            MoneyUtils.formatCompactCurrency(sp),
+                            valueColor: Colors.indigo.shade600,
+                          ),
+                        ] else if (sp != null && sp > 0 && sp != product.price) ...[
+                          _divider(),
+                          _row(
+                            'Giá bán trong đơn',
+                            MoneyUtils.formatCompactCurrency(sp),
+                            valueColor: Colors.indigo.shade600,
+                          ),
+                        ],
+                      ],
+                    );
+                  }),
                   _divider(),
                   _costRow(product.cost),
                   _divider(),

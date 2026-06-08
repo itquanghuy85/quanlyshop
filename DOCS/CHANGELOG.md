@@ -4,6 +4,24 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-08g] - feat: Hiển thị giảm giá & chuẩn hoá format tiền toàn module bán hàng
+
+**Files thay đổi:**
+- `lib/views/create_sale_view.dart` — `_buildSaleItemSnapshotsJson`: thêm field `salePrice` (originalPrice tại thời điểm bán) vào snapshot của từng item.
+- `lib/widgets/deep_link_navigator.dart` — `ProductLinkRef`: thêm field `salePrice`; `openProductDetail`: thêm param `salePrice` → truyền vào `InventoryDetailView`.
+- `lib/views/sale_detail_view.dart` — `_buildLinkedProducts`: parse `salePrice` từ snapshot JSON → gán vào `ProductLinkRef`.
+- `lib/widgets/clickable_product_list.dart` — truyền `salePrice` từ `ProductLinkRef` xuống `ClickableProductChip`.
+- `lib/widgets/clickable_product_chip.dart` — thêm `salePrice`; tính `itemDiscount = (salePrice - soldPrice) * qty`; hiển thị badge cam `-X Tr` khi discount > 0; đổi `formatCurrency` → `formatCompactCurrency` cho giá bán.
+- `lib/views/inventory_detail_view.dart` — thêm param `salePrice`; khi giảm giá: đổi nhãn "Giá bán" → "Giá bán gốc", thêm dòng "Đã giảm: -X Tr", đổi format sang `formatCompactCurrency`.
+- `lib/views/sale_list_view.dart` — thêm `_totalItemDiscount()` tính tổng giảm (item-level từ snapshot + order-level `s.discount`); thêm chip **Giảm** vào card khi > 0; thêm `import 'dart:convert'`.
+
+**Quy tắc hiển thị:**
+- `discountAmount = salePrice - unitPrice` (per item); tổng = sum items + `s.discount`.
+- Chỉ hiển thị badge/dòng giảm khi `discount > 0`.
+- Format tiền: `formatCompactCurrency` → `1 Tr`, `11.5 Tr`, `1 Tỷ` (thay cho `1.000.000`).
+
+---
+
 ## [2026-06-08f] - feat: Sửa giá bán sản phẩm trực tiếp trong màn hình tạo đơn bán
 
 **Files thay đổi:**

@@ -1858,6 +1858,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
               : 'PKx$quantity');
       final unitPrice = (item['sellPrice'] as int?) ?? product.price;
       final unitCost = product.cost;
+      final salePrice = (item['originalPrice'] as int?) ?? product.price;
 
       return <String, dynamic>{
         'productId': product.id,
@@ -1866,6 +1867,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         'productImei': storedImei,
         'quantity': quantity,
         'unitPrice': unitPrice,
+        'salePrice': salePrice,
         'unitCost': unitCost,
         'lineAmount': unitPrice * quantity,
         'lineCostTotal': unitCost * quantity,

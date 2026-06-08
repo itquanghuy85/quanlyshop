@@ -35,6 +35,7 @@ class ClickableProductList extends StatelessWidget {
                 tooltip: tooltip,
                 soldQty: item.soldQty,
                 soldPrice: item.soldPrice,
+                salePrice: item.salePrice,
                 soldImei: item.soldImei,
               ),
             ),

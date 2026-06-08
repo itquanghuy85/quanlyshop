@@ -12,6 +12,7 @@ class ClickableProductChip extends StatelessWidget {
   final String tooltip;
   final int? soldQty;
   final int? soldPrice;
+  final int? salePrice;
   final String? soldImei;
 
   const ClickableProductChip({
@@ -25,6 +26,7 @@ class ClickableProductChip extends StatelessWidget {
     this.tooltip = 'Xem chi tiết sản phẩm',
     this.soldQty,
     this.soldPrice,
+    this.salePrice,
     this.soldImei,
   });
 
@@ -35,6 +37,10 @@ class ClickableProductChip extends StatelessWidget {
     final hasCode = code.isNotEmpty;
     final hasQty = soldQty != null;
     final hasPrice = soldPrice != null && soldPrice! > 0;
+    final itemDiscount = (salePrice != null && soldPrice != null && salePrice! > soldPrice!)
+        ? (salePrice! - soldPrice!) * (soldQty ?? 1)
+        : 0;
+    final hasDiscount = itemDiscount > 0;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -56,6 +62,7 @@ class ClickableProductChip extends StatelessWidget {
                 sourceEvent: sourceEvent,
                 soldQty: soldQty,
                 soldPrice: soldPrice,
+                salePrice: salePrice,
                 soldImei: soldImei,
               );
             },
@@ -137,15 +144,45 @@ class ClickableProductChip extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (hasPrice) ...[
+                  if (hasPrice || hasDiscount) ...[
                     const SizedBox(width: 6),
-                    Text(
-                      MoneyUtils.formatCurrency(soldPrice!),
-                      style: const TextStyle(
-                        color: Color(0xFF1565C0),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (hasPrice)
+                          Text(
+                            MoneyUtils.formatCompactCurrency(soldPrice!),
+                            style: const TextStyle(
+                              color: Color(0xFF1565C0),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        if (hasDiscount)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade50,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: Colors.orange.shade300,
+                                width: 0.5,
+                              ),
+                            ),
+                            child: Text(
+                              '-${MoneyUtils.formatCompactCurrency(itemDiscount)}',
+                              style: TextStyle(
+                                color: Colors.orange.shade800,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                   const SizedBox(width: 4),

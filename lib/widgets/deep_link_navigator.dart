@@ -21,6 +21,7 @@ class ProductLinkRef {
   final String? sourceEvent;
   final int? soldQty;
   final int? soldPrice;
+  final int? salePrice;
   final String? soldImei;
 
   const ProductLinkRef({
@@ -33,6 +34,7 @@ class ProductLinkRef {
     this.sourceEvent,
     this.soldQty,
     this.soldPrice,
+    this.salePrice,
     this.soldImei,
   });
 }
@@ -172,6 +174,7 @@ class DeepLinkNavigator {
     String? sourceEvent,
     int? soldQty,
     int? soldPrice,
+    int? salePrice,
     String? soldImei,
   }) async {
     try {
@@ -246,6 +249,7 @@ class DeepLinkNavigator {
             product: found!,
             soldQty: soldQty,
             soldPrice: soldPrice,
+            salePrice: salePrice,
             soldImei: soldImei,
           ),
         ),

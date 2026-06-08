@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
@@ -1192,6 +1193,22 @@ class _SaleListViewState extends State<SaleListView> {
                                                         )
                                                       : null,
                                                 ),
+                                                // ROW 4b: Giảm giá (item + order level)
+                                                Builder(builder: (ctx) {
+                                                  final disc = _totalItemDiscount(s);
+                                                  if (disc <= 0) return const SizedBox.shrink();
+                                                  return Padding(
+                                                    padding: const EdgeInsets.only(top: 3),
+                                                    child: _saleInfoRow(
+                                                      left: _saleChip(
+                                                        'Giảm',
+                                                        '-${MoneyUtils.formatCompactCurrency(disc)}',
+                                                        const Color(0xFFC05600),
+                                                        const Color(0xFFFFF7ED),
+                                                      ),
+                                                    ),
+                                                  );
+                                                }),
                                                 // ROW 5: Lãi / Lỗ
                                                 if (_canViewCostPrice && s.totalCost > 0 && s.finalPrice > 0)
                                                   Builder(builder: (ctx) {
@@ -1298,6 +1315,26 @@ class _SaleListViewState extends State<SaleListView> {
         if (right != null) right,
       ],
     );
+  }
+
+  /// Tổng giảm giá của đơn = item-level discount (từ salePrice - unitPrice) + order discount
+  int _totalItemDiscount(SaleOrder s) {
+    int total = s.discount;
+    final snapJson = s.itemSnapshotsJson;
+    if (snapJson != null && snapJson.isNotEmpty) {
+      try {
+        final list = jsonDecode(snapJson);
+        if (list is List) {
+          for (final item in list) {
+            final sp = (item['salePrice'] as num?)?.toInt() ?? 0;
+            final up = ((item['unitPrice'] ?? item['price']) as num?)?.toInt() ?? 0;
+            final qty = (item['quantity'] as num?)?.toInt() ?? 1;
+            if (sp > up && up > 0) total += (sp - up) * qty;
+          }
+        }
+      } catch (_) {}
+    }
+    return total;
   }
 
   // ── Add customer to sale (retroactive) ──

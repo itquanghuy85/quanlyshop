@@ -12,7 +12,14 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Analyze Status:** ✅ 0 compile error; pre-existing infos không ảnh hưởng build  
 **Database Version:** SQLite v102  
 **Branch:** master  
-**Active Initiative:** ✅ Sửa giá bán sản phẩm trong tạo đơn bán — HOÀN THÀNH
+**Active Initiative:** ✅ Chuẩn hoá hiển thị giảm giá & format tiền — HOÀN THÀNH
+
+### ✅ Vừa hoàn thành (2026-06-08g): Hiển thị giảm giá + chuẩn hoá format tiền toàn module bán hàng
+- **Sale list card**: thêm chip cam **Giảm: -X Tr** khi đơn có giảm (item-level hoặc order-level).
+- **Sale detail product list**: badge cam `-X Tr` trên từng sản phẩm được giảm.
+- **Chi tiết sản phẩm (InventoryDetailView)**: nhãn "Giá bán gốc" + dòng "Đã giảm: -X Tr" + "Giá bán trong đơn".
+- **Format tiền**: `formatCompactCurrency` thay `formatCurrency` tại chip, product detail → hiển thị `11 Tr` thay `11.000.000`.
+- **Data**: snapshot item nay lưu `salePrice` (originalPrice tại thời điểm bán) để tính discount chính xác kể cả khi giá kho thay đổi sau.
 
 ### ✅ Vừa hoàn thành (2026-06-08f): Thêm tính năng sửa giá bán sản phẩm trong màn hình tạo đơn bán
 - **Feature**: Popup "Ưu đãi sản phẩm" có thêm option "💰 Sửa giá bán sản phẩm".

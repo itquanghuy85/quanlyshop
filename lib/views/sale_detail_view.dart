@@ -330,6 +330,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
             final qty = (item['quantity'] as num?)?.toInt();
             // snapshot key: price (legacy) | unitPrice (create_sale_view)
             final price = ((item['price'] ?? item['unitPrice']) as num?)?.toInt();
+            final sp = (item['salePrice'] as num?)?.toInt();
             items.add(
               ProductLinkRef(
                 productId: productId.isEmpty ? null : productId,
@@ -341,6 +342,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                 sourceEvent: 'product_detail_opened_from_sale',
                 soldQty: (qty != null && qty > 0) ? qty : null,
                 soldPrice: (price != null && price > 0) ? price : null,
+                salePrice: (sp != null && sp > 0) ? sp : null,
                 soldImei: imei.isEmpty ? null : imei,
               ),
             );
