@@ -12,7 +12,11 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Analyze Status:** ✅ 0 compile error; pre-existing infos không ảnh hưởng build  
 **Database Version:** SQLite v102  
 **Branch:** master  
-**Active Initiative:** ✅ Fix KiotViet import duplicate + product mismatch — HOÀN THÀNH
+**Active Initiative:** ✅ Fix sync health + KiotViet import duplicate — HOÀN THÀNH
+
+### ✅ Vừa hoàn thành (2026-06-08e): Fix sync health báo "Chưa sync hết" sai khi kho cloud nhiều hơn local
+- **Bug**: Cloud có 684 records cũ → `cloudOnly=684` → `effectiveMismatchCount=684` → "Chưa sync hết" dù `Local chưa sync=0` và `Queue=0`.
+- **Fix**: `sync_health_check.dart` — với `noAutoRestoreCollections` (products), báo `cloudOnly=0` trong `SyncCheckResult`. Cloud-only records cho kho là chủ đích, không phải lỗi.
 
 ### ✅ Vừa hoàn thành (2026-06-08d): Fix KiotViet import tạo bản ghi trùng sau sự cố xóa kho
 - **Bug**: Sau sự cố "Dọn kho cloud", sản phẩm bị `deleted=1` local. Re-import từ KiotViet tạo sản phẩm MỚI với `id` auto-increment mới (vì query duplicate bỏ qua `deleted=1`). Đơn bán cũ lưu `productId` cũ → không khớp → hiển thị sản phẩm sai.

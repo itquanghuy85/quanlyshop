@@ -337,12 +337,19 @@ class SyncHealthCheck {
             cloudIds.contains(firestoreId);
       }).length;
 
+      // For noAutoRestoreCollections (products), cloud-only records represent data
+      // the user intentionally deleted or didn't import. Don't count them as a
+      // mismatch so the health status reports correctly as synced.
+      final reportedCloudOnly = noAutoRestoreCollections.contains(collection)
+          ? 0
+          : cloudOnlyAfter;
+
       return SyncCheckResult(
         collection: collection,
         localCount: localCountAfter,
         cloudCount: cloudIds.length,
         localOnly: localOnlyAfter,
-        cloudOnly: cloudOnlyAfter,
+        cloudOnly: reportedCloudOnly,
         matched: matchedAfter,
         unsyncedLocal: unsyncedAfter,
         pendingCreateLocal: pendingCreateAfter,

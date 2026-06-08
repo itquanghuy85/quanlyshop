@@ -4,6 +4,18 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-08e] - fix: sync health check không báo lỗi khi kho cloud có nhiều hơn local
+
+**Files thay đổi:**
+- `lib/services/sync_health_check.dart`
+  - **BUG FIX**: `_checkCollection` trả về `cloudOnly = cloudOnlyAfter` cho `products`, khiến `effectiveMismatchCount > 0` → status "Chưa sync hết" dù local hoàn toàn đã sync.
+  - Fix: Với `noAutoRestoreCollections` (hiện tại chỉ `products`), báo `cloudOnly = 0` trong `SyncCheckResult`. Cloud-only records cho kho là chủ đích (user xóa kho hoặc chưa import lại) — không nên tính là lỗi.
+  - Không ảnh hưởng các collection khác (repairs, sales, customers...) vẫn auto-restore và tính mismatch bình thường.
+
+**Root cause:** Sau khi user xóa sản phẩm và import lại từ KiotViet, cloud vẫn còn 684 records cũ (chưa xóa hoặc từ máy khác). Sync health count 684 cloud-only → "Chưa sync hết" dù `Local chưa sync = 0` và `Queue = 0`.
+
+---
+
 ## [2026-06-08d] - fix: KiotViet import restore sản phẩm đã xóa thay vì tạo bản ghi mới
 
 **Files thay đổi:**
