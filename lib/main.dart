@@ -101,19 +101,16 @@ Future<void> _activateFirebaseAppCheck() async {
   _appCheckActivationAttempted = true;
 
   final shouldSkipForIOS = !kIsWeb && Platform.isIOS && _disableIosAppCheck;
-  final shouldSkipForAndroidDebug =
-      !kIsWeb &&
-      Platform.isAndroid &&
-      kDebugMode &&
-      !_enableAndroidDebugAppCheck;
-  if (_disableFirebaseAppCheck ||
-      shouldSkipForIOS ||
-      shouldSkipForAndroidDebug) {
+  // Android uses playIntegrity which requires Play Store distribution.
+  // Side-loaded APKs always fail playIntegrity — skip unless explicitly enabled.
+  final shouldSkipForAndroid =
+      !kIsWeb && Platform.isAndroid && !_enableAndroidDebugAppCheck;
+  if (_disableFirebaseAppCheck || shouldSkipForIOS || shouldSkipForAndroid) {
     if (!_appCheckSkipLogged) {
       final reason = _disableFirebaseAppCheck
           ? 'DISABLE_FIREBASE_APP_CHECK=true'
-          : shouldSkipForAndroidDebug
-          ? 'ENABLE_ANDROID_DEBUG_APP_CHECK=false'
+          : shouldSkipForAndroid
+          ? 'ENABLE_ANDROID_DEBUG_APP_CHECK=false (side-loaded APK)'
           : 'DISABLE_IOS_APP_CHECK=true';
       debugPrint('ℹ️ Firebase App Check activation skipped ($reason)');
       _appCheckSkipLogged = true;
