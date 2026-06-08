@@ -70,6 +70,8 @@ class OrderListViewState extends State<OrderListView> {
   int _indexedFetchLimit = 50;
   int _lastFirestoreDocCount = 0;
   bool _isLoadingMoreRealtime = false;
+  Timer? _searchDebounce;
+  bool _isSearchingLocal = false;
 
   AppLocalizations get loc => AppLocalizations.of(context)!;
 
@@ -223,6 +225,7 @@ class OrderListViewState extends State<OrderListView> {
     _listScrollController.dispose();
     _repairRealtimeSubscription?.cancel();
     _eventSubscription?.cancel();
+    _searchDebounce?.cancel();
     super.dispose();
   }
 
@@ -604,7 +607,28 @@ class OrderListViewState extends State<OrderListView> {
 
   void _onSearch(String val) {
     _currentSearch = val;
-    _rebuildDisplayedRepairs();
+    _searchDebounce?.cancel();
+    if (val.trim().isEmpty) {
+      _rebuildDisplayedRepairs();
+      return;
+    }
+    // Debounce 300ms then search all local SQLite (bypasses Firestore limit)
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () async {
+      final keyword = val.trim();
+      if (keyword.isEmpty || !mounted) return;
+      final normalized = VietnameseUtils.normalize(keyword);
+      if (mounted) setState(() => _isSearchingLocal = true);
+      try {
+        final results = await db.searchRepairs(keyword, normalized, limit: 200);
+        if (!mounted || _currentSearch != val) return;
+        setState(() {
+          _displayedRepairs = results;
+          _isSearchingLocal = false;
+        });
+      } catch (_) {
+        if (mounted) setState(() => _isSearchingLocal = false);
+      }
+    });
   }
 
   List<Repair> _applyFilters(List<Repair> list) {
@@ -1766,7 +1790,7 @@ class OrderListViewState extends State<OrderListView> {
               ),
             ),
             Expanded(
-              child: _isLoading
+              child: _isLoading || _isSearchingLocal
                   ? const SkeletonListView(
                       variant: SkeletonVariant.repairCard,
                       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
