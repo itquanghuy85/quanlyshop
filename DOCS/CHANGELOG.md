@@ -4,6 +4,19 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-08m] - fix: "Nhận kho từ Cloud" xóa local trước khi pull (đồng bộ sau import KiotViet)
+
+**Files thay đổi:**
+- `lib/views/settings_view.dart` — `_pullKhoFromCloud`: thêm bước xóa local products (`DELETE FROM products WHERE shopId = ?`) trước khi `downloadAllFromCloud(force: true)`.
+
+**Root cause:** `downloadAllFromCloud` chỉ upsert (thêm/cập nhật) — không xóa sản phẩm local đã bị hard-delete trên Firestore. Sau khi máy A xóa kho + import KiotViet mới, máy B dùng "Nhận kho từ Cloud" vẫn còn sản phẩm cũ từ trước khi xóa. Giờ nút sẽ xóa sạch local trước → pull về chỉ gồm data đang có trên Firestore.
+
+**Flow đúng sau import KiotViet:**
+1. Máy A: Import KiotViet → nhấn "Đẩy dữ liệu lên Cloud"
+2. Máy B, C: Settings → nhấn "Nhận kho từ Cloud" → xóa local → pull toàn bộ từ Firestore
+
+---
+
 ## [2026-06-08l] - fix: 3 bugs còn sót sau audit lần 2
 
 **Files thay đổi:**

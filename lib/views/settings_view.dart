@@ -175,10 +175,11 @@ class _SettingsViewState extends State<SettingsView> {
         title: const Text('Nhận kho từ Cloud'),
         content: const Text(
           'Thao tác này sẽ:\n'
-          '• Tải toàn bộ sản phẩm từ Firestore về máy này\n'
-          '• Ghi đè dữ liệu kho cục bộ (không mất đơn bán)\n'
-          '• Xóa các sản phẩm đã bị ẩn/xóa trên cloud\n\n'
-          'Dùng khi máy này hiển thị kho sai so với cloud.',
+          '• Xóa toàn bộ kho LOCAL trên máy này\n'
+          '• Tải lại toàn bộ sản phẩm từ Firestore\n'
+          '• Không ảnh hưởng đơn sửa / đơn bán\n\n'
+          'Dùng sau khi máy chủ đã import KiotViet và đẩy lên cloud.\n'
+          'Máy này sẽ đồng bộ sạch với cloud.',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
@@ -190,10 +191,25 @@ class _SettingsViewState extends State<SettingsView> {
 
     setState(() => _isPullingFromCloud = true);
     try {
-      // Push any local pending changes first to avoid losing unsynced data
+      // 1. Push any pending local ops first (sync_queue items)
+      try { await SyncOrchestrator().syncAll(); } catch (_) {}
+
+      // 2. Wipe local products for this shop before pulling
+      // downloadAllFromCloud only upserts — it won't remove hard-deleted cloud docs.
+      // Clearing first ensures Device B gets exactly what Firestore has.
       try {
-        await SyncOrchestrator().syncAll();
+        final shopId = await UserService.getCurrentShopId();
+        if (shopId != null && shopId.isNotEmpty) {
+          final db = DBHelper();
+          await (await db.database).delete(
+            'products',
+            where: 'shopId = ?',
+            whereArgs: [shopId],
+          );
+        }
       } catch (_) {}
+
+      // 3. Pull fresh from Firestore
       await SyncService.downloadAllFromCloud(force: true);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

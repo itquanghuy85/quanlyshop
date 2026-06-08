@@ -14,6 +14,11 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Branch:** master  
 **Active Initiative:** ✅ Chuẩn hoá hiển thị giảm giá & format tiền — HOÀN THÀNH
 
+### ✅ Vừa hoàn thành (2026-06-08m): Fix "Nhận kho từ Cloud" đồng bộ sạch sau import KiotViet
+- **Bug**: `downloadAllFromCloud` chỉ upsert → sản phẩm cũ hard-deleted trên Firestore vẫn còn local trên máy B.
+- **Fix**: `settings_view._pullKhoFromCloud` xóa local products (`DELETE WHERE shopId`) trước khi pull.
+- **Flow sau import KiotViet**: Máy A import → "Đẩy lên Cloud" → Máy B "Nhận kho từ Cloud" → sạch + đúng.
+
 ### ✅ Vừa hoàn thành (2026-06-08l): Fix 3 bugs còn sót sau audit lần 2
 - **Bulk delete (inventory_view:2282)**: `SyncOperation.update` → `SyncOperation.delete` (cùng bug như single delete đã fix, nhưng ở path xóa hàng loạt bằng checkbox).
 - **_handleUpdate normalize**: `sync_orchestrator.dart` — thêm `data['deleted'] = data['deleted'] == 1 || data['deleted'] == true` trước khi push Firestore. Bất kỳ SyncOperation.update nào mà data có `deleted=1` sẽ không corrupt Firestore.
