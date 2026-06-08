@@ -30,6 +30,13 @@ import 'backup_restore_view.dart';
 import 'shop_selector_view.dart';
 import 'staff_permissions_view.dart';
 import 'category_management_view.dart';
+import 'shop_settings_view.dart';
+import 'printer_settings_view.dart';
+import 'notification_settings_view.dart';
+import 'kiotviet_settings_view.dart';
+import 'hr_salary_settings_view.dart';
+import 'label_settings_view.dart';
+import 'work_schedule_settings_view.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../services/category_service.dart';
 import '../models/shop_settings_model.dart';
@@ -500,30 +507,6 @@ class _SettingsViewState extends State<SettingsView> {
     }
   }
 
-  Future<void> _onTopMenuSelected(String value) async {
-    if (!mounted) return;
-    switch (value) {
-      case 'backup_restore':
-        await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const BackupRestoreView()),
-        );
-        break;
-      case 'user_guide':
-        await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const UserGuideView()),
-        );
-        break;
-      case 'help_center':
-        await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => HelpCenterView(userRole: _role)),
-        );
-        break;
-    }
-  }
-
   String _getRoleDisplayName(String role, AppLocalizations localizations) {
     switch (role) {
       case 'owner':
@@ -658,49 +641,10 @@ class _SettingsViewState extends State<SettingsView> {
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context)!;
+    final l = AppLocalizations.of(context)!;
+    final isAdminOrOwner = _role == 'owner' || _role == 'admin' || UserService.isCurrentUserSuperAdmin();
     return Scaffold(
-      appBar: CustomAppBar.build(
-        title: localizations.systemSettings,
-        actions: [
-          PopupMenuButton<String>(
-            tooltip: 'Tùy chọn',
-            onSelected: _onTopMenuSelected,
-            itemBuilder: (ctx) => const [
-              PopupMenuItem<String>(
-                value: 'backup_restore',
-                child: Row(
-                  children: [
-                    Icon(Icons.backup_outlined, size: 18),
-                    SizedBox(width: 8),
-                    Text('Sao lưu & Khôi phục'),
-                  ],
-                ),
-              ),
-              PopupMenuItem<String>(
-                value: 'user_guide',
-                child: Row(
-                  children: [
-                    Icon(Icons.menu_book_outlined, size: 18),
-                    SizedBox(width: 8),
-                    Text('Hướng dẫn sử dụng'),
-                  ],
-                ),
-              ),
-              PopupMenuItem<String>(
-                value: 'help_center',
-                child: Row(
-                  children: [
-                    Icon(Icons.support_agent_outlined, size: 18),
-                    SizedBox(width: 8),
-                    Text('Trung tâm trợ giúp'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+      appBar: CustomAppBar.build(title: l.systemSettings),
       body: ResponsiveCenter(
         maxWidth: 800,
         child: _loading
@@ -708,509 +652,180 @@ class _SettingsViewState extends State<SettingsView> {
           : ListView(
               padding: const EdgeInsets.all(10),
               children: [
-                // ====== TÀI KHOẢN & BẢO MẬT - ĐẶT LÊN ĐẦU ĐỂ DỄ TÌM ======
-                _buildSection(localizations.accountAndSecurity),
-                // Card tài khoản gọn: avatar + tên + email + role + liên kết + đăng xuất
-                _buildAccountCard(localizations),
-                const SizedBox(height: 8),
-
-                // NÚT CHỌN SHOP KHÁC - Chỉ hiện cho Super Admin
+                // ===== TÀI KHOẢN =====
+                _buildSection(l.accountAndSecurity),
+                _buildAccountCard(l),
                 if (UserService.isCurrentUserSuperAdmin()) ...[
-                  Card(
-                    color: Colors.deepPurple.shade50,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      side: BorderSide(color: Colors.deepPurple.shade200),
-                    ),
-                    child: ListTile(
-                      leading: const Icon(
-                        Icons.swap_horiz,
-                        color: Colors.deepPurple,
-                      ),
-                      title: Text(
-                        localizations.selectOtherShop,
-                        style: const TextStyle(
-                          color: Colors.deepPurple,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      subtitle: Text(
-                        "${localizations.currentShop}: ${UserService.getAdminSelectedShop()?.substring(0, 8) ?? 'N/A'}...",
-                        style: TextStyle(
-                          fontSize: AppTextStyles.body1.fontSize,
-                        ),
-                      ),
-                      onTap: () async {
-                        await SyncService.cancelAllSubscriptions();
-                        await DBHelper().clearAllData();
-                        UserService.setAdminSelectedShop(null);
-                        if (mounted) {
-                          Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  ShopSelectorView(setLocale: widget.setLocale),
-                            ),
-                            (route) => false,
-                          );
-                        }
-                      },
-                    ),
-                  ),
                   const SizedBox(height: 8),
-                ],
-
-                // ====== SHOP SWITCHER (Owner với nhiều shop) ======
-                ShopSwitcherWidget(
-                  onShopChanged: () {
-                    // Reload settings when shop changes
-                    _loadRole();
-                    _loadShopsForAdmin();
-                  },
-                ),
-                
-                // ====== HƯỚNG DẪN SỬ DỤNG - MOVE LÊN ĐẦU ĐỂ DỄ TÌM ======
-                _buildSection(loc.userGuideSection),
-                
-                // Card chính: Hướng dẫn sử dụng đầy đủ
-                Card(
-                  color: Colors.blue.shade50,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                    side: BorderSide(color: Colors.blue.shade100),
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(10),
-                    dense: true,
-                    leading: Container(
-                      padding: const EdgeInsets.all(7),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.blue.shade400, Colors.blue.shade600],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.blue.withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.menu_book_rounded,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                    ),
-                    title: Text(
-                      loc.userGuideTitle,
-                      style: const TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 17,
-                      ),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 6),
-                        Text(
-                          loc.userGuideDesc,
-                          style: TextStyle(
-                            fontSize: AppTextStyles.body1.fontSize,
-                            color: Colors.blue.shade800,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: [
-                            _buildFeatureChip(loc.inventoryFeature, Colors.blue),
-                            _buildFeatureChip(loc.salesFeature, Colors.orange),
-                            _buildFeatureChip(loc.repairFeature, Colors.blue),
-                            _buildFeatureChip(loc.reportFeature, Colors.pink),
-                          ],
-                        ),
-                      ],
-                    ),
-                    trailing: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade100,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.arrow_forward_ios,
-                        size: 16,
-                        color: Colors.blue,
-                      ),
-                    ),
-                    onTap: _openUserGuide,
-                  ),
-                ),
-
-                // ĐỒNG BỘ DỮ LIỆU - Chỉ còn 1 entry point duy nhất
-                const SizedBox(height: 10),
-                _buildSection(localizations.syncManagement),
-                // Card đơn giản mở Trung tâm đồng bộ
-                Card(
-                  color: Colors.teal.shade50,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    side: BorderSide(color: Colors.teal.shade200),
-                  ),
-                  child: ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.teal.shade100,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.cloud_sync,
-                        color: Colors.teal,
-                        size: 28,
-                      ),
-                    ),
-                    title: Text(
-                      localizations.syncCenter,
-                      style: const TextStyle(
-                        color: Colors.teal,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    subtitle: Text(
-                      localizations.syncCenterDesc,
-                      style: TextStyle(fontSize: AppTextStyles.body1.fontSize),
-                    ),
-                    trailing: const Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: Colors.teal,
-                    ),
-                    onTap: () {
-                      showAppBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: Colors.transparent,
-                        builder: (context) => const SyncCenterSheet(),
-                      );
+                  _buildNavTile(
+                    icon: Icons.swap_horiz,
+                    color: Colors.deepPurple,
+                    title: l.selectOtherShop,
+                    subtitle: '${l.currentShop}: ${UserService.getAdminSelectedShop()?.substring(0, 8) ?? 'N/A'}...',
+                    onTap: () async {
+                      await SyncService.cancelAllSubscriptions();
+                      await DBHelper().clearAllData();
+                      UserService.setAdminSelectedShop(null);
+                      if (mounted) {
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => ShopSelectorView(setLocale: widget.setLocale)),
+                          (route) => false,
+                        );
+                      }
                     },
                   ),
-                ),
+                ],
+                ShopSwitcherWidget(onShopChanged: () { _loadRole(); _loadShopsForAdmin(); }),
 
-                // Card: force-push KiotViet imported data to Firestore
-                const SizedBox(height: 8),
-                Card(
-                  color: Colors.orange.shade50,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    side: BorderSide(color: Colors.orange.shade200),
-                  ),
-                  child: ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade100,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: _isResyncingKiotViet
-                          ? const SizedBox(
-                              width: 28, height: 28,
-                              child: CircularProgressIndicator(strokeWidth: 2.5),
-                            )
-                          : Icon(Icons.upload_rounded, color: Colors.orange.shade700, size: 28),
-                    ),
-                    title: Text(
-                      'Đẩy dữ liệu KiotViet lên Cloud',
-                      style: TextStyle(
-                        color: Colors.orange.shade800,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    subtitle: Text(
-                      'Đồng bộ đơn bán và sản phẩm đã import từ KiotViet lên Firestore',
-                      style: TextStyle(fontSize: AppTextStyles.body1.fontSize),
-                    ),
-                    trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.orange.shade400),
-                    onTap: _isResyncingKiotViet ? null : _forceResyncKiotViet,
-                  ),
-                ),
-
-                // Card: pull full inventory from Firestore to this device
-                const SizedBox(height: 8),
-                Card(
-                  color: Colors.teal.shade50,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    side: BorderSide(color: Colors.teal.shade200),
-                  ),
-                  child: ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.teal.shade100,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: _isPullingFromCloud
-                          ? const SizedBox(
-                              width: 28, height: 28,
-                              child: CircularProgressIndicator(strokeWidth: 2.5),
-                            )
-                          : Icon(Icons.download_rounded, color: Colors.teal.shade700, size: 28),
-                    ),
-                    title: Text(
-                      'Nhận kho từ Cloud',
-                      style: TextStyle(
-                        color: Colors.teal.shade800,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    subtitle: Text(
-                      'Tải toàn bộ sản phẩm từ Firestore về máy này (fix lệch kho giữa các thiết bị)',
-                      style: TextStyle(fontSize: AppTextStyles.body1.fontSize),
-                    ),
-                    trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.teal.shade400),
-                    onTap: _isPullingFromCloud ? null : _pullKhoFromCloud,
-                  ),
-                ),
-
-                // ====== QUẢN LÝ CỬA HÀNG ======
-                const SizedBox(height: 10),
-                _buildSection('Quản lý cửa hàng'),
-                
-                // Quản lý danh mục sản phẩm
-                if (_role == 'owner' || _role == 'admin' || UserService.isCurrentUserSuperAdmin())
-                  Card(
-                    color: Colors.indigo.shade50,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      side: BorderSide(color: Colors.indigo.shade200),
-                    ),
-                    child: ListTile(
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.indigo.shade100,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.category,
-                          color: Colors.indigo,
-                          size: 28,
-                        ),
-                      ),
-                      title: const Text(
-                        'Quản lý danh mục',
-                        style: TextStyle(
-                          color: Colors.indigo,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      subtitle: const Text(
-                        'Thêm, sửa, xóa danh mục sản phẩm',
-                      ),
-                      trailing: const Icon(
-                        Icons.arrow_forward_ios,
-                        size: 16,
-                        color: Colors.indigo,
-                      ),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const CategoryManagementView(),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-
-                // Các toggle kho/NCC — chỉ owner/admin
-                if (_role == 'owner' || _role == 'admin' || UserService.isCurrentUserSuperAdmin()) ...[
+                // ===== CỬA HÀNG =====
+                if (isAdminOrOwner) ...[
                   const SizedBox(height: 10),
-                  // Toggle nhập giá vốn sau
+                  _buildSection('Cửa hàng'),
+                  _buildNavTile(icon: Icons.store_outlined, color: Colors.blue, title: 'Thông tin cửa hàng', subtitle: 'Tên, logo, địa chỉ, ảnh bìa', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ShopSettingsView()))),
+                  const SizedBox(height: 6),
+                  _buildNavTile(icon: Icons.category_outlined, color: Colors.indigo, title: 'Danh mục sản phẩm', subtitle: 'Thêm, sửa, xóa danh mục', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CategoryManagementView()))),
+                  const SizedBox(height: 6),
+                  _buildNavTile(icon: Icons.print_outlined, color: Colors.teal, title: 'Máy in nhiệt', subtitle: 'Kết nối máy in Bluetooth', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrinterSettingsView()))),
+                  const SizedBox(height: 6),
+                  _buildNavTile(icon: Icons.label_outline, color: Colors.deepOrange, title: 'Tem sản phẩm', subtitle: 'Mẫu tem, kích thước, nội dung', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LabelSettingsView()))),
+                  const SizedBox(height: 6),
+                  _buildNavTile(icon: Icons.storefront_outlined, color: Colors.orange, title: 'Kết nối KiotViet', subtitle: 'Đồng bộ dữ liệu từ KiotViet', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const KiotVietSettingsView()))),
+                  const SizedBox(height: 8),
                   _buildToggleCard(
-                    icon: Icons.inventory_2_outlined,
-                    iconColor: Colors.teal,
+                    icon: Icons.inventory_2_outlined, iconColor: Colors.teal,
                     title: 'Cho phép nhập giá vốn sau',
                     descOff: 'Bắt buộc nhập giá vốn > 0 khi xác nhận nhập kho.',
                     descOn: 'Có thể bỏ qua giá vốn, nhập sau. Sản phẩm chưa có vốn hiện badge cảnh báo.',
-                    value: _allowPendingCost,
-                    isSaving: _isSavingPendingCost || _shopSettings == null,
+                    value: _allowPendingCost, isSaving: _isSavingPendingCost || _shopSettings == null,
                     onTap: () => _saveAllowPendingCost(!_allowPendingCost),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   _buildToggleCard(
-                    icon: Icons.local_shipping_outlined,
-                    iconColor: Colors.indigo,
+                    icon: Icons.local_shipping_outlined, iconColor: Colors.indigo,
                     title: 'Hiển thị nhà cung cấp (NCC)',
                     descOff: 'Ẩn tính năng chọn nhà cung cấp khi nhập kho.',
                     descOn: 'Có thể chọn và theo dõi nhà cung cấp trên từng đơn nhập.',
-                    value: _enableSupplier,
-                    isSaving: _isSavingSupplier || _shopSettings == null,
+                    value: _enableSupplier, isSaving: _isSavingSupplier || _shopSettings == null,
                     onTap: () => _saveEnableSupplier(!_enableSupplier),
                   ),
                   if (_enableSupplier) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     _buildToggleCard(
-                      icon: Icons.rule_rounded,
-                      iconColor: Colors.deepOrange,
+                      icon: Icons.rule_rounded, iconColor: Colors.deepOrange,
                       title: 'Bắt buộc chọn NCC khi nhập kho',
                       descOff: 'NCC không bắt buộc — có thể bỏ qua khi nhập.',
                       descOn: 'Bắt buộc phải chọn NCC mới được xác nhận nhập kho.',
-                      value: _requireSupplier,
-                      isSaving: _isSavingRequireSupplier || _shopSettings == null,
+                      value: _requireSupplier, isSaving: _isSavingRequireSupplier || _shopSettings == null,
                       onTap: () => _saveRequireSupplier(!_requireSupplier),
                     ),
                   ],
                 ],
 
-                // NÚT XÓA TRẮNG CHỈ HIỆN CHO SUPER ADMIN
+                // ===== NHÂN SỰ =====
+                if (isAdminOrOwner) ...[
+                  const SizedBox(height: 10),
+                  _buildSection('Nhân sự'),
+                  _buildNavTile(icon: Icons.schedule_outlined, color: Colors.purple, title: 'Lịch làm việc', subtitle: 'Ca làm, giờ check-in, check-out', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkScheduleSettingsView()))),
+                  const SizedBox(height: 6),
+                  _buildNavTile(icon: Icons.attach_money, color: Colors.green, title: 'Cài đặt lương', subtitle: 'Mức lương, KPI, hoa hồng', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HRSalarySettingsView()))),
+                ],
+
+                // ===== THÔNG BÁO =====
+                const SizedBox(height: 10),
+                _buildSection('Thông báo'),
+                _buildNavTile(icon: Icons.notifications_outlined, color: Colors.amber.shade700, title: 'Cài đặt thông báo', subtitle: 'Âm thanh, kiểu thông báo, push notification', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationSettingsView()))),
+
+                // ===== ĐỒNG BỘ & SAO LƯU =====
+                const SizedBox(height: 10),
+                _buildSection(l.syncManagement),
+                _buildNavTile(
+                  icon: Icons.cloud_sync_outlined, color: Colors.teal,
+                  title: l.syncCenter, subtitle: l.syncCenterDesc,
+                  onTap: () => showAppBottomSheet(context: context, isScrollControlled: true, backgroundColor: Colors.transparent, builder: (context) => const SyncCenterSheet()),
+                ),
+                const SizedBox(height: 6),
+                _buildNavTile(
+                  icon: Icons.upload_rounded, color: Colors.orange.shade700,
+                  title: 'Đẩy dữ liệu KiotViet lên Cloud',
+                  subtitle: 'Đồng bộ đơn bán và sản phẩm đã import từ KiotViet lên Firestore',
+                  isLoading: _isResyncingKiotViet,
+                  onTap: _isResyncingKiotViet ? null : _forceResyncKiotViet,
+                ),
+                const SizedBox(height: 6),
+                _buildNavTile(
+                  icon: Icons.download_rounded, color: Colors.teal.shade700,
+                  title: 'Nhận kho từ Cloud',
+                  subtitle: 'Tải toàn bộ sản phẩm từ Firestore về máy này',
+                  isLoading: _isPullingFromCloud,
+                  onTap: _isPullingFromCloud ? null : _pullKhoFromCloud,
+                ),
+                const SizedBox(height: 6),
+                _buildNavTile(icon: Icons.backup_outlined, color: Colors.blueGrey, title: 'Sao lưu & Khôi phục', subtitle: 'Export/import dữ liệu local', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BackupRestoreView()))),
+
+                // ===== HỖ TRỢ =====
+                const SizedBox(height: 10),
+                _buildSection('Hỗ trợ'),
+                _buildNavTile(icon: Icons.menu_book_outlined, color: Colors.blue, title: l.userGuideTitle, subtitle: l.userGuideDesc, onTap: _openUserGuide),
+                const SizedBox(height: 6),
+                _buildNavTile(icon: Icons.support_agent_outlined, color: Colors.indigo, title: 'Trung tâm trợ giúp', subtitle: 'Câu hỏi thường gặp, liên hệ hỗ trợ', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => HelpCenterView(userRole: _role)))),
+
+                // ===== QUẢN TRỊ NÂNG CAO (Super Admin) =====
                 if (UserService.isCurrentUserSuperAdmin()) ...[
                   const SizedBox(height: 10),
-                  _buildSection(localizations.advancedAdmin),
-
-                  // DROPDOWN CHỌN SHOP
+                  _buildSection(l.advancedAdmin),
                   Card(
                     color: Colors.blue.shade50,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      side: BorderSide(color: Colors.blue.shade200),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: Colors.blue.shade200)),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Icon(Icons.store, color: Colors.blue.shade700),
-                              const SizedBox(width: 10),
-                              Text(
-                                localizations.selectShopToViewData,
-                                style: TextStyle(
-                                  color: Colors.blue.shade700,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: AppTextStyles.headline3.fontSize,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-
-
-                          Text(
-                            localizations.viewShopAsAdmin,
-                            style: TextStyle(
-                              fontSize: AppTextStyles.subtitle1.fontSize,
-                              color: Colors.grey,
-                            ),
-                          ),
+                          Row(children: [
+                            Icon(Icons.store, color: Colors.blue.shade700),
+                            const SizedBox(width: 10),
+                            Text(l.selectShopToViewData, style: TextStyle(color: Colors.blue.shade700, fontWeight: FontWeight.bold, fontSize: AppTextStyles.headline3.fontSize)),
+                          ]),
+                          const SizedBox(height: 8),
+                          Text(l.viewShopAsAdmin, style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, color: Colors.grey)),
                           const SizedBox(height: 8),
                           if (_loadingShops)
                             const Center(child: CircularProgressIndicator())
                           else if (_allShops.isEmpty)
-                            Text(
-                              localizations.noShops,
-                              style: const TextStyle(color: Colors.grey),
-                            )
+                            Text(l.noShops, style: const TextStyle(color: Colors.grey))
                           else
                             DropdownButtonFormField<String>(
-                              // Safety: ensure value exists in items to prevent assertion error
-                              value: _selectedShopId != null &&
-                                      _allShops.any((s) => s['id'] == _selectedShopId)
-                                  ? _selectedShopId
-                                  : null,
-                              decoration: InputDecoration(
-                                labelText: localizations.selectShopLabel,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                filled: true,
-                                fillColor: Colors.white,
-                              ),
-                              hint: Text(localizations.selectShopPlaceholder),
+                              value: _selectedShopId != null && _allShops.any((s) => s['id'] == _selectedShopId) ? _selectedShopId : null,
+                              decoration: InputDecoration(labelText: l.selectShopLabel, border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), filled: true, fillColor: Colors.white),
+                              hint: Text(l.selectShopPlaceholder),
                               items: _allShops.map((shop) {
-                                final shopName =
-                                    shop['name'] ?? 'Shop ${shop['id']}';
+                                final shopName = shop['name'] ?? 'Shop ${shop['id']}';
                                 final ownerEmail = shop['ownerEmail'] ?? '';
                                 return DropdownMenuItem<String>(
                                   value: shop['id'],
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        shopName,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      Text(
-                                        ownerEmail,
-                                        style: TextStyle(
-                                          fontSize:
-                                              AppTextStyles.body1.fontSize,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                                    Text(shopName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    Text(ownerEmail, style: TextStyle(fontSize: AppTextStyles.body1.fontSize, color: Colors.grey)),
+                                  ]),
                                 );
                               }).toList(),
                               onChanged: _onShopSelected,
                               isExpanded: true,
-                              selectedItemBuilder: (context) {
-                                return _allShops.map((shop) {
-                                  return Text(
-                                    shop['name'] ?? 'Shop ${shop['id']}',
-                                  );
-                                }).toList();
-                              },
+                              selectedItemBuilder: (context) => _allShops.map((shop) => Text(shop['name'] ?? 'Shop ${shop['id']}')).toList(),
                             ),
                           if (_selectedShopId != null) ...[
                             const SizedBox(height: 10),
                             Container(
                               padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Colors.green.shade50,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Colors.green.shade200,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.check_circle,
-                                    color: Colors.green,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      localizations.currentlyViewing(
-                                        _allShops.firstWhere(
-                                              (s) => s['id'] == _selectedShopId,
-                                              orElse: () => {
-                                                'name': _selectedShopId,
-                                              },
-                                            )['name'] ??
-                                            _selectedShopId,
-                                      ),
-                                      style: const TextStyle(
-                                        color: Colors.green,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.green.shade200)),
+                              child: Row(children: [
+                                const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                                const SizedBox(width: 8),
+                                Expanded(child: Text(
+                                  l.currentlyViewing(_allShops.firstWhere((s) => s['id'] == _selectedShopId, orElse: () => {'name': _selectedShopId})['name'] ?? _selectedShopId),
+                                  style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w500),
+                                )),
+                              ]),
                             ),
                           ],
                         ],
@@ -1218,105 +833,26 @@ class _SettingsViewState extends State<SettingsView> {
                     ),
                   ),
                   const SizedBox(height: 8),
-
-                  // BẢO MẬT SUPER ADMIN - PIN & Audit
                   _buildSuperAdminSecurityCard(),
                   const SizedBox(height: 8),
-
-                  Card(
-                    color: Colors.orange.shade50,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      side: BorderSide(color: Colors.orange.shade200),
-                    ),
-                    child: ListTile(
-                      leading: const Icon(
-                        Icons.admin_panel_settings,
-                        color: Colors.orange,
-                      ),
-                      title: Text(
-                        localizations.staffPermissions,
-                        style: const TextStyle(
-                          color: Colors.orange,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      subtitle: Text(
-                        localizations.viewAndEditStaffPermissions,
-                        style: TextStyle(
-                          fontSize: AppTextStyles.body1.fontSize,
-                        ),
-                      ),
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const StaffPermissionsView(),
-                        ),
-                      ),
-                    ),
-                  ),
+                  _buildNavTile(icon: Icons.admin_panel_settings_outlined, color: Colors.orange, title: l.staffPermissions, subtitle: l.viewAndEditStaffPermissions, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffPermissionsView()))),
                   const SizedBox(height: 8),
-                  // Nút reset hướng dẫn sử dụng
-                  Card(
-                    color: Colors.blue.shade50,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      side: BorderSide(color: Colors.blue.shade200),
-                    ),
-                    child: ListTile(
-                      leading: const Icon(
-                        Icons.replay,
-                        color: Colors.blue,
-                      ),
-                      title: Text(
-                        loc.reviewUserGuide,
-                        style: const TextStyle(
-                          color: Colors.blue,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      subtitle: Text(
-                        loc.resetGuidesDesc,
-                        style: TextStyle(
-                          fontSize: AppTextStyles.body1.fontSize,
-                        ),
-                      ),
-                      onTap: () async {
-                        await FirstTimeGuideService.resetAllGuides();
-                        if (mounted) {
-                          NotificationService.showSnackBar(
-                            loc.guidesReset,
-                            color: Colors.green,
-                          );
-                        }
-                      },
-                    ),
+                  _buildNavTile(
+                    icon: Icons.replay, color: Colors.blue,
+                    title: l.reviewUserGuide, subtitle: l.resetGuidesDesc,
+                    onTap: () async {
+                      await FirstTimeGuideService.resetAllGuides();
+                      if (mounted) NotificationService.showSnackBar(l.guidesReset, color: Colors.green);
+                    },
                   ),
                   const SizedBox(height: 8),
                   Card(
                     color: Colors.red.shade50,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      side: BorderSide(color: Colors.red.shade200),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: Colors.red.shade200)),
                     child: ListTile(
-                      leading: const Icon(
-                        Icons.delete_forever,
-                        color: Colors.red,
-                      ),
-                      title: Text(
-                        localizations.resetShopData,
-                        style: const TextStyle(
-                          color: Colors.red,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      subtitle: Text(
-                        localizations.resetShopAdminOnly,
-                        style: TextStyle(
-                          fontSize: AppTextStyles.body1.fontSize,
-                        ),
-                      ),
+                      leading: const Icon(Icons.delete_forever, color: Colors.red),
+                      title: Text(l.resetShopData, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                      subtitle: Text(l.resetShopAdminOnly, style: TextStyle(fontSize: AppTextStyles.body1.fontSize)),
                       onTap: _handleResetShop,
                     ),
                   ),
@@ -1326,18 +862,10 @@ class _SettingsViewState extends State<SettingsView> {
                 Center(
                   child: FutureBuilder<String>(
                     future: _versionFuture,
-                    builder: (context, snapshot) {
-                      final versionText = snapshot.data != null
-                          ? localizations.versionFormat(snapshot.data!)
-                          : '${localizations.versionFormat('...')}';
-                      return Text(
-                        versionText,
-                        style: TextStyle(
-                          color: Colors.grey.shade400,
-                          fontSize: AppTextStyles.caption.fontSize,
-                        ),
-                      );
-                    },
+                    builder: (context, snapshot) => Text(
+                      snapshot.data != null ? l.versionFormat(snapshot.data!) : l.versionFormat('...'),
+                      style: TextStyle(color: Colors.grey.shade400, fontSize: AppTextStyles.caption.fontSize),
+                    ),
                   ),
                 ),
               ],
@@ -2133,21 +1661,27 @@ class _SettingsViewState extends State<SettingsView> {
     ),
   );
 
-  Widget _buildFeatureChip(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: color,
-        ),
+  Widget _buildNavTile({
+    required IconData icon,
+    required Color color,
+    required String title,
+    String? subtitle,
+    VoidCallback? onTap,
+    bool isLoading = false,
+  }) {
+    return Card(
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        leading: isLoading
+            ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: color))
+            : Icon(icon, color: color),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+        subtitle: subtitle != null
+            ? Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey.shade600))
+            : null,
+        trailing: onTap != null ? Icon(Icons.chevron_right, color: Colors.grey.shade400) : null,
+        onTap: onTap,
       ),
     );
   }
