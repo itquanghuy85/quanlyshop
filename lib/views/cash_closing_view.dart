@@ -61,6 +61,8 @@ class _CashClosingViewState extends State<CashClosingView>
   // Data
   List<SaleOrder> _sales = [];
   List<Repair> _repairs = [];
+  // Repairs loaded by costRecordedAt — may include repairs created on other days.
+  List<Repair> _costFundRepairs = [];
   List<Map<String, dynamic>> _expenses = [];
   List<Map<String, dynamic>> _debtPayments = [];
   List<Map<String, dynamic>> _supplierImports = [];
@@ -582,6 +584,9 @@ class _CashClosingViewState extends State<CashClosingView>
         .millisecondsSinceEpoch;
     final sales = await db.getSalesByDateRange(startMs, endMs);
     final repairs = await db.getRepairsByCreatedAtRange(startMs, endMs);
+    // Load separately by costRecordedAt to catch repairs created on other days
+    // but with cost paid/recorded in this period.
+    final costFundRepairs = await db.getRepairsByCostRecordedAtRange(startMs, endMs);
     final expenses = await db.getExpensesByDateRange(startMs, endMs);
     final debtPayments = await db.getAllDebtPaymentsWithDetails();
     // Đọc supplier_import_history từ local DB (SyncService đã sync Firestore → local)
@@ -604,6 +609,7 @@ class _CashClosingViewState extends State<CashClosingView>
       setState(() {
         _sales = sales;
         _repairs = repairs;
+        _costFundRepairs = costFundRepairs;
         _expenses = expenses;
         _debtPayments = debtPayments;
         _supplierImports = supplierImports;
@@ -3421,13 +3427,12 @@ class _CashClosingViewState extends State<CashClosingView>
       }
     }
 
-    // Chi phí vốn linh kiện sửa chữa đã ghi sổ quỹ
+    // Chi phí vốn linh kiện sửa chữa đã ghi sổ quỹ.
+    // Dùng _costFundRepairs (query theo costRecordedAt) thay vì _repairs (query theo
+    // createdAt) để bắt đúng các đơn tạo ngày khác nhưng ghi vốn hôm nay.
     if (_enableRepair) {
-      for (var r in _repairs.where(
-        (r) =>
-            r.costRecordedInFund &&
-            r.costRecordedAt != null &&
-            _isSameDay(r.costRecordedAt!, date),
+      for (var r in _costFundRepairs.where(
+        (r) => r.costRecordedAt != null && _isSameDay(r.costRecordedAt!, date),
       )) {
         final recordedAmount = (r.costRecordedAmount ?? 0) > 0
             ? (r.costRecordedAmount ?? 0)
@@ -3598,10 +3603,9 @@ class _CashClosingViewState extends State<CashClosingView>
         })
         .toList();
 
-    final repairPartsCostFundRows = _repairs
+    final repairPartsCostFundRows = _costFundRepairs
         .where(
           (repair) =>
-              repair.costRecordedInFund &&
               repair.costRecordedAt != null &&
               _isSameDay(repair.costRecordedAt!, now),
         )

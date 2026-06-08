@@ -3184,7 +3184,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             activityType: 'REPAIR_COST_ADJUST',
             amount: costDelta.abs(),
             direction: costDelta >= 0 ? 'OUT' : 'IN',
-            paymentMethod: r.paymentMethod,
+            paymentMethod: r.costPaymentMethod ?? r.paymentMethod,
             title:
                 'Điều chỉnh giá vốn sửa: ${r.customerName} (${MoneyUtils.formatVND(oldCost)} → ${MoneyUtils.formatVND(parsedCost)})',
             description:

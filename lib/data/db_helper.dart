@@ -4837,6 +4837,39 @@ class DBHelper {
     return List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
   }
 
+  /// Repairs where cost was actually paid (cash/transfer) and recorded into the
+  /// fund during the given date range, regardless of when the repair was created.
+  Future<List<Repair>> getRepairsByCostRecordedAtRange(
+    int startMs,
+    int endMs,
+  ) async {
+    final db = await database;
+    final shopId = await _getScopedShopId('getRepairsByCostRecordedAtRange');
+    final List<Map<String, dynamic>> maps;
+    if (shopId != null && shopId.isNotEmpty) {
+      maps = await db.query(
+        'repairs',
+        where:
+            '(shopId = ? OR shopId IS NULL) AND costRecordedInFund = 1 '
+            'AND costRecordedAt IS NOT NULL AND costRecordedAt >= ? AND costRecordedAt <= ? '
+            'AND (deleted = 0 OR deleted IS NULL)',
+        whereArgs: [shopId, startMs, endMs],
+        orderBy: 'costRecordedAt DESC',
+      );
+    } else {
+      maps = await db.query(
+        'repairs',
+        where:
+            'costRecordedInFund = 1 AND costRecordedAt IS NOT NULL '
+            'AND costRecordedAt >= ? AND costRecordedAt <= ? '
+            'AND (deleted = 0 OR deleted IS NULL)',
+        whereArgs: [startMs, endMs],
+        orderBy: 'costRecordedAt DESC',
+      );
+    }
+    return List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
+  }
+
   /// Get delivered repairs within a date range, for financial report optimization
   /// Uses COALESCE(deliveredAt, createdAt) to handle NULL deliveredAt
   Future<List<Repair>> getDeliveredRepairsByDateRange(
