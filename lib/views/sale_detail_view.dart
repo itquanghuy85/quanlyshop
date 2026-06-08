@@ -74,6 +74,16 @@ class _SaleDetailViewState extends State<SaleDetailView> {
   BusinessTerminology get _terms =>
       BusinessTypeHelper.instance.getTerminology(_shopSettings);
 
+  int get _totalItemLevelDiscount {
+    int total = 0;
+    for (final ref in _linkedProducts) {
+      if (ref.salePrice != null && ref.soldPrice != null && ref.salePrice! > ref.soldPrice!) {
+        total += (ref.salePrice! - ref.soldPrice!) * (ref.soldQty ?? 1);
+      }
+    }
+    return total;
+  }
+
   // Chỉ cho phép sửa giá/vốn trong ngày
   bool get _isSameDay {
     final d = DateTime.fromMillisecondsSinceEpoch(s.soldAt);
@@ -134,6 +144,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     super.initState();
     s = _normalizeSaleForDisplay(widget.sale);
     _linkedProducts = _buildLinkedProducts();
+    _enrichLinkedProducts();
     _loadShopInfo();
     _loadReturnInfo();
     _loadCostPermission();
@@ -378,6 +389,47 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       );
     }
     return items;
+  }
+
+  Future<void> _enrichLinkedProducts() async {
+    bool changed = false;
+    final enriched = <ProductLinkRef>[];
+    for (final ref in _linkedProducts) {
+      if (ref.salePrice != null || ref.soldPrice == null || ref.soldPrice! <= 0) {
+        enriched.add(ref);
+        continue;
+      }
+      Product? product;
+      try {
+        final imei = ref.imei ?? ref.serial ?? '';
+        if (imei.isNotEmpty) {
+          product = await db.getProductByImei(imei);
+        } else if (ref.productId != null && ref.productId!.isNotEmpty) {
+          product = await db.getProductByFirestoreId(ref.productId!);
+        }
+      } catch (_) {}
+      if (product != null && product.price > ref.soldPrice!) {
+        enriched.add(ProductLinkRef(
+          productId: ref.productId,
+          displayName: ref.displayName,
+          imei: ref.imei,
+          serial: ref.serial,
+          sku: ref.sku,
+          imageUrl: ref.imageUrl,
+          sourceEvent: ref.sourceEvent,
+          soldQty: ref.soldQty,
+          soldPrice: ref.soldPrice,
+          salePrice: product.price,
+          soldImei: ref.soldImei,
+        ));
+        changed = true;
+        continue;
+      }
+      enriched.add(ref);
+    }
+    if (changed && mounted) {
+      setState(() => _linkedProducts = enriched);
+    }
   }
 
   Future<void> _unlockManager() async {
@@ -1627,12 +1679,21 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                 ],
                 if (s.notes != null && s.notes!.isNotEmpty)
                   _item(AppLocalizations.of(context)!.itemNotes, s.notes!),
-                if (s.discount > 0)
-                  _item(
-                    AppLocalizations.of(context)!.itemDiscount,
-                    '-${_money(s.discount)}',
-                    color: Colors.orange,
-                  ),
+                Builder(builder: (ctx) {
+                  final itemDisc = _totalItemLevelDiscount;
+                  final orderDisc = s.discount;
+                  final totalDisc = itemDisc + orderDisc;
+                  return Column(
+                    children: [
+                      if (itemDisc > 0)
+                        _item('Giảm sản phẩm', '-${_money(itemDisc)}', color: Colors.orange),
+                      if (orderDisc > 0)
+                        _item(AppLocalizations.of(ctx)!.itemDiscount, '-${_money(orderDisc)}', color: Colors.orange),
+                      if (itemDisc > 0 && orderDisc > 0)
+                        _item('Tổng giảm giá', '-${_money(totalDisc)}', color: Colors.deepOrange),
+                    ],
+                  );
+                }),
                 _item(AppLocalizations.of(context)!.itemTotal, _money(s.finalPrice), color: Colors.red),
                 if (_canViewCostPrice && s.totalCost > 0) ...[
                   _item(

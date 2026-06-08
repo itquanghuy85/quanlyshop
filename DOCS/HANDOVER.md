@@ -14,6 +14,12 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Branch:** master  
 **Active Initiative:** ✅ Chuẩn hoá hiển thị giảm giá & format tiền — HOÀN THÀNH
 
+### ✅ Vừa hoàn thành (2026-06-08h): Fix 4 bugs giảm giá & format tiền
+- **Giá vốn format**: `inventory_detail_view.dart` `_costRow` — `formatCurrency` → `formatCompactCurrency` (hiển thị `10 Tr` thay `10.000.000`).
+- **Scroll bị cắt**: `SingleChildScrollView` padding bottom tăng từ `16` → `32` px.
+- **Sale detail tổng giảm**: thêm Builder hiển thị "Giảm sản phẩm" (item) + "Giảm đơn" (order) + "Tổng giảm giá" khi cả hai loại cùng có.
+- **Backward compat**: `_enrichLinkedProducts()` async enrichment cho đơn cũ (không có `salePrice` snapshot) — lookup DB lấy giá hiện tại làm fallback, setState khi có discount.
+
 ### ✅ Vừa hoàn thành (2026-06-08g): Hiển thị giảm giá + chuẩn hoá format tiền toàn module bán hàng
 - **Sale list card**: thêm chip cam **Giảm: -X Tr** khi đơn có giảm (item-level hoặc order-level).
 - **Sale detail product list**: badge cam `-X Tr` trên từng sản phẩm được giảm.

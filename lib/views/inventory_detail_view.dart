@@ -137,7 +137,7 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
         title: 'Chi tiết sản phẩm',
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -342,7 +342,7 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              MoneyUtils.formatCurrency(cost),
+              MoneyUtils.formatCompactCurrency(cost),
               style: AppTextStyles.body1.copyWith(
                 fontWeight: FontWeight.w600,
                 color: Colors.orange.shade700,

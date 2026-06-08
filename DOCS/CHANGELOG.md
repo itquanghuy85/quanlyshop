@@ -4,6 +4,24 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-08h] - fix: Chuẩn hoá format tiền & hiển thị giảm giá đầy đủ (4 bugs)
+
+**Files thay đổi:**
+- `lib/views/inventory_detail_view.dart`
+  - `_costRow`: đổi `MoneyUtils.formatCurrency(cost)` → `formatCompactCurrency(cost)` — "Giá vốn" nay hiển thị `10 Tr` thay `10.000.000`.
+  - `SingleChildScrollView`: padding bottom `16` → `32` — tránh content bị cắt bởi nav bar.
+- `lib/views/sale_detail_view.dart`
+  - Thêm getter `_totalItemLevelDiscount`: tính tổng giảm item-level từ `_linkedProducts` (salePrice - soldPrice) × qty.
+  - Thêm `_enrichLinkedProducts()`: async enrichment cho đơn cũ không có `salePrice` trong snapshot — lookup IMEI/firestoreId từ DB, dùng `product.price` hiện tại làm fallback khi `price > soldPrice`.
+  - Thay block `if (s.discount > 0) _item(...)` bằng Builder: hiển thị "Giảm sản phẩm" (item-level) + "Giảm đơn" (order-level) + "Tổng giảm giá" (khi cả hai loại cùng > 0).
+
+**Quy tắc:**
+- Đơn cũ: `_enrichLinkedProducts()` chạy async khi mở màn hình, tự cập nhật badge giảm giá mà không block UI.
+- Đơn mới: salePrice đã có sẵn trong snapshot, không cần enrichment.
+- Không làm ảnh hưởng bất kỳ tính năng đang chạy ổn định.
+
+---
+
 ## [2026-06-08g] - feat: Hiển thị giảm giá & chuẩn hoá format tiền toàn module bán hàng
 
 **Files thay đổi:**
