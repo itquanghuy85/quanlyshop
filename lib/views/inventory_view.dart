@@ -1919,12 +1919,12 @@ class _InventoryViewState extends State<InventoryView>
       if (p.id != null) {
         await db.softDeleteProduct(p.id!);
 
-        // Sync update (soft delete) lên cloud
+        // Sync soft-delete lên cloud (phải dùng delete để ghi deleted:true boolean)
         await SyncOrchestrator().enqueue(
           entityType: SyncEntityType.product,
           entityId: p.id!,
           firestoreId: p.firestoreId,
-          operation: SyncOperation.update,
+          operation: SyncOperation.delete,
         );
       }
 

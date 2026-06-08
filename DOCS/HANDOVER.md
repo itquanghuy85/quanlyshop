@@ -14,6 +14,12 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Branch:** master  
 **Active Initiative:** ✅ Chuẩn hoá hiển thị giảm giá & format tiền — HOÀN THÀNH
 
+### ✅ Vừa hoàn thành (2026-06-08j): Fix đồng bộ kho giữa các thiết bị
+- **Root cause**: `_deleteProductWithOptions` enqueue `SyncOperation.update` → orchestrator push `deleted: 1` (SQLite integer) lên Firestore → `data['deleted'] == true` trả về false → ghost products tồn tại trên thiết bị khác mãi.
+- **Fix 1 (inventory_view)**: Đổi `SyncOperation.update` → `SyncOperation.delete` → orchestrator gọi `_handleDelete()` → `softDeletePayload()` → `deleted: true` (boolean) đúng chuẩn.
+- **Fix 2 (firestore_service)**: `deleteProduct()` thêm `'deleted': true` — đồng bộ với `deleteRepair()` / `deleteSale()`.
+- **Fix 3 (settings_view)**: Nút "Nhận kho từ Cloud" (teal) → `downloadAllFromCloud(force: true)` — thiết bị lệch kho nhấn 1 lần là đồng bộ lại hoàn toàn.
+
 ### ✅ Vừa hoàn thành (2026-06-08i): Fix hiển thị giảm giá ở list bán & chi tiết đơn
 - **Root cause**: `set_price` case trong `create_sale_view.dart` update cả `originalPrice = newPrice` → `salePrice = unitPrice` → discount = 0.
 - **Fix 1 (create_sale_view)**: Bỏ dòng `item['originalPrice'] = newPrice` → giờ `originalPrice` giữ nguyên giá catalog.

@@ -483,6 +483,7 @@ class FirestoreService {
   static Future<void> deleteProduct(String firestoreId) async {
     try {
       await _db.collection('products').doc(firestoreId).update({
+        'deleted': true,
         'status': 0,
         'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
       });

@@ -4,6 +4,17 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-08j] - fix: Đồng bộ kho giữa các thiết bị (deleted type mismatch + nút Nhận kho từ Cloud)
+
+**Files thay đổi:**
+- `lib/views/inventory_view.dart` — `_deleteProductWithOptions`: đổi `SyncOperation.update` → `SyncOperation.delete`. Trước đây enqueue update → orchestrator đẩy raw SQLite data với `deleted: 1` (integer) lên Firestore. Các thiết bị khác check `data['deleted'] == true` (boolean) → `1 != true` → ghost products tồn tại mãi trên thiết bị khác.
+- `lib/services/firestore_service.dart` — `deleteProduct()`: thêm `'deleted': true` vào payload (trước chỉ set `status: 0`). Đồng bộ với `deleteRepair()` và `deleteSale()` đã có `deleted: true`.
+- `lib/views/settings_view.dart` — thêm nút **Nhận kho từ Cloud** (màu teal) gọi `SyncService.downloadAllFromCloud(force: true)`. Cho phép thiết bị có kho lệch tải lại toàn bộ từ Firestore.
+
+**Root cause:** Type mismatch Dart strict equality: SQLite integer `1` ≠ Firestore boolean `true`. Khi delete product, enqueue sai operation → orchestrator dùng `_handleUpdate()` thay `_handleDelete()` → `softDeletePayload()` không được gọi → Firestore nhận `deleted: 1` → các thiết bị khác không nhận biết sản phẩm đã bị xóa.
+
+---
+
 ## [2026-06-08i] - fix: Hiển thị giảm giá đúng ở list bán & chi tiết đơn bán (3 bugs)
 
 **Files thay đổi:**

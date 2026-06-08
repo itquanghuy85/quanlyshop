@@ -61,6 +61,7 @@ class _SettingsViewState extends State<SettingsView> {
   bool _isSavingPendingCost = false;
   bool _isSavingSupplier = false;
   bool _isResyncingKiotViet = false;
+  bool _isPullingFromCloud = false;
   bool? _pendingCostOverride;
   int _settingsVersion = 0;
   bool get _allowPendingCost =>
@@ -162,6 +163,48 @@ class _SettingsViewState extends State<SettingsView> {
       );
     } finally {
       if (mounted) setState(() => _isResyncingKiotViet = false);
+    }
+  }
+
+  Future<void> _pullKhoFromCloud() async {
+    if (_isPullingFromCloud) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Nhận kho từ Cloud'),
+        content: const Text(
+          'Thao tác này sẽ:\n'
+          '• Tải toàn bộ sản phẩm từ Firestore về máy này\n'
+          '• Ghi đè dữ liệu kho cục bộ (không mất đơn bán)\n'
+          '• Xóa các sản phẩm đã bị ẩn/xóa trên cloud\n\n'
+          'Dùng khi máy này hiển thị kho sai so với cloud.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Đồng ý')),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    setState(() => _isPullingFromCloud = true);
+    try {
+      await SyncService.downloadAllFromCloud(force: true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã nhận kho từ cloud thành công'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _isPullingFromCloud = false);
     }
   }
 
@@ -873,6 +916,44 @@ class _SettingsViewState extends State<SettingsView> {
                     ),
                     trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.orange.shade400),
                     onTap: _isResyncingKiotViet ? null : _forceResyncKiotViet,
+                  ),
+                ),
+
+                // Card: pull full inventory from Firestore to this device
+                const SizedBox(height: 8),
+                Card(
+                  color: Colors.teal.shade50,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    side: BorderSide(color: Colors.teal.shade200),
+                  ),
+                  child: ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.teal.shade100,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: _isPullingFromCloud
+                          ? const SizedBox(
+                              width: 28, height: 28,
+                              child: CircularProgressIndicator(strokeWidth: 2.5),
+                            )
+                          : Icon(Icons.download_rounded, color: Colors.teal.shade700, size: 28),
+                    ),
+                    title: Text(
+                      'Nhận kho từ Cloud',
+                      style: TextStyle(
+                        color: Colors.teal.shade800,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Tải toàn bộ sản phẩm từ Firestore về máy này (fix lệch kho giữa các thiết bị)',
+                      style: TextStyle(fontSize: AppTextStyles.body1.fontSize),
+                    ),
+                    trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.teal.shade400),
+                    onTap: _isPullingFromCloud ? null : _pullKhoFromCloud,
                   ),
                 ),
 
