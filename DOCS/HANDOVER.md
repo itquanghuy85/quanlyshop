@@ -14,6 +14,21 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Branch:** master  
 **Active Initiative:** ✅ Chuẩn hoá hiển thị giảm giá & format tiền — HOÀN THÀNH
 
+### ✅ Vừa hoàn thành (2026-06-09c): Audit shop_settings_view — 5 fixes
+- **Xóa 3 duplicate links** khỏi Quick Actions (đã có trong settings_view)
+- **Flatten ExpansionTile** → Card + ListTile cho Advanced Settings
+- **Cache members**: `_cachedMembers` + `_loadingMembers` trong `initState()`, không FutureBuilder
+- **Gộp upload**: 3 if-blocks (logo/cover/both) → 1 block `Future.wait()` song song
+
+### ✅ Vừa hoàn thành (2026-06-09b): Fix search đơn sửa — tìm toàn bộ local DB
+- **Bug**: Search chỉ tìm trong 50 đơn đã load từ Firestore. Đơn cũ hơn không ra dù đã sync về máy.
+- **Fix**: `_onSearch` debounce 300ms → query `db.searchRepairs()` (SQLite LIKE, limit 200) thay vì filter in-memory. Khi xóa từ khoá → về realtime list.
+
+### ✅ Vừa hoàn thành (2026-06-09a): Tái cấu trúc settings_view — 7 section chuyên nghiệp
+- **Vấn đề**: 8 sub-settings views (shop, printer, notifications, KiotViet, HR, labels, work schedule) không có link từ settings page. Sao lưu + Trợ giúp ẩn trong popup menu.
+- **Fix**: `settings_view.dart` — thêm 7 imports, `_buildNavTile()` helper, tái cấu trúc ListView thành 7 section (Tài khoản / Cửa hàng / Nhân sự / Thông báo / Đồng bộ & Sao lưu / Hỗ trợ / Quản trị nâng cao). Xóa popup menu, xóa `_buildFeatureChip`.
+- **Không ảnh hưởng sync hay logic**: chỉ thay đổi UI/navigation.
+
 ### ✅ Vừa hoàn thành (2026-06-08o): Fix health check bỏ skip auto-restore products
 - **Root cause**: `noAutoRestoreCollections = {'products'}` → health check thấy cloud=482/local=20 nhưng skip 462 sản phẩm thiếu với lý do "user may have deleted intentionally".
 - **Tại sao sai**: `_buildCloudComparisonRows` đã filter `deleted: true` → `cloudIds` chỉ chứa sản phẩm active. Nếu cloud có sản phẩm active mà local thiếu → chắc chắn là chưa sync, không phải user xóa.

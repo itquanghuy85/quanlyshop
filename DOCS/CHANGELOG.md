@@ -4,6 +4,47 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-09c] - refactor: Audit shop_settings_view — bỏ duplicate, flatten, cache members, gộp upload
+
+**Files thay đổi:**
+- `lib/views/shop_settings_view.dart` — 5 fixes sau khi audit:
+  1. **Xóa 3 duplicate links** khỏi Quick Actions (HR Salary, Backup/Restore, KiotViet) — đã có trong settings_view
+  2. **Xóa 3 unused imports** (`hr_salary_settings_view`, `backup_restore_view`, `kiotviet_settings_view`)
+  3. **Flatten Advanced Settings** — bỏ ExpansionTile, thay bằng Card + ListTile đơn giản
+  4. **Cache members list** — thay FutureBuilder (gọi lại mỗi build) bằng `_cachedMembers` + `_loadingMembers` load 1 lần trong `initState()`
+  5. **Gộp 3 upload if-blocks → 1 block** — `_saveShopData()` logo-only/cover-only/both → `Future.wait()` song song 1 chỗ
+
+---
+
+## [2026-06-09b] - fix: Search đơn sửa tìm toàn bộ local DB, không bị giới hạn 50 đơn
+
+**Files thay đổi:**
+- `lib/views/order_list_view.dart` — thêm `_searchDebounce`, `_isSearchingLocal`; sửa `_onSearch` dùng `db.searchRepairs()` (SQLite LIKE) thay vì chỉ filter in-memory khi có từ khoá.
+
+**Root cause:** `_rebuildDisplayedRepairs()` chỉ filter `_repairsByFirestoreId.values` (tối đa 50 docs từ Firestore real-time subscription). Khi search, kết quả chỉ nằm trong 50 đơn đang hiển thị.
+
+**Sau fix:** Khi nhập từ khoá, debounce 300ms rồi query SQLite local (`searchRepairs` LIKE trên customerName, phone, model, issue) với limit=200 — tìm được toàn bộ đơn đã sync về máy. Khi xoá từ khoá, về lại realtime list bình thường.
+
+---
+
+## [2026-06-09a] - refactor: Tái cấu trúc settings_view — phân loại chuyên nghiệp, thêm 7 sub-settings
+
+**Files thay đổi:**
+- `lib/views/settings_view.dart` — xóa popup menu, thêm 7 import sub-settings views mới, thêm `_buildNavTile()` helper, xóa `_buildFeatureChip()`, tái cấu trúc ListView thành 7 section rõ ràng.
+
+**Trước:** Settings page chỉ có 4 mục (hướng dẫn, đồng bộ, cửa hàng, super admin). Sao lưu + Trợ giúp ẩn trong popup menu góc trên. 8 sub-settings views (shop, printer, notifications, KiotViet, HR, labels, work schedule) không có link từ settings page.
+
+**Sau — 7 section:**
+1. **Tài khoản** — account card, super admin shop switcher
+2. **Cửa hàng** (owner/admin) — thông tin cửa hàng, danh mục, máy in, tem, KiotViet + 3 toggles kho
+3. **Nhân sự** (owner/admin) — lịch làm việc, cài đặt lương
+4. **Thông báo** — cài đặt thông báo
+5. **Đồng bộ & Sao lưu** — sync center, đẩy KiotViet, nhận kho, sao lưu
+6. **Hỗ trợ** — hướng dẫn (simple tile thay card to), trung tâm trợ giúp
+7. **Quản trị nâng cao** (super admin) — chọn shop, phân quyền, PIN, xóa data
+
+---
+
 ## [2026-06-08o] - fix: Health check auto-restore products từ cloud (bỏ skip sai)
 
 **Files thay đổi:**

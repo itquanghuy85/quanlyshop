@@ -37,6 +37,7 @@ import 'kiotviet_settings_view.dart';
 import 'hr_salary_settings_view.dart';
 import 'label_settings_view.dart';
 import 'work_schedule_settings_view.dart';
+import 'import_export_view.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../services/category_service.dart';
 import '../models/shop_settings_model.dart';
@@ -761,6 +762,8 @@ class _SettingsViewState extends State<SettingsView> {
                 ),
                 const SizedBox(height: 6),
                 _buildNavTile(icon: Icons.backup_outlined, color: Colors.blueGrey, title: 'Sao lưu & Khôi phục', subtitle: 'Export/import dữ liệu local', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BackupRestoreView()))),
+                const SizedBox(height: 6),
+                _buildNavTile(icon: Icons.import_export, color: Colors.green.shade700, title: 'Nhập / Xuất dữ liệu', subtitle: 'Xuất & nhập Excel: sửa chữa, bán hàng, kho, khách, NCC', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ImportExportView()))),
 
                 // ===== HỖ TRỢ =====
                 const SizedBox(height: 10),

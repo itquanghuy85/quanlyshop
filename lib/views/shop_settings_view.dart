@@ -30,11 +30,8 @@ import '../widgets/custom_app_bar.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/app_colors.dart';
 import 'adjustment_history_view.dart';
-import 'hr_salary_settings_view.dart';
 import 'label_designer_view.dart';
-import 'backup_restore_view.dart';
 import 'import_export_view.dart';
-import 'kiotviet_settings_view.dart';
 
 class ShopSettingsView extends StatefulWidget {
   const ShopSettingsView({super.key});
@@ -68,6 +65,10 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
   // Multi-Industry: Shop Settings
   ShopSettings? _shopSettings;
 
+  // Members cache
+  List<Map<String, dynamic>>? _cachedMembers;
+  bool _loadingMembers = false;
+
   // Controllers
   final _nameController = TextEditingController();
   final _addressController = TextEditingController();
@@ -80,6 +81,16 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
     super.initState();
     _loadShopData();
     _loadShopSettings();
+    _loadMembers();
+  }
+
+  Future<void> _loadMembers() async {
+    _safeSetState(() => _loadingMembers = true);
+    final result = await _loadShopMembers();
+    _safeSetState(() {
+      _cachedMembers = result;
+      _loadingMembers = false;
+    });
   }
 
   @override
@@ -735,104 +746,40 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
       String logoUrl = _shopLogoUrl;
       String coverUrl = _shopCoverUrl;
 
-      // Upload song song logo + cover khi cùng thay đổi để giảm thời gian chờ lưu.
-      if (_selectedLogo != null && _selectedCover != null) {
+      // Upload logo và/hoặc cover song song
+      if (_selectedLogo != null || _selectedCover != null) {
+        final both = _selectedLogo != null && _selectedCover != null;
         NotificationService.showSnackBar(
-          'Đang tải logo và ảnh bìa lên hệ thống...',
+          both ? 'Đang tải logo và ảnh bìa lên...' : (_selectedLogo != null ? 'Đang tải logo lên...' : 'Đang tải ảnh bìa lên...'),
           color: Colors.blue,
           duration: const Duration(seconds: 7),
         );
-        final uploadResults = await Future.wait<List<String>>([
-          StorageService.uploadMultipleImages([
-            _selectedLogo!.path,
-          ], 'shop_logos'),
-          StorageService.uploadMultipleImages([
-            _selectedCover!.path,
-          ], 'shop_logos'),
-        ]);
+        final uploadFutures = <Future<List<String>>>[];
+        if (_selectedLogo != null) uploadFutures.add(StorageService.uploadMultipleImages([_selectedLogo!.path], 'shop_logos'));
+        if (_selectedCover != null) uploadFutures.add(StorageService.uploadMultipleImages([_selectedCover!.path], 'shop_logos'));
 
-        final logoUrls = uploadResults[0];
-        final coverUrls = uploadResults[1];
-        if (logoUrls.isNotEmpty) logoUrl = logoUrls.first;
-        if (coverUrls.isNotEmpty) coverUrl = coverUrls.first;
-
-        if (logoUrls.isEmpty || coverUrls.isEmpty) {
-          final denied = StorageService.lastUploadPermissionDenied ||
-              (StorageService.lastUploadErrorMessage ?? '')
-                  .toLowerCase()
-                  .contains('unauthorized') ||
-              (StorageService.lastUploadErrorMessage ?? '')
-                  .toLowerCase()
-                  .contains('permission');
-          if (mounted) {
-            NotificationService.showSnackBar(
-              denied
-                  ? 'Không có quyền tải ảnh lên (lỗi 403). Kiểm tra cấu hình Firebase.'
-                  : 'Một phần ảnh tải lên thất bại. Vui lòng kiểm tra mạng và thử lại.',
-              color: Colors.red,
-              duration: const Duration(seconds: 6),
-            );
-          }
+        final results = await Future.wait(uploadFutures);
+        int idx = 0;
+        if (_selectedLogo != null) {
+          final urls = results[idx++];
+          if (urls.isNotEmpty) logoUrl = urls.first;
         }
-      }
+        if (_selectedCover != null) {
+          final urls = results[idx];
+          if (urls.isNotEmpty) coverUrl = urls.first;
+        }
 
-      // Upload logo if selected
-      if (_selectedLogo != null && _selectedCover == null) {
-        NotificationService.showSnackBar(
-          'Đang tải logo lên hệ thống, vui lòng không thoát ứng dụng.',
-          color: Colors.blue,
-          duration: const Duration(seconds: 7),
-        );
-        final urls = await StorageService.uploadMultipleImages([
-          _selectedLogo!.path,
-        ], 'shop_logos');
-        if (urls.isNotEmpty) {
-          logoUrl = urls.first;
-        } else {
+        final anyFailed = ((_selectedLogo != null && logoUrl == _shopLogoUrl && results[0].isEmpty) ||
+            (_selectedCover != null && coverUrl == _shopCoverUrl && results.last.isEmpty));
+        if (anyFailed && mounted) {
           final denied = StorageService.lastUploadPermissionDenied ||
               (StorageService.lastUploadErrorMessage ?? '').toLowerCase().contains('unauthorized') ||
               (StorageService.lastUploadErrorMessage ?? '').toLowerCase().contains('permission');
-          if (mounted) {
-            NotificationService.showSnackBar(
-              denied
-                  ? 'Không có quyền tải logo lên (lỗi 403). Kiểm tra cấu hình App Check/Storage Firebase.'
-                  : 'Tải logo thất bại. Vui lòng kiểm tra kết nối mạng và thử lại.',
-              color: Colors.red,
-              duration: const Duration(seconds: 6),
-            );
-          }
-        }
-      }
-
-      // Upload cover if selected
-      if (_selectedCover != null && _selectedLogo == null) {
-        NotificationService.showSnackBar(
-          'Đang tải ảnh bìa shop lên hệ thống...',
-          color: Colors.blue,
-          duration: const Duration(seconds: 6),
-        );
-        final urls = await StorageService.uploadMultipleImages([
-          _selectedCover!.path,
-        ], 'shop_logos');
-        if (urls.isNotEmpty) {
-          coverUrl = urls.first;
-        } else {
-          final denied = StorageService.lastUploadPermissionDenied ||
-              (StorageService.lastUploadErrorMessage ?? '')
-                  .toLowerCase()
-                  .contains('unauthorized') ||
-              (StorageService.lastUploadErrorMessage ?? '')
-                  .toLowerCase()
-                  .contains('permission');
-          if (mounted) {
-            NotificationService.showSnackBar(
-              denied
-                  ? 'Không có quyền tải ảnh bìa lên (lỗi 403). Kiểm tra cấu hình Firebase.'
-                  : 'Tải ảnh bìa thất bại. Vui lòng kiểm tra mạng và thử lại.',
-              color: Colors.red,
-              duration: const Duration(seconds: 6),
-            );
-          }
+          NotificationService.showSnackBar(
+            denied ? 'Không có quyền tải ảnh lên (lỗi 403). Kiểm tra cấu hình Firebase.' : 'Tải ảnh thất bại. Vui lòng kiểm tra kết nối và thử lại.',
+            color: Colors.red,
+            duration: const Duration(seconds: 6),
+          );
         }
       }
 
@@ -1491,7 +1438,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
     );
   }
 
-  /// Quick Actions - các shortcut hay dùng
+  /// Quick Actions - các shortcut đặc thù của shop (các mục chung đã có trong Cài đặt hệ thống)
   Widget _buildQuickActionsSection() {
     return Card(
       margin: EdgeInsets.zero,
@@ -1499,24 +1446,10 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
         children: [
           ListTile(
             dense: true,
-            leading: Icon(Icons.account_balance_wallet, color: Colors.green.shade700, size: 22),
-            title: const Text('Cài đặt lương & hoa hồng', style: TextStyle(fontSize: 14)),
-            trailing: const Icon(Icons.chevron_right, size: 20),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const HRSalarySettingsView()),
-            ),
-          ),
-          const Divider(height: 1),
-          ListTile(
-            dense: true,
             leading: Icon(Icons.history, color: Colors.orange.shade700, size: 22),
             title: const Text('Lịch sử điều chỉnh tài chính', style: TextStyle(fontSize: 14)),
             trailing: const Icon(Icons.chevron_right, size: 20),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AdjustmentHistoryView()),
-            ),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdjustmentHistoryView())),
           ),
           const Divider(height: 1),
           ListTile(
@@ -1532,98 +1465,32 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
             leading: Icon(Icons.qr_code_2, color: Colors.blue.shade700, size: 22),
             title: const Text('Thiết kế Tem sản phẩm', style: TextStyle(fontSize: 14)),
             trailing: const Icon(Icons.chevron_right, size: 20),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const LabelDesignerView()),
-            ),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LabelDesignerView())),
           ),
           const Divider(height: 1),
           ListTile(
             dense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            leading: Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: const Color(0xFFCCFBF1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.backup, color: Color(0xFF0D9488), size: 18),
-            ),
-            title: const Text('Sao lưu & Khôi phục', style: TextStyle(fontSize: 15)),
-            subtitle: const Text('Lưu dữ liệu ra máy hoặc lên Cloud', style: TextStyle(fontSize: 12, color: Colors.grey)),
-            trailing: const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const BackupRestoreView()),
-            ),
-          ),
-          const Divider(height: 1),
-          ListTile(
-            dense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            leading: Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: const Color(0xFFDCFCE7),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.import_export, color: Color(0xFF16A34A), size: 18),
-            ),
-            title: const Text('Nhập / Xuất dữ liệu', style: TextStyle(fontSize: 15)),
+            leading: Icon(Icons.import_export, color: Colors.green.shade700, size: 22),
+            title: const Text('Nhập / Xuất dữ liệu', style: TextStyle(fontSize: 14)),
             subtitle: const Text('Xuất & nhập Excel: sửa chữa, bán hàng, kho, khách, NCC', style: TextStyle(fontSize: 12, color: Colors.grey)),
-            trailing: const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ImportExportView()),
-            ),
-          ),
-          const Divider(height: 1),
-          ListTile(
-            dense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            leading: Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEDE9FE),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.sync_alt, color: Color(0xFF7C3AED), size: 18),
-            ),
-            title: const Text('Kết nối KiotViet', style: TextStyle(fontSize: 15)),
-            subtitle: const Text('Đồng bộ sản phẩm & khách hàng từ KiotViet', style: TextStyle(fontSize: 12, color: Colors.grey)),
-            trailing: const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const KiotVietSettingsView()),
-            ),
+            trailing: const Icon(Icons.chevron_right, size: 20),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ImportExportView())),
           ),
         ],
       ),
     );
   }
 
-  /// Advanced Settings - gom các cài đặt ít dùng vào ExpansionTile
   Widget _buildAdvancedSettingsSection() {
     return Card(
       margin: EdgeInsets.zero,
-      child: ExpansionTile(
+      child: ListTile(
         dense: true,
-        tilePadding: const EdgeInsets.symmetric(horizontal: 16),
-        leading: Icon(Icons.settings_suggest, color: Colors.grey.shade600, size: 22),
-        title: const Text('Cài đặt nâng cao', style: TextStyle(fontSize: 14)),
-        children: [
-          ListTile(
-            dense: true,
-            leading: Icon(Icons.restore, color: Colors.amber.shade700, size: 20),
-            title: const Text('Khôi phục dữ liệu cũ', style: TextStyle(fontSize: 14)),
-            subtitle: const Text('Migrate từ shop/tài khoản khác', style: TextStyle(fontSize: 12)),
-            trailing: const Icon(Icons.chevron_right, size: 18),
-            onTap: _showDataMigrationDialog,
-          ),
-        ],
+        leading: Icon(Icons.restore, color: Colors.amber.shade700, size: 22),
+        title: const Text('Khôi phục dữ liệu cũ', style: TextStyle(fontSize: 14)),
+        subtitle: const Text('Migrate từ shop/tài khoản khác', style: TextStyle(fontSize: 12)),
+        trailing: const Icon(Icons.chevron_right, size: 18),
+        onTap: _showDataMigrationDialog,
       ),
     );
   }
@@ -2041,58 +1908,32 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
   String _migrationProgress = '';
 
   Widget _buildMembersList() {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _loadShopMembers(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (snapshot.hasError) {
-          return Text("Lỗi tải danh sách thành viên: ${snapshot.error}");
-        }
-
-        final members = snapshot.data ?? [];
-
-        if (members.isEmpty) {
-          return const Card(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Text("Chưa có thành viên nào trong shop"),
+    if (_loadingMembers) return const Center(child: CircularProgressIndicator());
+    final members = _cachedMembers ?? [];
+    if (members.isEmpty) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Text("Chưa có thành viên nào trong shop"),
+        ),
+      );
+    }
+    return Column(
+      children: members.map((member) => Card(
+        margin: const EdgeInsets.only(bottom: 8),
+        child: ListTile(
+          leading: CircleAvatar(
+            backgroundColor: _getRoleColor(member['role']),
+            child: Text(
+              member['name']?.substring(0, 1).toUpperCase() ?? '?',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
-          );
-        }
-
-        return Column(
-          children: members
-              .map(
-                (member) => Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: _getRoleColor(member['role']),
-                      child: Text(
-                        member['name']?.substring(0, 1).toUpperCase() ?? '?',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    title: Text(member['name'] ?? 'Chưa cập nhật'),
-                    subtitle: Text(
-                      "${member['email'] ?? ''} • ${_getRoleDisplayName(member['role'])}",
-                    ),
-                    trailing: Icon(
-                      _getRoleIcon(member['role']),
-                      color: _getRoleColor(member['role']),
-                    ),
-                  ),
-                ),
-              )
-              .toList(),
-        );
-      },
+          ),
+          title: Text(member['name'] ?? 'Chưa cập nhật'),
+          subtitle: Text("${member['email'] ?? ''} • ${_getRoleDisplayName(member['role'])}"),
+          trailing: Icon(_getRoleIcon(member['role']), color: _getRoleColor(member['role'])),
+        ),
+      )).toList(),
     );
   }
 
