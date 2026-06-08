@@ -14,6 +14,11 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Branch:** master  
 **Active Initiative:** ✅ Chuẩn hoá hiển thị giảm giá & format tiền — HOÀN THÀNH
 
+### ✅ Vừa hoàn thành (2026-06-08o): Fix health check bỏ skip auto-restore products
+- **Root cause**: `noAutoRestoreCollections = {'products'}` → health check thấy cloud=482/local=20 nhưng skip 462 sản phẩm thiếu với lý do "user may have deleted intentionally".
+- **Tại sao sai**: `_buildCloudComparisonRows` đã filter `deleted: true` → `cloudIds` chỉ chứa sản phẩm active. Nếu cloud có sản phẩm active mà local thiếu → chắc chắn là chưa sync, không phải user xóa.
+- **Fix**: `sync_health_check.dart` — `noAutoRestoreCollections = <String>{}` (rỗng). Khi reload đồng bộ, 462 sản phẩm thiếu được tự download và upsert local.
+
 ### ✅ Vừa hoàn thành (2026-06-08n): Xóa cloud → tự đồng bộ sang máy B/C (soft-delete + staggered timestamp)
 - **Root cause**: `deleteSelectedDataFromCloud` hard-delete → không có `updatedAt` → polling cursor không advance → máy B/C không nhận được sự kiện xóa.
 - **Fix**: `backup_service.dart` `deleteByQuery` dùng `batch.update({deleted: true, updatedAt: nowMs + i})` thay hard-delete. Staggered timestamps đảm bảo poll 20 docs/lần advance cursor đúng.

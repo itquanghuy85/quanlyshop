@@ -4,6 +4,17 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-08o] - fix: Health check auto-restore products từ cloud (bỏ skip sai)
+
+**Files thay đổi:**
+- `lib/services/sync_health_check.dart` — xóa `products` khỏi `noAutoRestoreCollections` (set rỗng), bỏ logic skip, fix `deleted == true || deleted == 1` trong `_buildCloudComparisonRows`.
+
+**Root cause:** `noAutoRestoreCollections = {'products'}` khiến health check phát hiện cloud=482/local=20 nhưng **bỏ qua** 462 sản phẩm thiếu (log: "skip auto-restore user may have deleted intentionally"). Lý do ban đầu đặt skip này là "sản phẩm quản lý qua KiotViet, không nên tự kéo về" — nhưng sai vì `_buildCloudComparisonRows` đã filter `deleted: true` trước khi build `cloudIds`. Tức là sản phẩm đã bị soft-delete sẽ không bao giờ có trong `cloudIds` → không bao giờ bị auto-restore lại. Skip là không cần thiết và gây mất đồng bộ.
+
+**Kết quả sau fix:** Khi bấm "Reload đồng bộ" (Sync Health Check), máy B/C sẽ tự download 462 sản phẩm thiếu và hiển thị log `✅ Đã tải 462/462 records thiếu cho products`.
+
+---
+
 ## [2026-06-08n] - fix: Xóa cloud dùng soft-delete + staggered timestamp → tự đồng bộ sang máy B/C
 
 **Files thay đổi:**

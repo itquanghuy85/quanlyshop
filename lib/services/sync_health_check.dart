@@ -276,10 +276,10 @@ class SyncHealthCheck {
 
       final cloudOnly = cloudIds.difference(localIds).length;
 
-      // Products không auto-restore từ cloud — user có thể đã xóa có chủ đích.
-      // Products được quản lý qua KiotViet import + soft-delete, không nên tự kéo về.
-      // Các collection khác: tự download nếu cloud có mà local thiếu.
-      const noAutoRestoreCollections = {'products'};
+      // All collections auto-restore from cloud when local is missing records.
+      // Deleted products have deleted:true on Firestore and are already filtered
+      // out of cloudIds by _buildCloudComparisonRows, so they won't be restored.
+      const noAutoRestoreCollections = <String>{};
 
       // AUTO-FIX: Tự động download records thiếu trên local
       if (cloudOnly > 0 && !noAutoRestoreCollections.contains(collection)) {
@@ -337,12 +337,7 @@ class SyncHealthCheck {
             cloudIds.contains(firestoreId);
       }).length;
 
-      // For noAutoRestoreCollections (products), cloud-only records represent data
-      // the user intentionally deleted or didn't import. Don't count them as a
-      // mismatch so the health status reports correctly as synced.
-      final reportedCloudOnly = noAutoRestoreCollections.contains(collection)
-          ? 0
-          : cloudOnlyAfter;
+      final reportedCloudOnly = cloudOnlyAfter;
 
       return SyncCheckResult(
         collection: collection,
@@ -451,7 +446,7 @@ class SyncHealthCheck {
 
     for (final doc in docs) {
       var data = Map<String, dynamic>.from(doc.data());
-      if (data['deleted'] == true) continue;
+      if (data['deleted'] == true || data['deleted'] == 1) continue;
 
       data['firestoreId'] = doc.id;
       data = EncryptionService.decryptMap(data);
