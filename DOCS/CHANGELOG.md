@@ -4,6 +4,21 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-08f] - feat: Sửa giá bán sản phẩm trực tiếp trong màn hình tạo đơn bán
+
+**Files thay đổi:**
+- `lib/views/create_sale_view.dart`
+  - Thêm option **"💰 Sửa giá bán sản phẩm"** vào bottom sheet "Ưu đãi sản phẩm" (`_GiftDiscountSheetContent`).
+  - Khi chọn, hiện panel inline: giá hiện tại, input giá mới (VND format), checkbox "Cập nhật giá bán mặc định trong kho", nút HỦY/LƯU.
+  - Không giới hạn giá (khác với "Giảm giá" phải thấp hơn giá gốc) — hỗ trợ sản phẩm có giá = 0.
+  - Kết quả cập nhật ngay: `sellPrice`, `originalPrice`, tổng tiền, giảm giá, thành tiền.
+  - Nếu checkbox được tick → gọi `db.updateProductMap(id, {'price': newPrice, 'isSynced': 0})` để cập nhật kho và đánh dấu chờ sync cloud.
+  - Thêm state: `_showEditPriceInput`, `_editPriceController`, `_updateInventory`.
+  - Thêm method `_onConfirmSetPrice()`.
+  - Thêm case `'set_price'` trong switch xử lý kết quả bottom sheet.
+
+---
+
 ## [2026-06-08e] - fix: sync health check không báo lỗi khi kho cloud có nhiều hơn local
 
 **Files thay đổi:**

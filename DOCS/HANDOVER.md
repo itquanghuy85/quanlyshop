@@ -12,7 +12,14 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Analyze Status:** ✅ 0 compile error; pre-existing infos không ảnh hưởng build  
 **Database Version:** SQLite v102  
 **Branch:** master  
-**Active Initiative:** ✅ Fix sync health + KiotViet import duplicate — HOÀN THÀNH
+**Active Initiative:** ✅ Sửa giá bán sản phẩm trong tạo đơn bán — HOÀN THÀNH
+
+### ✅ Vừa hoàn thành (2026-06-08f): Thêm tính năng sửa giá bán sản phẩm trong màn hình tạo đơn bán
+- **Feature**: Popup "Ưu đãi sản phẩm" có thêm option "💰 Sửa giá bán sản phẩm".
+- **Flow**: Nhấn → hiện panel inline (giá hiện tại, input giá mới VND, checkbox cập nhật kho) → LƯU → cập nhật ngay giá/tổng/giảm/thành tiền trong đơn.
+- **Checkbox tick**: Gọi `db.updateProductMap` cập nhật `price` + `isSynced=0` trong SQLite, đánh dấu chờ sync cloud.
+- **Không có hạn chế giá**: Cho phép nhập giá 0 hoặc bất kỳ, khác với "Giảm giá" phải thấp hơn giá gốc.
+- **File**: `lib/views/create_sale_view.dart` — `_GiftDiscountSheetContent` + case `set_price` trong `_showGiftDiscountSheet`.
 
 ### ✅ Vừa hoàn thành (2026-06-08e): Fix sync health báo "Chưa sync hết" sai khi kho cloud nhiều hơn local
 - **Bug**: Cloud có 684 records cũ → `cloudOnly=684` → `effectiveMismatchCount=684` → "Chưa sync hết" dù `Local chưa sync=0` và `Queue=0`.

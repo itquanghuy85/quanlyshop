@@ -2945,7 +2945,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     final sellPrice = item['sellPrice'] as int;
     final hasPromotion = isGift || sellPrice < originalPrice;
 
-    // Result: {'action': 'gift'|'discount'|'reset', 'price': int?}
+    // Result: {'action': 'gift'|'discount'|'reset'|'set_price', 'price': int?, 'updateInventory': bool?}
     final result = await showAppBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true, // allow resize when keyboard opens
@@ -2990,6 +2990,22 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           item['sellPrice'] = originalPrice;
           _calculateTotal();
         });
+        break;
+      case 'set_price':
+        final newPrice = result['price'] as int;
+        final updateInventory = result['updateInventory'] as bool? ?? false;
+        setState(() {
+          item['isGift'] = false;
+          item['sellPrice'] = newPrice;
+          item['originalPrice'] = newPrice;
+          _calculateTotal();
+        });
+        if (updateInventory && product.id != null) {
+          await db.updateProductMap(
+            product.id!,
+            {'price': newPrice, 'isSynced': 0},
+          );
+        }
         break;
     }
   }
@@ -3580,7 +3596,10 @@ class _GiftDiscountSheetContent extends StatefulWidget {
 
 class _GiftDiscountSheetContentState extends State<_GiftDiscountSheetContent> {
   bool _showDiscountInput = false;
+  bool _showEditPriceInput = false;
+  bool _updateInventory = false;
   late TextEditingController _priceController;
+  late TextEditingController _editPriceController;
 
   @override
   void initState() {
@@ -3593,11 +3612,15 @@ class _GiftDiscountSheetContentState extends State<_GiftDiscountSheetContent> {
     _priceController = TextEditingController(
       text: widget.formatCurrency(initialPrice),
     );
+    _editPriceController = TextEditingController(
+      text: widget.formatCurrency(widget.currentSellPrice),
+    );
   }
 
   @override
   void dispose() {
     _priceController.dispose();
+    _editPriceController.dispose();
     super.dispose();
   }
 
@@ -3622,7 +3645,7 @@ class _GiftDiscountSheetContentState extends State<_GiftDiscountSheetContent> {
               ),
             ),
             const Divider(height: 1),
-            if (!_showDiscountInput) ...[
+            if (!_showDiscountInput && !_showEditPriceInput) ...[
               // --- Menu options ---
               ListTile(
                 leading: const Icon(Icons.card_giftcard, color: Colors.green),
@@ -3643,6 +3666,18 @@ class _GiftDiscountSheetContentState extends State<_GiftDiscountSheetContent> {
                     widget.currentSellPrice > 0,
                 onTap: () => setState(() => _showDiscountInput = true),
               ),
+              ListTile(
+                leading: const Icon(Icons.attach_money, color: Colors.blue),
+                title: const Text('💰 Sửa giá bán sản phẩm'),
+                subtitle: Text(
+                  'Giá hiện tại: ${MoneyUtils.formatCurrency(widget.currentSellPrice)}',
+                ),
+                onTap: () {
+                  _editPriceController.text =
+                      widget.formatCurrency(widget.currentSellPrice);
+                  setState(() => _showEditPriceInput = true);
+                },
+              ),
               if (widget.hasPromotion)
                 ListTile(
                   leading: const Icon(Icons.undo, color: Colors.grey),
@@ -3653,7 +3688,7 @@ class _GiftDiscountSheetContentState extends State<_GiftDiscountSheetContent> {
                   onTap: () => Navigator.pop(context, {'action': 'reset'}),
                 ),
               const SizedBox(height: 8),
-            ] else ...[
+            ] else if (_showDiscountInput) ...[
               // --- Inline discount input ---
               Padding(
                 padding: const EdgeInsets.all(16),
@@ -3706,6 +3741,74 @@ class _GiftDiscountSheetContentState extends State<_GiftDiscountSheetContent> {
                   ],
                 ),
               ),
+            ] else ...[
+              // --- Inline edit price input ---
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Sửa giá bán sản phẩm',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Giá hiện tại: ${MoneyUtils.formatCurrency(widget.currentSellPrice)}',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _editPriceController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Giá bán mới',
+                        suffixText: 'đ',
+                        border: OutlineInputBorder(),
+                      ),
+                      autofocus: true,
+                      onChanged: (value) {
+                        final parsed = widget.parseCurrency(value);
+                        final formatted = widget.formatCurrency(parsed);
+                        if (formatted != value) {
+                          _editPriceController.value = TextEditingValue(
+                            text: formatted,
+                            selection: TextSelection.collapsed(
+                              offset: formatted.length,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                    CheckboxListTile(
+                      value: _updateInventory,
+                      onChanged: (v) =>
+                          setState(() => _updateInventory = v ?? false),
+                      title: const Text('Cập nhật giá bán mặc định trong kho'),
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () =>
+                              setState(() => _showEditPriceInput = false),
+                          child: const Text('HỦY'),
+                        ),
+                        const SizedBox(width: 8),
+                        FilledButton(
+                          onPressed: _onConfirmSetPrice,
+                          child: const Text('LƯU'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ],
           ],
         ),
@@ -3727,5 +3830,18 @@ class _GiftDiscountSheetContentState extends State<_GiftDiscountSheetContent> {
       return;
     }
     Navigator.pop(context, {'action': 'discount', 'price': price});
+  }
+
+  void _onConfirmSetPrice() {
+    final price = widget.parseCurrency(_editPriceController.text);
+    if (price < 0) {
+      NotificationService.showSnackBar('Giá không hợp lệ', color: Colors.red);
+      return;
+    }
+    Navigator.pop(context, {
+      'action': 'set_price',
+      'price': price,
+      'updateInventory': _updateInventory,
+    });
   }
 }
