@@ -77,6 +77,22 @@ class FirestoreService {
     return repairDocRef(firestoreId).get();
   }
 
+  /// One-time fetch of ALL repairs for a shop — no orderBy so old repairs
+  /// without updatedAt are included. Used for SQLite historical backfill.
+  static Future<List<DocumentSnapshot<Map<String, dynamic>>>> fetchAllRepairsByShop(
+    String shopId, {
+    int limit = 2000,
+  }) async {
+    assert(shopId.isNotEmpty, 'fetchAllRepairsByShop: shopId must not be empty');
+    if (shopId.isEmpty) return const [];
+    final snapshot = await _db
+        .collection('repairs')
+        .where('shopId', isEqualTo: shopId)
+        .limit(limit)
+        .get();
+    return snapshot.docs;
+  }
+
   static Future<void> upsertRepairPatchByFirestoreId(
     String firestoreId,
     Map<String, dynamic> payload,

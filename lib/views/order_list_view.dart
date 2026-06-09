@@ -76,6 +76,9 @@ class OrderListViewState extends State<OrderListView> {
   bool _hasMoreData = false;
   bool _isLoadingMore = false;
   static const int _kPageSize = 50;
+  // Tracks which shopIds have had a full historical backfill this session.
+  // Static so it survives widget rebuilds / navigate-back.
+  static final Set<String> _backfilledShops = {};
   Timer? _searchDebounce;
   bool _isSearchingLocal = false;
 
@@ -472,9 +475,12 @@ class OrderListViewState extends State<OrderListView> {
   /// Load the next page from SQLite (scroll pagination).
   Future<void> _loadMoreFromSQLite() async {
     if (_isLoadingMore || !_hasMoreData) return;
+    debugPrint('[OrderListView] LOAD MORE TRIGGERED');
+    debugPrint('[OrderListView] Before load: ${_displayedRepairs.length} displayed, sqliteLoadedCount=$_sqliteLoadedCount');
     setState(() => _isLoadingMore = true);
     try {
       final repairs = await db.getRepairsPaged(_kPageSize, _sqliteLoadedCount);
+      debugPrint('[OrderListView] SQLite page returned ${repairs.length} repairs at offset $_sqliteLoadedCount');
       if (!mounted) return;
       setState(() {
         _sqliteRepairs.addAll(repairs);
@@ -483,8 +489,44 @@ class OrderListViewState extends State<OrderListView> {
         _isLoadingMore = false;
       });
       _rebuildDisplayedRepairs();
-    } catch (_) {
+      debugPrint('[OrderListView] After load: ${_displayedRepairs.length} displayed');
+    } catch (e) {
+      debugPrint('⚠️ [OrderListView] _loadMoreFromSQLite lỗi: $e');
       if (mounted) setState(() => _isLoadingMore = false);
+    }
+  }
+
+  /// One-time backfill: fetch ALL repairs from Firestore (no orderBy → includes
+  /// old docs without updatedAt field) and upsert to SQLite so pagination works.
+  Future<void> _doHistoricalBackfill() async {
+    final shopId = (_listeningShopId ?? '').trim();
+    if (shopId.isEmpty || _backfilledShops.contains(shopId)) return;
+    _backfilledShops.add(shopId);
+
+    try {
+      debugPrint('[OrderListView] Historical backfill start — shopId=$shopId');
+      final docs = await FirestoreService.fetchAllRepairsByShop(shopId);
+      debugPrint('[OrderListView] Backfill: Firestore returned ${docs.length} docs');
+
+      final upsertFutures = <Future<void>>[];
+      for (final doc in docs) {
+        final payload = _decodeRepairDocPayload(doc);
+        if (payload == null) continue;
+        final repair = _parseRepairDoc(payload, doc.id);
+        if (repair == null) continue;
+        upsertFutures.add(db.upsertRepair(repair));
+      }
+      if (upsertFutures.isNotEmpty) {
+        await Future.wait(upsertFutures);
+      }
+      if (!mounted) return;
+
+      debugPrint('[OrderListView] Backfill: upserted ${upsertFutures.length} repairs to SQLite');
+      // Reload from SQLite — now contains ALL repairs, pagination will work
+      unawaited(_refreshFromSQLite());
+    } catch (e) {
+      debugPrint('⚠️ [OrderListView] Historical backfill lỗi: $e');
+      _backfilledShops.remove(shopId); // Allow retry on next session
     }
   }
 
@@ -498,6 +540,8 @@ class OrderListViewState extends State<OrderListView> {
     if (!snapshot.metadata.isFromCache) {
       _receivedServerSnapshot = true;
       _lastFirestoreDocCount = snapshot.docs.length;
+      // Trigger one-time historical backfill on first real server snapshot
+      unawaited(_doHistoricalBackfill());
     }
 
     final upsertFutures = <Future<void>>[];
@@ -582,6 +626,9 @@ class OrderListViewState extends State<OrderListView> {
       final fid = (r.firestoreId ?? '').trim();
       return fid.isNotEmpty && !firestoreIds.contains(fid);
     }).toList();
+    debugPrint('[OrderListView] Firestore count: ${_repairsByFirestoreId.length}');
+    debugPrint('[OrderListView] SQLite count: ${_sqliteRepairs.length} (extra not in Firestore: ${sqliteExtra.length})');
+    debugPrint('[OrderListView] HasMore: $_hasMoreData | sqliteLoadedCount: $_sqliteLoadedCount');
     final all = [..._repairsByFirestoreId.values, ...sqliteExtra]..sort(_compareRepairs);
     final filtered = _applyFilters(all);
     final keyword = _currentSearch.trim();
@@ -605,6 +652,7 @@ class OrderListViewState extends State<OrderListView> {
 
     if (!mounted) return;
 
+    debugPrint('[OrderListView] Displayed count: ${searched.length}');
     setState(() {
       _displayedRepairs = searched;
       _isLoadingMoreRealtime = false;
