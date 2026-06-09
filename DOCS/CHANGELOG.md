@@ -4,6 +4,22 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-09g] - fix: historical backfill toàn bộ đơn sửa từ Firestore vào SQLite + debug logging
+
+**Vấn đề gốc rễ:** SQLite chỉ có 50 đơn vì được populate bởi Firestore subscription (LIMIT 50 + orderBy updatedAt). Các đơn cũ không có field `updatedAt` không bao giờ được ghi vào SQLite → "Tải thêm" không có dữ liệu.
+
+**Giải pháp:** One-time historical backfill khi nhận server snapshot đầu tiên:
+- `FirestoreService.fetchAllRepairsByShop()` — `.get()` không có `orderBy`, `limit(2000)` → bao gồm tất cả đơn kể cả cũ
+- `_doHistoricalBackfill()` trong `OrderListView` — upsert tất cả vào SQLite, sau đó `_refreshFromSQLite()`
+- Session-level cache `_backfilledShops` — mỗi shopId chỉ backfill 1 lần / session
+- Debug logging tại `_rebuildDisplayedRepairs` (Firestore count, SQLite count, Displayed count, HasMore) và `_loadMoreFromSQLite` (LOAD MORE TRIGGERED, Before/After load count)
+
+**Files thay đổi:**
+- `lib/services/firestore_service.dart` — thêm `fetchAllRepairsByShop()`
+- `lib/views/order_list_view.dart` — thêm `_doHistoricalBackfill()`, trigger từ server snapshot, debug logs
+
+---
+
 ## [2026-06-09f] - fix: đơn sửa load đủ tất cả lịch sử + phân trang SQLite
 
 **Vấn đề:** Firestore query `orderBy('updatedAt') LIMIT 50` bỏ qua các đơn cũ không có field `updatedAt` → chỉ hiện ~49 đơn dù có nhiều hơn.
