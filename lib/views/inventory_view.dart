@@ -4451,42 +4451,15 @@ class _InventoryViewState extends State<InventoryView>
                       readOnly: true,
                     ),
 
-                  // Giá vốn - KHÓA nếu đã nhập kho chính hoặc đã bán, ẩn nếu không có quyền
-                  // Ngoại lệ: nếu cost=0 (data bị mất) thì cho sửa dù không pending
-                  if (_canViewCostPrice) ...[
-                    if ((!p.isPending || p.status == 0) && p.cost > 0)
-                      InputDecorator(
-                        decoration: InputDecoration(
-                          labelText: l10n.inventoryCostLockedField,
-                          labelStyle: const TextStyle(color: PopupTheme.textMuted, fontSize: 13),
-                          prefixIcon: const Icon(Icons.lock, size: 16, color: PopupTheme.textMuted),
-                          filled: true,
-                          fillColor: PopupTheme.cardDark,
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                            borderSide: const BorderSide(color: PopupTheme.borderDark),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                            borderSide: const BorderSide(color: PopupTheme.borderDark),
-                          ),
-                        ),
-                        child: Text(
-                          CurrencyTextField.formatDisplay(p.cost),
-                          style: const TextStyle(color: PopupTheme.textMuted, fontSize: 14),
-                        ),
-                      )
-                    else
-                      _input(
-                        costC,
-                        l10n.inventoryCostField,
-                        Icons.money,
-                        type: TextInputType.number,
-                        suffix: "k",
-                      ),
-                  ],
+                  // Giá vốn - ẩn nếu không có quyền, dialog xác nhận bảo vệ khi thay đổi
+                  if (_canViewCostPrice)
+                    _input(
+                      costC,
+                      l10n.inventoryCostField,
+                      Icons.money,
+                      type: TextInputType.number,
+                      suffix: "k",
+                    ),
 
                   // Giá bán
                   _input(
