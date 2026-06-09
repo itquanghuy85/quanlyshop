@@ -445,7 +445,10 @@ class OrderListViewState extends State<OrderListView> {
         _hasMoreData = repairs.length == _kPageSize;
       });
       _rebuildDisplayedRepairs(markLoaded: true);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('⚠️ [OrderListView] _initFromSQLite lỗi: $e');
+      if (mounted) _rebuildDisplayedRepairs(markLoaded: true);
+    }
   }
 
   /// Reload the already-loaded window from SQLite (called after Firestore upserts).
@@ -460,7 +463,10 @@ class OrderListViewState extends State<OrderListView> {
         if (repairs.length == count) _hasMoreData = true;
       });
       _rebuildDisplayedRepairs(markLoaded: true);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('⚠️ [OrderListView] _refreshFromSQLite lỗi: $e');
+      if (mounted) _rebuildDisplayedRepairs(markLoaded: true);
+    }
   }
 
   /// Load the next page from SQLite (scroll pagination).
@@ -569,7 +575,14 @@ class OrderListViewState extends State<OrderListView> {
   }
 
   void _rebuildDisplayedRepairs({bool markLoaded = false}) {
-    final all = _sqliteRepairs.toList()..sort(_compareRepairs);
+    // Merge Firestore realtime cache + SQLite historical data (deduped by firestoreId).
+    // Firestore values win for items in both sources.
+    final firestoreIds = _repairsByFirestoreId.keys.toSet();
+    final sqliteExtra = _sqliteRepairs.where((r) {
+      final fid = (r.firestoreId ?? '').trim();
+      return fid.isNotEmpty && !firestoreIds.contains(fid);
+    }).toList();
+    final all = [..._repairsByFirestoreId.values, ...sqliteExtra]..sort(_compareRepairs);
     final filtered = _applyFilters(all);
     final keyword = _currentSearch.trim();
 
