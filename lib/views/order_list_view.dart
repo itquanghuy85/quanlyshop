@@ -454,16 +454,34 @@ class OrderListViewState extends State<OrderListView> {
     }
   }
 
-  /// Reload the already-loaded window from SQLite (called after Firestore upserts).
+  /// Reload the already-loaded window from SQLite (called after Firestore upserts
+  /// and after historical backfill completes).
   Future<void> _refreshFromSQLite() async {
-    final count = _sqliteLoadedCount.clamp(_kPageSize, 9999);
+    // Capture window size before the DB await — load-more may change
+    // _sqliteLoadedCount while we are suspended.
+    final windowSize = _sqliteLoadedCount.clamp(_kPageSize, 9999);
     try {
-      final repairs = await db.getRepairsPaged(count, 0);
+      final repairs = await db.getRepairsPaged(windowSize, 0);
       if (!mounted) return;
+
+      if (_isLoadingMore) {
+        // Load-more is mid-flight: don't touch pagination state, just
+        // trigger a display rebuild so new Firestore items appear.
+        _rebuildDisplayedRepairs(markLoaded: true);
+        return;
+      }
+
       setState(() {
-        _sqliteRepairs = repairs;
-        _sqliteLoadedCount = repairs.length;
-        if (repairs.length == count) _hasMoreData = true;
+        // If load-more COMPLETED while we were awaiting, _sqliteLoadedCount
+        // is now larger than windowSize and _sqliteRepairs already has page 1+
+        // data.  In that case keep the richer state; only update when our
+        // query covers everything that is currently tracked.
+        if (repairs.length >= _sqliteLoadedCount) {
+          _sqliteRepairs = repairs;
+          _sqliteLoadedCount = repairs.length;
+          _hasMoreData = repairs.length == windowSize;
+        }
+        // else: load-more data is more complete — only rebuild display below
       });
       _rebuildDisplayedRepairs(markLoaded: true);
     } catch (e) {
@@ -497,7 +515,8 @@ class OrderListViewState extends State<OrderListView> {
   }
 
   /// One-time backfill: fetch ALL repairs from Firestore (no orderBy → includes
-  /// old docs without updatedAt field) and upsert to SQLite so pagination works.
+  /// old docs without updatedAt field) and insert to SQLite so pagination works.
+  /// Uses INSERT OR IGNORE — never overwrites unsynced local repairs.
   Future<void> _doHistoricalBackfill() async {
     final shopId = (_listeningShopId ?? '').trim();
     if (shopId.isEmpty || _backfilledShops.contains(shopId)) return;
@@ -508,25 +527,32 @@ class OrderListViewState extends State<OrderListView> {
       final docs = await FirestoreService.fetchAllRepairsByShop(shopId);
       debugPrint('[OrderListView] Backfill: Firestore returned ${docs.length} docs');
 
-      final upsertFutures = <Future<void>>[];
+      if (docs.isEmpty) {
+        if (mounted) unawaited(_refreshFromSQLite());
+        return;
+      }
+
+      // Build repair list — decode once, reuse for both display and DB insert
+      final repairs = <Repair>[];
       for (final doc in docs) {
         final payload = _decodeRepairDocPayload(doc);
         if (payload == null) continue;
         final repair = _parseRepairDoc(payload, doc.id);
         if (repair == null) continue;
-        upsertFutures.add(db.upsertRepair(repair));
+        repairs.add(repair);
       }
-      if (upsertFutures.isNotEmpty) {
-        await Future.wait(upsertFutures);
-      }
-      if (!mounted) return;
 
-      debugPrint('[OrderListView] Backfill: upserted ${upsertFutures.length} repairs to SQLite');
-      // Reload from SQLite — now contains ALL repairs, pagination will work
+      // Fast bulk insert — single schema check, batched transactions,
+      // INSERT OR IGNORE protects unsynced local repairs from being overwritten
+      final inserted = await db.bulkInsertRepairsIfNew(repairs);
+      debugPrint('[OrderListView] Backfill done: $inserted new repairs inserted (${docs.length} processed)');
+
+      if (!mounted) return;
+      // Refresh display — SQLite now contains full history
       unawaited(_refreshFromSQLite());
     } catch (e) {
       debugPrint('⚠️ [OrderListView] Historical backfill lỗi: $e');
-      _backfilledShops.remove(shopId); // Allow retry on next session
+      _backfilledShops.remove(shopId); // Allow retry on next snapshot
     }
   }
 

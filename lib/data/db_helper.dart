@@ -4513,6 +4513,47 @@ class DBHelper {
     });
   }
 
+  /// Fast bulk-insert repairs from cloud backfill.
+  /// Uses INSERT OR IGNORE on firestoreId UNIQUE — skips existing rows so
+  /// locally-unsynced changes are never overwritten.
+  /// Returns count of newly inserted rows.
+  Future<int> bulkInsertRepairsIfNew(List<Repair> repairs) async {
+    if (repairs.isEmpty) return 0;
+    final db = await database;
+    // Schema check once — avoid per-row PRAGMA overhead
+    final cols = await db.rawQuery('PRAGMA table_info(repairs)');
+    final hasServices = cols.any((c) => (c['name'] as String?) == 'services');
+    int inserted = 0;
+    // Batch in groups of 200 — single transaction per batch for speed
+    const batchSize = 200;
+    for (int start = 0; start < repairs.length; start += batchSize) {
+      final end = (start + batchSize < repairs.length) ? start + batchSize : repairs.length;
+      final batch = repairs.sublist(start, end);
+      try {
+        await db.transaction((txn) async {
+          for (final r in batch) {
+            final fid = (r.firestoreId ?? '').trim();
+            if (fid.isEmpty) continue;
+            try {
+              final data = Map<String, dynamic>.from(r.toMap());
+              data.remove('id');
+              if (!hasServices) data.remove('services');
+              final rowId = await txn.insert(
+                'repairs',
+                data,
+                conflictAlgorithm: ConflictAlgorithm.ignore,
+              );
+              if (rowId > 0) inserted++;
+            } catch (_) {}
+          }
+        });
+      } catch (e) {
+        debugPrint('⚠️ bulkInsertRepairsIfNew batch $start-$end lỗi: $e');
+      }
+    }
+    return inserted;
+  }
+
   Future<int> insertRepair(Repair r) async {
     await upsertRepair(r);
     return 1;
