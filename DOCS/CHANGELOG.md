@@ -4,6 +4,23 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-09l] - feat: thêm "Sửa giá vốn (0đ)" trong menu chi tiết đơn bán
+
+**Vấn đề:**
+Đơn bán cũ có `totalCost = 0` (do sản phẩm bị mất giá vốn lúc bán). Báo cáo lợi nhuận lịch sử tính sai vì dùng trực tiếp `totalCost` từ bảng `sales`. Dialog SỬA đơn hiện tại khóa giá vốn khi đơn không cùng ngày → không sửa được.
+
+**Giải pháp (Phương án B):**
+- Thêm menu item "Sửa giá vốn (0đ)" trong PopupMenuButton trên màn hình chi tiết đơn bán
+- Chỉ hiện khi: `_canViewCostPrice && s.totalCost == 0 && s.totalPrice > 0`
+- Yêu cầu manager unlock (Firebase re-auth) giống edit/delete
+- Không bị giới hạn `_isSameDay` — đây là fix dữ liệu lịch sử
+- Sau khi nhập: gọi `_applyNewCostToSnapshots()` để cập nhật `unitCost` trong `itemSnapshotsJson`, lưu SQLite, queue Firestore sync
+
+**Files thay đổi:**
+- `lib/views/sale_detail_view.dart` — `_showFixCostDialog()` + case `fix_cost` + menu item
+
+---
+
 ## [2026-06-09k] - fix: ô giá vốn bị khóa trong dialog SỬA khi cost = 0đ
 
 **Root cause:**

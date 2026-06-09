@@ -1125,6 +1125,127 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     }
   }
 
+  // Sửa giá vốn cho đơn cũ bị mất cost=0 do bug sync
+  // Không bị giới hạn _isSameDay vì đây là fix dữ liệu lịch sử
+  Future<void> _showFixCostDialog() async {
+    final costCtrl = TextEditingController();
+    String? errorMsg;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.attach_money_rounded, color: Colors.orange),
+              SizedBox(width: 8),
+              Text('Sửa giá vốn'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Hiện giá bán để tham chiếu
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Text('Giá bán: ', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                    Text(
+                      '${MoneyUtils.formatCurrency(s.totalPrice)}đ',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              CurrencyTextField(
+                controller: costCtrl,
+                label: 'Giá vốn thực tế',
+                icon: Icons.monetization_on,
+              ),
+              if (errorMsg != null) ...[
+                const SizedBox(height: 6),
+                Text(errorMsg!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+              ],
+              const SizedBox(height: 10),
+              Text(
+                'Thao tác này cập nhật giá vốn vào báo cáo lợi nhuận lịch sử. Không thể hoàn tác.',
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+              onPressed: () {
+                CurrencyTextField.finalizeAll();
+                final v = CurrencyTextField.parseValue(costCtrl.text);
+                if (v <= 0) {
+                  setS(() => errorMsg = 'Nhập giá vốn lớn hơn 0');
+                  return;
+                }
+                Navigator.pop(ctx, true);
+              },
+              child: const Text('Lưu', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (ok != true || !mounted) {
+      costCtrl.dispose();
+      return;
+    }
+
+    final newCost = CurrencyTextField.parseValue(costCtrl.text);
+    costCtrl.dispose();
+
+    // Phân bổ lại unitCost trong itemSnapshotsJson theo tỉ lệ
+    _applyNewCostToSnapshots(newCost);
+
+    setState(() {
+      s.totalCost = newCost;
+      s.isSynced = false;
+    });
+
+    await db.updateSale(s);
+
+    if (s.firestoreId != null && s.id != null) {
+      await SyncOrchestrator().enqueue(
+        entityType: SyncEntityType.sale,
+        entityId: s.id!,
+        firestoreId: s.firestoreId,
+        operation: SyncOperation.update,
+        data: s.toMap(),
+      );
+    }
+
+    EventBus().emit('sales_changed');
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã cập nhật giá vốn'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
   Future<void> _deleteSale() async {
     if (s.id == null) return;
 
@@ -1515,6 +1636,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                     case 'edit':
                       if (!_managerUnlocked) await _unlockManager();
                       if (_managerUnlocked && mounted) _openEditSaleDialog();
+                    case 'fix_cost':
+                      if (!_managerUnlocked) await _unlockManager();
+                      if (_managerUnlocked && mounted) _showFixCostDialog();
                     case 'delete':
                       if (!_managerUnlocked) await _unlockManager();
                       if (_managerUnlocked && mounted) _deleteSale();
@@ -1536,6 +1660,15 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                     color: _allItemsReturned ? Colors.grey : Colors.orange.shade700,
                   ),
                   const PopupMenuDivider(),
+                  if (_canViewCostPrice && s.totalCost == 0 && s.totalPrice > 0) ...[
+                    _menuItem(
+                      'fix_cost',
+                      _managerUnlocked ? Icons.attach_money_rounded : Icons.lock_outline_rounded,
+                      'Sửa giá vốn (0đ)',
+                      color: Colors.orange.shade700,
+                    ),
+                    const PopupMenuDivider(),
+                  ],
                   _menuItem(
                     'edit',
                     _managerUnlocked ? Icons.edit_note_rounded : Icons.lock_outline_rounded,
