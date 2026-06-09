@@ -291,7 +291,7 @@ class _HomeViewState extends State<HomeView>
         if (event == 'settings_changed' && mounted) {
           unawaited(_loadShopSettings());
         }
-      }, onError: (e) =>
+      }, onError: (_) {});
       // NOTE: listenToNotifications already called in AuthGate (main.dart)
       // Removing duplicate listener to avoid double snackbar/notification on iOS
 
