@@ -4,6 +4,22 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-09i] - fix: no such column updatedAt trong getRepairsPaged (device bug)
+
+**Root cause phát hiện khi test trực tiếp trên CPH2203:**
+`getRepairsPaged` dùng `ORDER BY COALESCE(updatedAt, createdAt, 0) DESC` nhưng bảng `repairs` không có cột `updatedAt` (không trong CREATE TABLE, không có migration). Toàn bộ `_initFromSQLite` và `_refreshFromSQLite` fail → danh sách chỉ load từ Firestore (49 đơn), SQLite = 0, `_hasMoreData = false`.
+
+**Fix:** Thay `updatedAt` → `lastCaredAt` (cột tương đương, có sẵn trong schema).
+
+**Kết quả test thực tế:**
+- Trước: 49 đơn, không load thêm được
+- Sau fix: 594 đơn (toàn bộ lịch sử), pagination hoạt động 50/page, dừng đúng khi `HasMore=false`
+
+**Files thay đổi:**
+- `lib/data/db_helper.dart` — `getRepairsPaged`: `updatedAt` → `lastCaredAt` (2 chỗ)
+
+---
+
 ## [2026-06-09h] - fix: backfill nhanh + race-condition + data-safety
 
 **3 bug trong cùng flow pagination:**
