@@ -4706,7 +4706,7 @@ class DBHelper {
         'repairs',
         where: '(shopId = ? OR shopId IS NULL) AND (deleted = 0 OR deleted IS NULL)',
         whereArgs: [shopId],
-        orderBy: 'COALESCE(updatedAt, createdAt, 0) DESC',
+        orderBy: 'COALESCE(lastCaredAt, createdAt, 0) DESC',
         limit: limit,
         offset: offset,
       );
@@ -4714,7 +4714,7 @@ class DBHelper {
       maps = await db.query(
         'repairs',
         where: '(deleted = 0 OR deleted IS NULL)',
-        orderBy: 'COALESCE(updatedAt, createdAt, 0) DESC',
+        orderBy: 'COALESCE(lastCaredAt, createdAt, 0) DESC',
         limit: limit,
         offset: offset,
       );
