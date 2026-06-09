@@ -4,6 +4,25 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-09h] - fix: backfill nhanh + race-condition + data-safety
+
+**3 bug trong cùng flow pagination:**
+
+1. **Backfill chậm** — `Future.wait(2000 × upsertRepair)`, mỗi cái có PRAGMA table_info trong transaction → ~20-30 giây. User bấm "Tải thêm" trước khi xong → 0 items → button biến mất.
+   - Fix: `bulkInsertRepairsIfNew()` — schema check 1 lần, `INSERT OR IGNORE`, batch 200/transaction → ~1 giây.
+
+2. **Data safety** — `upsertRepair` trong backfill overwrite unsynced local repairs với data cũ từ Firestore.
+   - Fix: `INSERT OR IGNORE` trên `firestoreId UNIQUE` → không bao giờ overwrite existing rows.
+
+3. **Race condition** — `_refreshFromSQLite` reset `_sqliteRepairs=[50]` trong khi `_loadMoreFromSQLite` đang thêm page 1 → user thấy list giảm xuống 49 đột ngột.
+   - Fix: nếu `_isLoadingMore=true` → skip state update; nếu load-more vừa completed → chỉ update khi query của ta cover đủ (`repairs.length >= _sqliteLoadedCount`).
+
+**Files thay đổi:**
+- `lib/data/db_helper.dart` — thêm `bulkInsertRepairsIfNew()`
+- `lib/views/order_list_view.dart` — `_doHistoricalBackfill` dùng phương thức mới, `_refreshFromSQLite` fix race condition
+
+---
+
 ## [2026-06-09g] - fix: historical backfill toàn bộ đơn sửa từ Firestore vào SQLite + debug logging
 
 **Vấn đề gốc rễ:** SQLite chỉ có 50 đơn vì được populate bởi Firestore subscription (LIMIT 50 + orderBy updatedAt). Các đơn cũ không có field `updatedAt` không bao giờ được ghi vào SQLite → "Tải thêm" không có dữ liệu.
