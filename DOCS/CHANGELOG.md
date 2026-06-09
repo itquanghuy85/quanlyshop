@@ -4,6 +4,27 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-09j] - fix: inventory product price/cost = 0đ + createdAt = 0
+
+**Root cause:**
+Khi sync product từ Firestore về SQLite, nếu Firestore document thiếu/trả về 0 cho `price`, `cost`, `createdAt`, `upsertProduct` ghi đè lên giá trị local đang đúng. Sản phẩm kết quả hiển thị "0đ" và không có ngày trên card list.
+
+**3 fix đồng thời:**
+
+1. **`upsertProduct` (db_helper.dart)** — thêm preserve logic: khi `isSynced=true` (data từ cloud), nếu cloud trả về `price=0/cost=0/createdAt=0` nhưng local đang có giá trị đúng, giữ nguyên local. Cover tất cả sync paths.
+
+2. **`sync_service.dart` (2 paths)** — explicit preserve `createdAt`, `price`, `cost` từ existing local product trước khi gọi `Product.fromMap(data)`, tránh ghi đè từ cloud.
+
+3. **`fixMissingCreatedAt()` (db_helper.dart)** — one-time SQL fix: `UPDATE products SET createdAt = updatedAt WHERE createdAt = 0 AND updatedAt > 0`. Gọi từ `InventoryView._init()` để fix sản phẩm đang có `createdAt=0` ngay lập tức.
+
+**Files thay đổi:**
+- `lib/data/db_helper.dart` — `upsertProduct`: preserve isSynced + `fixMissingCreatedAt()` + `getProductsWithMissingPrices()`
+- `lib/services/sync_service.dart` — 2 product sync paths: preserve createdAt/price/cost
+- `lib/services/firestore_service.dart` — `fetchProductsByFirestoreIds()` (batch Firestore fetch by doc IDs)
+- `lib/views/inventory_view.dart` — `_init()`: gọi `fixMissingCreatedAt()` unawaited
+
+---
+
 ## [2026-06-09i] - fix: no such column updatedAt trong getRepairsPaged (device bug)
 
 **Root cause phát hiện khi test trực tiếp trên CPH2203:**

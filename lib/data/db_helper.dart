@@ -5212,6 +5212,20 @@ class DBHelper {
       await _upsertPhoneSplit(p);
       return;
     }
+    // When data comes from cloud (isSynced=true), preserve non-zero local values
+    // so that a Firestore document missing price/cost/createdAt does not wipe local data.
+    final fid = p.firestoreId;
+    if (p.isSynced && fid != null && fid.isNotEmpty) {
+      final existing = await getProductByFirestoreId(fid);
+      if (existing != null) {
+        int price = p.price > 0 ? p.price : existing.price;
+        int cost = p.cost > 0 ? p.cost : existing.cost;
+        int createdAt = p.createdAt > 0 ? p.createdAt : existing.createdAt;
+        if (price != p.price || cost != p.cost || createdAt != p.createdAt) {
+          p = p.copyWith(price: price, cost: cost, createdAt: createdAt);
+        }
+      }
+    }
     await _upsert('products', p.toMap(), p.firestoreId ?? "prod_${p.createdAt}");
   }
 
@@ -5903,6 +5917,41 @@ class DBHelper {
     }
     debugPrint('✅ Restored product quantity: $partName, +$quantity');
     return true;
+  }
+
+  /// Returns products with price=0 AND cost=0 that are not pending and have a Firestore ID.
+  /// Used by the self-healing mechanism to re-sync incorrect prices from Firestore.
+  Future<List<Product>> getProductsWithMissingPrices() async {
+    final shopId = await _getScopedShopId('getProductsWithMissingPrices');
+    if (shopId == null) return [];
+    final maps = await (await database).query(
+      'products',
+      where: 'shopId = ? AND (price = 0 OR price IS NULL) AND (cost = 0 OR cost IS NULL)'
+          ' AND (isPending = 0 OR isPending IS NULL)'
+          ' AND firestoreId IS NOT NULL'
+          ' AND (deleted = 0 OR deleted IS NULL)',
+      whereArgs: [shopId],
+    );
+    return List.generate(maps.length, (i) => Product.fromMap(maps[i]));
+  }
+
+  /// One-time fix: products that have createdAt=0 but updatedAt>0 will use updatedAt as createdAt.
+  /// This fixes the "no date on card" visual bug for products created via paths that missed createdAt.
+  Future<int> fixMissingCreatedAt() async {
+    final shopId = await _getScopedShopId('fixMissingCreatedAt');
+    if (shopId == null) return 0;
+    final db = await database;
+    final count = await db.rawUpdate(
+      'UPDATE products SET createdAt = updatedAt'
+      ' WHERE shopId = ? AND (createdAt IS NULL OR createdAt = 0)'
+      ' AND updatedAt > 0'
+      ' AND (deleted = 0 OR deleted IS NULL)',
+      [shopId],
+    );
+    if (count > 0) {
+      debugPrint('[DBHelper] fixMissingCreatedAt: updated $count products');
+    }
+    return count;
   }
 
   Future<Product?> getProductByFirestoreId(String firestoreId) async {

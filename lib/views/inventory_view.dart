@@ -1973,6 +1973,10 @@ class _InventoryViewState extends State<InventoryView>
     // CRITICAL: Init check data AFTER shop settings are loaded so _selectedType is correct
     _initCheckData();
     _refresh();
+    // Fix products with createdAt=0 so the date chip shows on cards (silent, once per session)
+    unawaited(db.fixMissingCreatedAt().then((fixed) {
+      if (fixed > 0 && mounted) _refresh();
+    }));
   }
 
   Future<void> _saveAllowPendingCost(bool value) async {

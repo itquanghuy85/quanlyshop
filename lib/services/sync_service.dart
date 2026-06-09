@@ -1197,15 +1197,27 @@ class SyncService {
                       (data['updatedAt'] as Timestamp).millisecondsSinceEpoch;
                 }
 
-                // BẢO TOÀN isPending và pendingSupplier từ local nếu cloud không có
-                // (để tránh mất trạng thái Kho Tạm khi sync)
+                // BẢO TOÀN các field quan trọng từ local nếu cloud trả về 0/null
                 final existingProduct = await db.getProductByFirestoreId(docId);
                 if (existingProduct != null) {
-                  // Nếu local có isPending = true và cloud không có trường này
-                  // thì giữ nguyên giá trị local
+                  // Preserve isPending / pendingSupplier
                   if (existingProduct.isPending && data['isPending'] == null) {
                     data['isPending'] = 1;
                     data['pendingSupplier'] = existingProduct.pendingSupplier;
+                  }
+                  // Preserve createdAt: không cho cloud ghi đè 0 lên giá trị đúng local
+                  final cloudCreatedAt = _getTimestamp(data['createdAt']);
+                  if (existingProduct.createdAt > 0 && cloudCreatedAt <= 0) {
+                    data['createdAt'] = existingProduct.createdAt;
+                  }
+                  // Preserve price / cost: không cho cloud ghi 0 lên giá trị đúng local
+                  final cloudPrice = _asInt(data['price']);
+                  final cloudCost = _asInt(data['cost']);
+                  if (existingProduct.price > 0 && cloudPrice <= 0) {
+                    data['price'] = existingProduct.price;
+                  }
+                  if (existingProduct.cost > 0 && cloudCost <= 0) {
+                    data['cost'] = existingProduct.cost;
                   }
                 }
 
@@ -4769,7 +4781,7 @@ class SyncService {
                 _normalizeRepairPayload(data);
                 await db.upsertRepair(Repair.fromMap(data));
               } else if (col == 'products') {
-                // BẢO TOÀN isPending và pendingSupplier từ local nếu cloud không có
+                // BẢO TOÀN các field quan trọng từ local nếu cloud trả về 0/null
                 final existingProduct = await db.getProductByFirestoreId(
                   doc.id,
                 );
@@ -4777,6 +4789,16 @@ class SyncService {
                   if (existingProduct.isPending && data['isPending'] == null) {
                     data['isPending'] = 1;
                     data['pendingSupplier'] = existingProduct.pendingSupplier;
+                  }
+                  // Preserve createdAt, price, cost khi cloud trả 0/null
+                  if (existingProduct.createdAt > 0 && _getTimestamp(data['createdAt']) <= 0) {
+                    data['createdAt'] = existingProduct.createdAt;
+                  }
+                  if (existingProduct.price > 0 && _asInt(data['price']) <= 0) {
+                    data['price'] = existingProduct.price;
+                  }
+                  if (existingProduct.cost > 0 && _asInt(data['cost']) <= 0) {
+                    data['cost'] = existingProduct.cost;
                   }
                 }
                 await db.upsertProduct(Product.fromMap(data));

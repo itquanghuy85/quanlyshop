@@ -7,12 +7,23 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## ⚡ Trạng thái hiện tại
 
 **Version:** 1.x (develop) → Production live  
-**Last Updated:** 2026-06-08  
-**Build Status:** ✅ Analyze clean (0 errors)  
-**Analyze Status:** ✅ 0 compile error; pre-existing infos không ảnh hưởng build  
+**Last Updated:** 2026-06-09  
+**Build Status:** ✅ Analyze clean (0 errors, infos pre-existing)  
+**Analyze Status:** ✅ 0 compile error  
 **Database Version:** SQLite v102  
 **Branch:** master  
-**Active Initiative:** ✅ Chuẩn hoá hiển thị giảm giá & format tiền — HOÀN THÀNH
+**Active Initiative:** ✅ Fix inventory 0đ price/cost bug — HOÀN THÀNH
+
+### ✅ Vừa hoàn thành (2026-06-09j): Fix inventory price/cost = 0đ
+- **Root cause:** `upsertProduct` khi sync từ cloud ghi đè `price/cost/createdAt=0` lên giá trị local đúng
+- **Fix 1:** `upsertProduct()` — preserve local values khi `isSynced=true` và cloud trả 0
+- **Fix 2:** `sync_service.dart` (2 paths) — explicit preserve trước `Product.fromMap`
+- **Fix 3:** `fixMissingCreatedAt()` — one-time SQL fix `createdAt` từ `updatedAt` khi `createdAt=0`
+- **Note:** Sản phẩm đang có `price=0` genuine (không phải sync bug) vẫn cần user sửa tay qua nút SỬA trong detail
+
+### ✅ Vừa hoàn thành (2026-06-09i): Fix repair list pagination — updatedAt column missing
+- `getRepairsPaged` → `lastCaredAt` thay vì `updatedAt` (không tồn tại trong schema)
+- 594 đơn hiển thị đúng, pagination 50/page
 
 ### ✅ Vừa hoàn thành (2026-06-09e): Audit home_view — xóa 89 debugPrint
 - Xóa toàn bộ 89 debugPrint (trace/flow logs không ảnh hưởng logic)

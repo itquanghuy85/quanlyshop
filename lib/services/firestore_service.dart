@@ -100,6 +100,36 @@ class FirestoreService {
     return repairDocRef(firestoreId).set(payload, SetOptions(merge: true));
   }
 
+  /// Fetches product Firestore documents by their doc IDs (max 30 per batch).
+  /// Returns a map of firestoreId → raw Firestore data.
+  static Future<Map<String, Map<String, dynamic>>> fetchProductsByFirestoreIds(
+    List<String> firestoreIds,
+  ) async {
+    if (firestoreIds.isEmpty) return {};
+    final result = <String, Map<String, dynamic>>{};
+    const batchSize = 10;
+    for (int i = 0; i < firestoreIds.length; i += batchSize) {
+      final batch = firestoreIds.sublist(
+        i,
+        (i + batchSize < firestoreIds.length) ? i + batchSize : firestoreIds.length,
+      );
+      try {
+        final snap = await _db
+            .collection('products')
+            .where(FieldPath.documentId, whereIn: batch)
+            .get();
+        for (final doc in snap.docs) {
+          if (doc.exists && doc.data().isNotEmpty) {
+            result[doc.id] = doc.data();
+          }
+        }
+      } catch (e) {
+        debugPrint('⚠️ fetchProductsByFirestoreIds batch $i error: $e');
+      }
+    }
+    return result;
+  }
+
   // --- THÔNG BÁO HỆ THỐNG ---
   static Future<void> _notifyAll(
     String title,
