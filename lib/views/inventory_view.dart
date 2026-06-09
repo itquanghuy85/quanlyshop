@@ -4452,8 +4452,9 @@ class _InventoryViewState extends State<InventoryView>
                     ),
 
                   // Giá vốn - KHÓA nếu đã nhập kho chính hoặc đã bán, ẩn nếu không có quyền
+                  // Ngoại lệ: nếu cost=0 (data bị mất) thì cho sửa dù không pending
                   if (_canViewCostPrice) ...[
-                    if (!p.isPending || p.status == 0)
+                    if ((!p.isPending || p.status == 0) && p.cost > 0)
                       InputDecorator(
                         decoration: InputDecoration(
                           labelText: l10n.inventoryCostLockedField,

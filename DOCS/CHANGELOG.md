@@ -4,6 +4,19 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-09k] - fix: ô giá vốn bị khóa trong dialog SỬA khi cost = 0đ
+
+**Root cause:**
+Điều kiện `if (!p.isPending || p.status == 0)` trong `_editProduct` dialog luôn khóa ô giá vốn cho sản phẩm đã nhập kho chính (`isPending = false`), kể cả khi `cost = 0` — user không thể nhập lại giá vốn đã bị mất.
+
+**Fix:**
+Thêm điều kiện `&& p.cost > 0`: chỉ khóa khi đã có giá vốn hợp lệ. Nếu `cost = 0`, luôn cho chỉnh sửa.
+
+**Files thay đổi:**
+- `lib/views/inventory_view.dart` — line 4456: `(!p.isPending || p.status == 0) && p.cost > 0`
+
+---
+
 ## [2026-06-09j] - fix: inventory product price/cost = 0đ + createdAt = 0
 
 **Root cause:**
