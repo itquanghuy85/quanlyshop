@@ -4654,23 +4654,48 @@ class DBHelper {
     return List.generate(maps.length, (i) => Product.fromMap(maps[i]));
   }
 
-  /// Get repairs with pagination support for lazy loading
-  /// Returns [limit] repairs starting from [offset], ordered by createdAt DESC
+  /// Get repairs with pagination support for lazy loading — scoped by shopId, excludes deleted.
+  /// Returns [limit] repairs starting from [offset], ordered by most-recently-updated first.
   Future<List<Repair>> getRepairsPaged(int limit, int offset) async {
-    final maps = await (await database).query(
-      'repairs',
-      orderBy: 'createdAt DESC',
-      limit: limit,
-      offset: offset,
-    );
+    final shopId = await _getScopedShopId('getRepairsPaged');
+    final db = await database;
+    final List<Map<String, dynamic>> maps;
+    if (shopId != null && shopId.isNotEmpty) {
+      maps = await db.query(
+        'repairs',
+        where: '(shopId = ? OR shopId IS NULL) AND (deleted = 0 OR deleted IS NULL)',
+        whereArgs: [shopId],
+        orderBy: 'COALESCE(updatedAt, createdAt, 0) DESC',
+        limit: limit,
+        offset: offset,
+      );
+    } else {
+      maps = await db.query(
+        'repairs',
+        where: '(deleted = 0 OR deleted IS NULL)',
+        orderBy: 'COALESCE(updatedAt, createdAt, 0) DESC',
+        limit: limit,
+        offset: offset,
+      );
+    }
     return List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
   }
 
-  /// Get total count of repairs for pagination
+  /// Get total count of non-deleted repairs for this shop.
   Future<int> getRepairsCount() async {
-    final result = await (await database).rawQuery(
-      'SELECT COUNT(*) as count FROM repairs',
-    );
+    final shopId = await _getScopedShopId('getRepairsCount');
+    final db = await database;
+    final List<Map<String, dynamic>> result;
+    if (shopId != null && shopId.isNotEmpty) {
+      result = await db.rawQuery(
+        'SELECT COUNT(*) as count FROM repairs WHERE (shopId = ? OR shopId IS NULL) AND (deleted = 0 OR deleted IS NULL)',
+        [shopId],
+      );
+    } else {
+      result = await db.rawQuery(
+        'SELECT COUNT(*) as count FROM repairs WHERE (deleted = 0 OR deleted IS NULL)',
+      );
+    }
     return Sqflite.firstIntValue(result) ?? 0;
   }
 

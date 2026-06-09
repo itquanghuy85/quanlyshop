@@ -70,6 +70,12 @@ class OrderListViewState extends State<OrderListView> {
   int _indexedFetchLimit = 50;
   int _lastFirestoreDocCount = 0;
   bool _isLoadingMoreRealtime = false;
+  // SQLite-first pagination
+  List<Repair> _sqliteRepairs = [];
+  int _sqliteLoadedCount = 0;
+  bool _hasMoreData = false;
+  bool _isLoadingMore = false;
+  static const int _kPageSize = 50;
   Timer? _searchDebounce;
   bool _isSearchingLocal = false;
 
@@ -230,11 +236,19 @@ class OrderListViewState extends State<OrderListView> {
   }
 
   void _onListScroll() {
-    if (!_listScrollController.hasClients || _isLoadingMoreRealtime) return;
-    if (_useRealtimeIndexFallback) return;
+    if (!_listScrollController.hasClients || _isLoadingMoreRealtime || _isLoadingMore) return;
 
     final pos = _listScrollController.position;
     if (pos.pixels < pos.maxScrollExtent - 220) return;
+
+    // SQLite pagination takes priority: loads all historical data
+    if (_hasMoreData) {
+      unawaited(_loadMoreFromSQLite());
+      return;
+    }
+
+    // Firestore pagination fallback (for realtime index mode only)
+    if (_useRealtimeIndexFallback) return;
     if (_lastFirestoreDocCount < _indexedFetchLimit) return;
 
     setState(() => _isLoadingMoreRealtime = true);
@@ -268,14 +282,24 @@ class OrderListViewState extends State<OrderListView> {
     await _repairRealtimeSubscription?.cancel();
     _repairRealtimeSubscription = null;
     _receivedServerSnapshot = false;
+
+    // Reset SQLite pagination when switching shops
+    final isNewShop = shopId != _listeningShopId;
     _listeningShopId = shopId;
 
     if (mounted) {
       setState(() {
         _isLoading = true;
         _isRealtimeConnected = false;
+        if (isNewShop) {
+          _sqliteRepairs = [];
+          _sqliteLoadedCount = 0;
+          _hasMoreData = false;
+          _isLoadingMore = false;
+        }
       });
     }
+    if (isNewShop) unawaited(_initFromSQLite());
 
     if (_useRealtimeIndexFallback) {
       // Fallback mode: avoid limit so newly-created orders are not missed.
@@ -406,58 +430,56 @@ class OrderListViewState extends State<OrderListView> {
     return null;
   }
 
-  Future<bool> _mergePendingLocalRepairsIntoCache() async {
-    final shopId = (await UserService.getCurrentShopId())?.trim();
-    if (shopId == null || shopId.isEmpty) {
-      return false;
-    }
-
-    try {
-      final dbConn = await db.database;
-      final recentThreshold = DateTime.now()
-          .subtract(const Duration(days: 30))
-          .millisecondsSinceEpoch;
-
-      final rows = await dbConn.query(
-        'repairs',
-        where: 'isSynced = 0 AND deleted = 0 AND createdAt >= ?',
-        whereArgs: [recentThreshold],
-        orderBy: 'createdAt DESC',
-        limit: 150,
-      );
-
-      var hasChanges = false;
-      for (final row in rows) {
-        final localRepair = Repair.fromMap(Map<String, dynamic>.from(row));
-        final localFirestoreId = (localRepair.firestoreId ?? '').trim();
-        if (localFirestoreId.isEmpty) continue;
-
-        final existing = _repairsByFirestoreId[localFirestoreId];
-        if (existing == null) {
-          _repairsByFirestoreId[localFirestoreId] = localRepair;
-          hasChanges = true;
-          continue;
-        }
-
-        final localStamp = localRepair.lastCaredAt ?? localRepair.createdAt;
-        final existingStamp = existing.lastCaredAt ?? existing.createdAt;
-        if (localStamp > existingStamp && !localRepair.isSynced) {
-          _repairsByFirestoreId[localFirestoreId] = localRepair;
-          hasChanges = true;
-        }
-      }
-
-      return hasChanges;
-    } catch (e) {
-      debugPrint('⚠️ [OrderListView] Merge pending local repairs lỗi: $e');
-      return false;
-    }
+  Future<void> _showPendingLocalRepairsWhileWaitingRealtime() async {
+    unawaited(_refreshFromSQLite());
   }
 
-  Future<void> _showPendingLocalRepairsWhileWaitingRealtime() async {
-    final hasChanges = await _mergePendingLocalRepairsIntoCache();
-    if (!hasChanges || !mounted) return;
-    _rebuildDisplayedRepairs(markLoaded: true);
+  /// Load first page from SQLite — called on init or shop change.
+  Future<void> _initFromSQLite() async {
+    try {
+      final repairs = await db.getRepairsPaged(_kPageSize, 0);
+      if (!mounted) return;
+      setState(() {
+        _sqliteRepairs = repairs;
+        _sqliteLoadedCount = repairs.length;
+        _hasMoreData = repairs.length == _kPageSize;
+      });
+      _rebuildDisplayedRepairs(markLoaded: true);
+    } catch (_) {}
+  }
+
+  /// Reload the already-loaded window from SQLite (called after Firestore upserts).
+  Future<void> _refreshFromSQLite() async {
+    final count = _sqliteLoadedCount.clamp(_kPageSize, 9999);
+    try {
+      final repairs = await db.getRepairsPaged(count, 0);
+      if (!mounted) return;
+      setState(() {
+        _sqliteRepairs = repairs;
+        _sqliteLoadedCount = repairs.length;
+        if (repairs.length == count) _hasMoreData = true;
+      });
+      _rebuildDisplayedRepairs(markLoaded: true);
+    } catch (_) {}
+  }
+
+  /// Load the next page from SQLite (scroll pagination).
+  Future<void> _loadMoreFromSQLite() async {
+    if (_isLoadingMore || !_hasMoreData) return;
+    setState(() => _isLoadingMore = true);
+    try {
+      final repairs = await db.getRepairsPaged(_kPageSize, _sqliteLoadedCount);
+      if (!mounted) return;
+      setState(() {
+        _sqliteRepairs.addAll(repairs);
+        _sqliteLoadedCount += repairs.length;
+        _hasMoreData = repairs.length == _kPageSize;
+        _isLoadingMore = false;
+      });
+      _rebuildDisplayedRepairs();
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingMore = false);
+    }
   }
 
   Future<void> _handleRealtimeSnapshot(
@@ -472,7 +494,6 @@ class OrderListViewState extends State<OrderListView> {
       _lastFirestoreDocCount = snapshot.docs.length;
     }
 
-    var hasChanges = false;
     final upsertFutures = <Future<void>>[];
 
     if (_repairsByFirestoreId.isEmpty &&
@@ -488,7 +509,6 @@ class OrderListViewState extends State<OrderListView> {
         );
         if (preferredLocal != null) {
           _repairsByFirestoreId[doc.id] = preferredLocal;
-          hasChanges = true;
           continue;
         }
 
@@ -498,29 +518,23 @@ class OrderListViewState extends State<OrderListView> {
         _repairsByFirestoreId[doc.id] = repair;
         upsertFutures.add(db.upsertRepair(repair));
       }
-      hasChanges = true;
     } else {
       for (final change in snapshot.docChanges) {
         final id = change.doc.id;
         if (change.type == DocumentChangeType.removed) {
-          if (_repairsByFirestoreId.remove(id) != null) {
-            hasChanges = true;
-          }
+          _repairsByFirestoreId.remove(id);
           continue;
         }
 
         final payload = _decodeRepairDocPayload(change.doc);
         if (payload == null) {
-          if (_repairsByFirestoreId.remove(id) != null) {
-            hasChanges = true;
-          }
+          _repairsByFirestoreId.remove(id);
           continue;
         }
 
         final preferredLocal = await _preferUnsyncedLocalRepair(id, payload);
         if (preferredLocal != null) {
           _repairsByFirestoreId[id] = preferredLocal;
-          hasChanges = true;
           continue;
         }
 
@@ -529,7 +543,6 @@ class OrderListViewState extends State<OrderListView> {
 
         _repairsByFirestoreId[id] = repair;
         upsertFutures.add(db.upsertRepair(repair));
-        hasChanges = true;
       }
     }
 
@@ -537,18 +550,11 @@ class OrderListViewState extends State<OrderListView> {
       await Future.wait(upsertFutures);
     }
 
-    final mergedPendingLocal = await _mergePendingLocalRepairsIntoCache();
-
     if (!mounted) return;
 
-    if (hasChanges || mergedPendingLocal) {
-      _rebuildDisplayedRepairs(markLoaded: true);
-    } else if (_isLoading || !_isRealtimeConnected) {
-      setState(() {
-        _isLoading = false;
-        _isRealtimeConnected = true;
-      });
-    }
+    // Reload display from SQLite — catches ALL history, not just Firestore window.
+    // This also covers newly-upserted docs and local unsynced repairs.
+    unawaited(_refreshFromSQLite());
   }
 
   Future<void> _loadShopSettings() async {
@@ -563,7 +569,7 @@ class OrderListViewState extends State<OrderListView> {
   }
 
   void _rebuildDisplayedRepairs({bool markLoaded = false}) {
-    final all = _repairsByFirestoreId.values.toList()..sort(_compareRepairs);
+    final all = _sqliteRepairs.toList()..sort(_compareRepairs);
     final filtered = _applyFilters(all);
     final keyword = _currentSearch.trim();
 
@@ -599,10 +605,12 @@ class OrderListViewState extends State<OrderListView> {
   void _removeRepairFromRealtimeCache(String? firestoreId) {
     final id = (firestoreId ?? '').trim();
     if (id.isEmpty) return;
-    final removed = _repairsByFirestoreId.remove(id);
-    if (removed != null) {
-      _rebuildDisplayedRepairs();
-    }
+    _repairsByFirestoreId.remove(id);
+    setState(() {
+      _sqliteRepairs.removeWhere((r) => (r.firestoreId ?? '').trim() == id);
+      _sqliteLoadedCount = _sqliteRepairs.length;
+    });
+    _rebuildDisplayedRepairs();
   }
 
   void _onSearch(String val) {
@@ -1811,6 +1819,28 @@ class OrderListViewState extends State<OrderListView> {
                         if (i < _displayedRepairs.length) {
                           return _buildRepairCard(_displayedRepairs[i], i + 1);
                         }
+                        if (_isLoadingMore) {
+                          return const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                          );
+                        }
+                        if (_hasMoreData) {
+                          return Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                            child: OutlinedButton.icon(
+                              onPressed: _loadMoreFromSQLite,
+                              icon: const Icon(Icons.keyboard_arrow_down, size: 18),
+                              label: const Text('Tải thêm'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.blue.shade700,
+                                side: BorderSide(color: Colors.blue.shade200),
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                minimumSize: const Size(double.infinity, 40),
+                              ),
+                            ),
+                          );
+                        }
                         return Padding(
                           padding: const EdgeInsets.all(16),
                           child: Center(
@@ -1837,7 +1867,7 @@ class OrderListViewState extends State<OrderListView> {
             ),
           );
           if (res == true) {
-            _rebuildDisplayedRepairs();
+            unawaited(_refreshFromSQLite());
           }
         },
         icon: Icons.phone_android,
@@ -1929,7 +1959,7 @@ class OrderListViewState extends State<OrderListView> {
               MaterialPageRoute(builder: (_) => RepairDetailView(repair: r)),
             );
             if (res == true) {
-              _rebuildDisplayedRepairs();
+              unawaited(_refreshFromSQLite());
             }
           },
           onLongPress: () {

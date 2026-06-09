@@ -4,6 +4,22 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-09f] - fix: đơn sửa load đủ tất cả lịch sử + phân trang SQLite
+
+**Vấn đề:** Firestore query `orderBy('updatedAt') LIMIT 50` bỏ qua các đơn cũ không có field `updatedAt` → chỉ hiện ~49 đơn dù có nhiều hơn.
+
+**Giải pháp:** Chuyển nguồn hiển thị từ Firestore-cache sang SQLite-first:
+- `OrderListView` load từ SQLite (`getRepairsPaged`) thay vì từ `_repairsByFirestoreId`
+- Firestore subscription vẫn hoạt động để sync realtime vào SQLite, sau đó `_refreshFromSQLite()` reload display
+- Scroll đến cuối → tự load thêm 50 đơn từ SQLite (hoặc bấm nút "Tải thêm")
+- Xóa `_mergePendingLocalRepairsIntoCache` (không cần nữa vì SQLite đã có đủ dữ liệu)
+
+**Files thay đổi:**
+- `lib/data/db_helper.dart` — `getRepairsPaged` và `getRepairsCount` thêm shopId scope + deleted filter
+- `lib/views/order_list_view.dart` — SQLite-first pagination, nút "Tải thêm", bỏ Firestore-as-display-source
+
+---
+
 ## [2026-06-09e] - refactor: Audit home_view — xóa 89 debugPrint + 2 unused vars
 
 **Files thay đổi:**
