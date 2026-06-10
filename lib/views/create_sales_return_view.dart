@@ -76,6 +76,19 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
         .map((item) => item.toReturnable())
         .toList(growable: true);
 
+    // Fallback: if cloud sync corrupted all unitPrices to 0 but sale has a finalPrice,
+    // distribute finalPrice equally across total quantity so return refund is non-zero.
+    final totalSnapshotAmount = allItems.fold<int>(0, (s, i) => s + i.pricePerUnit * i.maxQuantity);
+    if (totalSnapshotAmount == 0 && widget.sale.finalPrice > 0) {
+      final totalQty = allItems.fold<int>(0, (s, i) => s + i.maxQuantity);
+      if (totalQty > 0) {
+        final fallback = widget.sale.finalPrice ~/ totalQty;
+        for (final item in allItems) {
+          item.pricePerUnit = fallback;
+        }
+      }
+    }
+
     for (final item in allItems) {
       Product? product;
       if (item.imei.isNotEmpty &&
