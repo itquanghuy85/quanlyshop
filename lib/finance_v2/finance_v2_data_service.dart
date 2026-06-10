@@ -882,33 +882,11 @@ class FinanceV2DataService {
       final amount = _toInt(ret['totalReturnAmount']);
       if (amount <= 0) continue;
       final cost = _toInt(ret['totalReturnCost']);
-      final ts = _toInt(
-        ret['returnDate'] > 0 ? ret['returnDate'] : (ret['createdAt'] ?? 0),
-      );
-      final custName = (ret['customerName'] as String? ?? '').toString().trim();
-      final note = (ret['note'] as String? ?? '').toString().trim();
-      final fid = (ret['firestoreId'] ?? ret['id'] ?? ts).toString();
 
-      // Doanh thu ròng = doanh thu bán - hoàn trả; vốn cũng được thu hồi
+      // Doanh thu ròng = doanh thu bán - hoàn trả; vốn cũng được thu hồi.
+      // Returns are NOT shown as separate Giao dịch entries.
       saleIn = (saleIn - amount).clamp(0, saleIn > 0 ? saleIn : amount);
       saleCogs = (saleCogs - cost).clamp(0, saleCogs > 0 ? saleCogs : cost);
-
-      transactions.add(
-        FinanceV2Txn(
-          id: 'refund_$fid',
-          createdAt: ts,
-          type: 'REFUND',
-          title:
-              'Trả hàng: ${note.isNotEmpty ? note : (custName.isNotEmpty ? custName : 'Hoàn tiền khách')}',
-          subtitle:
-              'KH: ${custName.isNotEmpty ? custName : 'Khách lẻ'} · ${method == 'CHUYEN_KHOAN' ? 'Chuyển khoản' : method}',
-          amount: amount,
-          isIncome: false,
-          paymentMethod: method,
-          customerName: custName,
-          referenceId: fid,
-        ),
-      );
     }
 
     transactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));

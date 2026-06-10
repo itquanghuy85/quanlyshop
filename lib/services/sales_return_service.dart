@@ -5,7 +5,6 @@ import '../data/db_helper.dart';
 import '../models/product_model.dart';
 import '../models/sales_return_model.dart';
 import '../services/user_service.dart';
-import '../services/financial_activity_service.dart';
 import '../services/audit_service.dart';
 import '../utils/money_utils.dart';
 import '../services/encryption_service.dart';
@@ -170,38 +169,8 @@ class SalesReturnService {
         await _restoreStock(item);
       }
 
-      // 3. Log financial activity (refund)
-      if (refundMethod != 'CÔNG NỢ') {
-        await FinancialActivityService.logCustomActivity(
-          activityType: 'REFUND',
-          amount: totalReturnAmount,
-          direction: 'OUT',
-          paymentMethod: refundMethod,
-          title: 'HOÀN TIỀN TRẢ HÀNG: ${normalizedItems.map((i) => i.productName).join(', ')}',
-          description: 'KH: $customerName ($customerPhone). Lý do: ${note ?? "Trả hàng"}',
-          customerName: customerName,
-          phone: customerPhone,
-          productInfo: normalizedItems.map((i) => '${i.productName} x${i.quantity}').join(', '),
-          referenceType: 'sales_return',
-          referenceId: returnFirestoreId,
-          createdBy: userName,
-        );
-      } else {
-        await FinancialActivityService.logCustomActivity(
-          activityType: 'REFUND',
-          amount: totalReturnAmount,
-          direction: 'DEBT',
-          paymentMethod: 'CÔNG NỢ',
-          title: 'TRẢ HÀNG GIẢM NỢ: ${normalizedItems.map((i) => i.productName).join(', ')}',
-          description: 'Giảm công nợ $customerName. Lý do: ${note ?? "Trả hàng"}',
-          customerName: customerName,
-          phone: customerPhone,
-          productInfo: normalizedItems.map((i) => '${i.productName} x${i.quantity}').join(', '),
-          referenceType: 'sales_return',
-          referenceId: returnFirestoreId,
-          createdBy: userName,
-        );
-      }
+      // 3. (Financial activity log removed — returns do not create separate financial entries.
+      //    Income adjustment is handled in finance_v2_data_service via saleIn deduction.)
 
       // Always attempt debt reduction for the linked sale.
       // If no debt exists, _reduceDebt will no-op safely.
