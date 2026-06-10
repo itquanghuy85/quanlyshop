@@ -4,6 +4,23 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-10g] - fix: crash _dependents.isEmpty khi thêm khách hàng vào đơn sửa ở list
+
+**Vấn đề:**
+Tapping chip "👤 Thêm khách hàng" trong danh sách đơn sửa (`order_list_view.dart`) gây crash:
+```
+'_dependents.isEmpty': is not true
+```
+Root cause: `_addCustomerToRepair` gọi `await UserService.getCurrentShopId()` (async gap), sau đó gọi `showDialog` trong khi InkWell gesture handler cha vẫn đang deactivating — context InheritedWidget chưa ổn định, assert fail.
+
+**Giải pháp:**
+Thêm `await Future.delayed(Duration.zero)` + kiểm tra `mounted` trước `showDialog`, cho phép Flutter flush pending deactivation trước khi mở dialog. Cùng pattern fix 2026-06-10a (`sale_detail_view.dart`).
+
+**Files thay đổi:**
+- `lib/views/order_list_view.dart`
+
+---
+
 ## [2026-06-10f] - fix: mã nhập nhanh điền sai màu SA MẠC và tình trạng NEW
 
 **Vấn đề:**

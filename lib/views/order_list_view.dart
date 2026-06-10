@@ -1158,6 +1158,8 @@ class OrderListViewState extends State<OrderListView> {
     final shopId = await UserService.getCurrentShopId();
 
     if (!mounted) return;
+    await Future.delayed(Duration.zero);
+    if (!mounted) return;
 
     final confirmed = await showDialog<bool>(
       context: context,
