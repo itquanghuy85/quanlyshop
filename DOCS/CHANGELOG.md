@@ -4,6 +4,57 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-10c] - fix: trả hàng tính 0đ hoàn tiền khi unitPrice bị ghi đè thành 0
+
+**Vấn đề:**
+`itemSnapshotsJson` của một số đơn bán bị cloud sync bug ghi đè `unitPrice=0` (đã fix trước đó). Khi tạo trả hàng từ đơn này, form tính `totalReturnAmount = unitPrice × qty = 0` → hoàn tiền 0đ → Tài chính không trừ doanh thu → số liệu sai.
+
+**Giải pháp:**
+- `create_sales_return_view.dart`: Thêm fallback trong `_parseItems()` — nếu tổng giá snapshot = 0 nhưng `sale.finalPrice > 0`, phân phối `finalPrice / totalQty` cho từng item. Tránh trả hàng với 0đ do dữ liệu bị hỏng.
+
+**Kết quả:**
+- Return form hiển thị đúng đơn giá khi snapshot bị hỏng giá ✅
+- `totalReturnAmount` được tính đúng từ `finalPrice` ✅
+- Không ảnh hưởng đơn có snapshot giá đúng ✅
+
+**Files thay đổi:**
+- `lib/views/create_sales_return_view.dart`
+
+---
+
+## [2026-06-10b] - fix: trả hàng không ghi vào Giao dịch tài chính
+
+**Vấn đề:**
+Khi trả hàng, hệ thống tạo entry `-12 Tr` vào danh sách "Giao dịch" trong màn hình Tài chính, và cũng ghi vào `financial_activity_log`. Người dùng không muốn returns xuất hiện trong sổ giao dịch tài chính.
+
+**Giải pháp:**
+- `finance_v2_data_service.dart`: Xóa `transactions.add(FinanceV2Txn(...))` cho REFUND. Giữ nguyên `saleIn -= amount` để tổng "Tiền thu vào" vẫn đúng (net doanh thu sau hoàn trả).
+- `sales_return_service.dart`: Xóa `FinancialActivityService.logCustomActivity(...)` — không ghi vào audit log tài chính.
+
+**Kết quả:**
+- "Giao dịch" tab: không còn hiện entry trả hàng ✅
+- "Tiền thu vào" vẫn đúng (đã trừ giá trị hoàn trả) ✅
+- Sổ quỹ không bị ảnh hưởng (đọc trực tiếp từ bảng sales_returns) ✅
+
+**Files thay đổi:**
+- `lib/finance_v2/finance_v2_data_service.dart`
+- `lib/services/sales_return_service.dart`
+
+---
+
+## [2026-06-10a] - fix: crash _dependents.isEmpty khi bấm "Sửa thông tin đơn"
+
+**Vấn đề:**
+Khi `_managerUnlocked` đã là `true`, bấm "Sửa thông tin đơn" (hoặc "Sửa giá vốn", "Xóa đơn") trong PopupMenu gây crash assertion `_dependents.isEmpty: is not true` ở Flutter framework.dart:6268. Nguyên nhân: `showDialog` được gọi **đồng bộ** ngay trong `onSelected` callback trong khi Flutter đang deactivate widget tree của popup, gây xung đột InheritedElement.
+
+**Giải pháp:**
+Thêm `await Future.delayed(Duration.zero)` trước mỗi lần gọi dialog trong 3 case: `edit`, `fix_cost`, `delete`. Điều này nhường microtask frame để popup đóng hoàn toàn trước khi dialog mới được tạo. Khi `_unlockManager()` đã được await (trường hợp chưa unlock), delay này vô hại.
+
+**Files thay đổi:**
+- `lib/views/sale_detail_view.dart` — thêm `await Future.delayed(Duration.zero)` vào case edit/fix_cost/delete
+
+---
+
 ## [2026-06-09l] - feat: thêm "Sửa giá vốn (0đ)" trong menu chi tiết đơn bán
 
 **Vấn đề:**

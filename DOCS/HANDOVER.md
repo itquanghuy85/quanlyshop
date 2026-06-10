@@ -7,12 +7,29 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## ⚡ Trạng thái hiện tại
 
 **Version:** 1.x (develop) → Production live  
-**Last Updated:** 2026-06-09  
+**Last Updated:** 2026-06-10  
 **Build Status:** ✅ Analyze clean (0 errors, infos pre-existing)  
 **Analyze Status:** ✅ 0 compile error  
 **Database Version:** SQLite v102  
 **Branch:** master  
-**Active Initiative:** ✅ Fix inventory 0đ price/cost bug — HOÀN THÀNH
+**Active Initiative:** ✅ Fix chuỗi lỗi trả hàng & tài chính — HOÀN THÀNH
+
+### ✅ Vừa hoàn thành (2026-06-10c): Fix return form tính 0đ hoàn tiền khi snapshot giá bị hỏng
+- **Root cause:** `itemSnapshotsJson.unitPrice=0` do cloud sync bug cũ ghi đè → `totalReturnAmount=0` → finance không trừ doanh thu
+- **Fix:** Fallback trong `_parseItems()` — nếu tổng snapshot giá = 0 mà `sale.finalPrice > 0`, phân phối `finalPrice/totalQty` cho từng item
+- **File:** `lib/views/create_sales_return_view.dart`
+- **Lưu ý:** Data cũ đã lưu 0 Tr không tự sửa được; fix áp dụng cho future returns
+
+### ✅ Vừa hoàn thành (2026-06-10b): Fix trả hàng không ghi vào Giao dịch tài chính
+- Xóa `transactions.add` cho REFUND trong `finance_v2_data_service.dart` — Giao dịch tab sạch
+- Xóa `FinancialActivityService.logCustomActivity` cho returns trong `sales_return_service.dart`
+- Giữ `saleIn -= amount` → "Tiền thu vào" vẫn net chính xác sau hoàn trả
+- Sổ quỹ không bị ảnh hưởng (dùng bảng sales_returns riêng)
+
+### ✅ Vừa hoàn thành (2026-06-10a): Fix crash _dependents.isEmpty khi bấm "Sửa thông tin đơn"
+- **Root cause:** `showDialog` gọi đồng bộ trong `PopupMenuButton.onSelected` khi `_managerUnlocked=true`, xung đột với quá trình deactivate popup's InheritedElement
+- **Fix:** Thêm `await Future.delayed(Duration.zero)` trước mỗi `showDialog` call (case edit/fix_cost/delete) để nhường frame, đảm bảo popup đóng hoàn toàn
+- **File:** `lib/views/sale_detail_view.dart` lines 1636–1648
 
 ### ✅ Vừa hoàn thành (2026-06-09j): Fix inventory price/cost = 0đ
 - **Root cause:** `upsertProduct` khi sync từ cloud ghi đè `price/cost/createdAt=0` lên giá trị local đúng
