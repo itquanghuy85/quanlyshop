@@ -4,6 +4,27 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-10e] - feat: trả hàng hiển thị trong tab Giao dịch (Tài chính)
+
+**Vấn đề:**
+Trả hàng không ghi thành giao dịch trong tab "Giao dịch" của Tài chính, khó audit luồng tiền theo từng lần trả hàng.
+
+**Giải pháp:**
+- `finance_v2_data_service.dart`: Thêm `FinanceV2Txn(type: 'REFUND', isIncome: false)` vào `transactions` list trong returns loop
+- Mỗi trả hàng hiển thị: tên khách, "Hoàn tiền trả hàng", số tiền âm (-X Tr), phương thức, ngày giờ
+- Không ảnh hưởng Tổng quan: `saleIn -= amount` vẫn chạy riêng → Thu tiền 5 Tr vẫn đúng
+- Filter OUT trong Giao dịch sẽ bao gồm trả hàng (đúng về mặt cash flow)
+
+**Kết quả:**
+- Giao dịch tab: thấy "KHÁCH VÃNG LAI · Hoàn tiền trả hàng -12 Tr · TIỀN MẶT" ✅
+- Tổng quan: Thu tiền 5 Tr (net), Chi tiền 0 (không thay đổi) ✅
+- Nhất quán: Sổ quỹ Chi cũng hiển thị trả hàng như Chi → cả 2 màn hình đều thấy
+
+**Files thay đổi:**
+- `lib/finance_v2/finance_v2_data_service.dart`
+
+---
+
 ## [2026-06-10d] - fix: home CHI TIÊU hiển thị Trả hàng mâu thuẫn với tổng = 0
 
 **Vấn đề:**

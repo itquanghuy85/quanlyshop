@@ -884,9 +884,27 @@ class FinanceV2DataService {
       final cost = _toInt(ret['totalReturnCost']);
 
       // Doanh thu ròng = doanh thu bán - hoàn trả; vốn cũng được thu hồi.
-      // Returns are NOT shown as separate Giao dịch entries.
       saleIn = (saleIn - amount).clamp(0, saleIn > 0 ? saleIn : amount);
       saleCogs = (saleCogs - cost).clamp(0, saleCogs > 0 ? saleCogs : cost);
+
+      // Hiện trả hàng trong tab Giao dịch để dễ audit (isIncome=false → Chi).
+      final retCustomer =
+          (ret['customerName'] as String? ?? '').trim();
+      transactions.add(
+        FinanceV2Txn(
+          id: 'ret_${ret['firestoreId'] as String? ?? ret['id']}',
+          createdAt: _toInt(ret['returnDate']),
+          type: 'REFUND',
+          title: retCustomer.isNotEmpty ? retCustomer : 'Khách lẻ',
+          subtitle: 'Hoàn tiền trả hàng',
+          amount: amount,
+          isIncome: false,
+          paymentMethod: method,
+          customerName: retCustomer.isNotEmpty ? retCustomer : null,
+          referenceId: ret['salesOrderFirestoreId'] as String?,
+          costAmount: cost,
+        ),
+      );
     }
 
     transactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
