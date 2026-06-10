@@ -2373,7 +2373,6 @@ class _HomeViewState extends State<HomeView>
   int _todayImportOut = 0; // Chi nhập hàng
   int _todayPartnerPaid = 0; // TT đối tác sửa chữa
   int _todaySettlementIncome = 0; // Tất toán NH (bank settlement)
-  int _todayRefundOut = 0; // Tiền trả hàng (cash out)
 
   /// Load chat info separately (deferred) - Firestore calls, don't block main stats
   Future<void> _loadChatInfo() async {
@@ -2717,7 +2716,6 @@ class _HomeViewState extends State<HomeView>
           _todayImportOut = financeSnapshot.importExpenseOut;
           _todayPartnerPaid = partnerPaidExtraConsistent;
           _todaySettlementIncome = analysis.settlementIncome;
-          _todayRefundOut = analysis.refundOut;
         });
       }
 
@@ -7173,7 +7171,7 @@ class _HomeViewState extends State<HomeView>
     final incomeItems = <_HomeDashItem>[
       _HomeDashItem(
         'Bán hàng',
-        _todaySaleIncome + _todayRefundOut,
+        _todaySaleIncome,
         const Color(0xFF43A047),
       ),
       if (_todaySettlementIncome > 0)
@@ -7206,8 +7204,6 @@ class _HomeViewState extends State<HomeView>
         ),
       if (_todayPartnerPaid > 0)
         _HomeDashItem('TT đối tác', _todayPartnerPaid, const Color(0xFFAB47BC)),
-      if (_todayRefundOut > 0)
-        _HomeDashItem('Trả hàng', _todayRefundOut, const Color(0xFFEF5350)),
     ].where((i) => i.value > 0).toList();
 
     return GestureDetector(

@@ -4,6 +4,31 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-10d] - fix: home CHI TIÊU hiển thị Trả hàng mâu thuẫn với tổng = 0
+
+**Vấn đề:**
+Home screen dashboard dùng 2 nguồn dữ liệu khác nhau cho donut breakdown:
+- Tổng "THU NHẬP" / "CHI TIÊU" lấy từ `financeSnapshot` (finance_v2, net approach: returns đã trừ vào thu)
+- Breakdown "Bán hàng" = `_todaySaleIncome + _todayRefundOut` (17 Tr gross)
+- Breakdown "Trả hàng" = `_todayRefundOut` (12 Tr) nằm dưới CHI TIÊU
+
+Kết quả mâu thuẫn: CHI TIÊU tổng = 0 nhưng breakdown hiển thị "Trả hàng: 12 Tr"; THU NHẬP = 5 Tr nhưng breakdown "Bán hàng: 17 Tr" > tổng.
+
+**Giải pháp:**
+- `home_view.dart`: Xóa `_todayRefundOut` khỏi `incomeItems` (Bán hàng) và khỏi `expenseItems` (Trả hàng)
+- Xóa field `_todayRefundOut` và assignment `analysis.refundOut` không còn dùng
+- Home screen nay dùng thuần finance_v2 net approach, nhất quán với tab Tài chính
+
+**Kết quả:**
+- THU NHẬP = 5 Tr, breakdown Bán hàng = 5 Tr ✅
+- CHI TIÊU = 0, không có mục Trả hàng mâu thuẫn ✅
+- Nhất quán với Tài chính Tổng quan (Thu tiền 5 Tr, Chi tiền 0) ✅
+
+**Files thay đổi:**
+- `lib/views/home_view.dart`
+
+---
+
 ## [2026-06-10c] - fix: trả hàng tính 0đ hoàn tiền khi unitPrice bị ghi đè thành 0
 
 **Vấn đề:**
