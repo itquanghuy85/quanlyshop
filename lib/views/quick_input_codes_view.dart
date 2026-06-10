@@ -960,6 +960,7 @@ class _QuickInputCodeDialogState extends State<_QuickInputCodeDialog> {
     'TITAN ĐEN': const Color(0xFF2C2C2C),
     'TITAN TRẮNG': const Color(0xFFF5F5F5),
     'TITAN XÁM': const Color(0xFF808080),
+    'SA MẠC': const Color(0xFFD2B48C),
     'KHÁC': Colors.grey,
   };
 

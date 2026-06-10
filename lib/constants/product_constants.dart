@@ -19,6 +19,7 @@ class ProductConstants {
     'TITAN ĐEN',
     'TITAN TRẮNG',
     'TITAN XÁM',
+    'SA MẠC',
     'KHÁC',
   ];
 
@@ -255,6 +256,7 @@ class ProductConstants {
 
     if (conditionUpper.contains('MỚI 100') ||
         conditionUpper == 'MỚI' ||
+        conditionUpper == 'NEW' ||
         conditionUpper == '100%' ||
         conditionUpper == '100') {
       return 'MỚI';
@@ -296,6 +298,8 @@ class ProductConstants {
       if (colorUpper.contains('TRẮNG') || colorUpper.contains('WHITE')) return 'TITAN TRẮNG';
       if (colorUpper.contains('XÁM') || colorUpper.contains('GRAY')) return 'TITAN XÁM';
     }
+    // Seeder lưu 'TỰ NHIÊN' (không có từ TITAN) cho iPhone 15/16/17 Pro
+    if (colorUpper == 'TỰ NHIÊN' || colorUpper == 'NATURAL') return 'TITAN TỰ NHIÊN';
 
     return 'KHÁC';
   }

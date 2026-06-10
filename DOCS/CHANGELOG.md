@@ -4,6 +4,31 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-10f] - fix: mã nhập nhanh điền sai màu SA MẠC và tình trạng NEW
+
+**Vấn đề:**
+Khi chọn mã nhập nhanh iPhone 17 Pro Max (và 16 Pro/Max, 15 Pro/Max) từ Nhanh hoặc Đầy đủ, form nhập kho hiển thị màu = KHÁC và tình trạng = KHÁC. Root cause:
+1. `ProductConstants.mapColor("SA MẠC")` → không có trong `colors` list và không có rule → trả về "KHÁC"
+2. `ProductConstants.mapColor("TỰ NHIÊN")` → rule TITAN block chỉ xử lý khi có từ "TITAN" → trả về "KHÁC"
+3. `ProductConstants.mapConditionShort("NEW")` → seeder lưu condition = "NEW" nhưng không có rule → trả về "KHÁC"
+
+**Giải pháp:**
+- `ProductConstants.colors`: Thêm 'SA MẠC' vào danh sách (trước 'KHÁC')
+- `ProductConstants.mapColor`: Thêm rule `'TỰ NHIÊN' → 'TITAN TỰ NHIÊN'` (seeder dùng cho iPhone 15/16/17 Pro)
+- `ProductConstants.mapConditionShort`: Thêm `'NEW' → 'MỚI'` (seeder dùng condition="NEW" cho iPhone 16/17)
+- `quick_input_codes_view.dart` `_colorOptions`: Thêm 'SA MẠC' với màu tan cát #D2B48C
+
+**Kết quả:**
+- iPhone 17 Pro Max SA MẠC NEW → màu = SA MẠC, tình trạng = MỚI ✅
+- iPhone 16/17 Pro TỰ NHIÊN → màu = TITAN TỰ NHIÊN ✅
+- Mã nhập nhanh (Nhanh và Đầy đủ) điền đúng cả màu lẫn tình trạng ✅
+
+**Files thay đổi:**
+- `lib/constants/product_constants.dart`
+- `lib/views/quick_input_codes_view.dart`
+
+---
+
 ## [2026-06-10e] - feat: trả hàng hiển thị trong tab Giao dịch (Tài chính)
 
 **Vấn đề:**
