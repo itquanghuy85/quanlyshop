@@ -1635,12 +1635,15 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                       _openReturnView();
                     case 'edit':
                       if (!_managerUnlocked) await _unlockManager();
+                      await Future.delayed(Duration.zero);
                       if (_managerUnlocked && mounted) _openEditSaleDialog();
                     case 'fix_cost':
                       if (!_managerUnlocked) await _unlockManager();
+                      await Future.delayed(Duration.zero);
                       if (_managerUnlocked && mounted) _showFixCostDialog();
                     case 'delete':
                       if (!_managerUnlocked) await _unlockManager();
+                      await Future.delayed(Duration.zero);
                       if (_managerUnlocked && mounted) _deleteSale();
                   }
                 },
