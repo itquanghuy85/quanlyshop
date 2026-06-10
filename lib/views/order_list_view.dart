@@ -1158,8 +1158,6 @@ class OrderListViewState extends State<OrderListView> {
     final shopId = await UserService.getCurrentShopId();
 
     if (!mounted) return;
-    await Future.delayed(Duration.zero);
-    if (!mounted) return;
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1318,23 +1316,22 @@ class OrderListViewState extends State<OrderListView> {
             ),
             actions: [
               TextButton(
-                onPressed: () {
-                  // Unfocus trước khi pop — tránh '_dependents.isEmpty' assertion
-                  // khi text selection overlay của TextField vẫn còn ref đến
-                  // InheritedWidgets của dialog trong lúc chúng đang deactivate.
+                onPressed: () async {
                   FocusScope.of(ctx).unfocus();
                   dialogActive = false;
                   searchTimer?.cancel();
-                  Navigator.pop(ctx, false);
+                  await Future.delayed(Duration.zero);
+                  if (ctx.mounted) Navigator.pop(ctx, false);
                 },
                 child: const Text('Hủy'),
               ),
               FilledButton(
-                onPressed: () {
+                onPressed: () async {
                   FocusScope.of(ctx).unfocus();
                   dialogActive = false;
                   searchTimer?.cancel();
-                  Navigator.pop(ctx, true);
+                  await Future.delayed(Duration.zero);
+                  if (ctx.mounted) Navigator.pop(ctx, true);
                 },
                 child: const Text('Lưu'),
               ),

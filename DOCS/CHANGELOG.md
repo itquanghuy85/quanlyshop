@@ -4,17 +4,17 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
-## [2026-06-10g] - fix: crash _dependents.isEmpty khi thêm khách hàng vào đơn sửa ở list
+## [2026-06-10g] - fix: crash _dependents.isEmpty khi bấm Lưu/Hủy trong dialog thêm khách hàng
 
 **Vấn đề:**
-Tapping chip "👤 Thêm khách hàng" trong danh sách đơn sửa (`order_list_view.dart`) gây crash:
+Bấm nút Lưu hoặc Hủy trong dialog "Thêm thông tin khách hàng" (từ danh sách đơn sửa) gây crash:
 ```
 '_dependents.isEmpty': is not true
 ```
-Root cause: `_addCustomerToRepair` gọi `await UserService.getCurrentShopId()` (async gap), sau đó gọi `showDialog` trong khi InkWell gesture handler cha vẫn đang deactivating — context InheritedWidget chưa ổn định, assert fail.
+Root cause: `FocusScope.unfocus()` được gọi đồng bộ ngay trước `Navigator.pop()` — Flutter chưa kịp flush deactivation của text selection overlay (copy/paste toolbar) của TextField trước khi dialog bị pop, dẫn đến InheritedWidget assert fail.
 
 **Giải pháp:**
-Thêm `await Future.delayed(Duration.zero)` + kiểm tra `mounted` trước `showDialog`, cho phép Flutter flush pending deactivation trước khi mở dialog. Cùng pattern fix 2026-06-10a (`sale_detail_view.dart`).
+Chuyển `onPressed` của cả 2 nút Hủy và Lưu sang `async`, thêm `await Future.delayed(Duration.zero)` sau `unfocus()` trước khi `Navigator.pop()`. Một frame trễ đủ để overlay deactivate sạch.
 
 **Files thay đổi:**
 - `lib/views/order_list_view.dart`
