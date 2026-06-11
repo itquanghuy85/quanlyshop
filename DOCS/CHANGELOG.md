@@ -4,6 +4,25 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-11b] - feat(import): importPurchaseOrders tự tạo product stub; IMEI = 1 sản phẩm riêng
+
+**Vấn đề:**
+Import file `DanhSachChiTietNhapHang` từ KiotViet tạo 46 phiếu trong lịch sử nhập kho nhưng các sản phẩm mới trong những phiếu đó không xuất hiện trong Danh sách sản phẩm.
+
+**Nguyên nhân:**
+`importPurchaseOrders` chỉ tạo `import_orders` + `import_order_items`, không tạo bản ghi trong bảng `products`.
+
+**Giải pháp:**
+Sau khi insert từng `import_order_item`, kiểm tra sản phẩm trong bảng `products`:
+- **Có IMEI:** tìm theo IMEI (không fallback tên). Nếu không tìm thấy → tạo product mới với IMEI đó, qty=1 (mỗi IMEI = 1 thiết bị vật lý riêng biệt).
+- **Không có IMEI:** tìm theo tên (dedup). Nếu không tìm thấy → tạo product stub, qty=số lượng trong phiếu.
+- **Đã tồn tại:** chỉ cập nhật supplier/cost nếu đang trống.
+
+**Files thay đổi:**
+- `lib/services/kiotviet_excel_import_service.dart`
+
+---
+
 ## [2026-06-11a] - fix(ux): snackbar import KiotViet màu vàng khi toàn bộ bị bỏ qua
 
 **Vấn đề:**

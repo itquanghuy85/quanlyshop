@@ -1175,25 +1175,40 @@ class KiotVietExcelImportService {
             inserted++;
           }
 
-          // Insert items
+          // Insert items + auto-create product stubs for new products
           for (final item in itemMaps) {
             try {
               await db.insert('import_order_items', item,
                   conflictAlgorithm: ConflictAlgorithm.replace);
             } catch (_) {}
 
-            // Update matching product: set supplier + cost if missing
+            final pName = (item['productName'] as String? ?? '').trim();
             final imei = item['imei'] as String?;
-            final costPrice = item['costPrice'] as int;
-            if (imei != null && imei.isNotEmpty) {
+            final costPrice = item['costPrice'] as int? ?? 0;
+            final qty = item['quantity'] as int? ?? 0;
+
+            if (pName.isNotEmpty) {
               try {
-                final prods = await db.query('products',
-                    where: 'imei = ? AND shopId = ? AND (deleted IS NULL OR deleted != 1)',
-                    whereArgs: [imei, shopId], limit: 1);
+                final hasImei = imei != null && imei.isNotEmpty;
+                List<Map<String, dynamic>> prods = [];
+                if (hasImei) {
+                  // Each IMEI = one unique physical device → only match by IMEI, never by name
+                  prods = await db.query('products',
+                      where: 'imei = ? AND shopId = ? AND (deleted IS NULL OR deleted != 1)',
+                      whereArgs: [imei, shopId], limit: 1);
+                } else {
+                  // No IMEI (accessories, parts) → match by name to avoid duplicates
+                  prods = await db.query('products',
+                      where: 'UPPER(name) = UPPER(?) AND shopId = ? AND (deleted IS NULL OR deleted != 1)',
+                      whereArgs: [pName, shopId], limit: 1);
+                }
+
                 if (prods.isNotEmpty) {
+                  // Update existing: fill missing supplier/cost
                   final prod = prods.first;
                   final upd = <String, dynamic>{};
-                  if (supplierName.isNotEmpty && (prod['supplier'] == null || (prod['supplier'] as String).isEmpty)) {
+                  if (supplierName.isNotEmpty &&
+                      (prod['supplier'] == null || (prod['supplier'] as String).isEmpty)) {
                     upd['supplier'] = supplierName.toUpperCase();
                   }
                   if (costPrice > 0 && ((prod['cost'] as int?) ?? 0) == 0) {
@@ -1205,6 +1220,45 @@ class KiotVietExcelImportService {
                     await db.update('products', upd,
                         where: 'id = ?', whereArgs: [prod['id']]);
                   }
+                } else {
+                  // Create product stub — each IMEI device gets its own record (qty=1)
+                  final now2 = DateTime.now().millisecondsSinceEpoch;
+                  final type = _guessType('', hasImei);
+                  await db.insert('products', {
+                    'shopId': shopId,
+                    'name': pName,
+                    'brand': item['productBrand'],
+                    'imei': hasImei ? imei : null,
+                    'cost': costPrice,
+                    'price': 0,
+                    'condition': 'NEW',
+                    'status': 1,
+                    'quantity': hasImei ? 1 : qty, // IMEI devices are always qty=1
+                    'isSynced': 0,
+                    'sku': item['sku'],
+                    'unit': item['unit'],
+                    'type': type,
+                    'isPending': 0,
+                    'deleted': 0,
+                    'images': null,
+                    'model': item['productModel'],
+                    'color': item['color'],
+                    'capacity': item['capacity'],
+                    'size': null,
+                    'paymentMethod': null,
+                    'labelInfo': null,
+                    'labelNote': null,
+                    'categoryId': null,
+                    'expiryDate': null,
+                    'batchNumber': null,
+                    'variantParentId': null,
+                    'customData': null,
+                    'supplier': supplierName.isNotEmpty ? supplierName.toUpperCase() : null,
+                    'description': null,
+                    'warranty': null,
+                    'createdAt': importDate > 0 ? importDate : now2,
+                    'updatedAt': now2,
+                  }, conflictAlgorithm: ConflictAlgorithm.ignore);
                 }
               } catch (_) {}
             }
