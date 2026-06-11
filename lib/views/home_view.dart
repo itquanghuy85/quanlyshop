@@ -51,6 +51,8 @@ import 'cash_closing_view.dart';
 import 'bank_installment_report_view.dart';
 import 'salvage_phone_view.dart';
 import 'audit_log_view.dart';
+import 'backup_restore_view.dart';
+import 'import_export_view.dart';
 import 'recent_activity_view.dart';
 import 'firestore_connectivity_test_view.dart';
 import 'firebase_rw_stats_view.dart';
@@ -6246,6 +6248,24 @@ class _HomeViewState extends State<HomeView>
               icon: Icons.history_rounded,
               color: Colors.blueGrey,
               onTap: () => _fadePush(context, const AuditLogView()),
+            ),
+          if (hasFullAccess)
+            _SettingsItem(
+              group: 'system',
+              title: 'Sao lưu & Khôi phục',
+              subtitle: 'Export/import dữ liệu local, nhập từ KiotViet',
+              icon: Icons.backup_outlined,
+              color: Colors.blueGrey,
+              onTap: () => _fadePush(context, const BackupRestoreView()),
+            ),
+          if (hasFullAccess)
+            _SettingsItem(
+              group: 'system',
+              title: 'Nhập / Xuất dữ liệu',
+              subtitle: 'Xuất & nhập Excel: sửa chữa, bán hàng, kho, khách, NCC',
+              icon: Icons.import_export,
+              color: Colors.green,
+              onTap: () => _fadePush(context, const ImportExportView()),
             ),
           if (_isSuperAdmin)
             _SettingsItem(
