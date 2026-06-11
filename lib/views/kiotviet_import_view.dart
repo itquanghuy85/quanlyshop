@@ -208,8 +208,15 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
     if (!mounted) return;
     final msg = 'Nhập xong: ${total.inserted} mới, ${total.updated} cập nhật, '
         '${total.skipped} bỏ qua${total.hasErrors ? " (có lỗi)" : ""}';
-    NotificationService.showSnackBar(msg,
-        color: total.hasErrors ? Colors.orange : AppColors.success);
+    final Color snackColor;
+    if (total.hasErrors) {
+      snackColor = Colors.orange;
+    } else if (total.inserted == 0 && total.updated == 0 && total.skipped > 0) {
+      snackColor = Colors.amber.shade700; // all skipped — warn, not success
+    } else {
+      snackColor = AppColors.success;
+    }
+    NotificationService.showSnackBar(msg, color: snackColor);
   }
 
   void _setProgress(String type, int done, int total) {

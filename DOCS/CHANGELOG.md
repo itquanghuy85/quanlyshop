@@ -4,6 +4,21 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-11a] - fix(ux): snackbar import KiotViet màu vàng khi toàn bộ bị bỏ qua
+
+**Vấn đề:**
+Sau khi import file Excel KiotViet, nếu toàn bộ sản phẩm đã tồn tại (skipped=N, inserted=0),
+snackbar hiện màu xanh "thành công" → user nhầm tưởng import thất bại hoặc app lỗi.
+
+**Giải pháp:**
+Khi `inserted=0 && updated=0 && skipped>0` → snackbar màu vàng cam (amber) thay vì xanh.
+Chỉ xanh khi thực sự có dữ liệu mới được thêm.
+
+**Files thay đổi:**
+- `lib/views/kiotviet_import_view.dart`
+
+---
+
 ## [2026-06-10g] - fix: crash _dependents.isEmpty khi bấm Lưu/Hủy trong dialog thêm khách hàng
 
 **Vấn đề:**
