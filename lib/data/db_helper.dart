@@ -5367,20 +5367,22 @@ class DBHelper {
   }
 
   /// Retroactively update totalCost and itemSnapshotsJson.unitCost for the item
-  /// matching [imei] in a sale. Only patches items whose unitCost was 0.
-  Future<void> updateSaleCostByImei(int saleId, String imei, int newCost) async {
+  /// matching [imei]. Only patches snapshot items whose unitCost was 0.
+  /// Returns true if any change was written (caller uses this to skip duplicate expense).
+  Future<bool> updateSaleCostByImei(int saleId, String imei, int newCost) async {
     final db = await database;
     final rows = await db.query('sales', where: 'id = ?', whereArgs: [saleId], limit: 1);
-    if (rows.isEmpty) return;
+    if (rows.isEmpty) return false;
     final row = rows.first;
     final snapshotsRaw = row['itemSnapshotsJson'] as String?;
     if (snapshotsRaw == null || snapshotsRaw.isEmpty) {
-      // No snapshot — just bump totalCost if it was 0
+      // No snapshot — bump totalCost only if currently 0
       if ((row['totalCost'] as int? ?? 0) == 0) {
         await db.update('sales', {'totalCost': newCost, 'isSynced': 0},
             where: 'id = ?', whereArgs: [saleId]);
+        return true;
       }
-      return;
+      return false;
     }
     try {
       final snapshots = jsonDecode(snapshotsRaw) as List<dynamic>;
@@ -5398,14 +5400,66 @@ class DBHelper {
           }
         }
       }
-      if (costDelta == 0) return; // nothing changed
+      if (costDelta == 0) return false; // item already had cost set
       final oldTotal = row['totalCost'] as int? ?? 0;
       await db.update('sales', {
         'totalCost': oldTotal + costDelta,
         'itemSnapshotsJson': jsonEncode(snapshots),
         'isSynced': 0,
       }, where: 'id = ?', whereArgs: [saleId]);
-    } catch (_) {}
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Retroactively update totalCost for non-IMEI products by matching productId
+  /// in itemSnapshotsJson. Only patches items whose unitCost was 0.
+  /// Returns list of sale ids that were actually changed.
+  Future<List<Map<String, dynamic>>> getSalesByProductId(int productId) async {
+    final db = await database;
+    return db.query(
+      'sales',
+      where: "itemSnapshotsJson LIKE ?",
+      whereArgs: ['%"productId":$productId%'],
+    );
+  }
+
+  Future<bool> updateSaleCostByProductId(
+      int saleId, int productId, int newCost) async {
+    final db = await database;
+    final rows =
+        await db.query('sales', where: 'id = ?', whereArgs: [saleId], limit: 1);
+    if (rows.isEmpty) return false;
+    final row = rows.first;
+    final snapshotsRaw = row['itemSnapshotsJson'] as String?;
+    if (snapshotsRaw == null || snapshotsRaw.isEmpty) return false;
+    try {
+      final snapshots = jsonDecode(snapshotsRaw) as List<dynamic>;
+      int costDelta = 0;
+      for (final s in snapshots) {
+        final snap = s as Map<String, dynamic>;
+        if ((snap['productId'] as int? ?? -1) == productId) {
+          final qty = snap['quantity'] as int? ?? 1;
+          final oldUnit = snap['unitCost'] as int? ?? 0;
+          if (oldUnit == 0) {
+            snap['unitCost'] = newCost;
+            snap['lineCostTotal'] = newCost * qty;
+            costDelta += newCost * qty;
+          }
+        }
+      }
+      if (costDelta == 0) return false;
+      final oldTotal = row['totalCost'] as int? ?? 0;
+      await db.update('sales', {
+        'totalCost': oldTotal + costDelta,
+        'itemSnapshotsJson': jsonEncode(snapshots),
+        'isSynced': 0,
+      }, where: 'id = ?', whereArgs: [saleId]);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<List<Product>> getInStockProducts() async {

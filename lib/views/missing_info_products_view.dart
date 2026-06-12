@@ -370,17 +370,48 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
       if (!mounted) return;
       final supplierLabel = supplier.isNotEmpty ? supplier : (p.supplier?.isNotEmpty == true ? p.supplier! : 'NCC');
 
-      // Fix 1+2: For IMEI products already sold, update sale_orders.totalCost
-      // retroactively instead of creating a separate expense (avoids double counting).
+      // Fix 1+2: Retroactively patch sale_orders.totalCost to avoid double counting.
+      // IMEI products: find by IMEI. Non-IMEI (accessories): find by productId.
+      // Only skip the expense record if we successfully patched at least one sale.
       int updatedSaleCount = 0;
       final imei = p.imei ?? '';
       if (imei.isNotEmpty) {
         final saleMaps = await _db.getSalesByProductImei(imei);
         for (final saleMap in saleMaps) {
           final saleId = saleMap['id'] as int?;
-          if (saleId != null && (saleMap['totalCost'] as int? ?? 0) == 0) {
-            await _db.updateSaleCostByImei(saleId, imei, newCost);
-            updatedSaleCount++;
+          final fid = saleMap['firestoreId'] as String?;
+          if (saleId != null) {
+            final changed = await _db.updateSaleCostByImei(saleId, imei, newCost);
+            if (changed) {
+              updatedSaleCount++;
+              // Enqueue sync so Firestore totalCost is also updated
+              await SyncOrchestrator().enqueue(
+                entityType: SyncEntityType.sale,
+                entityId: saleId,
+                firestoreId: fid,
+                operation: SyncOperation.update,
+              );
+            }
+          }
+        }
+      } else if (p.id != null) {
+        // Non-IMEI accessory: patch by productId in itemSnapshotsJson
+        final saleMaps = await _db.getSalesByProductId(p.id!);
+        for (final saleMap in saleMaps) {
+          final saleId = saleMap['id'] as int?;
+          final fid = saleMap['firestoreId'] as String?;
+          if (saleId != null) {
+            final changed =
+                await _db.updateSaleCostByProductId(saleId, p.id!, newCost);
+            if (changed) {
+              updatedSaleCount++;
+              await SyncOrchestrator().enqueue(
+                entityType: SyncEntityType.sale,
+                entityId: saleId,
+                firestoreId: fid,
+                operation: SyncOperation.update,
+              );
+            }
           }
         }
       }
