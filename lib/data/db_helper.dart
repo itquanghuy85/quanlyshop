@@ -5366,6 +5366,48 @@ class DBHelper {
     );
   }
 
+  /// Retroactively update totalCost and itemSnapshotsJson.unitCost for the item
+  /// matching [imei] in a sale. Only patches items whose unitCost was 0.
+  Future<void> updateSaleCostByImei(int saleId, String imei, int newCost) async {
+    final db = await database;
+    final rows = await db.query('sales', where: 'id = ?', whereArgs: [saleId], limit: 1);
+    if (rows.isEmpty) return;
+    final row = rows.first;
+    final snapshotsRaw = row['itemSnapshotsJson'] as String?;
+    if (snapshotsRaw == null || snapshotsRaw.isEmpty) {
+      // No snapshot — just bump totalCost if it was 0
+      if ((row['totalCost'] as int? ?? 0) == 0) {
+        await db.update('sales', {'totalCost': newCost, 'isSynced': 0},
+            where: 'id = ?', whereArgs: [saleId]);
+      }
+      return;
+    }
+    try {
+      final snapshots = jsonDecode(snapshotsRaw) as List<dynamic>;
+      int costDelta = 0;
+      for (final s in snapshots) {
+        final snap = s as Map<String, dynamic>;
+        final snapImei = (snap['productImei'] as String? ?? '').trim();
+        if (snapImei == imei || snapImei.contains(imei)) {
+          final qty = snap['quantity'] as int? ?? 1;
+          final oldUnit = snap['unitCost'] as int? ?? 0;
+          if (oldUnit == 0) {
+            snap['unitCost'] = newCost;
+            snap['lineCostTotal'] = newCost * qty;
+            costDelta += newCost * qty;
+          }
+        }
+      }
+      if (costDelta == 0) return; // nothing changed
+      final oldTotal = row['totalCost'] as int? ?? 0;
+      await db.update('sales', {
+        'totalCost': oldTotal + costDelta,
+        'itemSnapshotsJson': jsonEncode(snapshots),
+        'isSynced': 0,
+      }, where: 'id = ?', whereArgs: [saleId]);
+    } catch (_) {}
+  }
+
   Future<List<Product>> getInStockProducts() async {
     final shopId = await _getScopedShopId('getInStockProducts');
     if (shopId == null) return [];
@@ -11782,21 +11824,23 @@ class DBHelper {
     required String supplierName,
     String? supplierId, // kept for API compat, unused (no supplierId column)
     bool isWarehouse = false,
+    bool includeSold = false, // include products with status=0 (already sold)
     int page = 0,
     int pageSize = 30,
   }) async {
     final db = await database;
     final offset = page * pageSize;
     final nameUpper = supplierName.toUpperCase();
+    final statusFilter = includeSold ? '' : ' AND status != 0';
     final String where;
     final List<dynamic> whereArgs;
     if (isWarehouse) {
       where =
-          'shopId = ? AND (deleted = 0 OR deleted IS NULL) AND status != 0 AND (UPPER(supplier) = ? OR supplier IS NULL OR supplier = \'\')';
+          'shopId = ? AND (deleted = 0 OR deleted IS NULL)$statusFilter AND (UPPER(supplier) = ? OR supplier IS NULL OR supplier = \'\')';
       whereArgs = [shopId, nameUpper];
     } else {
       where =
-          'shopId = ? AND (deleted = 0 OR deleted IS NULL) AND status != 0 AND UPPER(supplier) = ?';
+          'shopId = ? AND (deleted = 0 OR deleted IS NULL)$statusFilter AND UPPER(supplier) = ?';
       whereArgs = [shopId, nameUpper];
     }
     final rows = await db.query(

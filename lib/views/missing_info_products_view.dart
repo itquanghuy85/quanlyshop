@@ -354,7 +354,6 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
       final updated = p.copyWith(
         cost: newCost,
         supplier: supplier.isNotEmpty ? supplier : p.supplier,
-        // Chuyển kho tạm → kho chính khi đã có giá vốn
         isPending: false,
         updatedAt: DateTime.now().millisecondsSinceEpoch,
       );
@@ -369,9 +368,28 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
       final now = DateTime.now().millisecondsSinceEpoch;
       final shopId = await UserService.getCurrentShopId() ?? '';
       if (!mounted) return;
-      final supplierLabel = supplier.isNotEmpty ? supplier : 'NCC';
+      final supplierLabel = supplier.isNotEmpty ? supplier : (p.supplier?.isNotEmpty == true ? p.supplier! : 'NCC');
+
+      // Fix 1+2: For IMEI products already sold, update sale_orders.totalCost
+      // retroactively instead of creating a separate expense (avoids double counting).
+      int updatedSaleCount = 0;
+      final imei = p.imei ?? '';
+      if (imei.isNotEmpty) {
+        final saleMaps = await _db.getSalesByProductImei(imei);
+        for (final saleMap in saleMaps) {
+          final saleId = saleMap['id'] as int?;
+          if (saleId != null && (saleMap['totalCost'] as int? ?? 0) == 0) {
+            await _db.updateSaleCostByImei(saleId, imei, newCost);
+            updatedSaleCount++;
+          }
+        }
+      }
+
+      // Use product createdAt as the activity date so reports land in the right period
+      final activityDate = p.createdAt > 0 ? p.createdAt : now;
 
       if (payment == 'CÔNG NỢ') {
+        // Always record debt regardless of sale update (cash-flow obligation to supplier)
         final debtFid = 'debt_cost_${p.firestoreId ?? p.id}_$now';
         final debtId = await _db.insertDebt({
           'firestoreId': debtFid,
@@ -399,7 +417,8 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
           );
         }
         EventBus().emit('debts_changed');
-      } else {
+      } else if (updatedSaleCount == 0) {
+        // No sale updated (product still in stock or no IMEI match) → record as expense
         final expFid = 'exp_cost_${p.firestoreId ?? p.id}_$now';
         final expId = await _db.insertExpense({
           'firestoreId': expFid,
@@ -408,7 +427,7 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
           'amount': newCost,
           'paymentMethod': payment,
           'note': 'Nhập giá vốn: ${p.name}',
-          'date': now,
+          'date': activityDate,
           'createdAt': now,
           'shopId': shopId,
           'isSynced': 0,
@@ -421,6 +440,8 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
           );
         }
       }
+      // If updatedSaleCount > 0 and payment != CÔNG NỢ: COGS is now in sale_orders,
+      // no separate expense needed — prevents double counting in finance reports.
 
       await FinancialActivityService.logPurchase(
         firestoreId: 'cost_${p.firestoreId ?? p.id}_$now',
@@ -429,15 +450,39 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
         productName: p.name,
         supplierName: supplierLabel,
         quantity: p.quantity,
-        createdAt: now,
+        createdAt: activityDate,
       );
+
+      // Fix 3: Record in supplier import history so the NCC "Lịch sử nhập" tab shows it
+      if (supplierLabel != 'NCC') {
+        try {
+          await _db.insertSupplierImportHistory({
+            'firestoreId': 'retro_cost_${p.firestoreId ?? p.id}_$now',
+            'supplierId': -1,
+            'supplierName': supplierLabel.toUpperCase().trim(),
+            'productName': p.name,
+            'productBrand': p.brand,
+            'productModel': '',
+            'imei': imei,
+            'quantity': p.quantity > 0 ? p.quantity : 1,
+            'costPrice': newCost,
+            'totalAmount': newCost,
+            'paymentMethod': payment,
+            'importDate': activityDate,
+            'importedBy': '',
+            'notes': 'Bổ sung giá vốn sau bán',
+            'isSynced': 0,
+            'shopId': shopId,
+          });
+        } catch (_) {}
+      }
 
       EventBus().emit('financial_changed');
       NotificationService.showSnackBar(
-        'Đã lưu giá vốn ${MoneyUtils.formatCurrency(newCost)}đ • $payment',
+        'Đã lưu giá vốn ${MoneyUtils.formatCurrency(newCost)}đ • $payment'
+        '${updatedSaleCount > 0 ? " • Cập nhật $updatedSaleCount đơn bán" : ""}',
         color: Colors.green,
       );
-      // Reload cả 2 tabs để count badges cập nhật đúng
       _load(0);
       _load(1);
     } catch (e) {
@@ -452,7 +497,8 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
     final name = (picked?['name'] as String?)?.trim() ?? '';
     if (name.isEmpty) return;
     try {
-      final updated = p.copyWith(supplier: name, updatedAt: DateTime.now().millisecondsSinceEpoch);
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final updated = p.copyWith(supplier: name, updatedAt: now);
       await _db.upsertProduct(updated);
       await SyncOrchestrator().enqueue(
         entityType: SyncEntityType.product,
@@ -460,8 +506,30 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
         firestoreId: updated.firestoreId,
         operation: SyncOperation.update,
       );
+      // Fix 3: insert into supplier_import_history so NCC "Lịch sử nhập" tab shows it
+      try {
+        final shopId = await UserService.getCurrentShopId() ?? '';
+        final activityDate = p.createdAt > 0 ? p.createdAt : now;
+        await _db.insertSupplierImportHistory({
+          'firestoreId': 'retro_ncc_${p.firestoreId ?? p.id}_$now',
+          'supplierId': -1,
+          'supplierName': name.toUpperCase().trim(),
+          'productName': p.name,
+          'productBrand': p.brand,
+          'productModel': '',
+          'imei': p.imei ?? '',
+          'quantity': p.quantity > 0 ? p.quantity : 1,
+          'costPrice': p.cost,
+          'totalAmount': p.cost,
+          'paymentMethod': 'TIỀN MẶT',
+          'importDate': activityDate,
+          'importedBy': '',
+          'notes': 'Bổ sung NCC sau nhập',
+          'isSynced': 0,
+          'shopId': shopId,
+        });
+      } catch (_) {}
       NotificationService.showSnackBar('Đã gán NCC: $name', color: Colors.teal);
-      // Reload cả 2 tabs để count badges cập nhật đúng
       _load(0);
       _load(1);
     } catch (e) {

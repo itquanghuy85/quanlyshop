@@ -81,6 +81,7 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
             _shopId!,
             supplierName: widget.supplier.name,
             isWarehouse: isWarehouse,
+            includeSold: true, // show sold products assigned to this supplier
           )
         else
           Future.value(<Product>[]),

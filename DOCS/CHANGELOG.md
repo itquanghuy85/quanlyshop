@@ -4,6 +4,29 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-11c] - fix(finance): bổ sung giá vốn/NCC retroactive cập nhật đúng tài chính
+
+**Vấn đề (5 lỗi từ audit):**
+1. `sale_orders.totalCost` không được cập nhật khi nhập vốn sau bán → lợi nhuận gộp sai vĩnh viễn
+2. Double counting: expense "Giá vốn" + COGS từ sale đều bằng 0 → net đúng nhưng gross sai
+3. Supplier "Lịch sử nhập" trống dù đã gán NCC/vốn retroactive
+4. SP đã bán (status=0) không hiển thị trong tab "Sản phẩm" của NCC
+5. Ngày expense = ngày bổ sung (hôm nay) thay vì ngày mua/bán
+
+**Giải pháp:**
+- **Fix 1+2:** `_editCost` — nếu sản phẩm có IMEI và đã bán: tìm sale qua `getSalesByProductImei`, gọi `updateSaleCostByImei` để patch `totalCost` + `itemSnapshotsJson.unitCost` trực tiếp. Chỉ tạo expense khi không tìm được sale nào (sản phẩm còn tồn kho). Nếu CÔNG NỢ → luôn tạo debt (obligation to supplier).
+- **Fix 3:** `_editCost` và `_pickSupplier` → insert vào `supplier_import_history` sau khi gán NCC.
+- **Fix 4:** `getProductsBySupplier` thêm param `includeSold: bool = false`; `supplier_detail_view` truyền `includeSold: true`.
+- **Fix 5:** Expense/activity date dùng `p.createdAt` thay vì `now`.
+- **db_helper:** Thêm `updateSaleCostByImei()` — parse JSON snapshot, tìm item theo IMEI, cập nhật `unitCost`/`lineCostTotal`/`totalCost`.
+
+**Files thay đổi:**
+- `lib/data/db_helper.dart`
+- `lib/views/missing_info_products_view.dart`
+- `lib/views/supplier_detail_view.dart`
+
+---
+
 ## [2026-06-11b] - feat(import): importPurchaseOrders tự tạo product stub; IMEI = 1 sản phẩm riêng
 
 **Vấn đề:**
