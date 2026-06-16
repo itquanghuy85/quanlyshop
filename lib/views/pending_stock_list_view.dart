@@ -263,6 +263,20 @@ class _PendingStockListViewState extends State<PendingStockListView> {
         requireSupplier: _effectiveRequireSupplier(entry),
       );
       if (success) {
+        // Push notification cho quản lý
+        final user = FirebaseAuth.instance.currentUser;
+        final userName = user?.email?.split('@').first.toUpperCase() ?? 'NV';
+        final firstItem = entry.items.isNotEmpty ? entry.items.first : null;
+        final productName = firstItem?.name ?? 'Sản phẩm';
+        final qty = entry.items.fold<int>(0, (s, i) => s + i.quantity);
+        // ignore: unawaited_futures
+        NotificationService.sendCloudNotification(
+          title: '✅ XÁC NHẬN NHẬP KHO',
+          body: '👤 $userName\n📦 $productName${entry.items.length > 1 ? " (+${entry.items.length - 1} SP)" : ""} x$qty\n🏪 ${entry.supplierName ?? "NCC không xác định"}',
+          type: 'stock_confirmed',
+          data: {'targetType': 'stock_entry', 'targetId': entry.firestoreId ?? ''},
+        );
+
         await _loadData();
         if (!mounted) return;
         final messenger = ScaffoldMessenger.of(context);

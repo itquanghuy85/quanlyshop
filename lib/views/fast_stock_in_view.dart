@@ -1159,6 +1159,34 @@ class _FastStockInViewState extends State<FastStockInView> {
           color: Colors.orange,
         );
 
+        // Push notification cho quản lý
+        final entryId = savedEntry.firestoreId ?? '';
+        if (cost <= 0) {
+          // ignore: unawaited_futures
+          NotificationService.sendCloudNotification(
+            title: '⚠️ NHẬP KHO THIẾU GIÁ VỐN',
+            body: '👤 $userName\n📦 $productName x$quantity\n💰 Chưa có giá vốn - cần bổ sung sau',
+            type: 'missing_cost',
+            data: {'targetType': 'stock_entry', 'targetId': entryId},
+          );
+        } else if (selectedSupplier == null || selectedSupplier!.isEmpty) {
+          // ignore: unawaited_futures
+          NotificationService.sendCloudNotification(
+            title: '⚠️ NHẬP KHO THIẾU NCC',
+            body: '👤 $userName\n📦 $productName x$quantity\n🏪 Chưa chọn nhà cung cấp',
+            type: 'missing_supplier',
+            data: {'targetType': 'stock_entry', 'targetId': entryId},
+          );
+        } else {
+          // ignore: unawaited_futures
+          NotificationService.sendCloudNotification(
+            title: '📦 PHIẾU NHẬP KHO MỚI',
+            body: '👤 $userName\n📦 $productName x$quantity\n⏳ Chờ xác nhận nhập vào kho chính',
+            type: 'stock_pending',
+            data: {'targetType': 'stock_entry', 'targetId': entryId},
+          );
+        }
+
         // Hỏi user có muốn mở trang xác nhận không
         final goToPending = await showDialog<bool>(
           context: context,

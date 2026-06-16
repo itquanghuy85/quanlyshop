@@ -1522,6 +1522,18 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       // Lưu sale vào local DB (cloud đã có từ transaction)
       await db.upsertSale(sale);
 
+      // Notify quản lý nếu bán thiếu giá vốn
+      if (sale.totalCost == 0 && _selectedItems.isNotEmpty) {
+        final sellerName = FirebaseAuth.instance.currentUser?.email?.split('@').first.toUpperCase() ?? 'NV';
+        // ignore: unawaited_futures
+        NotificationService.sendCloudNotification(
+          title: '⚠️ BÁN HÀNG THIẾU GIÁ VỐN',
+          body: '👤 $sellerName\n🛒 ${sale.customerName} • ${MoneyUtils.formatCurrency(finalPrice)}đ\n📦 ${sale.productNames}\n💰 Chưa có giá vốn - cần bổ sung',
+          type: 'missing_cost_sale',
+          data: {'targetType': 'sale', 'targetId': sale.firestoreId ?? ''},
+        );
+      }
+
       // Log sale vào nhật ký tài chính (nếu không phải công nợ)
       if (_paymentMethod != 'CÔNG NỢ') {
         try {
