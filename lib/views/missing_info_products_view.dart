@@ -522,15 +522,50 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
     }
   }
 
-  // Chọn NCC
+  // Chọn NCC — asks for payment method, creates debt/expense if not yet recorded
   Future<void> _pickSupplier(Product p) async {
     final picked = await showSupplierPickerSheet(context);
     if (!mounted) return;
     final name = (picked?['name'] as String?)?.trim() ?? '';
     if (name.isEmpty) return;
+
+    // Ask for payment method so we can record it accurately
+    if (!mounted) return;
+    final defaultPm = p.paymentMethod ?? 'TIỀN MẶT';
+    final payment = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Phương thức thanh toán'),
+        children: ['TIỀN MẶT', 'CHUYỂN KHOẢN', 'CÔNG NỢ']
+            .map((m) => SimpleDialogOption(
+                  onPressed: () => Navigator.pop(ctx, m),
+                  child: Row(children: [
+                    SizedBox(
+                      width: 24,
+                      child: m == defaultPm
+                          ? const Icon(Icons.check, size: 18)
+                          : null,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(m, style: const TextStyle(fontSize: 15)),
+                  ]),
+                ))
+            .toList(),
+      ),
+    );
+    if (payment == null || !mounted) return;
+
     try {
       final now = DateTime.now().millisecondsSinceEpoch;
-      final updated = p.copyWith(supplier: name, updatedAt: now);
+      final shopId = await UserService.getCurrentShopId() ?? '';
+      final activityDate = p.createdAt > 0 ? p.createdAt : now;
+
+      // Update product: add supplier + payment method
+      final updated = p.copyWith(
+        supplier: name,
+        paymentMethod: payment,
+        updatedAt: now,
+      );
       await _db.upsertProduct(updated);
       await SyncOrchestrator().enqueue(
         entityType: SyncEntityType.product,
@@ -538,30 +573,101 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
         firestoreId: updated.firestoreId,
         operation: SyncOperation.update,
       );
-      // Fix 3: insert into supplier_import_history so NCC "Lịch sử nhập" tab shows it
-      try {
-        final shopId = await UserService.getCurrentShopId() ?? '';
-        final activityDate = p.createdAt > 0 ? p.createdAt : now;
-        await _db.insertSupplierImportHistory({
-          'firestoreId': 'retro_ncc_${p.firestoreId ?? p.id}_$now',
-          'supplierId': -1,
-          'supplierName': name.toUpperCase().trim(),
-          'productName': p.name,
-          'productBrand': p.brand,
-          'productModel': '',
-          'imei': p.imei ?? '',
-          'quantity': p.quantity > 0 ? p.quantity : 1,
-          'costPrice': p.cost,
-          'totalAmount': p.cost,
-          'paymentMethod': 'TIỀN MẶT',
-          'importDate': activityDate,
-          'importedBy': '',
-          'notes': 'Bổ sung NCC sau nhập',
-          'isSynced': 0,
-          'shopId': shopId,
-        });
-      } catch (_) {}
-      NotificationService.showSnackBar('Đã gán NCC: $name', color: Colors.teal);
+
+      // Record financial entries only if cost > 0 AND payment was never previously recorded
+      // (avoids double-counting if fast_stock_in or _editCost already created expense/debt)
+      final needFinancial = p.cost > 0 && (p.paymentMethod == null || p.paymentMethod!.isEmpty);
+      if (needFinancial) {
+        if (payment == 'CÔNG NỢ') {
+          final debtFid = 'debt_ncc_${p.firestoreId ?? p.id}_$now';
+          final debtId = await _db.insertDebt({
+            'firestoreId': debtFid,
+            'type': 'SHOP_OWES',
+            'debtType': 'SHOP_OWES',
+            'personName': name.toUpperCase().trim(),
+            'phone': '',
+            'totalAmount': p.cost,
+            'paidAmount': 0,
+            'status': 'ACTIVE',
+            'note': 'Bổ sung NCC: ${p.name} - ${MoneyUtils.formatCurrency(p.cost)}đ',
+            'linkedId': p.firestoreId ?? '',
+            'linkedType': 'product_cost',
+            'createdAt': now,
+            'updatedAt': now,
+            'shopId': shopId,
+            'deleted': 0,
+            'isSynced': 0,
+          });
+          if (debtId > 0) {
+            await SyncOrchestrator().enqueueDebt(
+              debtId,
+              firestoreId: debtFid,
+              operation: SyncOperation.create,
+            );
+          }
+          EventBus().emit('debts_changed');
+        } else {
+          final expFid = 'exp_ncc_${p.firestoreId ?? p.id}_$now';
+          final expId = await _db.insertExpense({
+            'firestoreId': expFid,
+            'category': 'NHẬP HÀNG',
+            'title': 'Giá vốn: ${p.name}',
+            'amount': p.cost,
+            'paymentMethod': payment,
+            'note': 'Bổ sung NCC sau nhập: ${p.name}',
+            'date': activityDate,
+            'createdAt': now,
+            'shopId': shopId,
+            'isSynced': 0,
+          });
+          if (expId > 0) {
+            await SyncOrchestrator().enqueueExpense(
+              expId,
+              firestoreId: expFid,
+              operation: SyncOperation.create,
+            );
+          }
+        }
+        await FinancialActivityService.logPurchase(
+          firestoreId: 'ncc_${p.firestoreId ?? p.id}_$now',
+          amount: p.cost,
+          paymentMethod: payment,
+          productName: p.name,
+          supplierName: name,
+          quantity: p.quantity > 0 ? p.quantity : 1,
+          createdAt: activityDate,
+        );
+        EventBus().emit('financial_changed');
+      }
+
+      // Always record in supplier import history with correct payment method
+      if (name.toUpperCase().trim() != 'NCC' && p.cost > 0) {
+        try {
+          await _db.insertSupplierImportHistory({
+            'firestoreId': 'retro_ncc_${p.firestoreId ?? p.id}_$now',
+            'supplierId': -1,
+            'supplierName': name.toUpperCase().trim(),
+            'productName': p.name,
+            'productBrand': p.brand,
+            'productModel': '',
+            'imei': p.imei ?? '',
+            'quantity': p.quantity > 0 ? p.quantity : 1,
+            'costPrice': p.cost,
+            'totalAmount': p.cost,
+            'paymentMethod': payment,
+            'importDate': activityDate,
+            'importedBy': '',
+            'notes': 'Bổ sung NCC sau nhập',
+            'isSynced': 0,
+            'shopId': shopId,
+          });
+        } catch (_) {}
+      }
+
+      NotificationService.showSnackBar(
+        'Đã gán NCC: $name • $payment',
+        color: Colors.teal,
+      );
       _load(0);
       _load(1);
     } catch (e) {
