@@ -1,3 +1,4 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '../data/db_helper.dart';
 import '../services/daily_financial_analysis_service.dart';
@@ -411,26 +412,46 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
   Widget _buildBarChart() {
     if (_months.isEmpty) return const SizedBox();
 
-    final maxVal = _months.fold<int>(0, (prev, m) {
+    final maxVal = _months.fold<double>(0, (prev, m) {
       final v = m.revenue > m.netProfit.abs() ? m.revenue : m.netProfit.abs();
-      return v > prev ? v : prev;
+      return v.toDouble() > prev ? v.toDouble() : prev;
     });
     if (maxVal == 0) return const SizedBox();
 
-    final monthNames = [
-      'T1',
-      'T2',
-      'T3',
-      'T4',
-      'T5',
-      'T6',
-      'T7',
-      'T8',
-      'T9',
-      'T10',
-      'T11',
-      'T12',
+    final minProfit = _months.fold<double>(
+      0,
+      (prev, m) => m.netProfit < prev ? m.netProfit.toDouble() : prev,
+    );
+
+    const monthNames = [
+      'T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12',
     ];
+
+    final barGroups = _months.asMap().entries.map((entry) {
+      final i = entry.key;
+      final m = entry.value;
+      return BarChartGroupData(
+        x: i,
+        barRods: [
+          BarChartRodData(
+            toY: m.revenue.toDouble(),
+            color: Colors.blue.shade400,
+            width: 7,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
+          ),
+          BarChartRodData(
+            fromY: m.netProfit < 0 ? m.netProfit.toDouble() : 0,
+            toY: m.netProfit >= 0 ? m.netProfit.toDouble() : 0,
+            color: m.netProfit >= 0 ? Colors.green.shade400 : Colors.red.shade400,
+            width: 7,
+            borderRadius: BorderRadius.vertical(
+              top: m.netProfit >= 0 ? const Radius.circular(3) : Radius.zero,
+              bottom: m.netProfit < 0 ? const Radius.circular(3) : Radius.zero,
+            ),
+          ),
+        ],
+      );
+    }).toList();
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -464,84 +485,109 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
             ],
           ),
           const SizedBox(height: 4),
-          // Legend
           Row(
             children: [
-              _legendDot(Colors.blue, 'Doanh thu'),
+              _legendDot(Colors.blue.shade400, 'Doanh thu'),
               const SizedBox(width: 12),
-              _legendDot(Colors.green, 'Lợi nhuận'),
+              _legendDot(Colors.green.shade400, 'Lợi nhuận'),
             ],
           ),
           const SizedBox(height: 12),
           SizedBox(
-            height: 160,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: _months.map((m) {
-                final revenueH = maxVal > 0
-                    ? (m.revenue / maxVal * 130).clamp(0, 130).toDouble()
-                    : 0.0;
-                final profitH = maxVal > 0
-                    ? (m.netProfit.abs() / maxVal * 130)
-                          .clamp(0, 130)
-                          .toDouble()
-                    : 0.0;
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => _showMonthDetail(m),
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Container(
-                                width: 8,
-                                height: revenueH.clamp(0, 120),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.shade400,
-                                  borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(2),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 1),
-                              Container(
-                                width: 8,
-                                height: profitH.clamp(0, 120),
-                                decoration: BoxDecoration(
-                                  color: m.netProfit >= 0
-                                      ? Colors.green.shade400
-                                      : Colors.red.shade400,
-                                  borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(2),
-                                  ),
-                                ),
-                              ),
-                            ],
+            height: 210,
+            child: BarChart(
+              BarChartData(
+                maxY: maxVal * 1.25,
+                minY: minProfit < 0 ? minProfit * 1.25 : 0,
+                groupsSpace: 6,
+                barGroups: barGroups,
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: maxVal / 4,
+                  getDrawingHorizontalLine: (_) => FlLine(
+                    color: Colors.grey.shade200,
+                    strokeWidth: 1,
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 48,
+                      interval: maxVal / 4,
+                      getTitlesWidget: (value, _) {
+                        if (value == 0) return const SizedBox();
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: Text(
+                            MoneyUtils.formatCompact(value.toInt()),
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: Colors.grey.shade500,
+                            ),
+                            textAlign: TextAlign.right,
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
                   ),
-                );
-              }).toList(),
-            ),
-          ),
-          // Month labels row (outside SizedBox to avoid overflow)
-          Row(
-            children: _months.map((m) {
-              return Expanded(
-                child: Text(
-                  monthNames[m.month - 1],
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                  textAlign: TextAlign.center,
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 20,
+                      getTitlesWidget: (value, _) {
+                        final idx = value.toInt();
+                        if (idx < 0 || idx >= _months.length) {
+                          return const SizedBox();
+                        }
+                        return Text(
+                          monthNames[_months[idx].month - 1],
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey.shade600,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
-              );
-            }).toList(),
+                barTouchData: BarTouchData(
+                  touchCallback: (event, response) {
+                    if (event is FlTapUpEvent && response?.spot != null) {
+                      final idx = response!.spot!.touchedBarGroupIndex;
+                      if (idx >= 0 && idx < _months.length) {
+                        _showMonthDetail(_months[idx]);
+                      }
+                    }
+                  },
+                  touchTooltipData: BarTouchTooltipData(
+                    tooltipBgColor: Colors.indigo.shade700,
+                    tooltipRoundedRadius: 8,
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      final m = _months[groupIndex];
+                      final label = rodIndex == 0 ? 'Doanh thu' : 'Lợi nhuận';
+                      final value = rodIndex == 0 ? m.revenue : m.netProfit;
+                      return BarTooltipItem(
+                        '$label\n${MoneyUtils.formatCompact(value)}',
+                        const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          height: 1.5,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
