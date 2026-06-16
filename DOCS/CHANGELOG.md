@@ -4,6 +4,26 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-16b] - fix(supplier): _pickSupplier hỏi payment; ghi công nợ/expense/lịch sử chi đúng
+
+**Vấn đề:** Khi chọn NCC trong trang "Thiếu vốn/NCC":
+1. `paymentMethod` hardcode `'TIỀN MẶT'` — không hỏi user
+2. Không tạo công nợ khi chọn CÔNG NỢ
+3. Không ghi expense vào sổ quỹ khi TIỀN MẶT/CHUYỂN KHOẢN
+4. Không ghi `financial_activity_log` (lịch sử chi)
+
+**Giải pháp:**
+- Thêm `SimpleDialog` chọn phương thức thanh toán trước khi lưu NCC
+- Nếu `p.cost > 0` và `p.paymentMethod == null` (chưa từng ghi tài chính): tạo debt hoặc expense + logPurchase
+- Nếu `p.paymentMethod != null`: expense đã được ghi từ fast_stock_in hoặc `_editCost` → không ghi thêm (tránh double count)
+- `supplier_import_history` luôn dùng payment method thực tế user chọn
+- Lưu `paymentMethod` vào `products` record
+
+**Files thay đổi:**
+- `lib/views/missing_info_products_view.dart`
+
+---
+
 ## [2026-06-16a] - fix(stock-in): payment method không bắt buộc khi allowPendingCost=true + cost=0; cập nhật paymentMethod khi bổ sung vốn
 
 **Vấn đề 1:** `fast_stock_in_view` luôn yêu cầu chọn phương thức thanh toán dù đã bật "cho phép nhập giá vốn sau". User không thể nhập kho tạm mà bỏ trống payment.
