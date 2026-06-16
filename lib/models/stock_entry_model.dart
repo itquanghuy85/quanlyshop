@@ -434,7 +434,11 @@ class StockEntry {
 
   bool canConfirmWithSettings({bool allowPendingCost = false, bool requireSupplier = true}) {
     if (items.isEmpty) return false;
-    if (paymentMethod == null || paymentMethod!.isEmpty) return false;
+    // Payment required unless allowPendingCost=true AND all items have no cost yet
+    final hasCost = items.any((i) => (i.cost ?? 0) > 0);
+    if ((paymentMethod == null || paymentMethod!.isEmpty) && (!allowPendingCost || hasCost)) {
+      return false;
+    }
     if (requireSupplier && (supplierId == null || supplierId!.isEmpty)) return false;
     if (allowPendingCost) return true;
     return items.every((item) => item.hasAccountingInfo);
@@ -453,7 +457,8 @@ class StockEntry {
     if (requireSupplier && (supplierId == null || supplierId!.isEmpty)) {
       missing.add('Chưa chọn nhà cung cấp');
     }
-    if (paymentMethod == null || paymentMethod!.isEmpty) {
+    final hasCost = items.any((i) => (i.cost ?? 0) > 0);
+    if ((paymentMethod == null || paymentMethod!.isEmpty) && (!allowPendingCost || hasCost)) {
       missing.add('Chưa chọn thanh toán');
     }
     return missing;
