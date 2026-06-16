@@ -357,6 +357,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
 
   // Track if sync orchestrator is initialized
   bool _syncOrchestratorInitialized = false;
+  // Track which UID the notification listener is set up for (avoid stale listener after re-login)
+  String? _notificationListenerUid;
   Future<void> _initWarrantyReminderOnce() async {
     // Warranty reminder notifications disabled
   }
@@ -938,6 +940,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         if (snap.hasError || currentUser == null) {
           if (currentUser == null) {
             UserService.clearCache();
+            _notificationListenerUid = null;
           }
           _resetCache(); // Reset cache khi đăng xuất
           return LoginView(setLocale: widget.setLocale);
@@ -1022,6 +1025,14 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
             final data = roleSnap.data!;
             final role = data['role'] as String;
             final isSuperAdmin = data['isSuperAdmin'] as bool;
+
+            // Re-init notification listener if this is a fresh login (user changed or listener was never set up)
+            if (_notificationListenerUid != uid) {
+              _notificationListenerUid = uid;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) _initNotificationListener();
+              });
+            }
 
             // Super admin: Vào thẳng Console (không cần chọn shop trước)
             if (isSuperAdmin) {

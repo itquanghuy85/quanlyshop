@@ -199,7 +199,8 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
 
   Future<void> _editCost(Product p) async {
     final costCtrl = TextEditingController();
-    String selectedPayment = 'TIỀN MẶT';
+    // Pre-fill payment from existing record so the two dialogs stay consistent
+    String selectedPayment = (p.paymentMethod?.isNotEmpty == true) ? p.paymentMethod! : 'TIỀN MẶT';
     String supplierName = p.supplier?.trim() ?? '';
     const fieldTextColor = Color(0xFF1F2937);
     const fieldLabelColor = Color(0xFF6B7280);
@@ -420,7 +421,13 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
       // Use product createdAt as the activity date so reports land in the right period
       final activityDate = p.createdAt > 0 ? p.createdAt : now;
 
-      if (payment == 'CÔNG NỢ') {
+      // Only create financial entries if this is a new financial event:
+      // (a) cost was 0 before → first time setting cost, OR
+      // (b) cost existed but paymentMethod was never recorded → _pickSupplier hadn't run yet
+      // Avoids double-count when _pickSupplier already created expense/debt for the same product.
+      final needFinancial = newCost > 0 && (p.cost <= 0 || (p.paymentMethod == null || p.paymentMethod!.isEmpty));
+
+      if (needFinancial && payment == 'CÔNG NỢ') {
         // Always record debt regardless of sale update (cash-flow obligation to supplier)
         final debtFid = 'debt_cost_${p.firestoreId ?? p.id}_$now';
         final debtId = await _db.insertDebt({
@@ -449,7 +456,7 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
           );
         }
         EventBus().emit('debts_changed');
-      } else if (updatedSaleCount == 0) {
+      } else if (needFinancial && updatedSaleCount == 0) {
         // No sale updated (product still in stock or no IMEI match) → record as expense
         final expFid = 'exp_cost_${p.firestoreId ?? p.id}_$now';
         final expId = await _db.insertExpense({
@@ -475,18 +482,20 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
       // If updatedSaleCount > 0 and payment != CÔNG NỢ: COGS is now in sale_orders,
       // no separate expense needed — prevents double counting in finance reports.
 
-      await FinancialActivityService.logPurchase(
-        firestoreId: 'cost_${p.firestoreId ?? p.id}_$now',
-        amount: newCost,
-        paymentMethod: payment,
-        productName: p.name,
-        supplierName: supplierLabel,
-        quantity: p.quantity,
-        createdAt: activityDate,
-      );
+      if (needFinancial) {
+        await FinancialActivityService.logPurchase(
+          firestoreId: 'cost_${p.firestoreId ?? p.id}_$now',
+          amount: newCost,
+          paymentMethod: payment,
+          productName: p.name,
+          supplierName: supplierLabel,
+          quantity: p.quantity,
+          createdAt: activityDate,
+        );
+      }
 
       // Fix 3: Record in supplier import history so the NCC "Lịch sử nhập" tab shows it
-      if (supplierLabel != 'NCC') {
+      if (needFinancial && supplierLabel != 'NCC') {
         try {
           await _db.insertSupplierImportHistory({
             'firestoreId': 'retro_cost_${p.firestoreId ?? p.id}_$now',

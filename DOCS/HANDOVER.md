@@ -7,12 +7,61 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## ⚡ Trạng thái hiện tại
 
 **Version:** 1.x (develop) → Production live  
-**Last Updated:** 2026-06-10  
-**Build Status:** ✅ Analyze clean (0 errors, infos pre-existing)  
-**Analyze Status:** ✅ 0 compile error  
+**Last Updated:** 2026-06-16  
+**Build Status:** ✅ Build release OK  
+**Analyze Status:** ✅ 0 compile error (1 info pre-existing)  
 **Database Version:** SQLite v102  
 **Branch:** master  
-**Active Initiative:** ✅ Fix chuỗi lỗi trả hàng & tài chính — HOÀN THÀNH
+**Active Initiative:** Multi-fix session 2026-06-16
+
+### ✅ Vừa hoàn thành (2026-06-16c): feat(notifications): push notification cho quản lý
+- `fast_stock_in_view`: gửi notification sau khi tạo phiếu nhập — phân biệt thiếu giá vốn / thiếu NCC / bình thường
+- `pending_stock_list_view`: gửi notification khi xác nhận nhập kho thành công
+- `create_sale_view`: gửi notification khi bán hàng mà `totalCost=0` (thiếu giá vốn)
+- Đơn sửa chờ duyệt: đã có sẵn từ trước (`repair_detail_view` type `approval_needed`)
+
+### ✅ Vừa hoàn thành (2026-06-16b): fix(supplier): _pickSupplier ghi đúng công nợ/expense/lịch sử
+- `missing_info_products_view.dart`: `_pickSupplier` thêm SimpleDialog chọn payment method
+- Nếu `p.cost>0 && p.paymentMethod==null`: ghi debt (CÔNG NỢ) hoặc expense (TIỀN MẶT/CK) + `logPurchase`
+- Nếu `p.paymentMethod!=null`: tài chính đã ghi rồi → không ghi thêm (tránh double count)
+- `supplier_import_history` dùng payment method thực tế; lưu vào `products.paymentMethod`
+
+### ✅ Vừa hoàn thành (2026-06-16a): fix(stock-in): payment method flow khi allowPendingCost=true
+- `fast_stock_in_view.dart`: thêm getter `_allowPendingCost` từ ShopSettings; payment method chỉ bắt buộc khi `!_allowPendingCost` hoặc `cost > 0` — cho phép nhập kho tạm mà không cần chọn thanh toán khi cost=0
+- `missing_info_products_view.dart`: `_editCost` thêm `paymentMethod: payment` vào `p.copyWith(...)` — product record lưu đúng phương thức thanh toán sau khi bổ sung giá vốn
+
+### ✅ Vừa hoàn thành (2026-06-11c): fix(finance): bổ sung giá vốn/NCC retroactive cập nhật đúng tài chính
+- `db_helper.dart`: thêm `updateSaleCostByImei()` — patch totalCost + itemSnapshotsJson khi nhập vốn sau bán
+- `missing_info_products_view.dart`: `_editCost` cập nhật sale_orders.totalCost trực tiếp (thay vì tạo expense gây double counting); expense chỉ tạo khi không tìm được sale. Cả `_editCost` và `_pickSupplier` insert vào `supplier_import_history`. Date dùng p.createdAt.
+- `supplier_detail_view.dart`: `includeSold: true` → hiện cả SP đã bán trong tab Sản phẩm của NCC
+
+### ✅ Vừa hoàn thành (2026-06-11b): importPurchaseOrders tự tạo product stub; IMEI = 1 SP riêng
+- `kiotviet_excel_import_service.dart`: sau khi insert import_order_item, kiểm tra products table
+- Có IMEI → tìm theo IMEI only (không fallback tên) → nếu không thấy: tạo product qty=1 (1 IMEI = 1 máy)
+- Không IMEI → tìm theo UPPER(name) → nếu không thấy: tạo product stub qty=số lượng phiếu
+- Đã tồn tại → chỉ fill supplier/cost nếu đang trống
+- **Kết quả:** import DanhSachChiTietNhapHang → sản phẩm mới tự xuất hiện trong Danh sách SP
+
+### ✅ Vừa hoàn thành (2026-06-10g): Fix crash _dependents.isEmpty khi bấm Lưu/Hủy thêm khách hàng
+- `order_list_view.dart`: nút Lưu/Hủy chuyển sang `async`, thêm `await Future.delayed(Duration.zero)` sau `unfocus()` trước `Navigator.pop()` — một frame trễ đủ để text overlay deactivate sạch
+
+### ✅ Vừa hoàn thành (2026-06-10f): Fix mã nhập nhanh điền sai màu/tình trạng
+- `ProductConstants.colors`: Thêm 'SA MẠC' vào list
+- `mapColor("TỰ NHIÊN")` → 'TITAN TỰ NHIÊN' (seeder dùng 'TỰ NHIÊN' cho iPhone 15/16/17 Pro)
+- `mapConditionShort("NEW")` → 'MỚI' (seeder lưu condition='NEW' cho iPhone 16/17)
+- `_colorOptions` trong quick_input_codes_view thêm 'SA MẠC' #D2B48C
+
+### ✅ Vừa hoàn thành (2026-06-10e): Trả hàng hiển thị trong Giao dịch tab
+- Thêm `FinanceV2Txn(type: 'REFUND', isIncome: false)` vào returns loop trong `finance_v2_data_service.dart`
+- Giao dịch tab: tên khách + "Hoàn tiền trả hàng" + số tiền âm + phương thức
+- Tổng quan không thay đổi: `saleIn -= amount` vẫn tính riêng
+- Filter OUT trong Giao dịch bao gồm trả hàng (đúng về cash flow)
+
+### ✅ Vừa hoàn thành (2026-06-10d): Fix home CHI TIÊU mâu thuẫn Trả hàng 12 Tr vs tổng 0
+- **Root cause:** Home donut dùng 2 nguồn: tổng từ finance_v2 (net, 5 Tr) nhưng breakdown "Bán hàng" cộng thêm `analysis.refundOut` (17 Tr gross), "Trả hàng" 12 Tr nằm dưới CHI TIÊU dù tổng = 0
+- **Fix:** Xóa `_todayRefundOut` khỏi `incomeItems` và `expenseItems`; xóa field + assignment
+- **File:** `lib/views/home_view.dart`
+- **Kết quả:** Home nhất quán với Tài chính — Thu 5 Tr = Bán hàng 5 Tr, CHI TIÊU 0 không có Trả hàng
 
 ### ✅ Vừa hoàn thành (2026-06-10c): Fix return form tính 0đ hoàn tiền khi snapshot giá bị hỏng
 - **Root cause:** `itemSnapshotsJson.unitPrice=0` do cloud sync bug cũ ghi đè → `totalReturnAmount=0` → finance không trừ doanh thu
