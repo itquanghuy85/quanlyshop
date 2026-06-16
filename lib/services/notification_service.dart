@@ -965,11 +965,16 @@ class NotificationService {
                 debugPrint(
                   'New notification: ${data['title']} from ${data['senderId']} (current user: ${user.uid})',
                 );
-                // Hiển thị thông báo nếu không phải do chính mình gửi
-                // Với hệ thống test: chỉ hiện 1 lần qua snackbar (không show local notification cho sender)
+                // Hiển thị thông báo nếu không phải do chính mình gửi,
+                // NGOẠI TRỪ các alert dành cho manager — luôn hiện để quản lý không bỏ lỡ
                 final isSelf = data['senderId'] == user.uid;
                 final isSystem = data['type'] == 'system';
-                if (!isSelf || isSystem) {
+                const managerAlertTypes = {
+                  'missing_cost', 'missing_supplier', 'stock_pending',
+                  'stock_confirmed', 'missing_cost_sale', 'approval_needed',
+                };
+                final isManagerAlert = managerAlertTypes.contains(data['type']);
+                if (!isSelf || isSystem || isManagerAlert) {
                   String title = data['title'] ?? "THÔNG BÁO MỚI";
                   String body = data['body'] ?? "";
                   String type = data['type'] ?? 'system';
