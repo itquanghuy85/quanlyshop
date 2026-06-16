@@ -4,6 +4,26 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-16c] - feat(notifications): push notification cho quản lý khi nhập kho / bán thiếu giá vốn
+
+**Mục tiêu:** Quản lý không bỏ lỡ các sự kiện cần xử lý từ nhân viên.
+
+| Sự kiện | File | Type | Nội dung |
+|---|---|---|---|
+| Đơn sửa chờ duyệt | `repair_detail_view` | `approval_needed` | Đã có sẵn từ trước ✅ |
+| Nhập kho thiếu giá vốn | `fast_stock_in_view` | `missing_cost` | NV + tên SP + "cần bổ sung sau" |
+| Nhập kho thiếu NCC | `fast_stock_in_view` | `missing_supplier` | NV + tên SP + "chưa chọn NCC" |
+| Phiếu nhập kho mới | `fast_stock_in_view` | `stock_pending` | NV + tên SP + "chờ xác nhận" |
+| Xác nhận nhập kho | `pending_stock_list_view` | `stock_confirmed` | NV + tên SP + NCC |
+| Bán hàng thiếu giá vốn | `create_sale_view` | `missing_cost_sale` | NV + khách + số tiền + "cần bổ sung" |
+
+**Files thay đổi:**
+- `lib/views/fast_stock_in_view.dart`
+- `lib/views/pending_stock_list_view.dart`
+- `lib/views/create_sale_view.dart`
+
+---
+
 ## [2026-06-16b] - fix(supplier): _pickSupplier hỏi payment; ghi công nợ/expense/lịch sử chi đúng
 
 **Vấn đề:** Khi chọn NCC trong trang "Thiếu vốn/NCC":
