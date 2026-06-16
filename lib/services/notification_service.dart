@@ -1422,7 +1422,13 @@ class NotificationService {
         type == 'payment' ||
         type == 'inventory' ||
         type == 'staff' ||
-        type == 'system';
+        type == 'system' ||
+        type == 'approval_needed' ||
+        type == 'missing_cost' ||
+        type == 'missing_supplier' ||
+        type == 'stock_pending' ||
+        type == 'stock_confirmed' ||
+        type == 'missing_cost_sale';
   }
 
   // Business Logic Integration Methods
