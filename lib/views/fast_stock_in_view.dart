@@ -79,6 +79,7 @@ class _FastStockInViewState extends State<FastStockInView> {
   bool get _enableSerial => _shopSettings?.enableSerial ?? true;
   bool get _enableSupplier => _shopSettings?.enableSupplier ?? true;
   bool get _requireSupplier => _shopSettings?.requireSupplier ?? true;
+  bool get _allowPendingCost => _shopSettings?.allowPendingCost ?? false;
 
   /// NCC bắt buộc khi: cài đặt yêu cầu, HOẶC đã nhập giá vốn, HOẶC thanh toán CÔNG NỢ
   bool get _supplierEffectivelyRequired {
@@ -662,7 +663,9 @@ class _FastStockInViewState extends State<FastStockInView> {
         selectedColor == null ||
         selectedCondition == null ||
         (_enableSupplier && _supplierEffectivelyRequired && selectedSupplier == null) ||
-        selectedPaymentMethod == null) {
+        // Payment method optional when allowPendingCost=true and cost=0 (will fill later)
+        (selectedPaymentMethod == null &&
+            (!_allowPendingCost || _parseMoneyWithK(costCtrl.text) > 0))) {
       NotificationService.showSnackBar(
         "Vui lòng chọn đầy đủ thông tin!",
         color: Colors.red,

@@ -4,6 +4,22 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-06-16a] - fix(stock-in): payment method không bắt buộc khi allowPendingCost=true + cost=0; cập nhật paymentMethod khi bổ sung vốn
+
+**Vấn đề 1:** `fast_stock_in_view` luôn yêu cầu chọn phương thức thanh toán dù đã bật "cho phép nhập giá vốn sau". User không thể nhập kho tạm mà bỏ trống payment.
+
+**Giải pháp:** Thêm getter `_allowPendingCost` từ ShopSettings. Điều kiện validate: payment chỉ bắt buộc khi `!_allowPendingCost` HOẶC khi `cost > 0` (đã nhập giá vốn ngay lúc nhập kho). Khi `allowPendingCost=true` và `cost=0` → payment được bỏ qua, sẽ điền sau khi bổ sung vốn.
+
+**Vấn đề 2:** Khi bổ sung giá vốn qua "Thiếu vốn/NCC", `products.paymentMethod` không được cập nhật — product vẫn lưu `paymentMethod=null` dù user đã chọn phương thức thanh toán trong dialog.
+
+**Giải pháp:** `_editCost` thêm `paymentMethod: payment` vào `p.copyWith(...)` → product record lưu đúng phương thức thanh toán sau bổ sung.
+
+**Files thay đổi:**
+- `lib/views/fast_stock_in_view.dart`
+- `lib/views/missing_info_products_view.dart`
+
+---
+
 ## [2026-06-11c] - fix(finance): bổ sung giá vốn/NCC retroactive cập nhật đúng tài chính
 
 **Vấn đề (5 lỗi từ audit):**

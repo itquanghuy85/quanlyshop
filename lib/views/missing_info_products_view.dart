@@ -355,6 +355,7 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
         cost: newCost,
         supplier: supplier.isNotEmpty ? supplier : p.supplier,
         isPending: false,
+        paymentMethod: payment, // record how this cost was paid
         updatedAt: DateTime.now().millisecondsSinceEpoch,
       );
       await _db.upsertProduct(updated);
