@@ -30,6 +30,7 @@ import 'finance_v2_excel_export.dart';
 import 'finance_v2_reconciliation.dart';
 import 'finance_v2_theme.dart';
 import 'finance_v2_daily_report_view.dart';
+import '../views/monthly_profit_report_view.dart';
 
 class _TLEntry {
   final int ts;
@@ -4709,6 +4710,10 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       appendedChildrenBuilder: (startDate, endDate) => [
         Padding(
           padding: const EdgeInsets.only(top: 8, bottom: 12),
+          child: _monthlyProfitCard(),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
           child: TopServicesWidget(startDate: startDate, endDate: endDate),
         ),
         Padding(
@@ -4716,6 +4721,61 @@ class _FinanceV2ViewState extends State<FinanceV2View>
           child: const CustomerSegmentsWidget(),
         ),
       ],
+    );
+  }
+
+  Widget _monthlyProfitCard() {
+    return InkWell(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const MonthlyProfitReportView()),
+      ),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.indigo.shade600, Colors.indigo.shade400],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.bar_chart_rounded, color: Colors.white, size: 22),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Báo cáo lợi nhuận theo tháng',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Doanh thu & lợi nhuận từng tháng trong năm',
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.white70),
+          ],
+        ),
+      ),
     );
   }
 }
