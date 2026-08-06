@@ -27,26 +27,36 @@ class AuditExportService {
         'readsPerMinute': stats.readsPerMinute.toStringAsFixed(2),
         'activeListeners': stats.activeListenerCount,
       },
-      'topCollections': stats.topCollections.take(10).map((e) => {
-            'collection': e.key,
-            'estimatedReads': e.value.totalEstimatedReads,
-            'totalCalls': e.value.totalCalls,
-            'avgDocuments': e.value.avgDocuments.toStringAsFixed(1),
-            'avgTimeMs': e.value.avgTimeMs.toStringAsFixed(0),
-            'topCaller': e.value.topCaller,
-            'activeListeners': e.value.activeListeners,
-          }).toList(),
-      'topCallers': stats.topCallers.take(10).map((e) => {
-            'service': e.value.service,
-            'method': e.value.method,
-            'estimatedReads': e.value.totalEstimatedReads,
-            'totalCalls': e.value.totalCalls,
-            'collections': e.value.collections.toList(),
-          }).toList(),
-      'topScreens': stats.topScreens.take(10).map((e) => {
-            'screen': e.key,
-            'estimatedReads': e.value,
-          }).toList(),
+      'topCollections': stats.topCollections
+          .take(10)
+          .map(
+            (e) => {
+              'collection': e.key,
+              'estimatedReads': e.value.totalEstimatedReads,
+              'totalCalls': e.value.totalCalls,
+              'avgDocuments': e.value.avgDocuments.toStringAsFixed(1),
+              'avgTimeMs': e.value.avgTimeMs.toStringAsFixed(0),
+              'topCaller': e.value.topCaller,
+              'activeListeners': e.value.activeListeners,
+            },
+          )
+          .toList(),
+      'topCallers': stats.topCallers
+          .take(10)
+          .map(
+            (e) => {
+              'service': e.value.service,
+              'method': e.value.method,
+              'estimatedReads': e.value.totalEstimatedReads,
+              'totalCalls': e.value.totalCalls,
+              'collections': e.value.collections.toList(),
+            },
+          )
+          .toList(),
+      'topScreens': stats.topScreens
+          .take(10)
+          .map((e) => {'screen': e.key, 'estimatedReads': e.value})
+          .toList(),
       'byOperation': stats.byOperation.map((k, v) => MapEntry(k.label, v)),
       'recentEvents': events.take(100).map((e) => e.toJson()).toList(),
     };
@@ -59,22 +69,26 @@ class AuditExportService {
   static String exportCsv() {
     final events = FirestoreAuditService.instance.recentEvents;
     final buffer = StringBuffer();
-    buffer.writeln('timestamp,collection,operation,callerService,callerMethod,callerScreen,documentCount,estimatedReads,executionTimeMs,isActiveListener,queryInfo');
+    buffer.writeln(
+      'timestamp,collection,operation,callerService,callerMethod,callerScreen,documentCount,estimatedReads,executionTimeMs,isActiveListener,queryInfo',
+    );
 
     for (final e in events) {
-      buffer.writeln([
-        e.timestamp.toIso8601String(),
-        _csvEscape(e.collection),
-        e.operation.label,
-        _csvEscape(e.callerService),
-        _csvEscape(e.callerMethod),
-        _csvEscape(e.callerScreen ?? ''),
-        e.documentCount,
-        e.estimatedReads,
-        e.executionTimeMs,
-        e.isActiveListener ? '1' : '0',
-        _csvEscape(e.queryInfo ?? ''),
-      ].join(','));
+      buffer.writeln(
+        [
+          e.timestamp.toIso8601String(),
+          _csvEscape(e.collection),
+          e.operation.label,
+          _csvEscape(e.callerService),
+          _csvEscape(e.callerMethod),
+          _csvEscape(e.callerScreen ?? ''),
+          e.documentCount,
+          e.estimatedReads,
+          e.executionTimeMs,
+          e.isActiveListener ? '1' : '0',
+          _csvEscape(e.queryInfo ?? ''),
+        ].join(','),
+      );
     }
     return buffer.toString();
   }
@@ -87,8 +101,12 @@ class AuditExportService {
 
     buffer.writeln('# Firestore Audit Report');
     buffer.writeln();
-    buffer.writeln('**Exported:** ${DateTime.now().toString().substring(0, 19)}  ');
-    buffer.writeln('**Session Start:** ${stats.sessionStart.toString().substring(0, 19)}  ');
+    buffer.writeln(
+      '**Exported:** ${DateTime.now().toString().substring(0, 19)}  ',
+    );
+    buffer.writeln(
+      '**Session Start:** ${stats.sessionStart.toString().substring(0, 19)}  ',
+    );
     buffer.writeln('**Duration:** ${_formatDuration(stats.sessionDuration)}  ');
     buffer.writeln();
     buffer.writeln('## Summary');
@@ -99,16 +117,26 @@ class AuditExportService {
     buffer.writeln('| Daily Reads Total | ${service.dailyReadsTotal} |');
     buffer.writeln('| Total Events | ${stats.totalEvents} |');
     buffer.writeln('| Total Documents | ${stats.totalDocuments} |');
-    buffer.writeln('| Reads/Minute | ${stats.readsPerMinute.toStringAsFixed(1)} |');
-    buffer.writeln('| Reads/Hour (est.) | ${stats.readsPerHour.toStringAsFixed(0)} |');
-    buffer.writeln('| Active Listeners (session) | ${stats.activeListenerCount} |');
+    buffer.writeln(
+      '| Reads/Minute | ${stats.readsPerMinute.toStringAsFixed(1)} |',
+    );
+    buffer.writeln(
+      '| Reads/Hour (est.) | ${stats.readsPerHour.toStringAsFixed(0)} |',
+    );
+    buffer.writeln(
+      '| Active Listeners (session) | ${stats.activeListenerCount} |',
+    );
     buffer.writeln();
     buffer.writeln('## Top Collections');
     buffer.writeln();
-    buffer.writeln('| Collection | Est. Reads | Calls | Avg Docs | Top Caller |');
+    buffer.writeln(
+      '| Collection | Est. Reads | Calls | Avg Docs | Top Caller |',
+    );
     buffer.writeln('|-----------|-----------|-------|---------|-----------|');
     for (final e in stats.topCollections.take(10)) {
-      buffer.writeln('| ${e.key} | ${e.value.totalEstimatedReads} | ${e.value.totalCalls} | ${e.value.avgDocuments.toStringAsFixed(1)} | ${e.value.topCaller} |');
+      buffer.writeln(
+        '| ${e.key} | ${e.value.totalEstimatedReads} | ${e.value.totalCalls} | ${e.value.avgDocuments.toStringAsFixed(1)} | ${e.value.topCaller} |',
+      );
     }
     buffer.writeln();
     buffer.writeln('## Top Callers');
@@ -116,7 +144,9 @@ class AuditExportService {
     buffer.writeln('| Service | Method | Est. Reads | Calls |');
     buffer.writeln('|---------|--------|-----------|-------|');
     for (final e in stats.topCallers.take(10)) {
-      buffer.writeln('| ${e.value.service} | ${e.value.method} | ${e.value.totalEstimatedReads} | ${e.value.totalCalls} |');
+      buffer.writeln(
+        '| ${e.value.service} | ${e.value.method} | ${e.value.totalEstimatedReads} | ${e.value.totalCalls} |',
+      );
     }
     buffer.writeln();
     buffer.writeln('## Top Screens');
@@ -133,8 +163,11 @@ class AuditExportService {
     buffer.writeln('|------|-----------|-----|---------------|------|');
     for (final e in service.recentEvents.reversed.take(20)) {
       final t = e.timestamp;
-      final ts = '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:${t.second.toString().padLeft(2, '0')}';
-      buffer.writeln('| $ts | ${e.collection} | ${e.operation.label} | ${e.callerService}.${e.callerMethod} | ${e.documentCount} |');
+      final ts =
+          '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:${t.second.toString().padLeft(2, '0')}';
+      buffer.writeln(
+        '| $ts | ${e.collection} | ${e.operation.label} | ${e.callerService}.${e.callerMethod} | ${e.documentCount} |',
+      );
     }
 
     return buffer.toString();
@@ -143,7 +176,9 @@ class AuditExportService {
   /// Share qua share_plus.
   static Future<void> shareAsText(String content, String filename) async {
     try {
-      await SharePlus.instance.share(ShareParams(text: content, subject: filename));
+      await SharePlus.instance.share(
+        ShareParams(text: content, subject: filename),
+      );
     } catch (e) {
       debugPrint('[AuditExport] share error: $e');
     }

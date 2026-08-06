@@ -16,8 +16,9 @@ class CommunityService {
   static CollectionReference<Map<String, dynamic>> get _postsRef =>
       _db.collection('community_posts');
 
-  static CollectionReference<Map<String, dynamic>> _commentsRef(String postId) =>
-      _postsRef.doc(postId).collection('comments');
+  static CollectionReference<Map<String, dynamic>> _commentsRef(
+    String postId,
+  ) => _postsRef.doc(postId).collection('comments');
 
   static Stream<QuerySnapshot<Map<String, dynamic>>> streamPosts({
     required String shopId,
@@ -28,7 +29,14 @@ class CommunityService {
         .limit(limit)
         .snapshots()
         .map((snap) {
-          FirestoreAuditModule.logRead(collection: 'community_posts', operation: AuditOperation.snapshots, callerService: 'CommunityService', callerMethod: 'streamPosts', documentCount: snap.docs.length, isActiveListener: true);
+          FirestoreAuditModule.logRead(
+            collection: 'community_posts',
+            operation: AuditOperation.snapshots,
+            callerService: 'CommunityService',
+            callerMethod: 'streamPosts',
+            documentCount: snap.docs.length,
+            isActiveListener: true,
+          );
           return snap;
         });
   }
@@ -68,8 +76,9 @@ class CommunityService {
       }
 
       final userInfo = await UserService.getUserInfo(currentUser.uid);
-      final displayName =
-          (userInfo['displayName'] ?? userInfo['name'] ?? '').toString().trim();
+      final displayName = (userInfo['displayName'] ?? userInfo['name'] ?? '')
+          .toString()
+          .trim();
       final role = (userInfo['role'] ?? 'employee').toString();
       final photoUrl = (userInfo['photoUrl'] ?? '').toString().trim();
 
@@ -95,7 +104,9 @@ class CommunityService {
         action: 'COMMUNITY_POST_CREATED',
         entityType: 'COMMUNITY_POST',
         entityId: docRef.id,
-        summary: trimmed.isEmpty ? 'Đăng bài cộng đồng (chỉ ảnh)' : 'Đăng bài cộng đồng',
+        summary: trimmed.isEmpty
+            ? 'Đăng bài cộng đồng (chỉ ảnh)'
+            : 'Đăng bài cộng đồng',
       );
 
       return true;
@@ -140,10 +151,9 @@ class CommunityService {
   static Stream<QuerySnapshot<Map<String, dynamic>>> streamComments(
     String postId,
   ) {
-    return _commentsRef(postId)
-        .orderBy('createdAt', descending: true)
-        .limit(80)
-        .snapshots();
+    return _commentsRef(
+      postId,
+    ).orderBy('createdAt', descending: true).limit(80).snapshots();
   }
 
   static Future<bool> addComment({
@@ -157,8 +167,9 @@ class CommunityService {
       if (trimmed.isEmpty) return false;
 
       final userInfo = await UserService.getUserInfo(currentUser.uid);
-      final displayName =
-          (userInfo['displayName'] ?? userInfo['name'] ?? '').toString().trim();
+      final displayName = (userInfo['displayName'] ?? userInfo['name'] ?? '')
+          .toString()
+          .trim();
       final role = (userInfo['role'] ?? 'employee').toString();
       final photoUrl = (userInfo['photoUrl'] ?? '').toString().trim();
 

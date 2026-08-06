@@ -86,7 +86,9 @@ class AuditBarChart extends StatelessWidget {
                           child: Container(
                             height: 20,
                             decoration: BoxDecoration(
-                              color: barColor.withOpacity(opacity.clamp(0.3, 1.0)),
+                              color: barColor.withOpacity(
+                                opacity.clamp(0.3, 1.0),
+                              ),
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),

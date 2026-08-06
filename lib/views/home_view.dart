@@ -228,8 +228,7 @@ class _HomeViewState extends State<HomeView>
   /// Getter for localization - dùng chung cho tất cả methods
   AppLocalizations get loc => AppLocalizations.of(context)!;
 
-  _HomeViewState() {
-  }
+  _HomeViewState() {}
 
   @override
   void initState() {
@@ -316,8 +315,7 @@ class _HomeViewState extends State<HomeView>
         _restoredTabId = savedTabId;
         _restoredTabIndex = saved != null && saved >= 0 ? saved : null;
       });
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 
   Future<void> _loadHomeCommunityDashboardPref() async {
@@ -328,8 +326,7 @@ class _HomeViewState extends State<HomeView>
       setState(() {
         _showHomeCommunityCard = saved ?? true;
       });
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 
   Future<void> _setHomeCommunityDashboardVisible(bool value) async {
@@ -340,8 +337,7 @@ class _HomeViewState extends State<HomeView>
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_showHomeCommunityCardPrefKey, value);
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 
   Future<void> _refreshHomeCommunityStream() async {
@@ -417,10 +413,13 @@ class _HomeViewState extends State<HomeView>
         transitionsBuilder: (_, animation, __, child) => FadeTransition(
           opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
           child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0.04, 0),
-              end: Offset.zero,
-            ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+            position:
+                Tween<Offset>(
+                  begin: const Offset(0.04, 0),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(parent: animation, curve: Curves.easeOut),
+                ),
             child: child,
           ),
         ),
@@ -475,8 +474,7 @@ class _HomeViewState extends State<HomeView>
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_lastTabIndexPrefKey, index);
       await prefs.setString(_lastTabIdPrefKey, _tabIdAt(index));
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 
   @override
@@ -570,7 +568,8 @@ class _HomeViewState extends State<HomeView>
   // Override riêng để tránh race condition: _loadShopSettings chạy sau tap sẽ không overwrite UI state
   bool? _pendingCostOverride;
   bool _isSavingPendingCost = false;
-  bool get _allowPendingCost => _pendingCostOverride ?? _shopSettings?.allowPendingCost ?? false;
+  bool get _allowPendingCost =>
+      _pendingCostOverride ?? _shopSettings?.allowPendingCost ?? false;
   bool get _enableSupplier => _shopSettings?.enableSupplier ?? true;
   bool get _requireSupplier => _shopSettings?.requireSupplier ?? true;
   bool _isSavingSupplier = false;
@@ -1419,31 +1418,36 @@ class _HomeViewState extends State<HomeView>
       steps: [
         const GuideStep(
           title: '📊 Tổng quan thời gian thực',
-          description: 'Doanh thu, số đơn sửa, tồn kho và nợ được cập nhật tức thì ngay trên trang chủ.',
+          description:
+              'Doanh thu, số đơn sửa, tồn kho và nợ được cập nhật tức thì ngay trên trang chủ.',
           icon: Icons.dashboard_rounded,
           iconColor: Colors.indigo,
         ),
         const GuideStep(
           title: '⚡ Tạo đơn nhanh',
-          description: 'Nhấn nút (+) để tạo đơn sửa chữa hoặc hóa đơn bán hàng ngay lập tức.',
+          description:
+              'Nhấn nút (+) để tạo đơn sửa chữa hoặc hóa đơn bán hàng ngay lập tức.',
           icon: Icons.add_circle_rounded,
           iconColor: Colors.green,
         ),
         const GuideStep(
           title: '📈 Biểu đồ & thống kê',
-          description: 'Theo dõi doanh số, lợi nhuận theo ngày/tuần/tháng. Nhấn vào biểu đồ để xem chi tiết.',
+          description:
+              'Theo dõi doanh số, lợi nhuận theo ngày/tuần/tháng. Nhấn vào biểu đồ để xem chi tiết.',
           icon: Icons.bar_chart_rounded,
           iconColor: Colors.blue,
         ),
         const GuideStep(
           title: '🔔 Cảnh báo thông minh',
-          description: 'Tự động cảnh báo nợ quá hạn, bảo hành sắp hết, hàng tồn kho thấp.',
+          description:
+              'Tự động cảnh báo nợ quá hạn, bảo hành sắp hết, hàng tồn kho thấp.',
           icon: Icons.notifications_active_rounded,
           iconColor: Colors.orange,
         ),
         const GuideStep(
           title: '🤖 AI Trợ lý',
-          description: 'Nhấn vào nút chat AI để hỏi về doanh thu, đơn hàng, khách nợ bất kỳ lúc nào.',
+          description:
+              'Nhấn vào nút chat AI để hỏi về doanh thu, đơn hàng, khách nợ bất kỳ lúc nào.',
           icon: Icons.smart_toy_rounded,
           iconColor: Colors.purple,
         ),
@@ -1595,11 +1599,11 @@ class _HomeViewState extends State<HomeView>
       // Subscribe pending payment requests count (chỉ cho owner/admin)
       if (hasFullAccess) {
         _pendingPaymentSub?.cancel();
-        _pendingPaymentSub = PaymentRequestService.pendingCountStream().listen(
-          (n) {
-            if (mounted) setState(() => _pendingPaymentRequestCount = n);
-          },
-        );
+        _pendingPaymentSub = PaymentRequestService.pendingCountStream().listen((
+          n,
+        ) {
+          if (mounted) setState(() => _pendingPaymentRequestCount = n);
+        });
       }
 
       if (_enableMultiBranch) {
@@ -1659,8 +1663,7 @@ class _HomeViewState extends State<HomeView>
         } else {
           await SyncService.downloadAllFromCloud().timeout(
             const Duration(seconds: 20),
-            onTimeout: () {
-            },
+            onTimeout: () {},
           );
         }
       }
@@ -1714,8 +1717,7 @@ class _HomeViewState extends State<HomeView>
             resolvedRole = fastRole;
           }
         }
-      } catch (roleError) {
-      }
+      } catch (roleError) {}
 
       // ====== TỐI ƯU: Load từ cache trước, hiện UI ngay ======
       final prefs = await SharedPreferences.getInstance();
@@ -1737,8 +1739,7 @@ class _HomeViewState extends State<HomeView>
           setState(() {
             if (cachedUserName != null && cachedUserName.isNotEmpty)
               _userName = cachedUserName;
-            if (cachedShopName.isNotEmpty)
-              _shopName = cachedShopName;
+            if (cachedShopName.isNotEmpty) _shopName = cachedShopName;
             if (cachedUserPhoto.isNotEmpty) _userPhotoUrl = cachedUserPhoto;
             if (cachedShopLogo.isNotEmpty) _shopLogoUrl = cachedShopLogo;
             if (cachedShopCover.isNotEmpty) _shopCoverUrl = cachedShopCover;
@@ -1757,8 +1758,7 @@ class _HomeViewState extends State<HomeView>
       try {
         final userInfo = await UserService.getUserInfo(user.uid);
         userPhotoUrl = (userInfo['photoUrl'] ?? '').toString().trim();
-      } catch (e) {
-      }
+      } catch (e) {}
       if (userPhotoUrl.isEmpty) {
         userPhotoUrl = (user.photoURL ?? '').trim();
       }
@@ -1805,8 +1805,7 @@ class _HomeViewState extends State<HomeView>
                 (shopData?['coverUrl'] ?? shopData?['bannerUrl'] ?? '')
                     .toString()
                     .trim();
-          } else {
-          }
+          } else {}
 
           // Legacy fallback: some shops save profile under settings/shop_profile.
           if (shopName.isEmpty) {
@@ -1839,8 +1838,7 @@ class _HomeViewState extends State<HomeView>
                           .trim();
                 }
               }
-            } catch (profileError) {
-            }
+            } catch (profileError) {}
           }
         }
       } catch (shopError) {
@@ -1971,8 +1969,7 @@ class _HomeViewState extends State<HomeView>
       try {
         await user.updatePhotoURL(uploadedUrl);
         await user.reload();
-      } catch (e) {
-      }
+      } catch (e) {}
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('cached_userPhotoUrl_${user.uid}', uploadedUrl);
@@ -1996,9 +1993,10 @@ class _HomeViewState extends State<HomeView>
   }
 
   Future<void> _openMyStaffProfile() async {
-    await Navigator.of(context, rootNavigator: true).push(
-      MaterialPageRoute(builder: (_) => const StaffSelfProfileView()),
-    );
+    await Navigator.of(
+      context,
+      rootNavigator: true,
+    ).push(MaterialPageRoute(builder: (_) => const StaffSelfProfileView()));
     if (!mounted) return;
     await _loadUserAndShopInfo();
   }
@@ -2012,9 +2010,10 @@ class _HomeViewState extends State<HomeView>
       );
       return;
     }
-    await Navigator.of(context, rootNavigator: true).push(
-      MaterialPageRoute(builder: (_) => const ShopSettingsView()),
-    );
+    await Navigator.of(
+      context,
+      rootNavigator: true,
+    ).push(MaterialPageRoute(builder: (_) => const ShopSettingsView()));
     if (!mounted) return;
     await _loadUserAndShopInfo();
   }
@@ -2104,8 +2103,7 @@ class _HomeViewState extends State<HomeView>
       setState(() {
         totalDebtRemain = totalRemain;
       });
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 
   /// Phase 2: Load shop settings cho multi-industry features
@@ -2166,7 +2164,9 @@ class _HomeViewState extends State<HomeView>
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null || shopId.isEmpty) {
-        throw Exception('Chưa xác định cửa hàng hiện tại. Vui lòng chọn lại shop.');
+        throw Exception(
+          'Chưa xác định cửa hàng hiện tại. Vui lòng chọn lại shop.',
+        );
       }
       final current = _shopSettings ?? ShopSettings.electronics(shopId);
       final svc = CategoryService();
@@ -2185,7 +2185,9 @@ class _HomeViewState extends State<HomeView>
           _isSavingPendingCost = false;
         });
         NotificationService.showSnackBar(
-          value ? '✅ Đã bật: cho phép nhập giá vốn sau' : '🔒 Đã tắt: bắt buộc nhập giá vốn',
+          value
+              ? '✅ Đã bật: cho phép nhập giá vốn sau'
+              : '🔒 Đã tắt: bắt buộc nhập giá vốn',
           color: value ? Colors.teal : Colors.grey.shade700,
         );
       }
@@ -2196,7 +2198,10 @@ class _HomeViewState extends State<HomeView>
           _pendingCostOverride = null;
         });
       }
-      NotificationService.showSnackBar('Lỗi lưu cài đặt: $e', color: Colors.red);
+      NotificationService.showSnackBar(
+        'Lỗi lưu cài đặt: $e',
+        color: Colors.red,
+      );
     }
   }
 
@@ -2205,11 +2210,14 @@ class _HomeViewState extends State<HomeView>
     setState(() => _isSavingRequireSupplier = true);
     try {
       final shopId = await UserService.getCurrentShopId();
-      if (shopId == null || shopId.isEmpty) throw Exception('Chưa xác định cửa hàng');
+      if (shopId == null || shopId.isEmpty)
+        throw Exception('Chưa xác định cửa hàng');
       final current = _shopSettings ?? ShopSettings.electronics(shopId);
       final svc = CategoryService();
       svc.resetRemoteWriteCooldown();
-      final saved = await svc.saveShopSettings(current.copyWith(requireSupplier: value));
+      final saved = await svc.saveShopSettings(
+        current.copyWith(requireSupplier: value),
+      );
       if (!saved) throw Exception('Không thể lưu cài đặt');
       if (mounted) {
         setState(() {
@@ -2217,7 +2225,9 @@ class _HomeViewState extends State<HomeView>
           _isSavingRequireSupplier = false;
         });
         NotificationService.showSnackBar(
-          value ? '✅ Bắt buộc chọn NCC khi nhập kho' : '🔓 NCC không bắt buộc khi nhập kho',
+          value
+              ? '✅ Bắt buộc chọn NCC khi nhập kho'
+              : '🔓 NCC không bắt buộc khi nhập kho',
           color: value ? Colors.deepOrange : Colors.grey.shade700,
         );
       }
@@ -2232,11 +2242,14 @@ class _HomeViewState extends State<HomeView>
     setState(() => _isSavingSupplier = true);
     try {
       final shopId = await UserService.getCurrentShopId();
-      if (shopId == null || shopId.isEmpty) throw Exception('Chưa xác định cửa hàng');
+      if (shopId == null || shopId.isEmpty)
+        throw Exception('Chưa xác định cửa hàng');
       final current = _shopSettings ?? ShopSettings.electronics(shopId);
       final svc = CategoryService();
       svc.resetRemoteWriteCooldown();
-      final saved = await svc.saveShopSettings(current.copyWith(enableSupplier: value));
+      final saved = await svc.saveShopSettings(
+        current.copyWith(enableSupplier: value),
+      );
       if (!saved) throw Exception('Không thể lưu cài đặt');
       if (mounted) {
         setState(() {
@@ -2244,7 +2257,9 @@ class _HomeViewState extends State<HomeView>
           _isSavingSupplier = false;
         });
         NotificationService.showSnackBar(
-          value ? '✅ Đã bật: hiển thị nhà cung cấp' : '🔒 Đã tắt: ẩn nhà cung cấp',
+          value
+              ? '✅ Đã bật: hiển thị nhà cung cấp'
+              : '🔒 Đã tắt: ẩn nhà cung cấp',
           color: value ? Colors.indigo : Colors.grey.shade700,
         );
       }
@@ -2265,10 +2280,12 @@ class _HomeViewState extends State<HomeView>
       // Always provide a default if shopId is known — even for owner/admin.
       // Previously returned null for owner when no Firestore doc existed, hiding the cost-toggle.
       final effectiveSettings =
-          settings ?? (shopId != null ? ShopSettings.electronics(shopId) : null);
-          final pendingOverride = _pendingCostOverride;
-          final hasPendingOverride = applyPendingOverride && pendingOverride != null;
-        final mergedSettings = (effectiveSettings != null && hasPendingOverride)
+          settings ??
+          (shopId != null ? ShopSettings.electronics(shopId) : null);
+      final pendingOverride = _pendingCostOverride;
+      final hasPendingOverride =
+          applyPendingOverride && pendingOverride != null;
+      final mergedSettings = (effectiveSettings != null && hasPendingOverride)
           ? effectiveSettings.copyWith(allowPendingCost: pendingOverride)
           : effectiveSettings;
 
@@ -2315,11 +2332,9 @@ class _HomeViewState extends State<HomeView>
         if (hasFullAccess && !_isShowingBusinessTypeWizard) {
           _isShowingBusinessTypeWizard = true;
           _showBusinessTypeSetupDialog();
-        } else {
-        }
+        } else {}
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   /// Hiển thị dialog chọn ngành kinh doanh cho shops chưa thiết lập
@@ -2397,8 +2412,7 @@ class _HomeViewState extends State<HomeView>
           }
         });
       }
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 
   Future<void> _loadStats() async {
@@ -2694,7 +2708,6 @@ class _HomeViewState extends State<HomeView>
         _bootstrapCoreDataFromCloud();
       }
 
-
       if (mounted) {
         setState(() {
           totalPendingRepair = pendingR;
@@ -2741,8 +2754,7 @@ class _HomeViewState extends State<HomeView>
       if (mounted && count != _totalReminderCount) {
         setState(() => _totalReminderCount = count);
       }
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 
   void _normalizeTimestampFields(Map<String, dynamic> data) {
@@ -2774,7 +2786,6 @@ class _HomeViewState extends State<HomeView>
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null || shopId.isEmpty) return;
-
 
       final fs = FirebaseFirestore.instance;
 
@@ -2847,7 +2858,6 @@ class _HomeViewState extends State<HomeView>
         _normalizeTimestampFields(data);
         await db.upsertDebt(Debt.fromMap(data));
       }
-
 
       if (mounted) {
         _debouncedLoadStats();
@@ -2958,11 +2968,17 @@ class _HomeViewState extends State<HomeView>
               title: Text(loc.exitApp),
               actions: [
                 TextButton(
-                  onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, false); },
+                  onPressed: () {
+                    FocusScope.of(ctx).unfocus();
+                    Navigator.pop(ctx, false);
+                  },
                   child: Text(loc.cancel),
                 ),
                 TextButton(
-                  onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, true); },
+                  onPressed: () {
+                    FocusScope.of(ctx).unfocus();
+                    Navigator.pop(ctx, true);
+                  },
                   child: Text(loc.exit),
                 ),
               ],
@@ -2981,9 +2997,7 @@ class _HomeViewState extends State<HomeView>
     // It naturally disappears when sub-views are pushed (they cover HomeView).
     final ctrl = _quickActionController;
     if (ctrl == null) {
-      return Stack(
-        children: [rootWidget, const AiChatOverlay()],
-      );
+      return Stack(children: [rootWidget, const AiChatOverlay()]);
     }
     return Stack(
       children: [
@@ -3030,7 +3044,10 @@ class _HomeViewState extends State<HomeView>
             ),
             actions: [
               TextButton(
-                onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, false); },
+                onPressed: () {
+                  FocusScope.of(ctx).unfocus();
+                  Navigator.pop(ctx, false);
+                },
                 child: const Text('Hủy'),
               ),
               ElevatedButton.icon(
@@ -3075,7 +3092,10 @@ class _HomeViewState extends State<HomeView>
                 ),
               ),
               ElevatedButton(
-                onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, true); },
+                onPressed: () {
+                  FocusScope.of(ctx).unfocus();
+                  Navigator.pop(ctx, true);
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
@@ -3087,8 +3107,7 @@ class _HomeViewState extends State<HomeView>
         );
         if (shouldContinue != true) return;
       }
-    } catch (e) {
-    }
+    } catch (e) {}
 
     // Always sign out — cleanup failures must not block logout
     try {
@@ -3111,8 +3130,7 @@ class _HomeViewState extends State<HomeView>
     } catch (_) {}
     try {
       await FirebaseAuth.instance.signOut();
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 
   /// Responsive body: NavigationRail on wide screens, IndexedStack on mobile
@@ -3500,15 +3518,16 @@ class _HomeViewState extends State<HomeView>
   /// Navigate to dashboard customization settings
   Future<void> _openDashboardSettings() async {
     HapticFeedback.mediumImpact();
-    final result = await Navigator.of(context, rootNavigator: true).push<dynamic>(
-      MaterialPageRoute(
-        builder: (_) => DashboardSettingsView(
-          role: widget.role,
-          currentConfig: _dashboardConfigs,
-          currentShortcuts: _shortcutConfigs,
-        ),
-      ),
-    );
+    final result = await Navigator.of(context, rootNavigator: true)
+        .push<dynamic>(
+          MaterialPageRoute(
+            builder: (_) => DashboardSettingsView(
+              role: widget.role,
+              currentConfig: _dashboardConfigs,
+              currentShortcuts: _shortcutConfigs,
+            ),
+          ),
+        );
     // Apply configs directly from result (no re-reading SharedPreferences)
     if (result is Map && mounted) {
       setState(() {
@@ -3692,7 +3711,10 @@ class _HomeViewState extends State<HomeView>
                           'hero_staff_avatar_${FirebaseAuth.instance.currentUser?.uid ?? 'me'}',
                       child: ClipOval(
                         child: _userPhotoUrl.isNotEmpty
-                            ? AppCachedImage(imageUrl: _userPhotoUrl, fit: BoxFit.cover)
+                            ? AppCachedImage(
+                                imageUrl: _userPhotoUrl,
+                                fit: BoxFit.cover,
+                              )
                             : const Icon(
                                 Icons.person_rounded,
                                 color: Colors.white,
@@ -5945,7 +5967,10 @@ class _HomeViewState extends State<HomeView>
         ),
         actions: [
           TextButton(
-            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
+            onPressed: () {
+              FocusScope.of(ctx).unfocus();
+              Navigator.pop(ctx);
+            },
             child: Text(
               AppLocalizations.of(context)!.understood,
               style: const TextStyle(
@@ -6230,7 +6255,8 @@ class _HomeViewState extends State<HomeView>
             subtitle: 'Hướng dẫn sử dụng từng tính năng',
             icon: Icons.help_outline_rounded,
             color: Colors.teal,
-            onTap: () => _fadePush(context, UserGuideView(userRole: widget.role)),
+            onTap: () =>
+                _fadePush(context, UserGuideView(userRole: widget.role)),
           ),
           _SettingsItem(
             group: 'help',
@@ -6263,7 +6289,8 @@ class _HomeViewState extends State<HomeView>
             _SettingsItem(
               group: 'system',
               title: 'Nhập / Xuất dữ liệu',
-              subtitle: 'Xuất & nhập Excel: sửa chữa, bán hàng, kho, khách, NCC',
+              subtitle:
+                  'Xuất & nhập Excel: sửa chữa, bán hàng, kho, khách, NCC',
               icon: Icons.import_export,
               color: Colors.green,
               onTap: () => _fadePush(context, const ImportExportView()),
@@ -6275,7 +6302,8 @@ class _HomeViewState extends State<HomeView>
               subtitle: loc.adminCenterDescription,
               icon: Icons.admin_panel_settings_rounded,
               color: AppColors.error,
-              onTap: () => _fadePush(context, const admin_view.SuperAdminConsoleView()),
+              onTap: () =>
+                  _fadePush(context, const admin_view.SuperAdminConsoleView()),
             ),
           if (_isSuperAdmin)
             _SettingsItem(
@@ -6284,7 +6312,8 @@ class _HomeViewState extends State<HomeView>
               subtitle: 'Kiểm tra Firestore và độ trễ mạng',
               icon: Icons.network_check_rounded,
               color: Colors.purple,
-              onTap: () => _fadePush(context, const FirestoreConnectivityTestView()),
+              onTap: () =>
+                  _fadePush(context, const FirestoreConnectivityTestView()),
             ),
           if (_isSuperAdmin)
             _SettingsItem(
@@ -6295,30 +6324,28 @@ class _HomeViewState extends State<HomeView>
               color: Colors.deepOrange,
               onTap: () => _fadePush(context, const FirebaseRwStatsView()),
             ),
-          // Developer-only: Firestore Audit Monitor (debug builds only)
-          if (kDebugMode)
+          // Developer tool: hiển thị cho super admin để debug Firestore reads
+          if (kDebugMode || _isSuperAdmin)
             _SettingsItem(
               group: 'system',
               title: '🔬 Firestore Audit Monitor',
-              subtitle: 'Dev tool: theo dõi Firestore Read theo collection/service',
+              subtitle:
+                  'Dev tool: theo dõi Firestore Read theo collection/service',
               icon: Icons.manage_search_rounded,
               color: const Color(0xFF6C63FF),
-              onTap: () => _fadePush(
-                context,
-                const FirestoreAuditDashboard(),
-              ),
+              onTap: () => _fadePush(context, const FirestoreAuditDashboard()),
             ),
         ];
 
         final filtered = query.isEmpty
             ? allItems
             : allItems
-                .where(
-                  (item) =>
-                      item.title.toLowerCase().contains(query) ||
-                      (item.subtitle?.toLowerCase().contains(query) ?? false),
-                )
-                .toList();
+                  .where(
+                    (item) =>
+                        item.title.toLowerCase().contains(query) ||
+                        (item.subtitle?.toLowerCase().contains(query) ?? false),
+                  )
+                  .toList();
 
         List<Widget> buildGroup(String groupId, String groupTitle) {
           final items = (query.isEmpty ? allItems : filtered)
@@ -6431,32 +6458,92 @@ class _HomeViewState extends State<HomeView>
                     _buildSectionHeader('Kho hàng'),
                     CheckboxListTile(
                       value: _allowPendingCost,
-                      onChanged: _isSavingPendingCost ? null : (v) => _saveAllowPendingCost(v ?? false),
+                      onChanged: _isSavingPendingCost
+                          ? null
+                          : (v) => _saveAllowPendingCost(v ?? false),
                       activeColor: Colors.teal,
-                      checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                      checkboxShape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4),
+                      ),
                       secondary: _isSavingPendingCost
-                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.teal))
-                          : Icon(Icons.inventory_2_outlined, color: _allowPendingCost ? Colors.teal : Colors.grey, size: 24),
-                      title: const Text('Cho phép nhập giá vốn sau', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.teal,
+                              ),
+                            )
+                          : Icon(
+                              Icons.inventory_2_outlined,
+                              color: _allowPendingCost
+                                  ? Colors.teal
+                                  : Colors.grey,
+                              size: 24,
+                            ),
+                      title: const Text(
+                        'Cho phép nhập giá vốn sau',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
                       subtitle: Text(
-                        _allowPendingCost ? 'Có thể bỏ qua giá vốn, nhập sau' : 'Bắt buộc nhập giá vốn > 0 khi xác nhận nhập kho',
-                        style: TextStyle(fontSize: 12, color: _allowPendingCost ? Colors.teal : Colors.grey.shade600),
+                        _allowPendingCost
+                            ? 'Có thể bỏ qua giá vốn, nhập sau'
+                            : 'Bắt buộc nhập giá vốn > 0 khi xác nhận nhập kho',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _allowPendingCost
+                              ? Colors.teal
+                              : Colors.grey.shade600,
+                        ),
                       ),
                       controlAffinity: ListTileControlAffinity.trailing,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 4),
                     ),
                     CheckboxListTile(
                       value: _enableSupplier,
-                      onChanged: _isSavingSupplier ? null : (v) => _saveEnableSupplier(v ?? true),
+                      onChanged: _isSavingSupplier
+                          ? null
+                          : (v) => _saveEnableSupplier(v ?? true),
                       activeColor: Colors.indigo,
-                      checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                      checkboxShape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4),
+                      ),
                       secondary: _isSavingSupplier
-                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.indigo))
-                          : Icon(Icons.local_shipping_outlined, color: _enableSupplier ? Colors.indigo : Colors.grey, size: 24),
-                      title: const Text('Hiển thị nhà cung cấp (NCC)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.indigo,
+                              ),
+                            )
+                          : Icon(
+                              Icons.local_shipping_outlined,
+                              color: _enableSupplier
+                                  ? Colors.indigo
+                                  : Colors.grey,
+                              size: 24,
+                            ),
+                      title: const Text(
+                        'Hiển thị nhà cung cấp (NCC)',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
                       subtitle: Text(
-                        _enableSupplier ? 'Có thể chọn và theo dõi NCC trên từng đơn nhập' : 'Ẩn tính năng chọn nhà cung cấp khi nhập kho',
-                        style: TextStyle(fontSize: 12, color: _enableSupplier ? Colors.indigo : Colors.grey.shade600),
+                        _enableSupplier
+                            ? 'Có thể chọn và theo dõi NCC trên từng đơn nhập'
+                            : 'Ẩn tính năng chọn nhà cung cấp khi nhập kho',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _enableSupplier
+                              ? Colors.indigo
+                              : Colors.grey.shade600,
+                        ),
                       ),
                       controlAffinity: ListTileControlAffinity.trailing,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 4),
@@ -6464,25 +6551,58 @@ class _HomeViewState extends State<HomeView>
                     if (_enableSupplier)
                       CheckboxListTile(
                         value: _requireSupplier,
-                        onChanged: _isSavingRequireSupplier ? null : (v) => _saveRequireSupplier(v ?? true),
+                        onChanged: _isSavingRequireSupplier
+                            ? null
+                            : (v) => _saveRequireSupplier(v ?? true),
                         activeColor: Colors.deepOrange,
-                        checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                        checkboxShape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
                         secondary: _isSavingRequireSupplier
-                            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.deepOrange))
-                            : Icon(Icons.rule_rounded, color: _requireSupplier ? Colors.deepOrange : Colors.grey, size: 24),
-                        title: const Text('Bắt buộc chọn NCC khi nhập kho', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.deepOrange,
+                                ),
+                              )
+                            : Icon(
+                                Icons.rule_rounded,
+                                color: _requireSupplier
+                                    ? Colors.deepOrange
+                                    : Colors.grey,
+                                size: 24,
+                              ),
+                        title: const Text(
+                          'Bắt buộc chọn NCC khi nhập kho',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
                         subtitle: Text(
-                          _requireSupplier ? 'Phải chọn NCC mới xác nhận được nhập kho' : 'NCC không bắt buộc — có thể bỏ qua',
-                          style: TextStyle(fontSize: 12, color: _requireSupplier ? Colors.deepOrange : Colors.grey.shade600),
+                          _requireSupplier
+                              ? 'Phải chọn NCC mới xác nhận được nhập kho'
+                              : 'NCC không bắt buộc — có thể bỏ qua',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: _requireSupplier
+                                ? Colors.deepOrange
+                                : Colors.grey.shade600,
+                          ),
                         ),
                         controlAffinity: ListTileControlAffinity.trailing,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                        ),
                       ),
                   ],
 
                   ...buildGroup('interface', 'Giao diện & Ngôn ngữ'),
                   ...buildGroup('device', 'Thiết bị & In ấn'),
-                  if (hasFullAccess) ...buildGroup('staff', 'Nhân sự & Chấm công'),
+                  if (hasFullAccess)
+                    ...buildGroup('staff', 'Nhân sự & Chấm công'),
                   ...buildGroup('notifications', 'Thông báo'),
                   ...buildGroup('help', 'Hướng dẫn'),
                   if (hasFullAccess || _isSuperAdmin)
@@ -6901,11 +7021,17 @@ class _HomeViewState extends State<HomeView>
         content: Text('Bạn có chắc muốn hủy liên kết $provider?'),
         actions: [
           TextButton(
-            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, false); },
+            onPressed: () {
+              FocusScope.of(ctx).unfocus();
+              Navigator.pop(ctx, false);
+            },
             child: const Text('HỦY'),
           ),
           ElevatedButton(
-            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, true); },
+            onPressed: () {
+              FocusScope.of(ctx).unfocus();
+              Navigator.pop(ctx, true);
+            },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text(
               'XÁC NHẬN',
@@ -6950,11 +7076,17 @@ class _HomeViewState extends State<HomeView>
         content: Text(loc.logoutConfirmMessage),
         actions: [
           TextButton(
-            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, false); },
+            onPressed: () {
+              FocusScope.of(ctx).unfocus();
+              Navigator.pop(ctx, false);
+            },
             child: Text(loc.cancel),
           ),
           ElevatedButton(
-            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, true); },
+            onPressed: () {
+              FocusScope.of(ctx).unfocus();
+              Navigator.pop(ctx, true);
+            },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: Text(
               loc.logout,
@@ -6985,8 +7117,7 @@ class _HomeViewState extends State<HomeView>
       } catch (_) {}
       try {
         await FirebaseAuth.instance.signOut();
-      } catch (e) {
-      }
+      } catch (e) {}
     }
   }
 
@@ -7203,11 +7334,7 @@ class _HomeViewState extends State<HomeView>
 
     // Income breakdown for donut
     final incomeItems = <_HomeDashItem>[
-      _HomeDashItem(
-        'Bán hàng',
-        _todaySaleIncome,
-        const Color(0xFF43A047),
-      ),
+      _HomeDashItem('Bán hàng', _todaySaleIncome, const Color(0xFF43A047)),
       if (_todaySettlementIncome > 0)
         _HomeDashItem(
           'Tất toán NH',
@@ -7328,7 +7455,6 @@ class _HomeViewState extends State<HomeView>
               ),
 
             const SizedBox(height: 14),
-
           ],
         ),
       ),
@@ -8049,10 +8175,8 @@ class _HomeViewState extends State<HomeView>
       await _pushRoute(
         context,
         MaterialPageRoute(
-          builder: (_) => OrderListView(
-            role: widget.role,
-            statusFilter: const [3],
-          ),
+          builder: (_) =>
+              OrderListView(role: widget.role, statusFilter: const [3]),
         ),
       );
       return;

@@ -16,7 +16,8 @@ class LiveEventTile extends StatelessWidget {
     final subColor = isDark ? Colors.white60 : Colors.black54;
 
     final t = event.timestamp;
-    final ts = '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:${t.second.toString().padLeft(2, '0')}';
+    final ts =
+        '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:${t.second.toString().padLeft(2, '0')}';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
@@ -42,7 +43,14 @@ class LiveEventTile extends StatelessWidget {
   Widget _buildCompact(String ts, Color opColor, Color subColor) {
     return Row(
       children: [
-        Text(ts, style: TextStyle(color: subColor, fontSize: 10, fontFamily: 'monospace')),
+        Text(
+          ts,
+          style: TextStyle(
+            color: subColor,
+            fontSize: 10,
+            fontFamily: 'monospace',
+          ),
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
@@ -59,7 +67,11 @@ class LiveEventTile extends StatelessWidget {
           ),
           child: Text(
             event.operation.label,
-            style: TextStyle(color: opColor, fontSize: 10, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: opColor,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         const SizedBox(width: 8),
@@ -81,14 +93,22 @@ class LiveEventTile extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text(ts,
-                style: TextStyle(
-                    color: subColor, fontSize: 10, fontFamily: 'monospace')),
+            Text(
+              ts,
+              style: TextStyle(
+                color: subColor,
+                fontSize: 10,
+                fontFamily: 'monospace',
+              ),
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 event.collection,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -101,9 +121,10 @@ class LiveEventTile extends StatelessWidget {
               child: Text(
                 event.operation.label,
                 style: TextStyle(
-                    color: opColor,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold),
+                  color: opColor,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -155,16 +176,16 @@ class LiveEventTile extends StatelessWidget {
   }
 
   Widget _chip(String text, Color color) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600),
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(
+      color: color.withOpacity(0.12),
+      borderRadius: BorderRadius.circular(4),
+    ),
+    child: Text(
+      text,
+      style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600),
+    ),
+  );
 
   Color _operationColor(AuditOperation op) {
     switch (op) {

@@ -14,20 +14,18 @@ class CollectionStat {
   final List<int> recentReadCounts; // last 10 read counts for sparkline
 
   CollectionStat({required this.collection})
-      : totalCalls = 0,
-        totalDocuments = 0,
-        totalEstimatedReads = 0,
-        totalTimeMs = 0,
-        activeListeners = 0,
-        callerServiceCounts = {},
-        operationCounts = {},
-        recentReadCounts = [];
+    : totalCalls = 0,
+      totalDocuments = 0,
+      totalEstimatedReads = 0,
+      totalTimeMs = 0,
+      activeListeners = 0,
+      callerServiceCounts = {},
+      operationCounts = {},
+      recentReadCounts = [];
 
-  double get avgDocuments =>
-      totalCalls == 0 ? 0 : totalDocuments / totalCalls;
+  double get avgDocuments => totalCalls == 0 ? 0 : totalDocuments / totalCalls;
 
-  double get avgTimeMs =>
-      totalCalls == 0 ? 0 : totalTimeMs / totalCalls;
+  double get avgTimeMs => totalCalls == 0 ? 0 : totalTimeMs / totalCalls;
 
   String get topCaller {
     if (callerServiceCounts.isEmpty) return '—';
@@ -45,8 +43,7 @@ class CollectionStat {
     if (e.isActiveListener) activeListeners++;
     callerServiceCounts[e.callerService] =
         (callerServiceCounts[e.callerService] ?? 0) + 1;
-    operationCounts[e.operation] =
-        (operationCounts[e.operation] ?? 0) + 1;
+    operationCounts[e.operation] = (operationCounts[e.operation] ?? 0) + 1;
     recentReadCounts.add(e.estimatedReads);
     if (recentReadCounts.length > 20) recentReadCounts.removeAt(0);
   }
@@ -63,11 +60,11 @@ class CallerStat {
   final Set<String> screens;
 
   CallerStat({required this.service, required this.method})
-      : totalCalls = 0,
-        totalEstimatedReads = 0,
-        totalDocuments = 0,
-        collections = {},
-        screens = {};
+    : totalCalls = 0,
+      totalEstimatedReads = 0,
+      totalDocuments = 0,
+      collections = {},
+      screens = {};
 
   String get key => '$service.$method';
 
@@ -94,35 +91,46 @@ class AuditSessionStats {
   int activeListenerCount;
 
   AuditSessionStats()
-      : sessionStart = DateTime.now(),
-        totalEvents = 0,
-        totalEstimatedReads = 0,
-        totalDocuments = 0,
-        byCollection = {},
-        byCaller = {},
-        byScreen = {},
-        byOperation = {},
-        byService = {},
-        activeListenerCount = 0;
+    : sessionStart = DateTime.now(),
+      totalEvents = 0,
+      totalEstimatedReads = 0,
+      totalDocuments = 0,
+      byCollection = {},
+      byCaller = {},
+      byScreen = {},
+      byOperation = {},
+      byService = {},
+      activeListenerCount = 0;
 
   void absorb(AuditEvent e) {
     totalEvents++;
     totalEstimatedReads += e.estimatedReads;
     totalDocuments += e.documentCount;
 
-    byCollection.putIfAbsent(e.collection, () => CollectionStat(collection: e.collection))
+    byCollection
+        .putIfAbsent(
+          e.collection,
+          () => CollectionStat(collection: e.collection),
+        )
         .absorb(e);
 
     final callerKey = '${e.callerService}.${e.callerMethod}';
-    byCaller.putIfAbsent(callerKey, () => CallerStat(service: e.callerService, method: e.callerMethod))
+    byCaller
+        .putIfAbsent(
+          callerKey,
+          () => CallerStat(service: e.callerService, method: e.callerMethod),
+        )
         .absorb(e);
 
     if (e.callerScreen != null) {
-      byScreen[e.callerScreen!] = (byScreen[e.callerScreen!] ?? 0) + e.estimatedReads;
+      byScreen[e.callerScreen!] =
+          (byScreen[e.callerScreen!] ?? 0) + e.estimatedReads;
     }
 
-    byOperation[e.operation] = (byOperation[e.operation] ?? 0) + e.estimatedReads;
-    byService[e.callerService] = (byService[e.callerService] ?? 0) + e.estimatedReads;
+    byOperation[e.operation] =
+        (byOperation[e.operation] ?? 0) + e.estimatedReads;
+    byService[e.callerService] =
+        (byService[e.callerService] ?? 0) + e.estimatedReads;
 
     if (e.isActiveListener) activeListenerCount++;
   }
@@ -141,13 +149,19 @@ class AuditSessionStats {
 
   List<MapEntry<String, CollectionStat>> get topCollections {
     final list = byCollection.entries.toList();
-    list.sort((a, b) => b.value.totalEstimatedReads.compareTo(a.value.totalEstimatedReads));
+    list.sort(
+      (a, b) =>
+          b.value.totalEstimatedReads.compareTo(a.value.totalEstimatedReads),
+    );
     return list;
   }
 
   List<MapEntry<String, CallerStat>> get topCallers {
     final list = byCaller.entries.toList();
-    list.sort((a, b) => b.value.totalEstimatedReads.compareTo(a.value.totalEstimatedReads));
+    list.sort(
+      (a, b) =>
+          b.value.totalEstimatedReads.compareTo(a.value.totalEstimatedReads),
+    );
     return list;
   }
 

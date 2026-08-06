@@ -18,7 +18,8 @@ class FirestoreAuditDashboard extends StatefulWidget {
   const FirestoreAuditDashboard({super.key});
 
   @override
-  State<FirestoreAuditDashboard> createState() => _FirestoreAuditDashboardState();
+  State<FirestoreAuditDashboard> createState() =>
+      _FirestoreAuditDashboardState();
 }
 
 class _FirestoreAuditDashboardState extends State<FirestoreAuditDashboard>
@@ -58,7 +59,9 @@ class _FirestoreAuditDashboardState extends State<FirestoreAuditDashboard>
     final theme = _isDark ? ThemeData.dark() : ThemeData.light();
     return Theme(
       data: theme.copyWith(
-        colorScheme: theme.colorScheme.copyWith(primary: const Color(0xFF6C63FF)),
+        colorScheme: theme.colorScheme.copyWith(
+          primary: const Color(0xFF6C63FF),
+        ),
       ),
       child: Builder(builder: (ctx) => _buildScaffold(ctx)),
     );
@@ -82,10 +85,18 @@ class _FirestoreAuditDashboardState extends State<FirestoreAuditDashboard>
       title: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Firestore Audit Monitor',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-          Text('Developer Tool · Read-Only',
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.normal, color: Colors.white60)),
+          Text(
+            'Firestore Audit Monitor',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            'Developer Tool · Read-Only',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.normal,
+              color: Colors.white60,
+            ),
+          ),
         ],
       ),
       backgroundColor: isDark ? const Color(0xFF1A1A2E) : Colors.white,
@@ -121,7 +132,10 @@ class _FirestoreAuditDashboardState extends State<FirestoreAuditDashboard>
         ),
         // Dark mode toggle
         IconButton(
-          icon: Icon(isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined, size: 20),
+          icon: Icon(
+            isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+            size: 20,
+          ),
           tooltip: isDark ? 'Light mode' : 'Dark mode',
           onPressed: () => setState(() => _isDark = !_isDark),
         ),
@@ -135,7 +149,10 @@ class _FirestoreAuditDashboardState extends State<FirestoreAuditDashboard>
             PopupMenuItem(value: 'csv', child: Text('Export CSV')),
             PopupMenuItem(value: 'markdown', child: Text('Export Markdown')),
             PopupMenuDivider(),
-            PopupMenuItem(value: 'copy_json', child: Text('Copy JSON to clipboard')),
+            PopupMenuItem(
+              value: 'copy_json',
+              child: Text('Copy JSON to clipboard'),
+            ),
           ],
         ),
         // Reset
@@ -153,7 +170,10 @@ class _FirestoreAuditDashboardState extends State<FirestoreAuditDashboard>
         labelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
         tabs: const [
           Tab(icon: Icon(Icons.dashboard_outlined, size: 18), text: 'Summary'),
-          Tab(icon: Icon(Icons.storage_outlined, size: 18), text: 'Collections'),
+          Tab(
+            icon: Icon(Icons.storage_outlined, size: 18),
+            text: 'Collections',
+          ),
           Tab(icon: Icon(Icons.code_outlined, size: 18), text: 'Callers'),
           Tab(icon: Icon(Icons.sensors_outlined, size: 18), text: 'Live'),
         ],
@@ -166,7 +186,11 @@ class _FirestoreAuditDashboardState extends State<FirestoreAuditDashboard>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.sensors_off_rounded, size: 64, color: Colors.grey.shade500),
+          Icon(
+            Icons.sensors_off_rounded,
+            size: 64,
+            color: Colors.grey.shade500,
+          ),
           const SizedBox(height: 16),
           Text(
             'Firestore Audit Monitor',
@@ -257,8 +281,9 @@ class _FirestoreAuditDashboardState extends State<FirestoreAuditDashboard>
             isDark: isDark,
             child: AuditBarChart.fromMap(
               Map.fromEntries(
-                stats.topCollections.take(8).map(
-                    (e) => MapEntry(e.key, e.value.totalEstimatedReads)),
+                stats.topCollections
+                    .take(8)
+                    .map((e) => MapEntry(e.key, e.value.totalEstimatedReads)),
               ),
               barColor: Colors.red,
             ),
@@ -274,11 +299,13 @@ class _FirestoreAuditDashboardState extends State<FirestoreAuditDashboard>
             isDark: isDark,
             child: Column(
               children: _service.activeListeners.entries
-                  .map((e) => _ListenerRow(
-                        collection: e.key,
-                        count: e.value,
-                        isDark: isDark,
-                      ))
+                  .map(
+                    (e) => _ListenerRow(
+                      collection: e.key,
+                      count: e.value,
+                      isDark: isDark,
+                    ),
+                  )
                   .toList(),
             ),
           ),
@@ -403,11 +430,16 @@ class _FirestoreAuditDashboardState extends State<FirestoreAuditDashboard>
         items.sort((a, b) => b.value.totalCalls.compareTo(a.value.totalCalls));
         break;
       case 'time':
-        items.sort((a, b) => b.value.totalTimeMs.compareTo(a.value.totalTimeMs));
+        items.sort(
+          (a, b) => b.value.totalTimeMs.compareTo(a.value.totalTimeMs),
+        );
         break;
       default:
-        items.sort((a, b) =>
-            b.value.totalEstimatedReads.compareTo(a.value.totalEstimatedReads));
+        items.sort(
+          (a, b) => b.value.totalEstimatedReads.compareTo(
+            a.value.totalEstimatedReads,
+          ),
+        );
     }
 
     return Column(
@@ -426,7 +458,11 @@ class _FirestoreAuditDashboardState extends State<FirestoreAuditDashboard>
               const SizedBox(width: 8),
               _SortButton(
                 current: _sortKey,
-                options: const {'reads': 'Reads', 'calls': 'Calls', 'time': 'Time'},
+                options: const {
+                  'reads': 'Reads',
+                  'calls': 'Calls',
+                  'time': 'Time',
+                },
                 onChanged: (v) => setState(() => _sortKey = v),
               ),
             ],
@@ -434,7 +470,12 @@ class _FirestoreAuditDashboardState extends State<FirestoreAuditDashboard>
         ),
         Expanded(
           child: items.isEmpty
-              ? Center(child: Text('Chưa có dữ liệu', style: TextStyle(color: Colors.grey.shade500)))
+              ? Center(
+                  child: Text(
+                    'Chưa có dữ liệu',
+                    style: TextStyle(color: Colors.grey.shade500),
+                  ),
+                )
               : ListView.builder(
                   padding: const EdgeInsets.only(bottom: 24),
                   itemCount: items.length,
@@ -470,9 +511,11 @@ class _FirestoreAuditDashboardState extends State<FirestoreAuditDashboard>
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
       callers = callers
-          .where((e) =>
-              e.value.service.toLowerCase().contains(q) ||
-              e.value.method.toLowerCase().contains(q))
+          .where(
+            (e) =>
+                e.value.service.toLowerCase().contains(q) ||
+                e.value.method.toLowerCase().contains(q),
+          )
           .toList();
     }
 
@@ -487,7 +530,12 @@ class _FirestoreAuditDashboardState extends State<FirestoreAuditDashboard>
         ),
         Expanded(
           child: callers.isEmpty
-              ? Center(child: Text('Chưa có dữ liệu', style: TextStyle(color: Colors.grey.shade500)))
+              ? Center(
+                  child: Text(
+                    'Chưa có dữ liệu',
+                    style: TextStyle(color: Colors.grey.shade500),
+                  ),
+                )
               : ListView.builder(
                   padding: const EdgeInsets.only(bottom: 24),
                   itemCount: callers.length,
@@ -517,17 +565,20 @@ class _FirestoreAuditDashboardState extends State<FirestoreAuditDashboard>
       switch (type) {
         case 'json':
           content = AuditExportService.exportJson();
-          filename = 'firestore_audit_${DateTime.now().millisecondsSinceEpoch}.json';
+          filename =
+              'firestore_audit_${DateTime.now().millisecondsSinceEpoch}.json';
           await AuditExportService.shareAsText(content, filename);
           break;
         case 'csv':
           content = AuditExportService.exportCsv();
-          filename = 'firestore_audit_${DateTime.now().millisecondsSinceEpoch}.csv';
+          filename =
+              'firestore_audit_${DateTime.now().millisecondsSinceEpoch}.csv';
           await AuditExportService.shareAsText(content, filename);
           break;
         case 'markdown':
           content = AuditExportService.exportMarkdown();
-          filename = 'firestore_audit_${DateTime.now().millisecondsSinceEpoch}.md';
+          filename =
+              'firestore_audit_${DateTime.now().millisecondsSinceEpoch}.md';
           await AuditExportService.shareAsText(content, filename);
           break;
         case 'copy_json':
@@ -535,7 +586,10 @@ class _FirestoreAuditDashboardState extends State<FirestoreAuditDashboard>
           await Clipboard.setData(ClipboardData(text: content));
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('✅ JSON đã copy vào clipboard'), duration: Duration(seconds: 2)),
+              const SnackBar(
+                content: Text('✅ JSON đã copy vào clipboard'),
+                duration: Duration(seconds: 2),
+              ),
             );
           }
           break;
@@ -550,14 +604,18 @@ class _FirestoreAuditDashboardState extends State<FirestoreAuditDashboard>
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Reset Statistics'),
-        content: const Text('Xóa toàn bộ thống kê session hiện tại?\n(Daily total cũng bị reset)'),
+        content: const Text(
+          'Xóa toàn bộ thống kê session hiện tại?\n(Daily total cũng bị reset)',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Hủy')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Reset', style: TextStyle(color: Colors.red))),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Reset', style: TextStyle(color: Colors.red)),
+          ),
         ],
       ),
     );
@@ -648,7 +706,9 @@ class _CollectionTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(10),
-          border: Border(left: BorderSide(color: Colors.red.withOpacity(0.5), width: 3)),
+          border: Border(
+            left: BorderSide(color: Colors.red.withOpacity(0.5), width: 3),
+          ),
         ),
         child: Row(
           children: [
@@ -656,15 +716,24 @@ class _CollectionTile extends StatelessWidget {
               width: 24,
               child: Text(
                 '$rank',
-                style: TextStyle(color: sub, fontSize: 12, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: sub,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(collection,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text(
+                    collection,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
                   const SizedBox(height: 2),
                   Text(
                     '${stat.totalCalls} calls · avg ${stat.avgDocuments.toStringAsFixed(0)} docs · ${stat.topCaller}',
@@ -680,7 +749,10 @@ class _CollectionTile extends StatelessWidget {
                 Text(
                   '${_fmt(stat.totalEstimatedReads)}',
                   style: const TextStyle(
-                      color: Colors.red, fontWeight: FontWeight.bold, fontSize: 15),
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
                 ),
                 Text('reads', style: TextStyle(color: sub, fontSize: 10)),
               ],
@@ -705,7 +777,11 @@ class _CallerTile extends StatelessWidget {
   final int rank;
   final bool isDark;
 
-  const _CallerTile({required this.caller, required this.rank, required this.isDark});
+  const _CallerTile({
+    required this.caller,
+    required this.rank,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -718,7 +794,9 @@ class _CallerTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(10),
-        border: Border(left: BorderSide(color: Colors.blue.withOpacity(0.5), width: 3)),
+        border: Border(
+          left: BorderSide(color: Colors.blue.withOpacity(0.5), width: 3),
+        ),
       ),
       child: Row(
         children: [
@@ -726,15 +804,24 @@ class _CallerTile extends StatelessWidget {
             width: 24,
             child: Text(
               '$rank',
-              style: TextStyle(color: sub, fontSize: 12, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: sub,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(caller.service,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                Text(
+                  caller.service,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
                 const SizedBox(height: 1),
                 Text(
                   '.${caller.method}',
@@ -744,8 +831,7 @@ class _CallerTile extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   caller.collections.take(3).join(', '),
-                  style: TextStyle(
-                      color: Colors.blue.shade400, fontSize: 10),
+                  style: TextStyle(color: Colors.blue.shade400, fontSize: 10),
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
@@ -757,10 +843,15 @@ class _CallerTile extends StatelessWidget {
               Text(
                 '${_fmt(caller.totalEstimatedReads)}',
                 style: const TextStyle(
-                    color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 15),
+                  color: Colors.blue,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
               ),
-              Text('${caller.totalCalls} calls',
-                  style: TextStyle(color: sub, fontSize: 10)),
+              Text(
+                '${caller.totalCalls} calls',
+                style: TextStyle(color: sub, fontSize: 10),
+              ),
             ],
           ),
         ],
@@ -780,7 +871,11 @@ class _ListenerRow extends StatelessWidget {
   final int count;
   final bool isDark;
 
-  const _ListenerRow({required this.collection, required this.count, required this.isDark});
+  const _ListenerRow({
+    required this.collection,
+    required this.count,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -794,7 +889,9 @@ class _ListenerRow extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.green,
               shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: Colors.green.withOpacity(0.5), blurRadius: 4)],
+              boxShadow: [
+                BoxShadow(color: Colors.green.withOpacity(0.5), blurRadius: 4),
+              ],
             ),
           ),
           const SizedBox(width: 10),
@@ -826,10 +923,16 @@ class _SearchField extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return TextField(
       onChanged: onChanged,
-      style: TextStyle(fontSize: 13, color: isDark ? Colors.white : Colors.black87),
+      style: TextStyle(
+        fontSize: 13,
+        color: isDark ? Colors.white : Colors.black87,
+      ),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : Colors.black38),
+        hintStyle: TextStyle(
+          fontSize: 12,
+          color: isDark ? Colors.white38 : Colors.black38,
+        ),
         prefixIcon: const Icon(Icons.search_rounded, size: 18),
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(vertical: 8),
@@ -873,7 +976,10 @@ class _SortButton extends StatelessWidget {
             Text(
               options[current] ?? current,
               style: const TextStyle(
-                  color: Color(0xFF6C63FF), fontSize: 12, fontWeight: FontWeight.w600),
+                color: Color(0xFF6C63FF),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),

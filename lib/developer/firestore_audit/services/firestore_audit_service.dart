@@ -192,9 +192,11 @@ class FirestoreAuditService {
     _dailyReadsTotal += reads;
     final today = _todayKey();
     // Save asynchronously, don't block
-    SharedPreferences.getInstance().then((prefs) {
-      prefs.setInt('dev_audit_daily_$today', _dailyReadsTotal);
-    }).catchError((_) {});
+    SharedPreferences.getInstance()
+        .then((prefs) {
+          prefs.setInt('dev_audit_daily_$today', _dailyReadsTotal);
+        })
+        .catchError((_) {});
   }
 
   String _randomSuffix() {

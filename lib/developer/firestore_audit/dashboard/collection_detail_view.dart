@@ -35,10 +35,14 @@ class CollectionDetailView extends StatelessWidget {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(collection,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-            const Text('Collection Detail',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.normal)),
+            Text(
+              collection,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            ),
+            const Text(
+              'Collection Detail',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.normal),
+            ),
           ],
         ),
         backgroundColor: isDark ? const Color(0xFF1A1A2E) : Colors.white,
@@ -47,7 +51,8 @@ class CollectionDetailView extends StatelessWidget {
       ),
       body: stat == null
           ? Center(
-              child: Text('Chưa có dữ liệu', style: TextStyle(color: subColor)))
+              child: Text('Chưa có dữ liệu', style: TextStyle(color: subColor)),
+            )
           : _buildBody(context, stat, events, cardBg, subColor, isDark),
     );
   }
@@ -72,10 +77,38 @@ class CollectionDetailView extends StatelessWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           children: [
-            _InfoCard('Est. Reads', '${stat.totalEstimatedReads}', Colors.red, Icons.menu_book_outlined, cardBg, isDark),
-            _InfoCard('Total Calls', '${stat.totalCalls}', Colors.blue, Icons.call_outlined, cardBg, isDark),
-            _InfoCard('Avg Docs', stat.avgDocuments.toStringAsFixed(1), Colors.green, Icons.article_outlined, cardBg, isDark),
-            _InfoCard('Avg Time', '${stat.avgTimeMs.toStringAsFixed(0)}ms', Colors.orange, Icons.timer_outlined, cardBg, isDark),
+            _InfoCard(
+              'Est. Reads',
+              '${stat.totalEstimatedReads}',
+              Colors.red,
+              Icons.menu_book_outlined,
+              cardBg,
+              isDark,
+            ),
+            _InfoCard(
+              'Total Calls',
+              '${stat.totalCalls}',
+              Colors.blue,
+              Icons.call_outlined,
+              cardBg,
+              isDark,
+            ),
+            _InfoCard(
+              'Avg Docs',
+              stat.avgDocuments.toStringAsFixed(1),
+              Colors.green,
+              Icons.article_outlined,
+              cardBg,
+              isDark,
+            ),
+            _InfoCard(
+              'Avg Time',
+              '${stat.avgTimeMs.toStringAsFixed(0)}ms',
+              Colors.orange,
+              Icons.timer_outlined,
+              cardBg,
+              isDark,
+            ),
           ],
         ),
         const SizedBox(height: 16),
@@ -111,7 +144,10 @@ class CollectionDetailView extends StatelessWidget {
         if (stat.callerServiceCounts.isNotEmpty) ...[
           _SectionTitle('Callers', isDark),
           const SizedBox(height: 8),
-          AuditBarChart.fromMap(stat.callerServiceCounts, barColor: Colors.blue),
+          AuditBarChart.fromMap(
+            stat.callerServiceCounts,
+            barColor: Colors.blue,
+          ),
           const SizedBox(height: 16),
         ],
         // Sparkline
@@ -132,7 +168,9 @@ class CollectionDetailView extends StatelessWidget {
         if (events.isNotEmpty) ...[
           _SectionTitle('Recent Events (${events.length})', isDark),
           const SizedBox(height: 8),
-          ...events.map((e) => LiveEventTile(event: e as dynamic, compact: true)),
+          ...events.map(
+            (e) => LiveEventTile(event: e as dynamic, compact: true),
+          ),
         ],
         const SizedBox(height: 32),
       ],
@@ -153,7 +191,14 @@ class _InfoCard extends StatelessWidget {
   final Color bg;
   final bool isDark;
 
-  const _InfoCard(this.label, this.value, this.color, this.icon, this.bg, this.isDark);
+  const _InfoCard(
+    this.label,
+    this.value,
+    this.color,
+    this.icon,
+    this.bg,
+    this.isDark,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -167,17 +212,28 @@ class _InfoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Icon(icon, size: 14, color: color),
-            const SizedBox(width: 4),
-            Text(label,
+          Row(
+            children: [
+              Icon(icon, size: 14, color: color),
+              const SizedBox(width: 4),
+              Text(
+                label,
                 style: TextStyle(
-                    fontSize: 10,
-                    color: isDark ? Colors.white54 : Colors.black45)),
-          ]),
+                  fontSize: 10,
+                  color: isDark ? Colors.white54 : Colors.black45,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 4),
-          Text(value,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
         ],
       ),
     );
@@ -198,13 +254,16 @@ class _InfoRow extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-              width: 120,
-              child: Text(label,
-                  style: TextStyle(color: subColor, fontSize: 12))),
+            width: 120,
+            child: Text(label, style: TextStyle(color: subColor, fontSize: 12)),
+          ),
           Expanded(
-              child: Text(value,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-                  overflow: TextOverflow.ellipsis)),
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     );
@@ -236,10 +295,13 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(text,
-        style: TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 13,
-            color: isDark ? Colors.white : Colors.black87));
+    return Text(
+      text,
+      style: TextStyle(
+        fontWeight: FontWeight.w700,
+        fontSize: 13,
+        color: isDark ? Colors.white : Colors.black87,
+      ),
+    );
   }
 }

@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'models/audit_event.dart';
 import 'services/firestore_audit_service.dart';
 
@@ -24,7 +24,7 @@ class FirestoreAuditModule {
   /// Khởi tạo module. Gọi trong main.dart trước runApp().
   /// Không tốn resource nếu kill switch đang OFF.
   static Future<void> init() async {
-    if (!kDebugMode) return; // Tuyệt đối không chạy trong release build
+    // Kill switch (isEnabled=false mặc định) đảm bảo không tốn resource khi OFF.
     try {
       await FirestoreAuditService.instance.init();
       if (FirestoreAuditService.instance.isEnabled) {
@@ -51,7 +51,6 @@ class FirestoreAuditModule {
     bool isActiveListener = false,
     String? queryInfo,
   }) {
-    if (!kDebugMode) return;
     FirestoreAuditService.instance.logRead(
       collection: collection,
       operation: operation,

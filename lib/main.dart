@@ -262,10 +262,8 @@ Future<void> main() async {
       await initializeDateFormatting('vi_VN');
       _enforceFirebaseOnlyMode();
 
-      // Developer Firestore Audit Monitor — no-op in release builds.
-      if (kDebugMode) {
-        unawaited(_initFirestoreAuditModule());
-      }
+      // Firestore Audit Monitor — kill switch OFF by default, zero overhead when OFF.
+      unawaited(_initFirestoreAuditModule());
 
       // iOS-specific: Run app FIRST to show splash screen immediately
       // This prevents the "freeze" perception on iOS
@@ -329,8 +327,9 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     // Reset saved locale to 'vi' on startup
-    SharedPreferences.getInstance()
-        .then((p) => p.setString('app_language', 'vi'));
+    SharedPreferences.getInstance().then(
+      (p) => p.setString('app_language', 'vi'),
+    );
   }
 
   void setLocale(Locale locale) {

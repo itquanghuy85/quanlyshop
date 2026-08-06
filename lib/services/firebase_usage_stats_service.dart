@@ -9,7 +9,8 @@ class FirebaseUsageStatsService {
 
   // Optional hook for developer audit module — set/cleared by FirestoreAuditModule only.
   // When null, zero overhead. Does NOT change any existing behavior.
-  static void Function(String collection, int readCount, String source)? _auditHook;
+  static void Function(String collection, int readCount, String source)?
+  _auditHook;
 
   /// Register/unregister the audit callback. Developer tool use only.
   static void setAuditHook(void Function(String, int, String)? hook) {
@@ -115,7 +116,11 @@ class FirebaseUsageStatsService {
 
     _lastPruneAtMs = now;
     final thresholdMs = now - _retention.inMilliseconds;
-    await db.delete(tableName, where: 'createdAt < ?', whereArgs: [thresholdMs]);
+    await db.delete(
+      tableName,
+      where: 'createdAt < ?',
+      whereArgs: [thresholdMs],
+    );
   }
 
   static int _toInt(dynamic value) {

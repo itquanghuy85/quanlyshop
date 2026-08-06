@@ -637,7 +637,13 @@ class PaymentRequestService {
           .where('status', isEqualTo: PaymentRequestStatus.pending.name)
           .limit(200)
           .get();
-      FirestoreAuditModule.logRead(collection: 'payment_requests', operation: AuditOperation.get, callerService: 'PaymentRequestService', callerMethod: 'pendingCountStream', documentCount: snapshot.docs.length);
+      FirestoreAuditModule.logRead(
+        collection: 'payment_requests',
+        operation: AuditOperation.get,
+        callerService: 'PaymentRequestService',
+        callerMethod: 'pendingCountStream',
+        documentCount: snapshot.docs.length,
+      );
       var count = 0;
       for (final doc in snapshot.docs) {
         final data = doc.data();
@@ -715,5 +721,4 @@ class PaymentRequestService {
       return null;
     }
   }
-
 }

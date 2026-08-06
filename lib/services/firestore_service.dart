@@ -49,7 +49,14 @@ class FirestoreService {
     String firestoreId,
   ) {
     return repairDocRef(firestoreId).snapshots().map((snap) {
-      FirestoreAuditModule.logRead(collection: 'repairs', operation: AuditOperation.snapshots, callerService: 'FirestoreService', callerMethod: 'watchRepairDoc', documentCount: snap.exists ? 1 : 0, isActiveListener: true);
+      FirestoreAuditModule.logRead(
+        collection: 'repairs',
+        operation: AuditOperation.snapshots,
+        callerService: 'FirestoreService',
+        callerMethod: 'watchRepairDoc',
+        documentCount: snap.exists ? 1 : 0,
+        isActiveListener: true,
+      );
       return snap;
     });
   }
@@ -66,14 +73,23 @@ class FirestoreService {
         .where('shopId', isEqualTo: shopId);
 
     if (useIndexedQuery) {
-      query = query.orderBy('updatedAt', descending: true).limit(indexedLimit.clamp(20, 500));
+      query = query
+          .orderBy('updatedAt', descending: true)
+          .limit(indexedLimit.clamp(20, 500));
     } else {
       // Fallback mode (missing index): still cap at 300 to avoid unbounded reads.
       query = query.limit(300);
     }
 
     return query.snapshots().map((snap) {
-      FirestoreAuditModule.logRead(collection: 'repairs', operation: AuditOperation.snapshots, callerService: 'FirestoreService', callerMethod: 'watchRepairsByShop', documentCount: snap.docs.length, isActiveListener: true);
+      FirestoreAuditModule.logRead(
+        collection: 'repairs',
+        operation: AuditOperation.snapshots,
+        callerService: 'FirestoreService',
+        callerMethod: 'watchRepairsByShop',
+        documentCount: snap.docs.length,
+        isActiveListener: true,
+      );
       return snap;
     });
   }
@@ -86,11 +102,12 @@ class FirestoreService {
 
   /// One-time fetch of ALL repairs for a shop — no orderBy so old repairs
   /// without updatedAt are included. Used for SQLite historical backfill.
-  static Future<List<DocumentSnapshot<Map<String, dynamic>>>> fetchAllRepairsByShop(
-    String shopId, {
-    int limit = 2000,
-  }) async {
-    assert(shopId.isNotEmpty, 'fetchAllRepairsByShop: shopId must not be empty');
+  static Future<List<DocumentSnapshot<Map<String, dynamic>>>>
+  fetchAllRepairsByShop(String shopId, {int limit = 2000}) async {
+    assert(
+      shopId.isNotEmpty,
+      'fetchAllRepairsByShop: shopId must not be empty',
+    );
     if (shopId.isEmpty) return const [];
     final snapshot = await _db
         .collection('repairs')
@@ -118,7 +135,9 @@ class FirestoreService {
     for (int i = 0; i < firestoreIds.length; i += batchSize) {
       final batch = firestoreIds.sublist(
         i,
-        (i + batchSize < firestoreIds.length) ? i + batchSize : firestoreIds.length,
+        (i + batchSize < firestoreIds.length)
+            ? i + batchSize
+            : firestoreIds.length,
       );
       try {
         final snap = await _db
@@ -775,8 +794,17 @@ class FirestoreService {
         debugPrint(
           '[SYNC][FETCH] collection=expenses count=$_expenseFetchCount reason=$reason limit=20',
         );
-        final snap = await query.orderBy('date', descending: true).limit(20).get();
-        FirestoreAuditModule.logRead(collection: 'expenses', operation: AuditOperation.get, callerService: 'FirestoreService', callerMethod: 'getExpenseStream', documentCount: snap.docs.length);
+        final snap = await query
+            .orderBy('date', descending: true)
+            .limit(20)
+            .get();
+        FirestoreAuditModule.logRead(
+          collection: 'expenses',
+          operation: AuditOperation.get,
+          callerService: 'FirestoreService',
+          callerMethod: 'getExpenseStream',
+          documentCount: snap.docs.length,
+        );
         return snap;
       }
 
@@ -941,8 +969,17 @@ class FirestoreService {
         debugPrint(
           '[SYNC][FETCH] collection=attendance count=$_attendanceFetchCount reason=$reason limit=20',
         );
-        final snap = await query.orderBy('createdAt', descending: true).limit(20).get();
-        FirestoreAuditModule.logRead(collection: 'attendance', operation: AuditOperation.get, callerService: 'FirestoreService', callerMethod: 'getAttendanceStream', documentCount: snap.docs.length);
+        final snap = await query
+            .orderBy('createdAt', descending: true)
+            .limit(20)
+            .get();
+        FirestoreAuditModule.logRead(
+          collection: 'attendance',
+          operation: AuditOperation.get,
+          callerService: 'FirestoreService',
+          callerMethod: 'getAttendanceStream',
+          documentCount: snap.docs.length,
+        );
         return snap;
       }
 
@@ -978,7 +1015,9 @@ class FirestoreService {
     try {
       final result = await ref.listAll();
       for (final item in result.items) {
-        try { await item.delete(); } catch (_) {}
+        try {
+          await item.delete();
+        } catch (_) {}
       }
       for (final prefix in result.prefixes) {
         await _deleteStorageFolder(prefix);
@@ -1028,13 +1067,15 @@ class FirestoreService {
     List<String>? selectedStorageRoots,
   }) async {
     try {
-      final shopId = (shopIdOverride ?? await UserService.getCurrentShopId())?.trim();
+      final shopId = (shopIdOverride ?? await UserService.getCurrentShopId())
+          ?.trim();
       if (shopId == null || shopId.isEmpty) {
         return 'Không tìm thấy shopId. Vui lòng đăng xuất và đăng nhập lại để đồng bộ dữ liệu shop.';
       }
 
       final collectionsToDelete = selectedCollections ?? kAllResetCollections;
-      final storageRootsToDelete = selectedStorageRoots ?? kAllResetStorageRoots;
+      final storageRootsToDelete =
+          selectedStorageRoots ?? kAllResetStorageRoots;
 
       // ── 1. Xóa Firestore documents ─────────────────────────────────────────
       final permissionErrors = <String>[];
@@ -1056,14 +1097,19 @@ class FirestoreService {
               }
               await batch.commit();
             }
-            debugPrint('Reset: deleted ${snapshots.docs.length} docs from $colName');
+            debugPrint(
+              'Reset: deleted ${snapshots.docs.length} docs from $colName',
+            );
           }
         } catch (e) {
           final msg = e.toString();
           // Soft-fail permission errors — continue with other collections
-          if (msg.contains('permission-denied') || msg.contains('PERMISSION_DENIED')) {
+          if (msg.contains('permission-denied') ||
+              msg.contains('PERMISSION_DENIED')) {
             permissionErrors.add(colName);
-            debugPrint('Reset: permission-denied for $colName (Firestore rules — update rules to allow super admin delete)');
+            debugPrint(
+              'Reset: permission-denied for $colName (Firestore rules — update rules to allow super admin delete)',
+            );
           } else {
             debugPrint('Error deleting from $colName: $e');
             return 'Lỗi khi xóa collection $colName: $e';
@@ -1071,7 +1117,9 @@ class FirestoreService {
         }
       }
       if (permissionErrors.isNotEmpty) {
-        debugPrint('Reset: skipped ${permissionErrors.length} collections due to permission-denied: $permissionErrors');
+        debugPrint(
+          'Reset: skipped ${permissionErrors.length} collections due to permission-denied: $permissionErrors',
+        );
       }
 
       // ── 2. Xóa Firebase Storage files ─────────────────────────────────────
@@ -1255,8 +1303,17 @@ class FirestoreService {
           .limit(20)
           .snapshots()
           .map((snapshot) {
-            FirestoreAuditModule.logRead(collection: 'shop_notifications', operation: AuditOperation.snapshots, callerService: 'FirestoreService', callerMethod: 'getUserNotifications', documentCount: snapshot.docs.length, isActiveListener: true);
-            return snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
+            FirestoreAuditModule.logRead(
+              collection: 'shop_notifications',
+              operation: AuditOperation.snapshots,
+              callerService: 'FirestoreService',
+              callerMethod: 'getUserNotifications',
+              documentCount: snapshot.docs.length,
+              isActiveListener: true,
+            );
+            return snapshot.docs
+                .map((doc) => {...doc.data(), 'id': doc.id})
+                .toList();
           })
           .handleError((error) {
             debugPrint('Error in notifications stream: $error');
@@ -1296,7 +1353,14 @@ class FirestoreService {
           .limit(20)
           .snapshots()
           .map((snapshot) {
-            FirestoreAuditModule.logRead(collection: 'shop_notifications', operation: AuditOperation.snapshots, callerService: 'FirestoreService', callerMethod: 'getUnreadCount', documentCount: snapshot.docs.length, isActiveListener: true);
+            FirestoreAuditModule.logRead(
+              collection: 'shop_notifications',
+              operation: AuditOperation.snapshots,
+              callerService: 'FirestoreService',
+              callerMethod: 'getUnreadCount',
+              documentCount: snapshot.docs.length,
+              isActiveListener: true,
+            );
             return snapshot.docs.length;
           })
           .handleError((error) {
@@ -2362,7 +2426,10 @@ class FirestoreService {
         ..['shopId'] = shopId
         ..['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt()
         ..['deleted'] = false;
-      await _db.collection('storage_locations').doc(docId).set(data, SetOptions(merge: true));
+      await _db
+          .collection('storage_locations')
+          .doc(docId)
+          .set(data, SetOptions(merge: true));
       return docId;
     } catch (e) {
       debugPrint('❌ addStorageLocation: $e');
@@ -2377,7 +2444,10 @@ class FirestoreService {
         ..remove('id')
         ..remove('firestoreId')
         ..['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
-      await _db.collection('storage_locations').doc(loc.firestoreId).update(data);
+      await _db
+          .collection('storage_locations')
+          .doc(loc.firestoreId)
+          .update(data);
     } catch (e) {
       debugPrint('❌ updateStorageLocation: $e');
     }

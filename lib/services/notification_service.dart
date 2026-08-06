@@ -934,7 +934,14 @@ class NotificationService {
             debugPrint(
               'Received ${snapshot.docChanges.length} notification changes',
             );
-            FirestoreAuditModule.logRead(collection: 'shop_notifications', operation: AuditOperation.snapshots, callerService: 'NotificationService', callerMethod: 'listenToNotifications', documentCount: snapshot.docs.length, isActiveListener: true);
+            FirestoreAuditModule.logRead(
+              collection: 'shop_notifications',
+              operation: AuditOperation.snapshots,
+              callerService: 'NotificationService',
+              callerMethod: 'listenToNotifications',
+              documentCount: snapshot.docs.length,
+              isActiveListener: true,
+            );
             for (var change in snapshot.docChanges) {
               if (change.type == DocumentChangeType.added) {
                 final data = change.doc.data() as Map<String, dynamic>;
@@ -972,8 +979,12 @@ class NotificationService {
                 final isSelf = data['senderId'] == user.uid;
                 final isSystem = data['type'] == 'system';
                 const managerAlertTypes = {
-                  'missing_cost', 'missing_supplier', 'stock_pending',
-                  'stock_confirmed', 'missing_cost_sale', 'approval_needed',
+                  'missing_cost',
+                  'missing_supplier',
+                  'stock_pending',
+                  'stock_confirmed',
+                  'missing_cost_sale',
+                  'approval_needed',
                 };
                 final isManagerAlert = managerAlertTypes.contains(data['type']);
                 if (!isSelf || isSystem || isManagerAlert) {
@@ -1457,7 +1468,9 @@ class NotificationService {
         '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}';
     // Chấp nhận cả hai dạng: 'check-in' (gạch ngang) và 'check_in' (gạch dưới)
     final normalizedAction = action.replaceAll('-', '_').toLowerCase();
-    final status = normalizedAction == 'check_in' ? 'đã check-in' : 'đã check-out';
+    final status = normalizedAction == 'check_in'
+        ? 'đã check-in'
+        : 'đã check-out';
 
     await sendAttendanceNotification(staffName, status, timeString);
   }
@@ -1681,7 +1694,10 @@ class NotificationService {
     _broadcastSubscription?.cancel();
     _broadcastSubscription = _db
         .collection('broadcasts')
-        .where('createdAt', isGreaterThan: Timestamp.fromDate(_broadcastListenFrom))
+        .where(
+          'createdAt',
+          isGreaterThan: Timestamp.fromDate(_broadcastListenFrom),
+        )
         .orderBy('createdAt', descending: true)
         .limit(5)
         .snapshots()
@@ -1696,7 +1712,8 @@ class NotificationService {
             // Check expiry
             final data = change.doc.data() as Map<String, dynamic>;
             final expiresAt = (data['expiresAt'] as Timestamp?)?.toDate();
-            if (expiresAt != null && expiresAt.isBefore(DateTime.now())) continue;
+            if (expiresAt != null && expiresAt.isBefore(DateTime.now()))
+              continue;
 
             await prefs.setBool(seenKey, true);
 

@@ -243,14 +243,70 @@ class _CashClosingViewState extends State<CashClosingView>
       ]).timeout(const Duration(seconds: 10));
 
       // Audit instrumentation — log each unbounded collection read
-      FirestoreAuditModule.logRead(collection: 'sales', operation: AuditOperation.get, callerService: 'CashClosingView', callerMethod: '_loadAllDataFromFirestore', callerScreen: 'CashClosingView', documentCount: results[0].docs.length);
-      FirestoreAuditModule.logRead(collection: 'repairs', operation: AuditOperation.get, callerService: 'CashClosingView', callerMethod: '_loadAllDataFromFirestore', callerScreen: 'CashClosingView', documentCount: results[1].docs.length);
-      FirestoreAuditModule.logRead(collection: 'expenses', operation: AuditOperation.get, callerService: 'CashClosingView', callerMethod: '_loadAllDataFromFirestore', callerScreen: 'CashClosingView', documentCount: results[2].docs.length);
-      FirestoreAuditModule.logRead(collection: 'debt_payments', operation: AuditOperation.get, callerService: 'CashClosingView', callerMethod: '_loadAllDataFromFirestore', callerScreen: 'CashClosingView', documentCount: results[3].docs.length);
-      FirestoreAuditModule.logRead(collection: 'supplier_payments', operation: AuditOperation.get, callerService: 'CashClosingView', callerMethod: '_loadAllDataFromFirestore', callerScreen: 'CashClosingView', documentCount: results[4].docs.length);
-      FirestoreAuditModule.logRead(collection: 'repair_partner_payments', operation: AuditOperation.get, callerService: 'CashClosingView', callerMethod: '_loadAllDataFromFirestore', callerScreen: 'CashClosingView', documentCount: results[5].docs.length);
-      FirestoreAuditModule.logRead(collection: 'debts', operation: AuditOperation.get, callerService: 'CashClosingView', callerMethod: '_loadAllDataFromFirestore', callerScreen: 'CashClosingView', documentCount: results[6].docs.length);
-      FirestoreAuditModule.logRead(collection: 'sales_returns', operation: AuditOperation.get, callerService: 'CashClosingView', callerMethod: '_loadAllDataFromFirestore', callerScreen: 'CashClosingView', documentCount: results[7].docs.length);
+      FirestoreAuditModule.logRead(
+        collection: 'sales',
+        operation: AuditOperation.get,
+        callerService: 'CashClosingView',
+        callerMethod: '_loadAllDataFromFirestore',
+        callerScreen: 'CashClosingView',
+        documentCount: results[0].docs.length,
+      );
+      FirestoreAuditModule.logRead(
+        collection: 'repairs',
+        operation: AuditOperation.get,
+        callerService: 'CashClosingView',
+        callerMethod: '_loadAllDataFromFirestore',
+        callerScreen: 'CashClosingView',
+        documentCount: results[1].docs.length,
+      );
+      FirestoreAuditModule.logRead(
+        collection: 'expenses',
+        operation: AuditOperation.get,
+        callerService: 'CashClosingView',
+        callerMethod: '_loadAllDataFromFirestore',
+        callerScreen: 'CashClosingView',
+        documentCount: results[2].docs.length,
+      );
+      FirestoreAuditModule.logRead(
+        collection: 'debt_payments',
+        operation: AuditOperation.get,
+        callerService: 'CashClosingView',
+        callerMethod: '_loadAllDataFromFirestore',
+        callerScreen: 'CashClosingView',
+        documentCount: results[3].docs.length,
+      );
+      FirestoreAuditModule.logRead(
+        collection: 'supplier_payments',
+        operation: AuditOperation.get,
+        callerService: 'CashClosingView',
+        callerMethod: '_loadAllDataFromFirestore',
+        callerScreen: 'CashClosingView',
+        documentCount: results[4].docs.length,
+      );
+      FirestoreAuditModule.logRead(
+        collection: 'repair_partner_payments',
+        operation: AuditOperation.get,
+        callerService: 'CashClosingView',
+        callerMethod: '_loadAllDataFromFirestore',
+        callerScreen: 'CashClosingView',
+        documentCount: results[5].docs.length,
+      );
+      FirestoreAuditModule.logRead(
+        collection: 'debts',
+        operation: AuditOperation.get,
+        callerService: 'CashClosingView',
+        callerMethod: '_loadAllDataFromFirestore',
+        callerScreen: 'CashClosingView',
+        documentCount: results[6].docs.length,
+      );
+      FirestoreAuditModule.logRead(
+        collection: 'sales_returns',
+        operation: AuditOperation.get,
+        callerService: 'CashClosingView',
+        callerMethod: '_loadAllDataFromFirestore',
+        callerScreen: 'CashClosingView',
+        documentCount: results[7].docs.length,
+      );
 
       // Parse sales - filter deleted
       final sales = results[0].docs
@@ -588,16 +644,28 @@ class _CashClosingViewState extends State<CashClosingView>
 
   /// Fallback: Load từ local DB khi offline — chỉ lấy dữ liệu trong ngày/khoảng được chọn
   Future<void> _loadAllDataFromLocalDB() async {
-    final startMs = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day)
-        .millisecondsSinceEpoch;
+    final startMs = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+    ).millisecondsSinceEpoch;
     final endDate = _txEndDate ?? _selectedDate;
-    final endMs = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59)
-        .millisecondsSinceEpoch;
+    final endMs = DateTime(
+      endDate.year,
+      endDate.month,
+      endDate.day,
+      23,
+      59,
+      59,
+    ).millisecondsSinceEpoch;
     final sales = await db.getSalesByDateRange(startMs, endMs);
     final repairs = await db.getRepairsByCreatedAtRange(startMs, endMs);
     // Load separately by costRecordedAt to catch repairs created on other days
     // but with cost paid/recorded in this period.
-    final costFundRepairs = await db.getRepairsByCostRecordedAtRange(startMs, endMs);
+    final costFundRepairs = await db.getRepairsByCostRecordedAtRange(
+      startMs,
+      endMs,
+    );
     final expenses = await db.getExpensesByDateRange(startMs, endMs);
     final debtPayments = await db.getAllDebtPaymentsWithDetails();
     // Đọc supplier_import_history từ local DB (SyncService đã sync Firestore → local)
@@ -1478,7 +1546,10 @@ class _CashClosingViewState extends State<CashClosingView>
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
+                      onPressed: () {
+                        FocusScope.of(ctx).unfocus();
+                        Navigator.pop(ctx);
+                      },
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
@@ -3074,8 +3145,7 @@ class _CashClosingViewState extends State<CashClosingView>
       final expectedBank = openingBank + analysis.bankIn - analysis.bankOut;
       final actualCash = int.tryParse(cashEndCtrl.text) ?? 0;
       final actualBank = int.tryParse(bankEndCtrl.text) ?? 0;
-      final hasDiff =
-          actualCash != expectedCash || actualBank != expectedBank;
+      final hasDiff = actualCash != expectedCash || actualBank != expectedBank;
       if (hasDiff && noteCtrl.text.trim().isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -3182,8 +3252,8 @@ class _CashClosingViewState extends State<CashClosingView>
       final saleAmount = s.isInstallment
           ? s.downPayment
           : (soQuyIsKetHop && (s.cashAmount + s.transferAmount) > 0)
-              ? s.cashAmount + s.transferAmount
-              : s.finalPrice;
+          ? s.cashAmount + s.transferAmount
+          : s.finalPrice;
       // Skip installment entries with 0 down payment (no actual cash received)
       if (s.isInstallment && saleAmount <= 0) continue;
       final customerDisplay = s.customerName.isNotEmpty
@@ -3421,7 +3491,8 @@ class _CashClosingViewState extends State<CashClosingView>
         (p) => _isSameDay((p['paidAt'] ?? 0) as int, date),
       )) {
         final payAmount = (pay['amount'] ?? 0) as int;
-        if (partnerExpenseAmounts.any((e) => (e - payAmount).abs() < 1000)) continue;
+        if (partnerExpenseAmounts.any((e) => (e - payAmount).abs() < 1000))
+          continue;
         list.add({
           'type': 'partner_pay',
           'icon': '🔧',

@@ -27,7 +27,9 @@ class _LiveMonitorViewState extends State<LiveMonitorView> {
   @override
   void initState() {
     super.initState();
-    _events.addAll(FirestoreAuditService.instance.recentEvents.reversed.take(50));
+    _events.addAll(
+      FirestoreAuditService.instance.recentEvents.reversed.take(50),
+    );
     _sub = FirestoreAuditService.instance.liveStream.listen(_onEvent);
   }
 
@@ -52,10 +54,12 @@ class _LiveMonitorViewState extends State<LiveMonitorView> {
     if (_filterCollection.isEmpty) return _events;
     final q = _filterCollection.toLowerCase();
     return _events
-        .where((e) =>
-            e.collection.toLowerCase().contains(q) ||
-            e.callerService.toLowerCase().contains(q) ||
-            e.callerMethod.toLowerCase().contains(q))
+        .where(
+          (e) =>
+              e.collection.toLowerCase().contains(q) ||
+              e.callerService.toLowerCase().contains(q) ||
+              e.callerMethod.toLowerCase().contains(q),
+        )
         .toList();
   }
 
@@ -68,7 +72,10 @@ class _LiveMonitorViewState extends State<LiveMonitorView> {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text('Live Monitor', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Live Monitor',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: isDark ? const Color(0xFF1A1A2E) : Colors.white,
         foregroundColor: isDark ? Colors.white : Colors.black87,
         elevation: 0,
@@ -116,7 +123,10 @@ class _LiveMonitorViewState extends State<LiveMonitorView> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             child: Row(
               children: [
-                _StatusDot(active: !_paused, label: _paused ? 'PAUSED' : 'LIVE'),
+                _StatusDot(
+                  active: !_paused,
+                  label: _paused ? 'PAUSED' : 'LIVE',
+                ),
                 const SizedBox(width: 12),
                 Text(
                   '${filtered.length} events',
@@ -143,13 +153,20 @@ class _LiveMonitorViewState extends State<LiveMonitorView> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.sensors_off_rounded, size: 48, color: Colors.grey.shade400),
+                        Icon(
+                          Icons.sensors_off_rounded,
+                          size: 48,
+                          color: Colors.grey.shade400,
+                        ),
                         const SizedBox(height: 12),
                         Text(
                           FirestoreAuditService.instance.isEnabled
                               ? 'Đang chờ sự kiện Firestore...'
                               : 'Audit Monitor đang TẮT',
-                          style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                          style: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 14,
+                          ),
                         ),
                       ],
                     ),
@@ -158,10 +175,8 @@ class _LiveMonitorViewState extends State<LiveMonitorView> {
                     controller: _scroll,
                     padding: const EdgeInsets.only(top: 8, bottom: 24),
                     itemCount: filtered.length,
-                    itemBuilder: (ctx, i) => LiveEventTile(
-                      event: filtered[i],
-                      compact: _compact,
-                    ),
+                    itemBuilder: (ctx, i) =>
+                        LiveEventTile(event: filtered[i], compact: _compact),
                   ),
           ),
         ],
@@ -226,10 +241,16 @@ class _SearchBar extends StatelessWidget {
     return TextField(
       controller: controller,
       onChanged: onChanged,
-      style: TextStyle(fontSize: 13, color: isDark ? Colors.white : Colors.black87),
+      style: TextStyle(
+        fontSize: 13,
+        color: isDark ? Colors.white : Colors.black87,
+      ),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : Colors.black38),
+        hintStyle: TextStyle(
+          fontSize: 12,
+          color: isDark ? Colors.white38 : Colors.black38,
+        ),
         prefixIcon: const Icon(Icons.search_rounded, size: 18),
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(vertical: 8),
