@@ -16,6 +16,7 @@ import 'financial_activity_service.dart';
 import 'money_validation_service.dart';
 import 'firestore_write_helper.dart';
 import 'event_bus.dart';
+import '../developer/firestore_audit/firestore_audit_module.dart';
 
 class FirestoreService {
   static final _db = FirebaseFirestore.instance;
@@ -47,7 +48,10 @@ class FirestoreService {
   static Stream<DocumentSnapshot<Map<String, dynamic>>> watchRepairDoc(
     String firestoreId,
   ) {
-    return repairDocRef(firestoreId).snapshots();
+    return repairDocRef(firestoreId).snapshots().map((snap) {
+      FirestoreAuditModule.logRead(collection: 'repairs', operation: AuditOperation.snapshots, callerService: 'FirestoreService', callerMethod: 'watchRepairDoc', documentCount: snap.exists ? 1 : 0, isActiveListener: true);
+      return snap;
+    });
   }
 
   static Stream<QuerySnapshot<Map<String, dynamic>>> watchRepairsByShop(
@@ -68,7 +72,10 @@ class FirestoreService {
       query = query.limit(300);
     }
 
-    return query.snapshots();
+    return query.snapshots().map((snap) {
+      FirestoreAuditModule.logRead(collection: 'repairs', operation: AuditOperation.snapshots, callerService: 'FirestoreService', callerMethod: 'watchRepairsByShop', documentCount: snap.docs.length, isActiveListener: true);
+      return snap;
+    });
   }
 
   static Future<DocumentSnapshot<Map<String, dynamic>>> getRepairDoc(
@@ -768,7 +775,9 @@ class FirestoreService {
         debugPrint(
           '[SYNC][FETCH] collection=expenses count=$_expenseFetchCount reason=$reason limit=20',
         );
-        return query.orderBy('date', descending: true).limit(20).get();
+        final snap = await query.orderBy('date', descending: true).limit(20).get();
+        FirestoreAuditModule.logRead(collection: 'expenses', operation: AuditOperation.get, callerService: 'FirestoreService', callerMethod: 'getExpenseStream', documentCount: snap.docs.length);
+        return snap;
       }
 
       try {
@@ -932,7 +941,9 @@ class FirestoreService {
         debugPrint(
           '[SYNC][FETCH] collection=attendance count=$_attendanceFetchCount reason=$reason limit=20',
         );
-        return query.orderBy('createdAt', descending: true).limit(20).get();
+        final snap = await query.orderBy('createdAt', descending: true).limit(20).get();
+        FirestoreAuditModule.logRead(collection: 'attendance', operation: AuditOperation.get, callerService: 'FirestoreService', callerMethod: 'getAttendanceStream', documentCount: snap.docs.length);
+        return snap;
       }
 
       try {
@@ -1243,11 +1254,10 @@ class FirestoreService {
           .orderBy('createdAt', descending: true)
           .limit(20)
           .snapshots()
-          .map(
-            (snapshot) => snapshot.docs
-                .map((doc) => {...doc.data(), 'id': doc.id})
-                .toList(),
-          )
+          .map((snapshot) {
+            FirestoreAuditModule.logRead(collection: 'shop_notifications', operation: AuditOperation.snapshots, callerService: 'FirestoreService', callerMethod: 'getUserNotifications', documentCount: snapshot.docs.length, isActiveListener: true);
+            return snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
+          })
           .handleError((error) {
             debugPrint('Error in notifications stream: $error');
             return [];
@@ -1285,7 +1295,10 @@ class FirestoreService {
           )
           .limit(20)
           .snapshots()
-          .map((snapshot) => snapshot.docs.length)
+          .map((snapshot) {
+            FirestoreAuditModule.logRead(collection: 'shop_notifications', operation: AuditOperation.snapshots, callerService: 'FirestoreService', callerMethod: 'getUnreadCount', documentCount: snapshot.docs.length, isActiveListener: true);
+            return snapshot.docs.length;
+          })
           .handleError((error) {
             debugPrint('Error in unread count stream: $error');
             return 0;

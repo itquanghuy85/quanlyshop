@@ -7,6 +7,15 @@ class FirebaseUsageStatsService {
   static bool _initialized = false;
   static int _lastPruneAtMs = 0;
 
+  // Optional hook for developer audit module — set/cleared by FirestoreAuditModule only.
+  // When null, zero overhead. Does NOT change any existing behavior.
+  static void Function(String collection, int readCount, String source)? _auditHook;
+
+  /// Register/unregister the audit callback. Developer tool use only.
+  static void setAuditHook(void Function(String, int, String)? hook) {
+    _auditHook = hook;
+  }
+
   static const String tableName = 'firebase_read_stats';
   static const Duration _retention = Duration(days: 14);
 
@@ -18,6 +27,9 @@ class FirebaseUsageStatsService {
   }) async {
     if (readCount <= 0) return;
     if (collection.trim().isEmpty) return;
+
+    // Forward to developer audit hook if registered (no-op when null).
+    _auditHook?.call(collection, readCount, source);
 
     try {
       final db = await _readyDb();

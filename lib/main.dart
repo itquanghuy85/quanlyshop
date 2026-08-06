@@ -35,6 +35,8 @@ import 'services/super_admin_security_service.dart'; // Super admin PIN & audit
 import 'data/db_helper.dart'; // Local database helper
 import 'utils/perf_monitor.dart'; // Performance monitoring
 import 'utils/seed_test_data.dart'; // Test data seeder
+import 'developer/firestore_audit/firestore_audit_module.dart'; // Developer audit tool
+import 'services/firebase_usage_stats_service.dart'; // For audit hook registration
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'widgets/loading_intro_screen.dart'; // Loading intro animation
@@ -177,6 +179,32 @@ void _enforceFirebaseOnlyMode() {
   }
 }
 
+/// Khởi tạo Firestore Audit Monitor (developer tool, debug only).
+Future<void> _initFirestoreAuditModule() async {
+  try {
+    await FirestoreAuditModule.init();
+    // Register hook into FirebaseUsageStatsService (SyncService poll coverage).
+    if (FirestoreAuditService.instance.isEnabled) {
+      FirebaseUsageStatsService.setAuditHook((collection, readCount, source) {
+        FirestoreAuditModule.logRead(
+          collection: collection,
+          operation: source == 'snapshots'
+              ? AuditOperation.snapshots
+              : AuditOperation.get,
+          callerService: 'SyncService',
+          callerMethod: '_subscribeToCollection',
+          documentCount: readCount,
+          estimatedReads: readCount,
+          isActiveListener: source == 'snapshots',
+          queryInfo: 'source=$source',
+        );
+      });
+    }
+  } catch (e) {
+    debugPrint('[FirestoreAudit] init error: $e');
+  }
+}
+
 Future<void> _initializeDeferredAppServices() async {
   try {
     await Firebase.initializeApp(
@@ -233,6 +261,11 @@ Future<void> main() async {
       }
       await initializeDateFormatting('vi_VN');
       _enforceFirebaseOnlyMode();
+
+      // Developer Firestore Audit Monitor — no-op in release builds.
+      if (kDebugMode) {
+        unawaited(_initFirestoreAuditModule());
+      }
 
       // iOS-specific: Run app FIRST to show splash screen immediately
       // This prevents the "freeze" perception on iOS

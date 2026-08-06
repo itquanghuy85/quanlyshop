@@ -13,6 +13,7 @@ import '../services/firestore_service.dart';
 import '../services/event_bus.dart';
 import 'user_service.dart';
 import 'storage_service.dart';
+import '../developer/firestore_audit/firestore_audit_module.dart';
 
 /// Service quản lý yêu cầu đóng tiền - chat-like workflow
 class PaymentRequestService {
@@ -636,6 +637,7 @@ class PaymentRequestService {
           .where('status', isEqualTo: PaymentRequestStatus.pending.name)
           .limit(200)
           .get();
+      FirestoreAuditModule.logRead(collection: 'payment_requests', operation: AuditOperation.get, callerService: 'PaymentRequestService', callerMethod: 'pendingCountStream', documentCount: snapshot.docs.length);
       var count = 0;
       for (final doc in snapshot.docs) {
         final data = doc.data();

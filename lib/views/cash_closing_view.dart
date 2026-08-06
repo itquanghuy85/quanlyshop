@@ -22,6 +22,7 @@ import '../utils/excel_export_helper.dart';
 import '../widgets/custom_app_bar.dart';
 import 'sale_detail_view.dart';
 import 'repair_detail_view.dart';
+import '../developer/firestore_audit/firestore_audit_module.dart';
 
 /// Helper: Check if debtType is "Shop owes" (NCC) - includes SHOP_OWES and OTHER_SHOP_OWES
 bool _isShopOwesDebt(String? debtType) {
@@ -240,6 +241,16 @@ class _CashClosingViewState extends State<CashClosingView>
             .where('shopId', isEqualTo: shopId)
             .get(),
       ]).timeout(const Duration(seconds: 10));
+
+      // Audit instrumentation — log each unbounded collection read
+      FirestoreAuditModule.logRead(collection: 'sales', operation: AuditOperation.get, callerService: 'CashClosingView', callerMethod: '_loadAllDataFromFirestore', callerScreen: 'CashClosingView', documentCount: results[0].docs.length);
+      FirestoreAuditModule.logRead(collection: 'repairs', operation: AuditOperation.get, callerService: 'CashClosingView', callerMethod: '_loadAllDataFromFirestore', callerScreen: 'CashClosingView', documentCount: results[1].docs.length);
+      FirestoreAuditModule.logRead(collection: 'expenses', operation: AuditOperation.get, callerService: 'CashClosingView', callerMethod: '_loadAllDataFromFirestore', callerScreen: 'CashClosingView', documentCount: results[2].docs.length);
+      FirestoreAuditModule.logRead(collection: 'debt_payments', operation: AuditOperation.get, callerService: 'CashClosingView', callerMethod: '_loadAllDataFromFirestore', callerScreen: 'CashClosingView', documentCount: results[3].docs.length);
+      FirestoreAuditModule.logRead(collection: 'supplier_payments', operation: AuditOperation.get, callerService: 'CashClosingView', callerMethod: '_loadAllDataFromFirestore', callerScreen: 'CashClosingView', documentCount: results[4].docs.length);
+      FirestoreAuditModule.logRead(collection: 'repair_partner_payments', operation: AuditOperation.get, callerService: 'CashClosingView', callerMethod: '_loadAllDataFromFirestore', callerScreen: 'CashClosingView', documentCount: results[5].docs.length);
+      FirestoreAuditModule.logRead(collection: 'debts', operation: AuditOperation.get, callerService: 'CashClosingView', callerMethod: '_loadAllDataFromFirestore', callerScreen: 'CashClosingView', documentCount: results[6].docs.length);
+      FirestoreAuditModule.logRead(collection: 'sales_returns', operation: AuditOperation.get, callerService: 'CashClosingView', callerMethod: '_loadAllDataFromFirestore', callerScreen: 'CashClosingView', documentCount: results[7].docs.length);
 
       // Parse sales - filter deleted
       final sales = results[0].docs

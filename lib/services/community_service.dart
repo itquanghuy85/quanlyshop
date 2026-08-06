@@ -8,6 +8,7 @@ import 'notification_service.dart';
 import 'storage_service.dart';
 import 'user_service.dart';
 import 'audit_service.dart';
+import '../developer/firestore_audit/firestore_audit_module.dart';
 
 class CommunityService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -22,12 +23,14 @@ class CommunityService {
     required String shopId,
     int limit = 40,
   }) {
-    // Keep this query index-free (shopId equality only), then filter/sort in UI.
-    // This avoids FAILED_PRECONDITION composite-index errors on community feed.
     return _postsRef
         .where('shopId', isEqualTo: shopId)
         .limit(limit)
-        .snapshots();
+        .snapshots()
+        .map((snap) {
+          FirestoreAuditModule.logRead(collection: 'community_posts', operation: AuditOperation.snapshots, callerService: 'CommunityService', callerMethod: 'streamPosts', documentCount: snap.docs.length, isActiveListener: true);
+          return snap;
+        });
   }
 
   static Future<bool> createPost({

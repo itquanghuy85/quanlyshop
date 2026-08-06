@@ -56,6 +56,7 @@ import 'import_export_view.dart';
 import 'recent_activity_view.dart';
 import 'firestore_connectivity_test_view.dart';
 import 'firebase_rw_stats_view.dart';
+import '../developer/firestore_audit/dashboard/firestore_audit_dashboard.dart';
 import 'hr_salary_settings_view.dart';
 import 'label_settings_view.dart';
 import 'smart_stock_in_view.dart';
@@ -6293,6 +6294,19 @@ class _HomeViewState extends State<HomeView>
               icon: Icons.bar_chart_rounded,
               color: Colors.deepOrange,
               onTap: () => _fadePush(context, const FirebaseRwStatsView()),
+            ),
+          // Developer-only: Firestore Audit Monitor (debug builds only)
+          if (kDebugMode)
+            _SettingsItem(
+              group: 'system',
+              title: '🔬 Firestore Audit Monitor',
+              subtitle: 'Dev tool: theo dõi Firestore Read theo collection/service',
+              icon: Icons.manage_search_rounded,
+              color: const Color(0xFF6C63FF),
+              onTap: () => _fadePush(
+                context,
+                const FirestoreAuditDashboard(),
+              ),
             ),
         ];
 

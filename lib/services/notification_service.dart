@@ -12,6 +12,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/utils/money_utils.dart';
 import 'user_service.dart';
+import '../developer/firestore_audit/firestore_audit_module.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _localNotifications =
@@ -933,6 +934,7 @@ class NotificationService {
             debugPrint(
               'Received ${snapshot.docChanges.length} notification changes',
             );
+            FirestoreAuditModule.logRead(collection: 'shop_notifications', operation: AuditOperation.snapshots, callerService: 'NotificationService', callerMethod: 'listenToNotifications', documentCount: snapshot.docs.length, isActiveListener: true);
             for (var change in snapshot.docChanges) {
               if (change.type == DocumentChangeType.added) {
                 final data = change.doc.data() as Map<String, dynamic>;
