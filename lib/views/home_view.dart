@@ -6324,8 +6324,8 @@ class _HomeViewState extends State<HomeView>
               color: Colors.deepOrange,
               onTap: () => _fadePush(context, const FirebaseRwStatsView()),
             ),
-          // Developer tool: hiển thị cho super admin để debug Firestore reads
-          if (kDebugMode || _isSuperAdmin)
+          // Developer tool: hiển thị cho owner/admin để debug Firestore reads
+          if (kDebugMode || hasFullAccess)
             _SettingsItem(
               group: 'system',
               title: '🔬 Firestore Audit Monitor',
