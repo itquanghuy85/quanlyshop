@@ -5119,7 +5119,7 @@ class DBHelper {
     final db = await database;
     final maps = shopId != null
         ? await db.query('sales',
-            where: 'shopId = ? AND (deleted IS NULL OR deleted = 0)',
+            where: '(shopId = ? OR shopId IS NULL) AND (deleted IS NULL OR deleted = 0)',
             whereArgs: [shopId],
             orderBy: 'soldAt DESC')
         : await db.query('sales', orderBy: 'soldAt DESC');

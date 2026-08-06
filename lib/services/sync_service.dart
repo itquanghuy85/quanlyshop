@@ -1147,6 +1147,15 @@ class SyncService {
                 data['firestoreId'] = docId;
                 data['isSynced'] = 1; // Đánh dấu đã sync từ cloud
                 await db.upsertSale(SaleOrder.fromMap(data));
+                // Đảm bảo shopId được lưu để getAllSales() scoped query tìm thấy
+                if (shopId.isNotEmpty) {
+                  try {
+                    await (await db.database).rawUpdate(
+                      'UPDATE sales SET shopId = ? WHERE firestoreId = ?',
+                      [shopId, docId],
+                    );
+                  } catch (_) {}
+                }
                 debugPrint(
                   "SYNC_TRACE: Upserted sale $docId to local DB SUCCESSFULLY",
                 );
@@ -4804,6 +4813,15 @@ class SyncService {
                 await db.upsertProduct(Product.fromMap(data));
               } else if (col == 'sales') {
                 await db.upsertSale(SaleOrder.fromMap(data));
+                // Đảm bảo shopId được lưu vào SQLite để getAllSales() tìm thấy
+                if (shopId.isNotEmpty) {
+                  try {
+                    await (await db.database).rawUpdate(
+                      'UPDATE sales SET shopId = ? WHERE firestoreId = ?',
+                      [shopId, doc.id],
+                    );
+                  } catch (_) {}
+                }
               } else if (col == 'expenses') {
                 await db.upsertExpense(Expense.fromMap(data));
               } else if (col == 'debts') {

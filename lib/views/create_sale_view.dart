@@ -1520,7 +1520,24 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       }
 
       // Lưu sale vào local DB (cloud đã có từ transaction)
+      // Cập nhật firestoreId thực từ transaction để tránh tạo duplicate row
+      final saleDocId = transactionResult['saleDocId'] as String?;
+      if (saleDocId != null && saleDocId.isNotEmpty) {
+        sale.firestoreId = saleDocId;
+      }
       await db.upsertSale(sale);
+      // Set shopId để getAllSales() scoped query tìm thấy đơn này ngay lập tức
+      final savedShopId = UserService.getShopIdSync();
+      if (savedShopId != null && savedShopId.isNotEmpty) {
+        try {
+          await (await db.database).rawUpdate(
+            'UPDATE sales SET shopId = ? WHERE firestoreId = ? OR (firestoreId IS NULL AND soldAt = ?)',
+            [savedShopId, sale.firestoreId ?? '', sale.soldAt],
+          );
+        } catch (e) {
+          debugPrint('⚠️ Failed to set shopId for sale: $e');
+        }
+      }
 
       // Notify quản lý nếu bán thiếu giá vốn
       if (sale.totalCost == 0 && _selectedItems.isNotEmpty) {
