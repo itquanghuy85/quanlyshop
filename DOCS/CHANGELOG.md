@@ -4,6 +4,18 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-09b] - feat(sale): tìm kiếm khách hàng tự động khi tạo đơn bán
+
+**Mục tiêu:** Đồng bộ trải nghiệm với màn tạo đơn sửa — gõ vào ô TÊN/SĐT có sẵn là hiện gợi ý khách cũ ngay.
+
+- Gắn `CustomerSuggestionsPanel` (widget tái sử dụng từ `[2026-08-08]`, không sửa gì thêm) vào 2 field TÊN (`nameCtrl`/`nameF`) và SĐT (`phoneCtrl`/`phoneF`) có sẵn trong `create_sale_view.dart` — thêm 2 `FocusNode` mới vì file này chưa có sẵn như bên đơn sửa
+- **Xoá cơ chế gợi ý cũ**: `_suggestCustomers`/`_buildCustomerSuggestions()` — chip ngang chỉ load 1 lần lúc mở màn (`db.getCustomerSuggestions()`), không tìm theo gõ chữ, không có khách gần nhất khi rỗng. Panel mới thay thế hoàn toàn, không giữ song song 2 cơ chế
+- Chọn khách → tự điền TÊN/SĐT/Địa chỉ, gọi lại `_loadCustomerQuickData()` có sẵn để hiện card "Khách cũ · N giao dịch"
+- File: `lib/views/create_sale_view.dart`
+- Đã test trên Oppo CPH2203: gõ SĐT/TÊN hiện gợi ý đúng, khách gần nhất khi ô trống, chọn khách tự điền + hiện quick-card
+
+---
+
 ## [2026-08-09] - feat(backup): sao lưu đơn sửa kèm ảnh
 
 **Mục tiêu:** Backup hiện có (SQLite/Firestore) chỉ lưu URL ảnh dạng text — nếu mất Storage thì URL vô nghĩa. Cần backup có ảnh thật.

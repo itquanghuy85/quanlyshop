@@ -16,6 +16,7 @@ import '../services/notification_service.dart';
 import '../widgets/payment_result_sheet.dart';
 import '../services/firestore_service.dart';
 import '../services/customer_service.dart';
+import '../widgets/customer_autocomplete_field.dart';
 import '../services/sync_service.dart';
 import '../services/sync_orchestrator.dart';
 import '../services/user_service.dart';
@@ -96,6 +97,8 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   final db = DBHelper();
   final nameCtrl = TextEditingController();
   final phoneCtrl = TextEditingController();
+  final nameF = FocusNode();
+  final phoneF = FocusNode();
   final addressCtrl = TextEditingController();
   final priceCtrl = TextEditingController(text: "0");
   final noteCtrl = TextEditingController();
@@ -123,7 +126,6 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   bool _isWalkIn = false;
 
   final List<Map<String, dynamic>> _selectedItems = [];
-  List<Map<String, dynamic>> _suggestCustomers = [];
   List<Product> _allInStock = [];
   List<Product> _filteredInStock = [];
   bool _isLoading = true;
@@ -171,6 +173,10 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       }
       setState(() {});
     });
+    // Rebuild so the customer-suggestions panel shows/hides + re-queries
+    // as focus moves between the Tên and SĐT fields.
+    nameF.addListener(() => setState(() {}));
+    phoneF.addListener(() => setState(() {}));
     // Hiển thị hướng dẫn cho người dùng mới
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.initialAiText != null && widget.initialAiText!.isNotEmpty) {
@@ -431,6 +437,8 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     loanAmountCtrl.removeListener(_onLoanAmount1Changed);
     nameCtrl.dispose();
     phoneCtrl.dispose();
+    nameF.dispose();
+    phoneF.dispose();
     addressCtrl.dispose();
     priceCtrl.dispose();
     noteCtrl.dispose();
@@ -506,7 +514,6 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         nameCtrl.text = selectedCustomer.name;
         phoneCtrl.text = selectedCustomer.phone;
         addressCtrl.text = selectedCustomer.address ?? '';
-        _suggestCustomers = [];
       });
     }
   }
@@ -579,7 +586,6 @@ class _CreateSaleViewState extends State<CreateSaleView> {
 
   Future<void> _loadData() async {
     final prods = await db.getInStockProducts();
-    final suggests = await db.getCustomerSuggestions();
 
     // Load shop settings for multi-industry terminology
     final shopSettings = await CategoryService().getShopSettings();
@@ -589,7 +595,6 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       _shopSettings = shopSettings;
       _allInStock = prods;
       _filteredInStock = prods;
-      _suggestCustomers = suggests;
       _isLoading = false;
     });
     if (widget.preSelectedProduct != null) {
@@ -2106,6 +2111,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                                 Expanded(
                                   child: TextFormField(
                                     controller: nameCtrl,
+                                    focusNode: nameF,
                                     decoration: InputDecoration(
                                       labelText: _isWalkIn
                                           ? "TÊN (tùy chọn)"
@@ -2131,6 +2137,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                                   width: 130,
                                   child: TextFormField(
                                     controller: phoneCtrl,
+                                    focusNode: phoneF,
                                     decoration: InputDecoration(
                                       labelText: _isWalkIn
                                           ? "SĐT (không bắt buộc)"
@@ -2183,7 +2190,25 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                               const SizedBox(height: 6),
                               _buildCustomerQuickCard(),
                             ],
-                            _buildCustomerSuggestions(),
+                            CustomerSuggestionsPanel(
+                              active: nameF.hasFocus || phoneF.hasFocus,
+                              query: phoneF.hasFocus
+                                  ? phoneCtrl.text
+                                  : nameCtrl.text,
+                              onSelected: (c) {
+                                setState(() {
+                                  nameCtrl.text = c.name;
+                                  phoneCtrl.text = c.phone;
+                                  if ((c.address ?? '').trim().isNotEmpty) {
+                                    addressCtrl.text = c.address!;
+                                  }
+                                  _isWalkIn = false;
+                                });
+                                nameF.unfocus();
+                                phoneF.unfocus();
+                                _loadCustomerQuickData(c.phone);
+                              },
+                            ),
                           ],
                         ),
                       ),
@@ -3362,28 +3387,6 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           ),
         );
       }).toList(),
-    );
-  }
-
-  Widget _buildCustomerSuggestions() {
-    if (_suggestCustomers.isEmpty) return const SizedBox();
-    return SizedBox(
-      height: 40,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: _suggestCustomers.length,
-        itemBuilder: (ctx, i) => Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: ActionChip(
-            label: Text(_suggestCustomers[i]['customerName']),
-            onPressed: () {
-              nameCtrl.text = _suggestCustomers[i]['customerName'];
-              phoneCtrl.text = _suggestCustomers[i]['phone'];
-              setState(() => _suggestCustomers = []);
-            },
-          ),
-        ),
-      ),
     );
   }
 

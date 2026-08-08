@@ -14,6 +14,12 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Branch:** master  
 **Active Initiative:** Multi-fix session 2026-08-08/09 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng, backup đơn sửa kèm ảnh)
 
+### ✅ Vừa hoàn thành (2026-08-09b): feat(sale): tìm kiếm khách hàng tự động khi tạo đơn bán
+- Gắn `CustomerSuggestionsPanel` (tái dùng từ tính năng đơn sửa) vào field TÊN/SĐT có sẵn trong `create_sale_view.dart`
+- Xoá cơ chế gợi ý cũ (`_suggestCustomers`, chip ngang load 1 lần) — thay hoàn toàn bằng panel tìm theo gõ chữ + khách gần nhất
+- Đã test trên Oppo CPH2203: gõ SĐT/TÊN hiện gợi ý, chọn khách tự điền + hiện quick-card
+- Chi tiết: `docs/CHANGELOG.md` mục `[2026-08-09b]`
+
 ### ✅ Vừa hoàn thành (2026-08-09): feat(backup): sao lưu đơn sửa kèm ảnh
 - `BackupService.backupRepairsWithImages()`: đóng gói `repairs.json` + ảnh tải từ Firebase Storage (theo khoảng ngày) thành 1 file `.zip`, chia sẻ qua `share_plus`
 - Tab mới "Đơn sửa + Ảnh" trong Cài đặt → Sao lưu & Khôi phục
