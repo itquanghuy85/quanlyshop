@@ -4,6 +4,19 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-09] - feat(backup): sao lưu đơn sửa kèm ảnh
+
+**Mục tiêu:** Backup hiện có (SQLite/Firestore) chỉ lưu URL ảnh dạng text — nếu mất Storage thì URL vô nghĩa. Cần backup có ảnh thật.
+
+- `BackupService.backupRepairsWithImages({from, to, onProgress})`: lấy đơn sửa theo khoảng ngày (`getRepairsByCreatedAtRange` có sẵn), tải từng ảnh nhận/giao máy (URL http/https) từ Firebase Storage, đóng gói cùng `repairs.json` (thông tin đơn) thành 1 file `.zip` bằng package `archive` (đã có sẵn trong `pubspec.yaml`, không cần thêm dependency). Ảnh local chưa upload xong bị bỏ qua (không có gì để tải)
+- Lỗi tải 1 ảnh không làm hỏng cả bản sao lưu — đếm riêng vào `failedImageCount`
+- Thêm `listRepairImageBackups()`/`deleteRepairImageBackup()` — liệt kê/xoá các bản zip đã tạo, tái dùng model `LocalSqliteBackup` có sẵn
+- UI: thêm tab thứ 3 "Đơn sửa + Ảnh" trong `backup_restore_view.dart` (màn Cài đặt → Sao lưu & Khôi phục) — chọn khoảng ngày, xem tiến trình, chia sẻ file qua `share_plus`
+- File: `lib/services/backup_service.dart`, `lib/views/backup_restore_view.dart`
+- Đã test trên Oppo CPH2203: chọn khoảng ngày, chạy sao lưu, tạo đúng file zip, hiện trong danh sách "Đã sao lưu trên máy này", summary "Đã sao lưu N đơn, M ảnh" đúng số liệu thực tế
+
+---
+
 ## [2026-08-08b] - feat(repair): tìm kiếm khách hàng tự động (autocomplete) khi tạo đơn sửa
 
 **Mục tiêu:** Giảm thao tác nhập lại khi tạo đơn sửa cho khách đã từng đến — gõ SĐT hoặc tên là gợi ý ngay khách cũ, chọn 1 chạm là tự điền.

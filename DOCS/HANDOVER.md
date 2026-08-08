@@ -7,12 +7,19 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## ⚡ Trạng thái hiện tại
 
 **Version:** 1.x (develop) → Production live  
-**Last Updated:** 2026-08-08  
+**Last Updated:** 2026-08-09  
 **Build Status:** ✅ `flutter build apk --debug` OK, đã cài + test trên Oppo CPH2203  
 **Analyze Status:** ✅ 0 compile error (chỉ info/warning có sẵn từ trước)  
 **Database Version:** SQLite v104  
 **Branch:** master  
-**Active Initiative:** Multi-fix session 2026-08-08 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng)
+**Active Initiative:** Multi-fix session 2026-08-08/09 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng, backup đơn sửa kèm ảnh)
+
+### ✅ Vừa hoàn thành (2026-08-09): feat(backup): sao lưu đơn sửa kèm ảnh
+- `BackupService.backupRepairsWithImages()`: đóng gói `repairs.json` + ảnh tải từ Firebase Storage (theo khoảng ngày) thành 1 file `.zip`, chia sẻ qua `share_plus`
+- Tab mới "Đơn sửa + Ảnh" trong Cài đặt → Sao lưu & Khôi phục
+- Backup cũ (SQLite/Firestore JSON) chỉ có URL text, không có ảnh thật — tính năng này lấp lỗ hổng đó
+- Đã test trên Oppo CPH2203: chạy sao lưu, tạo đúng file, danh sách + summary đúng
+- Chi tiết: `docs/CHANGELOG.md` mục `[2026-08-09]`
 
 ### ✅ Vừa hoàn thành (2026-08-08b): feat(repair): tìm kiếm khách hàng tự động khi tạo đơn sửa
 - `lib/widgets/customer_autocomplete_field.dart`: 2 widget dùng chung logic — `CustomerSuggestionsPanel` (controlled, gắn thẳng vào field có sẵn) và `CustomerAutocompleteField` (tự chứa TextField riêng, cho màn chưa có field sẵn). Debounce 180ms, local SQLite only, không phải Overlay nên không dính nhóm lỗi `_dependents.isEmpty`

@@ -1,14 +1,31 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
+import 'package:archive/archive.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:sqflite/sqflite.dart';
+import '../data/db_helper.dart';
 import '../services/user_service.dart';
+
+class RepairImageBackupResult {
+  final String filePath;
+  final int repairCount;
+  final int imageCount;
+  final int failedImageCount;
+
+  const RepairImageBackupResult({
+    required this.filePath,
+    required this.repairCount,
+    required this.imageCount,
+    required this.failedImageCount,
+  });
+}
 
 class FirestoreBackupSet {
   final String id;
@@ -887,5 +904,206 @@ class BackupService {
       return m.map((k, v) => MapEntry(k, _decodeFirestoreTypes(v)));
     }
     return value;
+  }
+
+  // ─── Repair backup with images ──────────────────────────────────────────
+
+  static Future<Directory> _getRepairImageBackupDir() async {
+    final docs = await getApplicationDocumentsDirectory();
+    final dir = Directory(
+      p.join(docs.path, 'quanlyshop', 'repair_image_backups'),
+    );
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    return dir;
+  }
+
+  static String _sanitizeForFileName(String input) {
+    final cleaned = input
+        .trim()
+        .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
+        .replaceAll(RegExp(r'\s+'), '_');
+    return cleaned.isEmpty ? 'unknown' : cleaned;
+  }
+
+  static String _imageExtensionFrom(String url) {
+    final withoutQuery = url.split('?').first;
+    final dot = withoutQuery.lastIndexOf('.');
+    if (dot == -1 || dot == withoutQuery.length - 1) return '.jpg';
+    final ext = withoutQuery.substring(dot).toLowerCase();
+    const known = {'.jpg', '.jpeg', '.png', '.webp', '.heic', '.gif'};
+    return known.contains(ext) ? ext : '.jpg';
+  }
+
+  /// Backup repair orders created within [from]..[to] (inclusive, local
+  /// device time) into a single .zip: `repairs.json` with order details
+  /// plus every receive/delivery image actually downloaded from Firebase
+  /// Storage under `images/<repairId>_<model>/`. Local-only image paths
+  /// (upload not finished yet) are skipped — they don't exist anywhere but
+  /// on this device and can't be fetched by URL.
+  ///
+  /// A failed individual image download does not abort the backup; it's
+  /// counted in [RepairImageBackupResult.failedImageCount] instead.
+  static Future<RepairImageBackupResult> backupRepairsWithImages({
+    required DateTime from,
+    required DateTime to,
+    void Function(int done, int total)? onProgress,
+  }) async {
+    final startMs = DateTime(from.year, from.month, from.day).millisecondsSinceEpoch;
+    final endMs = DateTime(
+      to.year,
+      to.month,
+      to.day,
+      23,
+      59,
+      59,
+      999,
+    ).millisecondsSinceEpoch;
+
+    final repairs = await DBHelper().getRepairsByCreatedAtRange(startMs, endMs);
+
+    final archive = Archive();
+    final metaList = <Map<String, dynamic>>[];
+    int imageCount = 0;
+    int failedImageCount = 0;
+
+    for (int i = 0; i < repairs.length; i++) {
+      final r = repairs[i];
+      final images = <String>[
+        ...r.receiveImages,
+        if ((r.deliveredImage ?? '').trim().isNotEmpty) r.deliveredImage!.trim(),
+      ];
+
+      final folderName = _sanitizeForFileName('${r.id}_${r.model}');
+      int savedForThisRepair = 0;
+      int idx = 0;
+      for (final url in images) {
+        idx++;
+        final normalized = url.trim().toLowerCase();
+        if (!normalized.startsWith('http://') &&
+            !normalized.startsWith('https://')) {
+          continue; // Local-only path, not backed up to Storage yet.
+        }
+        try {
+          final response = await http
+              .get(Uri.parse(url))
+              .timeout(const Duration(seconds: 30));
+          if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+            final bytes = response.bodyBytes;
+            final ext = _imageExtensionFrom(url);
+            archive.addFile(
+              ArchiveFile(
+                'images/$folderName/$idx$ext',
+                bytes.length,
+                bytes,
+              ),
+            );
+            savedForThisRepair++;
+            imageCount++;
+          } else {
+            failedImageCount++;
+          }
+        } catch (e) {
+          failedImageCount++;
+          debugPrint('backupRepairsWithImages: lỗi tải ảnh $url: $e');
+        }
+      }
+
+      metaList.add({
+        'id': r.id,
+        'firestoreId': r.firestoreId,
+        'customerName': r.isWalkIn ? (r.walkInName ?? r.customerName) : r.customerName,
+        'phone': r.isWalkIn ? (r.walkInPhone ?? r.phone) : r.phone,
+        'model': r.model,
+        'issue': r.issue,
+        'status': r.status,
+        'price': r.price,
+        'cost': r.cost,
+        'warranty': r.warranty,
+        'createdAt': r.createdAt,
+        'imageFolder': savedForThisRepair > 0 ? 'images/$folderName' : null,
+        'imageCount': savedForThisRepair,
+      });
+
+      onProgress?.call(i + 1, repairs.length);
+    }
+
+    final metaBytes = utf8.encode(
+      const JsonEncoder.withIndent('  ').convert(metaList),
+    );
+    archive.addFile(ArchiveFile('repairs.json', metaBytes.length, metaBytes));
+
+    final zipBytes = ZipEncoder().encode(archive);
+    if (zipBytes == null) {
+      throw Exception('Không thể nén file backup');
+    }
+
+    final backupDir = await _getRepairImageBackupDir();
+    final stamp =
+        '${from.year}${from.month.toString().padLeft(2, '0')}${from.day.toString().padLeft(2, '0')}'
+        '-${to.year}${to.month.toString().padLeft(2, '0')}${to.day.toString().padLeft(2, '0')}';
+    final fileName = 'don_sua_kem_anh_$stamp.zip';
+    final filePath = p.join(backupDir.path, fileName);
+    await File(filePath).writeAsBytes(zipBytes, flush: true);
+
+    return RepairImageBackupResult(
+      filePath: filePath,
+      repairCount: repairs.length,
+      imageCount: imageCount,
+      failedImageCount: failedImageCount,
+    );
+  }
+
+  /// Share a previously created repair-image backup zip.
+  static Future<void> shareRepairImageBackup(String filePath) async {
+    final f = File(filePath);
+    if (!await f.exists()) {
+      throw Exception('Không tìm thấy file backup để chia sẻ');
+    }
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(filePath)],
+        subject: 'Sao lưu đơn sửa kèm ảnh',
+      ),
+    );
+  }
+
+  /// List previously created repair-image backup zips (newest first).
+  static Future<List<LocalSqliteBackup>> listRepairImageBackups() async {
+    final dir = await _getRepairImageBackupDir();
+    final entities = await dir.list().toList();
+    final files = <LocalSqliteBackup>[];
+    for (final e in entities) {
+      if (e is! File) continue;
+      if (!e.path.toLowerCase().endsWith('.zip')) continue;
+      try {
+        final stat = await e.stat();
+        files.add(
+          LocalSqliteBackup(
+            name: p.basename(e.path),
+            path: e.path,
+            modifiedAt: stat.modified,
+            sizeBytes: stat.size,
+          ),
+        );
+      } catch (_) {
+        // Skip unreadable file.
+      }
+    }
+    files.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
+    return files;
+  }
+
+  /// Delete a previously created repair-image backup zip.
+  static Future<void> deleteRepairImageBackup(String filePath) async {
+    if (!filePath.toLowerCase().endsWith('.zip')) {
+      throw Exception('File backup không hợp lệ');
+    }
+    final f = File(filePath);
+    if (!await f.exists()) {
+      throw Exception('Không tìm thấy file backup cần xóa');
+    }
+    await f.delete();
   }
 }

@@ -133,7 +133,7 @@ class _BackupRestoreViewState extends State<BackupRestoreView>
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 2, vsync: this);
+    _tab = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -209,6 +209,7 @@ class _BackupRestoreViewState extends State<BackupRestoreView>
           tabs: [
             Tab(icon: const Icon(Icons.storage_outlined, size: 18), text: l10n.backupSqliteTabLabel),
             Tab(icon: const Icon(Icons.cloud_outlined, size: 18), text: l10n.backupFirestoreTabLabel),
+            const Tab(icon: Icon(Icons.photo_library_outlined, size: 18), text: 'Đơn sửa + Ảnh'),
           ],
         ),
       ),
@@ -217,6 +218,7 @@ class _BackupRestoreViewState extends State<BackupRestoreView>
         children: const [
           _SqliteTab(),
           _FirestoreTab(),
+          _RepairImagesTab(),
         ],
       ),
     );
@@ -1275,6 +1277,246 @@ class _FirestoreTabState extends State<_FirestoreTab> {
                 ),
               ),
             ),
+          ),
+      ],
+    );
+  }
+}
+
+// ─── Tab 3: Đơn sửa kèm ảnh ────────────────────────────────────────────────────
+
+class _RepairImagesTab extends StatefulWidget {
+  const _RepairImagesTab();
+
+  @override
+  State<_RepairImagesTab> createState() => _RepairImagesTabState();
+}
+
+class _RepairImagesTabState extends State<_RepairImagesTab> {
+  DateTime _from = DateTime.now().subtract(const Duration(days: 30));
+  DateTime _to = DateTime.now();
+  bool _running = false;
+  int _done = 0;
+  int _total = 0;
+  List<LocalSqliteBackup> _pastBackups = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPastBackups();
+  }
+
+  Future<void> _loadPastBackups() async {
+    try {
+      final list = await BackupService.listRepairImageBackups();
+      if (mounted) setState(() => _pastBackups = list);
+    } catch (_) {
+      // Ignore local listing errors.
+    }
+  }
+
+  Future<void> _pickRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      initialDateRange: DateTimeRange(start: _from, end: _to),
+    );
+    if (picked != null) {
+      setState(() {
+        _from = picked.start;
+        _to = picked.end;
+      });
+    }
+  }
+
+  Future<void> _runBackup() async {
+    setState(() {
+      _running = true;
+      _done = 0;
+      _total = 0;
+    });
+    try {
+      final result = await BackupService.backupRepairsWithImages(
+        from: _from,
+        to: _to,
+        onProgress: (done, total) {
+          if (!mounted) return;
+          setState(() {
+            _done = done;
+            _total = total;
+          });
+        },
+      );
+      if (!mounted) return;
+      await _loadPastBackups();
+      final failedNote = result.failedImageCount > 0
+          ? ', ${result.failedImageCount} ảnh lỗi khi tải'
+          : '';
+      NotificationService.showSnackBar(
+        'Đã sao lưu ${result.repairCount} đơn, ${result.imageCount} ảnh$failedNote',
+        color: AppColors.success,
+      );
+      await BackupService.shareRepairImageBackup(result.filePath);
+    } catch (e) {
+      if (!mounted) return;
+      NotificationService.showSnackBar(
+        'Sao lưu thất bại: $e',
+        color: AppColors.error,
+      );
+    } finally {
+      if (mounted) setState(() => _running = false);
+    }
+  }
+
+  Future<void> _deleteBackup(LocalSqliteBackup backup) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xóa file sao lưu?'),
+        content: Text(backup.name),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await BackupService.deleteRepairImageBackup(backup.path);
+      await _loadPastBackups();
+    } catch (e) {
+      if (!mounted) return;
+      NotificationService.showSnackBar('Lỗi khi xóa: $e', color: AppColors.error);
+    }
+  }
+
+  String _formatSize(int size) {
+    if (size < 1024) return '${size}B';
+    final kb = size / 1024;
+    if (kb < 1024) return '${kb.toStringAsFixed(1)}KB';
+    final mb = kb / 1024;
+    return '${mb.toStringAsFixed(1)}MB';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final df = DateFormat('dd/MM/yyyy');
+    return ListView(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      children: [
+        _SectionCard(
+          title: 'Sao lưu đơn sửa kèm ảnh',
+          icon: Icons.photo_library_outlined,
+          children: [
+            const Text(
+              'Đóng gói thông tin đơn sửa + toàn bộ ảnh nhận/giao máy đã '
+              'tải lên trong khoảng ngày chọn thành 1 file .zip để chia sẻ '
+              'lưu trữ ngoài (Drive, Zalo, email...). Ảnh chưa upload xong '
+              '(còn ở máy cũ, chưa đồng bộ) sẽ không có trong bản sao lưu.',
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: _running ? null : _pickRange,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.outline),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.date_range, size: 18, color: Color(0xFF0A56C2)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text('${df.format(_from)} → ${df.format(_to)}'),
+                    ),
+                    const Icon(Icons.edit, size: 16),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (_running) ...[
+              LinearProgressIndicator(
+                value: _total > 0 ? _done / _total : null,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _total > 0
+                    ? 'Đang xử lý $_done/$_total đơn sửa...'
+                    : 'Đang tải danh sách đơn sửa...',
+                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 12),
+            ],
+            _ActionButton(
+              label: _running ? 'Đang sao lưu...' : 'Bắt đầu sao lưu',
+              icon: Icons.archive_outlined,
+              onTap: _running ? null : _runBackup,
+              color: const Color(0xFF0A56C2),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (_pastBackups.isNotEmpty)
+          _SectionCard(
+            title: 'Đã sao lưu trên máy này',
+            icon: Icons.folder_zip_outlined,
+            children: [
+              for (final backup in _pastBackups)
+                Container(
+                  margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  decoration: BoxDecoration(
+                    color: AppColors.textHint,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.divider),
+                  ),
+                  child: ListTile(
+                    leading: const Icon(Icons.folder_zip, color: Colors.deepOrange),
+                    title: Text(
+                      backup.name,
+                      style: const TextStyle(
+                        fontSize: AppTextStyles.h4,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      '${DateFormat('dd/MM/yyyy HH:mm').format(backup.modifiedAt)} • ${_formatSize(backup.sizeBytes)}',
+                      style: TextStyle(
+                        fontSize: AppTextStyles.subtitle1Size,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    trailing: Wrap(
+                      spacing: 4,
+                      children: [
+                        IconButton(
+                          onPressed: () =>
+                              BackupService.shareRepairImageBackup(backup.path),
+                          tooltip: 'Chia sẻ',
+                          icon: const Icon(Icons.share_outlined, size: 20),
+                        ),
+                        IconButton(
+                          onPressed: () => _deleteBackup(backup),
+                          tooltip: 'Xóa',
+                          icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
           ),
       ],
     );
