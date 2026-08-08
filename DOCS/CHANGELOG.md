@@ -4,6 +4,31 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-08b] - feat(repair): tìm kiếm khách hàng tự động (autocomplete) khi tạo đơn sửa
+
+**Mục tiêu:** Giảm thao tác nhập lại khi tạo đơn sửa cho khách đã từng đến — gõ SĐT hoặc tên là gợi ý ngay khách cũ, chọn 1 chạm là tự điền.
+
+**1. `DBHelper.searchCustomersRanked(query, shopId, {limit: 10})`** — local SQLite only, không đọc Firestore
+- Query rỗng → trả về khách ghé gần nhất (`ORDER BY COALESCE(lastVisitAt, updatedAt, createdAt) DESC`)
+- Query có nội dung → xếp hạng bằng `CASE`: khớp chính xác SĐT (rank 0) > SĐT/tên bắt đầu bằng query (rank 1) > còn lại chứa query (rank 3), giới hạn 10 kết quả
+- File: `lib/data/db_helper.dart`
+
+**2. Widget tái sử dụng `CustomerAutocompleteField`** (`lib/widgets/customer_autocomplete_field.dart`)
+- 1 ô tìm kiếm duy nhất (SĐT hoặc tên), debounce 180ms, không phải Overlay/portal — render list gợi ý ngay dưới field trong luồng scroll bình thường để tránh nhóm lỗi `_dependents.isEmpty` liên quan route/portal (bài học từ fix cùng ngày ở `repair_detail_view.dart`)
+- Focus vào field trống → hiện khách ghé gần nhất; gõ chữ → tìm theo tên/SĐT, không phân biệt hoa thường
+- Mỗi dòng gợi ý hiển thị tên, SĐT, thời gian ghé gần nhất (dạng tương đối: "X phút/giờ/ngày trước")
+- Chọn 1 khách → callback `onSelected(Customer)`, tự xoá ô tìm kiếm — không tự sở hữu controller của form cha, nên tái dùng được ở màn tạo đơn bán, bảo hành, công nợ... sau này chỉ cần truyền `onSelected` khác
+- Chống race điều kiện: mỗi lần gõ có số thứ tự request riêng, kết quả trả về trễ (từ query cũ hơn) bị bỏ qua thay vì ghi đè kết quả mới
+
+**3. Tích hợp vào `create_repair_order_view.dart`**
+- Đặt `CustomerAutocompleteField` ngay trên khối "Khách vãng lai" + 2 field SĐT/Tên hiện có
+- Khi chọn khách: tự điền `phoneCtrl`, `nameCtrl`, `addressCtrl` (nếu có) và gọi lại `_smartFill()` có sẵn để load card "Khách cũ · N đơn" + công nợ — không phải viết lại logic quick-card
+- File: `lib/views/create_repair_order_view.dart`
+
+**Đã test trên Oppo CPH2203:** tìm theo SĐT ✅, tìm theo tên không phân biệt hoa thường ✅, hiện khách gần nhất khi ô trống (đúng thứ tự thời gian) ✅, chọn khách tự điền + hiện quick-card ✅.
+
+---
+
 ## [2026-08-08] - fix(audit,sync,notification): sửa 3 bug + thêm hẹn khách lấy máy cho đơn sửa
 
 **1. Fix bug đếm sai "Active Listeners" trong Firestore Audit Monitor**

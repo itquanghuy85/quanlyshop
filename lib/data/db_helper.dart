@@ -10215,6 +10215,52 @@ class DBHelper {
     }
   }
 
+  /// Ranked customer search for autocomplete UIs: exact phone match first,
+  /// then phone/name prefix match, then substring match; empty query
+  /// returns the most recently-visited customers instead of everything.
+  /// Local SQLite only — no Firestore reads, safe to call on every
+  /// keystroke behind a debounce.
+  Future<List<Map<String, dynamic>>> searchCustomersRanked(
+    String query,
+    String? shopId, {
+    int limit = 10,
+  }) async {
+    final db = await database;
+    final q = query.trim();
+
+    final shopFilter = shopId == null ? '' : 'shopId = ? AND ';
+    final shopArgs = shopId == null ? <Object?>[] : <Object?>[shopId];
+
+    if (q.isEmpty) {
+      return db.query(
+        'customers',
+        where: '${shopFilter}deleted = 0',
+        whereArgs: shopArgs,
+        orderBy: 'COALESCE(lastVisitAt, updatedAt, createdAt) DESC',
+        limit: limit,
+      );
+    }
+
+    final contains = '%$q%';
+    final startsWith = '$q%';
+    return db.rawQuery(
+      '''
+      SELECT *,
+        CASE
+          WHEN phone = ? THEN 0
+          WHEN phone LIKE ? THEN 1
+          WHEN name LIKE ? THEN 2
+          ELSE 3
+        END AS _rank
+      FROM customers
+      WHERE ${shopFilter}deleted = 0 AND (name LIKE ? OR phone LIKE ?)
+      ORDER BY _rank ASC, name ASC
+      LIMIT ?
+      ''',
+      [q, startsWith, startsWith, ...shopArgs, contains, contains, limit],
+    );
+  }
+
   Future<List<Map<String, dynamic>>> getCustomerByPhone(
     String phone,
     String? shopId,

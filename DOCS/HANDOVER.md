@@ -12,7 +12,15 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Analyze Status:** ✅ 0 compile error (chỉ info/warning có sẵn từ trước)  
 **Database Version:** SQLite v104  
 **Branch:** master  
-**Active Initiative:** Multi-fix session 2026-08-08 (audit tool, sync cost, double notification, hẹn khách lấy máy)
+**Active Initiative:** Multi-fix session 2026-08-08 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng)
+
+### ✅ Vừa hoàn thành (2026-08-08b): feat(repair): tìm kiếm khách hàng tự động khi tạo đơn sửa
+- Widget tái sử dụng `CustomerAutocompleteField` (`lib/widgets/customer_autocomplete_field.dart`) — 1 ô tìm kiếm SĐT/tên, debounce 180ms, local SQLite only, không phải Overlay nên không dính nhóm lỗi `_dependents.isEmpty`
+- `DBHelper.searchCustomersRanked()` — xếp hạng exact phone > prefix > substring, rỗng → khách ghé gần nhất
+- Tích hợp vào `create_repair_order_view.dart`: chọn khách tự điền SĐT/Tên + trigger `_smartFill()` có sẵn (quick-card công nợ/lịch sử)
+- Chưa tích hợp vào các màn khác (bán hàng, bảo hành, công nợ) — widget đã tái sử dụng được, chỉ cần thêm khi có yêu cầu
+- Đã test trên Oppo CPH2203: tìm SĐT, tìm tên không phân biệt hoa thường, khách gần nhất khi trống, auto-fill — đều OK
+- Chi tiết: `docs/CHANGELOG.md` mục `[2026-08-08b]`
 
 ### ✅ Vừa hoàn thành (2026-08-08): fix(audit,sync,notification) + feat(repair): hẹn giao máy
 - Fix đếm sai "Active Listeners" trong Firestore Audit Monitor (dev tool, an toàn)

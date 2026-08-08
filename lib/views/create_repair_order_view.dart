@@ -36,6 +36,7 @@ import '../widgets/responsive_wrapper.dart';
 import '../l10n/app_localizations.dart';
 import '../models/storage_location_model.dart';
 import '../widgets/storage_location_selector.dart';
+import '../widgets/customer_autocomplete_field.dart';
 import 'order_list_view.dart';
 import '../theme/popup_theme.dart';
 import '../widgets/app_popup.dart';
@@ -1633,6 +1634,20 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
               ],
             ),
             const Divider(height: 12),
+            CustomerAutocompleteField(
+              onSelected: (c) {
+                setState(() {
+                  phoneCtrl.text = c.phone;
+                  nameCtrl.text = c.name;
+                  if (c.address != null && c.address!.trim().isNotEmpty) {
+                    addressCtrl.text = c.address!;
+                  }
+                  _isWalkIn = false;
+                });
+                _smartFill();
+              },
+            ),
+            const SizedBox(height: 8),
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
               dense: true,
