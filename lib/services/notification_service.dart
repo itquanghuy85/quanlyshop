@@ -974,55 +974,14 @@ class NotificationService {
                 debugPrint(
                   'New notification: ${data['title']} from ${data['senderId']} (current user: ${user.uid})',
                 );
-                // Hiển thị thông báo nếu không phải do chính mình gửi,
-                // NGOẠI TRỪ các alert dành cho manager — luôn hiện để quản lý không bỏ lỡ
-                final isSelf = data['senderId'] == user.uid;
-                final isSystem = data['type'] == 'system';
-                const managerAlertTypes = {
-                  'missing_cost',
-                  'missing_supplier',
-                  'stock_pending',
-                  'stock_confirmed',
-                  'missing_cost_sale',
-                  'approval_needed',
-                };
-                final isManagerAlert = managerAlertTypes.contains(data['type']);
-                if (!isSelf || isSystem || isManagerAlert) {
-                  String title = data['title'] ?? "THÔNG BÁO MỚI";
-                  String body = data['body'] ?? "";
-                  String type = data['type'] ?? 'system';
-
-                  // Check if notification should be shown
-                  _shouldShowNotification(type).then((shouldShow) {
-                    debugPrint(
-                      'Should show notification for type $type: $shouldShow',
-                    );
-                    if (shouldShow) {
-                      // Self-sent system notification: only show snackbar, no local push
-                      if (isSelf && isSystem) {
-                        onMessageReceived(title, body);
-                      } else {
-                        final navData = _extractNavigationData(data);
-                        final payloadData = <String, dynamic>{};
-                        for (final key in ['type', 'targetType', 'targetId']) {
-                          final value = navData[key];
-                          if (value != null && value.toString().isNotEmpty) {
-                            payloadData[key] = value.toString();
-                          }
-                        }
-                        _showLocalNotification(
-                          title,
-                          body,
-                          channelId: _getChannelId(type),
-                          payload: jsonEncode(payloadData),
-                        );
-                        onMessageReceived(title, body);
-                      }
-                    }
-                  });
-                } else {
-                  debugPrint('Skipping notification from self');
-                }
+                // NOTE: Display (snackbar + local push) is intentionally NOT
+                // triggered here anymore. FCM's _handleForegroundMessage is
+                // now the single display source — this Firestore listener
+                // used to also show its own snackbar/local notification for
+                // the same event, causing every notification from another
+                // staff member to appear twice. Dedup marking above still
+                // runs so shop_notifications stays the source of truth for
+                // the notification list/badge.
               }
             }
           }, onError: (e) => debugPrint("LỖI MẠCH THÔNG BÁO: $e"));

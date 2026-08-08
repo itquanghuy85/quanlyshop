@@ -4,6 +4,41 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-08] - fix(audit,sync,notification): sửa 3 bug + thêm hẹn khách lấy máy cho đơn sửa
+
+**1. Fix bug đếm sai "Active Listeners" trong Firestore Audit Monitor**
+- `logRead(isActiveListener: true)` cộng dồn mỗi lần snapshot bắn ra thay vì mỗi lần listener mới mở → hiện số ảo (x22, x25...)
+- Thêm `_activeListenerKeys` (Set) để chỉ đếm 1 lần cho mỗi (collection, service, method) đang mở
+- File: `lib/developer/firestore_audit/services/firestore_audit_service.dart`
+
+**2. Tăng cooldown SyncService.refreshCloudCollections 30s → 120s**
+- Giảm tần suất poll tự động các collection ít thay đổi (suppliers, audit_logs...), giảm read Firestore
+- Các lệnh gọi có `force: true` (nút "Đồng bộ ngay", sự kiện thay đổi dữ liệu) không bị ảnh hưởng
+- File: `lib/services/sync_service.dart`
+
+**3. Fix bug double thông báo khi nhận từ nhân viên khác**
+- Nguyên nhân: có 2 đường hiển thị độc lập cho cùng 1 sự kiện — FCM foreground handler VÀ Firestore realtime listener (`shop_notifications`) — cả 2 đều tự bắn snackbar + local notification
+- Giải pháp: Firestore listener chỉ còn đánh dấu dedup, không tự hiển thị nữa; FCM là nguồn hiển thị duy nhất
+- File: `lib/services/notification_service.dart`
+
+**4. Thêm trường "Hẹn giao máy" cho đơn sửa chữa (lấy ngay / trong ngày / báo sau)**
+- Model: `Repair.pickupSchedule` (String?, values: `now`/`same_day`/`later`) + `pickupScheduleLabel` getter
+- DB: SQLite v103 → v104, cột `pickupSchedule` thêm qua `onUpgrade` + `onOpen` defensive check
+- UI: ChoiceChip 3 lựa chọn trong màn tạo đơn sửa (`create_repair_order_view.dart`) và trong sheet "Chỉnh sửa thông tin đơn sửa" (`repair_detail_view.dart`), hiển thị read-only ở màn chi tiết
+- Files: `lib/models/repair_model.dart`, `lib/data/db_helper.dart`, `lib/views/create_repair_order_view.dart`, `lib/views/repair_detail_view.dart`
+
+**5. Fix crash `_dependents.isEmpty` khi bấm LƯU trong sheet "Chỉnh sửa thông tin đơn sửa" (phát hiện trong lúc test tính năng #4)**
+- Lỗi có sẵn từ trước, không do tính năng hẹn giao máy gây ra (tái hiện cả khi không chạm chip mới) — trước đây bị che giấu vì nút Lưu/Hủy nằm trong vùng cử chỉ điều hướng hệ thống trên một số máy (Oppo ColorOS gesture-nav) nên không ai bấm tới được để kích hoạt lỗi
+- **Lần fix đầu (không đủ):** áp dụng lại pattern cũ từ `order_list_view.dart` 2026-06-10g — `async` + `await Future.delayed(Duration.zero)` sau `unfocus()` trước `Navigator.pop()`. Build lại và test thì crash **vẫn tái hiện ~50%** (cùng thao tác, lúc bị lúc không) → xác nhận đây là race điều kiện theo thời điểm frame, không phải do thiếu delay
+- **Root cause thật sự (2 phần):**
+  1. `MediaQuery.paddingOf(ctx)` / `viewInsetsOf(ctx)` trong builder của `showModalBottomSheet` đọc từ context **bên trong** sheet route → tạo dependency vào MediaQuery scoped theo route đó. Khi `Navigator.pop()` chạy, MediaQuery này deactivate trước khi widget kịp rebuild để gỡ dependency → đúng bug đã từng fix ở 11 file khác ngày 2026-06-05 nhưng lại xuất hiện lại ở đây. Fix: đổi sang đọc từ `context` (context của State, nằm ngoài route) thay vì `ctx`
+  2. `FocusScope.of(ctx).unfocus()` gọi trong `onPressed` **tự đăng ký thêm 1 dependency mới** vào FocusScope của chính route sắp đóng, ngay tại thời điểm chuẩn bị pop — do đây là lookup `.of(ctx)` nên luôn tạo dependency dù gọi trong callback hay build. Đây là nguyên nhân chính khiến delay không đủ: dependency được tạo mới ngay trước khi pop, không có cơ hội rebuild để gỡ. Fix: đổi sang `FocusManager.instance.primaryFocus?.unfocus()` — API tĩnh, không qua BuildContext/InheritedWidget nên không tạo dependency nào cả
+- Áp dụng cả 2 fix cho `_editBasicInfo` (sheet chính, có tính năng hẹn giao máy) và `_editTechnicianNotes` (sheet khác cùng file, phát hiện có cùng anti-pattern khi rà lại code, sửa phòng ngừa dù chưa từng crash được ghi nhận)
+- **Verify trên Oppo CPH2203:** lặp lại thao tác chọn chip + bấm LƯU **5/5 lần liên tiếp** không crash (trước fix: crash lặp lại nhiều lần cùng thao tác) — dữ liệu luôn lưu đúng kể cả những lần bị crash trước đó
+- Files: `lib/views/repair_detail_view.dart`
+
+---
+
 ## [2026-06-16c] - feat(notifications): push notification cho quản lý khi nhập kho / bán thiếu giá vốn
 
 **Mục tiêu:** Quản lý không bỏ lỡ các sự kiện cần xử lý từ nhân viên.

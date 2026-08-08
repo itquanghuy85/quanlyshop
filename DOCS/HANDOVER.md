@@ -7,12 +7,21 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## ⚡ Trạng thái hiện tại
 
 **Version:** 1.x (develop) → Production live  
-**Last Updated:** 2026-06-16  
-**Build Status:** ✅ Build release OK  
-**Analyze Status:** ✅ 0 compile error (1 info pre-existing)  
-**Database Version:** SQLite v102  
+**Last Updated:** 2026-08-08  
+**Build Status:** ✅ `flutter build apk --debug` OK, đã cài + test trên Oppo CPH2203  
+**Analyze Status:** ✅ 0 compile error (chỉ info/warning có sẵn từ trước)  
+**Database Version:** SQLite v104  
 **Branch:** master  
-**Active Initiative:** Multi-fix session 2026-06-16
+**Active Initiative:** Multi-fix session 2026-08-08 (audit tool, sync cost, double notification, hẹn khách lấy máy)
+
+### ✅ Vừa hoàn thành (2026-08-08): fix(audit,sync,notification) + feat(repair): hẹn giao máy
+- Fix đếm sai "Active Listeners" trong Firestore Audit Monitor (dev tool, an toàn)
+- Tăng cooldown SyncService.refreshCloudCollections 30s → 120s (giảm read Firestore không cần thiết)
+- Fix double thông báo khi nhận từ nhân viên khác (2 đường hiển thị FCM + Firestore listener → chỉ còn FCM)
+- Thêm `Repair.pickupSchedule` (lấy ngay/trong ngày/báo sau, nhãn UI "Hẹn giao máy"): model + DB v104 + UI ở màn tạo đơn và sheet sửa thông tin
+- Phát hiện + fix crash `_dependents.isEmpty` có sẵn từ trước ở sheet sửa thông tin đơn sửa. **Fix lần đầu (Future.delayed) không đủ** — retest sau build vẫn crash ~50%. Đào sâu tìm ra 2 root cause thật: (1) `MediaQuery.of(ctx)` đọc từ context trong route thay vì context ngoài, (2) `FocusScope.of(ctx).unfocus()` tự tạo dependency mới ngay trước khi pop → đổi sang `FocusManager.instance.primaryFocus?.unfocus()`. Verify lại 5/5 lần không crash. Áp dụng phòng ngừa cho `_editTechnicianNotes` (cùng file, cùng anti-pattern).
+- **Đã test kỹ trên Oppo CPH2203** (adb, không có Samsung A32 lúc test). Chưa test trên Samsung A32 — cần verify chéo khi có máy.
+- Chi tiết đầy đủ: xem `docs/CHANGELOG.md` mục `[2026-08-08]`
 
 ### ✅ Vừa hoàn thành (2026-06-16c): feat(notifications): push notification cho quản lý
 - `fast_stock_in_view`: gửi notification sau khi tạo phiếu nhập — phân biệt thiếu giá vốn / thiếu NCC / bình thường

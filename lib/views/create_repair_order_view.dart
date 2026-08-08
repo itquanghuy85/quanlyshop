@@ -47,7 +47,11 @@ class CreateRepairOrderView extends StatefulWidget {
   /// When set, auto-opens the AI input sheet with this text pre-filled.
   final String? initialAiText;
 
-  const CreateRepairOrderView({super.key, this.role = 'user', this.initialAiText});
+  const CreateRepairOrderView({
+    super.key,
+    this.role = 'user',
+    this.initialAiText,
+  });
 
   @override
   State<CreateRepairOrderView> createState() => _CreateRepairOrderViewState();
@@ -56,7 +60,7 @@ class CreateRepairOrderView extends StatefulWidget {
 class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   // Localization getter
   AppLocalizations get loc => AppLocalizations.of(context)!;
-  
+
   // final NumberFormat currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
   final db = DBHelper();
   final customerService = CustomerService();
@@ -89,16 +93,24 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   List<RepairPartner> _partners = [];
   bool _isWalkIn = false;
   bool _canViewCostPrice = false;
-  bool _showAdvancedFields = false; // quick intake mode — collapse secondary fields
+  bool _showAdvancedFields =
+      false; // quick intake mode — collapse secondary fields
 
   // Customer quick card state
-  Map<String, dynamic>? _lastRepair;   // most recent repair row for this phone
+  Map<String, dynamic>? _lastRepair; // most recent repair row for this phone
   int _customerTotalRepairs = 0;
-  int _customerActiveDebt = 0;         // net debt amount (positive = owes shop)
+  int _customerActiveDebt = 0; // net debt amount (positive = owes shop)
 
   StorageLocation? _selectedLocation;
+  String? _pickupSchedule; // 'now' | 'same_day' | 'later'
 
-  final List<String> brands = ["IPHONE ", "SAMSUNG ", "OPPO ", "REDMI ", "VIVO "];
+  final List<String> brands = [
+    "IPHONE ",
+    "SAMSUNG ",
+    "OPPO ",
+    "REDMI ",
+    "VIVO ",
+  ];
   List<String> get commonIssues => [
     loc.replacePin,
     loc.pressGlass,
@@ -147,37 +159,43 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       steps: const [
         GuideStep(
           title: '📞 Nhập SĐT khách hàng',
-          description: 'Nhập 10 số điện thoại, hệ thống tự động điền tên nếu khách cũ. Hoặc chọn từ danh bạ.',
+          description:
+              'Nhập 10 số điện thoại, hệ thống tự động điền tên nếu khách cũ. Hoặc chọn từ danh bạ.',
           icon: Icons.phone,
           iconColor: Colors.green,
         ),
         GuideStep(
           title: '📱 Thông tin máy',
-          description: 'Chọn hãng nhanh hoặc nhập model. Mô tả lỗi chi tiết để thợ hiểu rõ vấn đề.',
+          description:
+              'Chọn hãng nhanh hoặc nhập model. Mô tả lỗi chi tiết để thợ hiểu rõ vấn đề.',
           icon: Icons.smartphone,
           iconColor: Colors.blue,
         ),
         GuideStep(
           title: '📝 Tình trạng máy',
-          description: 'Ghi nhận ngoại quan (xước, móp) và phụ kiện đi kèm (SIM, ốp) để tránh tranh cãi sau này.',
+          description:
+              'Ghi nhận ngoại quan (xước, móp) và phụ kiện đi kèm (SIM, ốp) để tránh tranh cãi sau này.',
           icon: Icons.checklist,
           iconColor: Colors.orange,
         ),
         GuideStep(
           title: '🔧 Dịch vụ & Đối tác',
-          description: 'Thêm dịch vụ sửa chữa, chọn đối tác ngoài nếu cần gửi ra. Hệ thống tự tính công nợ.',
+          description:
+              'Thêm dịch vụ sửa chữa, chọn đối tác ngoài nếu cần gửi ra. Hệ thống tự tính công nợ.',
           icon: Icons.build,
           iconColor: Colors.blue,
         ),
         GuideStep(
           title: '💰 Giá dự kiến',
-          description: 'Nhập giá báo khách. Có thể điều chỉnh sau khi sửa xong nếu phát sinh thêm.',
+          description:
+              'Nhập giá báo khách. Có thể điều chỉnh sau khi sửa xong nếu phát sinh thêm.',
           icon: Icons.attach_money,
           iconColor: Colors.amber,
         ),
         GuideStep(
           title: '📸 Chụp ảnh máy',
-          description: 'Chụp ảnh trước khi sửa để làm bằng chứng. Tối đa 5 ảnh, lưu trên cloud.',
+          description:
+              'Chụp ảnh trước khi sửa để làm bằng chứng. Tối đa 5 ảnh, lưu trên cloud.',
           icon: Icons.camera_alt,
           iconColor: Colors.teal,
         ),
@@ -200,7 +218,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         priceCtrl.text = MoneyUtils.formatCurrency(result.deposit);
       }
       if (result.customerName.isNotEmpty) nameCtrl.text = result.customerName;
-      if (result.customerPhone.isNotEmpty) phoneCtrl.text = result.customerPhone;
+      if (result.customerPhone.isNotEmpty)
+        phoneCtrl.text = result.customerPhone;
       _isWalkIn = result.customerName.isEmpty && result.customerPhone.isEmpty;
     });
 
@@ -267,7 +286,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     }
 
     setState(() {
-      _lastRepair = repairs.isNotEmpty ? Map<String, dynamic>.from(repairs.first) : null;
+      _lastRepair = repairs.isNotEmpty
+          ? Map<String, dynamic>.from(repairs.first)
+          : null;
       _customerTotalRepairs = (countRow.first['cnt'] as int?) ?? 0;
       _customerActiveDebt = netDebt;
     });
@@ -434,13 +455,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
 
     // CHỈ YÊU CẦU MODEL - Cho phép nhập khách hàng sau, chỉ bắt buộc khi giao máy
     if (modelCtrl.text.isEmpty) {
-      debugPrint(
-        '🔧 _saveOrderProcess: Validation failed - model empty',
-      );
-      NotificationService.showSnackBar(
-        loc.pleaseEnterModel,
-        color: Colors.red,
-      );
+      debugPrint('🔧 _saveOrderProcess: Validation failed - model empty');
+      NotificationService.showSnackBar(loc.pleaseEnterModel, color: Colors.red);
       return null;
     }
 
@@ -473,12 +489,15 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       final totalCost = _services.fold(0, (sum, s) => sum + s.cost);
       final customerName = nameCtrl.text.trim().toUpperCase();
       final normalizedPhone = phoneCtrl.text.trim();
-      final docIdTail = normalizedPhone.isNotEmpty ? normalizedPhone : now.toString().substring(7);
+      final docIdTail = normalizedPhone.isNotEmpty
+          ? normalizedPhone
+          : now.toString().substring(7);
       final r = Repair(
         firestoreId: "rep_${now}_$docIdTail",
         customerName: customerName,
         phone: normalizedPhone,
-        isWalkIn: _isWalkIn || (customerName.isEmpty && normalizedPhone.isEmpty),
+        isWalkIn:
+            _isWalkIn || (customerName.isEmpty && normalizedPhone.isEmpty),
         walkInName: _isWalkIn ? customerName : null,
         walkInPhone: _isWalkIn && normalizedPhone.isNotEmpty
             ? normalizedPhone
@@ -503,6 +522,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         storageLocationId: _selectedLocation?.firestoreId,
         storageLocationCode: _selectedLocation?.code,
         storageLocationName: _selectedLocation?.name,
+        pickupSchedule: _pickupSchedule,
       );
 
       // Lưu local trước
@@ -533,7 +553,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
           }
         } catch (e) {
           // Never block repair creation because customer insert conflicts.
-          debugPrint('CreateRepairOrder: customer upsert skipped due to error: $e');
+          debugPrint(
+            'CreateRepairOrder: customer upsert skipped due to error: $e',
+          );
         }
       }
 
@@ -548,23 +570,31 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       // Trigger sync ngay và chờ kết quả
       debugPrint('🔧 Triggering immediate sync for new repair...');
       final syncResult = await SyncOrchestrator().syncAll();
-      debugPrint('🔧 Sync result: success=${syncResult.success}, failed=${syncResult.failed}');
+      debugPrint(
+        '🔧 Sync result: success=${syncResult.success}, failed=${syncResult.failed}',
+      );
       bool syncedToCloud =
-          !syncResult.noNetwork && syncResult.failed == 0 && syncResult.success > 0;
+          !syncResult.noNetwork &&
+          syncResult.failed == 0 &&
+          syncResult.success > 0;
 
       // Nếu sync thất bại (có mạng nhưng ghi lỗi), thử upload trực tiếp lên Firestore.
       // Khi không có mạng (noNetwork) thì bỏ qua hoàn toàn, tránh treo màn hình.
       // Guard: không push local image path lên cloud vì web sẽ không render được.
       if (!syncedToCloud && !syncResult.noNetwork) {
-        debugPrint('🔧 Queue sync did not confirm cloud doc, trying direct Firestore upload...');
+        debugPrint(
+          '🔧 Queue sync did not confirm cloud doc, trying direct Firestore upload...',
+        );
         try {
           final hasLocalOnlyImagePath = ((savedRepair.imagePath ?? '')
               .split(RegExp(r'[,;\n]'))
               .map((e) => e.trim())
               .where((e) => e.isNotEmpty)
-              .any((p) =>
-                  !p.toLowerCase().startsWith('http://') &&
-                  !p.toLowerCase().startsWith('https://')));
+              .any(
+                (p) =>
+                    !p.toLowerCase().startsWith('http://') &&
+                    !p.toLowerCase().startsWith('https://'),
+              ));
 
           if (hasLocalOnlyImagePath) {
             debugPrint(
@@ -587,8 +617,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       // Chỉ kiểm tra khi đã xác định là có mạng để tránh treo.
       if (syncedToCloud) {
         try {
-          final cloudDoc = await FirestoreService.getRepairDoc(r.firestoreId!)
-              .timeout(const Duration(seconds: 6));
+          final cloudDoc = await FirestoreService.getRepairDoc(
+            r.firestoreId!,
+          ).timeout(const Duration(seconds: 6));
           syncedToCloud = cloudDoc.exists;
           if (!syncedToCloud) {
             debugPrint(
@@ -608,16 +639,26 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         action: loc.repairInputAction,
         type: "REPAIR",
         targetId: rWithCloudId.firestoreId,
-        desc: loc.repairInputDesc(rWithCloudId.model, rWithCloudId.customerName),
+        desc: loc.repairInputDesc(
+          rWithCloudId.model,
+          rWithCloudId.customerName,
+        ),
       );
 
       // Handle partner outsourcing for services that have partners
       final service = RepairPartnerService();
-      final partnerServices = _services.where((s) => s.partnerId != null).toList();
-      for (var serviceIndex = 0; serviceIndex < partnerServices.length; serviceIndex++) {
+      final partnerServices = _services
+          .where((s) => s.partnerId != null)
+          .toList();
+      for (
+        var serviceIndex = 0;
+        serviceIndex < partnerServices.length;
+        serviceIndex++
+      ) {
         final s = partnerServices[serviceIndex];
         final repairOrderId = rWithCloudId.firestoreId!;
-        final serviceFirestoreId = s.firestoreId ?? RepairPartnerService.generateServiceFirestoreId();
+        final serviceFirestoreId =
+            s.firestoreId ?? RepairPartnerService.generateServiceFirestoreId();
         final success = await service.createPartnerHistoryForRepair(
           repairOrderId: repairOrderId,
           partnerId: s.partnerId!,
@@ -632,7 +673,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             'Warning: Partner history creation failed for service ${s.serviceName}',
           );
         }
-        
+
         // === XỬ LÝ PAYMENT METHOD CHO DỊCH VỤ ĐỐI TÁC ===
         if (s.paymentMethod != null) {
           final shopId = await UserService.getCurrentShopId() ?? '';
@@ -645,7 +686,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             customerName: r.customerName,
             isDebt: s.paymentMethod == 'CÔNG NỢ',
           );
-          
+
           if (s.paymentMethod == 'CÔNG NỢ') {
             // CÔNG NỢ → tạo debt record vào bảng debts
             try {
@@ -673,7 +714,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 'isSynced': 0,
               };
               final debtId = await db.insertDebt(debtData);
-              
+
               // Sync debt to cloud
               if (debtId > 0) {
                 await SyncOrchestrator().enqueue(
@@ -684,10 +725,11 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                   data: debtData,
                 );
               }
-              
+
               // Công nợ đã ghi nhận ở bảng debts - không cần PaymentIntent
-              debugPrint('✅ Partner debt recorded: $debtFId for ${s.partnerName}');
-              
+              debugPrint(
+                '✅ Partner debt recorded: $debtFId for ${s.partnerName}',
+              );
             } catch (e) {
               debugPrint('⚠️ Failed to create partner debt: $e');
             }
@@ -698,7 +740,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 type: PaymentIntentType.repairPartnerDebt,
                 amount: s.cost,
                 paymentMethod: PaymentMethod.fromCode(s.paymentMethod),
-                description: 'Trả đối tác: ${s.partnerName ?? "N/A"} - ${s.serviceName}',
+                description:
+                    'Trả đối tác: ${s.partnerName ?? "N/A"} - ${s.serviceName}',
                 executedBy: FirebaseAuth.instance.currentUser?.uid ?? 'unknown',
                 referenceId: repairOrderId,
                 referenceType: 'repair_partner_service',
@@ -722,7 +765,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                       paymentMethod: s.paymentMethod!,
                     ),
               );
-              debugPrint('💳 Partner payment ${payResult.success ? "OK" : "FAILED"}: ${s.cost}đ');
+              debugPrint(
+                '💳 Partner payment ${payResult.success ? "OK" : "FAILED"}: ${s.cost}đ',
+              );
             } catch (e) {
               debugPrint('⚠️ Failed to create partner PaymentIntent: $e');
             }
@@ -812,9 +857,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         Navigator.pop(context);
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => OrderListView(role: widget.role),
-          ),
+          MaterialPageRoute(builder: (_) => OrderListView(role: widget.role)),
         );
       }
       NotificationService.showSnackBar(
@@ -859,9 +902,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         Navigator.pop(context);
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => OrderListView(role: widget.role),
-          ),
+          MaterialPageRoute(builder: (_) => OrderListView(role: widget.role)),
         );
       }
 
@@ -897,10 +938,15 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                     title: Text(service.serviceName),
                     subtitle: service.partnerName != null
                         ? Text(
-                            loc.partnerCost(service.partnerName!, "${MoneyUtils.formatVND(service.cost.toInt())}₫"),
+                            loc.partnerCost(
+                              service.partnerName!,
+                              "${MoneyUtils.formatVND(service.cost.toInt())}₫",
+                            ),
                           )
                         : Text(
-                            loc.costOnly("${MoneyUtils.formatVND(service.cost.toInt())}₫"),
+                            loc.costOnly(
+                              "${MoneyUtils.formatVND(service.cost.toInt())}₫",
+                            ),
                           ),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
@@ -915,7 +961,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         const SizedBox(height: 10),
         if (_canViewCostPrice)
           Text(
-            loc.totalCost("${MoneyUtils.formatVND(_services.fold(0, (sum, s) => sum + s.cost).toInt())} VNĐ"),
+            loc.totalCost(
+              "${MoneyUtils.formatVND(_services.fold(0, (sum, s) => sum + s.cost).toInt())} VNĐ",
+            ),
             style: AppTextStyles.priceStyle,
           ),
         const SizedBox(height: 10),
@@ -954,7 +1002,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       selectedPartner = null;
     }
     final partnerSearchCtrl = TextEditingController();
-    
+
     // Thêm payment method đồng bộ với repair_detail_view
     String? selectedPaymentMethod = editService?.paymentMethod ?? 'TIỀN MẶT';
     final paymentMethods = ['TIỀN MẶT', 'CHUYỂN KHOẢN', 'CÔNG NỢ'];
@@ -978,7 +1026,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
           }
 
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.viewInsetsOf(context).bottom,
+            ),
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
@@ -997,10 +1047,15 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                       child: Row(
                         children: [
-                          const Icon(Icons.build_circle_outlined, color: PopupTheme.blue),
+                          const Icon(
+                            Icons.build_circle_outlined,
+                            color: PopupTheme.blue,
+                          ),
                           const SizedBox(width: 8),
                           Text(
-                            editService != null ? loc.editService.toUpperCase() : loc.addServiceTitle.toUpperCase(),
+                            editService != null
+                                ? loc.editService.toUpperCase()
+                                : loc.addServiceTitle.toUpperCase(),
                             style: const TextStyle(
                               color: PopupTheme.textPrimary,
                               fontSize: 16,
@@ -1018,8 +1073,12 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                           children: [
                             TextFormField(
                               controller: serviceCtrl,
-                              style: const TextStyle(color: PopupTheme.textPrimary),
-                              decoration: InputDecoration(labelText: loc.serviceName),
+                              style: const TextStyle(
+                                color: PopupTheme.textPrimary,
+                              ),
+                              decoration: InputDecoration(
+                                labelText: loc.serviceName,
+                              ),
                               textCapitalization: TextCapitalization.characters,
                               validator: (v) => (v ?? '').trim().isEmpty
                                   ? loc.pleaseEnterServiceName
@@ -1039,7 +1098,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                             const SizedBox(height: 10),
                             TextField(
                               controller: partnerSearchCtrl,
-                              style: const TextStyle(color: PopupTheme.textPrimary),
+                              style: const TextStyle(
+                                color: PopupTheme.textPrimary,
+                              ),
                               decoration: InputDecoration(
                                 labelText: loc.searchPartner,
                                 prefixIcon: const Icon(Icons.search),
@@ -1088,17 +1149,25 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                               DropdownButtonFormField<String>(
                                 decoration: InputDecoration(
                                   labelText: loc.partnerPaymentMethod,
-                                  prefixIcon: const Icon(Icons.payment, size: 20),
+                                  prefixIcon: const Icon(
+                                    Icons.payment,
+                                    size: 20,
+                                  ),
                                 ),
                                 value: selectedPaymentMethod,
                                 items: paymentMethods
                                     .map(
-                                      (m) => DropdownMenuItem(value: m, child: Text(m)),
+                                      (m) => DropdownMenuItem(
+                                        value: m,
+                                        child: Text(m),
+                                      ),
                                     )
                                     .toList(),
-                                onChanged: (v) => setS(() => selectedPaymentMethod = v),
+                                onChanged: (v) =>
+                                    setS(() => selectedPaymentMethod = v),
                                 validator: (v) =>
-                                    selectedPartner != null && (v == null || v.isEmpty)
+                                    selectedPartner != null &&
+                                        (v == null || v.isEmpty)
                                     ? loc.pleaseSelectPaymentMethod
                                     : null,
                               ),
@@ -1127,19 +1196,31 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                                 foregroundColor: Colors.white,
                               ),
                               onPressed: () {
-                                if (!(formKey.currentState?.validate() ?? false)) return;
-                                final cost = MoneyUtils.parseCurrency(costCtrl.text);
+                                if (!(formKey.currentState?.validate() ??
+                                    false))
+                                  return;
+                                final cost = MoneyUtils.parseCurrency(
+                                  costCtrl.text,
+                                );
                                 final service = RepairService(
-                                  firestoreId: editService?.firestoreId ?? RepairPartnerService.generateServiceFirestoreId(),
-                                  serviceName: serviceCtrl.text.trim().toUpperCase(),
+                                  firestoreId:
+                                      editService?.firestoreId ??
+                                      RepairPartnerService.generateServiceFirestoreId(),
+                                  serviceName: serviceCtrl.text
+                                      .trim()
+                                      .toUpperCase(),
                                   cost: cost,
                                   partnerId: selectedPartner?.id,
                                   partnerName: selectedPartner?.name,
-                                  paymentMethod: selectedPartner != null ? selectedPaymentMethod : null,
+                                  paymentMethod: selectedPartner != null
+                                      ? selectedPaymentMethod
+                                      : null,
                                 );
                                 setState(() {
                                   if (editService != null) {
-                                    final index = _services.indexOf(editService);
+                                    final index = _services.indexOf(
+                                      editService,
+                                    );
                                     _services[index] = service;
                                   } else {
                                     _services.add(service);
@@ -1148,7 +1229,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                                 EventBus().emit('repair_services_changed');
                                 Navigator.pop(ctx);
                               },
-                              child: Text(editService != null ? loc.update : loc.add),
+                              child: Text(
+                                editService != null ? loc.update : loc.add,
+                              ),
                             ),
                           ),
                         ],
@@ -1216,9 +1299,16 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                           label: Text(loc.saveAndPrint),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppBarAccents.repairs,
-                            side: const BorderSide(color: AppBarAccents.repairs),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            side: const BorderSide(
+                              color: AppBarAccents.repairs,
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                       ),
@@ -1227,12 +1317,20 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                         child: ElevatedButton.icon(
                           onPressed: _onlySave,
                           icon: const Icon(Icons.save_rounded, size: 20),
-                          label: Text(loc.saveOrder, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                          label: Text(
+                            loc.saveOrder,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 13),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                       ),
@@ -1261,8 +1359,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
               const SizedBox(height: 8),
               Center(
                 child: TextButton.icon(
-                  onPressed: () =>
-                      setState(() => _showAdvancedFields = !_showAdvancedFields),
+                  onPressed: () => setState(
+                    () => _showAdvancedFields = !_showAdvancedFields,
+                  ),
                   icon: Icon(
                     _showAdvancedFields
                         ? Icons.expand_less_rounded
@@ -1270,14 +1369,12 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                     size: 18,
                   ),
                   label: Text(
-                    _showAdvancedFields
-                        ? loc.hideDetails
-                        : loc.showMoreDetails,
-                    style: AppTextStyles.caption
-                        .copyWith(color: Colors.blueGrey),
+                    _showAdvancedFields ? loc.hideDetails : loc.showMoreDetails,
+                    style: AppTextStyles.caption.copyWith(
+                      color: Colors.blueGrey,
+                    ),
                   ),
-                  style:
-                      TextButton.styleFrom(foregroundColor: Colors.blueGrey),
+                  style: TextButton.styleFrom(foregroundColor: Colors.blueGrey),
                 ),
               ),
               if (_showAdvancedFields) ...[
@@ -1342,12 +1439,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
               caps: true,
             ),
             const SizedBox(height: 8),
-            _compactInput(
-              issueCtrl,
-              loc.deviceIssue,
-              Icons.build,
-              caps: true,
-            ),
+            _compactInput(issueCtrl, loc.deviceIssue, Icons.build, caps: true),
             const SizedBox(height: 8),
             CurrencyTextField(
               controller: priceCtrl,
@@ -1360,8 +1452,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
               maxLines: 2,
               decoration: InputDecoration(
                 hintText: loc.notesPlaceholder,
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
           ],
@@ -1374,8 +1467,12 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   Widget _buildCustomerQuickCard() {
     final repair = _lastRepair;
     final hasDebt = _customerActiveDebt != 0;
-    final debtColor = _customerActiveDebt > 0 ? Colors.red.shade700 : Colors.green.shade700;
-    final debtLabel = _customerActiveDebt > 0 ? loc.customerOwesDebt : loc.shopOwesCustomer;
+    final debtColor = _customerActiveDebt > 0
+        ? Colors.red.shade700
+        : Colors.green.shade700;
+    final debtLabel = _customerActiveDebt > 0
+        ? loc.customerOwesDebt
+        : loc.shopOwesCustomer;
 
     String? lastDate;
     if (repair != null) {
@@ -1406,19 +1503,30 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                   children: [
                     Text(
                       'Khách cũ · $_customerTotalRepairs đơn',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.blue.shade700),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue.shade700,
+                      ),
                     ),
                     if (hasDebt) ...[
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: debtColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           '$debtLabel ${MoneyUtils.formatCompactCurrency(_customerActiveDebt.abs())}',
-                          style: TextStyle(fontSize: 10, color: debtColor, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: debtColor,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
@@ -1454,7 +1562,13 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
               children: [
                 const Icon(Icons.person_outline, color: Colors.blue, size: 18),
                 const SizedBox(width: 6),
-                Text(loc.customerAndDevice, style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold, color: Colors.blue)),
+                Text(
+                  loc.customerAndDevice,
+                  style: AppTextStyles.body1.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                  ),
+                ),
                 const Spacer(),
                 Stack(
                   clipBehavior: Clip.none,
@@ -1477,10 +1591,17 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                             color: Colors.red,
                             shape: BoxShape.circle,
                           ),
-                          constraints: const BoxConstraints(minWidth: 15, minHeight: 15),
+                          constraints: const BoxConstraints(
+                            minWidth: 15,
+                            minHeight: 15,
+                          ),
                           child: Text(
                             '${_images.length}',
-                            style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -1500,7 +1621,11 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                     phoneCtrl.text.trim().isNotEmpty)
                   IconButton(
                     onPressed: _addCustomerQuick,
-                    icon: const Icon(Icons.person_add, size: 18, color: Colors.green),
+                    icon: const Icon(
+                      Icons.person_add,
+                      size: 18,
+                      color: Colors.green,
+                    ),
                     tooltip: loc.addCustomer,
                     constraints: const BoxConstraints(),
                     padding: const EdgeInsets.only(left: 8),
@@ -1513,9 +1638,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
               dense: true,
               title: Text(loc.walkInCustomer),
               subtitle: Text(
-                _isWalkIn
-                    ? loc.walkInCustomerDesc
-                    : loc.saveToContactsDesc,
+                _isWalkIn ? loc.walkInCustomerDesc : loc.saveToContactsDesc,
                 style: AppTextStyles.body1,
               ),
               value: _isWalkIn,
@@ -1556,7 +1679,12 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             if (_customerTotalRepairs > 0) const SizedBox(height: 8),
             // Advanced: address + storage location (hidden in quick mode)
             if (_showAdvancedFields) ...[
-              _compactInput(addressCtrl, loc.customerAddressOptional, Icons.location_on, caps: true),
+              _compactInput(
+                addressCtrl,
+                loc.customerAddressOptional,
+                Icons.location_on,
+                caps: true,
+              ),
               const SizedBox(height: 8),
               StorageLocationSelector(
                 selectedLocationId: _selectedLocation?.firestoreId,
@@ -1568,11 +1696,25 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             ],
             // Row 2: Quick brands + Model
             _quick(brands, modelCtrl, modelF),
-            _compactInput(modelCtrl, loc.deviceModel, Icons.phone_android, caps: true, focusNode: modelF, nextFocus: issueF),
+            _compactInput(
+              modelCtrl,
+              loc.deviceModel,
+              Icons.phone_android,
+              caps: true,
+              focusNode: modelF,
+              nextFocus: issueF,
+            ),
             const SizedBox(height: 8),
             // Row 3: Quick issues + Lỗi
             _quick(commonIssues, issueCtrl, priceF),
-            _compactInput(issueCtrl, loc.deviceIssue, Icons.build, caps: true, focusNode: issueF, nextFocus: priceF),
+            _compactInput(
+              issueCtrl,
+              loc.deviceIssue,
+              Icons.build,
+              caps: true,
+              focusNode: issueF,
+              nextFocus: priceF,
+            ),
             const SizedBox(height: 8),
             // Row 4: Giá
             CurrencyTextField(
@@ -1581,6 +1723,15 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
               icon: Icons.monetization_on,
               onSubmitted: () => FocusScope.of(context).requestFocus(passF),
             ),
+            const SizedBox(height: 8),
+            Text(
+              'Hẹn giao máy',
+              style: AppTextStyles.caption.copyWith(
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            _buildPickupScheduleChips(),
           ],
         ),
       ),
@@ -1600,13 +1751,27 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
               children: [
                 const Icon(Icons.handyman, color: Colors.teal, size: 20),
                 const SizedBox(width: 8),
-                Text(loc.services, style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold)),
+                Text(
+                  loc.services,
+                  style: AppTextStyles.body1.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 if (_services.isNotEmpty) ...[
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(color: Colors.teal, borderRadius: BorderRadius.circular(10)),
-                    child: Text("${_services.length}", style: AppTextStyles.body2.copyWith(color: Colors.white)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.teal,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      "${_services.length}",
+                      style: AppTextStyles.body2.copyWith(color: Colors.white),
+                    ),
                   ),
                 ],
               ],
@@ -1632,7 +1797,12 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
               children: [
                 Icon(Icons.lock_outline, color: Colors.red.shade400, size: 20),
                 const SizedBox(width: 8),
-                Text(loc.securityAccessories, style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold)),
+                Text(
+                  loc.securityAccessories,
+                  style: AppTextStyles.body1.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -1642,11 +1812,20 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
               spacing: 6,
               runSpacing: 4,
               children: quickAccs.map((acc) {
-                return _compactChip(acc, _selectedAccs.contains(acc), () => _toggleAcc(acc));
+                return _compactChip(
+                  acc,
+                  _selectedAccs.contains(acc),
+                  () => _toggleAcc(acc),
+                );
               }).toList(),
             ),
             const SizedBox(height: 6),
-            _compactInput(accCtrl, loc.otherAccessories, Icons.add_box_outlined, caps: true),
+            _compactInput(
+              accCtrl,
+              loc.otherAccessories,
+              Icons.add_box_outlined,
+              caps: true,
+            ),
           ],
         ),
       ),
@@ -1665,7 +1844,12 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
 
   Widget _compactChip(String label, bool selected, VoidCallback onTap) {
     return FilterChip(
-      label: Text(label, style: AppTextStyles.body2.copyWith(fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
+      label: Text(
+        label,
+        style: AppTextStyles.body2.copyWith(
+          fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
       selected: selected,
       onSelected: (_) => onTap(),
       selectedColor: Colors.blue.shade100,
@@ -1686,9 +1870,18 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
           children: [
             Row(
               children: [
-                const Icon(Icons.note_alt_outlined, color: Colors.blueGrey, size: 20),
+                const Icon(
+                  Icons.note_alt_outlined,
+                  color: Colors.blueGrey,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
-                Text(loc.notesAndImages, style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold)),
+                Text(
+                  loc.notesAndImages,
+                  style: AppTextStyles.body1.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -1712,14 +1905,28 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   }
 
   /// Compact input field
-  Widget _compactInput(TextEditingController c, String label, IconData icon, {bool caps = false, TextInputType type = TextInputType.text, FocusNode? focusNode, FocusNode? nextFocus}) {
+  Widget _compactInput(
+    TextEditingController c,
+    String label,
+    IconData icon, {
+    bool caps = false,
+    TextInputType type = TextInputType.text,
+    FocusNode? focusNode,
+    FocusNode? nextFocus,
+  }) {
     return TextField(
       controller: c,
       focusNode: focusNode,
       keyboardType: type,
-      textCapitalization: caps ? TextCapitalization.characters : TextCapitalization.none,
-      textInputAction: nextFocus != null ? TextInputAction.next : TextInputAction.done,
-      onSubmitted: nextFocus != null ? (_) => FocusScope.of(context).requestFocus(nextFocus) : null,
+      textCapitalization: caps
+          ? TextCapitalization.characters
+          : TextCapitalization.none,
+      textInputAction: nextFocus != null
+          ? TextInputAction.next
+          : TextInputAction.done,
+      onSubmitted: nextFocus != null
+          ? (_) => FocusScope.of(context).requestFocus(nextFocus)
+          : null,
       style: AppTextStyles.body1,
       decoration: InputDecoration(
         labelText: label,
@@ -1729,6 +1936,30 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         contentPadding: DesignTokens.formContentPadding,
         border: OutlineInputBorder(borderRadius: DesignTokens.brSm),
       ),
+    );
+  }
+
+  Widget _buildPickupScheduleChips() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      children: Repair.pickupScheduleLabels.entries.map((entry) {
+        final selected = _pickupSchedule == entry.key;
+        return ChoiceChip(
+          label: Text(
+            entry.value,
+            style: AppTextStyles.caption.copyWith(
+              fontWeight: FontWeight.bold,
+              color: selected ? Colors.white : null,
+            ),
+          ),
+          selected: selected,
+          selectedColor: Colors.teal,
+          onSelected: (v) {
+            setState(() => _pickupSchedule = v ? entry.key : null);
+          },
+        );
+      }).toList(),
     );
   }
 
@@ -1767,11 +1998,10 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          ..._images.asMap().entries.map(
-            (entry) {
-              final idx = entry.key;
-              final f = entry.value;
-              return Container(
+          ..._images.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final f = entry.value;
+            return Container(
               margin: const EdgeInsets.only(right: 10),
               width: 80,
               height: 80,
@@ -1810,8 +2040,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 ],
               ),
             );
-            },
-          ),
+          }),
           OutlinedButton.icon(
             onPressed: _showAddImageOptions,
             icon: const Icon(Icons.add_a_photo),
@@ -1871,7 +2100,10 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       if (picked == null || !mounted) return;
       setState(() => _images.add(picked));
     } catch (e) {
-      NotificationService.showSnackBar('Không thể chụp ảnh: $e', color: Colors.red);
+      NotificationService.showSnackBar(
+        'Không thể chụp ảnh: $e',
+        color: Colors.red,
+      );
     }
   }
 
@@ -1881,7 +2113,10 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       if (picked.isEmpty || !mounted) return;
       setState(() => _images.addAll(picked));
     } catch (e) {
-      NotificationService.showSnackBar('Không thể chọn ảnh: $e', color: Colors.red);
+      NotificationService.showSnackBar(
+        'Không thể chọn ảnh: $e',
+        color: Colors.red,
+      );
     }
   }
 

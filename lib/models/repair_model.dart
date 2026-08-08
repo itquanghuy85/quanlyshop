@@ -181,6 +181,9 @@ class Repair {
   String? storageLocationCode;
   String? storageLocationName;
 
+  // Hẹn giao máy: 'now' (lấy ngay), 'same_day' (trong ngày), 'later' (báo sau)
+  String? pickupSchedule;
+
   // Getter for receive images
   List<String> get receiveImages {
     if (imagePath == null || imagePath!.trim().isEmpty) return [];
@@ -285,7 +288,17 @@ class Repair {
     this.storageLocationId,
     this.storageLocationCode,
     this.storageLocationName,
+    this.pickupSchedule,
   });
+
+  static const Map<String, String> pickupScheduleLabels = {
+    'now': 'Lấy ngay',
+    'same_day': 'Trong ngày',
+    'later': 'Báo sau',
+  };
+
+  String? get pickupScheduleLabel =>
+      pickupSchedule == null ? null : pickupScheduleLabels[pickupSchedule];
 
   int get servicesCost => services.fold(0, (sum, s) => sum + s.cost);
 
@@ -360,6 +373,7 @@ class Repair {
       'storageLocationId': storageLocationId,
       'storageLocationCode': storageLocationCode,
       'storageLocationName': storageLocationName,
+      'pickupSchedule': pickupSchedule,
     };
   }
 
@@ -367,10 +381,13 @@ class Repair {
     final services = _parseRepairServices(map['services']);
     final parsedCost = _parseIntSafe(map['cost']);
     final parsedTotalCost = _parseIntSafe(map['totalCost']);
-    final fallbackServicesCost = services.fold<int>(0, (sum, s) => sum + s.cost);
+    final fallbackServicesCost = services.fold<int>(
+      0,
+      (sum, s) => sum + s.cost,
+    );
     final hasRequestedDeliveryPrice =
-      map.containsKey('requestedDeliveryPrice') &&
-      map['requestedDeliveryPrice'] != null;
+        map.containsKey('requestedDeliveryPrice') &&
+        map['requestedDeliveryPrice'] != null;
     final normalizedCost = parsedCost > 0
         ? parsedCost
         : (parsedTotalCost > 0 ? parsedTotalCost : fallbackServicesCost);
@@ -435,6 +452,7 @@ class Repair {
       storageLocationId: map['storageLocationId'],
       storageLocationCode: map['storageLocationCode'],
       storageLocationName: map['storageLocationName'],
+      pickupSchedule: map['pickupSchedule'],
     );
   }
 
@@ -486,6 +504,7 @@ class Repair {
     String? storageLocationId,
     String? storageLocationCode,
     String? storageLocationName,
+    String? pickupSchedule,
   }) {
     return Repair(
       id: id ?? this.id,
@@ -527,20 +546,17 @@ class Repair {
       notes: notes ?? this.notes,
       pendingDeliveryApproval:
           pendingDeliveryApproval ?? this.pendingDeliveryApproval,
-        requestedDeliveryPrice:
+      requestedDeliveryPrice:
           requestedDeliveryPrice ?? this.requestedDeliveryPrice,
-      costRecordedInFund:
-          costRecordedInFund ?? this.costRecordedInFund,
-      costPaymentMethod:
-          costPaymentMethod ?? this.costPaymentMethod,
-      costRecordedAt:
-          costRecordedAt ?? this.costRecordedAt,
-        costRecordedAmount:
-          costRecordedAmount ?? this.costRecordedAmount,
+      costRecordedInFund: costRecordedInFund ?? this.costRecordedInFund,
+      costPaymentMethod: costPaymentMethod ?? this.costPaymentMethod,
+      costRecordedAt: costRecordedAt ?? this.costRecordedAt,
+      costRecordedAmount: costRecordedAmount ?? this.costRecordedAmount,
       shopId: shopId ?? this.shopId,
       storageLocationId: storageLocationId ?? this.storageLocationId,
       storageLocationCode: storageLocationCode ?? this.storageLocationCode,
       storageLocationName: storageLocationName ?? this.storageLocationName,
+      pickupSchedule: pickupSchedule ?? this.pickupSchedule,
     );
   }
 }

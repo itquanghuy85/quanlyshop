@@ -2178,11 +2178,15 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       );
 
       // Direct write for immediate badge clear (< 2s); orchestrator is backup
-      unawaited(FirestoreService.upsertRepair(r).then((_) async {
-        r.isSynced = true;
-        await db.upsertRepair(r);
-        if (mounted) setState(() {});
-      }).catchError((_) {}));
+      unawaited(
+        FirestoreService.upsertRepair(r)
+            .then((_) async {
+              r.isSynced = true;
+              await db.upsertRepair(r);
+              if (mounted) setState(() {});
+            })
+            .catchError((_) {}),
+      );
       // Also queue via orchestrator for any remaining pending items
       if (r.id != null) {
         await SyncOrchestrator().enqueue(
@@ -3346,7 +3350,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   borderRadius: BorderRadius.circular(4),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 8),
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       border: Border.all(
                         color: hasSupplier
@@ -3361,10 +3367,13 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.store, size: 16,
-                            color: hasSupplier
-                                ? Colors.blue.shade600
-                                : Colors.grey.shade600),
+                        Icon(
+                          Icons.store,
+                          size: 16,
+                          color: hasSupplier
+                              ? Colors.blue.shade600
+                              : Colors.grey.shade600,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           selName ?? 'Chọn nhà cung cấp...',
@@ -3379,8 +3388,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        Icon(Icons.arrow_drop_down, size: 18,
-                            color: Colors.grey.shade600),
+                        Icon(
+                          Icons.arrow_drop_down,
+                          size: 18,
+                          color: Colors.grey.shade600,
+                        ),
                       ],
                     ),
                   ),
@@ -3391,7 +3403,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     child: Text(
                       'Chọn "Nợ NCC" để ghi công nợ cho $selName',
                       style: const TextStyle(
-                          fontSize: 11, color: Colors.orange),
+                        fontSize: 11,
+                        color: Colors.orange,
+                      ),
                     ),
                   ),
               ],
@@ -3414,8 +3428,8 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   });
                 },
                 style: TextButton.styleFrom(
-                    foregroundColor:
-                        hasSupplier ? Colors.orange : Colors.grey),
+                  foregroundColor: hasSupplier ? Colors.orange : Colors.grey,
+                ),
                 child: Text(
                   hasSupplier ? 'Nợ NCC' : 'Nợ NCC (chọn NCC↑)',
                   style: const TextStyle(fontSize: 12),
@@ -3541,8 +3555,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         final sheetLoc = AppLocalizations.of(ctx)!;
+        // Read from outer `context`, not inner `ctx` — see _editBasicInfo
+        // above for why (same _dependents.isEmpty race, same fix).
         return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
           child: Container(
             decoration: const BoxDecoration(
               color: PopupTheme.bgDark,
@@ -3594,9 +3610,17 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () {
-                          FocusScope.of(ctx).unfocus();
-                          Navigator.pop(ctx, false);
+                        onPressed: () async {
+                          // See _editBasicInfo above: FocusManager (not
+                          // FocusScope.of(ctx)) avoids registering a fresh
+                          // widget-tree dependency right before this route
+                          // pops — the actual root cause of an intermittent
+                          // _dependents.isEmpty crash.
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          await Future.delayed(Duration.zero);
+                          if (ctx.mounted) {
+                            Navigator.pop(ctx, false);
+                          }
                         },
                         child: Text(sheetLoc.cancel),
                       ),
@@ -3605,9 +3629,12 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     Expanded(
                       flex: 2,
                       child: ElevatedButton(
-                        onPressed: () {
-                          FocusScope.of(ctx).unfocus();
-                          Navigator.pop(ctx, true);
+                        onPressed: () async {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          await Future.delayed(Duration.zero);
+                          if (ctx.mounted) {
+                            Navigator.pop(ctx, true);
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.orange,
@@ -3658,6 +3685,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     final addressC = TextEditingController(text: r.address);
     final notesC = TextEditingController(text: r.notes ?? '');
     final searchC = TextEditingController();
+    String? pickupScheduleLocal = r.pickupSchedule;
     List<Map<String, dynamic>> customerSearchResults = [];
     Timer? customerSearchTimer;
     final shopId = await UserService.getCurrentShopId();
@@ -3690,9 +3718,29 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             );
           }
 
+          // Extra bottom inset: some OEM Android skins (e.g. ColorOS gesture
+          // nav) intercept touches in the bottom edge strip for system
+          // back/home gestures even though Flutter still paints content
+          // there — MediaQuery's own safe-area padding doesn't always
+          // account for it, so the Save/Cancel row could render in that
+          // dead zone and never receive taps. Add a minimum margin on top
+          // of the reported safe-area/keyboard inset.
+          //
+          // Read from the outer `context` (State's own), not the inner
+          // `ctx` (this sheet route's builder context): reading from `ctx`
+          // makes this Padding a dependent of the route-scoped MediaQuery,
+          // which can deactivate before the dependency unregisters when
+          // Navigator.pop(ctx) runs, tripping a `_dependents.isEmpty`
+          // assertion — intermittent because it's a frame-timing race. Same
+          // root cause and fix as the 2026-06-05 pass across 11 other
+          // files: always read MediaQuery from the outer context inside a
+          // bottom-sheet builder. (Wrapping with an explicit SafeArea
+          // widget instead was tried and hit the same assertion.)
+          final safeAreaBottom = MediaQuery.paddingOf(context).bottom;
+          final bottomSafe = safeAreaBottom > 16.0 ? safeAreaBottom : 16.0;
           return Padding(
             padding: EdgeInsets.only(
-              bottom: MediaQuery.viewInsetsOf(ctx).bottom,
+              bottom: MediaQuery.viewInsetsOf(context).bottom + bottomSafe,
             ),
             child: Container(
               decoration: const BoxDecoration(
@@ -3879,6 +3927,43 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                               textCapitalization: TextCapitalization.characters,
                             ),
                             const SizedBox(height: 10),
+                            const Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'Hẹn giao máy',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: PopupTheme.textSecondary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 4,
+                              children: Repair.pickupScheduleLabels.entries.map(
+                                (entry) {
+                                  final selected =
+                                      pickupScheduleLocal == entry.key;
+                                  return ChoiceChip(
+                                    label: Text(entry.value),
+                                    selected: selected,
+                                    selectedColor: Colors.teal,
+                                    labelStyle: TextStyle(
+                                      color: selected ? Colors.white : null,
+                                    ),
+                                    onSelected: (v) {
+                                      setS(
+                                        () => pickupScheduleLocal = v
+                                            ? entry.key
+                                            : null,
+                                      );
+                                    },
+                                  );
+                                },
+                              ).toList(),
+                            ),
+                            const SizedBox(height: 10),
                             TextFormField(
                               controller: addressC,
                               decoration: InputDecoration(
@@ -3895,44 +3980,69 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                               maxLines: 2,
                             ),
                             const SizedBox(height: 20),
+                            // Buttons live inside the scrollable area (not a
+                            // fixed footer) so they stay reachable by
+                            // scrolling no matter how tall the form grows —
+                            // a fixed footer previously got pushed past the
+                            // safe-area edge into the system gesture zone on
+                            // some devices once this form gained more fields.
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () async {
+                                      // FocusScope.of(ctx) (not FocusManager)
+                                      // registers ctx's element as a fresh
+                                      // dependent of this modal route's own
+                                      // FocusScope right as the route starts
+                                      // popping — an intermittent
+                                      // _dependents.isEmpty race (only when
+                                      // the dependency doesn't get cleared by
+                                      // a rebuild before the pop lands).
+                                      // FocusManager.instance.primaryFocus
+                                      // unfocuses without touching the
+                                      // widget-tree dependency system at all.
+                                      FocusManager.instance.primaryFocus
+                                          ?.unfocus();
+                                      customerSearchTimer?.cancel();
+                                      await Future.delayed(Duration.zero);
+                                      if (ctx.mounted) {
+                                        Navigator.pop(ctx, false);
+                                      }
+                                    },
+                                    child: Text(sheetLoc.cancelButton),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  flex: 2,
+                                  child: ElevatedButton(
+                                    onPressed: () async {
+                                      if (!(formKey.currentState?.validate() ??
+                                          false)) {
+                                        return;
+                                      }
+                                      FocusManager.instance.primaryFocus
+                                          ?.unfocus();
+                                      customerSearchTimer?.cancel();
+                                      await Future.delayed(Duration.zero);
+                                      if (ctx.mounted) {
+                                        Navigator.pop(ctx, true);
+                                      }
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: PopupTheme.blue,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    child: Text(sheetLoc.saveButton),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
                           ],
                         ),
                       ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () {
-                              FocusScope.of(ctx).unfocus();
-                              Navigator.pop(ctx, false);
-                            },
-                            child: Text(sheetLoc.cancelButton),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 2,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (!(formKey.currentState?.validate() ??
-                                  false)) {
-                                return;
-                              }
-                              FocusScope.of(ctx).unfocus();
-                              Navigator.pop(ctx, true);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: PopupTheme.blue,
-                              foregroundColor: Colors.white,
-                            ),
-                            child: Text(sheetLoc.saveButton),
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ],
@@ -3953,6 +4063,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       warranty: warrantyC.text.trim(),
       address: addressC.text.trim(),
       notes: notesC.text.trim(),
+      pickupSchedule: pickupScheduleLocal,
     );
     Future.delayed(Duration.zero, () {
       nameC.dispose();
@@ -3975,6 +4086,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         r.warranty = vals.warranty.toUpperCase();
         r.address = vals.address.toUpperCase();
         r.notes = vals.notes.isNotEmpty ? vals.notes : null;
+        r.pickupSchedule = vals.pickupSchedule;
       });
       await _saveData();
     }
@@ -4568,6 +4680,8 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                         _compactInfoRow("PK", r.accessories),
                       if (r.warranty.isNotEmpty)
                         _compactInfoRow(loc.warranty, r.warranty),
+                      if (r.pickupScheduleLabel != null)
+                        _compactInfoRow('Hẹn giao', r.pickupScheduleLabel!),
                       if (r.notes != null && r.notes!.isNotEmpty)
                         _compactInfoRow(loc.note, r.notes!),
 

@@ -28,6 +28,11 @@ class FirestoreAuditService {
   // Active listeners: collection -> count
   final Map<String, int> _activeListeners = {};
 
+  // Distinct (collection::service::method) keys already counted as an open
+  // listener, so repeated snapshot events from the same subscription don't
+  // keep incrementing _activeListeners on every read.
+  final Set<String> _activeListenerKeys = {};
+
   // Live stream
   final StreamController<AuditEvent> _liveController =
       StreamController<AuditEvent>.broadcast();
@@ -74,6 +79,7 @@ class FirestoreAuditService {
     } catch (_) {}
     if (!value) {
       _activeListeners.clear();
+      _activeListenerKeys.clear();
     }
     _notifyStats();
   }
@@ -121,7 +127,14 @@ class FirestoreAuditService {
     _updateDailyTotal(reads);
 
     if (isActiveListener) {
-      _activeListeners[collection] = (_activeListeners[collection] ?? 0) + 1;
+      // Count distinct subscriptions, not every snapshot event: without this
+      // key guard, a single long-lived listener would keep incrementing the
+      // badge on each new document it receives (looked like a leak of dozens
+      // of listeners when it was really one listener firing repeatedly).
+      final listenerKey = '$collection::$callerService::$callerMethod';
+      if (_activeListenerKeys.add(listenerKey)) {
+        _activeListeners[collection] = (_activeListeners[collection] ?? 0) + 1;
+      }
     }
 
     if (!_liveController.isClosed) {
@@ -140,6 +153,7 @@ class FirestoreAuditService {
       } else {
         _activeListeners[collection] = current - 1;
       }
+      _activeListenerKeys.removeWhere((key) => key.startsWith('$collection::'));
       _notifyStats();
     }
   }
@@ -149,6 +163,7 @@ class FirestoreAuditService {
     _stats.reset();
     _recentEvents.clear();
     _activeListeners.clear();
+    _activeListenerKeys.clear();
     _notifyStats();
   }
 

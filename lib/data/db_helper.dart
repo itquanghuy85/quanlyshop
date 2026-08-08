@@ -521,7 +521,7 @@ class DBHelper {
 
     final db = await openDatabase(
       path,
-      version: 103,
+      version: 104,
       onConfigure: (db) async {
         try {
           await db.execute('PRAGMA foreign_keys = ON');
@@ -2178,6 +2178,15 @@ class DBHelper {
             debugPrint('DB upgrade v103 error: $e');
           }
         }
+        if (oldV < 104) {
+          try {
+            await db.execute(
+              'ALTER TABLE repairs ADD COLUMN pickupSchedule TEXT',
+            );
+          } catch (e) {
+            debugPrint('DB upgrade error (repairs pickupSchedule): $e');
+          }
+        }
         if (oldV < 26) {
           // Migration to remove kpkPrice and pkPrice columns from products and quick_input_codes tables
           // Since SQLite doesn't support DROP COLUMN, we'll recreate tables without these columns
@@ -3812,6 +3821,12 @@ class DBHelper {
               'ALTER TABLE repairs ADD COLUMN storageLocationName TEXT',
             );
             debugPrint('DB onOpen: added storageLocationName to repairs');
+          }
+          if (!colNames.contains('pickupSchedule')) {
+            await db.execute(
+              'ALTER TABLE repairs ADD COLUMN pickupSchedule TEXT',
+            );
+            debugPrint('DB onOpen: added pickupSchedule to repairs');
           }
         } catch (e) {
           debugPrint('DB onOpen check error (repairs columns): $e');
