@@ -15,11 +15,11 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Active Initiative:** Multi-fix session 2026-08-08 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng)
 
 ### ✅ Vừa hoàn thành (2026-08-08b): feat(repair): tìm kiếm khách hàng tự động khi tạo đơn sửa
-- Widget tái sử dụng `CustomerAutocompleteField` (`lib/widgets/customer_autocomplete_field.dart`) — 1 ô tìm kiếm SĐT/tên, debounce 180ms, local SQLite only, không phải Overlay nên không dính nhóm lỗi `_dependents.isEmpty`
+- `lib/widgets/customer_autocomplete_field.dart`: 2 widget dùng chung logic — `CustomerSuggestionsPanel` (controlled, gắn thẳng vào field có sẵn) và `CustomerAutocompleteField` (tự chứa TextField riêng, cho màn chưa có field sẵn). Debounce 180ms, local SQLite only, không phải Overlay nên không dính nhóm lỗi `_dependents.isEmpty`
 - `DBHelper.searchCustomersRanked()` — xếp hạng exact phone > prefix > substring, rỗng → khách ghé gần nhất
-- Tích hợp vào `create_repair_order_view.dart`: chọn khách tự điền SĐT/Tên + trigger `_smartFill()` có sẵn (quick-card công nợ/lịch sử)
-- Chưa tích hợp vào các màn khác (bán hàng, bảo hành, công nợ) — widget đã tái sử dụng được, chỉ cần thêm khi có yêu cầu
-- Đã test trên Oppo CPH2203: tìm SĐT, tìm tên không phân biệt hoa thường, khách gần nhất khi trống, auto-fill — đều OK
+- Tích hợp vào `create_repair_order_view.dart`: **gõ trực tiếp vào ô SĐT hoặc Tên KH có sẵn** hiện gợi ý ngay bên dưới (không phải ô tìm riêng — đã đổi theo phản hồi user sau bản đầu). Chọn khách tự điền cả 2 field + trigger `_smartFill()` có sẵn (quick-card công nợ/lịch sử)
+- Chưa tích hợp vào các màn khác (bán hàng, bảo hành, công nợ) — `CustomerSuggestionsPanel` đã tái sử dụng được, chỉ cần gắn vào field tương ứng khi có yêu cầu
+- Đã test trên Oppo CPH2203: gõ SĐT hiện gợi ý, gõ tên hiện gợi ý (không phân biệt hoa thường), khách gần nhất khi field vừa focus còn trống, auto-fill cả 2 field — đều OK
 - Chi tiết: `docs/CHANGELOG.md` mục `[2026-08-08b]`
 
 ### ✅ Vừa hoàn thành (2026-08-08): fix(audit,sync,notification) + feat(repair): hẹn giao máy

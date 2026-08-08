@@ -13,19 +13,22 @@ Lịch sử tất cả thay đổi từng phiên bản.
 - Query có nội dung → xếp hạng bằng `CASE`: khớp chính xác SĐT (rank 0) > SĐT/tên bắt đầu bằng query (rank 1) > còn lại chứa query (rank 3), giới hạn 10 kết quả
 - File: `lib/data/db_helper.dart`
 
-**2. Widget tái sử dụng `CustomerAutocompleteField`** (`lib/widgets/customer_autocomplete_field.dart`)
-- 1 ô tìm kiếm duy nhất (SĐT hoặc tên), debounce 180ms, không phải Overlay/portal — render list gợi ý ngay dưới field trong luồng scroll bình thường để tránh nhóm lỗi `_dependents.isEmpty` liên quan route/portal (bài học từ fix cùng ngày ở `repair_detail_view.dart`)
-- Focus vào field trống → hiện khách ghé gần nhất; gõ chữ → tìm theo tên/SĐT, không phân biệt hoa thường
+**2. Widget tái sử dụng trong `lib/widgets/customer_autocomplete_field.dart`** — 2 biến thể dùng chung 1 logic tìm kiếm + 1 danh sách kết quả:
+- `CustomerSuggestionsPanel` (controlled: nhận `query` + `active` từ ngoài) — gắn thẳng vào field SĐT/Tên **đã có sẵn** trong form, không thêm ô tìm kiếm riêng. Đây là bản UX cuối cùng sau khi user phản hồi muốn gõ trực tiếp vào SĐT/Tên là thấy gợi ý ngay, thay vì phải gõ vào 1 ô riêng phía trên
+- `CustomerAutocompleteField` (tự chứa TextField riêng) — vẫn giữ lại cho màn nào chưa có sẵn field SĐT/Tên để gắn vào
+- Cả 2 đều: debounce 180ms, không phải Overlay/portal — render list ngay dưới field trong luồng scroll bình thường để tránh nhóm lỗi `_dependents.isEmpty` liên quan route/portal (bài học từ fix cùng ngày ở `repair_detail_view.dart`)
+- Field trống (mới focus) → hiện khách ghé gần nhất; gõ chữ → tìm theo tên/SĐT, không phân biệt hoa thường
 - Mỗi dòng gợi ý hiển thị tên, SĐT, thời gian ghé gần nhất (dạng tương đối: "X phút/giờ/ngày trước")
-- Chọn 1 khách → callback `onSelected(Customer)`, tự xoá ô tìm kiếm — không tự sở hữu controller của form cha, nên tái dùng được ở màn tạo đơn bán, bảo hành, công nợ... sau này chỉ cần truyền `onSelected` khác
+- Chọn 1 khách → callback `onSelected(Customer)` — không tự sở hữu controller của form cha, nên tái dùng được ở màn tạo đơn bán, bảo hành, công nợ... sau này chỉ cần gắn vào field tương ứng + truyền `onSelected` khác
 - Chống race điều kiện: mỗi lần gõ có số thứ tự request riêng, kết quả trả về trễ (từ query cũ hơn) bị bỏ qua thay vì ghi đè kết quả mới
 
 **3. Tích hợp vào `create_repair_order_view.dart`**
-- Đặt `CustomerAutocompleteField` ngay trên khối "Khách vãng lai" + 2 field SĐT/Tên hiện có
+- Gắn `CustomerSuggestionsPanel` ngay dưới Row 2 field SĐT (`phoneCtrl`/`phoneF`) + Tên (`nameCtrl`/`nameF`) có sẵn — `active` = 1 trong 2 field đang focus, `query` = nội dung field đang focus. Gõ vào SĐT hoặc Tên đều kích hoạt cùng 1 danh sách gợi ý bên dưới
 - Khi chọn khách: tự điền `phoneCtrl`, `nameCtrl`, `addressCtrl` (nếu có) và gọi lại `_smartFill()` có sẵn để load card "Khách cũ · N đơn" + công nợ — không phải viết lại logic quick-card
+- `phoneF`/`nameF` là 2 `FocusNode` đã khai báo + dispose sẵn từ trước nhưng chưa từng gắn vào field nào — tận dụng lại thay vì tạo mới
 - File: `lib/views/create_repair_order_view.dart`
 
-**Đã test trên Oppo CPH2203:** tìm theo SĐT ✅, tìm theo tên không phân biệt hoa thường ✅, hiện khách gần nhất khi ô trống (đúng thứ tự thời gian) ✅, chọn khách tự điền + hiện quick-card ✅.
+**Đã test trên Oppo CPH2203:** gõ vào ô SĐT hiện gợi ý ✅, gõ vào ô Tên hiện gợi ý ✅ (không phân biệt hoa thường), hiện khách gần nhất khi field vừa focus còn trống (đúng thứ tự thời gian) ✅, chọn khách tự điền cả 2 field + hiện quick-card ✅.
 
 ---
 

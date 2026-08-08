@@ -6,14 +6,112 @@ import '../data/db_helper.dart';
 import '../models/customer_model.dart';
 import '../services/user_service.dart';
 
-/// Reusable "tìm khách hàng cũ" search box: debounced local SQLite search
-/// by name/phone with ranked results (exact phone > prefix > substring),
-/// falls back to recently-visited customers when the field is empty.
-/// Results render inline below the field (not an Overlay/portal) so it is
-/// safe to drop into any scrollable form without route/dependents pitfalls.
+/// Debounced local-SQLite customer search shared by both widgets below:
+/// ranked results (exact phone > prefix > substring), falling back to
+/// recently-visited customers when the query is empty.
+Future<List<Customer>> _rankedCustomerSearch(
+  String query,
+  String? explicitShopId, {
+  int limit = 10,
+}) async {
+  final shopId = explicitShopId ?? await UserService.getCurrentShopId();
+  final rows = await DBHelper().searchCustomersRanked(
+    query,
+    shopId,
+    limit: limit,
+  );
+  return rows.map(Customer.fromMap).toList();
+}
+
+/// Controlled results panel: the caller owns the search text (typically an
+/// *existing* form field like SĐT or Tên khách) and just tells this widget
+/// what to search for and whether it should be showing at all. Renders
+/// inline below the caller's field (not an Overlay/portal) so it drops
+/// safely into any scrollable form without route/dependents pitfalls.
 ///
-/// Purely a picker — it does not own the phone/name TextEditingControllers
-/// of the surrounding form. The caller fills those in [onSelected].
+/// Use this when suggestions should appear as the user types into fields
+/// that already exist in the form. For a screen that instead wants a
+/// dedicated, self-contained search box, use [CustomerAutocompleteField].
+class CustomerSuggestionsPanel extends StatefulWidget {
+  final String query;
+  final bool active;
+  final ValueChanged<Customer> onSelected;
+  final String? shopId;
+
+  const CustomerSuggestionsPanel({
+    super.key,
+    required this.query,
+    required this.active,
+    required this.onSelected,
+    this.shopId,
+  });
+
+  @override
+  State<CustomerSuggestionsPanel> createState() =>
+      _CustomerSuggestionsPanelState();
+}
+
+class _CustomerSuggestionsPanelState extends State<CustomerSuggestionsPanel> {
+  Timer? _debounce;
+  List<Customer> _results = [];
+  bool _loading = false;
+  int _seq = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.active) _search(widget.query);
+  }
+
+  @override
+  void didUpdateWidget(covariant CustomerSuggestionsPanel old) {
+    super.didUpdateWidget(old);
+    if (!widget.active) return;
+    if (!old.active || old.query != widget.query) {
+      _debounce?.cancel();
+      _debounce = Timer(
+        const Duration(milliseconds: 180),
+        () => _search(widget.query),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _search(String q) async {
+    final seq = ++_seq;
+    setState(() => _loading = true);
+    final results = await _rankedCustomerSearch(q, widget.shopId);
+    // A newer keystroke may have started another search while this one was
+    // awaiting the DB — drop stale results instead of racing to setState.
+    if (!mounted || seq != _seq) return;
+    setState(() {
+      _results = results;
+      _loading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.active) return const SizedBox.shrink();
+    return _CustomerResultsList(
+      loading: _loading,
+      results: _results,
+      queryEmpty: widget.query.trim().isEmpty,
+      onSelected: widget.onSelected,
+    );
+  }
+}
+
+/// Self-contained "tìm khách hàng cũ" search box for screens that don't
+/// already have their own phone/name fields to attach suggestions to. Owns
+/// its own text field and debounce; purely a picker — it does not touch any
+/// TextEditingController belonging to the surrounding form, the caller
+/// fills those in [onSelected].
 class CustomerAutocompleteField extends StatefulWidget {
   final ValueChanged<Customer> onSelected;
   final String? hintText;
@@ -35,7 +133,6 @@ class _CustomerAutocompleteFieldState
     extends State<CustomerAutocompleteField> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
-  final _db = DBHelper();
   Timer? _debounce;
   List<Customer> _results = [];
   bool _loading = false;
@@ -69,13 +166,10 @@ class _CustomerAutocompleteFieldState
   Future<void> _search(String q) async {
     final seq = ++_searchSeq;
     setState(() => _loading = true);
-    final shopId = widget.shopId ?? await UserService.getCurrentShopId();
-    final rows = await _db.searchCustomersRanked(q, shopId, limit: 10);
-    // A newer keystroke may have started another search while this one was
-    // awaiting the DB — drop stale results instead of racing to setState.
+    final results = await _rankedCustomerSearch(q, widget.shopId);
     if (!mounted || seq != _searchSeq) return;
     setState(() {
-      _results = rows.map(Customer.fromMap).toList();
+      _results = results;
       _loading = false;
     });
   }
@@ -115,13 +209,34 @@ class _CustomerAutocompleteFieldState
                   ),
           ),
         ),
-        if (_expanded) _buildResults(),
+        if (_expanded)
+          _CustomerResultsList(
+            loading: _loading,
+            results: _results,
+            queryEmpty: _controller.text.trim().isEmpty,
+            onSelected: _select,
+          ),
       ],
     );
   }
+}
 
-  Widget _buildResults() {
-    if (_loading) {
+class _CustomerResultsList extends StatelessWidget {
+  final bool loading;
+  final List<Customer> results;
+  final bool queryEmpty;
+  final ValueChanged<Customer> onSelected;
+
+  const _CustomerResultsList({
+    required this.loading,
+    required this.results,
+    required this.queryEmpty,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 10),
         child: Center(
@@ -133,8 +248,8 @@ class _CustomerAutocompleteFieldState
         ),
       );
     }
-    if (_results.isEmpty) {
-      if (_controller.text.trim().isEmpty) return const SizedBox.shrink();
+    if (results.isEmpty) {
+      if (queryEmpty) return const SizedBox.shrink();
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 8),
         child: Text(
@@ -153,10 +268,10 @@ class _CustomerAutocompleteFieldState
       child: ListView.separated(
         shrinkWrap: true,
         padding: EdgeInsets.zero,
-        itemCount: _results.length,
+        itemCount: results.length,
         separatorBuilder: (_, __) => const Divider(height: 1),
         itemBuilder: (_, i) {
-          final c = _results[i];
+          final c = results[i];
           return ListTile(
             dense: true,
             visualDensity: VisualDensity.compact,
@@ -169,7 +284,7 @@ class _CustomerAutocompleteFieldState
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             ),
             subtitle: Text(_subtitleFor(c), style: const TextStyle(fontSize: 11)),
-            onTap: () => _select(c),
+            onTap: () => onSelected(c),
           );
         },
       ),

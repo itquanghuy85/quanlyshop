@@ -139,6 +139,10 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     nameCtrl.addListener(
       () => setState(() {}),
     ); // Refresh UI for add customer button
+    // Rebuild so the customer-suggestions panel below shows/hides and
+    // re-queries as focus moves between the SĐT and Tên fields.
+    phoneF.addListener(() => setState(() {}));
+    nameF.addListener(() => setState(() {}));
     _loadPartners();
     // Hiển thị hướng dẫn cho người dùng mới
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1634,20 +1638,6 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
               ],
             ),
             const Divider(height: 12),
-            CustomerAutocompleteField(
-              onSelected: (c) {
-                setState(() {
-                  phoneCtrl.text = c.phone;
-                  nameCtrl.text = c.name;
-                  if (c.address != null && c.address!.trim().isNotEmpty) {
-                    addressCtrl.text = c.address!;
-                  }
-                  _isWalkIn = false;
-                });
-                _smartFill();
-              },
-            ),
-            const SizedBox(height: 8),
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
               dense: true,
@@ -1666,7 +1656,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 });
               },
             ),
-            // Row 1: SĐT + Tên
+            // Row 1: SĐT + Tên — gõ vào 1 trong 2 ô đều gợi ý khách cũ khớp
+            // SĐT/tên bên dưới (panel dùng chung _searchCustomers).
             Row(
               children: [
                 Expanded(
@@ -1675,6 +1666,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                     loc.phoneOptional,
                     Icons.phone,
                     type: TextInputType.phone,
+                    focusNode: phoneF,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -1684,9 +1676,27 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                     loc.customerNameOptional,
                     Icons.person,
                     caps: true,
+                    focusNode: nameF,
                   ),
                 ),
               ],
+            ),
+            CustomerSuggestionsPanel(
+              active: phoneF.hasFocus || nameF.hasFocus,
+              query: phoneF.hasFocus ? phoneCtrl.text : nameCtrl.text,
+              onSelected: (c) {
+                setState(() {
+                  phoneCtrl.text = c.phone;
+                  nameCtrl.text = c.name;
+                  if (c.address != null && c.address!.trim().isNotEmpty) {
+                    addressCtrl.text = c.address!;
+                  }
+                  _isWalkIn = false;
+                });
+                phoneF.unfocus();
+                nameF.unfocus();
+                _smartFill();
+              },
             ),
             const SizedBox(height: 8),
             // Customer quick card — visible once phone matches a known customer
