@@ -5304,6 +5304,13 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         final dialogLoc = AppLocalizations.of(ctx)!;
         return StatefulBuilder(
           builder: (ctx, setS) => AlertDialog(
+            // Đẩy dialog lên khi bàn phím xuất hiện
+            insetPadding: EdgeInsets.fromLTRB(
+              24,
+              24,
+              24,
+              MediaQuery.viewInsetsOf(ctx).bottom + 24,
+            ),
             title: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

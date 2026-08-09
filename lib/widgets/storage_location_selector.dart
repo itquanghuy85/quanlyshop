@@ -199,8 +199,10 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
       minChildSize: 0.4,
       maxChildSize: 0.9,
       expand: false,
-      builder: (_, controller) => Column(
-        children: [
+      builder: (ctx2, controller) {
+        final bottomInset = MediaQuery.viewInsetsOf(ctx2).bottom;
+        return Column(
+          children: [
           // Handle bar
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
@@ -274,6 +276,8 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                   )
                 : ListView.builder(
                     controller: controller,
+                    // Đệm dưới để không bị bàn phím che khi search
+                    padding: EdgeInsets.only(bottom: bottomInset),
                     itemCount: filtered.length,
                     itemBuilder: (_, i) {
                       final loc = filtered[i];
@@ -331,7 +335,8 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                   ),
           ),
         ],
-      ),
+      );
+    },
     );
   }
 }
