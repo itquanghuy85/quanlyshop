@@ -2,22 +2,18 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../models/repair_partner_model.dart';
 import '../models/partner_repair_history_model.dart';
-import '../models/payment_intent_model.dart';
-import '../constants/financial_constants.dart';
 import '../services/repair_partner_service.dart';
-import '../services/payment_intent_service.dart';
 import '../services/notification_service.dart';
 import '../services/event_bus.dart';
 import '../data/db_helper.dart';
 import '../utils/money_utils.dart';
-import '../widgets/currency_text_field.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/gradient_fab.dart';
 import '../utils/excel_export_helper.dart';
+import '../widgets/debt_payment_sheet.dart';
 import '../widgets/entity_avatar.dart';
 import 'repair_partner_form_view.dart';
 import '../widgets/custom_app_bar.dart';
@@ -576,176 +572,19 @@ class _RepairPartnerDetailViewState extends State<RepairPartnerDetailView>
   }
 
   Future<void> _payDialog() async {
-    final formKey = GlobalKey<FormState>();
-    final payCtrl = TextEditingController();
-    String method = 'TIỀN MẶT';
-    String note = '';
-
-    await showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: [
-              const Icon(Icons.payments, color: AppColors.success),
-              const SizedBox(width: 12),
-              Text('Thanh toán đối tác', style: AppTextStyles.headline6),
-            ],
-          ),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Còn nợ: ${MoneyUtils.formatCurrency(_remainDebt)}',
-                  style: AppTextStyles.body2.copyWith(color: AppColors.error),
-                ),
-                const SizedBox(height: 16),
-                CurrencyTextField(
-                  controller: payCtrl,
-                  label: 'Số tiền thanh toán',
-                  icon: Icons.attach_money,
-                  validator: (v) => MoneyUtils.validateAmount(
-                    v ?? '',
-                    min: 1,
-                    max: _remainDebt,
-                    fieldName: 'Số tiền',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Phương thức',
-                  style: AppTextStyles.body2.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: ['TIỀN MẶT', 'CHUYỂN KHOẢN']
-                      .map(
-                        (m) => ChoiceChip(
-                          label: Text(m),
-                          selected: method == m,
-                          onSelected: (v) => setDialogState(() => method = m),
-                          selectedColor: AppColors.primary.withOpacity(0.2),
-                        ),
-                      )
-                      .toList(),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  onChanged: (v) => note = v,
-                  decoration: InputDecoration(
-                    labelText: 'Ghi chú (tùy chọn)',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('HỦY'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (!(formKey.currentState?.validate() ?? false)) return;
-                final raw = MoneyUtils.parseCurrency(payCtrl.text);
-                final amount = raw > 0 && raw < 100000 ? raw * 1000 : raw;
-                Navigator.pop(ctx);
-                await _confirmPay(amount, method, note);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.success,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('XÁC NHẬN'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _confirmPay(int amount, String methodStr, String note) async {
-    // Tìm debt có thể trả (giống supplier_detail_view)
     final activeDebts = _debts
-        .where(
-          (d) =>
-              (d['status'] ?? 'ACTIVE') == 'ACTIVE' &&
-              ((d['totalAmount'] as int? ?? 0) -
-                      (d['paidAmount'] as int? ?? 0)) >
-                  0,
-        )
+        .where((d) =>
+            (d['deleted'] ?? 0) != 1 &&
+            ((d['totalAmount'] as int? ?? 0) - (d['paidAmount'] as int? ?? 0)) > 0)
         .toList();
 
     if (activeDebts.isEmpty) {
-      NotificationService.showSnackBar(
-        'Không có công nợ cần thanh toán',
-        color: Colors.orange,
-      );
+      NotificationService.showSnackBar('Không có công nợ cần thanh toán', color: Colors.orange);
       return;
     }
 
-    // Lấy debt đầu tiên có thể trả
-    final debt = activeDebts.first;
-    final debtFId =
-        debt['firestoreId'] as String? ?? 'debt_partner_${widget.partner.id}';
-
-    // Convert payment method string to enum
-    final method = methodStr == 'CHUYỂN KHOẢN' 
-        ? PaymentMethod.transfer 
-        : PaymentMethod.cash;
-
-    // Execute payment directly without navigation
-    final user = FirebaseAuth.instance.currentUser;
-    final result = await PaymentIntentService.executePaymentDirect(
-      type: PaymentIntentType.supplierDebt,
-      amount: amount,
-      paymentMethod: method,
-      description: 'Trả nợ đối tác: ${widget.partner.name}',
-      executedBy: user?.displayName ?? user?.email ?? 'unknown',
-      referenceId: debtFId,
-      referenceType: 'repair_partner_debt',
-      personName: widget.partner.name,
-      personPhone: widget.partner.phone,
-      notes: note.isNotEmpty ? note : null,
-      idempotencyKey: debtFId,
-      metadata: {
-        'partnerId': widget.partner.id,
-        'partnerName': widget.partner.name,
-        'partnerFirestoreId': widget.partner.firestoreId,
-        'debtId': debt['id'],
-        'debtFirestoreId': debtFId,
-        'debtType': 'SHOP_OWES',
-        'suggestedMethod': methodStr,
-      },
-    );
-
-    if (result.success) {
-      if (mounted) {
-        NotificationService.showSnackBar(
-          'Đã thanh toán ${MoneyUtils.formatCurrency(amount)}đ!',
-          color: Colors.green,
-        );
-        _load();
-      }
-    } else {
-      if (mounted) {
-        NotificationService.showSnackBar(
-          result.errorMessage ?? 'Có lỗi xảy ra',
-          color: Colors.red,
-        );
-      }
-    }
+    // Dùng sheet thanh toán thống nhất
+    final didPay = await DebtPaymentSheet.show(context, activeDebts.first);
+    if (didPay && mounted) _load();
   }
 }

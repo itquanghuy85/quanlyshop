@@ -4,15 +4,12 @@ import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/supplier_model.dart';
 import '../models/repair_partner_model.dart';
-import '../models/payment_intent_model.dart';
 import '../models/shop_settings_model.dart';
-import '../constants/financial_constants.dart';
 import '../services/supplier_service.dart';
 import '../services/repair_partner_service.dart';
 import '../services/repair_partner_payment_service.dart';
 import '../services/user_service.dart';
 import '../services/first_time_guide_service.dart';
-import '../services/payment_intent_service.dart';
 import '../services/category_service.dart';
 import '../data/db_helper.dart';
 import '../utils/money_utils.dart';
@@ -33,6 +30,7 @@ import 'inventory_view.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../widgets/entity_avatar.dart';
 import '../widgets/custom_app_bar.dart';
+import '../widgets/debt_payment_sheet.dart';
 
 class SupplierListView extends StatefulWidget {
   const SupplierListView({super.key});
@@ -910,174 +908,35 @@ class _SupplierListViewState extends State<SupplierListView>
 
   Future<void> _openPayDialog(_SupplierCardData d) async {
     if (d.remain <= 0) {
-      NotificationService.showSnackBar(
-        'NCC này đã tất toán.',
-        color: Colors.green,
-      );
+      NotificationService.showSnackBar('NCC này đã tất toán.', color: Colors.green);
       return;
     }
-    final formKey = GlobalKey<FormState>();
-    final payCtrl = TextEditingController();
-    String method = 'TIỀN MẶT';
-    String note = '';
-    await showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(
-            'Thanh toán công nợ cho ${d.supplier.name}',
-            style: AppTextStyles.headline6,
-          ),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Còn nợ: ${MoneyUtils.formatCompactCurrency(d.remain)}',
-                  style: AppTextStyles.body1.copyWith(
-                    color: AppColors.error,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                CurrencyTextField(
-                  controller: payCtrl,
-                  label: 'Số tiền (VNĐ)',
-                  hint: 'VD: 500000',
-                  validator: (v) => MoneyUtils.validateAmount(
-                    v ?? '',
-                    min: 1,
-                    max: d.remain,
-                    fieldName: 'Số tiền',
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: ['TIỀN MẶT', 'CHUYỂN KHOẢN']
-                      .map(
-                        (m) => ChoiceChip(
-                          label: Text(m),
-                          selected: method == m,
-                          onSelected: (v) => setDialogState(() => method = m),
-                        ),
-                      )
-                      .toList(),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  onChanged: (v) => note = v,
-                  decoration: const InputDecoration(
-                    labelText: 'Ghi chú (tùy chọn)',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('HỦY'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (!(formKey.currentState?.validate() ?? false)) return;
-                // Không nhân 1000 - user đã nhập số đầy đủ với formatter
-                final amount = MoneyUtils.parseCurrency(payCtrl.text);
-                await _payDebt(d, amount, method, note);
-                if (mounted) Navigator.pop(ctx);
-              },
-              style: AppButtonStyles.successElevatedButtonStyle,
-              child: const Text('XÁC NHẬN'),
-            ),
-          ],
-        ),
-      ),
+
+    // Tìm khoản nợ NCC có thể trả
+    final debts = await _db.getAllDebts();
+    const supplierDebtTypes = {'SHOP_OWES', 'OTHER_SHOP_OWES', 'OWED'};
+    final target = debts.firstWhere(
+      (e) =>
+          supplierDebtTypes.contains((e['type'] ?? e['debtType'] ?? '').toString().toUpperCase()) &&
+          (e['personName'] ?? '').toString().toUpperCase() == d.supplier.name.toUpperCase() &&
+          (e['totalAmount'] as int? ?? 0) > (e['paidAmount'] as int? ?? 0),
+      orElse: () => {},
     );
-  }
 
-  Future<void> _payDebt(
-    _SupplierCardData d,
-    int amount,
-    String methodStr,
-    String note,
-  ) async {
-    try {
-      // Tìm khoản nợ NCC còn dư — bao gồm mọi loại nợ nhà cung cấp
-      final debts = await _db.getAllDebts();
-      final supplierDebtTypes = {'SHOP_OWES', 'OTHER_SHOP_OWES', 'OWED'};
-      final target = debts.firstWhere((e) {
-        final type = (e['type'] ?? e['debtType'] ?? '')
-            .toString()
-            .toUpperCase();
-        return supplierDebtTypes.contains(type) &&
-            (e['personName'] ?? '').toString().toUpperCase() ==
-                d.supplier.name.toUpperCase() &&
-            (e['totalAmount'] as int? ?? 0) > (e['paidAmount'] as int? ?? 0);
-      }, orElse: () => {});
-
-      if (target.isEmpty) {
+    if (target.isEmpty) {
+      if (mounted) {
         NotificationService.showSnackBar(
           'Không tìm thấy khoản nợ phù hợp cho ${d.supplier.name}',
           color: Colors.orange,
         );
-        return;
       }
-
-      final debtFId =
-          target['firestoreId'] as String? ?? 'debt_supplier_${d.supplier.id}';
-
-      // Convert payment method string to enum
-      final method = methodStr == 'CHUYỂN KHOẢN'
-          ? PaymentMethod.transfer
-          : PaymentMethod.cash;
-
-      // Execute payment directly without navigation
-      final user = FirebaseAuth.instance.currentUser;
-      final result = await PaymentIntentService.executePaymentDirect(
-        type: PaymentIntentType.supplierDebt,
-        amount: amount,
-        paymentMethod: method,
-        description: 'Trả nợ NCC: ${d.supplier.name}',
-        executedBy: user?.displayName ?? user?.email ?? 'unknown',
-        referenceId: debtFId,
-        referenceType: 'supplier_debt',
-        personName: d.supplier.name,
-        personPhone: d.supplier.phone,
-        notes: note.isNotEmpty ? note : null,
-        idempotencyKey: '${debtFId}_${DateTime.now().millisecondsSinceEpoch}',
-        metadata: {
-          'supplierId': d.supplier.id,
-          'supplierName': d.supplier.name,
-          'debtId': target['id'],
-          'debtFirestoreId': debtFId,
-          'debtType': (target['type'] ?? target['debtType'] ?? 'SHOP_OWES')
-              .toString(),
-          'suggestedMethod': methodStr,
-        },
-      );
-
-      if (result.success) {
-        if (mounted) {
-          NotificationService.showSnackBar(
-            'Đã thanh toán ${MoneyUtils.formatCompactCurrency(amount)}!',
-            color: Colors.green,
-          );
-          await _load();
-        }
-      } else {
-        if (mounted) {
-          NotificationService.showSnackBar(
-            result.errorMessage ?? 'Có lỗi xảy ra',
-            color: Colors.red,
-          );
-        }
-      }
-    } catch (e) {
-      NotificationService.showSnackBar('Lỗi: $e', color: Colors.red);
+      return;
     }
+
+    if (!mounted) return;
+    // Dùng sheet thanh toán thống nhất
+    final didPay = await DebtPaymentSheet.show(context, target);
+    if (didPay && mounted) await _load();
   }
 
   // ==================== PARTNER TAB WIDGETS ====================

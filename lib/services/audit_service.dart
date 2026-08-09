@@ -50,6 +50,7 @@ class AuditService {
         'summary': summary,
         'payload': payload,
         'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
       }).then((_) async {
         // Đánh dấu đã sync
         await _db.updateAuditLogSynced(firestoreId);

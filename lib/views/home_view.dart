@@ -215,6 +215,9 @@ class _HomeViewState extends State<HomeView>
   final db = DBHelper();
   final _debtSummaryService = DebtSummaryService();
   final FinanceV2DataService _financeV2DataService = FinanceV2DataService();
+  // Cache stream một lần — tránh tạo 154 subscription khi home_view rebuild
+  late final Stream<int> _unreadCountStream = FirestoreService.getUnreadCount()
+      .asBroadcastStream();
   int totalPendingRepair = 0;
   int todaySaleCount = 0;
   int _currentIndex = 0; // Bottom navigation index
@@ -2902,7 +2905,7 @@ class _HomeViewState extends State<HomeView>
         ),
         actions: [
           NotificationBadge(
-            unreadCount: FirestoreService.getUnreadCount(),
+            unreadCount: _unreadCountStream,
             child: IconButton(
               onPressed: () => _pushRoute(
                 context,

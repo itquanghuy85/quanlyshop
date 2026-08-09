@@ -10,22 +10,21 @@ import '../services/notification_service.dart';
 import '../widgets/custom_app_bar.dart';
 import '../services/sync_service.dart';
 import '../services/sync_orchestrator.dart';
+import '../services/encryption_service.dart';
+import '../services/user_service.dart';
 import '../services/event_bus.dart';
 import '../services/adjustment_service.dart';
 import '../services/first_time_guide_service.dart';
 import '../services/debt_summary_service.dart';
 import '../services/repair_partner_service.dart';
 import '../models/repair_partner_model.dart';
-import '../services/payment_intent_service.dart';
-import '../models/payment_intent_model.dart';
-import '../services/audit_service.dart';
-import '../services/encryption_service.dart';
-import '../services/user_service.dart';
-import '../constants/financial_constants.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/app_colors.dart';
 import '../theme/popup_theme.dart';
 import '../widgets/app_popup.dart';
+import '../widgets/debt_payment_sheet.dart';
+import '../widgets/empty_state_widget.dart';
+import '../widgets/skeleton_list.dart';
 import '../models/shop_settings_model.dart';
 import '../services/category_service.dart';
 import '../widgets/responsive_wrapper.dart';
@@ -35,9 +34,6 @@ import '../utils/vietnamese_utils.dart';
 import '../widgets/export_date_filter_dialog.dart';
 import '../finance_v2/finance_v2_theme.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../widgets/payment_result_sheet.dart';
-import '../widgets/empty_state_widget.dart';
-import '../widgets/skeleton_list.dart';
 
 class DebtView extends StatefulWidget {
   const DebtView({super.key});
@@ -77,8 +73,6 @@ class _DebtViewState extends State<DebtView>
   // Shop settings for multi-industry
   ShopSettings? _shopSettings;
   bool get _enableRepair => _shopSettings?.enableRepair ?? true;
-  int get _tabCount =>
-      _enableRepair ? 4 : 3; // 4 tabs for electronics, 3 for fashion
   bool _hasPermission = false;
 
   // Tìm kiếm và lọc
@@ -113,16 +107,25 @@ class _DebtViewState extends State<DebtView>
       if (mounted) {
         setState(() {
           _shopSettings = settings;
-          _tabController = TabController(length: _tabCount, vsync: this);
+          _tabController = TabController(length: 2, vsync: this)
+            ..addListener(_onTabChanged);
         });
       }
     } catch (e) {
       debugPrint('Error loading shop settings: $e');
-      // Fallback to default 4 tabs
       if (mounted) {
-        setState(() => _tabController = TabController(length: 4, vsync: this));
+        setState(() {
+          _tabController = TabController(length: 2, vsync: this)
+            ..addListener(_onTabChanged);
+        });
       }
     }
+  }
+
+  /// Đảm bảo FAB (phụ thuộc tab đang chọn) cập nhật ngay khi đổi tab bằng vuốt,
+  /// không chỉ khi bấm trực tiếp vào Tab.
+  void _onTabChanged() {
+    if (mounted) setState(() {});
   }
 
   /// Hiển thị hướng dẫn lần đầu
@@ -175,6 +178,7 @@ class _DebtViewState extends State<DebtView>
   @override
   void dispose() {
     _reloadDebounce?.cancel();
+    _tabController?.removeListener(_onTabChanged);
     _tabController?.dispose();
     _eventSub?.cancel();
     _searchController.dispose();
@@ -387,253 +391,9 @@ class _DebtViewState extends State<DebtView>
     );
   }
 
-  // Widget hiển thị giá trị trong dialog thanh toán nợ
-  Widget _miniPayValue(String label, int amount, Color color) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: AppTextStyles.overlineSize,
-            color: Colors.grey.shade600,
-          ),
-        ),
-        Text(
-          '${MoneyUtils.formatCurrency(amount)}đ',
-          style: TextStyle(
-            fontSize: AppTextStyles.caption.fontSize,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _payDebt(Map<String, dynamic> debt) async {
-    // Kiểm tra ngày hôm nay đã chốt quỹ chưa (thanh toán ở ngày hiện tại)
-    final l10n = AppLocalizations.of(context)!;
-    final today = DateTime.now();
-    final canEdit = await AdjustmentService.canEditDirectly(
-      today.millisecondsSinceEpoch,
-    );
-    if (!canEdit && mounted) {
-      NotificationService.showSnackBar(
-        l10n.closedTodayDebt,
-        color: Colors.red,
-      );
-      return;
-    }
-
-    final totalAmount = debt['totalAmount'] as int? ?? 0;
-    final paidAmount = debt['paidAmount'] as int? ?? 0;
-    final remainingAmount = totalAmount - paidAmount;
-    final isCustomerDebtForTitle =
-        (debt['type'] ?? 'CUSTOMER_OWES') == 'CUSTOMER_OWES';
-
-    final formKey = GlobalKey<FormState>();
-    final payC = TextEditingController();
-    String payMethod = 'TIỀN MẶT';
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setS) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-          child: Container(
-            decoration: const BoxDecoration(
-              color: PopupTheme.bgDark,
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(PopupTheme.radiusSheet),
-              ),
-            ),
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const PopupDragHandle(),
-                  Text(
-                    isCustomerDebtForTitle ? l10n.collectDebtTitle : l10n.payDebtTitle,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: PopupTheme.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  // Thông tin tổng quan nợ
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: PopupTheme.surfaceDark,
-                      borderRadius: BorderRadius.circular(PopupTheme.radiusCard),
-                      border: Border.all(color: PopupTheme.borderDark),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _miniPayValue(l10n.totalDebtLabel, totalAmount, Colors.grey.shade700),
-                        _miniPayValue(l10n.paidAmountLabel, paidAmount, Colors.green),
-                        _miniPayValue(l10n.remainingLabel, remainingAmount, Colors.red),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  CurrencyTextField(
-                    controller: payC,
-                    label: isCustomerDebtForTitle
-                        ? l10n.collectAmountVnd
-                        : l10n.payAmountVnd,
-                    validator: (v) => MoneyUtils.validateAmount(
-                      v ?? '',
-                      min: 1,
-                      max: remainingAmount,
-                      fieldName: isCustomerDebtForTitle
-                          ? l10n.debtCollectFieldName
-                          : l10n.debtPayFieldName,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    l10n.payWithLabel,
-                    style: AppTextStyles.overline.copyWith(
-                      color: AppColors.onSurface.withOpacity(0.6),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: ['TIỀN MẶT', 'CHUYỂN KHOẢN']
-                        .map(
-                          (m) => Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 4),
-                              child: ChoiceChip(
-                                label: Text(
-                                  m == 'TIỀN MẶT' ? l10n.cash : l10n.bankTransfer,
-                                  style: AppTextStyles.caption,
-                                ),
-                                selected: payMethod == m,
-                                onSelected: (v) => setS(() => payMethod = m),
-                              ),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
-                          child: Text(l10n.cancelButton),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isCustomerDebtForTitle
-                                ? PopupTheme.green
-                                : PopupTheme.blue,
-                            foregroundColor: Colors.white,
-                          ),
-                          onPressed: () async {
-                            if (!(formKey.currentState?.validate() ?? false)) return;
-                            final parsed = MoneyUtils.parseCurrency(payC.text);
-                            final payAmount = parsed;
-                            if (payAmount <= 0) return;
-
-                            final user = FirebaseAuth.instance.currentUser;
-
-                            // Đóng sheet trước
-                            Navigator.of(ctx).pop();
-
-                // Xác định loại nợ để tạo PaymentIntent phù hợp
-                final debtType = debt['type'] ?? 'CUSTOMER_OWES';
-                final isCustomerDebt = debtType == 'CUSTOMER_OWES';
-
-                // Convert payment method
-                final method = payMethod == 'CHUYỂN KHOẢN'
-                    ? PaymentMethod.transfer
-                    : PaymentMethod.cash;
-
-                // Execute payment directly without navigation
-                final result = await PaymentIntentService.executePaymentDirect(
-                  type: isCustomerDebt
-                      ? PaymentIntentType.customerDebtCollection
-                      : PaymentIntentType.supplierDebt,
-                  amount: payAmount,
-                  paymentMethod: method,
-                  description: isCustomerDebt
-                      ? 'Thu nợ khách: ${debt['personName'] ?? 'N/A'}'
-                      : 'Thanh toán nợ NCC: ${debt['personName'] ?? 'N/A'}',
-                  executedBy: user?.displayName ?? user?.email ?? 'unknown',
-                  referenceId: debt['firestoreId'],
-                  referenceType: 'debt',
-                  personName: debt['personName'],
-                  personPhone: debt['phone'],
-                  idempotencyKey:
-                      '${debt['firestoreId']}_${DateTime.now().millisecondsSinceEpoch}',
-                  metadata: {
-                    'debtId': debt['id'],
-                    'debtFirestoreId': debt['firestoreId'],
-                    'debtType': debtType,
-                    'linkedId': debt['linkedId'],
-                  },
-                );
-
-                if (result.success) {
-                  // Audit log
-                  await AuditService.logAction(
-                    action: isCustomerDebt ? 'DEBT_COLLECTED' : 'SUPPLIER_PAID',
-                    entityType: 'DEBT',
-                    entityId: debt['firestoreId'] ?? '',
-                    summary:
-                        '${isCustomerDebt ? "Thu nợ" : "Thanh toán nợ"} ${debt['personName']}: ${MoneyUtils.formatCurrency(payAmount)}đ',
-                  );
-                  EventBus().emit('debts_changed');
-                  if (mounted) await _refresh();
-                  if (mounted) {
-                    await PaymentResultSheet.show(
-                      context: context,
-                      state: PaymentResultState.success,
-                      amount: payAmount,
-                      paymentMethod: payMethod,
-                      personName: debt['personName']?.toString(),
-                      isCollecting: isCustomerDebt,
-                    );
-                  }
-                } else {
-                  if (mounted) {
-                    await PaymentResultSheet.show(
-                      context: context,
-                      state: PaymentResultState.failure,
-                      errorMessage: result.errorMessage ?? l10n.debtPaymentGenericError,
-                    );
-                  }
-                }
-              },
-                          child: Text(l10n.confirmPayButton),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+  Future<void> _payDebt(Map<String, dynamic> debt) async {
+    final didPay = await DebtPaymentSheet.show(context, debt, onSuccess: _refresh);
+    if (didPay && mounted) await _refresh();
   }
 
   @override
@@ -683,10 +443,8 @@ class _DebtViewState extends State<DebtView>
         subtitle: l10n.activeDebtsCount(activeDebtsCount),
         tabController: _tabController!,
         tabs: [
-          Tab(text: l10n.tabCustomer),
-          Tab(text: l10n.tabSupplier),
-          if (_enableRepair) Tab(text: l10n.tabPartner),
-          Tab(text: l10n.tabOther),
+          Tab(text: l10n.debtReceivable),
+          Tab(text: l10n.debtPayable),
         ],
         accentColor: AppBarAccents.customer,
         actions: [
@@ -744,40 +502,23 @@ class _DebtViewState extends State<DebtView>
             : TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildDebtList('CUSTOMER_OWES'),
-                  _buildDebtList('SHOP_OWES'),
-                  if (_enableRepair)
-                    _buildPartnerDebtList(), // Tab cho công nợ đối tác sửa chữa - chỉ cho electronics
-                  _buildDebtList('OTHER'),
+                  _buildDebtList('RECEIVABLE'),
+                  _buildDebtList('PAYABLE'),
                 ],
               ),
       ),
-      floatingActionButton: (_enableRepair && _tabController?.index == 2)
-          ? null // Không có FAB cho tab đối tác (quản lý qua trang đối tác)
-          : FloatingActionButton(
-              onPressed: () {
-                if (_tabController?.index == 0) {
-                  _createCustomerDebt(); // Tạo nợ khách hàng (phải thu)
-                } else if (_tabController?.index == 1) {
-                  _createSupplierDebt(); // Tạo nợ nhà cung cấp (phải trả)
-                } else if (_enableRepair
-                    ? _tabController?.index == 3
-                    : _tabController?.index == 2) {
-                  _createOtherDebt(); // Tạo công nợ khác
-                }
-              },
-              backgroundColor: _tabController?.index == 0
-                  ? Colors.redAccent
-                  : _tabController?.index == 1
-                  ? Colors.blueAccent
-                  : Colors.blueAccent,
-              tooltip: _tabController?.index == 0
-                  ? l10n.createCustomerDebtTooltip
-                  : _tabController?.index == 1
-                  ? l10n.createSupplierDebtTooltip
-                  : l10n.createOtherDebtTooltip,
-              child: const Icon(Icons.add, color: Colors.white),
-            ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showCreateDebtChooser(
+          isReceivable: _tabController?.index == 0,
+        ),
+        backgroundColor: _tabController?.index == 0
+            ? Colors.redAccent
+            : Colors.blueAccent,
+        tooltip: _tabController?.index == 0
+            ? l10n.createCustomerDebtTooltip
+            : l10n.createSupplierDebtTooltip,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
     );
   }
 
@@ -799,36 +540,23 @@ class _DebtViewState extends State<DebtView>
     return (total - paid).clamp(0, total);
   }
 
-  Widget _buildDebtList(String type) {
+  Widget _buildDebtList(String direction) {
     final l10n = AppLocalizations.of(context)!;
-    List<Map<String, dynamic>> list;
-    if (type == 'OTHER') {
-      list = _debts
-          .where(
-            (d) =>
-                d['type'].toString().startsWith('OTHER_') &&
-                (_showPaidDebts || _isActiveDebt(d)),
-          )
-          .toList();
-    } else if (type == 'CUSTOMER_OWES') {
-      // Khách nợ shop: CUSTOMER_OWES hoặc legacy 'OWE'
-      list = _debts.where((d) {
-        final debtType = d['type']?.toString() ?? '';
-        return (debtType == 'CUSTOMER_OWES' || debtType == 'OWE') &&
-            (_showPaidDebts || _isActiveDebt(d));
-      }).toList();
-    } else if (type == 'SHOP_OWES') {
-      // Shop nợ NCC: SHOP_OWES hoặc legacy 'OWED'
-      list = _debts.where((d) {
-        final debtType = d['type']?.toString() ?? '';
-        return (debtType == 'SHOP_OWES' || debtType == 'OWED') &&
-            (_showPaidDebts || _isActiveDebt(d));
-      }).toList();
-    } else {
-      list = _debts
-          .where((d) => d['type'] == type && (_showPaidDebts || _isActiveDebt(d)))
-          .toList();
-    }
+    final bool isReceivable = direction == 'RECEIVABLE';
+
+    // Phải thu: khách nợ shop (CUSTOMER_OWES / legacy OWE) + nợ khác (thu).
+    // Phải trả: shop nợ NCC (SHOP_OWES / legacy OWED) + nợ khác (trả).
+    bool matchesDirection(String t) => isReceivable
+        ? (t == 'CUSTOMER_OWES' || t == 'OWE' || t == 'OTHER_CUSTOMER_OWES')
+        : (t == 'SHOP_OWES' || t == 'OWED' || t == 'OTHER_SHOP_OWES');
+
+    List<Map<String, dynamic>> list = _debts.where((d) {
+      final debtType = d['type']?.toString() ?? '';
+      return matchesDirection(debtType) && (_showPaidDebts || _isActiveDebt(d));
+    }).toList();
+
+    // Khối nợ đối tác sửa chữa: số liệu tổng hợp riêng, chỉ có ở chiều Phải trả.
+    final bool showPartnerSection = !isReceivable && _enableRepair;
 
     // KPI stats from full (unfiltered) active list
     final activeList = list.where(_isActiveDebt).toList();
@@ -936,17 +664,17 @@ class _DebtViewState extends State<DebtView>
             ],
           ),
         ),
-        // KPI row — tổng nợ còn + urgency counts
-        if (activeList.isNotEmpty && type != 'OTHER')
+        // KPI row — tổng nợ còn + urgency counts (không tính nợ đối tác, đã có tổng riêng)
+        if (activeList.isNotEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
             child: Row(
               children: [
                 _kpiChip(
-                  label: type == 'CUSTOMER_OWES' ? l10n.debtReceivable : l10n.debtPayable,
+                  label: isReceivable ? l10n.debtReceivable : l10n.debtPayable,
                   value: MoneyUtils.formatCompactCurrency(kpiTotal),
-                  color: type == 'CUSTOMER_OWES' ? Colors.red.shade700 : Colors.blue.shade700,
-                  icon: type == 'CUSTOMER_OWES'
+                  color: isReceivable ? Colors.red.shade700 : Colors.blue.shade700,
+                  icon: isReceivable
                       ? Icons.arrow_downward_rounded
                       : Icons.arrow_upward_rounded,
                 ),
@@ -972,7 +700,7 @@ class _DebtViewState extends State<DebtView>
             ),
           ),
 
-        if (list.isEmpty)
+        if (list.isEmpty && (!showPartnerSection || _partnerDebts.isEmpty))
           Expanded(
             child: EmptyStateWidget(
               icon: Icons.receipt_long_outlined,
@@ -984,165 +712,26 @@ class _DebtViewState extends State<DebtView>
                   : _showPaidDebts ? null : l10n.showPaidToSeeHistory,
             ),
           )
-        else if (type == 'OTHER')
-          Expanded(child: _buildOtherDebtContent(list))
         else
           Expanded(
-            child: _buildSimpleDebtList(list),
+            child: Column(
+              children: [
+                if (list.isNotEmpty)
+                  Expanded(
+                    flex: (showPartnerSection && _partnerDebts.isNotEmpty) ? 3 : 1,
+                    child: _buildSimpleDebtList(list),
+                  ),
+                if (showPartnerSection && _partnerDebts.isNotEmpty)
+                  Expanded(
+                    flex: list.isEmpty ? 1 : 2,
+                    child: _buildPartnerDebtList(),
+                  ),
+              ],
+            ),
           ),
       ],
     );
   }
-
-  Widget _buildOtherDebtContent(List<Map<String, dynamic>> list) {
-    final l10n = AppLocalizations.of(context)!;
-    final receivableDebts = list
-        .where((d) => d['type'] == 'OTHER_CUSTOMER_OWES')
-        .toList();
-    final payableDebts = list
-        .where((d) => d['type'] == 'OTHER_SHOP_OWES')
-        .toList();
-
-    receivableDebts.sort((a, b) {
-        final remainCmp = _remainingDebt(b).compareTo(_remainingDebt(a));
-        if (remainCmp != 0) return remainCmp;
-        return _toInt(b['createdAt']).compareTo(_toInt(a['createdAt']));
-      });
-    payableDebts.sort((a, b) {
-        final remainCmp = _remainingDebt(b).compareTo(_remainingDebt(a));
-        if (remainCmp != 0) return remainCmp;
-        return _toInt(b['createdAt']).compareTo(_toInt(a['createdAt']));
-      });
-
-      int totalReceivable = receivableDebts.fold(
-        0,
-        (sum, d) => sum + _remainingDebt(d),
-      );
-
-      int totalPayable = payableDebts.fold(
-        0,
-        (sum, d) => sum + _remainingDebt(d),
-      );
-
-      return Column(
-        children: [
-          // Summary for receivable debts
-          if (receivableDebts.isNotEmpty)
-            Container(
-              margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.red.withAlpha(25),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.red.withAlpha(77)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.arrow_downward, color: Colors.red),
-                  const SizedBox(width: 8),
-                  Text(
-                    l10n.receivableDebt,
-                    style: AppTextStyles.caption.copyWith(
-                      color: AppColors.error,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    MoneyUtils.formatCompactCurrency(totalReceivable),
-                    style: AppTextStyles.body1.copyWith(
-                      color: AppColors.error,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          // Receivable debts list
-          if (receivableDebts.isNotEmpty)
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-                itemCount: receivableDebts.length,
-                itemBuilder: (ctx, i) => _debtCardWithIcon(
-                  receivableDebts[i],
-                  Icons.arrow_downward,
-                  Colors.red,
-                  i + 1,
-                ),
-              ),
-            ),
-
-          // Summary for payable debts
-          if (payableDebts.isNotEmpty)
-            Container(
-              margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.blue.withAlpha(25),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.blue.withAlpha(77)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.arrow_upward, color: Colors.blue),
-                  const SizedBox(width: 8),
-                  Text(
-                    l10n.payableDebt,
-                    style: AppTextStyles.caption.copyWith(
-                      color: AppColors.info,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    MoneyUtils.formatCompactCurrency(totalPayable),
-                    style: AppTextStyles.body1.copyWith(
-                      color: AppColors.info,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          // Payable debts list
-          if (payableDebts.isNotEmpty)
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-                itemCount: payableDebts.length,
-                itemBuilder: (ctx, i) => _debtCardWithIcon(
-                  payableDebts[i],
-                  Icons.arrow_upward,
-                  Colors.blue,
-                  i + 1,
-                ),
-              ),
-            ),
-
-          // If no debts of either type
-          if (receivableDebts.isEmpty && payableDebts.isEmpty)
-            Expanded(
-              child: Center(
-                child: Text(
-                  l10n.noDebtAnywhere,
-                  style: AppTextStyles.body1.copyWith(
-                    color: AppColors.onSurface.withOpacity(0.5),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      );
-    }
 
   Widget _buildSimpleDebtList(List<Map<String, dynamic>> list) {
     final l10n = AppLocalizations.of(context)!;
@@ -1972,7 +1561,69 @@ class _DebtViewState extends State<DebtView>
     );
   }
 
-  void _createOtherDebt() async {
+  /// Bảng chọn nhanh loại nợ cần tạo, theo chiều tiền của tab đang mở.
+  void _showCreateDebtChooser({required bool isReceivable}) {
+    final l10n = AppLocalizations.of(context)!;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      // Đã tự vẽ PopupDragHandle() riêng — tắt drag handle mặc định của theme
+      // (bottomSheetTheme.showDragHandle=true) để tránh 2 lớp handle chồng
+      // nhau ăn mất không gian, đẩy nút Hủy/Xác nhận ra ngoài vùng hiển thị
+      // trên máy có màn hình thấp (đã xác nhận qua test thực tế).
+      showDragHandle: false,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: PopupTheme.bgDark,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(PopupTheme.radiusSheet)),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        // 2 nút xếp ngang thay vì ListTile xếp dọc để tổng chiều cao sheet luôn
+        // rất thấp, chắc chắn không bao giờ chạm ngưỡng bị che bởi vùng hệ
+        // thống ở đáy màn hình (xem debt_payment_sheet.dart về cùng vấn đề).
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const PopupDragHandle(),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _DebtChooserOption(
+                    icon: isReceivable ? Icons.person_outline : Icons.local_shipping_outlined,
+                    color: isReceivable ? Colors.redAccent : Colors.blueAccent,
+                    label: isReceivable ? l10n.tabCustomer : l10n.tabSupplier,
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      isReceivable ? _createCustomerDebt() : _createSupplierDebt();
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _DebtChooserOption(
+                    icon: Icons.more_horiz,
+                    color: PopupTheme.blue,
+                    label: l10n.tabOther,
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _createOtherDebt(
+                        initialType: isReceivable ? 'CUSTOMER_OWES' : 'SHOP_OWES',
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _createOtherDebt({String initialType = 'CUSTOMER_OWES'}) async {
     // Kiểm tra ngày hôm nay đã chốt quỹ chưa
     final l10n = AppLocalizations.of(context)!;
     final today = DateTime.now();
@@ -1992,18 +1643,28 @@ class _DebtViewState extends State<DebtView>
     final amountC = TextEditingController();
     final noteC = TextEditingController();
     final formKey = GlobalKey<FormState>();
-    String debtType = "CUSTOMER_OWES"; // Default to customer owes (nợ phải thu)
+    String debtType = initialType;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
+      // Đã tự vẽ PopupDragHandle() riêng — tắt drag handle mặc định của theme
+      // (bottomSheetTheme.showDragHandle=true) để tránh 2 lớp handle chồng
+      // nhau ăn mất không gian, đẩy nút Hủy/Xác nhận ra ngoài vùng hiển thị
+      // trên máy có màn hình thấp (đã xác nhận qua test thực tế).
+      showDragHandle: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
           return Padding(
+            // Cộng thêm viewPadding.bottom (vùng an toàn hệ thống/nav bar) —
+            // chỉ cộng viewInsets (bàn phím) là chưa đủ trên máy có vùng điều
+            // hướng lớn ở đáy, khiến nút Hủy/Xác nhận bị đẩy ra ngoài vùng
+            // chạm được.
             padding: EdgeInsets.only(
-              bottom: MediaQuery.viewInsetsOf(context).bottom,
+              bottom: MediaQuery.viewInsetsOf(context).bottom +
+                  MediaQuery.paddingOf(context).bottom,
             ),
             child: Container(
               decoration: const BoxDecoration(
@@ -2014,71 +1675,99 @@ class _DebtViewState extends State<DebtView>
               ),
               child: Form(
                 key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const PopupDragHandle(),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.add_circle_outline, color: PopupTheme.blue),
-                          const SizedBox(width: 8),
-                          Text(
-                            l10n.createOtherDebtTitle,
-                            style: const TextStyle(
-                              color: PopupTheme.textPrimary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                // Cuộn toàn bộ nội dung (kể cả hàng nút Hủy/Tạo) trong 1
+                // SingleChildScrollView duy nhất — xem debt_payment_sheet.dart
+                // để biết lý do (nút bị đẩy ra ngoài vùng hiển thị nếu chỉ cuộn
+                // riêng phần giữa bằng Flexible).
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const PopupDragHandle(),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.add_circle_outline, color: PopupTheme.blue),
+                            const SizedBox(width: 8),
+                            Text(
+                              l10n.createOtherDebtTitle,
+                              style: const TextStyle(
+                                color: PopupTheme.textPrimary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    Flexible(
-                      child: SingleChildScrollView(
+                      Padding(
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            TextFormField(
-                              controller: nameC,
-                              style: const TextStyle(color: PopupTheme.textPrimary),
-                              decoration: InputDecoration(
-                                labelText: l10n.debtorNameLabel,
-                              ),
-                              validator: (v) => (v == null || v.trim().isEmpty)
-                                  ? l10n.pleaseEnterDebtorName
-                                  : null,
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  flex: 3,
+                                  child: TextFormField(
+                                    controller: nameC,
+                                    style: const TextStyle(color: PopupTheme.textPrimary),
+                                    decoration: InputDecoration(
+                                      labelText: l10n.debtorNameLabel,
+                                      isDense: true,
+                                    ),
+                                    validator: (v) => (v == null || v.trim().isEmpty)
+                                        ? l10n.pleaseEnterDebtorName
+                                        : null,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  flex: 2,
+                                  child: TextFormField(
+                                    controller: phoneC,
+                                    style: const TextStyle(color: PopupTheme.textPrimary),
+                                    decoration: InputDecoration(
+                                      labelText: l10n.phoneNumberLabel,
+                                      isDense: true,
+                                    ),
+                                    keyboardType: TextInputType.phone,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  flex: 3,
+                                  child: CurrencyTextField(
+                                    controller: amountC,
+                                    label: l10n.debtAmountVnd,
+                                    validator: (v) => MoneyUtils.validateAmount(
+                                      v ?? '',
+                                      min: 1,
+                                      fieldName: l10n.debtAmountFieldName,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  flex: 2,
+                                  child: TextField(
+                                    controller: noteC,
+                                    style: const TextStyle(color: PopupTheme.textPrimary),
+                                    decoration: InputDecoration(labelText: l10n.note, isDense: true),
+                                  ),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 10),
-                            TextFormField(
-                              controller: phoneC,
-                              style: const TextStyle(color: PopupTheme.textPrimary),
-                              decoration: InputDecoration(
-                                labelText: l10n.phoneNumberLabel,
-                              ),
-                              keyboardType: TextInputType.phone,
-                            ),
-                            const SizedBox(height: 10),
-                            CurrencyTextField(
-                              controller: amountC,
-                              label: l10n.debtAmountVnd,
-                              validator: (v) => MoneyUtils.validateAmount(
-                                v ?? '',
-                                min: 1,
-                                fieldName: l10n.debtAmountFieldName,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            TextField(
-                              controller: noteC,
-                              style: const TextStyle(color: PopupTheme.textPrimary),
-                              decoration: InputDecoration(labelText: l10n.note),
-                            ),
-                            const SizedBox(height: 15),
                             Text(
                               l10n.debtFormTypeLabel,
                               style: const TextStyle(
@@ -2200,77 +1889,85 @@ class _DebtViewState extends State<DebtView>
                           ],
                         ),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
-                              child: Text(l10n.cancelButton),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 2,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: PopupTheme.blue,
-                                foregroundColor: Colors.white,
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () async {
+                                  FocusManager.instance.primaryFocus?.unfocus();
+                                  await Future.delayed(Duration.zero);
+                                  if (ctx.mounted) Navigator.pop(ctx);
+                                },
+                                child: Text(l10n.cancelButton),
                               ),
-                              onPressed: () async {
-                                if (!(formKey.currentState?.validate() ?? false)) return;
-
-                                final debtAmount = MoneyUtils.parseCurrency(amountC.text);
-                                if (debtAmount <= 0) return;
-
-                                final user = FirebaseAuth.instance.currentUser;
-                                final userName =
-                                    user?.email?.split('@').first.toUpperCase() ?? "NV";
-                                final now = DateTime.now().millisecondsSinceEpoch;
-
-                                final newDebtData = {
-                                  'firestoreId': "debt_other_$now",
-                                  'personName': nameC.text.trim(),
-                                  'phone': phoneC.text.trim(),
-                                  'totalAmount': debtAmount,
-                                  'paidAmount': 0,
-                                  'type': 'OTHER_$debtType',
-                                  'status': 'unpaid',
-                                  'createdAt': now,
-                                  'note': noteC.text.trim().isEmpty ? null : noteC.text.trim(),
-                                  'createdBy': userName,
-                                };
-
-                                final debtId = await db.insertDebt(newDebtData);
-                                await SyncOrchestrator().enqueue(
-                                  entityType: SyncEntityType.debt,
-                                  entityId: debtId,
-                                  firestoreId: newDebtData['firestoreId'] as String,
-                                  operation: SyncOperation.create,
-                                  data: newDebtData,
-                                );
-
-                                EventBus().emit('debts_changed');
-                                if (!mounted) return;
-                                if (ctx.mounted) {
-                                  FocusScope.of(ctx).unfocus();
-                                  Navigator.pop(ctx);
-                                }
-                                NotificationService.showSnackBar(
-                                  l10n.debtCreated,
-                                  color: Colors.green,
-                                );
-                                await _refresh();
-                              },
-                              child: Text(l10n.createButton),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 2,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: PopupTheme.blue,
+                                  foregroundColor: Colors.white,
+                                ),
+                                onPressed: () async {
+                                  if (!(formKey.currentState?.validate() ?? false)) return;
+
+                                  final debtAmount = MoneyUtils.parseCurrency(amountC.text);
+                                  if (debtAmount <= 0) return;
+
+                                  final user = FirebaseAuth.instance.currentUser;
+                                  final userName =
+                                      user?.email?.split('@').first.toUpperCase() ?? "NV";
+                                  final now = DateTime.now().millisecondsSinceEpoch;
+                                  final shopId = await UserService.getCurrentShopId() ?? '';
+
+                                  final newDebtData = {
+                                    'firestoreId': "debt_other_$now",
+                                    'personName': nameC.text.trim(),
+                                    'phone': phoneC.text.trim(),
+                                    'totalAmount': debtAmount,
+                                    'paidAmount': 0,
+                                    'type': 'OTHER_$debtType',
+                                    'status': 'ACTIVE',
+                                    'createdAt': now,
+                                    'note': noteC.text.trim().isEmpty ? null : noteC.text.trim(),
+                                    'createdBy': userName,
+                                    'shopId': shopId,
+                                    'deleted': 0,
+                                    'isSynced': 0,
+                                  };
+
+                                  final debtId = await db.insertDebt(newDebtData);
+                                  await SyncOrchestrator().enqueue(
+                                    entityType: SyncEntityType.debt,
+                                    entityId: debtId,
+                                    firestoreId: newDebtData['firestoreId'] as String,
+                                    operation: SyncOperation.create,
+                                    data: newDebtData,
+                                  );
+
+                                  EventBus().emit('debts_changed');
+                                  if (!mounted) return;
+                                  if (ctx.mounted) {
+                                    FocusManager.instance.primaryFocus?.unfocus();
+                                    Navigator.pop(ctx);
+                                  }
+                                  NotificationService.showSnackBar(
+                                    l10n.debtCreated,
+                                    color: Colors.green,
+                                  );
+                                  await _refresh();
+                                },
+                                child: Text(l10n.createButton),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -2306,8 +2003,19 @@ class _DebtViewState extends State<DebtView>
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
+      // Đã tự vẽ PopupDragHandle() riêng — tắt drag handle mặc định của theme
+      // (bottomSheetTheme.showDragHandle=true) để tránh 2 lớp handle chồng
+      // nhau ăn mất không gian, đẩy nút Hủy/Xác nhận ra ngoài vùng hiển thị
+      // trên máy có màn hình thấp (đã xác nhận qua test thực tế).
+      showDragHandle: false,
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+        // Cộng thêm viewPadding.bottom (vùng an toàn hệ thống/nav bar) — chỉ
+        // cộng viewInsets (bàn phím) là chưa đủ trên máy có vùng điều hướng
+        // lớn ở đáy, khiến nút Hủy/Xác nhận bị đẩy ra ngoài vùng chạm được.
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom +
+              MediaQuery.paddingOf(context).bottom,
+        ),
         child: Container(
           decoration: const BoxDecoration(
             color: PopupTheme.bgDark,
@@ -2317,156 +2025,196 @@ class _DebtViewState extends State<DebtView>
           ),
           child: Form(
             key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const PopupDragHandle(),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.arrow_downward, color: Colors.red),
-                      const SizedBox(width: 8),
-                      Text(
-                        l10n.createReceivableDebtTitle,
-                        style: const TextStyle(
-                          color: PopupTheme.textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+            // Cuộn toàn bộ nội dung (kể cả hàng nút Hủy/Tạo) trong 1
+            // SingleChildScrollView duy nhất — xem debt_payment_sheet.dart
+            // để biết lý do (nút bị đẩy ra ngoài vùng hiển thị nếu chỉ cuộn
+            // riêng phần giữa bằng Flexible).
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const PopupDragHandle(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.arrow_downward, color: Colors.red),
+                        const SizedBox(width: 8),
+                        Text(
+                          l10n.createReceivableDebtTitle,
+                          style: const TextStyle(
+                            color: PopupTheme.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                Flexible(
-                  child: SingleChildScrollView(
+                  Padding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        TextFormField(
-                          controller: nameC,
-                          style: const TextStyle(color: PopupTheme.textPrimary),
-                          decoration: InputDecoration(labelText: l10n.customerNameLabel),
-                          validator: (v) => (v == null || v.trim().isEmpty)
-                              ? l10n.pleaseEnterCustomerNameDebt
-                              : null,
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: TextFormField(
+                                controller: nameC,
+                                style: const TextStyle(color: PopupTheme.textPrimary),
+                                decoration: InputDecoration(
+                                  labelText: l10n.customerNameLabel,
+                                  isDense: true,
+                                ),
+                                validator: (v) => (v == null || v.trim().isEmpty)
+                                    ? l10n.pleaseEnterCustomerNameDebt
+                                    : null,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: TextFormField(
+                                controller: phoneC,
+                                style: const TextStyle(color: PopupTheme.textPrimary),
+                                decoration: InputDecoration(
+                                  labelText: l10n.phoneNumberLabel,
+                                  isDense: true,
+                                ),
+                                keyboardType: TextInputType.phone,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: CurrencyTextField(
+                                controller: amountC,
+                                label: l10n.debtAmountVnd,
+                                validator: (v) => MoneyUtils.validateAmount(
+                                  v ?? '',
+                                  min: 1,
+                                  fieldName: l10n.debtAmountFieldName,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: TextField(
+                                controller: noteC,
+                                style: const TextStyle(color: PopupTheme.textPrimary),
+                                decoration: InputDecoration(labelText: l10n.note, isDense: true),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 10),
-                        TextFormField(
-                          controller: phoneC,
-                          style: const TextStyle(color: PopupTheme.textPrimary),
-                          decoration: InputDecoration(labelText: l10n.phoneNumberLabel),
-                          keyboardType: TextInputType.phone,
-                        ),
-                        const SizedBox(height: 10),
-                        CurrencyTextField(
-                          controller: amountC,
-                          label: l10n.debtAmountVnd,
-                          validator: (v) => MoneyUtils.validateAmount(
-                            v ?? '',
-                            min: 1,
-                            fieldName: l10n.debtAmountFieldName,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        TextField(
-                          controller: noteC,
-                          style: const TextStyle(color: PopupTheme.textPrimary),
-                          decoration: InputDecoration(labelText: l10n.note),
-                        ),
-                        const SizedBox(height: 16),
                       ],
                     ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
-                          child: Text(l10n.cancelButton),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                          ),
-                          onPressed: () async {
-                            if (!(formKey.currentState?.validate() ?? false)) return;
-
-                            try {
-                              final debtAmount = MoneyUtils.parseCurrency(amountC.text);
-                              if (debtAmount <= 0) return;
-
-                              final user = FirebaseAuth.instance.currentUser;
-                              final userName =
-                                  user?.email?.split('@').first.toUpperCase() ?? "NV";
-                              final now = DateTime.now().millisecondsSinceEpoch;
-
-                              final newDebtData = {
-                                'firestoreId': "debt_customer_$now",
-                                'personName': nameC.text.trim(),
-                                'phone': phoneC.text.trim(),
-                                'totalAmount': debtAmount,
-                                'paidAmount': 0,
-                                'type': 'CUSTOMER_OWES',
-                                'status': 'unpaid',
-                                'createdAt': now,
-                                'note': noteC.text.trim(),
-                                'createdBy': userName,
-                              };
-
-                              final debtId = await db.insertDebt(newDebtData);
-                              await SyncOrchestrator().enqueue(
-                                entityType: SyncEntityType.debt,
-                                entityId: debtId,
-                                firestoreId: newDebtData['firestoreId'] as String,
-                                operation: SyncOperation.create,
-                                data: newDebtData,
-                              );
-
-                              await db.logAction(
-                                userId: user?.uid ?? "0",
-                                userName: userName,
-                                action: "TẠO NỢ",
-                                type: "DEBT",
-                                targetId: newDebtData['firestoreId'] as String,
-                                desc:
-                                    "Tạo nợ khách hàng: ${nameC.text} - ${MoneyUtils.formatCurrency(debtAmount)}.",
-                              );
-
-                              EventBus().emit('debts_changed');
-                              if (!mounted) return;
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () async {
                               FocusManager.instance.primaryFocus?.unfocus();
-                                  if (ctx.mounted) Navigator.pop(ctx);
-                              NotificationService.showSnackBar(
-                                l10n.customerDebtCreated,
-                                color: Colors.green,
-                              );
-                              await _refresh();
-                            } catch (e) {
-                              if (!mounted) return;
-                              NotificationService.showSnackBar(
-                                l10n.createDebtError(e.toString()),
-                                color: Colors.red,
-                              );
-                            }
-                          },
-                          child: Text(l10n.createButton),
+                              await Future.delayed(Duration.zero);
+                              if (ctx.mounted) Navigator.pop(ctx);
+                            },
+                            child: Text(l10n.cancelButton),
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () async {
+                              if (!(formKey.currentState?.validate() ?? false)) return;
+
+                              try {
+                                final debtAmount = MoneyUtils.parseCurrency(amountC.text);
+                                if (debtAmount <= 0) return;
+
+                                final user = FirebaseAuth.instance.currentUser;
+                                final userName =
+                                    user?.email?.split('@').first.toUpperCase() ?? "NV";
+                                final now = DateTime.now().millisecondsSinceEpoch;
+                                final shopId = await UserService.getCurrentShopId() ?? '';
+
+                                final newDebtData = {
+                                  'firestoreId': "debt_customer_$now",
+                                  'personName': nameC.text.trim(),
+                                  'phone': phoneC.text.trim(),
+                                  'totalAmount': debtAmount,
+                                  'paidAmount': 0,
+                                  'type': 'CUSTOMER_OWES',
+                                  'status': 'ACTIVE',
+                                  'createdAt': now,
+                                  'note': noteC.text.trim(),
+                                  'createdBy': userName,
+                                  'shopId': shopId,
+                                  'deleted': 0,
+                                  'isSynced': 0,
+                                };
+
+                                final debtId = await db.insertDebt(newDebtData);
+                                await SyncOrchestrator().enqueue(
+                                  entityType: SyncEntityType.debt,
+                                  entityId: debtId,
+                                  firestoreId: newDebtData['firestoreId'] as String,
+                                  operation: SyncOperation.create,
+                                  data: newDebtData,
+                                );
+
+                                await db.logAction(
+                                  userId: user?.uid ?? "0",
+                                  userName: userName,
+                                  action: "TẠO NỢ",
+                                  type: "DEBT",
+                                  targetId: newDebtData['firestoreId'] as String,
+                                  desc:
+                                      "Tạo nợ khách hàng: ${nameC.text} - ${MoneyUtils.formatCurrency(debtAmount)}.",
+                                );
+
+                                EventBus().emit('debts_changed');
+                                if (!mounted) return;
+                                FocusManager.instance.primaryFocus?.unfocus();
+                                if (ctx.mounted) Navigator.pop(ctx);
+                                NotificationService.showSnackBar(
+                                  l10n.customerDebtCreated,
+                                  color: Colors.green,
+                                );
+                                await _refresh();
+                              } catch (e) {
+                                if (!mounted) return;
+                                NotificationService.showSnackBar(
+                                  l10n.createDebtError(e.toString()),
+                                  color: Colors.red,
+                                );
+                              }
+                            },
+                            child: Text(l10n.createButton),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -2499,8 +2247,19 @@ class _DebtViewState extends State<DebtView>
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
+      // Đã tự vẽ PopupDragHandle() riêng — tắt drag handle mặc định của theme
+      // (bottomSheetTheme.showDragHandle=true) để tránh 2 lớp handle chồng
+      // nhau ăn mất không gian, đẩy nút Hủy/Xác nhận ra ngoài vùng hiển thị
+      // trên máy có màn hình thấp (đã xác nhận qua test thực tế).
+      showDragHandle: false,
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+        // Cộng thêm viewPadding.bottom (vùng an toàn hệ thống/nav bar) — chỉ
+        // cộng viewInsets (bàn phím) là chưa đủ trên máy có vùng điều hướng
+        // lớn ở đáy, khiến nút Hủy/Xác nhận bị đẩy ra ngoài vùng chạm được.
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom +
+              MediaQuery.paddingOf(context).bottom,
+        ),
         child: Container(
           decoration: const BoxDecoration(
             color: PopupTheme.bgDark,
@@ -2510,383 +2269,240 @@ class _DebtViewState extends State<DebtView>
           ),
           child: Form(
             key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const PopupDragHandle(),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.arrow_upward, color: PopupTheme.blue),
-                      const SizedBox(width: 8),
-                      Text(
-                        l10n.createPayableDebtTitle,
-                        style: const TextStyle(
-                          color: PopupTheme.textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+            // Cuộn toàn bộ nội dung (kể cả hàng nút Hủy/Tạo) trong 1
+            // SingleChildScrollView duy nhất — xem debt_payment_sheet.dart
+            // để biết lý do (nút bị đẩy ra ngoài vùng hiển thị nếu chỉ cuộn
+            // riêng phần giữa bằng Flexible).
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const PopupDragHandle(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.arrow_upward, color: PopupTheme.blue),
+                        const SizedBox(width: 8),
+                        Text(
+                          l10n.createPayableDebtTitle,
+                          style: const TextStyle(
+                            color: PopupTheme.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                Flexible(
-                  child: SingleChildScrollView(
+                  Padding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        TextFormField(
-                          controller: nameC,
-                          style: const TextStyle(color: PopupTheme.textPrimary),
-                          decoration: InputDecoration(
-                            labelText: l10n.supplierNameLabel,
-                          ),
-                          validator: (v) => (v == null || v.trim().isEmpty)
-                              ? l10n.pleaseEnterSupplierNameDebt
-                              : null,
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: TextFormField(
+                                controller: nameC,
+                                style: const TextStyle(color: PopupTheme.textPrimary),
+                                decoration: InputDecoration(
+                                  labelText: l10n.supplierNameLabel,
+                                  isDense: true,
+                                ),
+                                validator: (v) => (v == null || v.trim().isEmpty)
+                                    ? l10n.pleaseEnterSupplierNameDebt
+                                    : null,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: TextFormField(
+                                controller: phoneC,
+                                style: const TextStyle(color: PopupTheme.textPrimary),
+                                decoration: InputDecoration(
+                                  labelText: l10n.phoneNumberLabel,
+                                  isDense: true,
+                                ),
+                                keyboardType: TextInputType.phone,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: CurrencyTextField(
+                                controller: amountC,
+                                label: l10n.debtAmountVnd,
+                                validator: (v) => MoneyUtils.validateAmount(
+                                  v ?? '',
+                                  min: 1,
+                                  fieldName: l10n.debtAmountFieldName,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: TextField(
+                                controller: noteC,
+                                style: const TextStyle(color: PopupTheme.textPrimary),
+                                decoration: InputDecoration(labelText: l10n.note, isDense: true),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 10),
-                        TextFormField(
-                          controller: phoneC,
-                          style: const TextStyle(color: PopupTheme.textPrimary),
-                          decoration: InputDecoration(labelText: l10n.phoneNumberLabel),
-                          keyboardType: TextInputType.phone,
-                        ),
-                        const SizedBox(height: 10),
-                        CurrencyTextField(
-                          controller: amountC,
-                          label: l10n.debtAmountVnd,
-                          validator: (v) => MoneyUtils.validateAmount(
-                            v ?? '',
-                            min: 1,
-                            fieldName: l10n.debtAmountFieldName,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        TextField(
-                          controller: noteC,
-                          style: const TextStyle(color: PopupTheme.textPrimary),
-                          decoration: InputDecoration(labelText: l10n.note),
-                        ),
-                        const SizedBox(height: 16),
                       ],
                     ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
-                          child: Text(l10n.cancelButton),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: PopupTheme.blue,
-                            foregroundColor: Colors.white,
-                          ),
-                          onPressed: () async {
-                            if (!(formKey.currentState?.validate() ?? false)) return;
-
-                            try {
-                              final debtAmount = MoneyUtils.parseCurrency(amountC.text);
-                              if (debtAmount <= 0) return;
-
-                              final user = FirebaseAuth.instance.currentUser;
-                              final userName =
-                                  user?.email?.split('@').first.toUpperCase() ?? "NV";
-                              final now = DateTime.now().millisecondsSinceEpoch;
-
-                              final newDebtData = {
-                                'firestoreId': "debt_supplier_$now",
-                                'personName': nameC.text.trim(),
-                                'phone': phoneC.text.trim(),
-                                'totalAmount': debtAmount,
-                                'paidAmount': 0,
-                                'type': 'SHOP_OWES',
-                                'status': 'unpaid',
-                                'createdAt': now,
-                                'note': noteC.text.trim(),
-                                'createdBy': userName,
-                              };
-
-                              final debtId = await db.insertDebt(newDebtData);
-                              await SyncOrchestrator().enqueue(
-                                entityType: SyncEntityType.debt,
-                                entityId: debtId,
-                                firestoreId: newDebtData['firestoreId'] as String,
-                                operation: SyncOperation.create,
-                                data: newDebtData,
-                              );
-
-                              await db.logAction(
-                                userId: user?.uid ?? "0",
-                                userName: userName,
-                                action: "TẠO NỢ",
-                                type: "DEBT",
-                                targetId: newDebtData['firestoreId'] as String,
-                                desc:
-                                    "Tạo nợ nhà cung cấp: ${nameC.text} - ${MoneyUtils.formatCurrency(debtAmount)}.",
-                              );
-
-                              EventBus().emit('debts_changed');
-                              if (!mounted) return;
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () async {
                               FocusManager.instance.primaryFocus?.unfocus();
-                                  if (ctx.mounted) Navigator.pop(ctx);
-                              NotificationService.showSnackBar(
-                                l10n.supplierDebtCreated,
-                                color: Colors.green,
-                              );
-                              await _refresh();
-                            } catch (e) {
-                              if (!mounted) return;
-                              NotificationService.showSnackBar(
-                                l10n.createDebtError(e.toString()),
-                                color: Colors.red,
-                              );
-                            }
-                          },
-                          child: Text(l10n.createButton),
+                              await Future.delayed(Duration.zero);
+                              if (ctx.mounted) Navigator.pop(ctx);
+                            },
+                            child: Text(l10n.cancelButton),
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: PopupTheme.blue,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () async {
+                              if (!(formKey.currentState?.validate() ?? false)) return;
+
+                              try {
+                                final debtAmount = MoneyUtils.parseCurrency(amountC.text);
+                                if (debtAmount <= 0) return;
+
+                                final user = FirebaseAuth.instance.currentUser;
+                                final userName =
+                                    user?.email?.split('@').first.toUpperCase() ?? "NV";
+                                final now = DateTime.now().millisecondsSinceEpoch;
+                                final shopId = await UserService.getCurrentShopId() ?? '';
+
+                                final newDebtData = {
+                                  'firestoreId': "debt_supplier_$now",
+                                  'personName': nameC.text.trim(),
+                                  'phone': phoneC.text.trim(),
+                                  'totalAmount': debtAmount,
+                                  'paidAmount': 0,
+                                  'type': 'SHOP_OWES',
+                                  'status': 'ACTIVE',
+                                  'createdAt': now,
+                                  'note': noteC.text.trim(),
+                                  'createdBy': userName,
+                                  'shopId': shopId,
+                                  'deleted': 0,
+                                  'isSynced': 0,
+                                };
+
+                                final debtId = await db.insertDebt(newDebtData);
+                                await SyncOrchestrator().enqueue(
+                                  entityType: SyncEntityType.debt,
+                                  entityId: debtId,
+                                  firestoreId: newDebtData['firestoreId'] as String,
+                                  operation: SyncOperation.create,
+                                  data: newDebtData,
+                                );
+
+                                await db.logAction(
+                                  userId: user?.uid ?? "0",
+                                  userName: userName,
+                                  action: "TẠO NỢ",
+                                  type: "DEBT",
+                                  targetId: newDebtData['firestoreId'] as String,
+                                  desc:
+                                      "Tạo nợ nhà cung cấp: ${nameC.text} - ${MoneyUtils.formatCurrency(debtAmount)}.",
+                                );
+
+                                EventBus().emit('debts_changed');
+                                if (!mounted) return;
+                                FocusManager.instance.primaryFocus?.unfocus();
+                                if (ctx.mounted) Navigator.pop(ctx);
+                                NotificationService.showSnackBar(
+                                  l10n.supplierDebtCreated,
+                                  color: Colors.green,
+                                );
+                                await _refresh();
+                              } catch (e) {
+                                if (!mounted) return;
+                                NotificationService.showSnackBar(
+                                  l10n.createDebtError(e.toString()),
+                                  color: Colors.red,
+                                );
+                              }
+                            },
+                            child: Text(l10n.createButton),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _debtCardWithIcon(
-    Map<String, dynamic> d,
-    IconData icon,
-    Color iconColor, [
-    int? index,
-  ]) {
-    final l10n = AppLocalizations.of(context)!;
-    final int total = _toInt(d['totalAmount']);
-    final int paid = _toInt(d['paidAmount']);
-    final int remain = (total - paid).clamp(0, total);
-    final int createdAt = _toInt(d['createdAt']);
-    final bool hasCreatedAt = createdAt > 0;
-    final String date = hasCreatedAt
-        ? DateFormat(
-            'dd/MM/yyyy',
-          ).format(DateTime.fromMillisecondsSinceEpoch(createdAt))
-        : '--/--/----';
-    final String time = hasCreatedAt
-        ? DateFormat(
-            'HH:mm',
-          ).format(DateTime.fromMillisecondsSinceEpoch(createdAt))
-        : '--:--';
-    final String personName = (d['personName'] ?? 'N/A').toString();
-    final String phone = d['phone']?.toString() ?? '';
-    final String note = d['note']?.toString() ?? '';
-    final bool hasMeaningfulNote =
-        note.trim().isNotEmpty && note.trim().toLowerCase() != 'nợ';
-    final bool isReceivable = icon == Icons.arrow_downward;
-    final isAltRow = (index ?? 0).isEven;
+/// Ô lựa chọn trong bảng chọn nhanh loại nợ (_showCreateDebtChooser) — layout
+/// ngang, gọn, để bảng chọn luôn thấp và không phụ thuộc vào việc cuộn.
+class _DebtChooserOption extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+  final VoidCallback onTap;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 3),
-      color: isAltRow
-          ? Color.alphaBlend(iconColor.withValues(alpha: 0.04), Colors.white)
-          : Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: iconColor.withValues(alpha: 0.12)),
-      ),
+  const _DebtChooserOption({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: color.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(10),
       child: InkWell(
-        onTap: () => _showDebtHistory(d),
+        onTap: onTap,
         borderRadius: BorderRadius.circular(10),
         child: Padding(
-          padding: const EdgeInsets.all(6),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                children: [
-                  if (index != null) ...[
-                    Container(
-                      width: 26,
-                      height: 26,
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
-                        color: iconColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(7),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '$index',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: iconColor,
-                            fontSize: AppTextStyles.caption.fontSize,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                  Container(
-                    padding: const EdgeInsets.all(7),
-                    decoration: BoxDecoration(
-                      color: iconColor.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(icon, color: iconColor, size: 16),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          personName.toUpperCase(),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: AppTextStyles.headline5.fontSize,
-                          ),
-                        ),
-                        if (phone.isNotEmpty)
-                          Text(
-                            '📞 $phone',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: AppTextStyles.caption.fontSize,
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        date,
-                        style: TextStyle(
-                          fontSize: AppTextStyles.caption.fontSize,
-                          color: Colors.grey.shade600,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(
-                        time,
-                        style: TextStyle(
-                          fontSize: AppTextStyles.overlineSize,
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  _debtInfoChip(
-                    isReceivable ? l10n.debtReceivable : l10n.debtPayable,
-                    iconColor.withValues(alpha: 0.14),
-                    iconColor,
-                  ),
-                ],
-              ),
-              if (hasMeaningfulNote) ...[
-                const SizedBox(height: 4),
-                Text(
-                  note,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: AppTextStyles.caption.fontSize,
-                    color: Colors.grey.shade700,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Expanded(
-                    child: _amountPill(
-                      label: l10n.totalDebtLabel,
-                      amount: total,
-                      valueColor: Colors.grey.shade700,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: _amountPill(
-                      label: l10n.paidAmountLabel,
-                      amount: paid,
-                      valueColor: Colors.green,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: _amountPill(
-                      label: l10n.remainingDebtLabel,
-                      amount: remain,
-                      valueColor: Colors.white,
-                      bgColor: iconColor,
-                      labelColor: Colors.white70,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton.icon(
-                    onPressed: () => _showDebtHistory(d),
-                    icon: const Icon(Icons.history, size: 14),
-                    label: Text(
-                      l10n.historyButton,
-                      style: TextStyle(fontSize: AppTextStyles.body1.fontSize),
-                    ),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 5),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  ElevatedButton.icon(
-                    onPressed: () => _payDebt(d),
-                    icon: Icon(
-                      isReceivable ? Icons.call_received : Icons.call_made,
-                      size: 14,
-                    ),
-                    label: Text(
-                      isReceivable ? l10n.collectDebtAction : l10n.returnDebtAction,
-                      style: TextStyle(fontSize: AppTextStyles.body1.fontSize),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: iconColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  ),
-                ],
+              Icon(icon, color: color, size: 22),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),

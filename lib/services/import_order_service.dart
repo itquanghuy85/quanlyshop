@@ -96,6 +96,7 @@ class ImportOrderService {
           'notes': '',
           'shopId': shopId,
           'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
           'deleted': false,
         });
       }

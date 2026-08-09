@@ -5316,15 +5316,24 @@ class DBHelper {
       debugPrint('⚠️ getDebtsByLinkedId: linkedId rỗng — caller cần kiểm tra firestoreId');
       return [];
     }
+    final shopId = UserService.getShopIdSync();
     final db = await database;
-    return db.query('debts', where: 'linkedId = ?', whereArgs: [linkedId]);
+    if (shopId != null && shopId.isNotEmpty) {
+      return db.query(
+        'debts',
+        where: 'linkedId = ? AND (shopId = ? OR shopId IS NULL) AND (deleted = 0 OR deleted IS NULL)',
+        whereArgs: [linkedId, shopId],
+      );
+    }
+    return db.query('debts', where: 'linkedId = ? AND (deleted = 0 OR deleted IS NULL)', whereArgs: [linkedId]);
   }
 
-  /// Soft delete công nợ - thực tế là xóa hẳn vì bảng debts không có cột deleted
+  /// Soft delete công nợ — đặt deleted=1 thay vì xóa cứng để giữ lịch sử
   Future<int> softDeleteDebt(int debtId, {String? reason}) async {
-    // Bảng debts không có cột deleted, nên phải xóa thật
-    return (await database).delete(
+    final now = DateTime.now().millisecondsSinceEpoch;
+    return (await database).update(
       'debts',
+      {'deleted': 1, 'updatedAt': now, 'isSynced': 0},
       where: 'id = ?',
       whereArgs: [debtId],
     );
@@ -6846,12 +6855,12 @@ class DBHelper {
     if (shopId != null && shopId.isNotEmpty) {
       return db.query(
         'debts',
-        where: 'shopId = ? OR shopId IS NULL',
+        where: '(shopId = ? OR shopId IS NULL) AND (deleted = 0 OR deleted IS NULL)',
         whereArgs: [shopId],
         orderBy: 'status ASC, createdAt DESC',
       );
     }
-    return db.query('debts', orderBy: 'status ASC, createdAt DESC');
+    return db.query('debts', where: 'deleted = 0 OR deleted IS NULL', orderBy: 'status ASC, createdAt DESC');
   }
 
   /// Lấy công nợ được tạo trong khoảng thời gian (by createdAt) — dùng cho Finance V2 thay vì getAllDebts()

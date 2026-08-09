@@ -1056,17 +1056,20 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       } else {
         // Create new debt (khi đổi từ hình thức khác sang CÔNG NỢ)
         final debtFId = "debt_${s.soldAt}_${s.phone}";
+        final shopId = await UserService.getCurrentShopId() ?? '';
         final newDebt = {
           'firestoreId': debtFId,
           'personName': s.customerName,
           'phone': s.phone,
           'totalAmount': debtAmount,
           'paidAmount': 0,
-          'status': 'UNPAID',
+          'status': 'ACTIVE',
           'createdAt': s.soldAt,
           'note': 'Đơn bán ${s.firestoreId}',
           'linkedId': s.firestoreId,
-          'type': 'CUSTOMER_OWES', // Customer owes shop
+          'type': 'CUSTOMER_OWES',
+          'shopId': shopId,
+          'deleted': 0,
           'isSynced': 0,
         };
         final debtId = await db.insertDebt(newDebt);

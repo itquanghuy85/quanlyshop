@@ -1106,6 +1106,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         // FIX: Tạo firestoreId TRƯỚC khi insert để tránh duplicate khi sync
         final debtFId =
             "debt_${DateTime.now().millisecondsSinceEpoch}_${r.phone.hashCode}";
+        final shopId = await UserService.getCurrentShopId() ?? '';
         final debtData = {
           'personName': r.customerName,
           'phone': r.phone,
@@ -1117,6 +1118,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           'note': loc.debtNoteForRepair(r.model),
           'linkedId': r.firestoreId,
           'firestoreId': debtFId, // Set firestoreId ngay từ đầu
+          'shopId': shopId,
+          'deleted': 0,
+          'isSynced': 0,
         };
         final debtId = await db.insertDebt(debtData);
 
@@ -1909,6 +1913,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       if (r.paymentMethod == "CÔNG NỢ") {
         final debtFId =
             "debt_${DateTime.now().millisecondsSinceEpoch}_${r.phone.hashCode}";
+        final shopId = await UserService.getCurrentShopId() ?? '';
         final debtData = {
           'personName': r.customerName,
           'phone': r.phone,
@@ -1920,6 +1925,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           'note': loc.debtNoteRepair(r.model),
           'linkedId': r.firestoreId,
           'firestoreId': debtFId,
+          'shopId': shopId,
+          'deleted': 0,
+          'isSynced': 0,
         };
         final debtId = await db.insertDebt(debtData);
         await SyncOrchestrator().enqueue(
@@ -1930,10 +1938,28 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           data: debtData,
         );
 
-        // Công nợ đã ghi nhận ở bảng debts - không cần tạo PaymentIntent
-        debugPrint(
-          '✅ Repair debt recorded: $debtFId (no PaymentIntent needed)',
+        // Tạo PaymentIntent để debt xuất hiện trong danh sách "Chờ thu"
+        final intent = PaymentIntent(
+          id: 'pi_repair_debt_${DateTime.now().millisecondsSinceEpoch}_${r.id}',
+          type: PaymentIntentType.customerDebtCollection,
+          amount: r.price,
+          description: 'Thu tiền sửa máy: ${r.model} - ${r.customerName}',
+          referenceId: debtFId,
+          referenceType: 'repair_debt',
+          personName: r.customerName,
+          personPhone: r.phone,
+          createdBy: user?.uid ?? 'unknown',
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+          metadata: {
+            'repairId': r.id,
+            'repairFirestoreId': r.firestoreId,
+            'debtId': debtId,
+            'debtFirestoreId': debtFId,
+            'debtType': 'CUSTOMER_OWES',
+          },
         );
+        await PaymentIntentService.createIntent(intent);
+        debugPrint('✅ Repair approval debt + PaymentIntent recorded: $debtFId');
       } else if (r.price > 0) {
         // Ghi nhận thu tiền sửa chữa trực tiếp
         final payResult = await PaymentIntentService.executePaymentDirect(
