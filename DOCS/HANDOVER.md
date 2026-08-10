@@ -7,12 +7,20 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## ⚡ Trạng thái hiện tại
 
 **Version:** 1.x (develop) → Production live  
-**Last Updated:** 2026-08-09  
-**Build Status:** ✅ `flutter build apk --debug` OK, đã cài + test trên Oppo CPH2203  
+**Last Updated:** 2026-08-10  
+**Build Status:** ✅ `flutter build apk --debug` OK, đã cài + test trên thiết bị Android thật (adb)  
 **Analyze Status:** ✅ 0 compile error (chỉ info/warning có sẵn từ trước)  
 **Database Version:** SQLite v104  
 **Branch:** master  
-**Active Initiative:** Multi-fix session 2026-08-08/09 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng, backup đơn sửa kèm ảnh)
+**Active Initiative:** Multi-fix session 2026-08-08/10 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng, backup đơn sửa kèm ảnh, fix sheet Thêm dịch vụ)
+
+### ✅ Vừa hoàn thành (2026-08-10): fix(repair): sheet "Thêm dịch vụ" hiện màn xám, không có popup
+- Root cause: `ElevatedButton` (nút Thêm/Cập nhật) trong `Row` cùng `Spacer()` không có `style` riêng → kế thừa `minimumSize: Size(double.infinity, buttonHeight)` từ theme toàn app → tạo constraint tight-infinite không hợp lệ khi Row đo layout → crash `performLayout()` ngay khi mở sheet, chỉ còn nền xám (barrier), không log lỗi rõ ràng qua adb logcat thường
+- Fix: gán `style: AppButtonStyles.smallElevatedButtonStyle` cho riêng nút này + thêm import còn thiếu
+- Lỗi phụ phát hiện cùng lúc: hàng nút Hủy/Thêm bị khuất dưới thanh điều hướng hệ thống vì `useSafeArea: true` của `showModalBottomSheet` chỉ tránh status bar (`SafeArea(bottom: false)` nội bộ), không tránh nav bar — fix bằng bọc thêm `SafeArea(top: false)` quanh nội dung sheet
+- Debug bằng `flutter run` (Dart VM live) để bắt được exception layout đầy đủ — `adb logcat` thường không đủ tin cậy (buffer bị ghi đè bởi log hệ thống)
+- Đã test trên thiết bị Android thật: tái hiện lỗi gốc → verify fix hết crash → test full luồng thêm/sửa/xoá dịch vụ, không crash
+- Chi tiết: `docs/CHANGELOG.md` mục `[2026-08-10]`
 
 ### ✅ Vừa hoàn thành (2026-08-09b): feat(sale): tìm kiếm khách hàng tự động khi tạo đơn bán
 - Gắn `CustomerSuggestionsPanel` (tái dùng từ tính năng đơn sửa) vào field TÊN/SĐT có sẵn trong `create_sale_view.dart`

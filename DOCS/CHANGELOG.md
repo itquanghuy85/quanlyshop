@@ -4,6 +4,21 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-10] - fix(repair): sheet "Thêm dịch vụ" hiện màn xám, không có popup
+
+**Triệu chứng:** Bấm "+ Thêm" ở mục Dịch vụ trong Chi tiết đơn sửa → chỉ thấy nền mờ xám (barrier), không có popup nào hiện ra. Không có snackbar lỗi, không log gì rõ ràng qua `adb logcat` thường — chỉ phát hiện được nguyên nhân thật khi chạy `flutter run` (VM kết nối trực tiếp) để bắt exception layout đầy đủ.
+
+**Nguyên nhân gốc:** Dialog "Thêm dịch vụ" (`_showAddServiceDialog`, `repair_detail_view.dart`) đã được refactor từ `showDialog`+`AlertDialog` sang `showModalBottomSheet` tự custom trước đó (chưa commit). Nút "Thêm"/"Cập nhật" là `ElevatedButton` không style riêng, đặt trong `Row` cùng `Spacer()`. Theme `ElevatedButton` toàn app (`AppButtonStyles.elevatedButtonStyle`) quy định `minimumSize: Size(double.infinity, buttonHeight)` — dùng cho nút full-width bình thường (VD trong `Column`). Nhưng trong `Row`, các con không-flex nhận `maxWidth: infinity` khi layout (hành vi chuẩn của `Row`/`Flex` để đo kích thước tự nhiên) — kết hợp với `minimumSize.width = double.infinity` khiến `ButtonStyleButton` tạo constraint `BoxConstraints(minWidth: infinity, maxWidth: infinity)` (tight-infinite, không hợp lệ) → Flutter crash `performLayout()` ngay khi build sheet lần đầu. Vì exception xảy ra trong lúc build, framework không render được gì cả — chỉ còn barrier (nền xám) của route.
+
+**2 lỗi liên quan phát hiện cùng lúc:**
+1. Root cause chính ở trên — fix bằng cách gán `style: AppButtonStyles.smallElevatedButtonStyle` (biến thể có sẵn trong theme, `minWidth: 0`) riêng cho `ElevatedButton` này, thêm import `theme/app_button_styles.dart` còn thiếu.
+2. Sau khi sheet hiện được: hàng nút Hủy/Thêm ở cuối bị khuất một phần dưới thanh điều hướng hệ thống (3-button nav). Nguyên nhân: `showModalBottomSheet(useSafeArea: true)` chỉ áp `SafeArea(bottom: false)` nội bộ (chỉ tránh status bar, KHÔNG tránh nav bar) — sheet luôn được canh chạm đáy màn hình vật lý bất kể chiều cao. Fix: bọc thêm `SafeArea(top: false, ...)` quanh nội dung sheet để tự thêm padding đáy tránh thanh điều hướng.
+
+- File: `lib/views/repair_detail_view.dart` (hàm `_showAddServiceDialog`)
+- Đã test trực tiếp qua `flutter run` (Dart VM live) trên thiết bị Android thật: tái hiện lỗi gốc (barrier không nội dung) → xác nhận exception layout chính xác qua log → áp fix → verify hết crash, sheet hiện đầy đủ field + 2 nút không bị khuất → test full luồng nhập liệu + validate + lưu dịch vụ + xoá dịch vụ test, đều hoạt động đúng, không crash
+
+---
+
 ## [2026-08-09b] - feat(sale): tìm kiếm khách hàng tự động khi tạo đơn bán
 
 **Mục tiêu:** Đồng bộ trải nghiệm với màn tạo đơn sửa — gõ vào ô TÊN/SĐT có sẵn là hiện gợi ý khách cũ ngay.

@@ -44,6 +44,7 @@ import '../services/encryption_service.dart';
 import 'package:image_picker/image_picker.dart';
 import '../data/db_helper.dart';
 import '../services/event_bus.dart';
+import '../theme/app_button_styles.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/app_cached_image.dart';
@@ -3581,10 +3582,13 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         final sheetLoc = AppLocalizations.of(ctx)!;
-        // Read from outer `context`, not inner `ctx` — see _editBasicInfo
-        // above for why (same _dependents.isEmpty race, same fix).
-        return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+        return Builder(
+          builder: (innerCtx) => Padding(
+            // Builder tạo context con an toàn, cập nhật reactive khi bàn phím xuất hiện
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.viewInsetsOf(innerCtx).bottom +
+                  MediaQuery.viewPaddingOf(innerCtx).bottom,
+            ),
           child: Container(
             decoration: const BoxDecoration(
               color: PopupTheme.bgDark,
@@ -3593,88 +3597,95 @@ class _RepairDetailViewState extends State<RepairDetailView> {
               ),
             ),
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const PopupDragHandle(),
-                Text(
-                  sheetLoc.techNotesTitle,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: PopupTheme.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  sheetLoc.repairProcessNotes,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: PopupTheme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: notesC,
-                  maxLines: 4,
-                  autofocus: true,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                    hintText: sheetLoc.techNotesHint,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(
-                        PopupTheme.radiusField,
-                      ),
+            // Cuộn toàn bộ nội dung (kể cả hàng nút) thay vì chỉ ô nhập: đảm
+            // bảo caret/textfield và nút Lưu luôn cuộn lên được khỏi vùng bàn
+            // phím che, thay vì bị Column cố định đẩy ra ngoài — cùng pattern
+            // với lib/widgets/debt_payment_sheet.dart.
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const PopupDragHandle(),
+                  Text(
+                    sheetLoc.techNotesTitle,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: PopupTheme.textPrimary,
                     ),
-                    filled: true,
-                    fillColor: PopupTheme.surfaceDark,
                   ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () async {
-                          // See _editBasicInfo above: FocusManager (not
-                          // FocusScope.of(ctx)) avoids registering a fresh
-                          // widget-tree dependency right before this route
-                          // pops — the actual root cause of an intermittent
-                          // _dependents.isEmpty crash.
-                          FocusManager.instance.primaryFocus?.unfocus();
-                          await Future.delayed(Duration.zero);
-                          if (ctx.mounted) {
-                            Navigator.pop(ctx, false);
-                          }
-                        },
-                        child: Text(sheetLoc.cancel),
-                      ),
+                  const SizedBox(height: 4),
+                  Text(
+                    sheetLoc.repairProcessNotes,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: PopupTheme.textSecondary,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          FocusManager.instance.primaryFocus?.unfocus();
-                          await Future.delayed(Duration.zero);
-                          if (ctx.mounted) {
-                            Navigator.pop(ctx, true);
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
-                          foregroundColor: Colors.white,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: notesC,
+                    maxLines: 4,
+                    autofocus: true,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(
+                      hintText: sheetLoc.techNotesHint,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(
+                          PopupTheme.radiusField,
                         ),
-                        child: Text(sheetLoc.save),
                       ),
+                      filled: true,
+                      fillColor: PopupTheme.surfaceDark,
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () async {
+                            // See _editBasicInfo above: FocusManager (not
+                            // FocusScope.of(ctx)) avoids registering a fresh
+                            // widget-tree dependency right before this route
+                            // pops — the actual root cause of an intermittent
+                            // _dependents.isEmpty crash.
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            await Future.delayed(Duration.zero);
+                            if (ctx.mounted) {
+                              Navigator.pop(ctx, false);
+                            }
+                          },
+                          child: Text(sheetLoc.cancel),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            await Future.delayed(Duration.zero);
+                            if (ctx.mounted) {
+                              Navigator.pop(ctx, true);
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: Text(sheetLoc.save),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        );
+        ),
+      );
       },
     );
     final notesText = notesC.text.trim();
@@ -5298,188 +5309,266 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       selectedPaymentMethod = null;
     }
 
-    showDialog(
+    await showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) {
         final dialogLoc = AppLocalizations.of(ctx)!;
         return StatefulBuilder(
-          builder: (ctx, setS) => AlertDialog(
-            // Đẩy dialog lên khi bàn phím xuất hiện
-            insetPadding: EdgeInsets.fromLTRB(
-              24,
-              24,
-              24,
-              MediaQuery.viewInsetsOf(ctx).bottom + 24,
-            ),
-            title: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  editService != null
-                      ? dialogLoc.editService
-                      : dialogLoc.addServiceTitle,
-                ),
-                // Lối tắt vào Đối Tác Sửa Chữa
-                IconButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _navigateToRepairPartners();
-                  },
-                  icon: const Icon(Icons.group, color: Colors.teal, size: 20),
-                  tooltip: dialogLoc.viewRepairPartners,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ],
-            ),
-            content: Form(
-              key: formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextFormField(
-                      controller: serviceCtrl,
-                      decoration: InputDecoration(
-                        labelText: dialogLoc.serviceNameRequired,
-                      ),
-                      textCapitalization: TextCapitalization.characters,
-                      validator: (v) => (v ?? '').trim().isEmpty
-                          ? dialogLoc.pleaseEnterServiceName
-                          : null,
-                    ),
-                    const SizedBox(height: 10),
-                    CurrencyTextField(
-                      controller: costCtrl,
-                      label: dialogLoc.costVnd,
-                      validator: (v) => MoneyUtils.validateAmount(
-                        v ?? '',
-                        min: 1,
-                        fieldName: dialogLoc.costField,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    if (availablePartners.isNotEmpty)
-                      DropdownButtonFormField<RepairPartner?>(
-                        decoration: InputDecoration(
-                          labelText: dialogLoc.partnerOptional2,
-                        ),
-                        key: ValueKey(selectedPartner?.id),
-                        initialValue: selectedPartner,
-                        items: [
-                          DropdownMenuItem(
-                            value: null,
-                            child: Text(dialogLoc.noPartnerOption),
-                          ),
-                          ...availablePartners.map(
-                            (p) =>
-                                DropdownMenuItem(value: p, child: Text(p.name)),
-                          ),
-                        ],
-                        onChanged: (p) => setS(() {
-                          selectedPartner = p;
-                          if (p == null) {
-                            selectedPaymentMethod = null;
-                          }
-                        }),
-                      ),
-                    if (availablePartners.isEmpty)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.orange.shade200),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Chưa có đối tác sửa chữa để chọn.',
-                              style: AppTextStyles.caption.copyWith(
-                                color: Colors.orange.shade700,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            TextButton.icon(
-                              onPressed: () async {
-                                Navigator.pop(ctx);
-                                await _navigateToRepairPartners();
-                              },
-                              icon: const Icon(Icons.group, size: 16),
-                              label: Text(dialogLoc.viewRepairPartners),
-                            ),
-                          ],
-                        ),
-                      ),
-                    // Phương thức thanh toán (chỉ hiện khi có đối tác)
-                    if (selectedPartner != null) ...[
-                      const SizedBox(height: 10),
-                      DropdownButtonFormField<String>(
-                        decoration: InputDecoration(
-                          labelText: dialogLoc.partnerPaymentMethodRequired,
-                          prefixIcon: const Icon(Icons.payment, size: 20),
-                        ),
-                        initialValue: selectedPaymentMethod,
-                        items: paymentMethods
-                            .map(
-                              (m) => DropdownMenuItem(value: m, child: Text(m)),
-                            )
-                            .toList(),
-                        onChanged: (v) => setS(() => selectedPaymentMethod = v),
-                        validator: (v) =>
-                            selectedPartner != null && (v == null || v.isEmpty)
-                            ? dialogLoc.pleaseSelectPaymentMethod
-                            : null,
-                      ),
-                    ],
-                  ],
-                ),
+          builder: (ctx, setS) {
+            final maxSheetHeight = MediaQuery.sizeOf(ctx).height * 0.85;
+            return AnimatedPadding(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(ctx).bottom,
               ),
-            ),
-            actions: [
-              if (editService != null)
-                TextButton(
-                  onPressed: () async {
-                    Navigator.pop(ctx);
-                    await _deleteService(editIndex!);
-                  },
-                  child: Text(
-                    dialogLoc.delete,
-                    style: const TextStyle(color: Colors.red),
+              // showModalBottomSheet's useSafeArea chỉ áp dụng
+              // SafeArea(bottom: false) — sheet luôn được canh chạm đáy
+              // màn hình vật lý. Bọc thêm SafeArea(top: false) ở đây để
+              // tự tránh thanh điều hướng hệ thống, nếu không hàng nút
+              // Hủy/Thêm ở cuối sheet bị khuất dưới thanh điều hướng.
+              child: SafeArea(
+                top: false,
+                child: Container(
+                constraints: BoxConstraints(maxHeight: maxSheetHeight),
+                decoration: BoxDecoration(
+                  color: Theme.of(ctx).dialogBackgroundColor,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
                   ),
                 ),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(dialogLoc.cancel),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  if (!(formKey.currentState?.validate() ?? false)) return;
-                  // Không cần nhân 1000 - user đã nhập số đầy đủ với formatter
-                  // Ví dụ: nhập "50.000" → parse ra 50000 VNĐ (đúng)
-                  final cost = MoneyUtils.parseCurrency(costCtrl.text);
-                  final service = RepairService(
-                    firestoreId:
-                        editService?.firestoreId ??
-                        RepairPartnerService.generateServiceFirestoreId(),
-                    serviceName: serviceCtrl.text.trim().toUpperCase(),
-                    cost: cost,
-                    partnerId: selectedPartner?.id,
-                    partnerName: selectedPartner?.name,
-                    paymentMethod: selectedPaymentMethod,
-                  );
-                  Navigator.pop(ctx);
-                  await _saveService(service, editIndex);
-                },
-                child: Text(
-                  editService != null ? dialogLoc.update : dialogLoc.add,
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: SizedBox(
+                  height: maxSheetHeight,
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            editService != null
+                                ? dialogLoc.editService
+                                : dialogLoc.addServiceTitle,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              _navigateToRepairPartners();
+                            },
+                            icon: const Icon(
+                              Icons.group,
+                              color: Colors.teal,
+                              size: 20,
+                            ),
+                            tooltip: dialogLoc.viewRepairPartners,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Form(
+                            key: formKey,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                TextFormField(
+                                  controller: serviceCtrl,
+                                  decoration: InputDecoration(
+                                    labelText: dialogLoc.serviceNameRequired,
+                                  ),
+                                  textCapitalization:
+                                      TextCapitalization.characters,
+                                  validator: (v) => (v ?? '').trim().isEmpty
+                                      ? dialogLoc.pleaseEnterServiceName
+                                      : null,
+                                ),
+                                const SizedBox(height: 10),
+                                CurrencyTextField(
+                                  controller: costCtrl,
+                                  label: dialogLoc.costVnd,
+                                  validator: (v) => MoneyUtils.validateAmount(
+                                    v ?? '',
+                                    min: 1,
+                                    fieldName: dialogLoc.costField,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                if (availablePartners.isNotEmpty)
+                                  DropdownButtonFormField<RepairPartner?>(
+                                    decoration: InputDecoration(
+                                      labelText: dialogLoc.partnerOptional2,
+                                    ),
+                                    initialValue: selectedPartner,
+                                    items: [
+                                      DropdownMenuItem<RepairPartner?>(
+                                        value: null,
+                                        child: Text(
+                                          dialogLoc.noPartnerOption,
+                                        ),
+                                      ),
+                                      ...availablePartners.map(
+                                        (p) => DropdownMenuItem<RepairPartner?>(
+                                          value: p,
+                                          child: Text(p.name),
+                                        ),
+                                      ),
+                                    ],
+                                    onChanged: (p) => setS(() {
+                                      selectedPartner = p;
+                                      if (p == null) {
+                                        selectedPaymentMethod = null;
+                                      }
+                                    }),
+                                  ),
+                                if (availablePartners.isEmpty)
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange.shade50,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: Colors.orange.shade200,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Chưa có đối tác sửa chữa để chọn.',
+                                          style: AppTextStyles.caption.copyWith(
+                                            color: Colors.orange.shade700,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        TextButton.icon(
+                                          onPressed: () async {
+                                            Navigator.pop(ctx);
+                                            await _navigateToRepairPartners();
+                                          },
+                                          icon: const Icon(
+                                            Icons.group,
+                                            size: 16,
+                                          ),
+                                          label: Text(
+                                            dialogLoc.viewRepairPartners,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                if (selectedPartner != null) ...[
+                                  const SizedBox(height: 10),
+                                  DropdownButtonFormField<String>(
+                                    decoration: InputDecoration(
+                                      labelText:
+                                          dialogLoc.partnerPaymentMethodRequired,
+                                      prefixIcon: const Icon(
+                                        Icons.payment,
+                                        size: 20,
+                                      ),
+                                    ),
+                                    initialValue: selectedPaymentMethod,
+                                    items: paymentMethods
+                                        .map(
+                                          (m) => DropdownMenuItem<String>(
+                                            value: m,
+                                            child: Text(m),
+                                          ),
+                                        )
+                                        .toList(),
+                                    onChanged: (v) =>
+                                        setS(() => selectedPaymentMethod = v),
+                                    validator: (v) =>
+                                        selectedPartner != null &&
+                                            (v == null || v.isEmpty)
+                                        ? dialogLoc.pleaseSelectPaymentMethod
+                                        : null,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          if (editService != null)
+                            TextButton(
+                              onPressed: () async {
+                                Navigator.pop(ctx);
+                                await _deleteService(editIndex!);
+                              },
+                              child: Text(
+                                dialogLoc.delete,
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          const Spacer(),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: Text(dialogLoc.cancel),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            // minimumSize mặc định của theme là
+                            // Size(double.infinity, buttonHeight) — dùng
+                            // cho nút full-width. Trong Row có Spacer(),
+                            // width vô hạn đó bị "tighten" thành constraint
+                            // vô hạn cứng và crash layout. Ghi đè bằng
+                            // smallElevatedButtonStyle (minWidth: 0) để an
+                            // toàn khi đặt cạnh các nút khác trong Row.
+                            style: AppButtonStyles.smallElevatedButtonStyle,
+                            onPressed: () async {
+                              if (!(formKey.currentState?.validate() ??
+                                  false)) {
+                                return;
+                              }
+                              final cost =
+                                  MoneyUtils.parseCurrency(costCtrl.text);
+                              final service = RepairService(
+                                firestoreId:
+                                    editService?.firestoreId ??
+                                    RepairPartnerService.generateServiceFirestoreId(),
+                                serviceName:
+                                    serviceCtrl.text.trim().toUpperCase(),
+                                cost: cost,
+                                partnerId: selectedPartner?.id,
+                                partnerName: selectedPartner?.name,
+                                paymentMethod: selectedPaymentMethod,
+                              );
+                              Navigator.pop(ctx);
+                              await _saveService(service, editIndex);
+                            },
+                            child: Text(
+                              editService != null
+                                  ? dialogLoc.update
+                                  : dialogLoc.add,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                ),
                 ),
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
