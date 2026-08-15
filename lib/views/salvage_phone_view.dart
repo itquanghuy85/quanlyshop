@@ -55,14 +55,11 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
       // Get fresh shopId to avoid cross-shop data contamination
       final freshShopId = await UserService.getCurrentShopId();
       final maps = await DBHelper().getAllSalvagePhones();
-      final list = maps
-          .map((m) => SalvagePhone.fromMap(m))
-          .where((p) {
-            if (freshShopId == null || freshShopId.isEmpty) return true;
-            final pShop = p.shopId ?? '';
-            return pShop.isEmpty || pShop == freshShopId;
-          })
-          .toList();
+      final list = maps.map((m) => SalvagePhone.fromMap(m)).where((p) {
+        if (freshShopId == null || freshShopId.isEmpty) return true;
+        final pShop = p.shopId ?? '';
+        return pShop.isEmpty || pShop == freshShopId;
+      }).toList();
       if (mounted) {
         setState(() {
           _all = list;
@@ -88,13 +85,12 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
     if (_search.isNotEmpty) {
       result = result.where((p) {
         return VietnameseUtils.containsVietnamese(p.deviceName, _search) ||
-            VietnameseUtils.containsVietnamese(
-              p.customerName ?? '',
-              _search,
-            ) ||
+            VietnameseUtils.containsVietnamese(p.customerName ?? '', _search) ||
             (p.customerPhone ?? '').contains(_search) ||
             VietnameseUtils.containsVietnamese(p.notes ?? '', _search) ||
-            (p.locationCode ?? '').toLowerCase().contains(_search.toLowerCase()) ||
+            (p.locationCode ?? '').toLowerCase().contains(
+              _search.toLowerCase(),
+            ) ||
             VietnameseUtils.containsVietnamese(p.locationName ?? '', _search);
       }).toList();
     }
@@ -142,15 +138,15 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : _filtered.isEmpty
-                      ? _buildEmpty()
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
-                          itemCount: _filtered.length,
-                          itemBuilder: (_, i) => _buildCard(_filtered[i]),
-                        ),
+                  ? _buildEmpty()
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      itemCount: _filtered.length,
+                      itemBuilder: (_, i) => _buildCard(_filtered[i]),
+                    ),
             ),
           ],
         ),
@@ -312,9 +308,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
               backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
-                side: BorderSide(
-                  color: selected ? f.$4 : Colors.grey.shade300,
-                ),
+                side: BorderSide(color: selected ? f.$4 : Colors.grey.shade300),
               ),
               showCheckmark: false,
               onSelected: (_) {
@@ -360,9 +354,9 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
   // === CARD ===
   Widget _buildCard(SalvagePhone p) {
     final statusColor = Color(SalvagePhone.statusColor(p.status));
-    final dateStr = DateFormat('dd/MM/yyyy HH:mm').format(
-      DateTime.fromMillisecondsSinceEpoch(p.createdAt),
-    );
+    final dateStr = DateFormat(
+      'dd/MM/yyyy HH:mm',
+    ).format(DateTime.fromMillisecondsSinceEpoch(p.createdAt));
 
     return GestureDetector(
       onTap: () => _showDetail(p),
@@ -416,22 +410,26 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                     ),
                   Text(
                     dateStr,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey.shade400,
-                    ),
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
                   ),
                   if (p.locationCode != null && p.locationCode!.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 2),
                       child: Row(
                         children: [
-                          Icon(Icons.location_on_rounded, size: 11, color: const Color(0xFF1D4ED8)),
+                          Icon(
+                            Icons.location_on_rounded,
+                            size: 11,
+                            color: const Color(0xFF1D4ED8),
+                          ),
                           const SizedBox(width: 2),
                           Flexible(
                             child: Text(
                               '${p.locationCode} · ${p.locationName ?? ''}',
-                              style: const TextStyle(fontSize: 11, color: Color(0xFF1D4ED8)),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF1D4ED8),
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -493,15 +491,20 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
     }
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
-      child: AppCachedImage(imageUrl: imgs.first, width: 40, height: 40, fit: BoxFit.cover),
+      child: AppCachedImage(
+        imageUrl: imgs.first,
+        width: 40,
+        height: 40,
+        fit: BoxFit.cover,
+      ),
     );
   }
 
   // === DETAIL BOTTOM SHEET ===
   void _showDetail(SalvagePhone p) {
-    final dateStr = DateFormat('dd/MM/yyyy HH:mm').format(
-      DateTime.fromMillisecondsSinceEpoch(p.createdAt),
-    );
+    final dateStr = DateFormat(
+      'dd/MM/yyyy HH:mm',
+    ).format(DateTime.fromMillisecondsSinceEpoch(p.createdAt));
     final statusColor = Color(SalvagePhone.statusColor(p.status));
 
     showModalBottomSheet(
@@ -521,7 +524,16 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
               ),
               child: ListView(
                 controller: scrollC,
-                padding: const EdgeInsets.all(16),
+                // Đọc từ `context` ngoài (không phải `ctx`/`_`) để tránh
+                // crash _dependents.isEmpty khi pop.
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  16,
+                  16,
+                  16 +
+                      MediaQuery.viewInsetsOf(context).bottom +
+                      MediaQuery.paddingOf(context).bottom,
+                ),
                 children: [
                   // Handle bar
                   Center(
@@ -615,7 +627,12 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                               onTap: () => _viewImage(p.imageList[i]),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
-                                child: AppCachedImage(imageUrl: p.imageList[i], width: 120, height: 120, fit: BoxFit.cover),
+                                child: AppCachedImage(
+                                  imageUrl: p.imageList[i],
+                                  width: 120,
+                                  height: 120,
+                                  fit: BoxFit.cover,
+                                ),
                               ),
                             ),
                           );
@@ -751,8 +768,9 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
     );
     final noteC = TextEditingController(text: existing?.notes ?? '');
     final List<XFile> newImages = [];
-    List<String> existingImageUrls =
-        existing != null ? List.from(existing.imageList) : [];
+    List<String> existingImageUrls = existing != null
+        ? List.from(existing.imageList)
+        : [];
     bool saving = false;
     bool showImages = existing != null && existing.imageList.isNotEmpty;
     String? selectedLocationId = existing?.locationId;
@@ -836,7 +854,8 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                               selectedLocationCode = null;
                               selectedLocationName = null;
                             } else {
-                              selectedLocationId = loc.firestoreId ?? loc.id?.toString();
+                              selectedLocationId =
+                                  loc.firestoreId ?? loc.id?.toString();
                               selectedLocationCode = loc.code;
                               selectedLocationName = loc.name;
                             }
@@ -882,9 +901,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
 
                           try {
                             // Upload new images
-                            final List<String> allUrls = [
-                              ...existingImageUrls,
-                            ];
+                            final List<String> allUrls = [...existingImageUrls];
                             if (newImages.isNotEmpty) {
                               _showSnack(
                                 'Đang tải ảnh lên hệ thống, vui lòng không thoát ứng dụng.',
@@ -901,7 +918,8 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                               if (url != null && url.isNotEmpty) {
                                 allUrls.add(url);
                               } else {
-                                final reason = StorageService.lastUploadErrorMessage;
+                                final reason =
+                                    StorageService.lastUploadErrorMessage;
                                 throw Exception(
                                   reason == null || reason.trim().isEmpty
                                       ? 'Upload ảnh thất bại. Vui lòng kiểm tra mạng và quyền truy cập ảnh/camera.'
@@ -909,24 +927,26 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                                 );
                               }
                             }
-                            if (newImages.isNotEmpty && allUrls.length == beforeUploadCount) {
-                              throw Exception('Không có ảnh nào được tải lên thành công.');
+                            if (newImages.isNotEmpty &&
+                                allUrls.length == beforeUploadCount) {
+                              throw Exception(
+                                'Không có ảnh nào được tải lên thành công.',
+                              );
                             }
 
-                            final now =
-                                DateTime.now().millisecondsSinceEpoch;
-                            final fbUser =
-                                FirebaseAuth.instance.currentUser;
-                            final user = fbUser?.displayName ??
+                            final now = DateTime.now().millisecondsSinceEpoch;
+                            final fbUser = FirebaseAuth.instance.currentUser;
+                            final user =
+                                fbUser?.displayName ??
                                 fbUser?.email?.split('@').first ??
                                 'Unknown';
-                            final shopId =
-                                UserService.getShopIdSync() ?? '';
+                            final shopId = UserService.getShopIdSync() ?? '';
                             final notes = noteC.text.trim().toUpperCase();
 
                             if (isEdit) {
                               // Update
-                              final fId = existing.firestoreId ??
+                              final fId =
+                                  existing.firestoreId ??
                                   'sp_${existing.createdAt}_${existing.deviceName.hashCode}';
                               final data = {
                                 'firestoreId': fId,
@@ -965,8 +985,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                               }
                             } else {
                               // Add new
-                              final fId =
-                                  'sp_${now}_${name.hashCode}';
+                              final fId = 'sp_${now}_${name.hashCode}';
                               final data = {
                                 'firestoreId': fId,
                                 'shopId': shopId,
@@ -1075,10 +1094,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
       children: [
         Row(
           children: [
-            Text(
-              'Hình ảnh ($totalImages/3)',
-              style: AppTextStyles.body2,
-            ),
+            Text('Hình ảnh ($totalImages/3)', style: AppTextStyles.body2),
             const Spacer(),
             if (canAdd && !kIsWeb)
               IconButton(
@@ -1136,7 +1152,12 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: AppCachedImage(imageUrl: entry.value, width: 80, height: 80, fit: BoxFit.cover),
+                          child: AppCachedImage(
+                            imageUrl: entry.value,
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                          ),
                         ),
                         Positioned(
                           top: 2,
@@ -1238,8 +1259,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                 title: Text(
                   s.$2,
                   style: TextStyle(
-                    fontWeight:
-                        selected ? FontWeight.bold : FontWeight.normal,
+                    fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
                 trailing: selected
@@ -1262,8 +1282,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
   Future<void> _updateStatus(SalvagePhone p, String newStatus) async {
     try {
       final now = DateTime.now().millisecondsSinceEpoch;
-      final fId = p.firestoreId ??
-          'sp_${p.createdAt}_${p.deviceName.hashCode}';
+      final fId = p.firestoreId ?? 'sp_${p.createdAt}_${p.deviceName.hashCode}';
       final data = p.toMap();
       data['firestoreId'] = fId;
       data['status'] = newStatus;
@@ -1327,18 +1346,20 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
               onPressed: () async {
                 Navigator.of(ctx).pop();
                 try {
-                  final fId = p.firestoreId ??
+                  final fId =
+                      p.firestoreId ??
                       'sp_${p.createdAt}_${p.deviceName.hashCode}';
                   // Soft-delete: update local + cloud
                   final data = p.toMap();
                   data['firestoreId'] = fId;
                   data['deleted'] = 1;
-                  data['updatedAt'] =
-                      DateTime.now().millisecondsSinceEpoch;
-                    data['isSynced'] = 0;
+                  data['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
+                  data['isSynced'] = 0;
                   data.remove('id');
                   await DBHelper().upsertSalvagePhone(data);
-                  final saved = await DBHelper().getSalvagePhoneByFirestoreId(fId);
+                  final saved = await DBHelper().getSalvagePhoneByFirestoreId(
+                    fId,
+                  );
                   final localId = saved?['id'] as int?;
                   if (localId != null) {
                     await SyncOrchestrator().enqueue(
@@ -1360,12 +1381,8 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
                   _showSnack('Lỗi: $e');
                 }
               },
-              style:
-                  ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-              child: const Text(
-                'XÓA',
-                style: TextStyle(color: Colors.white),
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+              child: const Text('XÓA', style: TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -1420,10 +1437,13 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
   }
 
   // === UTILS ===
-  void _showSnack(String msg, {Duration duration = const Duration(seconds: 2)}) {
+  void _showSnack(
+    String msg, {
+    Duration duration = const Duration(seconds: 2),
+  }) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), duration: duration),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(msg), duration: duration));
   }
 }

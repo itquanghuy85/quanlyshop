@@ -61,6 +61,13 @@ class _SaleListViewState extends State<SaleListView> {
   // Return tracking: saleId -> return summary
   Map<int, _SaleReturnInfo> _returnInfoMap = {};
 
+  // Debt tracking: sale.firestoreId (debts.linkedId) -> debt record.
+  // SaleOrder.remainingDebt only reflects downPayment/loanAmount (trả góp
+  // NH) — thanh toán qua bảng debts (CÔNG NỢ, hoặc trả thiếu tiền mặt) không
+  // ghi ngược lại các field đó, nên phải tra riêng bảng debts để biết đúng
+  // trạng thái đã trả hết hay chưa.
+  Map<String, Map<String, dynamic>> _debtByLinkedId = {};
+
   // Permission
   bool _canViewCostPrice = false;
 
@@ -71,6 +78,7 @@ class _SaleListViewState extends State<SaleListView> {
   // EventBus subscriptions & debounce
   StreamSubscription<String>? _saleChangedSub;
   StreamSubscription<String>? _saleReturnSub;
+  StreamSubscription<String>? _debtChangedSub;
   Timer? _saleRefreshDebounce;
   Timer? _searchDebounce;
 
@@ -103,6 +111,12 @@ class _SaleListViewState extends State<SaleListView> {
       _debouncedRefresh();
     });
     _saleReturnSub = EventBus().on('sales_returns_changed', (event) {
+      debugPrint('🛒 [SaleListView] Nhận event "$event" → refresh local DB');
+      _debouncedRefresh();
+    });
+    // Thanh toán nợ (DebtPaymentSheet) emit event này — không refresh thì
+    // danh sách vẫn hiện "còn nợ" dù đã trả hết ở màn Công nợ.
+    _debtChangedSub = EventBus().on('debts_changed', (event) {
       debugPrint('🛒 [SaleListView] Nhận event "$event" → refresh local DB');
       _debouncedRefresh();
     });
@@ -150,6 +164,7 @@ class _SaleListViewState extends State<SaleListView> {
   void dispose() {
     _saleChangedSub?.cancel();
     _saleReturnSub?.cancel();
+    _debtChangedSub?.cancel();
     _saleRefreshDebounce?.cancel();
     _searchDebounce?.cancel();
     _searchController.dispose();
@@ -228,6 +243,20 @@ class _SaleListViewState extends State<SaleListView> {
         info.returnCount += 1;
       }
       _returnInfoMap = map;
+    } catch (_) {}
+
+    // Load linked debts — nguồn dữ liệu đúng cho trạng thái "còn nợ" của
+    // đơn CÔNG NỢ/trả thiếu tiền mặt (khác trả góp NH, dùng downPayment).
+    try {
+      final debts = await db.getAllDebts();
+      final debtMap = <String, Map<String, dynamic>>{};
+      for (final d in debts) {
+        final linkedId = d['linkedId'] as String?;
+        if (linkedId != null && linkedId.isNotEmpty) {
+          debtMap[linkedId] = d;
+        }
+      }
+      _debtByLinkedId = debtMap;
     } catch (_) {}
 
     if (_needsFullData || widget.todayOnly) {
@@ -312,13 +341,33 @@ class _SaleListViewState extends State<SaleListView> {
     if (changed && mounted) setState(() {});
   }
 
+  /// Số tiền còn nợ thực tế của 1 đơn bán, ưu tiên bảng debts (nếu có công
+  /// nợ liên kết) thay vì SaleOrder.remainingDebt — field đó chỉ tính từ
+  /// downPayment/loanAmount (trả góp NH), không biết gì về các khoản đã trả
+  /// qua màn Công nợ (DebtPaymentSheet).
+  int _effectiveRemainingDebt(SaleOrder s) {
+    final firestoreId = s.firestoreId;
+    if (firestoreId != null) {
+      final debt = _debtByLinkedId[firestoreId];
+      if (debt != null) {
+        final total = (debt['totalAmount'] as num?)?.toInt() ?? 0;
+        final paid = (debt['paidAmount'] as num?)?.toInt() ?? 0;
+        final remain = total - paid;
+        return remain > 0 ? remain : 0;
+      }
+    }
+    return s.remainingDebt;
+  }
+
   List<SaleOrder> _applyFilters() {
     var list = _sales.where((s) {
       // Search filter
       if (_search.isNotEmpty) {
         if (!VietnameseUtils.containsVietnamese(s.customerName, _search) &&
             !VietnameseUtils.containsVietnamese(s.productNames, _search) &&
-            !s.allImeisForSearch.toUpperCase().contains(_search.toUpperCase())) {
+            !s.allImeisForSearch.toUpperCase().contains(
+              _search.toUpperCase(),
+            )) {
           return false;
         }
       }
@@ -354,7 +403,7 @@ class _SaleListViewState extends State<SaleListView> {
       }
 
       // Payment status filter - tách rõ trạng thái trả góp nhận tiền NH
-      final remain = s.remainingDebt;
+      final remain = _effectiveRemainingDebt(s);
       final isInstallment =
           s.isInstallment || s.paymentMethod.toUpperCase().contains('TRẢ GÓP');
       final hasBankSettlement =
@@ -385,7 +434,10 @@ class _SaleListViewState extends State<SaleListView> {
       case 'price_desc':
         list.sort((a, b) => b.finalPrice.compareTo(a.finalPrice));
       case 'debt_desc':
-        list.sort((a, b) => b.remainingDebt.compareTo(a.remainingDebt));
+        list.sort(
+          (a, b) =>
+              _effectiveRemainingDebt(b).compareTo(_effectiveRemainingDebt(a)),
+        );
       default:
         list.sort((a, b) => b.soldAt.compareTo(a.soldAt));
     }
@@ -474,7 +526,9 @@ class _SaleListViewState extends State<SaleListView> {
                       setState(() {});
                       _refresh();
                     }),
-                    _filterChip(l10n.saleListLast7Days, 'week', _timeFilter, (v) {
+                    _filterChip(l10n.saleListLast7Days, 'week', _timeFilter, (
+                      v,
+                    ) {
                       setSheetState(() => _timeFilter = v);
                       setState(() {});
                       _refresh();
@@ -484,30 +538,35 @@ class _SaleListViewState extends State<SaleListView> {
                       setState(() {});
                       _refresh();
                     }),
-                    _filterChip(l10n.saleListCustomDate, 'custom', _timeFilter, (v) async {
-                      final range = await showDateRangePicker(
-                        context: context,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now(),
-                        initialDateRange:
-                            _customStartDate != null && _customEndDate != null
-                            ? DateTimeRange(
-                                start: _customStartDate!,
-                                end: _customEndDate!,
-                              )
-                            : null,
-                        locale: const Locale('vi', 'VN'),
-                      );
-                      if (range != null) {
-                        setSheetState(() {
-                          _timeFilter = 'custom';
-                          _customStartDate = range.start;
-                          _customEndDate = range.end;
-                        });
-                        setState(() {});
-                        _refresh();
-                      }
-                    }),
+                    _filterChip(
+                      l10n.saleListCustomDate,
+                      'custom',
+                      _timeFilter,
+                      (v) async {
+                        final range = await showDateRangePicker(
+                          context: context,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now(),
+                          initialDateRange:
+                              _customStartDate != null && _customEndDate != null
+                              ? DateTimeRange(
+                                  start: _customStartDate!,
+                                  end: _customEndDate!,
+                                )
+                              : null,
+                          locale: const Locale('vi', 'VN'),
+                        );
+                        if (range != null) {
+                          setSheetState(() {
+                            _timeFilter = 'custom';
+                            _customStartDate = range.start;
+                            _customEndDate = range.end;
+                          });
+                          setState(() {});
+                          _refresh();
+                        }
+                      },
+                    ),
                   ],
                 ),
                 if (_timeFilter == 'custom' &&
@@ -543,22 +602,42 @@ class _SaleListViewState extends State<SaleListView> {
                     setSheetState(() => _paymentStatusFilter = v);
                     setState(() {});
                   }),
-                  _filterChip(l10n.saleListFilterPaid, 'paid', _paymentStatusFilter, (v) {
-                    setSheetState(() => _paymentStatusFilter = v);
-                    setState(() {});
-                  }),
-                  _filterChip(l10n.saleListFilterDebt, 'debt', _paymentStatusFilter, (v) {
-                    setSheetState(() => _paymentStatusFilter = v);
-                    setState(() {});
-                  }),
-                  _filterChip(l10n.saleListFilterBankPending, 'bank_pending', _paymentStatusFilter, (v) {
-                    setSheetState(() => _paymentStatusFilter = v);
-                    setState(() {});
-                  }),
-                  _filterChip(l10n.saleListFilterBankReceived, 'bank_received', _paymentStatusFilter, (v) {
-                    setSheetState(() => _paymentStatusFilter = v);
-                    setState(() {});
-                  }),
+                  _filterChip(
+                    l10n.saleListFilterPaid,
+                    'paid',
+                    _paymentStatusFilter,
+                    (v) {
+                      setSheetState(() => _paymentStatusFilter = v);
+                      setState(() {});
+                    },
+                  ),
+                  _filterChip(
+                    l10n.saleListFilterDebt,
+                    'debt',
+                    _paymentStatusFilter,
+                    (v) {
+                      setSheetState(() => _paymentStatusFilter = v);
+                      setState(() {});
+                    },
+                  ),
+                  _filterChip(
+                    l10n.saleListFilterBankPending,
+                    'bank_pending',
+                    _paymentStatusFilter,
+                    (v) {
+                      setSheetState(() => _paymentStatusFilter = v);
+                      setState(() {});
+                    },
+                  ),
+                  _filterChip(
+                    l10n.saleListFilterBankReceived,
+                    'bank_received',
+                    _paymentStatusFilter,
+                    (v) {
+                      setSheetState(() => _paymentStatusFilter = v);
+                      setState(() {});
+                    },
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -613,7 +692,15 @@ class _SaleListViewState extends State<SaleListView> {
     final diff = today.difference(DateTime(dt.year, dt.month, dt.day)).inDays;
     if (diff == 0) return l10n.today;
     if (diff == 1) return l10n.saleListDayYesterday;
-    final days = [l10n.sunday, l10n.monday, l10n.tuesday, l10n.wednesday, l10n.thursday, l10n.friday, l10n.saturday];
+    final days = [
+      l10n.sunday,
+      l10n.monday,
+      l10n.tuesday,
+      l10n.wednesday,
+      l10n.thursday,
+      l10n.friday,
+      l10n.saturday,
+    ];
     return '${days[dt.weekday % 7]}, ${DateFormat('dd/MM').format(dt)}';
   }
 
@@ -621,10 +708,13 @@ class _SaleListViewState extends State<SaleListView> {
   List<dynamic> _buildGroupedItems(List<SaleOrder> sales) {
     final l10n = AppLocalizations.of(context)!;
     if (sales.isEmpty) return [];
-    if (_sortOrder != 'date_desc') return sales; // grouping only makes sense for date sort
+    if (_sortOrder != 'date_desc')
+      return sales; // grouping only makes sense for date sort
     final dayCounts = <String, int>{};
     for (final s in sales) {
-      final key = DateFormat('yyyy-MM-dd').format(DateTime.fromMillisecondsSinceEpoch(s.soldAt));
+      final key = DateFormat(
+        'yyyy-MM-dd',
+      ).format(DateTime.fromMillisecondsSinceEpoch(s.soldAt));
       dayCounts[key] = (dayCounts[key] ?? 0) + 1;
     }
     final result = <dynamic>[];
@@ -634,7 +724,9 @@ class _SaleListViewState extends State<SaleListView> {
       final key = DateFormat('yyyy-MM-dd').format(dt);
       if (key != currentKey) {
         currentKey = key;
-        result.add(l10n.saleListGroupOrdersCount(_dayGroupLabel(dt), dayCounts[key]!));
+        result.add(
+          l10n.saleListGroupOrdersCount(_dayGroupLabel(dt), dayCounts[key]!),
+        );
       }
       result.add(s);
     }
@@ -645,18 +737,26 @@ class _SaleListViewState extends State<SaleListView> {
     final l10n = AppLocalizations.of(context)!;
     final chips = <Widget>[];
     if (_timeFilter != 'all' && !widget.todayOnly) {
-      final label = {
-        'today': l10n.today,
-        'week': l10n.saleListLast7Days,
-        'month': l10n.thisMonth,
-        'custom': _customStartDate != null
-            ? '${DateFormat('dd/MM').format(_customStartDate!)}–${DateFormat('dd/MM').format(_customEndDate!)}'
-            : l10n.saleListCustomDate,
-      }[_timeFilter] ?? _timeFilter;
-      chips.add(_inlineChip(label, () {
-        setState(() { _timeFilter = 'all'; _customStartDate = null; _customEndDate = null; });
-        _refresh();
-      }));
+      final label =
+          {
+            'today': l10n.today,
+            'week': l10n.saleListLast7Days,
+            'month': l10n.thisMonth,
+            'custom': _customStartDate != null
+                ? '${DateFormat('dd/MM').format(_customStartDate!)}–${DateFormat('dd/MM').format(_customEndDate!)}'
+                : l10n.saleListCustomDate,
+          }[_timeFilter] ??
+          _timeFilter;
+      chips.add(
+        _inlineChip(label, () {
+          setState(() {
+            _timeFilter = 'all';
+            _customStartDate = null;
+            _customEndDate = null;
+          });
+          _refresh();
+        }),
+      );
     }
     if (_paymentStatusFilter != 'all') {
       final labels = {
@@ -665,9 +765,11 @@ class _SaleListViewState extends State<SaleListView> {
         'bank_pending': l10n.saleListFilterBankPending,
         'bank_received': l10n.saleListFilterBankReceived,
       };
-      chips.add(_inlineChip(labels[_paymentStatusFilter] ?? _paymentStatusFilter, () {
-        setState(() => _paymentStatusFilter = 'all');
-      }));
+      chips.add(
+        _inlineChip(labels[_paymentStatusFilter] ?? _paymentStatusFilter, () {
+          setState(() => _paymentStatusFilter = 'all');
+        }),
+      );
     }
     if (chips.isEmpty) return const SizedBox.shrink();
     return Padding(
@@ -689,7 +791,14 @@ class _SaleListViewState extends State<SaleListView> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(label, style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(width: 3),
             Icon(Icons.close, size: 11, color: AppColors.primary),
           ],
@@ -705,7 +814,10 @@ class _SaleListViewState extends State<SaleListView> {
     // Calculate summary stats
     final int totalSales = list.length;
     final int totalRevenue = list.fold(0, (sum, s) => sum + s.totalPrice);
-    final int totalDebt = list.fold(0, (sum, s) => sum + s.remainingDebt);
+    final int totalDebt = list.fold(
+      0,
+      (sum, s) => sum + _effectiveRemainingDebt(s),
+    );
     final int totalProfit = _canViewCostPrice
         ? list.fold(0, (sum, s) => sum + (s.finalPrice - s.totalCost))
         : 0;
@@ -714,7 +826,10 @@ class _SaleListViewState extends State<SaleListView> {
     final indexMap = <int?, int>{};
     int _seq = 0;
     for (final item in groupedItems) {
-      if (item is SaleOrder) { _seq++; indexMap[item.id] = _seq; }
+      if (item is SaleOrder) {
+        _seq++;
+        indexMap[item.id] = _seq;
+      }
     }
 
     final l10n = AppLocalizations.of(context)!;
@@ -747,9 +862,18 @@ class _SaleListViewState extends State<SaleListView> {
             initialValue: _sortOrder,
             onSelected: (v) => setState(() => _sortOrder = v),
             itemBuilder: (_) => [
-              PopupMenuItem(value: 'date_desc', child: Text(l10n.saleListSortNewest)),
-              PopupMenuItem(value: 'price_desc', child: Text(l10n.saleListSortHighestValue)),
-              PopupMenuItem(value: 'debt_desc', child: Text(l10n.saleListSortMostDebt)),
+              PopupMenuItem(
+                value: 'date_desc',
+                child: Text(l10n.saleListSortNewest),
+              ),
+              PopupMenuItem(
+                value: 'price_desc',
+                child: Text(l10n.saleListSortHighestValue),
+              ),
+              PopupMenuItem(
+                value: 'debt_desc',
+                child: Text(l10n.saleListSortMostDebt),
+              ),
             ],
           ),
           // Filter
@@ -817,7 +941,11 @@ class _SaleListViewState extends State<SaleListView> {
                 prefixIconConstraints: const BoxConstraints(minWidth: 40),
                 suffixIcon: _search.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18, color: Colors.grey),
+                        icon: const Icon(
+                          Icons.clear,
+                          size: 18,
+                          color: Colors.grey,
+                        ),
                         onPressed: () {
                           _searchController.clear();
                           setState(() => _search = '');
@@ -881,7 +1009,9 @@ class _SaleListViewState extends State<SaleListView> {
                           ),
                         ),
                         Text(
-                          l10n.saleListRevenueShort(MoneyUtils.formatCompactCurrency(totalRevenue)),
+                          l10n.saleListRevenueShort(
+                            MoneyUtils.formatCompactCurrency(totalRevenue),
+                          ),
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -889,27 +1019,52 @@ class _SaleListViewState extends State<SaleListView> {
                           ),
                         ),
                         if (totalDebt > 0) ...[
-                          Text(' • ', style: TextStyle(color: Colors.grey.shade400, fontSize: 11)),
                           Text(
-                            l10n.saleListDebtShort(MoneyUtils.formatCompactCurrency(totalDebt)),
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.error),
+                            ' • ',
+                            style: TextStyle(
+                              color: Colors.grey.shade400,
+                              fontSize: 11,
+                            ),
+                          ),
+                          Text(
+                            l10n.saleListDebtShort(
+                              MoneyUtils.formatCompactCurrency(totalDebt),
+                            ),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.error,
+                            ),
                           ),
                         ],
                         if (_canViewCostPrice && totalProfit != 0) ...[
-                          Text(' • ', style: TextStyle(color: Colors.grey.shade400, fontSize: 11)),
                           Text(
-                            l10n.saleListProfitShort(MoneyUtils.formatCompactCurrency(totalProfit)),
+                            ' • ',
+                            style: TextStyle(
+                              color: Colors.grey.shade400,
+                              fontSize: 11,
+                            ),
+                          ),
+                          Text(
+                            l10n.saleListProfitShort(
+                              MoneyUtils.formatCompactCurrency(totalProfit),
+                            ),
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: totalProfit >= 0 ? AppColors.success : AppColors.error,
+                              color: totalProfit >= 0
+                                  ? AppColors.success
+                                  : AppColors.error,
                             ),
                           ),
                         ],
                         const Spacer(),
                         Text(
                           '${list.length} ${l10n.ordersCount}',
-                          style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey.shade500,
+                          ),
                         ),
                       ],
                     ),
@@ -923,11 +1078,17 @@ class _SaleListViewState extends State<SaleListView> {
                         ? EmptyStateWidget(
                             icon: Icons.shopping_bag_outlined,
                             title: l10n.saleListNoOrders,
-                            subtitle: _activeFilterCount > 0 ? l10n.saleListClearFilterHint : null,
-                            actionLabel: _activeFilterCount > 0 ? l10n.saleListClearFilter : null,
+                            subtitle: _activeFilterCount > 0
+                                ? l10n.saleListClearFilterHint
+                                : null,
+                            actionLabel: _activeFilterCount > 0
+                                ? l10n.saleListClearFilter
+                                : null,
                             onAction: _activeFilterCount > 0
                                 ? () {
-                                    _timeFilter = widget.todayOnly ? 'today' : 'all';
+                                    _timeFilter = widget.todayOnly
+                                        ? 'today'
+                                        : 'all';
                                     _paymentStatusFilter = 'all';
                                     _refresh();
                                   }
@@ -936,7 +1097,8 @@ class _SaleListViewState extends State<SaleListView> {
                         : ListView.builder(
                             controller: _scrollController,
                             padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                            itemCount: groupedItems.length +
+                            itemCount:
+                                groupedItems.length +
                                 (_isLoadingMore ? 1 : 0) +
                                 (!_hasMore && list.isNotEmpty ? 1 : 0),
                             itemBuilder: (ctx, i) {
@@ -945,7 +1107,9 @@ class _SaleListViewState extends State<SaleListView> {
                                 if (_isLoadingMore) {
                                   return const Padding(
                                     padding: EdgeInsets.all(16),
-                                    child: Center(child: CircularProgressIndicator()),
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
                                   );
                                 }
                                 return Padding(
@@ -953,7 +1117,11 @@ class _SaleListViewState extends State<SaleListView> {
                                   child: Center(
                                     child: Text(
                                       l10n.saleListDisplayedOrders(list.length),
-                                      style: TextStyle(color: Colors.grey[600], fontSize: AppTextStyles.subtitle1.fontSize),
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize:
+                                            AppTextStyles.subtitle1.fontSize,
+                                      ),
                                     ),
                                   ),
                                 );
@@ -964,24 +1132,33 @@ class _SaleListViewState extends State<SaleListView> {
                               // Date group header
                               if (item is String) {
                                 return Padding(
-                                  padding: const EdgeInsets.fromLTRB(4, 10, 4, 4),
+                                  padding: const EdgeInsets.fromLTRB(
+                                    4,
+                                    10,
+                                    4,
+                                    4,
+                                  ),
                                   child: Text(
                                     item,
-                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey.shade600,
+                                    ),
                                   ),
                                 );
                               }
 
                               final s = item as SaleOrder;
                               final date = _formatSaleDate(s.soldAt);
-                              final remain = s.remainingDebt;
+                              final remain = _effectiveRemainingDebt(s);
                               final index = indexMap[s.id] ?? 0;
-                              final isPaid = s.isPaid;
+                              final isPaid = remain == 0;
                               final isInstallment =
                                   s.isInstallment ||
-                                  s.paymentMethod
-                                      .toUpperCase()
-                                      .contains('TRẢ GÓP');
+                                  s.paymentMethod.toUpperCase().contains(
+                                    'TRẢ GÓP',
+                                  );
                               final hasBankSettlement =
                                   (s.settlementReceivedAt ?? 0) > 0 ||
                                   s.settlementAmount > 0;
@@ -990,24 +1167,30 @@ class _SaleListViewState extends State<SaleListView> {
                                   : null;
                               final isFullyReturned =
                                   returnInfo?.allReturned == true;
-                                final accentColor = isFullyReturned
+                              final accentColor = isFullyReturned
                                   ? Colors.grey.shade500
                                   : (isInstallment && !hasBankSettlement)
                                   ? Colors.orange.shade600
                                   : (isPaid
-                                    ? Colors.green.shade600
-                                    : Colors.orange.shade600);
-                                final borderColor = accentColor.withValues(
+                                        ? Colors.green.shade600
+                                        : Colors.orange.shade600);
+                              final borderColor = accentColor.withValues(
                                 alpha: 0.22,
-                                );
+                              );
 
-                              final paidAmount = (s.finalPrice - remain).clamp(0, s.finalPrice);
+                              final paidAmount = (s.finalPrice - remain).clamp(
+                                0,
+                                s.finalPrice,
+                              );
 
                               return Card(
                                 margin: const EdgeInsets.only(bottom: 5),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
-                                  side: BorderSide(color: borderColor, width: 1),
+                                  side: BorderSide(
+                                    color: borderColor,
+                                    width: 1,
+                                  ),
                                 ),
                                 elevation: 0,
                                 color: Colors.white,
@@ -1028,48 +1211,78 @@ class _SaleListViewState extends State<SaleListView> {
                                   borderRadius: BorderRadius.circular(10),
                                   child: IntrinsicHeight(
                                     child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
                                       children: [
                                         // Accent bar
                                         Container(
                                           width: 5,
                                           decoration: BoxDecoration(
                                             color: accentColor,
-                                            borderRadius: const BorderRadius.only(
-                                              topLeft: Radius.circular(10),
-                                              bottomLeft: Radius.circular(10),
-                                            ),
+                                            borderRadius:
+                                                const BorderRadius.only(
+                                                  topLeft: Radius.circular(10),
+                                                  bottomLeft: Radius.circular(
+                                                    10,
+                                                  ),
+                                                ),
                                           ),
                                         ),
                                         // Content
                                         Expanded(
                                           child: Padding(
-                                            padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                                            padding: const EdgeInsets.fromLTRB(
+                                              10,
+                                              8,
+                                              10,
+                                              8,
+                                            ),
                                             child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 // ROW 1: Index · Product · Status badge
                                                 Row(
-                                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.center,
                                                   children: [
                                                     Container(
-                                                      constraints: const BoxConstraints(minWidth: 20),
+                                                      constraints:
+                                                          const BoxConstraints(
+                                                            minWidth: 20,
+                                                          ),
                                                       height: 17,
-                                                      margin: const EdgeInsets.only(right: 6),
-                                                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                                                      margin:
+                                                          const EdgeInsets.only(
+                                                            right: 6,
+                                                          ),
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 4,
+                                                          ),
                                                       decoration: BoxDecoration(
-                                                        color: AppColors.primary.withValues(alpha: 0.1),
-                                                        borderRadius: BorderRadius.circular(4),
+                                                        color: AppColors.primary
+                                                            .withValues(
+                                                              alpha: 0.1,
+                                                            ),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              4,
+                                                            ),
                                                       ),
                                                       child: Center(
                                                         child: Text(
                                                           '$index',
-                                                          style: const TextStyle(
-                                                            fontSize: 10,
-                                                            fontWeight: FontWeight.bold,
-                                                            color: AppColors.primary,
-                                                          ),
+                                                          style:
+                                                              const TextStyle(
+                                                                fontSize: 10,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                color: AppColors
+                                                                    .primary,
+                                                              ),
                                                         ),
                                                       ),
                                                     ),
@@ -1078,31 +1291,46 @@ class _SaleListViewState extends State<SaleListView> {
                                                         s.productNamesDisplay,
                                                         style: const TextStyle(
                                                           fontSize: 13.5,
-                                                          fontWeight: FontWeight.w700,
-                                                          color: Color(0xFF0F172A),
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                          color: Color(
+                                                            0xFF0F172A,
+                                                          ),
                                                           letterSpacing: -0.2,
                                                         ),
                                                         maxLines: 1,
-                                                        overflow: TextOverflow.ellipsis,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
                                                       ),
                                                     ),
                                                     const SizedBox(width: 6),
                                                     Container(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 6,
+                                                            vertical: 2,
+                                                          ),
                                                       decoration: BoxDecoration(
                                                         color: accentColor,
-                                                        borderRadius: BorderRadius.circular(5),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              5,
+                                                            ),
                                                       ),
                                                       child: Text(
                                                         isFullyReturned
                                                             ? l10n.saleListStatusReturned
-                                                            : (isInstallment && !hasBankSettlement)
+                                                            : (isInstallment &&
+                                                                  !hasBankSettlement)
                                                             ? l10n.saleListStatusBankPending
-                                                            : (isPaid ? l10n.saleListStatusCollected : l10n.saleListStatusHasDebt),
+                                                            : (isPaid
+                                                                  ? l10n.saleListStatusCollected
+                                                                  : l10n.saleListStatusHasDebt),
                                                         style: const TextStyle(
                                                           color: Colors.white,
                                                           fontSize: 10,
-                                                          fontWeight: FontWeight.w700,
+                                                          fontWeight:
+                                                              FontWeight.w700,
                                                         ),
                                                       ),
                                                     ),
@@ -1112,35 +1340,90 @@ class _SaleListViewState extends State<SaleListView> {
                                                 // ROW 2: Customer · Seller · Date
                                                 Row(
                                                   children: [
-                                                    if (s.customerName.isNotEmpty) ...[
-                                                      const Icon(Icons.person_outline, size: 11, color: Color(0xFF475569)),
+                                                    if (s
+                                                        .customerName
+                                                        .isNotEmpty) ...[
+                                                      const Icon(
+                                                        Icons.person_outline,
+                                                        size: 11,
+                                                        color: Color(
+                                                          0xFF475569,
+                                                        ),
+                                                      ),
                                                       const SizedBox(width: 3),
                                                       Expanded(
                                                         child: Text(
-                                                          s.sellerName.isNotEmpty
+                                                          s
+                                                                  .sellerName
+                                                                  .isNotEmpty
                                                               ? '${s.customerName}  ·  ${s.sellerName}'
                                                               : s.customerName,
-                                                          style: const TextStyle(fontSize: 11, color: Color(0xFF475569)),
+                                                          style:
+                                                              const TextStyle(
+                                                                fontSize: 11,
+                                                                color: Color(
+                                                                  0xFF475569,
+                                                                ),
+                                                              ),
                                                           maxLines: 1,
-                                                          overflow: TextOverflow.ellipsis,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
                                                         ),
                                                       ),
                                                     ] else ...[
                                                       GestureDetector(
-                                                        onTap: () => _addCustomerToSale(s),
+                                                        onTap: () =>
+                                                            _addCustomerToSale(
+                                                              s,
+                                                            ),
                                                         child: Container(
-                                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                                horizontal: 6,
+                                                                vertical: 2,
+                                                              ),
                                                           decoration: BoxDecoration(
-                                                            color: Colors.orange.shade50,
-                                                            borderRadius: BorderRadius.circular(8),
-                                                            border: Border.all(color: Colors.orange.shade200),
+                                                            color: Colors
+                                                                .orange
+                                                                .shade50,
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  8,
+                                                                ),
+                                                            border: Border.all(
+                                                              color: Colors
+                                                                  .orange
+                                                                  .shade200,
+                                                            ),
                                                           ),
                                                           child: Row(
-                                                            mainAxisSize: MainAxisSize.min,
+                                                            mainAxisSize:
+                                                                MainAxisSize
+                                                                    .min,
                                                             children: [
-                                                              Icon(Icons.person_add_outlined, size: 10, color: Colors.orange.shade700),
-                                                              const SizedBox(width: 3),
-                                                              Text('Thêm khách', style: TextStyle(fontSize: 10, color: Colors.orange.shade700, fontWeight: FontWeight.w600)),
+                                                              Icon(
+                                                                Icons
+                                                                    .person_add_outlined,
+                                                                size: 10,
+                                                                color: Colors
+                                                                    .orange
+                                                                    .shade700,
+                                                              ),
+                                                              const SizedBox(
+                                                                width: 3,
+                                                              ),
+                                                              Text(
+                                                                'Thêm khách',
+                                                                style: TextStyle(
+                                                                  fontSize: 10,
+                                                                  color: Colors
+                                                                      .orange
+                                                                      .shade700,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w600,
+                                                                ),
+                                                              ),
                                                             ],
                                                           ),
                                                         ),
@@ -1150,7 +1433,12 @@ class _SaleListViewState extends State<SaleListView> {
                                                     const SizedBox(width: 6),
                                                     Text(
                                                       date,
-                                                      style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
+                                                      style: const TextStyle(
+                                                        fontSize: 10,
+                                                        color: Color(
+                                                          0xFF94A3B8,
+                                                        ),
+                                                      ),
                                                     ),
                                                   ],
                                                 ),
@@ -1160,16 +1448,24 @@ class _SaleListViewState extends State<SaleListView> {
                                                   _saleInfoRow(
                                                     left: _saleChip(
                                                       l10n.saleListChipPaid,
-                                                      MoneyUtils.formatCompactCurrency(paidAmount),
+                                                      MoneyUtils.formatCompactCurrency(
+                                                        paidAmount,
+                                                      ),
                                                       const Color(0xFF0369A1),
                                                       const Color(0xFFE0F2FE),
                                                     ),
                                                     right: remain > 0
                                                         ? _saleChip(
                                                             l10n.saleListChipDebt,
-                                                            MoneyUtils.formatCompactCurrency(remain),
-                                                            const Color(0xFFB45309),
-                                                            const Color(0xFFFEF3C7),
+                                                            MoneyUtils.formatCompactCurrency(
+                                                              remain,
+                                                            ),
+                                                            const Color(
+                                                              0xFFB45309,
+                                                            ),
+                                                            const Color(
+                                                              0xFFFEF3C7,
+                                                            ),
                                                           )
                                                         : null,
                                                   ),
@@ -1179,78 +1475,169 @@ class _SaleListViewState extends State<SaleListView> {
                                                   left: s.finalPrice > 0
                                                       ? _saleChip(
                                                           l10n.saleListChipSale,
-                                                          MoneyUtils.formatCompactCurrency(s.finalPrice),
-                                                          const Color(0xFF374151),
-                                                          const Color(0xFFF1F5F9),
+                                                          MoneyUtils.formatCompactCurrency(
+                                                            s.finalPrice,
+                                                          ),
+                                                          const Color(
+                                                            0xFF374151,
+                                                          ),
+                                                          const Color(
+                                                            0xFFF1F5F9,
+                                                          ),
                                                         )
                                                       : null,
-                                                  right: (_canViewCostPrice && s.totalCost > 0)
+                                                  right:
+                                                      (_canViewCostPrice &&
+                                                          s.totalCost > 0)
                                                       ? _saleChip(
                                                           l10n.saleListChipCost,
-                                                          MoneyUtils.formatCompactCurrency(s.totalCost),
-                                                          const Color(0xFF6B7280),
-                                                          const Color(0xFFF8FAFC),
+                                                          MoneyUtils.formatCompactCurrency(
+                                                            s.totalCost,
+                                                          ),
+                                                          const Color(
+                                                            0xFF6B7280,
+                                                          ),
+                                                          const Color(
+                                                            0xFFF8FAFC,
+                                                          ),
                                                         )
                                                       : null,
                                                 ),
                                                 // ROW 4b: Giảm giá (item + order level)
-                                                Builder(builder: (ctx) {
-                                                  final disc = _totalItemDiscount(s);
-                                                  if (disc <= 0) return const SizedBox.shrink();
-                                                  return Padding(
-                                                    padding: const EdgeInsets.only(top: 3),
-                                                    child: _saleInfoRow(
-                                                      left: _saleChip(
-                                                        'Giảm',
-                                                        '-${MoneyUtils.formatCompactCurrency(disc)}',
-                                                        const Color(0xFFC05600),
-                                                        const Color(0xFFFFF7ED),
-                                                      ),
-                                                    ),
-                                                  );
-                                                }),
-                                                // ROW 5: Lãi / Lỗ
-                                                if (_canViewCostPrice && s.totalCost > 0 && s.finalPrice > 0)
-                                                  Builder(builder: (ctx) {
-                                                    final profit = s.finalPrice - s.totalCost;
-                                                    final isGain = profit >= 0;
+                                                Builder(
+                                                  builder: (ctx) {
+                                                    final disc =
+                                                        _totalItemDiscount(s);
+                                                    if (disc <= 0)
+                                                      return const SizedBox.shrink();
                                                     return Padding(
-                                                      padding: const EdgeInsets.only(top: 3),
-                                                      child: _saleChip(
-                                                        isGain ? l10n.saleListChipProfit : l10n.saleListChipLoss,
-                                                        (isGain ? '+' : '') + MoneyUtils.formatCompactCurrency(profit.abs()),
-                                                        isGain ? const Color(0xFF15803D) : const Color(0xFFDC2626),
-                                                        isGain ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                            top: 3,
+                                                          ),
+                                                      child: _saleInfoRow(
+                                                        left: _saleChip(
+                                                          'Giảm',
+                                                          '-${MoneyUtils.formatCompactCurrency(disc)}',
+                                                          const Color(
+                                                            0xFFC05600,
+                                                          ),
+                                                          const Color(
+                                                            0xFFFFF7ED,
+                                                          ),
+                                                        ),
                                                       ),
                                                     );
-                                                  }),
+                                                  },
+                                                ),
+                                                // ROW 5: Lãi / Lỗ
+                                                if (_canViewCostPrice &&
+                                                    s.totalCost > 0 &&
+                                                    s.finalPrice > 0)
+                                                  Builder(
+                                                    builder: (ctx) {
+                                                      final profit =
+                                                          s.finalPrice -
+                                                          s.totalCost;
+                                                      final isGain =
+                                                          profit >= 0;
+                                                      return Padding(
+                                                        padding:
+                                                            const EdgeInsets.only(
+                                                              top: 3,
+                                                            ),
+                                                        child: _saleChip(
+                                                          isGain
+                                                              ? l10n.saleListChipProfit
+                                                              : l10n.saleListChipLoss,
+                                                          (isGain ? '+' : '') +
+                                                              MoneyUtils.formatCompactCurrency(
+                                                                profit.abs(),
+                                                              ),
+                                                          isGain
+                                                              ? const Color(
+                                                                  0xFF15803D,
+                                                                )
+                                                              : const Color(
+                                                                  0xFFDC2626,
+                                                                ),
+                                                          isGain
+                                                              ? const Color(
+                                                                  0xFFDCFCE7,
+                                                                )
+                                                              : const Color(
+                                                                  0xFFFEE2E2,
+                                                                ),
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
                                                 // ROW 6: Return info (amber)
                                                 if (returnInfo != null)
                                                   Padding(
-                                                    padding: const EdgeInsets.only(top: 3),
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          top: 3,
+                                                        ),
                                                     child: _saleChip(
-                                                      isFullyReturned ? l10n.saleListReturnFull : l10n.saleListReturnPartial,
                                                       isFullyReturned
-                                                          ? MoneyUtils.formatCompactCurrency(returnInfo.totalReturnedAmount)
+                                                          ? l10n.saleListReturnFull
+                                                          : l10n.saleListReturnPartial,
+                                                      isFullyReturned
+                                                          ? MoneyUtils.formatCompactCurrency(
+                                                              returnInfo
+                                                                  .totalReturnedAmount,
+                                                            )
                                                           : l10n.saleListReturnTimesCount(
-                                                              MoneyUtils.formatCompactCurrency(returnInfo.totalReturnedAmount),
-                                                              returnInfo.returnCount,
+                                                              MoneyUtils.formatCompactCurrency(
+                                                                returnInfo
+                                                                    .totalReturnedAmount,
+                                                              ),
+                                                              returnInfo
+                                                                  .returnCount,
                                                             ),
-                                                      isFullyReturned ? Colors.grey.shade600 : Colors.orange.shade800,
-                                                      isFullyReturned ? Colors.grey.shade100 : Colors.orange.shade50,
+                                                      isFullyReturned
+                                                          ? Colors.grey.shade600
+                                                          : Colors
+                                                                .orange
+                                                                .shade800,
+                                                      isFullyReturned
+                                                          ? Colors.grey.shade100
+                                                          : Colors
+                                                                .orange
+                                                                .shade50,
                                                     ),
                                                   ),
                                                 // ROW 7: Trả góp
                                                 if (isInstallment)
                                                   Padding(
-                                                    padding: const EdgeInsets.only(top: 3),
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          top: 3,
+                                                        ),
                                                     child: _saleChip(
                                                       l10n.saleListInstallmentLabel,
                                                       hasBankSettlement
-                                                          ? l10n.saleListBankReceivedAmount(MoneyUtils.formatCompactCurrency(s.settlementAmount))
+                                                          ? l10n.saleListBankReceivedAmount(
+                                                              MoneyUtils.formatCompactCurrency(
+                                                                s.settlementAmount,
+                                                              ),
+                                                            )
                                                           : l10n.saleListBankNotReceived,
-                                                      hasBankSettlement ? const Color(0xFF0369A1) : const Color(0xFF92400E),
-                                                      hasBankSettlement ? const Color(0xFFE0F2FE) : const Color(0xFFFEF3C7),
+                                                      hasBankSettlement
+                                                          ? const Color(
+                                                              0xFF0369A1,
+                                                            )
+                                                          : const Color(
+                                                              0xFF92400E,
+                                                            ),
+                                                      hasBankSettlement
+                                                          ? const Color(
+                                                              0xFFE0F2FE,
+                                                            )
+                                                          : const Color(
+                                                              0xFFFEF3C7,
+                                                            ),
                                                     ),
                                                   ),
                                               ],
@@ -1329,7 +1716,8 @@ class _SaleListViewState extends State<SaleListView> {
         if (list is List) {
           for (final item in list) {
             final sp = (item['salePrice'] as num?)?.toInt() ?? 0;
-            final up = ((item['unitPrice'] ?? item['price']) as num?)?.toInt() ?? 0;
+            final up =
+                ((item['unitPrice'] ?? item['price']) as num?)?.toInt() ?? 0;
             final qty = (item['quantity'] as num?)?.toInt() ?? 1;
             if (sp > up && up > 0) itemLevelFromSnapshot += (sp - up) * qty;
           }
@@ -1341,8 +1729,10 @@ class _SaleListViewState extends State<SaleListView> {
     // Fallback for old orders: parse "(Giảm 1.000.000)" from productNames
     if (itemLevelFromSnapshot == 0) {
       final names = s.productNames;
-      final matches = RegExp(r'\(GI[AÀ]M\s+([\d.]+)\)', caseSensitive: false)
-          .allMatches(names);
+      final matches = RegExp(
+        r'\(GI[AÀ]M\s+([\d.]+)\)',
+        caseSensitive: false,
+      ).allMatches(names);
       for (final m in matches) {
         final amtStr = (m.group(1) ?? '').replaceAll('.', '');
         final amt = int.tryParse(amtStr) ?? 0;
@@ -1362,11 +1752,13 @@ class _SaleListViewState extends State<SaleListView> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Row(children: [
-          Icon(Icons.person_add, size: 20),
-          SizedBox(width: 8),
-          Text('Thêm thông tin khách hàng', style: TextStyle(fontSize: 16)),
-        ]),
+        title: const Row(
+          children: [
+            Icon(Icons.person_add, size: 20),
+            SizedBox(width: 8),
+            Text('Thêm thông tin khách hàng', style: TextStyle(fontSize: 16)),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1444,22 +1836,32 @@ class _SaleListViewState extends State<SaleListView> {
         final customerService = CustomerService();
         final shopId = await UserService.getCurrentShopId();
         final allSales = await db.getCustomerSalesHistory(newPhone, shopId);
-        final validSales = allSales.where((x) => (x['deleted'] ?? 0) != 1).toList();
+        final validSales = allSales
+            .where((x) => (x['deleted'] ?? 0) != 1)
+            .toList();
         final totalSpent = validSales.fold<int>(
-          0, (acc, x) => acc + ((x['totalPrice'] as num?)?.toInt() ?? 0));
+          0,
+          (acc, x) => acc + ((x['totalPrice'] as num?)?.toInt() ?? 0),
+        );
         final lastVisit = validSales.isNotEmpty
-            ? validSales.map((x) => (x['soldAt'] as num?)?.toInt() ?? 0).reduce((a, b) => a > b ? a : b)
+            ? validSales
+                  .map((x) => (x['soldAt'] as num?)?.toInt() ?? 0)
+                  .reduce((a, b) => a > b ? a : b)
             : DateTime.now().millisecondsSinceEpoch;
 
-        final existing = shopId != null ? await db.getCustomerByPhone(newPhone, shopId) : <Map<String, dynamic>>[];
+        final existing = shopId != null
+            ? await db.getCustomerByPhone(newPhone, shopId)
+            : <Map<String, dynamic>>[];
         if (existing.isEmpty) {
-          await customerService.addCustomer(Customer(
-            name: newName.isNotEmpty ? newName : newPhone,
-            phone: newPhone,
-            createdAt: DateTime.now().millisecondsSinceEpoch,
-            totalSpent: totalSpent,
-            lastVisitAt: lastVisit,
-          ));
+          await customerService.addCustomer(
+            Customer(
+              name: newName.isNotEmpty ? newName : newPhone,
+              phone: newPhone,
+              createdAt: DateTime.now().millisecondsSinceEpoch,
+              totalSpent: totalSpent,
+              lastVisitAt: lastVisit,
+            ),
+          );
         } else {
           final existingId = (existing.first['id'] as num?)?.toInt();
           if (existingId != null) {
@@ -1475,10 +1877,14 @@ class _SaleListViewState extends State<SaleListView> {
 
       setState(() {});
       if (mounted) {
-        NotificationService.showSnackBar('Đã cập nhật thông tin khách hàng', color: Colors.green);
+        NotificationService.showSnackBar(
+          'Đã cập nhật thông tin khách hàng',
+          color: Colors.green,
+        );
       }
     } catch (e) {
-      if (mounted) NotificationService.showSnackBar('Lỗi: $e', color: Colors.red);
+      if (mounted)
+        NotificationService.showSnackBar('Lỗi: $e', color: Colors.red);
     }
   }
 

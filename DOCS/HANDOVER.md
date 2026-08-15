@@ -12,8 +12,21 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Analyze Status:** ✅ 0 compile error (chỉ info/warning có sẵn từ trước)  
 **Database Version:** SQLite v104  
 **Branch:** master  
-**Active Initiative:** Multi-fix session 2026-08-08/10 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng, backup đơn sửa kèm ảnh, fix sheet Thêm dịch vụ) + review/fix regression 2026-08-15
-**⚠️ Known issue chưa fix:** xem mục 6 trong Known Issues bên dưới — crash intermittent trong bottom sheet có TextField qua đường Back hệ thống
+**Active Initiative:** Multi-fix session 2026-08-08/10 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng, backup đơn sửa kèm ảnh, fix sheet Thêm dịch vụ) + review/fix regression + fix danh sách bán còn nợ sai + fix 20 popup che nút 2026-08-15
+**⚠️ Known issue chưa fix:** xem Known Issues bên dưới — (1) crash intermittent trong bottom sheet có TextField qua đường Back hệ thống, (2) 22 điểm MEDIUM risk popup còn thiếu xử lý thanh điều hướng (chưa fix, ưu tiên thấp hơn 20 điểm HIGH đã xong)
+
+### ✅ Vừa hoàn thành (2026-08-15c): fix(ui): 20 điểm popup/bottom sheet bị che nút bấm
+- User báo "rất nhiều chỗ khi popup bị che nút bấm" — audit 95 file dùng `showModalBottomSheet`/`showDialog`/`showAppBottomSheet`, tìm ra 20 điểm HIGH risk (không xử lý safe-area/keyboard gì cả) + 22 điểm MEDIUM risk (chỉ thiếu xử lý thanh điều hướng) trên 30+ file
+- Đã fix 20 điểm HIGH risk theo pattern nhất quán (`Padding` + `MediaQuery.viewInsetsOf`/`paddingOf` đọc từ context ngoài, tránh crash `_dependents.isEmpty`) trên 19 file — xem danh sách đầy đủ ở `docs/CHANGELOG.md` mục `[2026-08-15c]`
+- Tiện phát hiện + fix 2 chỗ trong `advanced_chat_view.dart` đã đọc nhầm `MediaQuery.of(ctx)` (context trong, có nguy cơ crash) khi cố xử lý safe-area
+- `flutter analyze` sạch trên toàn `lib/`. Đã build cài + xác nhận màn Công nợ (đại diện) không crash trên Oppo CPH2203 — **chưa test riêng từng màn còn lại trong 20 điểm** (theo phản hồi user tiết kiệm token, không lặp lại screenshot từng file)
+- Chi tiết: `docs/CHANGELOG.md` mục `[2026-08-15c]`
+
+### ✅ Vừa hoàn thành (2026-08-15b): fix(sale): danh sách bán hiện sai trạng thái "còn nợ" sau khi đã thu nợ
+- `sale_list_view.dart` dùng `SaleOrder.remainingDebt` (chỉ tính từ downPayment/loanAmount, dành cho trả góp NH) để hiện chip "còn nợ" — không biết gì về các khoản đã thu qua bảng `debts` riêng (CÔNG NỢ, trả thiếu tiền mặt), nên đơn đã thu đủ nợ vẫn hiện sai
+- Fix: thêm `_effectiveRemainingDebt()` ưu tiên tra bảng `debts` qua `linkedId`, áp dụng cho filter/sort/tổng nợ/chip — đồng thời thêm listener `debts_changed` để tự refresh khi thanh toán nợ xong ở màn khác
+- Đã test trên Oppo CPH2203 với đơn CÔNG NỢ thật đã thu đủ — hiện đúng "ĐÃ THU" (xanh), không crash
+- Chi tiết: `docs/CHANGELOG.md` mục `[2026-08-15b]`
 
 ### ✅ Vừa hoàn thành (2026-08-15): fix(repair): revert regression crash ở sheet "Sửa ghi chú kỹ thuật"
 - Review code commit 08-10 phát hiện regression: đọc `MediaQuery` qua `Builder`/`innerCtx` thay vì `context` ngoài — đúng anti-pattern đã tốn công fix ngày 08-08. Đã revert về pattern an toàn (khớp `_editBasicInfo`)
@@ -1177,6 +1190,12 @@ e6584072 fix(finance): sync REPAIR_PARTNER type across all 3 debt-balance checkp
    - Rủi ro: nghi có mặt ở MỌI bottom sheet có TextField trong app (không riêng 1 màn), vì đường crash đi qua nút Back hệ thống — nằm ngoài `onPressed` của các nút Hủy/Lưu vốn đã có bảo vệ
    - Chi tiết kỹ thuật + cách tái hiện: memory `feedback_modal_sheet_dependents_crash.md` mục "Cause 3"; `docs/CHANGELOG.md` mục `[2026-08-15]`
    - Next step: cần phiên điều tra riêng, có thể cần nâng cấp `android:enableOnBackInvokedCallback` (log cảnh báo hiện tại: "OnBackInvokedCallback is not enabled for the application") hoặc tìm hiểu sâu hơn Flutter's predictive-back handling
+
+7. **22 điểm popup MEDIUM risk còn thiếu xử lý thanh điều hướng — CHƯA fix**
+   - Issue: Sheet chỉ xử lý `MediaQuery.viewInsetsOf(context).bottom` (bàn phím) mà thiếu `MediaQuery.paddingOf(context).bottom` (thanh điều hướng hệ thống) — nút bấm có thể bị che trên máy dùng nav bar 3-nút (thường không sao trên máy dùng gesture nav)
+   - Status: ⚠ Chưa fix — user yêu cầu ưu tiên 20 điểm HIGH risk trước (đã xong, xem mục `[2026-08-15c]`), 22 điểm này để sau
+   - Danh sách đầy đủ (file:line + lý do): kết quả audit gốc còn trong lịch sử hội thoại phiên 2026-08-15; các file chính: `attendance_management_view.dart` (5 chỗ), `cash_closing_view.dart`, `create_repair_order_view.dart`, `expense_view.dart`, `community_view.dart`, `inventory_view.dart` (2 chỗ), `payment_request_chat_view.dart`, `repair_detail_view.dart`, `sale_detail_view.dart`, `ai_repair_input_sheet.dart`, `ai_order_input_sheet.dart`, `storage_location_selector.dart`, `quick_code_picker_sheet.dart`, `supplier_picker_sheet.dart`, `attendance_view.dart` (2 chỗ), `category_management_view.dart`, `hr_salary_settings_view.dart`, `parts_inventory_view.dart`
+   - Riêng biệt: 6 chỗ đọc `MediaQuery` từ context trong (route-scoped) thay vì context ngoài — cùng họ bug crash `_dependents.isEmpty` ở mục 6, KHÔNG tính vào 22 điểm trên: `inventory_view.dart` (2 chỗ), `create_repair_order_view.dart`, `community_view.dart`, `missing_info_products_view.dart`, `repair_detail_view.dart`
 
 ---
 

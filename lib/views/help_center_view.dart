@@ -39,7 +39,10 @@ class _HelpCenterViewState extends State<HelpCenterView> {
       return filtered;
     }
 
-    return HelpCenterRepository.topicsByCategory(_activeCategoryId, audience: role);
+    return HelpCenterRepository.topicsByCategory(
+      _activeCategoryId,
+      audience: role,
+    );
   }
 
   List<HelpTopic> _topicsForCategory(String categoryId) {
@@ -79,74 +82,72 @@ class _HelpCenterViewState extends State<HelpCenterView> {
     final featured = HelpCenterRepository.featuredTopics(audience: role);
 
     return Scaffold(
-      appBar: CustomAppBar.build(
-        title: 'Trung tâm hướng dẫn',
-      ),
-      body: ResponsiveCenter(child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: _searchCtrl,
-                  onChanged: (_) => setState(() {}),
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.search),
-                    hintText: 'Tìm kiếm theo từ khóa, tính năng... ',
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
+      appBar: CustomAppBar.build(title: 'Trung tâm hướng dẫn'),
+      body: ResponsiveCenter(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: _searchCtrl,
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.search),
+                      hintText: 'Tìm kiếm theo từ khóa, tính năng... ',
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 48,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: [
-                      _categoryChip(
-                        id: 'all',
-                        label: 'Gợi ý',
-                        icon: Icons.lightbulb_outline,
-                        isActive: _activeCategoryId == 'all',
-                      ),
-                      for (final category in categories)
-                        _categoryChip(
-                          id: category.id,
-                          label: category.title,
-                          icon: category.icon,
-                          isActive: _activeCategoryId == category.id,
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                if (_searchCtrl.text.isEmpty)
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    child: _buildQuickSummary(context),
-                  ),
-                if (_searchCtrl.text.isEmpty) ...[
                   const SizedBox(height: 12),
-                  _buildQuickActions(role),
+                  SizedBox(
+                    height: 48,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        _categoryChip(
+                          id: 'all',
+                          label: 'Gợi ý',
+                          icon: Icons.lightbulb_outline,
+                          isActive: _activeCategoryId == 'all',
+                        ),
+                        for (final category in categories)
+                          _categoryChip(
+                            id: category.id,
+                            label: category.title,
+                            icon: category.icon,
+                            isActive: _activeCategoryId == category.id,
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (_searchCtrl.text.isEmpty)
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: _buildQuickSummary(context),
+                    ),
+                  if (_searchCtrl.text.isEmpty) ...[
+                    const SizedBox(height: 12),
+                    _buildQuickActions(role),
+                  ],
+                  if (_searchCtrl.text.isEmpty && featured.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    _buildFeaturedSection(featured),
+                  ],
                 ],
-                if (_searchCtrl.text.isEmpty && featured.isNotEmpty) ...[
-                  const SizedBox(height: 20),
-                  _buildFeaturedSection(featured),
-                ],
-              ],
+              ),
             ),
-          ),
-          Expanded(
-            child: _buildContentList(categories, topics),
-          ),
-        ],
-      )),
+            Expanded(child: _buildContentList(categories, topics)),
+          ],
+        ),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           NotificationService.showSnackBar(
@@ -160,7 +161,10 @@ class _HelpCenterViewState extends State<HelpCenterView> {
     );
   }
 
-  Widget _buildContentList(List<HelpCategory> categories, List<HelpTopic> topics) {
+  Widget _buildContentList(
+    List<HelpCategory> categories,
+    List<HelpTopic> topics,
+  ) {
     if (_searchCtrl.text.isNotEmpty) {
       if (topics.isEmpty) {
         return _emptyState('Không tìm thấy hướng dẫn nào khớp từ khóa.');
@@ -184,12 +188,13 @@ class _HelpCenterViewState extends State<HelpCenterView> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       children: [
         if (_activeCategoryId == 'all')
-          for (final category in categories)
-            _categorySection(category)
+          for (final category in categories) _categorySection(category)
         else
           _categorySection(
-            categories.firstWhere((c) => c.id == _activeCategoryId,
-                orElse: () => categories.first),
+            categories.firstWhere(
+              (c) => c.id == _activeCategoryId,
+              orElse: () => categories.first,
+            ),
           ),
         const SizedBox(height: 12),
         _supportCard(),
@@ -277,7 +282,9 @@ class _HelpCenterViewState extends State<HelpCenterView> {
               ],
               Text(
                 topic.title,
-                style: AppTextStyles.subtitle1.copyWith(fontWeight: FontWeight.bold),
+                style: AppTextStyles.subtitle1.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
@@ -332,7 +339,9 @@ class _HelpCenterViewState extends State<HelpCenterView> {
         children: [
           Text(
             'Hướng dẫn nhanh',
-            style: AppTextStyles.subtitle1.copyWith(fontWeight: FontWeight.bold),
+            style: AppTextStyles.subtitle1.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -426,16 +435,29 @@ class _HelpCenterViewState extends State<HelpCenterView> {
       ),
       builder: (ctx) {
         final category = HelpCenterRepository.findCategory(topic.categoryId);
-        final related = HelpCenterRepository.relatedTopics(topic, audience: role);
+        final related = HelpCenterRepository.relatedTopics(
+          topic,
+          audience: role,
+        );
         return DraggableScrollableSheet(
           expand: false,
           initialChildSize: 0.9,
           minChildSize: 0.6,
           maxChildSize: 0.95,
+          // `context` here (inner builder) intentionally NOT used for
+          // MediaQuery — read from the outer `context` captured by this
+          // method's own State to avoid a _dependents.isEmpty crash on pop.
           builder: (context, scrollController) {
             return SingleChildScrollView(
               controller: scrollController,
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.fromLTRB(
+                12,
+                12,
+                12,
+                12 +
+                    MediaQuery.viewInsetsOf(this.context).bottom +
+                    MediaQuery.paddingOf(this.context).bottom,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -469,7 +491,10 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                         ),
                         if (!topic.audience.contains('all'))
                           Chip(
-                            avatar: const Icon(Icons.workspace_premium, size: 16),
+                            avatar: const Icon(
+                              Icons.workspace_premium,
+                              size: 16,
+                            ),
                             label: Text(
                               'Dành cho ${topic.audience.map(_localizeRole).join(', ')}',
                             ),
@@ -479,7 +504,9 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                   const SizedBox(height: 12),
                   Text(
                     topic.title,
-                    style: AppTextStyles.headline4.copyWith(fontWeight: FontWeight.bold),
+                    style: AppTextStyles.headline4.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -487,9 +514,13 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                     style: TextStyle(color: Colors.grey.shade700),
                   ),
                   const SizedBox(height: 24),
-                  if (topic.estimatedTime != null || topic.difficulty.isNotEmpty)
+                  if (topic.estimatedTime != null ||
+                      topic.difficulty.isNotEmpty)
                     Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 16,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.blue.shade50,
                         borderRadius: BorderRadius.circular(12),
@@ -524,12 +555,17 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                     const SizedBox(height: 20),
                     Text(
                       'Chuẩn bị trước',
-                      style: AppTextStyles.subtitle1.copyWith(fontWeight: FontWeight.bold),
+                      style: AppTextStyles.subtitle1.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     for (final item in topic.prerequisites)
                       ListTile(
-                        leading: const Icon(Icons.check_circle_outline, color: Colors.teal),
+                        leading: const Icon(
+                          Icons.check_circle_outline,
+                          color: Colors.teal,
+                        ),
                         title: Text(item),
                         contentPadding: EdgeInsets.zero,
                         dense: true,
@@ -537,7 +573,9 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                   ],
                   Text(
                     'Các bước thực hiện',
-                    style: AppTextStyles.subtitle1.copyWith(fontWeight: FontWeight.bold),
+                    style: AppTextStyles.subtitle1.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   for (var i = 0; i < topic.steps.length; i++)
@@ -558,7 +596,9 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                           Expanded(
                             child: Text(
                               topic.steps[i],
-                              style: TextStyle(fontSize: AppTextStyles.body1.fontSize),
+                              style: TextStyle(
+                                fontSize: AppTextStyles.body1.fontSize,
+                              ),
                             ),
                           ),
                         ],
@@ -568,12 +608,17 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                     const SizedBox(height: 12),
                     Text(
                       'Mẹo & ghi chú',
-                      style: AppTextStyles.subtitle1.copyWith(fontWeight: FontWeight.bold),
+                      style: AppTextStyles.subtitle1.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     for (final tip in topic.tips)
                       ListTile(
-                        leading: const Icon(Icons.check_circle, color: Colors.green),
+                        leading: const Icon(
+                          Icons.check_circle,
+                          color: Colors.green,
+                        ),
                         title: Text(tip),
                         contentPadding: EdgeInsets.zero,
                       ),
@@ -597,17 +642,24 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                     const SizedBox(height: 16),
                     Text(
                       'Tài liệu đính kèm',
-                      style: AppTextStyles.subtitle1.copyWith(fontWeight: FontWeight.bold),
+                      style: AppTextStyles.subtitle1.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Card(
                       color: Colors.grey.shade50,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: Column(
                         children: [
                           for (final resource in topic.resources)
                             ListTile(
-                              leading: const Icon(Icons.file_present_outlined, color: Colors.blueGrey),
+                              leading: const Icon(
+                                Icons.file_present_outlined,
+                                color: Colors.blueGrey,
+                              ),
                               title: Text(resource),
                               trailing: const Icon(Icons.open_in_new, size: 18),
                               onTap: () => NotificationService.showSnackBar(
@@ -623,7 +675,9 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                     const SizedBox(height: 16),
                     Text(
                       'Liên quan',
-                      style: AppTextStyles.subtitle1.copyWith(fontWeight: FontWeight.bold),
+                      style: AppTextStyles.subtitle1.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Wrap(
@@ -659,7 +713,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                       icon: const Icon(Icons.check_circle_outline),
                       label: const Text('Tôi đã hiểu hướng dẫn này'),
                     ),
-                  )
+                  ),
                 ],
               ),
             );
@@ -672,7 +726,11 @@ class _HelpCenterViewState extends State<HelpCenterView> {
   Widget _buildQuickActions(String role) {
     final chips = [
       ActionChip(
-        avatar: const Icon(Icons.play_circle_outline, size: 18, color: Colors.deepPurple),
+        avatar: const Icon(
+          Icons.play_circle_outline,
+          size: 18,
+          color: Colors.deepPurple,
+        ),
         label: const Text('Video hướng dẫn'),
         onPressed: () {
           NotificationService.showSnackBar(
@@ -692,7 +750,11 @@ class _HelpCenterViewState extends State<HelpCenterView> {
         },
       ),
       ActionChip(
-        avatar: const Icon(Icons.feedback_outlined, size: 18, color: Colors.orange),
+        avatar: const Icon(
+          Icons.feedback_outlined,
+          size: 18,
+          color: Colors.orange,
+        ),
         label: const Text('Đề xuất cải tiến'),
         onPressed: () {
           NotificationService.showSnackBar(
@@ -706,7 +768,11 @@ class _HelpCenterViewState extends State<HelpCenterView> {
     if (role != 'all') {
       chips.add(
         ActionChip(
-          avatar: const Icon(Icons.workspace_premium_outlined, size: 18, color: Colors.green),
+          avatar: const Icon(
+            Icons.workspace_premium_outlined,
+            size: 18,
+            color: Colors.green,
+          ),
           label: Text('Dành cho ${_localizeRole(role)}'),
           onPressed: () {
             setState(() => _activeCategoryId = 'all');
@@ -719,11 +785,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
       );
     }
 
-    return Wrap(
-      spacing: 8,
-      runSpacing: 6,
-      children: chips,
-    );
+    return Wrap(spacing: 8, runSpacing: 6, children: chips);
   }
 
   Widget _buildFeaturedSection(List<HelpTopic> featured) {
@@ -736,7 +798,9 @@ class _HelpCenterViewState extends State<HelpCenterView> {
             const SizedBox(width: 8),
             Text(
               'Nổi bật',
-              style: AppTextStyles.subtitle1.copyWith(fontWeight: FontWeight.bold),
+              style: AppTextStyles.subtitle1.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -749,7 +813,9 @@ class _HelpCenterViewState extends State<HelpCenterView> {
             separatorBuilder: (_, __) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
               final topic = featured[index];
-              final category = HelpCenterRepository.findCategory(topic.categoryId);
+              final category = HelpCenterRepository.findCategory(
+                topic.categoryId,
+              );
               return GestureDetector(
                 onTap: () => _openTopicDetail(topic),
                 child: Container(
@@ -758,10 +824,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(18),
                     gradient: LinearGradient(
-                      colors: [
-                        Colors.blue.shade400,
-                        Colors.blue.shade200,
-                      ],
+                      colors: [Colors.blue.shade400, Colors.blue.shade200],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -806,14 +869,21 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                       const Spacer(),
                       Row(
                         children: [
-                          const Icon(Icons.timer, size: 16, color: Colors.white70),
+                          const Icon(
+                            Icons.timer,
+                            size: 16,
+                            color: Colors.white70,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             topic.estimatedTime ?? 'Nhanh',
                             style: const TextStyle(color: Colors.white70),
                           ),
                           const Spacer(),
-                          const Icon(Icons.chevron_right, color: Colors.white70),
+                          const Icon(
+                            Icons.chevron_right,
+                            color: Colors.white70,
+                          ),
                         ],
                       ),
                     ],
@@ -843,7 +913,9 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                 const SizedBox(width: 8),
                 Text(
                   'Cần thêm trợ giúp?',
-                  style: AppTextStyles.subtitle1.copyWith(fontWeight: FontWeight.bold),
+                  style: AppTextStyles.subtitle1.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),

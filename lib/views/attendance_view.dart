@@ -63,7 +63,8 @@ class _AttendanceViewState extends State<AttendanceView>
   double? _shopLatitude;
   double? _shopLongitude;
   bool _locationRequired = false;
-  bool _requireLocationForAttendance = false; // Bắt buộc cấu hình vị trí mới được chấm công
+  bool _requireLocationForAttendance =
+      false; // Bắt buộc cấu hình vị trí mới được chấm công
 
   @override
   void initState() {
@@ -86,25 +87,29 @@ class _AttendanceViewState extends State<AttendanceView>
       steps: [
         const GuideStep(
           title: '⏰ Chấm công vào/ra',
-          description: 'Nhấn nút chấm công để ghi nhận giờ vào và giờ ra ca làm việc. Đồng hồ hiển thị thời gian thực.',
+          description:
+              'Nhấn nút chấm công để ghi nhận giờ vào và giờ ra ca làm việc. Đồng hồ hiển thị thời gian thực.',
           icon: Icons.fingerprint_rounded,
           iconColor: Colors.indigo,
         ),
         const GuideStep(
           title: '📍 Xác minh vị trí',
-          description: 'Nếu được bật, hệ thống yêu cầu xác nhận vị trí GPS để đảm bảo chấm công tại nơi làm việc.',
+          description:
+              'Nếu được bật, hệ thống yêu cầu xác nhận vị trí GPS để đảm bảo chấm công tại nơi làm việc.',
           icon: Icons.location_on_rounded,
           iconColor: Colors.red,
         ),
         const GuideStep(
           title: '📝 Đơn xin nghỉ',
-          description: 'Gửi đơn xin nghỉ phép, nghỉ bệnh hoặc đổi ca ngay trong ứng dụng. Quản lý duyệt trực tuyến.',
+          description:
+              'Gửi đơn xin nghỉ phép, nghỉ bệnh hoặc đổi ca ngay trong ứng dụng. Quản lý duyệt trực tuyến.',
           icon: Icons.event_note_rounded,
           iconColor: Colors.orange,
         ),
         const GuideStep(
           title: '📊 Lịch sử & thống kê',
-          description: 'Xem lại toàn bộ lịch chấm công, số ngày công và số giờ tăng ca trong tháng.',
+          description:
+              'Xem lại toàn bộ lịch chấm công, số ngày công và số giờ tăng ca trong tháng.',
           icon: Icons.bar_chart_rounded,
           iconColor: Colors.green,
         ),
@@ -210,10 +215,14 @@ class _AttendanceViewState extends State<AttendanceView>
     try {
       final shopId = await UserService.getCurrentShopId();
       // Pull cloud data with timeout to prevent infinite spinner on iOS
-      await _pullOwnCloudData(uid: uid, shopId: shopId)
-          .timeout(const Duration(seconds: 10), onTimeout: () {
-        debugPrint('⚠️ Pull attendance cloud data timed out, using local data');
-      });
+      await _pullOwnCloudData(uid: uid, shopId: shopId).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint(
+            '⚠️ Pull attendance cloud data timed out, using local data',
+          );
+        },
+      );
       final rec = await db.getAttendance(
         DateFormat('yyyy-MM-dd').format(DateTime.now()),
         uid,
@@ -426,9 +435,7 @@ class _AttendanceViewState extends State<AttendanceView>
         action: isIn ? 'ATTENDANCE_CHECKIN' : 'ATTENDANCE_CHECKOUT',
         entityType: 'ATTENDANCE',
         entityId: firestoreId,
-        summary: isIn
-            ? 'Nhân viên chấm công vào'
-            : 'Nhân viên chấm công ra',
+        summary: isIn ? 'Nhân viên chấm công vào' : 'Nhân viên chấm công ra',
         payload: {
           'dateKey': attendance.dateKey,
           'staffName': attendance.name,
@@ -668,7 +675,9 @@ class _AttendanceViewState extends State<AttendanceView>
               ),
               title: Text(
                 "Cấu hình lịch làm việc",
-                style: FinanceV2Theme.bodyMd.copyWith(fontWeight: FontWeight.w700),
+                style: FinanceV2Theme.bodyMd.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               subtitle: Text(
                 "Thiết lập giờ vào/ra cho thợ",
@@ -897,7 +906,9 @@ class _AttendanceViewState extends State<AttendanceView>
                         Text(item.dateKey, style: FinanceV2Theme.titleMd),
                         Text(
                           "Vào: ${item.checkInAt != null ? DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(item.checkInAt!)) : '--'} | Ra: ${item.checkOutAt != null ? DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(item.checkOutAt!)) : '--'}",
-                          style: FinanceV2Theme.micro.copyWith(color: FinanceV2Theme.subInk),
+                          style: FinanceV2Theme.micro.copyWith(
+                            color: FinanceV2Theme.subInk,
+                          ),
                         ),
                       ],
                     ),
@@ -1010,7 +1021,9 @@ class _AttendanceViewState extends State<AttendanceView>
           if (items.isEmpty)
             Text(
               loc.noLeaveRequests,
-              style: FinanceV2Theme.bodySm.copyWith(color: FinanceV2Theme.subInk),
+              style: FinanceV2Theme.bodySm.copyWith(
+                color: FinanceV2Theme.subInk,
+              ),
             )
           else
             ...items.map(_buildLeaveRequestItem),
@@ -1078,7 +1091,9 @@ class _AttendanceViewState extends State<AttendanceView>
               padding: const EdgeInsets.only(top: 4),
               child: Text(
                 'Từ chối: ${request.rejectReason}',
-                style: FinanceV2Theme.caption.copyWith(color: FinanceV2Theme.negative),
+                style: FinanceV2Theme.caption.copyWith(
+                  color: FinanceV2Theme.negative,
+                ),
               ),
             ),
         ],
@@ -1106,7 +1121,9 @@ class _AttendanceViewState extends State<AttendanceView>
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) {
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.viewInsetsOf(context).bottom,
+            ),
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
@@ -1127,7 +1144,9 @@ class _AttendanceViewState extends State<AttendanceView>
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            AppLocalizations.of(context)!.forgotCheckinRequest.toUpperCase(),
+                            AppLocalizations.of(
+                              context,
+                            )!.forgotCheckinRequest.toUpperCase(),
                             style: const TextStyle(
                               color: PopupTheme.textPrimary,
                               fontSize: 15,
@@ -1158,9 +1177,16 @@ class _AttendanceViewState extends State<AttendanceView>
                             contentPadding: EdgeInsets.zero,
                             title: Text(
                               'Ngày: ${DateFormat('dd/MM/yyyy').format(selectedDate)}',
-                              style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: PopupTheme.textPrimary,
+                              ),
                             ),
-                            trailing: const Icon(Icons.calendar_today, size: 18, color: PopupTheme.textSecondary),
+                            trailing: const Icon(
+                              Icons.calendar_today,
+                              size: 18,
+                              color: PopupTheme.textSecondary,
+                            ),
                             onTap: () async {
                               final d = await showDatePicker(
                                 context: ctx,
@@ -1176,13 +1202,23 @@ class _AttendanceViewState extends State<AttendanceView>
                             contentPadding: EdgeInsets.zero,
                             title: Text(
                               'Giờ vào: ${checkInTime?.format(ctx) ?? '--:--'}',
-                              style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: PopupTheme.textPrimary,
+                              ),
                             ),
-                            trailing: const Icon(Icons.access_time, size: 18, color: PopupTheme.textSecondary),
+                            trailing: const Icon(
+                              Icons.access_time,
+                              size: 18,
+                              color: PopupTheme.textSecondary,
+                            ),
                             onTap: () async {
                               final t = await showTimePicker(
                                 context: ctx,
-                                initialTime: const TimeOfDay(hour: 8, minute: 0),
+                                initialTime: const TimeOfDay(
+                                  hour: 8,
+                                  minute: 0,
+                                ),
                               );
                               if (t != null) setDlg(() => checkInTime = t);
                             },
@@ -1192,20 +1228,33 @@ class _AttendanceViewState extends State<AttendanceView>
                             contentPadding: EdgeInsets.zero,
                             title: Text(
                               'Giờ ra: ${checkOutTime?.format(ctx) ?? '--:--'}',
-                              style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: PopupTheme.textPrimary,
+                              ),
                             ),
-                            trailing: const Icon(Icons.access_time, size: 18, color: PopupTheme.textSecondary),
+                            trailing: const Icon(
+                              Icons.access_time,
+                              size: 18,
+                              color: PopupTheme.textSecondary,
+                            ),
                             onTap: () async {
                               final t = await showTimePicker(
                                 context: ctx,
-                                initialTime: const TimeOfDay(hour: 17, minute: 0),
+                                initialTime: const TimeOfDay(
+                                  hour: 17,
+                                  minute: 0,
+                                ),
                               );
                               if (t != null) setDlg(() => checkOutTime = t);
                             },
                           ),
                           const SizedBox(height: 8),
                           TextField(
-                            style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 13),
+                            style: const TextStyle(
+                              color: PopupTheme.textPrimary,
+                              fontSize: 13,
+                            ),
                             decoration: const InputDecoration(
                               labelText: 'Ghi chú',
                               border: OutlineInputBorder(),
@@ -1224,7 +1273,10 @@ class _AttendanceViewState extends State<AttendanceView>
                       children: [
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
+                            onPressed: () {
+                              FocusScope.of(ctx).unfocus();
+                              Navigator.pop(ctx);
+                            },
                             child: const Text('HỦY'),
                           ),
                         ),
@@ -1238,10 +1290,15 @@ class _AttendanceViewState extends State<AttendanceView>
                             ),
                             onPressed: () async {
                               if (checkInTime == null) {
-                                NotificationService.showSnackBar('Chọn giờ vào', color: Colors.red);
+                                NotificationService.showSnackBar(
+                                  'Chọn giờ vào',
+                                  color: Colors.red,
+                                );
                                 return;
                               }
-                              final dateKey = DateFormat('yyyy-MM-dd').format(selectedDate);
+                              final dateKey = DateFormat(
+                                'yyyy-MM-dd',
+                              ).format(selectedDate);
                               final inMs = DateTime(
                                 selectedDate.year,
                                 selectedDate.month,
@@ -1260,15 +1317,16 @@ class _AttendanceViewState extends State<AttendanceView>
                                   : null;
                               FocusManager.instance.primaryFocus?.unfocus();
                               Navigator.pop(ctx);
-                              final ok = await AttendanceApprovalService.createForgotCheckinRequest(
-                                userId: user.uid,
-                                email: user.email ?? '',
-                                name: displayName,
-                                dateKey: dateKey,
-                                checkInAt: inMs,
-                                checkOutAt: outMs,
-                                note: note.isNotEmpty ? note : null,
-                              );
+                              final ok =
+                                  await AttendanceApprovalService.createForgotCheckinRequest(
+                                    userId: user.uid,
+                                    email: user.email ?? '',
+                                    name: displayName,
+                                    dateKey: dateKey,
+                                    checkInAt: inMs,
+                                    checkOutAt: outMs,
+                                    note: note.isNotEmpty ? note : null,
+                                  );
                               if (ok) {
                                 NotificationService.showSnackBar(
                                   'Đã gửi yêu cầu bổ sung chấm công',
@@ -1313,7 +1371,9 @@ class _AttendanceViewState extends State<AttendanceView>
         builder: (ctx, setDlg) {
           final days = endDate.difference(startDate).inDays + 1;
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.viewInsetsOf(context).bottom,
+            ),
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
@@ -1334,7 +1394,9 @@ class _AttendanceViewState extends State<AttendanceView>
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            AppLocalizations.of(context)!.createLeaveRequest.toUpperCase(),
+                            AppLocalizations.of(
+                              context,
+                            )!.createLeaveRequest.toUpperCase(),
                             style: const TextStyle(
                               color: PopupTheme.textPrimary,
                               fontSize: 15,
@@ -1363,22 +1425,32 @@ class _AttendanceViewState extends State<AttendanceView>
                           DropdownButtonFormField<String>(
                             initialValue: leaveType,
                             decoration: InputDecoration(
-                              labelText: AppLocalizations.of(context)!.leaveType,
+                              labelText: AppLocalizations.of(
+                                context,
+                              )!.leaveType,
                               border: const OutlineInputBorder(),
                               isDense: true,
                             ),
-                            items: ['annual', 'sick', 'unpaid', 'personal', 'maternity']
-                                .map(
-                                  (t) => DropdownMenuItem(
-                                    value: t,
-                                    child: Text(
-                                      LeaveRequest.leaveTypeDisplayVi(t),
-                                      style: const TextStyle(fontSize: 13),
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (v) => setDlg(() => leaveType = v ?? 'annual'),
+                            items:
+                                [
+                                      'annual',
+                                      'sick',
+                                      'unpaid',
+                                      'personal',
+                                      'maternity',
+                                    ]
+                                    .map(
+                                      (t) => DropdownMenuItem(
+                                        value: t,
+                                        child: Text(
+                                          LeaveRequest.leaveTypeDisplayVi(t),
+                                          style: const TextStyle(fontSize: 13),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                            onChanged: (v) =>
+                                setDlg(() => leaveType = v ?? 'annual'),
                           ),
                           const SizedBox(height: 10),
                           ListTile(
@@ -1386,20 +1458,30 @@ class _AttendanceViewState extends State<AttendanceView>
                             contentPadding: EdgeInsets.zero,
                             title: Text(
                               '${AppLocalizations.of(context)!.startDate}: ${DateFormat('dd/MM/yyyy').format(startDate)}',
-                              style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: PopupTheme.textPrimary,
+                              ),
                             ),
-                            trailing: const Icon(Icons.calendar_today, size: 18, color: PopupTheme.textSecondary),
+                            trailing: const Icon(
+                              Icons.calendar_today,
+                              size: 18,
+                              color: PopupTheme.textSecondary,
+                            ),
                             onTap: () async {
                               final d = await showDatePicker(
                                 context: ctx,
                                 initialDate: startDate,
                                 firstDate: DateTime.now(),
-                                lastDate: DateTime.now().add(const Duration(days: 365)),
+                                lastDate: DateTime.now().add(
+                                  const Duration(days: 365),
+                                ),
                               );
                               if (d != null) {
                                 setDlg(() {
                                   startDate = d;
-                                  if (endDate.isBefore(startDate)) endDate = startDate;
+                                  if (endDate.isBefore(startDate))
+                                    endDate = startDate;
                                 });
                               }
                             },
@@ -1409,15 +1491,24 @@ class _AttendanceViewState extends State<AttendanceView>
                             contentPadding: EdgeInsets.zero,
                             title: Text(
                               '${AppLocalizations.of(context)!.endDate}: ${DateFormat('dd/MM/yyyy').format(endDate)}',
-                              style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: PopupTheme.textPrimary,
+                              ),
                             ),
-                            trailing: const Icon(Icons.calendar_today, size: 18, color: PopupTheme.textSecondary),
+                            trailing: const Icon(
+                              Icons.calendar_today,
+                              size: 18,
+                              color: PopupTheme.textSecondary,
+                            ),
                             onTap: () async {
                               final d = await showDatePicker(
                                 context: ctx,
                                 initialDate: endDate,
                                 firstDate: startDate,
-                                lastDate: startDate.add(const Duration(days: 90)),
+                                lastDate: startDate.add(
+                                  const Duration(days: 90),
+                                ),
                               );
                               if (d != null) setDlg(() => endDate = d);
                             },
@@ -1440,9 +1531,14 @@ class _AttendanceViewState extends State<AttendanceView>
                           ),
                           const SizedBox(height: 8),
                           TextField(
-                            style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 13),
+                            style: const TextStyle(
+                              color: PopupTheme.textPrimary,
+                              fontSize: 13,
+                            ),
                             decoration: InputDecoration(
-                              labelText: AppLocalizations.of(context)!.leaveReason,
+                              labelText: AppLocalizations.of(
+                                context,
+                              )!.leaveReason,
                               border: const OutlineInputBorder(),
                               isDense: true,
                             ),
@@ -1460,7 +1556,10 @@ class _AttendanceViewState extends State<AttendanceView>
                       children: [
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
+                            onPressed: () {
+                              FocusScope.of(ctx).unfocus();
+                              Navigator.pop(ctx);
+                            },
                             child: const Text('HỦY'),
                           ),
                         ),
@@ -1478,18 +1577,27 @@ class _AttendanceViewState extends State<AttendanceView>
                                 email: user.email ?? '',
                                 name: displayName,
                                 leaveType: leaveType,
-                                startDate: DateFormat('yyyy-MM-dd').format(startDate),
-                                endDate: DateFormat('yyyy-MM-dd').format(endDate),
+                                startDate: DateFormat(
+                                  'yyyy-MM-dd',
+                                ).format(startDate),
+                                endDate: DateFormat(
+                                  'yyyy-MM-dd',
+                                ).format(endDate),
                                 totalDays: days.toDouble(),
                                 reason: reason.isNotEmpty ? reason : null,
                                 status: 'pending',
-                                createdAt: DateTime.now().millisecondsSinceEpoch,
-                                updatedAt: DateTime.now().millisecondsSinceEpoch,
+                                createdAt:
+                                    DateTime.now().millisecondsSinceEpoch,
+                                updatedAt:
+                                    DateTime.now().millisecondsSinceEpoch,
                                 isSynced: false,
                               );
                               FocusManager.instance.primaryFocus?.unfocus();
                               Navigator.pop(ctx);
-                              final ok = await AttendanceApprovalService.createLeaveRequest(request);
+                              final ok =
+                                  await AttendanceApprovalService.createLeaveRequest(
+                                    request,
+                                  );
                               if (ok) {
                                 NotificationService.showSnackBar(
                                   'Đã gửi đơn xin nghỉ',
@@ -1498,7 +1606,9 @@ class _AttendanceViewState extends State<AttendanceView>
                                 await _refreshAttendanceData();
                               }
                             },
-                            child: Text(AppLocalizations.of(context)!.createLeaveRequest),
+                            child: Text(
+                              AppLocalizations.of(context)!.createLeaveRequest,
+                            ),
                           ),
                         ),
                       ],
@@ -1518,162 +1628,177 @@ class _AttendanceViewState extends State<AttendanceView>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.8,
+      builder: (ctx) => Padding(
+        // Đọc từ `context` ngoài (không phải `ctx`) để tránh crash
+        // _dependents.isEmpty khi pop.
+        padding: EdgeInsets.only(
+          bottom:
+              MediaQuery.viewInsetsOf(context).bottom +
+              MediaQuery.paddingOf(context).bottom,
         ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.event_note, color: AppColors.primary),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'CHI TIẾT CHẤM CÔNG',
-                        style: AppTextStyles.headline6.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        item.dateKey,
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: AppTextStyles.subtitle1.fontSize,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            const Divider(height: 24),
-
-            // Info rows
-            _detailRow('Nhân viên', item.name, Icons.person),
-            _detailRow(
-              'Trạng thái',
-              item.isLate == 1 ? 'Đi muộn' : 'Đúng giờ',
-              Icons.timer,
-              valueColor: item.isLate == 1
-                  ? AppColors.error
-                  : AppColors.success,
-            ),
-            _detailRow(
-              'Giờ vào',
-              item.checkInAt != null
-                  ? DateFormat('HH:mm:ss - dd/MM/yyyy').format(
-                      DateTime.fromMillisecondsSinceEpoch(item.checkInAt!),
-                    )
-                  : 'Chưa check-in',
-              Icons.login,
-            ),
-            _detailRow(
-              'Giờ ra',
-              item.checkOutAt != null
-                  ? DateFormat('HH:mm:ss - dd/MM/yyyy').format(
-                      DateTime.fromMillisecondsSinceEpoch(item.checkOutAt!),
-                    )
-                  : 'Chưa check-out',
-              Icons.logout,
-            ),
-            if (item.location != null)
-              _detailRow('Vị trí', item.location!, Icons.location_on),
-
-            if (item.location != null &&
-                OsmMapService.parseLatLng(item.location) != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        final p = OsmMapService.parseLatLng(item.location);
-                        if (p == null) return;
-                        await OsmMapService.openPoint(p[0], p[1]);
-                      },
-                      icon: const Icon(Icons.map, size: 18),
-                      label: const Text('Xem OSM'),
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    if (_shopLatitude != null && _shopLongitude != null)
+                    child: const Icon(
+                      Icons.event_note,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'CHI TIẾT CHẤM CÔNG',
+                          style: AppTextStyles.headline6.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          item.dateKey,
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: AppTextStyles.subtitle1.fontSize,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      FocusScope.of(ctx).unfocus();
+                      Navigator.pop(ctx);
+                    },
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const Divider(height: 24),
+
+              // Info rows
+              _detailRow('Nhân viên', item.name, Icons.person),
+              _detailRow(
+                'Trạng thái',
+                item.isLate == 1 ? 'Đi muộn' : 'Đúng giờ',
+                Icons.timer,
+                valueColor: item.isLate == 1
+                    ? AppColors.error
+                    : AppColors.success,
+              ),
+              _detailRow(
+                'Giờ vào',
+                item.checkInAt != null
+                    ? DateFormat('HH:mm:ss - dd/MM/yyyy').format(
+                        DateTime.fromMillisecondsSinceEpoch(item.checkInAt!),
+                      )
+                    : 'Chưa check-in',
+                Icons.login,
+              ),
+              _detailRow(
+                'Giờ ra',
+                item.checkOutAt != null
+                    ? DateFormat('HH:mm:ss - dd/MM/yyyy').format(
+                        DateTime.fromMillisecondsSinceEpoch(item.checkOutAt!),
+                      )
+                    : 'Chưa check-out',
+                Icons.logout,
+              ),
+              if (item.location != null)
+                _detailRow('Vị trí', item.location!, Icons.location_on),
+
+              if (item.location != null &&
+                  OsmMapService.parseLatLng(item.location) != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
                       OutlinedButton.icon(
                         onPressed: () async {
                           final p = OsmMapService.parseLatLng(item.location);
                           if (p == null) return;
-                          await OsmMapService.openDirections(
-                            fromLat: p[0],
-                            fromLon: p[1],
-                            toLat: _shopLatitude!,
-                            toLon: _shopLongitude!,
-                          );
+                          await OsmMapService.openPoint(p[0], p[1]);
                         },
-                        icon: const Icon(Icons.alt_route, size: 18),
-                        label: const Text('Đi tới shop'),
+                        icon: const Icon(Icons.map, size: 18),
+                        label: const Text('Xem OSM'),
+                      ),
+                      if (_shopLatitude != null && _shopLongitude != null)
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            final p = OsmMapService.parseLatLng(item.location);
+                            if (p == null) return;
+                            await OsmMapService.openDirections(
+                              fromLat: p[0],
+                              fromLon: p[1],
+                              toLat: _shopLatitude!,
+                              toLon: _shopLongitude!,
+                            );
+                          },
+                          icon: const Icon(Icons.alt_route, size: 18),
+                          label: const Text('Đi tới shop'),
+                        ),
+                    ],
+                  ),
+                ),
+
+              const SizedBox(height: 16),
+
+              // Photos section
+              if (item.photoIn != null || item.photoOut != null) ...[
+                Text(
+                  'ẢNH CHẤM CÔNG',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: AppTextStyles.headline5.fontSize,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    if (item.photoIn != null)
+                      Expanded(
+                        child: _photoCard(
+                          'Check-in',
+                          item.photoIn!,
+                          item.checkInAt,
+                        ),
+                      ),
+                    if (item.photoIn != null && item.photoOut != null)
+                      const SizedBox(width: 12),
+                    if (item.photoOut != null)
+                      Expanded(
+                        child: _photoCard(
+                          'Check-out',
+                          item.photoOut!,
+                          item.checkOutAt,
+                        ),
                       ),
                   ],
                 ),
-              ),
-
-            const SizedBox(height: 16),
-
-            // Photos section
-            if (item.photoIn != null || item.photoOut != null) ...[
-              Text(
-                'ẢNH CHẤM CÔNG',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: AppTextStyles.headline5.fontSize,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  if (item.photoIn != null)
-                    Expanded(
-                      child: _photoCard(
-                        'Check-in',
-                        item.photoIn!,
-                        item.checkInAt,
-                      ),
-                    ),
-                  if (item.photoIn != null && item.photoOut != null)
-                    const SizedBox(width: 12),
-                  if (item.photoOut != null)
-                    Expanded(
-                      child: _photoCard(
-                        'Check-out',
-                        item.photoOut!,
-                        item.checkOutAt,
-                      ),
-                    ),
-                ],
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -1769,7 +1894,10 @@ class _AttendanceViewState extends State<AttendanceView>
               automaticallyImplyLeading: false,
               actions: [
                 IconButton(
-                  onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
+                  onPressed: () {
+                    FocusScope.of(ctx).unfocus();
+                    Navigator.pop(ctx);
+                  },
                   icon: const Icon(Icons.close),
                 ),
               ],

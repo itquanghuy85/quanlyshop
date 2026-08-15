@@ -71,8 +71,10 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
   ShopSettings? _shopSettings;
   bool get _enableSerial => _shopSettings?.enableSerial ?? true;
   String get _businessType => _shopSettings?.businessType ?? 'electronics';
+
   /// Terminology động theo ngành
-  BusinessTerminology get _terms => BusinessTypeHelper.instance.getTerminology(_shopSettings);
+  BusinessTerminology get _terms =>
+      BusinessTypeHelper.instance.getTerminology(_shopSettings);
 
   @override
   void initState() {
@@ -104,25 +106,29 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
       steps: [
         GuideStep(
           title: '📷 Quét mã liên tục',
-          description: 'Quét barcode/QR nhiều ${_terms.productLabel} liên tục. Hệ thống tự động điền thông tin từ thư viện.',
+          description:
+              'Quét barcode/QR nhiều ${_terms.productLabel} liên tục. Hệ thống tự động điền thông tin từ thư viện.',
           icon: Icons.qr_code_scanner,
           iconColor: Colors.blue,
         ),
         GuideStep(
           title: '📝 Nhập theo lô',
-          description: 'Chế độ batch cho phép quét nhiều mã rồi xác nhận 1 lần. Tiết kiệm thời gian.',
+          description:
+              'Chế độ batch cho phép quét nhiều mã rồi xác nhận 1 lần. Tiết kiệm thời gian.',
           icon: Icons.layers,
           iconColor: Colors.blue,
         ),
         GuideStep(
           title: '🏢 Chọn NCC trước',
-          description: 'Nhớ tạo và chọn NCC trước khi nhập. Tất cả ${_terms.productLabel} sẽ được gắn với NCC đã chọn.',
+          description:
+              'Nhớ tạo và chọn NCC trước khi nhập. Tất cả ${_terms.productLabel} sẽ được gắn với NCC đã chọn.',
           icon: Icons.store,
           iconColor: Colors.teal,
         ),
         GuideStep(
           title: '⚡ Xác nhận ngay',
-          description: 'Khác với "Nhập Mới", ở đây hàng vào kho ngay sau khi nhập. Phù hợp nhập số lượng lớn.',
+          description:
+              'Khác với "Nhập Mới", ở đây hàng vào kho ngay sau khi nhập. Phù hợp nhập số lượng lớn.',
           icon: Icons.check_circle,
           iconColor: Colors.green,
         ),
@@ -134,14 +140,18 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
     try {
       // Load shop settings for multi-industry support
       final settings = await CategoryService().getShopSettings();
-      debugPrint('📱 FastInventoryInput: Loaded shop settings - businessType=${settings?.businessType}, enableSerial=${settings?.enableSerial}');
-      
+      debugPrint(
+        '📱 FastInventoryInput: Loaded shop settings - businessType=${settings?.businessType}, enableSerial=${settings?.enableSerial}',
+      );
+
       final suppliers = await _controller.getSuppliers();
 
       if (mounted) {
         setState(() {
           _shopSettings = settings;
-          debugPrint('📱 FastInventoryInput: setState with _enableSerial=$_enableSerial, _businessType=$_businessType');
+          debugPrint(
+            '📱 FastInventoryInput: setState with _enableSerial=$_enableSerial, _businessType=$_businessType',
+          );
           _suppliers = suppliers;
           if (_suppliers.isNotEmpty) {
             _selectedSupplier = _suppliers.first['name'] as String;
@@ -286,15 +296,17 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
           ),
         ],
       ),
-      body: ResponsiveCenter(child: TabBarView(
-        controller: _tabController,
-        children: [
-          // Tab "Nhập đơn" sử dụng FastStockInView embedded (không có Scaffold)
-          _buildFastStockInEmbedded(),
-          _buildScannerTab(),
-          _buildBatchTab(),
-        ],
-      )),
+      body: ResponsiveCenter(
+        child: TabBarView(
+          controller: _tabController,
+          children: [
+            // Tab "Nhập đơn" sử dụng FastStockInView embedded (không có Scaffold)
+            _buildFastStockInEmbedded(),
+            _buildScannerTab(),
+            _buildBatchTab(),
+          ],
+        ),
+      ),
     );
   }
 
@@ -366,7 +378,8 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
                     Expanded(
                       child: ValidatedTextField(
                         controller: _imeiController,
-                        label: "${_terms.specialField1Label} (có thể nhập thủ công)",
+                        label:
+                            "${_terms.specialField1Label} (có thể nhập thủ công)",
                         icon: Icons.fingerprint,
                         keyboardType: TextInputType.number,
                       ),
@@ -463,7 +476,9 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
                       child: ListTile(
                         title: Text(item['name']),
                         subtitle: Text(
-                          _enableSerial && item['imei'] != null && item['imei'].toString().isNotEmpty
+                          _enableSerial &&
+                                  item['imei'] != null &&
+                                  item['imei'].toString().isNotEmpty
                               ? "${_terms.specialField1Label}: ${item['imei']} • Giá: ${MoneyUtils.formatVND(item['price'])}đ"
                               : "Giá: ${MoneyUtils.formatVND(item['price'])}đ",
                         ),
@@ -684,7 +699,10 @@ class _IMEIScannerSheetState extends State<_IMEIScannerSheet> {
                   child: Text(
                     'Hỗ trợ QR nhiều dòng (Apple, Samsung...).\n'
                     'Tự động trích xuất IMEI và cho phép chọn nếu có nhiều số.',
-                    style: TextStyle(fontSize: AppTextStyles.subtitle1.fontSize, color: Colors.blue),
+                    style: TextStyle(
+                      fontSize: AppTextStyles.subtitle1.fontSize,
+                      color: Colors.blue,
+                    ),
                   ),
                 ),
               ],
@@ -784,7 +802,10 @@ class _IMEIScannerSheetState extends State<_IMEIScannerSheet> {
                           const SizedBox(height: 16),
                           Text(
                             'Đang xử lý...',
-                            style: TextStyle(color: Colors.white, fontSize: AppTextStyles.headline4.fontSize),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: AppTextStyles.headline4.fontSize,
+                            ),
                           ),
                         ],
                       ),
@@ -796,7 +817,12 @@ class _IMEIScannerSheetState extends State<_IMEIScannerSheet> {
 
           // Bottom controls
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              16,
+              16,
+              16 + MediaQuery.paddingOf(context).bottom,
+            ),
             child: Row(
               children: [
                 // Torch button

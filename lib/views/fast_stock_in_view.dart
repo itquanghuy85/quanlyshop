@@ -161,7 +161,9 @@ class _FastStockInViewState extends State<FastStockInView> {
       selectedBrand = mappedBrand;
     } else {
       // Backward compatibility: suy luận brand từ name/model nếu dữ liệu cũ thiếu brand.
-      final inferred = ProductConstants.mapBrand('${code.name} ${code.model ?? ''}');
+      final inferred = ProductConstants.mapBrand(
+        '${code.name} ${code.model ?? ''}',
+      );
       if (inferred != 'KHÁC' && brands.contains(inferred)) {
         selectedBrand = inferred;
       }
@@ -662,7 +664,9 @@ class _FastStockInViewState extends State<FastStockInView> {
         selectedCapacity == null ||
         selectedColor == null ||
         selectedCondition == null ||
-        (_enableSupplier && _supplierEffectivelyRequired && selectedSupplier == null) ||
+        (_enableSupplier &&
+            _supplierEffectivelyRequired &&
+            selectedSupplier == null) ||
         // Payment method optional when allowPendingCost=true and cost=0 (will fill later)
         (selectedPaymentMethod == null &&
             (!_allowPendingCost || _parseMoneyWithK(costCtrl.text) > 0))) {
@@ -1165,7 +1169,8 @@ class _FastStockInViewState extends State<FastStockInView> {
           // ignore: unawaited_futures
           NotificationService.sendCloudNotification(
             title: '⚠️ NHẬP KHO THIẾU GIÁ VỐN',
-            body: '👤 $userName\n📦 $productName x$quantity\n💰 Chưa có giá vốn - cần bổ sung sau',
+            body:
+                '👤 $userName\n📦 $productName x$quantity\n💰 Chưa có giá vốn - cần bổ sung sau',
             type: 'missing_cost',
             data: {'targetType': 'stock_entry', 'targetId': entryId},
           );
@@ -1173,7 +1178,8 @@ class _FastStockInViewState extends State<FastStockInView> {
           // ignore: unawaited_futures
           NotificationService.sendCloudNotification(
             title: '⚠️ NHẬP KHO THIẾU NCC',
-            body: '👤 $userName\n📦 $productName x$quantity\n🏪 Chưa chọn nhà cung cấp',
+            body:
+                '👤 $userName\n📦 $productName x$quantity\n🏪 Chưa chọn nhà cung cấp',
             type: 'missing_supplier',
             data: {'targetType': 'stock_entry', 'targetId': entryId},
           );
@@ -1181,7 +1187,8 @@ class _FastStockInViewState extends State<FastStockInView> {
           // ignore: unawaited_futures
           NotificationService.sendCloudNotification(
             title: '📦 PHIẾU NHẬP KHO MỚI',
-            body: '👤 $userName\n📦 $productName x$quantity\n⏳ Chờ xác nhận nhập vào kho chính',
+            body:
+                '👤 $userName\n📦 $productName x$quantity\n⏳ Chờ xác nhận nhập vào kho chính',
             type: 'stock_pending',
             data: {'targetType': 'stock_entry', 'targetId': entryId},
           );
@@ -1348,7 +1355,10 @@ class _FastStockInViewState extends State<FastStockInView> {
                 setState(() {
                   // Thêm vào list nếu chưa có để dropdown nhận diện
                   if (!suppliers.any((s) => s['name'] == name)) {
-                    suppliers = [{'name': name, ...picked}, ...suppliers];
+                    suppliers = [
+                      {'name': name, ...picked},
+                      ...suppliers,
+                    ];
                   }
                   selectedSupplier = name;
                 });
@@ -1868,8 +1878,7 @@ class _FastStockInViewState extends State<FastStockInView> {
                     selectedLocationId: selectedLocation?.firestoreId,
                     selectedLocationCode: selectedLocation?.code,
                     selectedLocationName: selectedLocation?.name,
-                    onSelected: (loc) =>
-                        setState(() => selectedLocation = loc),
+                    onSelected: (loc) => setState(() => selectedLocation = loc),
                   ),
 
                   const SizedBox(height: 12),
@@ -1877,10 +1886,8 @@ class _FastStockInViewState extends State<FastStockInView> {
                   // Ảnh sản phẩm
                   ImagePickerWidget(
                     localPath: localImagePath,
-                    onImagePicked: (p) =>
-                        setState(() => localImagePath = p),
-                    onImageDeleted: () =>
-                        setState(() => localImagePath = null),
+                    onImagePicked: (p) => setState(() => localImagePath = p),
+                    onImageDeleted: () => setState(() => localImagePath = null),
                   ),
 
                   const SizedBox(height: 24),
@@ -2188,7 +2195,12 @@ class _SmartIMEIScannerSheetState extends State<_SmartIMEIScannerSheet> {
 
           // Bottom controls
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              16,
+              16,
+              16 + MediaQuery.paddingOf(context).bottom,
+            ),
             child: Row(
               children: [
                 IconButton(

@@ -4,6 +4,44 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-15c] - fix(ui): 20 điểm popup/bottom sheet bị che nút bấm bởi thanh điều hướng/bàn phím
+
+**Triệu chứng (user báo):** "rất nhiều chỗ khi popup bị che nút bấm ở dưới màn hình hoặc che ít hoặc che hết khó bấm".
+
+**Điều tra:** Audit toàn bộ 95 file dùng `showModalBottomSheet`/`showDialog`/`showAppBottomSheet` trong app, tìm các sheet không xử lý bottom safe-area (thanh điều hướng hệ thống) và/hoặc keyboard inset (bàn phím). Phát hiện 20 điểm HIGH risk (hoàn toàn không xử lý gì) và 22 điểm MEDIUM risk (chỉ xử lý bàn phím, thiếu thanh điều hướng) trên 30+ file. Đã fix 20 điểm HIGH risk trước theo yêu cầu; 22 điểm MEDIUM để sau.
+
+**Pattern fix áp dụng (nhất quán, khớp `_editBasicInfo`/`debt_payment_sheet.dart` đã kiểm chứng):**
+- Bọc nội dung sheet trong `Padding(padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom + MediaQuery.paddingOf(context).bottom))`
+- Luôn đọc `MediaQuery` từ `context` NGOÀI (context của State, capture trước khi gọi `showModalBottomSheet`) — không phải `ctx`/context bị shadow bên trong builder — để tránh crash `_dependents.isEmpty` khi pop (bug đã biết, xem mục `[2026-08-15]`)
+- Với sheet dùng `context` bị shadow bởi tham số builder cùng tên: dùng `this.context` (State) hoặc capture vào biến `outerContext` riêng
+- Với sheet dạng `DraggableScrollableSheet`/`ListView`/`SingleChildScrollView` sẵn có: chỉ cần nới `padding` đáy của phần scroll thay vì bọc thêm `Padding`
+
+**Tiện phát hiện thêm:** 2 sheet trong `advanced_chat_view.dart` (biểu cảm, hành động tin nhắn) đã có sẵn nỗ lực xử lý safe-area nhưng đọc `MediaQuery.of(ctx)` (context bên trong) — đúng anti-pattern gây crash `_dependents.isEmpty` — đã sửa cùng lúc.
+
+**Files:** `debt_view.dart`, `order_list_view.dart`, `salvage_phone_view.dart`, `pty_print_designer_view.dart`, `parts_inventory_view.dart`, `fashion/variant_management_view.dart`, `help_center_view.dart`, `fast_stock_in_view.dart`, `fast_inventory_input_view.dart`, `attendance_management_view.dart`, `attendance_view.dart`, `category_management_view.dart`, `inventory_view.dart` (2 chỗ), `cash_closing_view.dart`, `pending_payments_list_view.dart`, `staff_list_view.dart`, `home_view.dart`, `unified_sync_button.dart` (dùng chung bởi 3 nơi gọi).
+
+- `flutter analyze` sạch trên toàn bộ `lib/` (0 lỗi mới) sau khi sửa
+- Đã test trên Oppo CPH2203: build cài thành công, mở màn Công nợ (`debt_view.dart`) xác nhận không crash. **Chưa test riêng từng màn còn lại trong số 20 điểm** — theo phản hồi user về tiết kiệm token, không lặp lại screenshot cho từng file; tin vào `flutter analyze` sạch + pattern đã kiểm chứng nhiều lần trong phiên này.
+- 22 điểm MEDIUM risk còn lại (chỉ thiếu xử lý thanh điều hướng, không phải hoàn toàn thiếu) và danh sách chi tiết: xem `DOCS/HANDOVER.md` mục Known Issues.
+
+---
+
+## [2026-08-15b] - fix(sale): danh sách bán hiện sai trạng thái "còn nợ" sau khi đã thu nợ
+
+**Triệu chứng:** Bán hàng CÔNG NỢ cho khách → vào màn Công nợ thanh toán/thu hết nợ → quay lại Danh sách đơn bán vẫn thấy đơn đó hiện "còn nợ".
+
+**Nguyên nhân gốc:** `SaleOrder.remainingDebt` (getter trong `sale_order_model.dart`) chỉ tính `finalPrice - downPayment - loanAmount - loanAmount2` — các field này chỉ có ý nghĩa cho luồng trả góp ngân hàng (TRẢ GÓP (NH)). Khi bán CÔNG NỢ (hoặc bán tiền mặt trả thiếu), khoản nợ được ghi ở bảng `debts` riêng (liên kết qua `linkedId = sale.firestoreId`); thanh toán qua `DebtPaymentSheet` chỉ cập nhật `debts.paidAmount`, KHÔNG ghi ngược lại `downPayment` của `SaleOrder` — nên `remainingDebt` không bao giờ đổi, đơn cứ hiện "còn nợ" mãi mãi dù đã thu đủ. `sale_detail_view.dart` (màn chi tiết) đã tra đúng bảng `debts` từ trước; chỉ riêng `sale_list_view.dart` (danh sách) là dùng sai nguồn.
+
+**Fix:**
+- `sale_list_view.dart`: thêm `_debtByLinkedId` (map `linkedId` → debt record, nạp 1 lần qua `db.getAllDebts()` trong `_refresh()`) + helper `_effectiveRemainingDebt(s)` — ưu tiên đọc từ `debts` nếu có, fallback về `SaleOrder.remainingDebt` khi không có (đơn trả góp NH thật sự).
+- Áp dụng `_effectiveRemainingDebt` cho cả 4 chỗ đang dùng `s.remainingDebt`: filter theo trạng thái thanh toán, sort theo nợ nhiều nhất, tổng công nợ ở header, và chip "còn nợ" trên từng đơn.
+- Thêm listener `EventBus().on('debts_changed', ...)` — trước đó màn danh sách không refresh khi thanh toán nợ ở nơi khác xong quay lại.
+
+- File: `lib/views/sale_list_view.dart`
+- Đã test trên Oppo CPH2203 với đơn CÔNG NỢ thật (ỐP x1, HUY, 100.000đ, đã thu đủ qua DebtPaymentSheet trước đó) — danh sách hiện đúng huy hiệu xanh "ĐÃ THU" thay vì "CÒN NỢ", không crash, không lỗi log mới.
+
+---
+
 ## [2026-08-15] - fix(repair): revert regression crash ở sheet "Sửa ghi chú kỹ thuật" + phát hiện bug crash sâu hơn CHƯA fix
 
 **Bối cảnh:** Review lại commit `0d38e3d2` (2026-08-10). Phát hiện `_editTechnicianNotes` đã bị đổi từ đọc `MediaQuery` qua `context` ngoài (an toàn) sang `Builder(builder: (innerCtx) => ...)` đọc qua `innerCtx` — đúng anti-pattern đã tốn công fix trước đó (xem mục `[2026-08-08]`, cause 1 trong `_editBasicInfo`). Đây là regression thật, không phải nghi ngờ suông.

@@ -226,6 +226,8 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
         minChildSize: 0.5,
         maxChildSize: 0.95,
         expand: false,
+        // `context` bên dưới bị shadow bởi tham số cùng tên — dùng
+        // `this.context` (State) để tránh crash _dependents.isEmpty khi pop.
         builder: (context, scrollController) {
           return Column(
             children: [
@@ -297,7 +299,12 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                       )
                     : ListView(
                         controller: scrollController,
-                        padding: const EdgeInsets.all(16),
+                        padding: EdgeInsets.fromLTRB(
+                          16,
+                          16,
+                          16,
+                          16 + MediaQuery.paddingOf(this.context).bottom,
+                        ),
                         children: [
                           // Health status card
                           _buildHealthStatusCard(),
@@ -408,7 +415,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                             onTap: _handleOpenFirebaseStats,
                           ),
 
-                            // Show retry action when there are failed items
+                          // Show retry action when there are failed items
                           if (_syncQueueStats != null &&
                               (_syncQueueStats!['failed'] ?? 0) > 0) ...[
                             _buildActionTile(
@@ -1215,6 +1222,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
       );
     }
   }
+
   void _showDetailedReportDialog(SyncHealthReport report) {
     showDialog(
       context: context,

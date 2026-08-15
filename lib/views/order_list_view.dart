@@ -202,25 +202,29 @@ class OrderListViewState extends State<OrderListView> {
       steps: [
         const GuideStep(
           title: '📋 Tất cả đơn sửa chữa',
-          description: 'Xem toàn bộ đơn sửa theo thời gian thực. Danh sách tự động cập nhật khi có đơn mới.',
+          description:
+              'Xem toàn bộ đơn sửa theo thời gian thực. Danh sách tự động cập nhật khi có đơn mới.',
           icon: Icons.list_alt_rounded,
           iconColor: Colors.deepOrange,
         ),
         const GuideStep(
           title: '🔍 Tìm kiếm nhanh',
-          description: 'Tìm đơn theo tên khách hàng, số điện thoại hoặc mã đơn sửa.',
+          description:
+              'Tìm đơn theo tên khách hàng, số điện thoại hoặc mã đơn sửa.',
           icon: Icons.search_rounded,
           iconColor: Colors.blue,
         ),
         const GuideStep(
           title: '🔄 Lọc theo trạng thái',
-          description: 'Lọc đơn theo Chờ sửa → Đang sửa → Hoàn thành → Đã giao để quản lý từng bước.',
+          description:
+              'Lọc đơn theo Chờ sửa → Đang sửa → Hoàn thành → Đã giao để quản lý từng bước.',
           icon: Icons.filter_list_rounded,
           iconColor: Colors.green,
         ),
         const GuideStep(
           title: '📱 Cập nhật tiến độ',
-          description: 'Nhấn vào bất kỳ đơn nào để xem chi tiết, cập nhật trạng thái hoặc in phiếu.',
+          description:
+              'Nhấn vào bất kỳ đơn nào để xem chi tiết, cập nhật trạng thái hoặc in phiếu.',
           icon: Icons.touch_app_rounded,
           iconColor: Colors.purple,
         ),
@@ -239,7 +243,10 @@ class OrderListViewState extends State<OrderListView> {
   }
 
   void _onListScroll() {
-    if (!_listScrollController.hasClients || _isLoadingMoreRealtime || _isLoadingMore) return;
+    if (!_listScrollController.hasClients ||
+        _isLoadingMoreRealtime ||
+        _isLoadingMore)
+      return;
 
     final pos = _listScrollController.position;
     if (pos.pixels < pos.maxScrollExtent - 220) return;
@@ -500,11 +507,15 @@ class OrderListViewState extends State<OrderListView> {
   Future<void> _loadMoreFromSQLite() async {
     if (_isLoadingMore || !_hasMoreData) return;
     debugPrint('[OrderListView] LOAD MORE TRIGGERED');
-    debugPrint('[OrderListView] Before load: ${_displayedRepairs.length} displayed, sqliteLoadedCount=$_sqliteLoadedCount');
+    debugPrint(
+      '[OrderListView] Before load: ${_displayedRepairs.length} displayed, sqliteLoadedCount=$_sqliteLoadedCount',
+    );
     setState(() => _isLoadingMore = true);
     try {
       final repairs = await db.getRepairsPaged(_kPageSize, _sqliteLoadedCount);
-      debugPrint('[OrderListView] SQLite page returned ${repairs.length} repairs at offset $_sqliteLoadedCount');
+      debugPrint(
+        '[OrderListView] SQLite page returned ${repairs.length} repairs at offset $_sqliteLoadedCount',
+      );
       if (!mounted) return;
       setState(() {
         _sqliteRepairs.addAll(repairs);
@@ -513,7 +524,9 @@ class OrderListViewState extends State<OrderListView> {
         _isLoadingMore = false;
       });
       _rebuildDisplayedRepairs();
-      debugPrint('[OrderListView] After load: ${_displayedRepairs.length} displayed');
+      debugPrint(
+        '[OrderListView] After load: ${_displayedRepairs.length} displayed',
+      );
     } catch (e) {
       debugPrint('⚠️ [OrderListView] _loadMoreFromSQLite lỗi: $e');
       if (mounted) setState(() => _isLoadingMore = false);
@@ -531,7 +544,9 @@ class OrderListViewState extends State<OrderListView> {
     try {
       debugPrint('[OrderListView] Historical backfill start — shopId=$shopId');
       final docs = await FirestoreService.fetchAllRepairsByShop(shopId);
-      debugPrint('[OrderListView] Backfill: Firestore returned ${docs.length} docs');
+      debugPrint(
+        '[OrderListView] Backfill: Firestore returned ${docs.length} docs',
+      );
 
       if (docs.isEmpty) {
         if (mounted) unawaited(_refreshFromSQLite());
@@ -551,7 +566,9 @@ class OrderListViewState extends State<OrderListView> {
       // Fast bulk insert — single schema check, batched transactions,
       // INSERT OR IGNORE protects unsynced local repairs from being overwritten
       final inserted = await db.bulkInsertRepairsIfNew(repairs);
-      debugPrint('[OrderListView] Backfill done: $inserted new repairs inserted (${docs.length} processed)');
+      debugPrint(
+        '[OrderListView] Backfill done: $inserted new repairs inserted (${docs.length} processed)',
+      );
 
       if (!mounted) return;
       // Refresh display — SQLite now contains full history
@@ -658,10 +675,17 @@ class OrderListViewState extends State<OrderListView> {
       final fid = (r.firestoreId ?? '').trim();
       return fid.isNotEmpty && !firestoreIds.contains(fid);
     }).toList();
-    debugPrint('[OrderListView] Firestore count: ${_repairsByFirestoreId.length}');
-    debugPrint('[OrderListView] SQLite count: ${_sqliteRepairs.length} (extra not in Firestore: ${sqliteExtra.length})');
-    debugPrint('[OrderListView] HasMore: $_hasMoreData | sqliteLoadedCount: $_sqliteLoadedCount');
-    final all = [..._repairsByFirestoreId.values, ...sqliteExtra]..sort(_compareRepairs);
+    debugPrint(
+      '[OrderListView] Firestore count: ${_repairsByFirestoreId.length}',
+    );
+    debugPrint(
+      '[OrderListView] SQLite count: ${_sqliteRepairs.length} (extra not in Firestore: ${sqliteExtra.length})',
+    );
+    debugPrint(
+      '[OrderListView] HasMore: $_hasMoreData | sqliteLoadedCount: $_sqliteLoadedCount',
+    );
+    final all = [..._repairsByFirestoreId.values, ...sqliteExtra]
+      ..sort(_compareRepairs);
     final filtered = _applyFilters(all);
     final keyword = _currentSearch.trim();
 
@@ -816,215 +840,224 @@ class OrderListViewState extends State<OrderListView> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        builder: (ctx, setSheetState) => Padding(
+          // Đọc từ `context` ngoài (không phải `ctx`) để tránh crash
+          // _dependents.isEmpty khi pop — xem repair_detail_view.dart.
+          padding: EdgeInsets.only(
+            bottom:
+                MediaQuery.viewInsetsOf(context).bottom +
+                MediaQuery.paddingOf(context).bottom,
           ),
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'BỘ LỌC',
-                    style: AppTextStyles.headline3.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      setSheetState(() {
-                        _timeFilter = 'all';
-                        _customStartDate = null;
-                        _customEndDate = null;
-                        _statusFilters = {};
-                      });
-                    },
-                    child: Text(loc.resetAll),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // STATUS FILTER - CHO PHÉP CHỌN NHIỀU
-              Text(
-                loc.statusSelectMultiple,
-                style: AppTextStyles.subtitle1.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _statusChipMulti(loc.all, null, setSheetState),
-                  _statusChipMulti(
-                    loc.received,
-                    1,
-                    setSheetState,
-                    AppColors.repairReceived,
-                  ),
-                  _statusChipMulti(
-                    loc.repairing,
-                    2,
-                    setSheetState,
-                    AppColors.repairRepairing,
-                  ),
-                  _statusChipMulti(
-                    loc.repairDone,
-                    3,
-                    setSheetState,
-                    AppColors.repairDone,
-                  ),
-                  _pendingApprovalChip(setSheetState),
-                  _statusChipMulti(
-                    loc.delivered,
-                    4,
-                    setSheetState,
-                    AppColors.repairDelivered,
-                  ),
-                ],
-              ),
-              if (_statusFilters.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    loc.selectedStatuses(_statusFilters.length),
-                    style: AppTextStyles.caption.copyWith(
-                      color: Colors.blue.shade700,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 10),
-
-              // TIME FILTER
-              Text(
-                loc.timeFilter,
-                style: AppTextStyles.subtitle1.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _filterChip('Tất cả', 'all', setSheetState),
-                  _filterChip('Hôm nay', 'today', setSheetState),
-                  _filterChip('7 ngày', 'week', setSheetState),
-                  _filterChip('Tháng này', 'month', setSheetState),
-                  GestureDetector(
-                    onTap: () async {
-                      final range = await showDateRangePicker(
-                        context: ctx,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now(),
-                        initialDateRange:
-                            _customStartDate != null && _customEndDate != null
-                            ? DateTimeRange(
-                                start: _customStartDate!,
-                                end: _customEndDate!,
-                              )
-                            : null,
-                        locale: const Locale('vi', 'VN'),
-                      );
-                      if (range != null) {
-                        setSheetState(() {
-                          _timeFilter = 'custom';
-                          _customStartDate = range.start;
-                          _customEndDate = range.end;
-                        });
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 8,
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'BỘ LỌC',
+                      style: AppTextStyles.headline3.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
-                      decoration: BoxDecoration(
-                        color: _timeFilter == 'custom'
-                            ? const Color(0xFF2962FF)
-                            : Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setSheetState(() {
+                          _timeFilter = 'all';
+                          _customStartDate = null;
+                          _customEndDate = null;
+                          _statusFilters = {};
+                        });
+                      },
+                      child: Text(loc.resetAll),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // STATUS FILTER - CHO PHÉP CHỌN NHIỀU
+                Text(
+                  loc.statusSelectMultiple,
+                  style: AppTextStyles.subtitle1.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _statusChipMulti(loc.all, null, setSheetState),
+                    _statusChipMulti(
+                      loc.received,
+                      1,
+                      setSheetState,
+                      AppColors.repairReceived,
+                    ),
+                    _statusChipMulti(
+                      loc.repairing,
+                      2,
+                      setSheetState,
+                      AppColors.repairRepairing,
+                    ),
+                    _statusChipMulti(
+                      loc.repairDone,
+                      3,
+                      setSheetState,
+                      AppColors.repairDone,
+                    ),
+                    _pendingApprovalChip(setSheetState),
+                    _statusChipMulti(
+                      loc.delivered,
+                      4,
+                      setSheetState,
+                      AppColors.repairDelivered,
+                    ),
+                  ],
+                ),
+                if (_statusFilters.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      loc.selectedStatuses(_statusFilters.length),
+                      style: AppTextStyles.caption.copyWith(
+                        color: Colors.blue.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 10),
+
+                // TIME FILTER
+                Text(
+                  loc.timeFilter,
+                  style: AppTextStyles.subtitle1.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _filterChip('Tất cả', 'all', setSheetState),
+                    _filterChip('Hôm nay', 'today', setSheetState),
+                    _filterChip('7 ngày', 'week', setSheetState),
+                    _filterChip('Tháng này', 'month', setSheetState),
+                    GestureDetector(
+                      onTap: () async {
+                        final range = await showDateRangePicker(
+                          context: ctx,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now(),
+                          initialDateRange:
+                              _customStartDate != null && _customEndDate != null
+                              ? DateTimeRange(
+                                  start: _customStartDate!,
+                                  end: _customEndDate!,
+                                )
+                              : null,
+                          locale: const Locale('vi', 'VN'),
+                        );
+                        if (range != null) {
+                          setSheetState(() {
+                            _timeFilter = 'custom';
+                            _customStartDate = range.start;
+                            _customEndDate = range.end;
+                          });
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
                           color: _timeFilter == 'custom'
                               ? const Color(0xFF2962FF)
-                              : Colors.grey.shade300,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.calendar_month,
-                            size: 16,
+                              : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
                             color: _timeFilter == 'custom'
-                                ? Colors.white
-                                : Colors.black87,
+                                ? const Color(0xFF2962FF)
+                                : Colors.grey.shade300,
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Tùy chọn',
-                            style: TextStyle(
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.calendar_month,
+                              size: 16,
                               color: _timeFilter == 'custom'
                                   ? Colors.white
                                   : Colors.black87,
-                              fontWeight: _timeFilter == 'custom'
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 6),
+                            Text(
+                              'Tùy chọn',
+                              style: TextStyle(
+                                color: _timeFilter == 'custom'
+                                    ? Colors.white
+                                    : Colors.black87,
+                                fontWeight: _timeFilter == 'custom'
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (_timeFilter == 'custom' &&
+                    _customStartDate != null &&
+                    _customEndDate != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(
+                      '${DateFormat('dd/MM/yyyy').format(_customStartDate!)} - ${DateFormat('dd/MM/yyyy').format(_customEndDate!)}',
+                      style: const TextStyle(
+                        color: Color(0xFF2962FF),
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                ],
-              ),
-              if (_timeFilter == 'custom' &&
-                  _customStartDate != null &&
-                  _customEndDate != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Text(
-                    '${DateFormat('dd/MM/yyyy').format(_customStartDate!)} - ${DateFormat('dd/MM/yyyy').format(_customEndDate!)}',
-                    style: const TextStyle(
-                      color: Color(0xFF2962FF),
-                      fontWeight: FontWeight.bold,
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _onSearch(_currentSearch);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2962FF),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      loc.apply,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _onSearch(_currentSearch);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2962FF),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    loc.apply,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-            ],
+                const SizedBox(height: 10),
+              ],
+            ),
           ),
         ),
       ),
@@ -1179,7 +1212,9 @@ class OrderListViewState extends State<OrderListView> {
               if (!dialogActive) return;
               final results = await db.searchCustomers(q.trim(), shopId);
               if (!dialogActive) return;
-              try { setS(() => searchResults = results.take(6).toList()); } catch (_) {}
+              try {
+                setS(() => searchResults = results.take(6).toList());
+              } catch (_) {}
             });
           }
 
@@ -1202,7 +1237,8 @@ class OrderListViewState extends State<OrderListView> {
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (i > 0) Divider(height: 1, color: Colors.blue.shade100),
+                      if (i > 0)
+                        Divider(height: 1, color: Colors.blue.shade100),
                       InkWell(
                         onTap: () {
                           phoneCtrl.text = cPhone;
@@ -1212,7 +1248,10 @@ class OrderListViewState extends State<OrderListView> {
                           setS(() => searchResults = []);
                         },
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                           child: Row(
                             children: [
                               CircleAvatar(
@@ -1220,7 +1259,10 @@ class OrderListViewState extends State<OrderListView> {
                                 backgroundColor: Colors.blue.shade100,
                                 child: Text(
                                   cName.isNotEmpty ? cName[0] : '?',
-                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 10),
@@ -1228,12 +1270,28 @@ class OrderListViewState extends State<OrderListView> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(cName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                    Text(cPhone, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                    Text(
+                                      cName,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    Text(
+                                      cPhone,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
-                              const Icon(Icons.arrow_forward_ios, size: 12, color: Colors.grey),
+                              const Icon(
+                                Icons.arrow_forward_ios,
+                                size: 12,
+                                color: Colors.grey,
+                              ),
                             ],
                           ),
                         ),
@@ -1250,7 +1308,12 @@ class OrderListViewState extends State<OrderListView> {
               children: [
                 Icon(Icons.person_add, size: 20),
                 SizedBox(width: 8),
-                Flexible(child: Text('Thêm thông tin khách hàng', style: TextStyle(fontSize: 16))),
+                Flexible(
+                  child: Text(
+                    'Thêm thông tin khách hàng',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
               ],
             ),
             content: SizedBox(
@@ -1404,11 +1467,13 @@ class OrderListViewState extends State<OrderListView> {
             .toList();
         final totalRepairs = validRepairs.length;
         final totalRepairCost = validRepairs.fold<int>(
-          0, (acc, rep) => acc + ((rep['price'] as num?)?.toInt() ?? 0));
+          0,
+          (acc, rep) => acc + ((rep['price'] as num?)?.toInt() ?? 0),
+        );
         final lastVisit = validRepairs.isNotEmpty
             ? validRepairs
-                .map((r) => (r['createdAt'] as num?)?.toInt() ?? 0)
-                .reduce((a, b) => a > b ? a : b)
+                  .map((r) => (r['createdAt'] as num?)?.toInt() ?? 0)
+                  .reduce((a, b) => a > b ? a : b)
             : DateTime.now().millisecondsSinceEpoch;
 
         final existing = shopId != null
@@ -1416,14 +1481,16 @@ class OrderListViewState extends State<OrderListView> {
             : <Map<String, dynamic>>[];
 
         if (existing.isEmpty) {
-          await customerService.addCustomer(Customer(
-            name: newName.isNotEmpty ? newName : newPhone,
-            phone: newPhone,
-            createdAt: DateTime.now().millisecondsSinceEpoch,
-            totalRepairs: totalRepairs,
-            totalRepairCost: totalRepairCost,
-            lastVisitAt: lastVisit,
-          ));
+          await customerService.addCustomer(
+            Customer(
+              name: newName.isNotEmpty ? newName : newPhone,
+              phone: newPhone,
+              createdAt: DateTime.now().millisecondsSinceEpoch,
+              totalRepairs: totalRepairs,
+              totalRepairCost: totalRepairCost,
+              lastVisitAt: lastVisit,
+            ),
+          );
         } else {
           final existingId = (existing.first['id'] as num?)?.toInt();
           if (existingId != null) {
@@ -1767,7 +1834,8 @@ class OrderListViewState extends State<OrderListView> {
       backgroundColor: const Color(0xFFF0F4F8),
       appBar: CustomAppBar.build(
         title: "DANH SÁCH ${_terms.productLabel.toUpperCase()} SỬA",
-        subtitle: '$count ${_terms.productLabel.toLowerCase()} • $pendingCount đang xử lý',
+        subtitle:
+            '$count ${_terms.productLabel.toLowerCase()} • $pendingCount đang xử lý',
         actions: [
           IconButton(
             onPressed: () => Navigator.push(
@@ -1868,7 +1936,10 @@ class OrderListViewState extends State<OrderListView> {
                     hintText: "Tìm khách, model, lỗi, SĐT...",
                     prefixIcon: const Icon(Icons.search, size: 20),
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
@@ -1893,18 +1964,27 @@ class OrderListViewState extends State<OrderListView> {
               child: _isLoading || _isSearchingLocal
                   ? const SkeletonListView(
                       variant: SkeletonVariant.repairCard,
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
                     )
                   : _displayedRepairs.isEmpty
                   ? EmptyStateWidget(
                       icon: Icons.build_circle_outlined,
-                      title: _statusFilters.isNotEmpty ? 'Không có đơn theo bộ lọc này' : loc.noRepairOrders,
-                      subtitle: _statusFilters.isNotEmpty ? 'Thử bỏ lọc để xem tất cả đơn' : null,
+                      title: _statusFilters.isNotEmpty
+                          ? 'Không có đơn theo bộ lọc này'
+                          : loc.noRepairOrders,
+                      subtitle: _statusFilters.isNotEmpty
+                          ? 'Thử bỏ lọc để xem tất cả đơn'
+                          : null,
                       actionLabel: _statusFilters.isNotEmpty ? 'Bỏ lọc' : null,
-                      onAction: _statusFilters.isNotEmpty ? () => setState(() => _statusFilters.clear()) : null,
+                      onAction: _statusFilters.isNotEmpty
+                          ? () => setState(() => _statusFilters.clear())
+                          : null,
                     )
                   : ListView.builder(
-                    controller: _listScrollController,
+                      controller: _listScrollController,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       itemCount: _displayedRepairs.length + 1,
                       itemBuilder: (ctx, i) {
@@ -1914,7 +1994,9 @@ class OrderListViewState extends State<OrderListView> {
                         if (_isLoadingMore) {
                           return const Padding(
                             padding: EdgeInsets.all(16),
-                            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                            child: Center(
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
                           );
                         }
                         if (_hasMoreData) {
@@ -1922,12 +2004,17 @@ class OrderListViewState extends State<OrderListView> {
                             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                             child: OutlinedButton.icon(
                               onPressed: _loadMoreFromSQLite,
-                              icon: const Icon(Icons.keyboard_arrow_down, size: 18),
+                              icon: const Icon(
+                                Icons.keyboard_arrow_down,
+                                size: 18,
+                              ),
                               label: const Text('Tải thêm'),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: Colors.blue.shade700,
                                 side: BorderSide(color: Colors.blue.shade200),
-                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
                                 minimumSize: const Size(double.infinity, 40),
                               ),
                             ),
@@ -1975,13 +2062,17 @@ class OrderListViewState extends State<OrderListView> {
     final int displayPrice = _displayedChargePrice(r);
     final int displayProfit = displayPrice - displayCost;
     final bool hideDeliveredSensitiveFinancial =
-      r.status == 4 && !(_canViewRevenue && _canViewCostPrice);
+        r.status == 4 && !(_canViewRevenue && _canViewCostPrice);
     final bool canShowCost =
-      _canViewCostPrice && _canViewRevenue && !hideDeliveredSensitiveFinancial;
+        _canViewCostPrice &&
+        _canViewRevenue &&
+        !hideDeliveredSensitiveFinancial;
     final bool canShowProfit =
-      _canViewRevenue && _canViewCostPrice && !hideDeliveredSensitiveFinancial;
+        _canViewRevenue &&
+        _canViewCostPrice &&
+        !hideDeliveredSensitiveFinancial;
     final bool hasRequestedCharge =
-      r.pendingDeliveryApproval && r.requestedDeliveryPrice != null;
+        r.pendingDeliveryApproval && r.requestedDeliveryPrice != null;
 
     // Determine card color based on status
     Color bgColor;
@@ -2514,7 +2605,6 @@ class OrderListViewState extends State<OrderListView> {
       ),
     );
   }
-
 
   String _getStatusLabel(int status, {bool pendingApproval = false}) {
     if (status == 3 && pendingApproval) {

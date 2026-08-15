@@ -32,7 +32,8 @@ class _VariantManagementViewState extends State<VariantManagementView>
   bool _isLoading = true;
 
   ShopSettings? _shopSettings;
-  BusinessTerminology get _terms => BusinessTypeHelper.instance.getTerminology(_shopSettings);
+  BusinessTerminology get _terms =>
+      BusinessTypeHelper.instance.getTerminology(_shopSettings);
 
   @override
   void initState() {
@@ -81,9 +82,9 @@ class _VariantManagementViewState extends State<VariantManagementView>
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi tải dữ liệu: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Lỗi tải dữ liệu: $e')));
       }
     }
   }
@@ -97,7 +98,7 @@ class _VariantManagementViewState extends State<VariantManagementView>
         WHERE pv.isActive = 1
         ORDER BY p.name
       ''');
-      
+
       _productsWithVariants = results.map((r) => Product.fromMap(r)).toList();
       return _productsWithVariants;
     } catch (e) {
@@ -124,14 +125,20 @@ class _VariantManagementViewState extends State<VariantManagementView>
                   if (_warnings != null && _warnings!.hasWarnings) ...[
                     const SizedBox(width: 4),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.red,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         '${_warnings!.total}',
-                        style: const TextStyle(fontSize: 12, color: Colors.white),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -146,14 +153,20 @@ class _VariantManagementViewState extends State<VariantManagementView>
                   if (_outOfStock.isNotEmpty) ...[
                     const SizedBox(width: 4),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.red,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         '${_outOfStock.length}',
-                        style: const TextStyle(fontSize: 12, color: Colors.white),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -168,14 +181,20 @@ class _VariantManagementViewState extends State<VariantManagementView>
                   if (_lowStock.isNotEmpty) ...[
                     const SizedBox(width: 4),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.orange,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         '${_lowStock.length}',
-                        style: const TextStyle(fontSize: 12, color: Colors.white),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -186,17 +205,19 @@ class _VariantManagementViewState extends State<VariantManagementView>
           ],
         ),
       ),
-      body: ResponsiveCenter(child: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildOverviewTab(),
-                _buildOutOfStockTab(),
-                _buildLowStockTab(),
-                _buildByProductTab(),
-              ],
-            )),
+      body: ResponsiveCenter(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildOverviewTab(),
+                  _buildOutOfStockTab(),
+                  _buildLowStockTab(),
+                  _buildByProductTab(),
+                ],
+              ),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddVariantDialog,
         icon: const Icon(Icons.add),
@@ -278,7 +299,12 @@ class _VariantManagementViewState extends State<VariantManagementView>
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Card(
       elevation: 2,
       child: Container(
@@ -298,10 +324,7 @@ class _VariantManagementViewState extends State<VariantManagementView>
             ),
             Text(
               title,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
           ],
         ),
@@ -368,7 +391,9 @@ class _VariantManagementViewState extends State<VariantManagementView>
         if (_productsWithVariants.length > 3)
           TextButton(
             onPressed: () => _tabController.animateTo(3),
-            child: Text('Xem thêm ${_productsWithVariants.length - 3} ${_terms.productLabel.toLowerCase()} →'),
+            child: Text(
+              'Xem thêm ${_productsWithVariants.length - 3} ${_terms.productLabel.toLowerCase()} →',
+            ),
           ),
       ],
     );
@@ -388,7 +413,10 @@ class _VariantManagementViewState extends State<VariantManagementView>
         }
 
         final variants = snapshot.data!;
-        final summary = VariantSummary.fromVariants(product.firestoreId ?? '', variants);
+        final summary = VariantSummary.fromVariants(
+          product.firestoreId ?? '',
+          variants,
+        );
 
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
@@ -409,16 +437,17 @@ class _VariantManagementViewState extends State<VariantManagementView>
                 const Icon(Icons.expand_more),
               ],
             ),
-            children: [
-              _buildVariantMatrix(variants, summary),
-            ],
+            children: [_buildVariantMatrix(variants, summary)],
           ),
         );
       },
     );
   }
 
-  Widget _buildVariantMatrix(List<ProductVariant> variants, VariantSummary summary) {
+  Widget _buildVariantMatrix(
+    List<ProductVariant> variants,
+    VariantSummary summary,
+  ) {
     // Group by size and color
     final sizes = summary.availableSizes;
     final colors = summary.availableColors;
@@ -443,41 +472,56 @@ class _VariantManagementViewState extends State<VariantManagementView>
           columnSpacing: 16,
           columns: [
             const DataColumn(label: Text('Size')),
-            ...colors.map((c) => DataColumn(
-              label: Text(c, style: const TextStyle(fontSize: 14)),
-            )),
+            ...colors.map(
+              (c) => DataColumn(
+                label: Text(c, style: const TextStyle(fontSize: 14)),
+              ),
+            ),
           ],
           rows: sizes.map((size) {
             return DataRow(
               cells: [
-                DataCell(Text(size, style: const TextStyle(fontWeight: FontWeight.bold))),
+                DataCell(
+                  Text(
+                    size,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
                 ...colors.map((color) {
                   final variant = variants.firstWhere(
                     (v) => v.size == size && v.color == color,
                     orElse: () => ProductVariant(
-                      shopId: '', productId: '', size: size, color: color,
+                      shopId: '',
+                      productId: '',
+                      size: size,
+                      color: color,
                     ),
                   );
-                  
+
                   return DataCell(
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: variant.isOutOfStock
                             ? Colors.red.withOpacity(0.1)
                             : variant.isLowStock
-                                ? Colors.orange.withOpacity(0.1)
-                                : Colors.green.withOpacity(0.1),
+                            ? Colors.orange.withOpacity(0.1)
+                            : Colors.green.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        variant.firestoreId.isNotEmpty ? '${variant.quantity}' : '-',
+                        variant.firestoreId.isNotEmpty
+                            ? '${variant.quantity}'
+                            : '-',
                         style: TextStyle(
                           color: variant.isOutOfStock
                               ? Colors.red
                               : variant.isLowStock
-                                  ? Colors.orange
-                                  : Colors.green,
+                              ? Colors.orange
+                              : Colors.green,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -502,8 +546,8 @@ class _VariantManagementViewState extends State<VariantManagementView>
         backgroundColor: variant.isOutOfStock
             ? Colors.red.withOpacity(0.2)
             : variant.isLowStock
-                ? Colors.orange.withOpacity(0.2)
-                : Colors.green.withOpacity(0.2),
+            ? Colors.orange.withOpacity(0.2)
+            : Colors.green.withOpacity(0.2),
       ),
     );
   }
@@ -675,10 +719,8 @@ class _VariantManagementViewState extends State<VariantManagementView>
   void _showEditVariantDialog(ProductVariant variant) async {
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => _EditVariantDialog(
-        variant: variant,
-        variantService: _variantService,
-      ),
+      builder: (context) =>
+          _EditVariantDialog(variant: variant, variantService: _variantService),
     );
 
     if (result == true) {
@@ -709,7 +751,9 @@ class _VariantManagementViewState extends State<VariantManagementView>
       await _loadData();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã nhập hàng theo phân loại thành công!')),
+          const SnackBar(
+            content: Text('Đã nhập hàng theo phân loại thành công!'),
+          ),
         );
       }
     }
@@ -732,7 +776,9 @@ class _VariantManagementViewState extends State<VariantManagementView>
     if (result != null && result.isNotEmpty && mounted) {
       // TODO: Integrate with printer service
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Đã chọn ${result.length} phân loại để in barcode')),
+        SnackBar(
+          content: Text('Đã chọn ${result.length} phân loại để in barcode'),
+        ),
       );
     }
   }
@@ -748,12 +794,18 @@ class _VariantManagementViewState extends State<VariantManagementView>
     // Generate CSV content for easy export
     final buffer = StringBuffer();
     buffer.writeln('Sản phẩm,Size,Màu,Số lượng,Giá bán,SKU,Barcode');
-    
+
     for (final variant in _allVariants) {
       // Get product name
       final product = _productsWithVariants.firstWhere(
         (p) => p.firestoreId == variant.productId,
-        orElse: () => Product(name: 'N/A', brand: '', model: '', type: '', createdAt: DateTime.now().millisecondsSinceEpoch),
+        orElse: () => Product(
+          name: 'N/A',
+          brand: '',
+          model: '',
+          type: '',
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+        ),
       );
       buffer.writeln(
         '${product.name},'
@@ -762,18 +814,17 @@ class _VariantManagementViewState extends State<VariantManagementView>
         '${variant.quantity},'
         '${variant.salePrice},'
         '${variant.sku ?? ""},'
-        '${variant.barcode ?? ""}'
+        '${variant.barcode ?? ""}',
       );
     }
 
     // For now, show the data - full Excel export would need a file picker
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Đã tạo dữ liệu ${_allVariants.length} phân loại. Sao chép hoặc chia sẻ?'),
-        action: SnackBarAction(
-          label: 'OK',
-          onPressed: () {},
+        content: Text(
+          'Đã tạo dữ liệu ${_allVariants.length} phân loại. Sao chép hoặc chia sẻ?',
         ),
+        action: SnackBarAction(label: 'OK', onPressed: () {}),
       ),
     );
   }
@@ -819,13 +870,17 @@ class _ProductSelectorSheetState extends State<_ProductSelectorSheet> {
 
   List<Product> get _filteredProducts {
     if (_searchQuery.isEmpty) return _products;
-    return _products.where((p) =>
-      p.name.toLowerCase().contains(_searchQuery.toLowerCase())
-    ).toList();
+    return _products
+        .where((p) => p.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+        .toList();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Captured before the DraggableScrollableSheet builder shadows
+    // `context` with its own — read MediaQuery from this one to avoid a
+    // _dependents.isEmpty crash on pop.
+    final outerContext = context;
     return DraggableScrollableSheet(
       initialChildSize: 0.7,
       minChildSize: 0.5,
@@ -861,6 +916,11 @@ class _ProductSelectorSheetState extends State<_ProductSelectorSheet> {
                   ? const Center(child: CircularProgressIndicator())
                   : ListView.builder(
                       controller: scrollController,
+                      padding: EdgeInsets.only(
+                        bottom:
+                            MediaQuery.viewInsetsOf(outerContext).bottom +
+                            MediaQuery.paddingOf(outerContext).bottom,
+                      ),
                       itemCount: _filteredProducts.length,
                       itemBuilder: (context, index) {
                         final product = _filteredProducts[index];
@@ -925,9 +985,7 @@ class _AddVariantDialogState extends State<_AddVariantDialog> {
       productId: widget.product.firestoreId ?? '',
       size: _selectedSize,
       color: _selectedColor,
-      sku: _skuController.text.isEmpty
-          ? null
-          : _skuController.text,
+      sku: _skuController.text.isEmpty ? null : _skuController.text,
       quantity: int.tryParse(_quantityController.text) ?? 0,
       salePrice: int.tryParse(_priceController.text) ?? 0,
     );
@@ -939,9 +997,9 @@ class _AddVariantDialogState extends State<_AddVariantDialog> {
     if (id != null && mounted) {
       Navigator.pop(context, variant.copyWith(firestoreId: id));
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lỗi khi thêm phân loại!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Lỗi khi thêm phân loại!')));
     }
   }
 
@@ -960,10 +1018,9 @@ class _AddVariantDialogState extends State<_AddVariantDialog> {
                 border: OutlineInputBorder(),
               ),
               value: _selectedSize,
-              items: CommonSizes.clothing.map((s) => DropdownMenuItem(
-                value: s,
-                child: Text(s),
-              )).toList(),
+              items: CommonSizes.clothing
+                  .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                  .toList(),
               onChanged: (v) => setState(() => _selectedSize = v),
             ),
             const SizedBox(height: 12),
@@ -975,24 +1032,30 @@ class _AddVariantDialogState extends State<_AddVariantDialog> {
                 border: OutlineInputBorder(),
               ),
               value: _selectedColor,
-              items: CommonColors.all.map((c) => DropdownMenuItem(
-                value: c,
-                child: Row(
-                  children: [
-                    Container(
-                      width: 20,
-                      height: 20,
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
-                        color: _hexToColor(CommonColors.hexCodes[c] ?? '#808080'),
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(4),
+              items: CommonColors.all
+                  .map(
+                    (c) => DropdownMenuItem(
+                      value: c,
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 20,
+                            height: 20,
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              color: _hexToColor(
+                                CommonColors.hexCodes[c] ?? '#808080',
+                              ),
+                              border: Border.all(color: Colors.grey),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          Text(c),
+                        ],
                       ),
                     ),
-                    Text(c),
-                  ],
-                ),
-              )).toList(),
+                  )
+                  .toList(),
               onChanged: (v) => setState(() => _selectedColor = v),
             ),
             const SizedBox(height: 12),
@@ -1115,9 +1178,9 @@ class _EditVariantDialogState extends State<_EditVariantDialog> {
     if (success && mounted) {
       Navigator.pop(context, true);
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lỗi khi cập nhật!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Lỗi khi cập nhật!')));
     }
   }
 
@@ -1150,9 +1213,9 @@ class _EditVariantDialogState extends State<_EditVariantDialog> {
 
     if (success && mounted) {
       Navigator.pop(context, true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã xóa phân loại!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đã xóa phân loại!')));
     }
   }
 
@@ -1277,8 +1340,10 @@ class _BulkImportDialogState extends State<_BulkImportDialog> {
       return;
     }
 
-    final variants = await widget.variantService.getVariantsByProduct(productId);
-    
+    final variants = await widget.variantService.getVariantsByProduct(
+      productId,
+    );
+
     for (final v in variants) {
       _qtyControllers[v.firestoreId] = TextEditingController(text: '0');
     }
@@ -1294,7 +1359,8 @@ class _BulkImportDialogState extends State<_BulkImportDialog> {
 
     int successCount = 0;
     for (final variant in _existingVariants) {
-      final addQty = int.tryParse(_qtyControllers[variant.firestoreId]?.text ?? '0') ?? 0;
+      final addQty =
+          int.tryParse(_qtyControllers[variant.firestoreId]?.text ?? '0') ?? 0;
       if (addQty > 0) {
         final updated = variant.copyWith(quantity: variant.quantity + addQty);
         final success = await widget.variantService.updateVariant(updated);
@@ -1324,37 +1390,37 @@ class _BulkImportDialogState extends State<_BulkImportDialog> {
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _existingVariants.isEmpty
-                ? const Center(
-                    child: Text(
-                      'Chưa có phân loại.\nHãy thêm phân loại trước khi nhập hàng.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: _existingVariants.length,
-                    itemBuilder: (context, index) {
-                      final variant = _existingVariants[index];
-                      return Card(
-                        child: ListTile(
-                          title: Text(variant.displayName),
-                          subtitle: Text('Tồn: ${variant.quantity}'),
-                          trailing: SizedBox(
-                            width: 80,
-                            child: TextField(
-                              controller: _qtyControllers[variant.firestoreId],
-                              decoration: const InputDecoration(
-                                labelText: '+SL',
-                                border: OutlineInputBorder(),
-                                isDense: true,
-                              ),
-                              keyboardType: TextInputType.number,
-                            ),
+            ? const Center(
+                child: Text(
+                  'Chưa có phân loại.\nHãy thêm phân loại trước khi nhập hàng.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
+                ),
+              )
+            : ListView.builder(
+                itemCount: _existingVariants.length,
+                itemBuilder: (context, index) {
+                  final variant = _existingVariants[index];
+                  return Card(
+                    child: ListTile(
+                      title: Text(variant.displayName),
+                      subtitle: Text('Tồn: ${variant.quantity}'),
+                      trailing: SizedBox(
+                        width: 80,
+                        child: TextField(
+                          controller: _qtyControllers[variant.firestoreId],
+                          decoration: const InputDecoration(
+                            labelText: '+SL',
+                            border: OutlineInputBorder(),
+                            isDense: true,
                           ),
+                          keyboardType: TextInputType.number,
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    ),
+                  );
+                },
+              ),
       ),
       actions: [
         TextButton(
@@ -1436,7 +1502,9 @@ class _PrintBarcodeDialogState extends State<_PrintBarcodeDialog> {
                   final isSelected = _selectedIds.contains(variant.firestoreId);
                   return CheckboxListTile(
                     title: Text(variant.displayName),
-                    subtitle: Text('SKU: ${variant.sku ?? "N/A"} • Tồn: ${variant.quantity}'),
+                    subtitle: Text(
+                      'SKU: ${variant.sku ?? "N/A"} • Tồn: ${variant.quantity}',
+                    ),
                     value: isSelected,
                     onChanged: (_) => _toggle(variant.firestoreId),
                   );

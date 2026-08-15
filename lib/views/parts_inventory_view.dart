@@ -928,7 +928,9 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                             p['partName'] ?? 'N/A',
                             style: AppTextStyles.body2.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: isOut ? Colors.grey : const Color(0xFF0D1B2A),
+                              color: isOut
+                                  ? Colors.grey
+                                  : const Color(0xFF0D1B2A),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -1025,7 +1027,10 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                     if ((p['locationCode'] as String? ?? '').isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.indigo.shade50,
                           borderRadius: BorderRadius.circular(6),
@@ -1034,11 +1039,19 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.location_on_rounded, size: 11, color: Colors.indigo.shade700),
+                            Icon(
+                              Icons.location_on_rounded,
+                              size: 11,
+                              color: Colors.indigo.shade700,
+                            ),
                             const SizedBox(width: 3),
                             Text(
                               p['locationCode'] as String,
-                              style: TextStyle(fontSize: 11, color: Colors.indigo.shade700, fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.indigo.shade700,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ],
                         ),
@@ -1173,7 +1186,9 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                 Expanded(
                   child: Text(
                     'NHẬP THÊM',
-                    style: AppTextStyles.headline2.copyWith(fontWeight: FontWeight.bold),
+                    style: AppTextStyles.headline2.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
@@ -1247,9 +1262,10 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                   Builder(
                     builder: (_) {
                       final addQty = int.tryParse(qtyCtrl.text.trim()) ?? 0;
-                      final importCost = CurrencyTextField.parseValueWithMultiply(
-                        costCtrl.text,
-                      );
+                      final importCost =
+                          CurrencyTextField.parseValueWithMultiply(
+                            costCtrl.text,
+                          );
                       if (addQty <= 0 || importCost <= 0) {
                         return const SizedBox.shrink();
                       }
@@ -1386,7 +1402,9 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Vui lòng nhập giá vốn hợp lệ (> 0) để ghi nhận tài chính.'),
+            content: Text(
+              'Vui lòng nhập giá vốn hợp lệ (> 0) để ghi nhận tài chính.',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -1601,7 +1619,16 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
         expand: false,
         builder: (_, scrollController) => SingleChildScrollView(
           controller: scrollController,
-          padding: const EdgeInsets.all(12),
+          // Đọc từ `context` ngoài (không phải `ctx`/`_`) để tránh crash
+          // _dependents.isEmpty khi pop.
+          padding: EdgeInsets.fromLTRB(
+            12,
+            12,
+            12,
+            12 +
+                MediaQuery.viewInsetsOf(context).bottom +
+                MediaQuery.paddingOf(context).bottom,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1858,10 +1885,17 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
       borderRadius: BorderRadius.circular(8),
       child: Row(
         children: [
-          Icon(Icons.store, size: 18, color: tappable ? const Color(0xFF4F46E5) : Colors.grey),
+          Icon(
+            Icons.store,
+            size: 18,
+            color: tappable ? const Color(0xFF4F46E5) : Colors.grey,
+          ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text('Nhà cung cấp', style: TextStyle(color: Colors.grey.shade600)),
+            child: Text(
+              'Nhà cung cấp',
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
           ),
           Text(
             display,
@@ -1874,7 +1908,11 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
           ),
           if (tappable) ...[
             const SizedBox(width: 2),
-            const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF4F46E5)),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 16,
+              color: Color(0xFF4F46E5),
+            ),
           ],
         ],
       ),
@@ -1915,42 +1953,77 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                     icon: Icons.phone_android,
                     uppercase: true,
                   ),
-                const SizedBox(height: 12),
-                // Info banner
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(10),
-                  margin: const EdgeInsets.only(bottom: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.info_outline, color: Colors.blue, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Chỉ sửa thông tin & giá bán. Muốn nhập thêm số lượng → dùng nút NHẬP THÊM.',
-                          style: AppTextStyles.body2.copyWith(
-                            color: Colors.blue,
-                            height: 1.3,
+                  const SizedBox(height: 12),
+                  // Info banner
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.info_outline,
+                          color: Colors.blue,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Chỉ sửa thông tin & giá bán. Muốn nhập thêm số lượng → dùng nút NHẬP THÊM.',
+                            style: AppTextStyles.body2.copyWith(
+                              color: Colors.blue,
+                              height: 1.3,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                // Read-only cost
-                if (_canViewCostPrice)
+                  // Read-only cost
+                  if (_canViewCostPrice)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.attach_money,
+                            size: 18,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Giá vốn: ${NumberFormat('#,###').format(p['cost'] ?? 0)}đ',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  CurrencyTextField(
+                    controller: priceC,
+                    label: "Giá bán",
+                    icon: Icons.sell,
+                  ),
+                  const SizedBox(height: 8),
+                  // Read-only quantity
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 10,
                     ),
-                    margin: const EdgeInsets.only(bottom: 8),
                     decoration: BoxDecoration(
                       color: Colors.grey.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(8),
@@ -1958,52 +2031,21 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                     child: Row(
                       children: [
                         const Icon(
-                          Icons.attach_money,
+                          Icons.inventory_2,
                           size: 18,
                           color: Colors.grey,
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Giá vốn: ${NumberFormat('#,###').format(p['cost'] ?? 0)}đ',
+                          'Tồn kho: ${p['quantity'] ?? 0}',
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
                   ),
-                CurrencyTextField(
-                  controller: priceC,
-                  label: "Giá bán",
-                  icon: Icons.sell,
-                ),
-                const SizedBox(height: 8),
-                // Read-only quantity
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.inventory_2,
-                        size: 18,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Tồn kho: ${p['quantity'] ?? 0}',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
           ),
         ),
         actions: [
@@ -2341,7 +2383,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                   if (!(formKey.currentState?.validate() ?? false)) return;
 
                   // Công nợ NCC bắt buộc phải có NCC rõ ràng để không rơi vào debt mồ côi.
-                    final effectiveSupplierForDebt = selectedSupplierId;
+                  final effectiveSupplierForDebt = selectedSupplierId;
                   if (paymentMethod == 'CÔNG NỢ' &&
                       effectiveSupplierForDebt == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -2831,13 +2873,13 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
           (p) => _searchQuery.isEmpty
               ? true
               : VietnameseUtils.containsVietnamese(
-                    p['partName']?.toString() ?? '',
-                    _searchQuery,
-                  ) ||
-                  VietnameseUtils.containsVietnamese(
-                    p['compatibleModels']?.toString() ?? '',
-                    _searchQuery,
-                  ),
+                      p['partName']?.toString() ?? '',
+                      _searchQuery,
+                    ) ||
+                    VietnameseUtils.containsVietnamese(
+                      p['compatibleModels']?.toString() ?? '',
+                      _searchQuery,
+                    ),
         )
         .toList();
   }
@@ -2864,8 +2906,8 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
     final formKey = GlobalKey<FormState>();
     int? selectedSupplierId = part?['supplierId'] as int?;
     String paymentMethod = 'TIỀN MẶT';
-    StorageLocation? selectedLocation = part != null &&
-            (part['locationCode'] as String? ?? '').isNotEmpty
+    StorageLocation? selectedLocation =
+        part != null && (part['locationCode'] as String? ?? '').isNotEmpty
         ? StorageLocation(
             firestoreId: part['locationId'] as String?,
             code: part['locationCode'] as String? ?? '',
@@ -2911,70 +2953,114 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                         controller: modelC,
                         label: "Dòng máy tương thích",
                         icon: Icons.phone_android,
-                      uppercase: true,
-                    ),
-                    const SizedBox(height: 12),
-                    // Edit mode: banner hướng dẫn nhập thêm
-                    if (isEdit)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(10),
-                        margin: const EdgeInsets.only(bottom: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: Colors.blue.withOpacity(0.3),
-                          ),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(
-                              Icons.info_outline,
-                              color: Colors.blue,
-                              size: 18,
+                        uppercase: true,
+                      ),
+                      const SizedBox(height: 12),
+                      // Edit mode: banner hướng dẫn nhập thêm
+                      if (isEdit)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(10),
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: Colors.blue.withOpacity(0.3),
                             ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Chỉ sửa thông tin & giá bán. Muốn nhập thêm số lượng → dùng nút NHẬP THÊM ở danh sách.',
-                                style: AppTextStyles.body1.copyWith(
-                                  color: Colors.blue,
-                                  height: 1.3,
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(
+                                Icons.info_outline,
+                                color: Colors.blue,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Chỉ sửa thông tin & giá bán. Muốn nhập thêm số lượng → dùng nút NHẬP THÊM ở danh sách.',
+                                  style: AppTextStyles.body1.copyWith(
+                                    color: Colors.blue,
+                                    height: 1.3,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    if (!isEdit && _suppliers.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.orange.withOpacity(0.3),
+                            ],
                           ),
                         ),
-                        child: Column(
-                          children: [
-                            const Row(
-                              children: [
-                                Icon(
-                                  Icons.info_outline,
-                                  color: Colors.orange,
-                                  size: 18,
-                                ),
-                                SizedBox(width: 8),
-                                Expanded(child: Text('Chưa có nhà cung cấp.')),
-                              ],
+                      if (!isEdit && _suppliers.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.orange.withOpacity(0.3),
                             ),
-                            const SizedBox(height: 8),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
+                          ),
+                          child: Column(
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_outline,
+                                    color: Colors.orange,
+                                    size: 18,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text('Chưa có nhà cung cấp.'),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: () async {
+                                    final result = await Navigator.push(
+                                      ctx,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const SupplierFormView(),
+                                      ),
+                                    );
+                                    if (result == true) {
+                                      await _loadSuppliers();
+                                      setS(() {});
+                                    }
+                                  },
+                                  icon: const Icon(Icons.add, size: 16),
+                                  label: const Text('THÊM NCC MỚI'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.orange,
+                                    side: const BorderSide(
+                                      color: Colors.orange,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else if (!isEdit)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Supplier search & select
+                            _SupplierSearchField(
+                              suppliers: _suppliers,
+                              selectedSupplierId: selectedSupplierId,
+                              onChanged: (v) =>
+                                  setS(() => selectedSupplierId = v),
+                            ),
+                            const SizedBox(height: 6),
+                            // Shortcut to add new supplier
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton.icon(
                                 onPressed: () async {
                                   final result = await Navigator.push(
                                     ctx,
@@ -2987,238 +3073,205 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                                     setS(() {});
                                   }
                                 },
-                                icon: const Icon(Icons.add, size: 16),
-                                label: const Text('THÊM NCC MỚI'),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.orange,
-                                  side: const BorderSide(color: Colors.orange),
+                                icon: const Icon(
+                                  Icons.add_circle_outline,
+                                  size: 16,
+                                ),
+                                label: Text(
+                                  'Thêm NCC mới',
+                                  style: AppTextStyles.body1,
+                                ),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.teal,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                  ),
+                                  visualDensity: VisualDensity.compact,
                                 ),
                               ),
                             ),
                           ],
                         ),
-                      )
-                    else if (!isEdit)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Supplier search & select
-                          _SupplierSearchField(
-                            suppliers: _suppliers,
-                            selectedSupplierId: selectedSupplierId,
-                            onChanged: (v) =>
-                                setS(() => selectedSupplierId = v),
-                          ),
-                          const SizedBox(height: 6),
-                          // Shortcut to add new supplier
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton.icon(
-                              onPressed: () async {
-                                final result = await Navigator.push(
-                                  ctx,
-                                  MaterialPageRoute(
-                                    builder: (_) => const SupplierFormView(),
-                                  ),
-                                );
-                                if (result == true) {
-                                  await _loadSuppliers();
-                                  setS(() {});
-                                }
-                              },
-                              icon: const Icon(
-                                Icons.add_circle_outline,
+                      // Edit mode: show read-only supplier info
+                      if (isEdit && selectedSupplierId != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.local_shipping,
                                 size: 16,
+                                color: Colors.grey,
                               ),
-                              label: Text(
-                                'Thêm NCC mới',
-                                style: AppTextStyles.body1,
+                              const SizedBox(width: 8),
+                              Text(
+                                'NCC: ${_getSupplierName(selectedSupplierId)}',
+                                style: const TextStyle(color: Colors.grey),
                               ),
-                              style: TextButton.styleFrom(
-                                foregroundColor: Colors.teal,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                ),
-                                visualDensity: VisualDensity.compact,
+                            ],
+                          ),
+                        ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          if (_canViewCostPrice)
+                            Expanded(
+                              child: CurrencyTextField(
+                                controller: costC,
+                                label: isEdit
+                                    ? "Giá vốn (không sửa)"
+                                    : "Giá vốn",
+                                icon: Icons.attach_money,
+                                enabled: !isEdit,
                               ),
+                            ),
+                          if (_canViewCostPrice) const SizedBox(width: 10),
+                          Expanded(
+                            child: CurrencyTextField(
+                              controller: priceC,
+                              label: "Giá bán",
+                              icon: Icons.sell,
                             ),
                           ),
                         ],
                       ),
-                    // Edit mode: show read-only supplier info
-                    if (isEdit && selectedSupplierId != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.local_shipping,
-                              size: 16,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'NCC: ${_getSupplierName(selectedSupplierId)}',
-                              style: const TextStyle(color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        if (_canViewCostPrice)
-                          Expanded(
-                            child: CurrencyTextField(
-                              controller: costC,
-                              label: isEdit ? "Giá vốn (không sửa)" : "Giá vốn",
-                              icon: Icons.attach_money,
-                              enabled: !isEdit,
-                            ),
+                      const SizedBox(height: 12),
+                      if (isEdit)
+                        // Edit mode: show quantity as read-only info
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
                           ),
-                        if (_canViewCostPrice) const SizedBox(width: 10),
-                        Expanded(
-                          child: CurrencyTextField(
-                            controller: priceC,
-                            label: "Giá bán",
-                            icon: Icons.sell,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    if (isEdit)
-                      // Edit mode: show quantity as read-only info
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.inventory_2,
-                              size: 18,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Tồn kho: ${part['quantity'] ?? 0}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      TextFormField(
-                        controller: qtyC,
-                        decoration: const InputDecoration(
-                          labelText: "Số lượng nhập",
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (v) {
-                          final parsed = int.tryParse((v ?? '').trim()) ?? 0;
-                          if (parsed <= 0) return 'Nhập số lượng hợp lệ';
-                          return null;
-                        },
-                      ),
-                    const SizedBox(height: 12),
-                    if (part == null) ...[
-                      const Text(
-                        'Hình thức thanh toán:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        children: ['TIỀN MẶT', 'CHUYỂN KHOẢN', 'CÔNG NỢ'].map((
-                          m,
-                        ) {
-                          final selected = paymentMethod == m;
-                          return ChoiceChip(
-                            label: Text(
-                              m,
-                              style: TextStyle(
-                                color: selected ? Colors.white : Colors.black,
-                              ),
-                            ),
-                            selected: selected,
-                            selectedColor: Colors.blue,
-                            onSelected: (_) => setS(() => paymentMethod = m),
-                          );
-                        }).toList(),
-                      ),
-                      if (paymentMethod == 'CÔNG NỢ' &&
-                          selectedSupplierId != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
                           child: Row(
                             children: [
                               const Icon(
-                                Icons.warning_amber_rounded,
-                                color: Colors.orange,
+                                Icons.inventory_2,
                                 size: 18,
+                                color: Colors.grey,
                               ),
                               const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Sẽ tạo công nợ với: ${_getSupplierName(selectedSupplierId)}',
-                                  style: const TextStyle(color: Colors.orange),
+                              Text(
+                                'Tồn kho: ${part['quantity'] ?? 0}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      if (paymentMethod == 'CÔNG NỢ' &&
-                          selectedSupplierId == null)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 8.0),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.error_outline,
-                                color: Colors.red,
-                                size: 18,
-                              ),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Chọn nhà cung cấp để ghi nhận công nợ.',
-                                  style: TextStyle(color: Colors.red),
-                                ),
-                              ),
-                            ],
+                        )
+                      else
+                        TextFormField(
+                          controller: qtyC,
+                          decoration: const InputDecoration(
+                            labelText: "Số lượng nhập",
                           ),
+                          keyboardType: TextInputType.number,
+                          validator: (v) {
+                            final parsed = int.tryParse((v ?? '').trim()) ?? 0;
+                            if (parsed <= 0) return 'Nhập số lượng hợp lệ';
+                            return null;
+                          },
                         ),
-                    ],
-                    // ── Vị trí lưu kho ───────────────────────────
-                    const SizedBox(height: 8),
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'VỊ TRÍ LƯU KHO',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2563EB),
-                          letterSpacing: 0.5,
+                      const SizedBox(height: 12),
+                      if (part == null) ...[
+                        const Text(
+                          'Hình thức thanh toán:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          children: ['TIỀN MẶT', 'CHUYỂN KHOẢN', 'CÔNG NỢ'].map(
+                            (m) {
+                              final selected = paymentMethod == m;
+                              return ChoiceChip(
+                                label: Text(
+                                  m,
+                                  style: TextStyle(
+                                    color: selected
+                                        ? Colors.white
+                                        : Colors.black,
+                                  ),
+                                ),
+                                selected: selected,
+                                selectedColor: Colors.blue,
+                                onSelected: (_) =>
+                                    setS(() => paymentMethod = m),
+                              );
+                            },
+                          ).toList(),
+                        ),
+                        if (paymentMethod == 'CÔNG NỢ' &&
+                            selectedSupplierId != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.warning_amber_rounded,
+                                  color: Colors.orange,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Sẽ tạo công nợ với: ${_getSupplierName(selectedSupplierId)}',
+                                    style: const TextStyle(
+                                      color: Colors.orange,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (paymentMethod == 'CÔNG NỢ' &&
+                            selectedSupplierId == null)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8.0),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  color: Colors.red,
+                                  size: 18,
+                                ),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Chọn nhà cung cấp để ghi nhận công nợ.',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                      // ── Vị trí lưu kho ───────────────────────────
+                      const SizedBox(height: 8),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'VỊ TRÍ LƯU KHO',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2563EB),
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    StorageLocationSelector(
-                      selectedLocationId: selectedLocation?.firestoreId,
-                      selectedLocationCode: selectedLocation?.code,
-                      selectedLocationName: selectedLocation?.name,
-                      onSelected: (loc) =>
-                          setS(() => selectedLocation = loc),
-                    ),
+                      const SizedBox(height: 6),
+                      StorageLocationSelector(
+                        selectedLocationId: selectedLocation?.firestoreId,
+                        selectedLocationCode: selectedLocation?.code,
+                        selectedLocationName: selectedLocation?.name,
+                        onSelected: (loc) => setS(() => selectedLocation = loc),
+                      ),
                       const SizedBox(height: 4),
                     ],
                   ),
@@ -3304,9 +3357,10 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                       // Ghi lịch sử nhập kho: luôn lưu khi có tên NCC (kể cả chưa resolve được supplierId)
                       final effectiveSupplierId =
                           selectedSupplierId ?? (part?['supplierId'] as int?);
-                      final effectiveSupplierName = _getSupplierName(
-                        effectiveSupplierId,
-                      ).trim().isNotEmpty
+                      final effectiveSupplierName =
+                          _getSupplierName(
+                            effectiveSupplierId,
+                          ).trim().isNotEmpty
                           ? _getSupplierName(effectiveSupplierId).trim()
                           : supplierName;
                       if (effectiveSupplierName.isNotEmpty) {
@@ -3618,9 +3672,10 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                     Builder(
                       builder: (_) {
                         final addQty = int.tryParse(addQtyC.text.trim()) ?? 0;
-                        final importCost = CurrencyTextField.parseValueWithMultiply(
-                          costC.text,
-                        );
+                        final importCost =
+                            CurrencyTextField.parseValueWithMultiply(
+                              costC.text,
+                            );
                         if (addQty <= 0 || importCost <= 0) {
                           return const SizedBox.shrink();
                         }
@@ -3764,7 +3819,8 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                   try {
                     final effectiveSupplierId =
                         selectedSupplierId ?? (part['supplierId'] as int?);
-                    if (paymentMethod == 'CÔNG NỢ' && effectiveSupplierId == null) {
+                    if (paymentMethod == 'CÔNG NỢ' &&
+                        effectiveSupplierId == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
@@ -3854,9 +3910,8 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                     );
 
                     // 3. Lịch sử nhập kho: luôn lưu khi có tên NCC
-                    final effectiveSupplierName = _getSupplierName(
-                      effectiveSupplierId,
-                    ).trim().isNotEmpty
+                    final effectiveSupplierName =
+                        _getSupplierName(effectiveSupplierId).trim().isNotEmpty
                         ? _getSupplierName(effectiveSupplierId).trim()
                         : supplierName;
                     if (effectiveSupplierName.isNotEmpty) {

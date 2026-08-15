@@ -179,7 +179,8 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
   double _zoomScale = 1.0;
   static const double _minZoom = 0.5;
   static const double _maxZoom = 3.0;
-  final TransformationController _transformController = TransformationController();
+  final TransformationController _transformController =
+      TransformationController();
 
   // Auto-save
   Timer? _saveTimer;
@@ -736,7 +737,9 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
                   // Sync zoom scale với slider
                   final scale = _transformController.value.getMaxScaleOnAxis();
                   if (scale != _zoomScale) {
-                    setState(() => _zoomScale = scale.clamp(_minZoom, _maxZoom));
+                    setState(
+                      () => _zoomScale = scale.clamp(_minZoom, _maxZoom),
+                    );
                   }
                 },
                 child: Center(
@@ -767,71 +770,74 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
                         child: Stack(
                           clipBehavior: Clip.none,
                           children: [
-                          // Vùng in chính (label) - nằm giữa
-                          Positioned(
-                            left: _overflowMm * pxPerMm,
-                            top: _overflowMm * pxPerMm,
-                            child: Container(
-                              width: scaledSize.width,
-                              height: scaledSize.height,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                border: Border.all(
-                                  color: colorScheme.primary,
-                                  width: 2,
-                                ),
-                                borderRadius: BorderRadius.circular(2),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: colorScheme.primary.withOpacity(0.1),
-                                    blurRadius: 4,
-                                    spreadRadius: 1,
+                            // Vùng in chính (label) - nằm giữa
+                            Positioned(
+                              left: _overflowMm * pxPerMm,
+                              top: _overflowMm * pxPerMm,
+                              child: Container(
+                                width: scaledSize.width,
+                                height: scaledSize.height,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  border: Border.all(
+                                    color: colorScheme.primary,
+                                    width: 2,
                                   ),
-                                ],
-                              ),
-                              child: Stack(
-                                clipBehavior: Clip.none,
-                                children: [
-                                  // Grid lines (if enabled)
-                                  if (_showGrid)
+                                  borderRadius: BorderRadius.circular(2),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: colorScheme.primary.withOpacity(
+                                        0.1,
+                                      ),
+                                      blurRadius: 4,
+                                      spreadRadius: 1,
+                                    ),
+                                  ],
+                                ),
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    // Grid lines (if enabled)
+                                    if (_showGrid)
+                                      CustomPaint(
+                                        size: scaledSize,
+                                        painter: _GridPainter(
+                                          gridSpacingPx:
+                                              _gridSpacingMm * pxPerMm,
+                                          color: Colors.grey.withOpacity(0.3),
+                                        ),
+                                      ),
+                                    // Margin guides
                                     CustomPaint(
                                       size: scaledSize,
-                                      painter: _GridPainter(
-                                        gridSpacingPx: _gridSpacingMm * pxPerMm,
-                                        color: Colors.grey.withOpacity(0.3),
+                                      painter: _MarginGuidePainter(
+                                        margins: EdgeInsets.fromLTRB(
+                                          _marginLeftMm * pxPerMm,
+                                          _marginTopMm * pxPerMm,
+                                          _marginRightMm * pxPerMm,
+                                          _marginBottomMm * pxPerMm,
+                                        ),
+                                        color: colorScheme.primary.withOpacity(
+                                          0.2,
+                                        ),
                                       ),
                                     ),
-                                  // Margin guides
-                                  CustomPaint(
-                                    size: scaledSize,
-                                    painter: _MarginGuidePainter(
-                                      margins: EdgeInsets.fromLTRB(
-                                        _marginLeftMm * pxPerMm,
-                                        _marginTopMm * pxPerMm,
-                                        _marginRightMm * pxPerMm,
-                                        _marginBottomMm * pxPerMm,
-                                      ),
-                                      color: colorScheme.primary.withOpacity(
-                                        0.2,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          // Elements (only visible ones) - có thể kéo ra ngoài vùng in
-                          ..._elements
-                              .where((el) => el.visible)
-                              .map(
-                                (el) => _buildDraggableElement(
-                                  el,
-                                  pxPerMm,
-                                  colorScheme,
-                                  _overflowMm *
-                                      pxPerMm, // offset for overflow area
+                                  ],
                                 ),
                               ),
+                            ),
+                            // Elements (only visible ones) - có thể kéo ra ngoài vùng in
+                            ..._elements
+                                .where((el) => el.visible)
+                                .map(
+                                  (el) => _buildDraggableElement(
+                                    el,
+                                    pxPerMm,
+                                    colorScheme,
+                                    _overflowMm *
+                                        pxPerMm, // offset for overflow area
+                                  ),
+                                ),
                           ],
                         ),
                       ),
@@ -2079,7 +2085,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
         // Size controls
         _buildSizeControls(el, colorScheme),
         const SizedBox(height: 12),
-        
+
         // Position navigation buttons - di chuyển nhanh
         _buildPositionNavButtons(el, colorScheme),
         const SizedBox(height: 12),
@@ -2202,7 +2208,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
   Widget _buildPositionNavButtons(LabelElement el, ColorScheme colorScheme) {
     const double step = 0.5; // Di chuyển 0.5mm mỗi lần bấm
     // bigStep (2.0mm) reserved for future long-press navigation
-    
+
     Widget navButton({
       required IconData icon,
       required VoidCallback onPressed,
@@ -2225,16 +2231,12 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
             width: 36,
             height: 36,
             alignment: Alignment.center,
-            child: Icon(
-              icon,
-              size: 20,
-              color: colorScheme.onPrimaryContainer,
-            ),
+            child: Icon(icon, size: 20, color: colorScheme.onPrimaryContainer),
           ),
         ),
       );
     }
-    
+
     return Card(
       elevation: 0,
       color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
@@ -2263,7 +2265,10 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
                       tooltip: 'Lên',
                       onPressed: () => _updateElement(
                         el,
-                        (e) => e.yMm = (e.yMm - step).clamp(0, _labelHeightMm - e.heightMm),
+                        (e) => e.yMm = (e.yMm - step).clamp(
+                          0,
+                          _labelHeightMm - e.heightMm,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -2276,7 +2281,10 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
                           tooltip: 'Trái',
                           onPressed: () => _updateElement(
                             el,
-                            (e) => e.xMm = (e.xMm - step).clamp(0, _labelWidthMm - e.widthMm),
+                            (e) => e.xMm = (e.xMm - step).clamp(
+                              0,
+                              _labelWidthMm - e.widthMm,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 4),
@@ -2296,13 +2304,10 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
                             onLongPress: () {
                               HapticFeedback.heavyImpact();
                               // Căn giữa cả hai chiều
-                              _updateElement(
-                                el,
-                                (e) {
-                                  e.xMm = (_labelWidthMm - e.widthMm) / 2;
-                                  e.yMm = (_labelHeightMm - e.heightMm) / 2;
-                                },
-                              );
+                              _updateElement(el, (e) {
+                                e.xMm = (_labelWidthMm - e.widthMm) / 2;
+                                e.yMm = (_labelHeightMm - e.heightMm) / 2;
+                              });
                             },
                             borderRadius: BorderRadius.circular(8),
                             child: Container(
@@ -2324,7 +2329,10 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
                           tooltip: 'Phải',
                           onPressed: () => _updateElement(
                             el,
-                            (e) => e.xMm = (e.xMm + step).clamp(0, _labelWidthMm - e.widthMm),
+                            (e) => e.xMm = (e.xMm + step).clamp(
+                              0,
+                              _labelWidthMm - e.widthMm,
+                            ),
                           ),
                         ),
                       ],
@@ -2336,7 +2344,10 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
                       tooltip: 'Xuống',
                       onPressed: () => _updateElement(
                         el,
-                        (e) => e.yMm = (e.yMm + step).clamp(0, _labelHeightMm - e.heightMm),
+                        (e) => e.yMm = (e.yMm + step).clamp(
+                          0,
+                          _labelHeightMm - e.heightMm,
+                        ),
                       ),
                     ),
                   ],
@@ -2408,7 +2419,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
       ),
     );
   }
-  
+
   Widget _alignButton({
     required IconData icon,
     required String tooltip,
@@ -2430,11 +2441,7 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
             width: 32,
             height: 32,
             alignment: Alignment.center,
-            child: Icon(
-              icon,
-              size: 18,
-              color: colorScheme.onTertiaryContainer,
-            ),
+            child: Icon(icon, size: 18, color: colorScheme.onTertiaryContainer),
           ),
         ),
       ),
@@ -2728,6 +2735,10 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
 
   Future<void> _openInventorySelector() async {
     final colorScheme = Theme.of(context).colorScheme;
+    // Captured before the nested StatefulBuilder shadows `context` with its
+    // own — must read MediaQuery from this outer one, not the shadowed
+    // inner `context`/`ctx`, to avoid a _dependents.isEmpty crash on pop.
+    final outerContext = context;
 
     await showAppBottomSheet(
       context: context,
@@ -2878,7 +2889,12 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
                       // Footer
                       SafeArea(
                         child: Padding(
-                          padding: const EdgeInsets.all(16),
+                          padding: EdgeInsets.fromLTRB(
+                            16,
+                            16,
+                            16,
+                            16 + MediaQuery.viewInsetsOf(outerContext).bottom,
+                          ),
                           child: FilledButton(
                             onPressed: () => Navigator.pop(context),
                             style: FilledButton.styleFrom(
@@ -2967,7 +2983,9 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
           includeCodes: true,
           pxPerMm: pxPerMm,
         );
-        debugPrint('PTY_PRINT: [$i] Bitmap exported, size: ${png.length} bytes');
+        debugPrint(
+          'PTY_PRINT: [$i] Bitmap exported, size: ${png.length} bytes',
+        );
 
         if (png.isEmpty) {
           debugPrint('PTY_PRINT: [$i] ERROR: Empty bitmap!');

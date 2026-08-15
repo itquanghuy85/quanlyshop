@@ -2496,78 +2496,85 @@ class _CashClosingViewState extends State<CashClosingView>
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) {
-          return Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          return Padding(
+            // Đọc từ `context` ngoài (không phải `ctx`) để tránh crash
+            // _dependents.isEmpty khi pop.
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.paddingOf(context).bottom,
             ),
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Lọc theo loại giao dịch',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: AppTextStyles.headline4.fontSize,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: types.map((t) {
-                    final val = t['value']!;
-                    final selected =
-                        (val.isEmpty && _txTypeFilter == null) ||
-                        val == _txTypeFilter;
-                    return ChoiceChip(
-                      label: Text(
-                        t['label']!,
-                        style: TextStyle(
-                          fontSize: AppTextStyles.body1.fontSize,
-                        ),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                      selected: selected,
-                      selectedColor: Colors.indigo.shade100,
-                      onSelected: (_) {
-                        setSheetState(() {});
-                        setState(() {
-                          _txTypeFilter = val.isEmpty ? null : val;
-                        });
-                        FocusManager.instance.primaryFocus?.unfocus();
-                        Navigator.pop(ctx);
-                      },
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 16),
-                if (_txTypeFilter != null)
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        setState(() => _txTypeFilter = null);
-                        FocusManager.instance.primaryFocus?.unfocus();
-                        Navigator.pop(ctx);
-                      },
-                      icon: const Icon(Icons.clear_all, size: 18),
-                      label: const Text('Xóa bộ lọc'),
                     ),
                   ),
-              ],
+                  const SizedBox(height: 12),
+                  Text(
+                    'Lọc theo loại giao dịch',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: AppTextStyles.headline4.fontSize,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: types.map((t) {
+                      final val = t['value']!;
+                      final selected =
+                          (val.isEmpty && _txTypeFilter == null) ||
+                          val == _txTypeFilter;
+                      return ChoiceChip(
+                        label: Text(
+                          t['label']!,
+                          style: TextStyle(
+                            fontSize: AppTextStyles.body1.fontSize,
+                          ),
+                        ),
+                        selected: selected,
+                        selectedColor: Colors.indigo.shade100,
+                        onSelected: (_) {
+                          setSheetState(() {});
+                          setState(() {
+                            _txTypeFilter = val.isEmpty ? null : val;
+                          });
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          Navigator.pop(ctx);
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_txTypeFilter != null)
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() => _txTypeFilter = null);
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          Navigator.pop(ctx);
+                        },
+                        icon: const Icon(Icons.clear_all, size: 18),
+                        label: const Text('Xóa bộ lọc'),
+                      ),
+                    ),
+                ],
+              ),
             ),
           );
         },

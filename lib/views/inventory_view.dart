@@ -321,21 +321,22 @@ class _InventoryViewState extends State<InventoryView>
     }
   }
 
-
-  static ButtonStyle _compactFilledBtn(Color color) =>
-      ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        minimumSize: Size.zero,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(PopupTheme.radiusButton),
-        ),
-        textStyle: const TextStyle(
-            fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.2),
-      );
+  static ButtonStyle _compactFilledBtn(Color color) => ElevatedButton.styleFrom(
+    backgroundColor: color,
+    foregroundColor: Colors.white,
+    elevation: 0,
+    minimumSize: Size.zero,
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(PopupTheme.radiusButton),
+    ),
+    textStyle: const TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.2,
+    ),
+  );
 
   static ButtonStyle _compactOutlineBtn(Color color) =>
       OutlinedButton.styleFrom(
@@ -348,7 +349,10 @@ class _InventoryViewState extends State<InventoryView>
           borderRadius: BorderRadius.circular(PopupTheme.radiusButton),
         ),
         textStyle: const TextStyle(
-            fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.2),
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
+        ),
       );
 
   Widget _input(
@@ -394,6 +398,7 @@ class _InventoryViewState extends State<InventoryView>
       );
     }
   }
+
   Future<void> _openSupplierByName(String name) async {
     if (name.isEmpty || name == 'N/A') return;
     final map = await DBHelper().getSupplierByName(name);
@@ -487,9 +492,9 @@ class _InventoryViewState extends State<InventoryView>
                             overflow: TextOverflow.ellipsis,
                           ),
                           if (displayProduct.capacity != null &&
-                              displayProduct.capacity!.isNotEmpty ||
+                                  displayProduct.capacity!.isNotEmpty ||
                               displayProduct.color != null &&
-                              displayProduct.color!.isNotEmpty ||
+                                  displayProduct.color!.isNotEmpty ||
                               displayProduct.condition.isNotEmpty) ...[
                             const SizedBox(height: 3),
                             Text(
@@ -546,7 +551,9 @@ class _InventoryViewState extends State<InventoryView>
                       )
                     else
                       PopupBadge(
-                        label: displayProduct.quantity > 0 ? l10n.inventoryInStockLabel : l10n.outOfStock,
+                        label: displayProduct.quantity > 0
+                            ? l10n.inventoryInStockLabel
+                            : l10n.outOfStock,
                         color: displayProduct.quantity > 0
                             ? PopupTheme.green
                             : PopupTheme.red,
@@ -568,7 +575,8 @@ class _InventoryViewState extends State<InventoryView>
                       PopupBadge(
                         label: DateFormat('dd/MM/yyyy').format(
                           DateTime.fromMillisecondsSinceEpoch(
-                              displayProduct.updatedAt!),
+                            displayProduct.updatedAt!,
+                          ),
                         ),
                         color: PopupTheme.blue,
                         icon: Icons.calendar_today_outlined,
@@ -592,15 +600,20 @@ class _InventoryViewState extends State<InventoryView>
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
                           color: PopupTheme.yellow.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(PopupTheme.radiusCard),
+                          borderRadius: BorderRadius.circular(
+                            PopupTheme.radiusCard,
+                          ),
                           border: Border.all(
                             color: PopupTheme.yellow.withValues(alpha: 0.3),
                           ),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.hourglass_empty,
-                                color: PopupTheme.yellow, size: 20),
+                            const Icon(
+                              Icons.hourglass_empty,
+                              color: PopupTheme.yellow,
+                              size: 20,
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Column(
@@ -616,7 +629,9 @@ class _InventoryViewState extends State<InventoryView>
                                   ),
                                   if (displayProduct.pendingSupplier != null)
                                     Text(
-                                      l10n.inventoryExpectedSupplier(displayProduct.pendingSupplier!),
+                                      l10n.inventoryExpectedSupplier(
+                                        displayProduct.pendingSupplier!,
+                                      ),
                                       style: const TextStyle(
                                         color: PopupTheme.textSecondary,
                                         fontSize: 11,
@@ -649,7 +664,8 @@ class _InventoryViewState extends State<InventoryView>
                               value: displayProduct.isPending
                                   ? '?'
                                   : MoneyUtils.formatCompactCurrency(
-                                      displayProduct.cost),
+                                      displayProduct.cost,
+                                    ),
                               label: l10n.inventoryPurchasePrice,
                             ),
                           ),
@@ -661,7 +677,9 @@ class _InventoryViewState extends State<InventoryView>
                             color: PopupTheme.green,
                             value: displayProduct.isPending
                                 ? '?'
-                                : MoneyUtils.formatCompactCurrency(displayProduct.price),
+                                : MoneyUtils.formatCompactCurrency(
+                                    displayProduct.price,
+                                  ),
                             label: l10n.inventorySalePriceItem,
                           ),
                         ),
@@ -673,8 +691,12 @@ class _InventoryViewState extends State<InventoryView>
                               color: profit >= 0
                                   ? PopupTheme.teal
                                   : PopupTheme.red,
-                              value: MoneyUtils.formatCompactCurrency(profit.abs()),
-                              label: profit >= 0 ? l10n.profit : l10n.inventoryLoss,
+                              value: MoneyUtils.formatCompactCurrency(
+                                profit.abs(),
+                              ),
+                              label: profit >= 0
+                                  ? l10n.profit
+                                  : l10n.inventoryLoss,
                             ),
                           ),
                         ],
@@ -685,11 +707,15 @@ class _InventoryViewState extends State<InventoryView>
                     Container(
                       decoration: BoxDecoration(
                         color: PopupTheme.surfaceDark,
-                        borderRadius: BorderRadius.circular(PopupTheme.radiusCard),
+                        borderRadius: BorderRadius.circular(
+                          PopupTheme.radiusCard,
+                        ),
                         border: Border.all(color: PopupTheme.borderDark),
                       ),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 4),
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
                       child: Column(
                         children: [
                           if (_enableSerial)
@@ -703,7 +729,9 @@ class _InventoryViewState extends State<InventoryView>
                             ),
                           if (_isElectronics && showCapacityDetail) ...[
                             const Divider(
-                                height: 1, color: PopupTheme.borderDark),
+                              height: 1,
+                              color: PopupTheme.borderDark,
+                            ),
                             PopupInfoRow(
                               icon: Icons.storage_rounded,
                               iconColor: PopupTheme.blue,
@@ -711,9 +739,12 @@ class _InventoryViewState extends State<InventoryView>
                               value: displayProduct.capacity ?? '',
                             ),
                           ] else if (_isFashion &&
-                              (displayProduct.capacity?.isNotEmpty ?? false)) ...[
+                              (displayProduct.capacity?.isNotEmpty ??
+                                  false)) ...[
                             const Divider(
-                                height: 1, color: PopupTheme.borderDark),
+                              height: 1,
+                              color: PopupTheme.borderDark,
+                            ),
                             PopupInfoRow(
                               icon: Icons.straighten,
                               iconColor: PopupTheme.blue,
@@ -721,31 +752,39 @@ class _InventoryViewState extends State<InventoryView>
                               value: displayProduct.capacity!,
                             ),
                           ],
-                          const Divider(height: 1, color: PopupTheme.borderDark),
+                          const Divider(
+                            height: 1,
+                            color: PopupTheme.borderDark,
+                          ),
                           PopupInfoRow(
                             icon: Icons.business_outlined,
                             iconColor: PopupTheme.teal,
                             label: l10n.inventorySupplierLabel,
                             value: displayProduct.isPending
                                 ? (displayProduct.pendingSupplier ??
-                                    l10n.inventoryPendingConfirm)
+                                      l10n.inventoryPendingConfirm)
                                 : (displayProduct.supplier ?? 'N/A'),
-                            valueColor: (!displayProduct.isPending &&
-                                    (displayProduct.supplier ?? '').isNotEmpty &&
+                            valueColor:
+                                (!displayProduct.isPending &&
+                                    (displayProduct.supplier ?? '')
+                                        .isNotEmpty &&
                                     displayProduct.supplier != 'N/A')
                                 ? PopupTheme.teal
                                 : null,
                             trailingIcon: Icons.chevron_right_rounded,
-                            onTap: (!displayProduct.isPending &&
+                            onTap:
+                                (!displayProduct.isPending &&
                                     (displayProduct.supplier ?? '').isNotEmpty)
                                 ? () => _openSupplierByName(
-                                      displayProduct.supplier ?? '',
-                                    )
+                                    displayProduct.supplier ?? '',
+                                  )
                                 : null,
                           ),
                           if (_canViewCostPrice) ...[
                             const Divider(
-                                height: 1, color: PopupTheme.borderDark),
+                              height: 1,
+                              color: PopupTheme.borderDark,
+                            ),
                             PopupInfoRow(
                               icon: Icons.arrow_downward_rounded,
                               iconColor: PopupTheme.yellow,
@@ -757,7 +796,10 @@ class _InventoryViewState extends State<InventoryView>
                               bold: true,
                             ),
                           ],
-                          const Divider(height: 1, color: PopupTheme.borderDark),
+                          const Divider(
+                            height: 1,
+                            color: PopupTheme.borderDark,
+                          ),
                           PopupInfoRow(
                             icon: Icons.arrow_upward_rounded,
                             iconColor: PopupTheme.green,
@@ -768,7 +810,10 @@ class _InventoryViewState extends State<InventoryView>
                             valueColor: PopupTheme.green,
                             bold: true,
                           ),
-                          const Divider(height: 1, color: PopupTheme.borderDark),
+                          const Divider(
+                            height: 1,
+                            color: PopupTheme.borderDark,
+                          ),
                           PopupInfoRow(
                             icon: Icons.payment_outlined,
                             iconColor: PopupTheme.blue,
@@ -780,7 +825,9 @@ class _InventoryViewState extends State<InventoryView>
                           if (displayProduct.labelNote != null &&
                               displayProduct.labelNote!.isNotEmpty) ...[
                             const Divider(
-                                height: 1, color: PopupTheme.borderDark),
+                              height: 1,
+                              color: PopupTheme.borderDark,
+                            ),
                             PopupInfoRow(
                               icon: Icons.notes_rounded,
                               iconColor: PopupTheme.textSecondary,
@@ -790,22 +837,27 @@ class _InventoryViewState extends State<InventoryView>
                           ],
                           if (hasLocation) ...[
                             const Divider(
-                                height: 1, color: PopupTheme.borderDark),
+                              height: 1,
+                              color: PopupTheme.borderDark,
+                            ),
                             PopupInfoRow(
                               icon: Icons.location_on_rounded,
                               iconColor: PopupTheme.teal,
                               label: l10n.inventoryWarehouseLocation,
-                              value: [
-                                displayProduct.locationCode,
-                                displayProduct.locationName,
-                              ]
-                                  .where(
-                                      (v) => v != null && v.isNotEmpty)
-                                  .join(' · '),
+                              value:
+                                  [
+                                        displayProduct.locationCode,
+                                        displayProduct.locationName,
+                                      ]
+                                      .where((v) => v != null && v.isNotEmpty)
+                                      .join(' · '),
                               valueColor: PopupTheme.teal,
                             ),
                           ],
-                          const Divider(height: 1, color: PopupTheme.borderDark),
+                          const Divider(
+                            height: 1,
+                            color: PopupTheme.borderDark,
+                          ),
                           PopupInfoRow(
                             icon: Icons.update_rounded,
                             iconColor: PopupTheme.textMuted,
@@ -824,15 +876,18 @@ class _InventoryViewState extends State<InventoryView>
                     ),
                     // ── Repair history ────────────────────────────
                     if (repairs.isNotEmpty && _enableRepair) ...[
-                      PopupSectionDivider(title: l10n.inventoryRepairHistorySection),
+                      PopupSectionDivider(
+                        title: l10n.inventoryRepairHistorySection,
+                      ),
                       ...repairs.map(
                         (r) => Container(
                           margin: const EdgeInsets.only(bottom: 8),
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color: PopupTheme.surfaceDark,
-                            borderRadius:
-                                BorderRadius.circular(PopupTheme.radiusCard),
+                            borderRadius: BorderRadius.circular(
+                              PopupTheme.radiusCard,
+                            ),
                             border: Border.all(color: PopupTheme.borderDark),
                           ),
                           child: Column(
@@ -840,9 +895,11 @@ class _InventoryViewState extends State<InventoryView>
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.person_outline,
-                                      size: 14,
-                                      color: PopupTheme.textSecondary),
+                                  const Icon(
+                                    Icons.person_outline,
+                                    size: 14,
+                                    color: PopupTheme.textSecondary,
+                                  ),
                                   const SizedBox(width: 6),
                                   Expanded(
                                     child: Text(
@@ -858,12 +915,14 @@ class _InventoryViewState extends State<InventoryView>
                                   ),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 3),
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: _getStatusColor(r.status)
-                                          .withValues(alpha: 0.15),
-                                      borderRadius:
-                                          BorderRadius.circular(20),
+                                      color: _getStatusColor(
+                                        r.status,
+                                      ).withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Text(
                                       _getStatusText(ctx, r.status),
@@ -889,8 +948,10 @@ class _InventoryViewState extends State<InventoryView>
                               const SizedBox(height: 3),
                               Text(
                                 DateFormat('dd/MM/yyyy').format(
-                                    DateTime.fromMillisecondsSinceEpoch(
-                                        r.createdAt)),
+                                  DateTime.fromMillisecondsSinceEpoch(
+                                    r.createdAt,
+                                  ),
+                                ),
                                 style: const TextStyle(
                                   color: PopupTheme.textMuted,
                                   fontSize: 10,
@@ -911,9 +972,14 @@ class _InventoryViewState extends State<InventoryView>
                             Navigator.pop(ctx);
                             _showConfirmCostDialog(p);
                           },
-                          icon: const Icon(Icons.check_circle_outline, size: 16),
+                          icon: const Icon(
+                            Icons.check_circle_outline,
+                            size: 16,
+                          ),
                           label: Text(l10n.inventoryConfirmPriceBtn),
-                          style: PopupTheme.primaryButton(color: PopupTheme.yellow),
+                          style: PopupTheme.primaryButton(
+                            color: PopupTheme.yellow,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -935,24 +1001,27 @@ class _InventoryViewState extends State<InventoryView>
                                 printerConfig['type'] as PrinterType?;
                             final bluetoothPrinter =
                                 printerConfig['bluetoothPrinter'];
-                            final wifiIp =
-                                printerConfig['wifiIp'] as String?;
+                            final wifiIp = printerConfig['wifiIp'] as String?;
                             if (!mounted) return;
                             NotificationService.showSnackBar(
-                                l10n.inventoryPrintingLabelMsg, color: Colors.teal);
-                            final ok = await UnifiedPrinterService
-                                .printProductQRLabel(
-                              p.toMap(),
-                              printerType: printerType,
-                              bluetoothPrinter: bluetoothPrinter,
-                              customMac: bluetoothPrinter is Map
-                                  ? bluetoothPrinter['macAddress']
-                                  : null,
-                              wifiIp: wifiIp,
+                              l10n.inventoryPrintingLabelMsg,
+                              color: Colors.teal,
                             );
+                            final ok =
+                                await UnifiedPrinterService.printProductQRLabel(
+                                  p.toMap(),
+                                  printerType: printerType,
+                                  bluetoothPrinter: bluetoothPrinter,
+                                  customMac: bluetoothPrinter is Map
+                                      ? bluetoothPrinter['macAddress']
+                                      : null,
+                                  wifiIp: wifiIp,
+                                );
                             if (mounted) {
                               NotificationService.showSnackBar(
-                                ok ? l10n.inventoryPrintLabelSuccess : l10n.inventoryPrintLabelError,
+                                ok
+                                    ? l10n.inventoryPrintLabelSuccess
+                                    : l10n.inventoryPrintLabelError,
                                 color: ok ? Colors.green : Colors.red,
                               );
                             }
@@ -977,8 +1046,10 @@ class _InventoryViewState extends State<InventoryView>
                             Navigator.pop(ctx);
                             _createSaleOrder(p);
                           },
-                          icon: const Icon(Icons.shopping_cart_outlined,
-                              size: 15),
+                          icon: const Icon(
+                            Icons.shopping_cart_outlined,
+                            size: 15,
+                          ),
                           label: Text(l10n.inventorySellAction),
                           style: _compactFilledBtn(PopupTheme.blue),
                         ),
@@ -990,7 +1061,9 @@ class _InventoryViewState extends State<InventoryView>
                               _showQuickStockInDialog(p);
                             },
                             icon: const Icon(Icons.add_shopping_cart, size: 15),
-                            label: Text(l10n.inventoryStockMoreAction(p.quantity)),
+                            label: Text(
+                              l10n.inventoryStockMoreAction(p.quantity),
+                            ),
                             style: _compactOutlineBtn(PopupTheme.teal),
                           ),
                         // XÓA
@@ -1107,7 +1180,9 @@ class _InventoryViewState extends State<InventoryView>
                                 ),
                               ),
                               Text(
-                                l10n.inventoryCurrentCostNote(MoneyUtils.formatCurrency(p.cost)),
+                                l10n.inventoryCurrentCostNote(
+                                  MoneyUtils.formatCurrency(p.cost),
+                                ),
                                 style: AppTextStyles.caption.copyWith(
                                   color: Colors.grey[700],
                                   fontWeight: FontWeight.w600,
@@ -1146,8 +1221,7 @@ class _InventoryViewState extends State<InventoryView>
                   ),
                   Builder(
                     builder: (_) {
-                      final importQty =
-                          int.tryParse(qtyCtrl.text.trim()) ?? 0;
+                      final importQty = int.tryParse(qtyCtrl.text.trim()) ?? 0;
                       final importCost = CurrencyTextField.parseValue(
                         costCtrl.text,
                       );
@@ -1163,7 +1237,9 @@ class _InventoryViewState extends State<InventoryView>
                       return Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: Text(
-                          l10n.inventoryWeightedCostNote(MoneyUtils.formatCurrency(weightedCost)),
+                          l10n.inventoryWeightedCostNote(
+                            MoneyUtils.formatCurrency(weightedCost),
+                          ),
                           style: AppTextStyles.caption.copyWith(
                             color: Colors.blue[700],
                             fontWeight: FontWeight.w700,
@@ -1207,7 +1283,10 @@ class _InventoryViewState extends State<InventoryView>
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
+                          onPressed: () {
+                            FocusScope.of(ctx).unfocus();
+                            Navigator.pop(ctx);
+                          },
                           child: Text(l10n.cancel),
                         ),
                       ),
@@ -1274,7 +1353,10 @@ class _InventoryViewState extends State<InventoryView>
   ) async {
     final l10n = AppLocalizations.of(context)!;
     try {
-      NotificationService.showSnackBar(l10n.inventoryStockingIn, color: Colors.blue);
+      NotificationService.showSnackBar(
+        l10n.inventoryStockingIn,
+        color: Colors.blue,
+      );
       final shopId = await UserService.getCurrentShopId() ?? '';
       final service = StockEntryService();
 
@@ -1351,10 +1433,9 @@ class _InventoryViewState extends State<InventoryView>
       }
 
       // Auto-confirm entry to update stock + financial records
-      final effectiveRequireSupplier = _enableSupplier &&
-          (_requireSupplier ||
-              cost > 0 ||
-              paymentMethod == 'CÔNG NỢ');
+      final effectiveRequireSupplier =
+          _enableSupplier &&
+          (_requireSupplier || cost > 0 || paymentMethod == 'CÔNG NỢ');
       final confirmed = await service.confirmEntry(
         created.firestoreId!,
         allowPendingCost: _allowPendingCost,
@@ -1381,7 +1462,10 @@ class _InventoryViewState extends State<InventoryView>
   }
 
   Future<void> _showAiStockQuickEntry() async {
-    final result = await AiOrderInputSheet.show(context, mode: AiSheetMode.stock);
+    final result = await AiOrderInputSheet.show(
+      context,
+      mode: AiSheetMode.stock,
+    );
     if (!mounted || result == null) return;
     Navigator.push(
       context,
@@ -1427,138 +1511,186 @@ class _InventoryViewState extends State<InventoryView>
                 ),
                 decoration: const BoxDecoration(
                   color: PopupTheme.bgDark,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(PopupTheme.radiusSheet)),
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(PopupTheme.radiusSheet),
+                  ),
                 ),
                 padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + bottomInset),
-                child: SingleChildScrollView(child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const PopupDragHandle(),
-                Row(
-                  children: [
-                    const Icon(Icons.attach_money_rounded, color: Colors.orange, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Nhập giá vốn: ${p.name}',
-                        style: const TextStyle(
-                          color: PopupTheme.textPrimary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const PopupDragHandle(),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.attach_money_rounded,
+                            color: Colors.orange,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Nhập giá vốn: ${p.name}',
+                              style: const TextStyle(
+                                color: PopupTheme.textPrimary,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                CurrencyTextField(
-                  controller: costCtrl,
-                  label: 'Giá vốn (đ)',
-                  icon: Icons.account_balance_wallet_outlined,
-                ),
-                const SizedBox(height: 12),
-                // Phương thức thanh toán
-                DropdownButtonFormField<String>(
-                  initialValue: selectedPayment,
-                  decoration: const InputDecoration(
-                    labelText: 'Phương thức thanh toán',
-                    labelStyle: TextStyle(color: Colors.white70),
-                    prefixIcon: Icon(Icons.payment, color: Colors.white54),
-                    border: OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white24),
-                    ),
-                  ),
-                  dropdownColor: PopupTheme.bgDark,
-                  style: const TextStyle(color: Colors.black87),
-                  items: ['TIỀN MẶT', 'CHUYỂN KHOẢN', 'CÔNG NỢ'].map((m) =>
-                    DropdownMenuItem(value: m, child: Text(m)),
-                  ).toList(),
-                  onChanged: (v) => setS(() => selectedPayment = v ?? 'TIỀN MẶT'),
-                ),
-                // Nhà cung cấp — hiện khi CÔNG NỢ hoặc enableSupplier
-                if (_enableSupplier) ...[
-                  const SizedBox(height: 12),
-                  InkWell(
-                    onTap: () async {
-                      final picked = await showSupplierPickerSheet(ctx);
-                      if (picked == null) return;
-                      final name = (picked['name'] as String?)?.trim() ?? '';
-                      if (name.isNotEmpty) setS(() => supplierName = name);
-                    },
-                    child: InputDecorator(
-                      decoration: InputDecoration(
-                        labelText: selectedPayment == 'CÔNG NỢ'
-                            ? 'Nhà cung cấp (bắt buộc)'
-                            : 'Nhà cung cấp (tuỳ chọn)',
-                        labelStyle: const TextStyle(color: Colors.white70),
-                        prefixIcon: const Icon(Icons.storefront_outlined, color: Colors.white54),
-                        suffixIcon: const Icon(Icons.search, color: Colors.white54),
-                        border: const OutlineInputBorder(),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: selectedPayment == 'CÔNG NỢ' && supplierName.isEmpty
-                                ? Colors.red.shade400
-                                : Colors.white24,
+                      const SizedBox(height: 16),
+                      CurrencyTextField(
+                        controller: costCtrl,
+                        label: 'Giá vốn (đ)',
+                        icon: Icons.account_balance_wallet_outlined,
+                      ),
+                      const SizedBox(height: 12),
+                      // Phương thức thanh toán
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedPayment,
+                        decoration: const InputDecoration(
+                          labelText: 'Phương thức thanh toán',
+                          labelStyle: TextStyle(color: Colors.white70),
+                          prefixIcon: Icon(
+                            Icons.payment,
+                            color: Colors.white54,
+                          ),
+                          border: OutlineInputBorder(),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.white24),
                           ),
                         ),
+                        dropdownColor: PopupTheme.bgDark,
+                        style: const TextStyle(color: Colors.black87),
+                        items: ['TIỀN MẶT', 'CHUYỂN KHOẢN', 'CÔNG NỢ']
+                            .map(
+                              (m) => DropdownMenuItem(value: m, child: Text(m)),
+                            )
+                            .toList(),
+                        onChanged: (v) =>
+                            setS(() => selectedPayment = v ?? 'TIỀN MẶT'),
                       ),
-                      child: Text(
-                        supplierName.isEmpty ? '-- Chạm để chọn --' : supplierName,
-                        style: TextStyle(
-                          color: supplierName.isEmpty ? Colors.white38 : Colors.white,
+                      // Nhà cung cấp — hiện khi CÔNG NỢ hoặc enableSupplier
+                      if (_enableSupplier) ...[
+                        const SizedBox(height: 12),
+                        InkWell(
+                          onTap: () async {
+                            final picked = await showSupplierPickerSheet(ctx);
+                            if (picked == null) return;
+                            final name =
+                                (picked['name'] as String?)?.trim() ?? '';
+                            if (name.isNotEmpty)
+                              setS(() => supplierName = name);
+                          },
+                          child: InputDecorator(
+                            decoration: InputDecoration(
+                              labelText: selectedPayment == 'CÔNG NỢ'
+                                  ? 'Nhà cung cấp (bắt buộc)'
+                                  : 'Nhà cung cấp (tuỳ chọn)',
+                              labelStyle: const TextStyle(
+                                color: Colors.white70,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.storefront_outlined,
+                                color: Colors.white54,
+                              ),
+                              suffixIcon: const Icon(
+                                Icons.search,
+                                color: Colors.white54,
+                              ),
+                              border: const OutlineInputBorder(),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color:
+                                      selectedPayment == 'CÔNG NỢ' &&
+                                          supplierName.isEmpty
+                                      ? Colors.red.shade400
+                                      : Colors.white24,
+                                ),
+                              ),
+                            ),
+                            child: Text(
+                              supplierName.isEmpty
+                                  ? '-- Chạm để chọn --'
+                                  : supplierName,
+                              style: TextStyle(
+                                color: supplierName.isEmpty
+                                    ? Colors.white38
+                                    : Colors.white,
+                              ),
+                            ),
+                          ),
                         ),
+                      ],
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () {
+                                FocusScope.of(ctx).unfocus();
+                                Navigator.pop(ctx);
+                              },
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.grey.shade700,
+                                side: BorderSide(color: Colors.grey.shade400),
+                              ),
+                              child: const Text('Hủy'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton.icon(
+                              icon: const Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                              label: const Text(
+                                'Lưu giá vốn',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange,
+                              ),
+                              onPressed: () {
+                                final cost = CurrencyTextField.parseValue(
+                                  costCtrl.text,
+                                );
+                                if (cost <= 0) {
+                                  NotificationService.showSnackBar(
+                                    'Giá vốn phải lớn hơn 0',
+                                    color: Colors.red,
+                                  );
+                                  return;
+                                }
+                                if (selectedPayment == 'CÔNG NỢ' &&
+                                    supplierName.isEmpty) {
+                                  NotificationService.showSnackBar(
+                                    'Thanh toán CÔNG NỢ phải chọn nhà cung cấp',
+                                    color: Colors.red,
+                                  );
+                                  return;
+                                }
+                                Navigator.pop(ctx, {
+                                  'payment': selectedPayment,
+                                  'supplier': supplierName,
+                                });
+                              },
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
+                    ],
                   ),
-                ],
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.grey.shade700,
-                          side: BorderSide(color: Colors.grey.shade400),
-                        ),
-                        child: const Text('Hủy'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.check, color: Colors.white, size: 16),
-                        label: const Text('Lưu giá vốn', style: TextStyle(color: Colors.white)),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                        onPressed: () {
-                          final cost = CurrencyTextField.parseValue(costCtrl.text);
-                          if (cost <= 0) {
-                            NotificationService.showSnackBar('Giá vốn phải lớn hơn 0', color: Colors.red);
-                            return;
-                          }
-                          if (selectedPayment == 'CÔNG NỢ' && supplierName.isEmpty) {
-                            NotificationService.showSnackBar(
-                              'Thanh toán CÔNG NỢ phải chọn nhà cung cấp',
-                              color: Colors.red,
-                            );
-                            return;
-                          }
-                          Navigator.pop(ctx, {
-                            'payment': selectedPayment,
-                            'supplier': supplierName,
-                          });
-                        },
-                      ),
-                    ),
-                  ],
                 ),
-              ],
-            )),
               ),
             ),
           );
@@ -1595,7 +1727,8 @@ class _InventoryViewState extends State<InventoryView>
       final now = DateTime.now().millisecondsSinceEpoch;
       final shopId = await UserService.getCurrentShopId() ?? '';
       final supplierLabel = supplier.isNotEmpty ? supplier : 'NCC';
-      final noteText = 'Nhập giá vốn: ${p.name} - ${MoneyUtils.formatCurrency(newCost)}đ';
+      final noteText =
+          'Nhập giá vốn: ${p.name} - ${MoneyUtils.formatCurrency(newCost)}đ';
 
       if (payment == 'CÔNG NỢ') {
         // Tạo công nợ NCC
@@ -1651,7 +1784,10 @@ class _InventoryViewState extends State<InventoryView>
       );
       _refresh();
     } catch (e) {
-      NotificationService.showSnackBar('Lỗi lưu giá vốn: $e', color: Colors.red);
+      NotificationService.showSnackBar(
+        'Lỗi lưu giá vốn: $e',
+        color: Colors.red,
+      );
     }
   }
 
@@ -1669,61 +1805,73 @@ class _InventoryViewState extends State<InventoryView>
       MaterialPageRoute(builder: (_) => CreateSaleView(preSelectedProduct: p)),
     ).then((_) => _refresh());
   }
+
   void _showProductActionDialog(Product p) {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: const EdgeInsets.fromLTRB(0, 8, 0, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Drag handle
-            Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
+      builder: (ctx) => Padding(
+        // Đọc từ `context` ngoài (không phải `ctx`) để tránh crash
+        // _dependents.isEmpty khi pop.
+        padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.fromLTRB(0, 8, 0, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            // Product name header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text(
-                p.name,
-                style: AppTextStyles.headline3.copyWith(fontSize: 14),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
+              // Product name header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Text(
+                  p.name,
+                  style: AppTextStyles.headline3.copyWith(fontSize: 14),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
               ),
-            ),
-            const Divider(height: 1),
-            ListTile(
-              leading: const Icon(Icons.edit_rounded, color: AppColors.primary),
-              title: Text(l10n.inventoryEditOption),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-              onTap: () {
-                Navigator.pop(ctx);
-                _editProduct(p);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.visibility_off_rounded, color: Colors.red.shade700),
-              title: Text(l10n.inventoryHideOption),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-              onTap: () {
-                Navigator.pop(ctx);
-                _showDeleteConfirmation(p);
-              },
-            ),
-          ],
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(
+                  Icons.edit_rounded,
+                  color: AppColors.primary,
+                ),
+                title: Text(l10n.inventoryEditOption),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _editProduct(p);
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.visibility_off_rounded,
+                  color: Colors.red.shade700,
+                ),
+                title: Text(l10n.inventoryHideOption),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showDeleteConfirmation(p);
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1744,7 +1892,9 @@ class _InventoryViewState extends State<InventoryView>
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  l10n.inventoryHideProductTitle(_terms.productLabel.toUpperCase()),
+                  l10n.inventoryHideProductTitle(
+                    _terms.productLabel.toUpperCase(),
+                  ),
                   style: AppTextStyles.headline3,
                 ),
               ),
@@ -1778,7 +1928,9 @@ class _InventoryViewState extends State<InventoryView>
                         ),
                       if (_canViewCostPrice)
                         Text(
-                          l10n.inventoryCostPriceNote(MoneyUtils.formatCurrency(p.cost)),
+                          l10n.inventoryCostPriceNote(
+                            MoneyUtils.formatCurrency(p.cost),
+                          ),
                           style: AppTextStyles.subtitle1,
                         ),
                     ],
@@ -1847,7 +1999,10 @@ class _InventoryViewState extends State<InventoryView>
           ),
           actions: [
             TextButton(
-              onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
+              onPressed: () {
+                FocusScope.of(ctx).unfocus();
+                Navigator.pop(ctx);
+              },
               child: Text(l10n.cancel),
             ),
             ElevatedButton(
@@ -1935,26 +2090,29 @@ class _InventoryViewState extends State<InventoryView>
       );
     } catch (e) {
       NotificationService.showSnackBar(
-        l10n.inventoryHideError(_terms.productLabel.toLowerCase(), e.toString()),
+        l10n.inventoryHideError(
+          _terms.productLabel.toLowerCase(),
+          e.toString(),
+        ),
         color: Colors.red,
       );
     }
   }
+
   Widget _buildEmptyState() {
     final l10n = AppLocalizations.of(context)!;
-    final isFiltered = _searchQuery.isNotEmpty ||
+    final isFiltered =
+        _searchQuery.isNotEmpty ||
         _filterType != 'TẤT CẢ' ||
         _filterLocationCode != null;
     return EmptyStateWidget(
-      icon: isFiltered
-          ? Icons.search_off_rounded
-          : Icons.inventory_2_outlined,
+      icon: isFiltered ? Icons.search_off_rounded : Icons.inventory_2_outlined,
       title: isFiltered ? l10n.inventoryEmptyFiltered : l10n.inventoryEmptyAll,
       subtitle: isFiltered
           ? l10n.inventoryEmptyFilteredSub
           : _showOutOfStock
-              ? null
-              : l10n.inventoryEmptyOutOfStockSub,
+          ? null
+          : l10n.inventoryEmptyOutOfStockSub,
     );
   }
 
@@ -1974,9 +2132,11 @@ class _InventoryViewState extends State<InventoryView>
     _initCheckData();
     _refresh();
     // Fix products with createdAt=0 so the date chip shows on cards (silent, once per session)
-    unawaited(db.fixMissingCreatedAt().then((fixed) {
-      if (fixed > 0 && mounted) _refresh();
-    }));
+    unawaited(
+      db.fixMissingCreatedAt().then((fixed) {
+        if (fixed > 0 && mounted) _refresh();
+      }),
+    );
   }
 
   Future<void> _saveAllowPendingCost(bool value) async {
@@ -1984,11 +2144,14 @@ class _InventoryViewState extends State<InventoryView>
     setState(() => _isSavingPendingCost = true);
     try {
       final shopId = await UserService.getCurrentShopId();
-      if (shopId == null || shopId.isEmpty) throw Exception('Chưa xác định cửa hàng');
+      if (shopId == null || shopId.isEmpty)
+        throw Exception('Chưa xác định cửa hàng');
       final current = _shopSettings ?? ShopSettings.electronics(shopId);
       final svc = CategoryService();
       svc.resetRemoteWriteCooldown();
-      final saved = await svc.saveShopSettings(current.copyWith(allowPendingCost: value));
+      final saved = await svc.saveShopSettings(
+        current.copyWith(allowPendingCost: value),
+      );
       if (!saved) throw Exception('Không thể lưu cài đặt');
       if (mounted) {
         setState(() {
@@ -1996,7 +2159,9 @@ class _InventoryViewState extends State<InventoryView>
           _isSavingPendingCost = false;
         });
         NotificationService.showSnackBar(
-          value ? '✅ Đã bật: cho phép nhập giá vốn sau' : '🔒 Đã tắt: bắt buộc nhập giá vốn',
+          value
+              ? '✅ Đã bật: cho phép nhập giá vốn sau'
+              : '🔒 Đã tắt: bắt buộc nhập giá vốn',
           color: value ? Colors.teal : Colors.grey.shade700,
         );
       }
@@ -2015,11 +2180,14 @@ class _InventoryViewState extends State<InventoryView>
     setState(() => _isSavingRequireSupplier = true);
     try {
       final shopId = await UserService.getCurrentShopId();
-      if (shopId == null || shopId.isEmpty) throw Exception('Chưa xác định cửa hàng');
+      if (shopId == null || shopId.isEmpty)
+        throw Exception('Chưa xác định cửa hàng');
       final current = _shopSettings ?? ShopSettings.electronics(shopId);
       final svc = CategoryService();
       svc.resetRemoteWriteCooldown();
-      final saved = await svc.saveShopSettings(current.copyWith(requireSupplier: value));
+      final saved = await svc.saveShopSettings(
+        current.copyWith(requireSupplier: value),
+      );
       if (!saved) throw Exception('Không thể lưu cài đặt');
       if (mounted) {
         setState(() {
@@ -2027,7 +2195,9 @@ class _InventoryViewState extends State<InventoryView>
           _isSavingRequireSupplier = false;
         });
         NotificationService.showSnackBar(
-          value ? '✅ Bắt buộc chọn NCC khi nhập kho' : '🔓 NCC không bắt buộc khi nhập kho',
+          value
+              ? '✅ Bắt buộc chọn NCC khi nhập kho'
+              : '🔓 NCC không bắt buộc khi nhập kho',
           color: value ? Colors.deepOrange : Colors.grey.shade700,
         );
       }
@@ -2042,11 +2212,14 @@ class _InventoryViewState extends State<InventoryView>
     setState(() => _isSavingSupplier = true);
     try {
       final shopId = await UserService.getCurrentShopId();
-      if (shopId == null || shopId.isEmpty) throw Exception('Chưa xác định cửa hàng');
+      if (shopId == null || shopId.isEmpty)
+        throw Exception('Chưa xác định cửa hàng');
       final current = _shopSettings ?? ShopSettings.electronics(shopId);
       final svc = CategoryService();
       svc.resetRemoteWriteCooldown();
-      final saved = await svc.saveShopSettings(current.copyWith(enableSupplier: value));
+      final saved = await svc.saveShopSettings(
+        current.copyWith(enableSupplier: value),
+      );
       if (!saved) throw Exception('Không thể lưu cài đặt');
       if (mounted) {
         setState(() {
@@ -2054,7 +2227,9 @@ class _InventoryViewState extends State<InventoryView>
           _isSavingSupplier = false;
         });
         NotificationService.showSnackBar(
-          value ? '✅ Đã bật: hiển thị nhà cung cấp' : '🔒 Đã tắt: ẩn nhà cung cấp',
+          value
+              ? '✅ Đã bật: hiển thị nhà cung cấp'
+              : '🔒 Đã tắt: ẩn nhà cung cấp',
           color: value ? Colors.indigo : Colors.grey.shade700,
         );
       }
@@ -2200,9 +2375,7 @@ class _InventoryViewState extends State<InventoryView>
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              l10n.inventoryConfirmDeleteContent(_selectedIds.length),
-            ),
+            Text(l10n.inventoryConfirmDeleteContent(_selectedIds.length)),
             const SizedBox(height: 15),
             Text(l10n.inventoryEnterPasswordToDelete),
             const SizedBox(height: 10),
@@ -2218,7 +2391,10 @@ class _InventoryViewState extends State<InventoryView>
         ),
         actions: [
           TextButton(
-            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, false); },
+            onPressed: () {
+              FocusScope.of(ctx).unfocus();
+              Navigator.pop(ctx, false);
+            },
             child: Text(l10n.cancel),
           ),
           ElevatedButton(
@@ -2318,25 +2494,28 @@ class _InventoryViewState extends State<InventoryView>
       final todayKey = DateFormat('yyyy-MM-dd').format(today);
 
       // Find today's check for this type or create new one
-      _currentCheck = checks.map((raw) {
-        final m = Map<String, dynamic>.from(raw);
-        if (m['itemsJson'] is String) {
-          try {
-            m['itemsJson'] = jsonDecode(m['itemsJson'] as String);
-          } catch (_) {
-            m['itemsJson'] = <dynamic>[];
-          }
-        }
-        return InventoryCheck.fromMap(m);
-      }).cast<InventoryCheck?>().firstWhere(
-        (check) =>
-            check != null &&
-            DateFormat('yyyy-MM-dd').format(
-                  DateTime.fromMillisecondsSinceEpoch(check.createdAt),
-                ) ==
-                todayKey,
-        orElse: () => null,
-      );
+      _currentCheck = checks
+          .map((raw) {
+            final m = Map<String, dynamic>.from(raw);
+            if (m['itemsJson'] is String) {
+              try {
+                m['itemsJson'] = jsonDecode(m['itemsJson'] as String);
+              } catch (_) {
+                m['itemsJson'] = <dynamic>[];
+              }
+            }
+            return InventoryCheck.fromMap(m);
+          })
+          .cast<InventoryCheck?>()
+          .firstWhere(
+            (check) =>
+                check != null &&
+                DateFormat('yyyy-MM-dd').format(
+                      DateTime.fromMillisecondsSinceEpoch(check.createdAt),
+                    ) ==
+                    todayKey,
+            orElse: () => null,
+          );
 
       if (_currentCheck == null) {
         _currentCheck = InventoryCheck(
@@ -2353,7 +2532,6 @@ class _InventoryViewState extends State<InventoryView>
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -2361,9 +2539,7 @@ class _InventoryViewState extends State<InventoryView>
     if (!_hasInventoryAccess) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        appBar: CustomAppBar.build(
-          title: l10n.inventoryManageTotalTitle,
-        ),
+        appBar: CustomAppBar.build(title: l10n.inventoryManageTotalTitle),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -2441,10 +2617,14 @@ class _InventoryViewState extends State<InventoryView>
             },
             icon: Icon(
               _isSearchBarVisible ? Icons.search_off_rounded : Icons.search,
-              color: _isSearchBarVisible ? AppBarAccents.inventory.withValues(alpha: 0.6) : AppBarAccents.inventory,
+              color: _isSearchBarVisible
+                  ? AppBarAccents.inventory.withValues(alpha: 0.6)
+                  : AppBarAccents.inventory,
               size: 22,
             ),
-            tooltip: _isSearchBarVisible ? l10n.cancel : l10n.inventorySearchTooltip,
+            tooltip: _isSearchBarVisible
+                ? l10n.cancel
+                : l10n.inventorySearchTooltip,
             splashRadius: 20,
           ),
           PopupMenuButton<String>(
@@ -2459,13 +2639,15 @@ class _InventoryViewState extends State<InventoryView>
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (_) => const StorageLocationView()),
+                    builder: (_) => const StorageLocationView(),
+                  ),
                 ).then((_) => _refresh());
               } else if (value == 'print') {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (_) => const PtyPrintDesignerView()),
+                    builder: (_) => const PtyPrintDesignerView(),
+                  ),
                 );
               } else if (value == 'pending_cost') {
                 _saveAllowPendingCost(!_allowPendingCost);
@@ -2476,66 +2658,108 @@ class _InventoryViewState extends State<InventoryView>
               }
             },
             itemBuilder: (_) {
-              final canManage = widget.role == 'owner' ||
+              final canManage =
+                  widget.role == 'owner' ||
                   widget.role == 'admin' ||
                   UserService.isCurrentUserSuperAdmin();
               return [
                 PopupMenuItem(
                   value: 'location',
-                  child: Row(children: [
-                    const Icon(Icons.location_on_rounded, size: 18),
-                    const SizedBox(width: 10),
-                    Text(l10n.inventoryStorageLocationMenu),
-                  ]),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.location_on_rounded, size: 18),
+                      const SizedBox(width: 10),
+                      Text(l10n.inventoryStorageLocationMenu),
+                    ],
+                  ),
                 ),
                 PopupMenuItem(
                   value: 'print',
-                  child: Row(children: [
-                    const Icon(Icons.qr_code_2_rounded, size: 18),
-                    const SizedBox(width: 10),
-                    Text(l10n.inventoryPrintLabelsMenu),
-                  ]),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.qr_code_2_rounded, size: 18),
+                      const SizedBox(width: 10),
+                      Text(l10n.inventoryPrintLabelsMenu),
+                    ],
+                  ),
                 ),
                 if (canManage) ...[
                   PopupMenuItem(
                     value: 'pending_cost',
-                    child: Row(children: [
-                      Icon(
-                        _allowPendingCost ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                        size: 18,
-                        color: _allowPendingCost ? Colors.teal : Colors.grey,
-                      ),
-                      const SizedBox(width: 10),
-                      Text('Nhập giá vốn sau',
-                        style: TextStyle(color: _allowPendingCost ? Colors.teal : null, fontWeight: _allowPendingCost ? FontWeight.w600 : null)),
-                    ]),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _allowPendingCost
+                              ? Icons.check_circle_rounded
+                              : Icons.radio_button_unchecked_rounded,
+                          size: 18,
+                          color: _allowPendingCost ? Colors.teal : Colors.grey,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Nhập giá vốn sau',
+                          style: TextStyle(
+                            color: _allowPendingCost ? Colors.teal : null,
+                            fontWeight: _allowPendingCost
+                                ? FontWeight.w600
+                                : null,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   PopupMenuItem(
                     value: 'supplier',
-                    child: Row(children: [
-                      Icon(
-                        _enableSupplier ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                        size: 18,
-                        color: _enableSupplier ? Colors.indigo : Colors.grey,
-                      ),
-                      const SizedBox(width: 10),
-                      Text('Nhà cung cấp (NCC)',
-                        style: TextStyle(color: _enableSupplier ? Colors.indigo : null, fontWeight: _enableSupplier ? FontWeight.w600 : null)),
-                    ]),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _enableSupplier
+                              ? Icons.check_circle_rounded
+                              : Icons.radio_button_unchecked_rounded,
+                          size: 18,
+                          color: _enableSupplier ? Colors.indigo : Colors.grey,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Nhà cung cấp (NCC)',
+                          style: TextStyle(
+                            color: _enableSupplier ? Colors.indigo : null,
+                            fontWeight: _enableSupplier
+                                ? FontWeight.w600
+                                : null,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   if (_enableSupplier)
                     PopupMenuItem(
                       value: 'require_supplier',
-                      child: Row(children: [
-                        Icon(
-                          _requireSupplier ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                          size: 18,
-                          color: _requireSupplier ? Colors.deepOrange : Colors.grey,
-                        ),
-                        const SizedBox(width: 10),
-                        Text('Bắt buộc chọn NCC',
-                          style: TextStyle(color: _requireSupplier ? Colors.deepOrange : null, fontWeight: _requireSupplier ? FontWeight.w600 : null)),
-                      ]),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _requireSupplier
+                                ? Icons.check_circle_rounded
+                                : Icons.radio_button_unchecked_rounded,
+                            size: 18,
+                            color: _requireSupplier
+                                ? Colors.deepOrange
+                                : Colors.grey,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Bắt buộc chọn NCC',
+                            style: TextStyle(
+                              color: _requireSupplier
+                                  ? Colors.deepOrange
+                                  : null,
+                              fontWeight: _requireSupplier
+                                  ? FontWeight.w600
+                                  : null,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                 ],
               ];
@@ -2583,7 +2807,10 @@ class _InventoryViewState extends State<InventoryView>
                       borderRadius: BorderRadius.circular(10),
                     ),
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                   ),
                   onChanged: _applySearchQuery,
                 ),
@@ -2624,7 +2851,6 @@ class _InventoryViewState extends State<InventoryView>
           .toList();
     }
 
-
     // Nếu không bật showOutOfStock, chỉ hiện còn hàng (quantity > 0)
     if (!_showOutOfStock) {
       filteredList = filteredList.where((p) => p.quantity > 0).toList();
@@ -2642,7 +2868,10 @@ class _InventoryViewState extends State<InventoryView>
             if (_isSelectionMode)
               Container(
                 color: AppColors.surface,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
                     IconButton(
@@ -2714,7 +2943,10 @@ class _InventoryViewState extends State<InventoryView>
                               padding: const EdgeInsets.all(16),
                               child: Center(
                                 child: Text(
-                                  l10n.inventoryShownCount(filteredList.length, _terms.productLabel.toLowerCase()),
+                                  l10n.inventoryShownCount(
+                                    filteredList.length,
+                                    _terms.productLabel.toLowerCase(),
+                                  ),
                                   style: TextStyle(
                                     color: Colors.grey.shade600,
                                     fontSize: 12,
@@ -2742,6 +2974,7 @@ class _InventoryViewState extends State<InventoryView>
       ],
     );
   }
+
   Widget _buildInventorySummary(int qty, int capital, int shownCount) {
     final l10n = AppLocalizations.of(context)!;
     final isFiltered =
@@ -2766,7 +2999,9 @@ class _InventoryViewState extends State<InventoryView>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _summaryItemCompact(
-            isFiltered ? l10n.inventoryDisplayOrTotal : l10n.inventoryTotalLabel,
+            isFiltered
+                ? l10n.inventoryDisplayOrTotal
+                : l10n.inventoryTotalLabel,
             isFiltered ? '$shownCount / $qty' : '$qty',
             Icons.inventory,
           ),
@@ -2839,7 +3074,8 @@ class _InventoryViewState extends State<InventoryView>
             _buildLocationFilterChip(),
             const SizedBox(width: 8),
             _buildOutOfStockChip(),
-            if ((_allowPendingCost && _canViewCostPrice) || _enableSupplier) ...[
+            if ((_allowPendingCost && _canViewCostPrice) ||
+                _enableSupplier) ...[
               const SizedBox(width: 8),
               _buildNoCostFilterChip(),
             ],
@@ -2911,7 +3147,9 @@ class _InventoryViewState extends State<InventoryView>
           color: _showOutOfStock ? Colors.amber.shade100 : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: _showOutOfStock ? Colors.amber.shade700 : Colors.grey.shade300,
+            color: _showOutOfStock
+                ? Colors.amber.shade700
+                : Colors.grey.shade300,
             width: _showOutOfStock ? 2 : 1,
           ),
         ),
@@ -2919,7 +3157,9 @@ class _InventoryViewState extends State<InventoryView>
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              _showOutOfStock ? Icons.visibility_rounded : Icons.visibility_off_rounded,
+              _showOutOfStock
+                  ? Icons.visibility_rounded
+                  : Icons.visibility_off_rounded,
               size: 16,
               color: _showOutOfStock ? Colors.amber.shade800 : Colors.grey,
             ),
@@ -2927,8 +3167,12 @@ class _InventoryViewState extends State<InventoryView>
             Text(
               l10n.outOfStock,
               style: AppTextStyles.subtitle1.copyWith(
-                fontWeight: _showOutOfStock ? FontWeight.bold : FontWeight.normal,
-                color: _showOutOfStock ? Colors.amber.shade800 : Colors.grey.shade700,
+                fontWeight: _showOutOfStock
+                    ? FontWeight.bold
+                    : FontWeight.normal,
+                color: _showOutOfStock
+                    ? Colors.amber.shade800
+                    : Colors.grey.shade700,
               ),
             ),
           ],
@@ -2962,7 +3206,11 @@ class _InventoryViewState extends State<InventoryView>
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.warning_amber_rounded, size: 16, color: Colors.orange.shade700),
+            Icon(
+              Icons.warning_amber_rounded,
+              size: 16,
+              color: Colors.orange.shade700,
+            ),
             const SizedBox(width: 4),
             Text(
               'Thiếu vốn/NCC',
@@ -2991,39 +3239,44 @@ class _InventoryViewState extends State<InventoryView>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text(
-              l10n.inventoryFilterByLocation,
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+      builder: (ctx) => Padding(
+        // Đọc từ `context` ngoài (không phải `ctx`) để tránh crash
+        // _dependents.isEmpty khi pop.
+        padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text(
+                l10n.inventoryFilterByLocation,
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
             ),
-          ),
-          Flexible(
-            child: ListView(
-              shrinkWrap: true,
-              children: locations
-                  .map(
-                    (loc) => ListTile(
-                      leading: const Icon(
-                        Icons.location_on,
-                        color: Colors.indigo,
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: locations
+                    .map(
+                      (loc) => ListTile(
+                        leading: const Icon(
+                          Icons.location_on,
+                          color: Colors.indigo,
+                        ),
+                        title: Text(
+                          loc.code,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(loc.name),
+                        onTap: () => Navigator.pop(ctx, loc.code),
                       ),
-                      title: Text(
-                        loc.code,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      subtitle: Text(loc.name),
-                      onTap: () => Navigator.pop(ctx, loc.code),
-                    ),
-                  )
-                  .toList(),
+                    )
+                    .toList(),
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-        ],
+            const SizedBox(height: 12),
+          ],
+        ),
       ),
     );
     if (selected != null && mounted) {
@@ -3066,7 +3319,9 @@ class _InventoryViewState extends State<InventoryView>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.15) : Colors.grey.shade100,
+          color: isSelected
+              ? color.withValues(alpha: 0.15)
+              : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? color : Colors.grey.shade300,
@@ -3319,14 +3574,21 @@ class _InventoryViewState extends State<InventoryView>
                               spacing: 5,
                               runSpacing: 4,
                               children: [
-                                if (_canViewCostPrice && !isPending && p.cost > 0)
+                                if (_canViewCostPrice &&
+                                    !isPending &&
+                                    p.cost > 0)
                                   _metaChip(
-                                    label: l10n.inventoryCapitalChip(MoneyUtils.formatCompactCurrency(p.cost)),
+                                    label: l10n.inventoryCapitalChip(
+                                      MoneyUtils.formatCompactCurrency(p.cost),
+                                    ),
                                     color: Colors.deepPurple.shade500,
                                     bg: Colors.deepPurple.shade50,
                                     icon: Icons.account_balance_wallet_outlined,
                                   ),
-                                if (_allowPendingCost && _canViewCostPrice && !isPending && p.cost == 0)
+                                if (_allowPendingCost &&
+                                    _canViewCostPrice &&
+                                    !isPending &&
+                                    p.cost == 0)
                                   GestureDetector(
                                     onTap: () => _showInlineCostEdit(p),
                                     child: _metaChip(
@@ -3336,7 +3598,10 @@ class _InventoryViewState extends State<InventoryView>
                                       icon: Icons.edit_rounded,
                                     ),
                                   ),
-                                if (_enableSupplier && !isPending && (p.supplier == null || p.supplier!.trim().isEmpty))
+                                if (_enableSupplier &&
+                                    !isPending &&
+                                    (p.supplier == null ||
+                                        p.supplier!.trim().isEmpty))
                                   _metaChip(
                                     label: '⚠ Chưa NCC',
                                     color: Colors.red.shade600,
@@ -3906,6 +4171,7 @@ class _InventoryViewState extends State<InventoryView>
       ),
     );
   }
+
   void _editProduct(Product p) {
     final l10n = AppLocalizations.of(context)!;
     // Tên máy = chỉ model (VD: "15 PRO MAX")
@@ -4042,7 +4308,8 @@ class _InventoryViewState extends State<InventoryView>
                 labelNote: labelNoteC.text.trim().isNotEmpty
                     ? labelNoteC.text.trim().toUpperCase()
                     : null,
-                quantity: p.quantity, // SL không thay đổi qua edit — dùng "Nhập thêm"
+                quantity:
+                    p.quantity, // SL không thay đổi qua edit — dùng "Nhập thêm"
                 type: type,
                 supplier: supplier,
                 updatedAt: ts,
@@ -4150,7 +4417,9 @@ class _InventoryViewState extends State<InventoryView>
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      l10n.inventoryEditProductTitle(_terms.productLabel.toUpperCase()),
+                      l10n.inventoryEditProductTitle(
+                        _terms.productLabel.toUpperCase(),
+                      ),
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
@@ -4164,502 +4433,757 @@ class _InventoryViewState extends State<InventoryView>
             ),
             content: Theme(
               data: Theme.of(ctx).copyWith(
-                inputDecorationTheme: Theme.of(ctx).inputDecorationTheme.copyWith(
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                ),
+                inputDecorationTheme: Theme.of(ctx).inputDecorationTheme
+                    .copyWith(
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                    ),
               ),
               child: SizedBox(
                 width: double.maxFinite,
                 height: MediaQuery.of(ctx).size.height * 0.65,
                 child: SingleChildScrollView(
-                child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Loại hàng (KHÓA - không cho thay đổi)
-                  InputDecorator(
-                    decoration: InputDecoration(
-                      labelText: l10n.inventoryProductTypeLocked,
-                      labelStyle: const TextStyle(
-                        color: PopupTheme.textMuted,
-                        fontSize: 12,
-                      ),
-                      prefixIcon: const Icon(
-                        Icons.lock,
-                        size: 16,
-                        color: PopupTheme.textMuted,
-                      ),
-                      filled: true,
-                      fillColor: PopupTheme.cardDark,
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                        borderSide: const BorderSide(color: PopupTheme.borderDark),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                        borderSide: const BorderSide(color: PopupTheme.borderDark),
-                      ),
-                    ),
-                    child: Text(
-                      type,
-                      style: const TextStyle(
-                        color: PopupTheme.textMuted,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-
-                  // Hãng - chỉ hiện cho điện thoại
-                  if (_businessType == 'electronics') ...[
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      // ignore: deprecated_member_use
-                      value: ProductConstants.brands.contains(selectedBrand)
-                          ? selectedBrand
-                          : null,
-                      dropdownColor: PopupTheme.surfaceDark,
-                      style: const TextStyle(
-                        color: PopupTheme.textPrimary,
-                        fontSize: 13,
-                      ),
-                      decoration: InputDecoration(
-                        labelText: l10n.inventoryBrandField,
-                        labelStyle: const TextStyle(
-                          color: PopupTheme.textSecondary,
-                          fontSize: 13,
-                        ),
-                        prefixIcon: const Icon(
-                          Icons.business,
-                          size: 16,
-                          color: PopupTheme.textSecondary,
-                        ),
-                        filled: true,
-                        fillColor: PopupTheme.surfaceDark,
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                          borderSide: const BorderSide(color: PopupTheme.borderDark),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                          borderSide: const BorderSide(color: PopupTheme.borderDark),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                          borderSide: const BorderSide(color: PopupTheme.blue, width: 1.5),
-                        ),
-                      ),
-                      items: ProductConstants.brands
-                          .map(
-                            (b) => DropdownMenuItem(
-                              value: b,
-                              child: Text(b, style: const TextStyle(fontSize: 13)),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Loại hàng (KHÓA - không cho thay đổi)
+                      InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: l10n.inventoryProductTypeLocked,
+                          labelStyle: const TextStyle(
+                            color: PopupTheme.textMuted,
+                            fontSize: 12,
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.lock,
+                            size: 16,
+                            color: PopupTheme.textMuted,
+                          ),
+                          filled: true,
+                          fillColor: PopupTheme.cardDark,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              PopupTheme.radiusField,
                             ),
-                          )
-                          .toList(),
-                      onChanged: (v) => setS(() => selectedBrand = v),
-                    ),
-                  ],
-
-                  // Tên sản phẩm / Model
-                  _input(
-                    nameC,
-                    _isElectronics
-                        ? l10n.inventoryModelField
-                        : l10n.inventoryProductNameLabel(_terms.productLabel.toLowerCase()),
-                    _isElectronics ? Icons.phone_android : Icons.inventory_2,
-                    caps: true,
-                  ),
-
-                  // Dung lượng/Size + Màu sắc (dropdown)
-                  if (_isElectronics || _isFashion)
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            // ignore: deprecated_member_use
-                            value: _isFashion
-                                ? (ProductConstants.clothingSizes.contains(selectedCapacity) ? selectedCapacity : null)
-                                : (ProductConstants.capacities.contains(selectedCapacity) ? selectedCapacity : null),
-                            isExpanded: true,
-                            dropdownColor: PopupTheme.surfaceDark,
-                            style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 13),
-                            decoration: InputDecoration(
-                              labelText: _isFashion ? l10n.inventorySizeLabel : l10n.inventoryCapacityLabel,
-                              labelStyle: const TextStyle(color: PopupTheme.textSecondary, fontSize: 13),
-                              prefixIcon: Icon(
-                                _isFashion ? Icons.straighten : Icons.storage,
-                                size: 16,
-                                color: PopupTheme.textSecondary,
-                              ),
-                              filled: true,
-                              fillColor: PopupTheme.surfaceDark,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                                borderSide: const BorderSide(color: PopupTheme.borderDark),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                                borderSide: const BorderSide(color: PopupTheme.borderDark),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                                borderSide: const BorderSide(color: PopupTheme.blue, width: 1.5),
-                              ),
+                            borderSide: const BorderSide(
+                              color: PopupTheme.borderDark,
                             ),
-                            items: (_isFashion ? ProductConstants.clothingSizes : ProductConstants.capacities)
-                                .map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 13))))
-                                .toList(),
-                            onChanged: (v) => setS(() => selectedCapacity = v),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              PopupTheme.radiusField,
+                            ),
+                            borderSide: const BorderSide(
+                              color: PopupTheme.borderDark,
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            // ignore: deprecated_member_use
-                            value: ProductConstants.colors.contains(selectedColor) ? selectedColor : null,
-                            isExpanded: true,
-                            dropdownColor: PopupTheme.surfaceDark,
-                            style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 13),
-                            decoration: InputDecoration(
-                              labelText: l10n.inventoryColorField,
-                        labelStyle: const TextStyle(color: PopupTheme.textSecondary, fontSize: 13),
-                        prefixIcon: const Icon(Icons.color_lens, size: 16, color: PopupTheme.textSecondary),
-                        filled: true,
-                        fillColor: PopupTheme.surfaceDark,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                          borderSide: const BorderSide(color: PopupTheme.borderDark),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                          borderSide: const BorderSide(color: PopupTheme.borderDark),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                          borderSide: const BorderSide(color: PopupTheme.blue, width: 1.5),
+                        child: Text(
+                          type,
+                          style: const TextStyle(
+                            color: PopupTheme.textMuted,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
-                      items: ProductConstants.colors
-                          .map(
-                            (c) => DropdownMenuItem(
-                              value: c,
-                              child: Text(
-                                c,
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) => setS(() => selectedColor = v),
-                    ),
-                        ),
-                      ],
-                    ),
 
-                  // Tình trạng (MỚI, 99, 98...)
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    // ignore: deprecated_member_use
-                    value: selectedCondition,
-                    dropdownColor: PopupTheme.surfaceDark,
-                    style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 13),
-                    decoration: InputDecoration(
-                      labelText: l10n.inventoryConditionField,
-                      labelStyle: const TextStyle(color: PopupTheme.textSecondary, fontSize: 13),
-                      prefixIcon: const Icon(Icons.grade, size: 16, color: PopupTheme.textSecondary),
-                      filled: true,
-                      fillColor: PopupTheme.surfaceDark,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                        borderSide: const BorderSide(color: PopupTheme.borderDark),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                        borderSide: const BorderSide(color: PopupTheme.borderDark),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                        borderSide: const BorderSide(color: PopupTheme.blue, width: 1.5),
-                      ),
-                    ),
-                    items: ProductConstants.conditionsShort
-                        .map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 13))))
-                        .toList(),
-                    onChanged: (v) => setS(() => selectedCondition = v),
-                  ),
-
-                  // Thông tin in trên tem
-                  _input(
-                    labelInfoC,
-                    l10n.inventoryLabelInfoField,
-                    Icons.local_offer_outlined,
-                  ),
-
-                  // Ghi chú sản phẩm
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: TextFormField(
-                      controller: labelNoteC,
-                      maxLines: 2,
-                      textCapitalization: TextCapitalization.characters,
-                      style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary),
-                      decoration: InputDecoration(
-                        labelText: l10n.note,
-                        hintText: l10n.inventoryNoteHint,
-                        labelStyle: const TextStyle(color: PopupTheme.textSecondary, fontSize: 13),
-                        hintStyle: const TextStyle(color: PopupTheme.textMuted, fontSize: 13),
-                        prefixIcon: const Icon(Icons.note_alt_outlined, size: 18, color: PopupTheme.textSecondary),
-                        isDense: true,
-                        filled: true,
-                        fillColor: PopupTheme.surfaceDark,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                          borderSide: const BorderSide(color: PopupTheme.borderDark),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                          borderSide: const BorderSide(color: PopupTheme.borderDark),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                          borderSide: const BorderSide(color: PopupTheme.blue, width: 1.5),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // IMEI/Serial (read-only) - chỉ hiện nếu enableSerial
-                  if (_enableSerial)
-                    _input(
-                      imeiC,
-                      _terms.specialField1Label,
-                      Icons.fingerprint,
-                      readOnly: true,
-                    ),
-
-                  // Giá vốn - ẩn nếu không có quyền, dialog xác nhận bảo vệ khi thay đổi
-                  if (_canViewCostPrice)
-                    _input(
-                      costC,
-                      l10n.inventoryCostField,
-                      Icons.money,
-                      type: TextInputType.number,
-                      suffix: "k",
-                    ),
-
-                  // Giá bán
-                  _input(
-                    priceC,
-                    l10n.inventoryPriceField,
-                    Icons.sell,
-                    type: TextInputType.number,
-                    suffix: "k",
-                  ),
-
-                  // Phase 2: Food module - Expiry & Batch fields
-                  if (_enableExpiry || _enableBatch) ...[
-                    const Divider(height: 30, thickness: 1),
-                    Text(
-                      l10n.inventoryExpiry,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: PopupTheme.orange,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    if (_enableExpiry) ...[
-                      InkWell(
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: ctx,
-                            initialDate:
-                                expiryDate ??
-                                DateTime.now().add(const Duration(days: 30)),
-                            firstDate: DateTime.now().subtract(
-                              const Duration(days: 365),
-                            ),
-                            lastDate: DateTime.now().add(
-                              const Duration(days: 365 * 5),
-                            ),
-                            helpText: l10n.inventoryChooseExpiry,
-                          );
-                          if (picked != null) {
-                            setS(() => expiryDate = picked);
-                          }
-                        },
-                        child: InputDecorator(
+                      // Hãng - chỉ hiện cho điện thoại
+                      if (_businessType == 'electronics') ...[
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          // ignore: deprecated_member_use
+                          value: ProductConstants.brands.contains(selectedBrand)
+                              ? selectedBrand
+                              : null,
+                          dropdownColor: PopupTheme.surfaceDark,
+                          style: const TextStyle(
+                            color: PopupTheme.textPrimary,
+                            fontSize: 13,
+                          ),
                           decoration: InputDecoration(
-                            labelText: l10n.inventoryExpiryLabel,
-                            labelStyle: const TextStyle(color: PopupTheme.textSecondary, fontSize: 13),
-                            prefixIcon: const Icon(Icons.event, color: PopupTheme.orange),
+                            labelText: l10n.inventoryBrandField,
+                            labelStyle: const TextStyle(
+                              color: PopupTheme.textSecondary,
+                              fontSize: 13,
+                            ),
+                            prefixIcon: const Icon(
+                              Icons.business,
+                              size: 16,
+                              color: PopupTheme.textSecondary,
+                            ),
                             filled: true,
                             fillColor: PopupTheme.surfaceDark,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                              borderSide: const BorderSide(color: PopupTheme.borderDark),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                              borderSide: const BorderSide(color: PopupTheme.borderDark),
-                            ),
-                            suffixIcon: expiryDate != null
-                                ? IconButton(
-                                    icon: const Icon(Icons.clear, color: PopupTheme.textMuted),
-                                    onPressed: () => setS(() => expiryDate = null),
-                                  )
-                                : null,
-                          ),
-                          child: Text(
-                            expiryDate != null
-                                ? DateFormat('dd/MM/yyyy').format(expiryDate!)
-                                : l10n.inventoryNotChosen,
-                            style: TextStyle(
-                              color: expiryDate != null
-                                  ? PopupTheme.textPrimary
-                                  : PopupTheme.textMuted,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-
-                    if (_enableBatch) ...[
-                      const SizedBox(height: 12),
-                      _input(batchC, l10n.inventoryBatchField, Icons.qr_code_2, caps: true),
-                    ],
-                  ],
-
-                  // Ảnh sản phẩm & vị trí lưu kho
-                  const Divider(height: 20, thickness: 1, color: PopupTheme.borderDark),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      l10n.inventoryPhotoSection,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: PopupTheme.blue,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ImagePickerWidget(
-                    imageUrl: p.images?.isNotEmpty == true ? p.images : null,
-                    localPath: editLocalImagePath,
-                    onImagePicked: (path) =>
-                        setS(() => editLocalImagePath = path),
-                    onImageDeleted: () => setS(() => editLocalImagePath = null),
-                    size: 72,
-                  ),
-                  const SizedBox(height: 10),
-                  StorageLocationSelector(
-                    selectedLocationId: editSelectedLocation?.firestoreId,
-                    selectedLocationCode: editSelectedLocation?.code,
-                    selectedLocationName: editSelectedLocation?.name,
-                    onSelected: (loc) => setS(() => editSelectedLocation = loc),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Số lượng (khóa) + Nhà cung cấp (khóa)
-                  Row(
-                    children: [
-                      // SL hiện tại — KHÓA, không cho sửa trực tiếp
-                      Expanded(
-                        flex: 1,
-                        child: InputDecorator(
-                          decoration: InputDecoration(
-                            labelText: l10n.inventoryStockQty,
-                            labelStyle: const TextStyle(color: PopupTheme.textMuted, fontSize: 13),
-                            prefixIcon: const Icon(Icons.lock, size: 16, color: PopupTheme.textMuted),
-                            filled: true,
-                            fillColor: PopupTheme.cardDark,
                             isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                              borderSide: const BorderSide(color: PopupTheme.borderDark),
+                              borderRadius: BorderRadius.circular(
+                                PopupTheme.radiusField,
+                              ),
+                              borderSide: const BorderSide(
+                                color: PopupTheme.borderDark,
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                              borderSide: const BorderSide(color: PopupTheme.borderDark),
+                              borderRadius: BorderRadius.circular(
+                                PopupTheme.radiusField,
+                              ),
+                              borderSide: const BorderSide(
+                                color: PopupTheme.borderDark,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                PopupTheme.radiusField,
+                              ),
+                              borderSide: const BorderSide(
+                                color: PopupTheme.blue,
+                                width: 1.5,
+                              ),
                             ),
                           ),
-                          child: Text(
-                            p.quantity.toString(),
-                            style: const TextStyle(color: PopupTheme.textMuted, fontSize: 14, fontWeight: FontWeight.bold),
+                          items: ProductConstants.brands
+                              .map(
+                                (b) => DropdownMenuItem(
+                                  value: b,
+                                  child: Text(
+                                    b,
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (v) => setS(() => selectedBrand = v),
+                        ),
+                      ],
+
+                      // Tên sản phẩm / Model
+                      _input(
+                        nameC,
+                        _isElectronics
+                            ? l10n.inventoryModelField
+                            : l10n.inventoryProductNameLabel(
+                                _terms.productLabel.toLowerCase(),
+                              ),
+                        _isElectronics
+                            ? Icons.phone_android
+                            : Icons.inventory_2,
+                        caps: true,
+                      ),
+
+                      // Dung lượng/Size + Màu sắc (dropdown)
+                      if (_isElectronics || _isFashion)
+                        Row(
+                          children: [
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                // ignore: deprecated_member_use
+                                value: _isFashion
+                                    ? (ProductConstants.clothingSizes.contains(
+                                            selectedCapacity,
+                                          )
+                                          ? selectedCapacity
+                                          : null)
+                                    : (ProductConstants.capacities.contains(
+                                            selectedCapacity,
+                                          )
+                                          ? selectedCapacity
+                                          : null),
+                                isExpanded: true,
+                                dropdownColor: PopupTheme.surfaceDark,
+                                style: const TextStyle(
+                                  color: PopupTheme.textPrimary,
+                                  fontSize: 13,
+                                ),
+                                decoration: InputDecoration(
+                                  labelText: _isFashion
+                                      ? l10n.inventorySizeLabel
+                                      : l10n.inventoryCapacityLabel,
+                                  labelStyle: const TextStyle(
+                                    color: PopupTheme.textSecondary,
+                                    fontSize: 13,
+                                  ),
+                                  prefixIcon: Icon(
+                                    _isFashion
+                                        ? Icons.straighten
+                                        : Icons.storage,
+                                    size: 16,
+                                    color: PopupTheme.textSecondary,
+                                  ),
+                                  filled: true,
+                                  fillColor: PopupTheme.surfaceDark,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      PopupTheme.radiusField,
+                                    ),
+                                    borderSide: const BorderSide(
+                                      color: PopupTheme.borderDark,
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      PopupTheme.radiusField,
+                                    ),
+                                    borderSide: const BorderSide(
+                                      color: PopupTheme.borderDark,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      PopupTheme.radiusField,
+                                    ),
+                                    borderSide: const BorderSide(
+                                      color: PopupTheme.blue,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                ),
+                                items:
+                                    (_isFashion
+                                            ? ProductConstants.clothingSizes
+                                            : ProductConstants.capacities)
+                                        .map(
+                                          (c) => DropdownMenuItem(
+                                            value: c,
+                                            child: Text(
+                                              c,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                        .toList(),
+                                onChanged: (v) =>
+                                    setS(() => selectedCapacity = v),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                // ignore: deprecated_member_use
+                                value:
+                                    ProductConstants.colors.contains(
+                                      selectedColor,
+                                    )
+                                    ? selectedColor
+                                    : null,
+                                isExpanded: true,
+                                dropdownColor: PopupTheme.surfaceDark,
+                                style: const TextStyle(
+                                  color: PopupTheme.textPrimary,
+                                  fontSize: 13,
+                                ),
+                                decoration: InputDecoration(
+                                  labelText: l10n.inventoryColorField,
+                                  labelStyle: const TextStyle(
+                                    color: PopupTheme.textSecondary,
+                                    fontSize: 13,
+                                  ),
+                                  prefixIcon: const Icon(
+                                    Icons.color_lens,
+                                    size: 16,
+                                    color: PopupTheme.textSecondary,
+                                  ),
+                                  filled: true,
+                                  fillColor: PopupTheme.surfaceDark,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      PopupTheme.radiusField,
+                                    ),
+                                    borderSide: const BorderSide(
+                                      color: PopupTheme.borderDark,
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      PopupTheme.radiusField,
+                                    ),
+                                    borderSide: const BorderSide(
+                                      color: PopupTheme.borderDark,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      PopupTheme.radiusField,
+                                    ),
+                                    borderSide: const BorderSide(
+                                      color: PopupTheme.blue,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                ),
+                                items: ProductConstants.colors
+                                    .map(
+                                      (c) => DropdownMenuItem(
+                                        value: c,
+                                        child: Text(
+                                          c,
+                                          style: const TextStyle(fontSize: 13),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (v) => setS(() => selectedColor = v),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                      // Tình trạng (MỚI, 99, 98...)
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        // ignore: deprecated_member_use
+                        value: selectedCondition,
+                        dropdownColor: PopupTheme.surfaceDark,
+                        style: const TextStyle(
+                          color: PopupTheme.textPrimary,
+                          fontSize: 13,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: l10n.inventoryConditionField,
+                          labelStyle: const TextStyle(
+                            color: PopupTheme.textSecondary,
+                            fontSize: 13,
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.grade,
+                            size: 16,
+                            color: PopupTheme.textSecondary,
+                          ),
+                          filled: true,
+                          fillColor: PopupTheme.surfaceDark,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              PopupTheme.radiusField,
+                            ),
+                            borderSide: const BorderSide(
+                              color: PopupTheme.borderDark,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              PopupTheme.radiusField,
+                            ),
+                            borderSide: const BorderSide(
+                              color: PopupTheme.borderDark,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              PopupTheme.radiusField,
+                            ),
+                            borderSide: const BorderSide(
+                              color: PopupTheme.blue,
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                        items: ProductConstants.conditionsShort
+                            .map(
+                              (c) => DropdownMenuItem(
+                                value: c,
+                                child: Text(
+                                  c,
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (v) => setS(() => selectedCondition = v),
+                      ),
+
+                      // Thông tin in trên tem
+                      _input(
+                        labelInfoC,
+                        l10n.inventoryLabelInfoField,
+                        Icons.local_offer_outlined,
+                      ),
+
+                      // Ghi chú sản phẩm
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: TextFormField(
+                          controller: labelNoteC,
+                          maxLines: 2,
+                          textCapitalization: TextCapitalization.characters,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: PopupTheme.textPrimary,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: l10n.note,
+                            hintText: l10n.inventoryNoteHint,
+                            labelStyle: const TextStyle(
+                              color: PopupTheme.textSecondary,
+                              fontSize: 13,
+                            ),
+                            hintStyle: const TextStyle(
+                              color: PopupTheme.textMuted,
+                              fontSize: 13,
+                            ),
+                            prefixIcon: const Icon(
+                              Icons.note_alt_outlined,
+                              size: 18,
+                              color: PopupTheme.textSecondary,
+                            ),
+                            isDense: true,
+                            filled: true,
+                            fillColor: PopupTheme.surfaceDark,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                PopupTheme.radiusField,
+                              ),
+                              borderSide: const BorderSide(
+                                color: PopupTheme.borderDark,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                PopupTheme.radiusField,
+                              ),
+                              borderSide: const BorderSide(
+                                color: PopupTheme.borderDark,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                PopupTheme.radiusField,
+                              ),
+                              borderSide: const BorderSide(
+                                color: PopupTheme.blue,
+                                width: 1.5,
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      // Nhà cung cấp (KHÓA - không cho thay đổi)
-                      Expanded(
-                        flex: 2,
-                        child: InputDecorator(
-                          decoration: InputDecoration(
-                            labelText: l10n.inventorySupplierLockedField,
-                            labelStyle: const TextStyle(color: PopupTheme.textMuted, fontSize: 13),
-                            prefixIcon: const Icon(Icons.lock, size: 16, color: PopupTheme.textMuted),
-                            filled: true,
-                            fillColor: PopupTheme.cardDark,
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                              borderSide: const BorderSide(color: PopupTheme.borderDark),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-                              borderSide: const BorderSide(color: PopupTheme.borderDark),
+
+                      // IMEI/Serial (read-only) - chỉ hiện nếu enableSerial
+                      if (_enableSerial)
+                        _input(
+                          imeiC,
+                          _terms.specialField1Label,
+                          Icons.fingerprint,
+                          readOnly: true,
+                        ),
+
+                      // Giá vốn - ẩn nếu không có quyền, dialog xác nhận bảo vệ khi thay đổi
+                      if (_canViewCostPrice)
+                        _input(
+                          costC,
+                          l10n.inventoryCostField,
+                          Icons.money,
+                          type: TextInputType.number,
+                          suffix: "k",
+                        ),
+
+                      // Giá bán
+                      _input(
+                        priceC,
+                        l10n.inventoryPriceField,
+                        Icons.sell,
+                        type: TextInputType.number,
+                        suffix: "k",
+                      ),
+
+                      // Phase 2: Food module - Expiry & Batch fields
+                      if (_enableExpiry || _enableBatch) ...[
+                        const Divider(height: 30, thickness: 1),
+                        Text(
+                          l10n.inventoryExpiry,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: PopupTheme.orange,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+
+                        if (_enableExpiry) ...[
+                          InkWell(
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: ctx,
+                                initialDate:
+                                    expiryDate ??
+                                    DateTime.now().add(
+                                      const Duration(days: 30),
+                                    ),
+                                firstDate: DateTime.now().subtract(
+                                  const Duration(days: 365),
+                                ),
+                                lastDate: DateTime.now().add(
+                                  const Duration(days: 365 * 5),
+                                ),
+                                helpText: l10n.inventoryChooseExpiry,
+                              );
+                              if (picked != null) {
+                                setS(() => expiryDate = picked);
+                              }
+                            },
+                            child: InputDecorator(
+                              decoration: InputDecoration(
+                                labelText: l10n.inventoryExpiryLabel,
+                                labelStyle: const TextStyle(
+                                  color: PopupTheme.textSecondary,
+                                  fontSize: 13,
+                                ),
+                                prefixIcon: const Icon(
+                                  Icons.event,
+                                  color: PopupTheme.orange,
+                                ),
+                                filled: true,
+                                fillColor: PopupTheme.surfaceDark,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    PopupTheme.radiusField,
+                                  ),
+                                  borderSide: const BorderSide(
+                                    color: PopupTheme.borderDark,
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    PopupTheme.radiusField,
+                                  ),
+                                  borderSide: const BorderSide(
+                                    color: PopupTheme.borderDark,
+                                  ),
+                                ),
+                                suffixIcon: expiryDate != null
+                                    ? IconButton(
+                                        icon: const Icon(
+                                          Icons.clear,
+                                          color: PopupTheme.textMuted,
+                                        ),
+                                        onPressed: () =>
+                                            setS(() => expiryDate = null),
+                                      )
+                                    : null,
+                              ),
+                              child: Text(
+                                expiryDate != null
+                                    ? DateFormat(
+                                        'dd/MM/yyyy',
+                                      ).format(expiryDate!)
+                                    : l10n.inventoryNotChosen,
+                                style: TextStyle(
+                                  color: expiryDate != null
+                                      ? PopupTheme.textPrimary
+                                      : PopupTheme.textMuted,
+                                ),
+                              ),
                             ),
                           ),
-                          child: Text(
-                            supplier ?? l10n.inventoryNoSupplier,
-                            style: const TextStyle(color: PopupTheme.textMuted, fontSize: 14),
-                            overflow: TextOverflow.ellipsis,
+                        ],
+
+                        if (_enableBatch) ...[
+                          const SizedBox(height: 12),
+                          _input(
+                            batchC,
+                            l10n.inventoryBatchField,
+                            Icons.qr_code_2,
+                            caps: true,
+                          ),
+                        ],
+                      ],
+
+                      // Ảnh sản phẩm & vị trí lưu kho
+                      const Divider(
+                        height: 20,
+                        thickness: 1,
+                        color: PopupTheme.borderDark,
+                      ),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          l10n.inventoryPhotoSection,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: PopupTheme.blue,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ImagePickerWidget(
+                        imageUrl: p.images?.isNotEmpty == true
+                            ? p.images
+                            : null,
+                        localPath: editLocalImagePath,
+                        onImagePicked: (path) =>
+                            setS(() => editLocalImagePath = path),
+                        onImageDeleted: () =>
+                            setS(() => editLocalImagePath = null),
+                        size: 72,
+                      ),
+                      const SizedBox(height: 10),
+                      StorageLocationSelector(
+                        selectedLocationId: editSelectedLocation?.firestoreId,
+                        selectedLocationCode: editSelectedLocation?.code,
+                        selectedLocationName: editSelectedLocation?.name,
+                        onSelected: (loc) =>
+                            setS(() => editSelectedLocation = loc),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Số lượng (khóa) + Nhà cung cấp (khóa)
+                      Row(
+                        children: [
+                          // SL hiện tại — KHÓA, không cho sửa trực tiếp
+                          Expanded(
+                            flex: 1,
+                            child: InputDecorator(
+                              decoration: InputDecoration(
+                                labelText: l10n.inventoryStockQty,
+                                labelStyle: const TextStyle(
+                                  color: PopupTheme.textMuted,
+                                  fontSize: 13,
+                                ),
+                                prefixIcon: const Icon(
+                                  Icons.lock,
+                                  size: 16,
+                                  color: PopupTheme.textMuted,
+                                ),
+                                filled: true,
+                                fillColor: PopupTheme.cardDark,
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    PopupTheme.radiusField,
+                                  ),
+                                  borderSide: const BorderSide(
+                                    color: PopupTheme.borderDark,
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    PopupTheme.radiusField,
+                                  ),
+                                  borderSide: const BorderSide(
+                                    color: PopupTheme.borderDark,
+                                  ),
+                                ),
+                              ),
+                              child: Text(
+                                p.quantity.toString(),
+                                style: const TextStyle(
+                                  color: PopupTheme.textMuted,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Nhà cung cấp (KHÓA - không cho thay đổi)
+                          Expanded(
+                            flex: 2,
+                            child: InputDecorator(
+                              decoration: InputDecoration(
+                                labelText: l10n.inventorySupplierLockedField,
+                                labelStyle: const TextStyle(
+                                  color: PopupTheme.textMuted,
+                                  fontSize: 13,
+                                ),
+                                prefixIcon: const Icon(
+                                  Icons.lock,
+                                  size: 16,
+                                  color: PopupTheme.textMuted,
+                                ),
+                                filled: true,
+                                fillColor: PopupTheme.cardDark,
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    PopupTheme.radiusField,
+                                  ),
+                                  borderSide: const BorderSide(
+                                    color: PopupTheme.borderDark,
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    PopupTheme.radiusField,
+                                  ),
+                                  borderSide: const BorderSide(
+                                    color: PopupTheme.borderDark,
+                                  ),
+                                ),
+                              ),
+                              child: Text(
+                                supplier ?? l10n.inventoryNoSupplier,
+                                style: const TextStyle(
+                                  color: PopupTheme.textMuted,
+                                  fontSize: 14,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      // Nút nhập thêm hàng — dòng riêng, full width
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.of(ctx).pop();
+                            _showQuickStockInDialog(p);
+                          },
+                          icon: const Icon(Icons.add_shopping_cart, size: 16),
+                          label: Text(
+                            l10n.inventoryRestockBtn,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.teal,
+                            side: const BorderSide(color: Colors.teal),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  // Nút nhập thêm hàng — dòng riêng, full width
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.of(ctx).pop();
-                        _showQuickStockInDialog(p);
-                      },
-                      icon: const Icon(Icons.add_shopping_cart, size: 16),
-                      label: Text(l10n.inventoryRestockBtn, style: const TextStyle(fontSize: 13)),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.teal,
-                        side: const BorderSide(color: Colors.teal),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                      ),
-                    ),
-                  ),
-                ],
                 ),
-              ),
               ),
             ),
             actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -4669,7 +5193,10 @@ class _InventoryViewState extends State<InventoryView>
                   SizedBox(
                     width: 100,
                     child: OutlinedButton(
-                      onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
+                      onPressed: () {
+                        FocusScope.of(ctx).unfocus();
+                        Navigator.pop(ctx);
+                      },
                       style: PopupTheme.secondaryButton(),
                       child: Text(l10n.cancel),
                     ),

@@ -139,7 +139,9 @@ class _DebtViewState extends State<DebtView>
       color: Colors.red,
       steps: [
         GuideStep(
-          title: _enableRepair ? l10n.debtGuideStep1Title3Types : l10n.debtGuideStep1Title2Types,
+          title: _enableRepair
+              ? l10n.debtGuideStep1Title3Types
+              : l10n.debtGuideStep1Title2Types,
           description: _enableRepair
               ? l10n.debtGuideStep1Desc3Types
               : l10n.debtGuideStep1Desc2Types,
@@ -275,124 +277,140 @@ class _DebtViewState extends State<DebtView>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.all(12),
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.8,
+      builder: (ctx) => Padding(
+        // Đọc từ `context` ngoài (không phải `ctx`) để tránh crash
+        // _dependents.isEmpty khi pop — xem repair_detail_view.dart.
+        padding: EdgeInsets.only(
+          bottom:
+              MediaQuery.viewInsetsOf(context).bottom +
+              MediaQuery.paddingOf(context).bottom,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              AppLocalizations.of(ctx)!.paymentHistoryTitle,
-              style: AppTextStyles.body1.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
-              ),
-            ),
-            Text(
-              _debtPersonName(debt).toUpperCase(),
-              style: AppTextStyles.caption.copyWith(
-                color: AppColors.onSurface.withOpacity(0.7),
-              ),
-            ),
-            const Divider(height: 30),
-            if (payments.isEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.all(40),
-                child: Text(
-                  AppLocalizations.of(ctx)!.noPaymentHistory,
-                  style: AppTextStyles.body1.copyWith(
-                    color: AppColors.onSurface.withOpacity(0.5),
-                  ),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
-            ] else ...[
-              Expanded(
-                child: ListView.builder(
-                  itemCount: payments.length,
-                  itemBuilder: (ctx, i) {
-                    final p = payments[i];
-                    final date = DateFormat(
-                      'HH:mm - dd/MM/yyyy',
-                    ).format(DateTime.fromMillisecondsSinceEpoch(p['paidAt']));
+              const SizedBox(height: 20),
+              Text(
+                AppLocalizations.of(ctx)!.paymentHistoryTitle,
+                style: AppTextStyles.body1.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+              Text(
+                _debtPersonName(debt).toUpperCase(),
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.onSurface.withOpacity(0.7),
+                ),
+              ),
+              const Divider(height: 30),
+              if (payments.isEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.all(40),
+                  child: Text(
+                    AppLocalizations.of(ctx)!.noPaymentHistory,
+                    style: AppTextStyles.body1.copyWith(
+                      color: AppColors.onSurface.withOpacity(0.5),
+                    ),
+                  ),
+                ),
+              ] else ...[
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: payments.length,
+                    itemBuilder: (ctx, i) {
+                      final p = payments[i];
+                      final date = DateFormat('HH:mm - dd/MM/yyyy').format(
+                        DateTime.fromMillisecondsSinceEpoch(p['paidAt']),
+                      );
 
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withAlpha(13),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "+ ${MoneyUtils.formatCurrency(p['amount'])}",
-                                style: AppTextStyles.priceStyle,
-                              ),
-                              Text(
-                                date,
-                                style: AppTextStyles.caption.copyWith(
-                                  color: AppColors.onSurface.withOpacity(0.6),
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withAlpha(13),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "+ ${MoneyUtils.formatCurrency(p['amount'])}",
+                                  style: AppTextStyles.priceStyle,
                                 ),
-                              ),
-                            ],
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                p['createdBy'] ?? "NV",
-                                style: AppTextStyles.caption.copyWith(
-                                  fontWeight: FontWeight.bold,
+                                Text(
+                                  date,
+                                  style: AppTextStyles.caption.copyWith(
+                                    color: AppColors.onSurface.withOpacity(0.6),
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                p['paymentMethod'] == 'CHUYỂN KHOẢN'
-                                    ? AppLocalizations.of(ctx)!.bankTransfer
-                                    : AppLocalizations.of(ctx)!.cash,
-                                style: AppTextStyles.overline.copyWith(
-                                  color: AppColors.onSurface.withOpacity(0.7),
+                              ],
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  p['createdBy'] ?? "NV",
+                                  style: AppTextStyles.caption.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                                Text(
+                                  p['paymentMethod'] == 'CHUYỂN KHOẢN'
+                                      ? AppLocalizations.of(ctx)!.bankTransfer
+                                      : AppLocalizations.of(ctx)!.cash,
+                                  style: AppTextStyles.overline.copyWith(
+                                    color: AppColors.onSurface.withOpacity(0.7),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () => _payDebt(debt),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2962FF),
+                ),
+                child: Text(
+                  AppLocalizations.of(ctx)!.payDebtButton,
+                  style: AppTextStyles.button,
                 ),
               ),
             ],
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => _payDebt(debt),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2962FF),
-              ),
-              child: Text(AppLocalizations.of(ctx)!.payDebtButton, style: AppTextStyles.button),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
   Future<void> _payDebt(Map<String, dynamic> debt) async {
-    final didPay = await DebtPaymentSheet.show(context, debt, onSuccess: _refresh);
+    final didPay = await DebtPaymentSheet.show(
+      context,
+      debt,
+      onSuccess: _refresh,
+    );
     if (didPay && mounted) await _refresh();
   }
 
@@ -472,10 +490,7 @@ class _DebtViewState extends State<DebtView>
             ],
           ),
           IconButton(
-            icon: const Icon(
-              Icons.file_download_outlined,
-              color: Colors.white,
-            ),
+            icon: const Icon(Icons.file_download_outlined, color: Colors.white),
             tooltip: l10n.exportExcelDebt,
             onPressed: () async {
               final result = await ExportDateFilterDialog.show(
@@ -508,9 +523,8 @@ class _DebtViewState extends State<DebtView>
               ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showCreateDebtChooser(
-          isReceivable: _tabController?.index == 0,
-        ),
+        onPressed: () =>
+            _showCreateDebtChooser(isReceivable: _tabController?.index == 0),
         backgroundColor: _tabController?.index == 0
             ? Colors.redAccent
             : Colors.blueAccent,
@@ -569,7 +583,11 @@ class _DebtViewState extends State<DebtView>
       final days = DateTime.now()
           .difference(DateTime.fromMillisecondsSinceEpoch(createdAt))
           .inDays;
-      if (days > 60) { kpiOverdue++; } else if (days > 30) { kpiUrgent++; }
+      if (days > 60) {
+        kpiOverdue++;
+      } else if (days > 30) {
+        kpiUrgent++;
+      }
     }
 
     // Filter by search query
@@ -579,10 +597,7 @@ class _DebtViewState extends State<DebtView>
               _debtPersonName(d),
               _searchQuery,
             ) ||
-            VietnameseUtils.containsVietnamese(
-              _debtPhone(d),
-              _searchQuery,
-            ) ||
+            VietnameseUtils.containsVietnamese(_debtPhone(d), _searchQuery) ||
             VietnameseUtils.containsVietnamese(
               d['note']?.toString() ?? '',
               _searchQuery,
@@ -624,8 +639,14 @@ class _DebtViewState extends State<DebtView>
                   style: FinanceV2Theme.bodyMd,
                   decoration: InputDecoration(
                     hintText: l10n.searchNamePhone,
-                    hintStyle: FinanceV2Theme.bodyMd.copyWith(color: FinanceV2Theme.subInk),
-                    prefixIcon: const Icon(Icons.search_rounded, size: 18, color: FinanceV2Theme.subInk),
+                    hintStyle: FinanceV2Theme.bodyMd.copyWith(
+                      color: FinanceV2Theme.subInk,
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.search_rounded,
+                      size: 18,
+                      color: FinanceV2Theme.subInk,
+                    ),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
                             icon: const Icon(Icons.clear_rounded, size: 18),
@@ -647,7 +668,9 @@ class _DebtViewState extends State<DebtView>
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: FinanceV2Theme.accent),
+                      borderSide: const BorderSide(
+                        color: FinanceV2Theme.accent,
+                      ),
                     ),
                   ),
                   onChanged: (v) => setState(() => _searchQuery = v.trim()),
@@ -655,7 +678,10 @@ class _DebtViewState extends State<DebtView>
               ),
               const SizedBox(width: 8),
               FilterChip(
-                label: Text(l10n.filterPaid, style: const TextStyle(fontSize: 12)),
+                label: Text(
+                  l10n.filterPaid,
+                  style: const TextStyle(fontSize: 12),
+                ),
                 selected: _showPaidDebts,
                 onSelected: (v) => setState(() => _showPaidDebts = v),
                 selectedColor: Colors.green.shade100,
@@ -673,7 +699,9 @@ class _DebtViewState extends State<DebtView>
                 _kpiChip(
                   label: isReceivable ? l10n.debtReceivable : l10n.debtPayable,
                   value: MoneyUtils.formatCompactCurrency(kpiTotal),
-                  color: isReceivable ? Colors.red.shade700 : Colors.blue.shade700,
+                  color: isReceivable
+                      ? Colors.red.shade700
+                      : Colors.blue.shade700,
                   icon: isReceivable
                       ? Icons.arrow_downward_rounded
                       : Icons.arrow_upward_rounded,
@@ -709,7 +737,9 @@ class _DebtViewState extends State<DebtView>
                   : l10n.noDebtYet,
               subtitle: _searchQuery.isNotEmpty
                   ? l10n.trySearchOther
-                  : _showPaidDebts ? null : l10n.showPaidToSeeHistory,
+                  : _showPaidDebts
+                  ? null
+                  : l10n.showPaidToSeeHistory,
             ),
           )
         else
@@ -718,7 +748,9 @@ class _DebtViewState extends State<DebtView>
               children: [
                 if (list.isNotEmpty)
                   Expanded(
-                    flex: (showPartnerSection && _partnerDebts.isNotEmpty) ? 3 : 1,
+                    flex: (showPartnerSection && _partnerDebts.isNotEmpty)
+                        ? 3
+                        : 1,
                     child: _buildSimpleDebtList(list),
                   ),
                 if (showPartnerSection && _partnerDebts.isNotEmpty)
@@ -757,11 +789,7 @@ class _DebtViewState extends State<DebtView>
 
     return Column(
       children: [
-        _summaryHeader(
-          l10n.totalRemainingDebt,
-          totalRemain,
-          Colors.redAccent,
-        ),
+        _summaryHeader(l10n.totalRemainingDebt, totalRemain, Colors.redAccent),
         if (hasUrgency)
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
@@ -810,13 +838,25 @@ class _DebtViewState extends State<DebtView>
         children: [
           Icon(icon, size: 13, color: fg),
           const SizedBox(width: 4),
-          Text(label, style: TextStyle(fontSize: 11, color: fg, fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: fg,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _kpiChip({required String label, required String value, required Color color, required IconData icon}) {
+  Widget _kpiChip({
+    required String label,
+    required String value,
+    required Color color,
+    required IconData icon,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -833,8 +873,22 @@ class _DebtViewState extends State<DebtView>
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(label, style: TextStyle(fontSize: 10, color: color.withValues(alpha: 0.8), fontWeight: FontWeight.w500)),
-              Text(value, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w700)),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: color.withValues(alpha: 0.8),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: color,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
           ),
         ],
@@ -1143,8 +1197,9 @@ class _DebtViewState extends State<DebtView>
 
     try {
       // Lấy thông tin đối tác đầy đủ từ service
-      RepairPartner? partnerObj =
-          await _partnerService.getRepairPartnerById(partnerId);
+      RepairPartner? partnerObj = await _partnerService.getRepairPartnerById(
+        partnerId,
+      );
 
       // Fallback: search by name if ID lookup failed (e.g. after reinstall/re-sync)
       if (partnerObj == null && partnerName.isNotEmpty) {
@@ -1185,7 +1240,10 @@ class _DebtViewState extends State<DebtView>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.debtGenericError(e.toString())), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(l10n.debtGenericError(e.toString())),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -1336,13 +1394,16 @@ class _DebtViewState extends State<DebtView>
                       children: [
                         Text(
                           personName.toUpperCase(),
-                          style: FinanceV2Theme.bodyMd.copyWith(fontWeight: FontWeight.w700),
+                          style: FinanceV2Theme.bodyMd.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         if (phone.isNotEmpty)
                           GestureDetector(
-                            onTap: () => launchUrl(Uri(scheme: 'tel', path: phone)),
+                            onTap: () =>
+                                launchUrl(Uri(scheme: 'tel', path: phone)),
                             child: Text(
                               '📞 $phone',
                               style: FinanceV2Theme.micro.copyWith(
@@ -1368,7 +1429,9 @@ class _DebtViewState extends State<DebtView>
                       ),
                       Text(
                         time,
-                        style: FinanceV2Theme.caption.copyWith(color: FinanceV2Theme.subInk),
+                        style: FinanceV2Theme.caption.copyWith(
+                          color: FinanceV2Theme.subInk,
+                        ),
                       ),
                     ],
                   ),
@@ -1477,7 +1540,9 @@ class _DebtViewState extends State<DebtView>
                       size: 14,
                     ),
                     label: Text(
-                      isCustomerDebt ? l10n.collectDebtAction : l10n.payDebtAction,
+                      isCustomerDebt
+                          ? l10n.collectDebtAction
+                          : l10n.payDebtAction,
                       style: FinanceV2Theme.bodySm,
                     ),
                     style: ElevatedButton.styleFrom(
@@ -1577,7 +1642,9 @@ class _DebtViewState extends State<DebtView>
       builder: (ctx) => Container(
         decoration: const BoxDecoration(
           color: PopupTheme.bgDark,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(PopupTheme.radiusSheet)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(PopupTheme.radiusSheet),
+          ),
         ),
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         // 2 nút xếp ngang thay vì ListTile xếp dọc để tổng chiều cao sheet luôn
@@ -1592,12 +1659,16 @@ class _DebtViewState extends State<DebtView>
               children: [
                 Expanded(
                   child: _DebtChooserOption(
-                    icon: isReceivable ? Icons.person_outline : Icons.local_shipping_outlined,
+                    icon: isReceivable
+                        ? Icons.person_outline
+                        : Icons.local_shipping_outlined,
                     color: isReceivable ? Colors.redAccent : Colors.blueAccent,
                     label: isReceivable ? l10n.tabCustomer : l10n.tabSupplier,
                     onTap: () {
                       Navigator.pop(ctx);
-                      isReceivable ? _createCustomerDebt() : _createSupplierDebt();
+                      isReceivable
+                          ? _createCustomerDebt()
+                          : _createSupplierDebt();
                     },
                   ),
                 ),
@@ -1610,7 +1681,9 @@ class _DebtViewState extends State<DebtView>
                     onTap: () {
                       Navigator.pop(ctx);
                       _createOtherDebt(
-                        initialType: isReceivable ? 'CUSTOMER_OWES' : 'SHOP_OWES',
+                        initialType: isReceivable
+                            ? 'CUSTOMER_OWES'
+                            : 'SHOP_OWES',
                       );
                     },
                   ),
@@ -1663,7 +1736,8 @@ class _DebtViewState extends State<DebtView>
             // hướng lớn ở đáy, khiến nút Hủy/Xác nhận bị đẩy ra ngoài vùng
             // chạm được.
             padding: EdgeInsets.only(
-              bottom: MediaQuery.viewInsetsOf(context).bottom +
+              bottom:
+                  MediaQuery.viewInsetsOf(context).bottom +
                   MediaQuery.paddingOf(context).bottom,
             ),
             child: Container(
@@ -1689,7 +1763,10 @@ class _DebtViewState extends State<DebtView>
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                         child: Row(
                           children: [
-                            const Icon(Icons.add_circle_outline, color: PopupTheme.blue),
+                            const Icon(
+                              Icons.add_circle_outline,
+                              color: PopupTheme.blue,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               l10n.createOtherDebtTitle,
@@ -1715,12 +1792,15 @@ class _DebtViewState extends State<DebtView>
                                   flex: 3,
                                   child: TextFormField(
                                     controller: nameC,
-                                    style: const TextStyle(color: PopupTheme.textPrimary),
+                                    style: const TextStyle(
+                                      color: PopupTheme.textPrimary,
+                                    ),
                                     decoration: InputDecoration(
                                       labelText: l10n.debtorNameLabel,
                                       isDense: true,
                                     ),
-                                    validator: (v) => (v == null || v.trim().isEmpty)
+                                    validator: (v) =>
+                                        (v == null || v.trim().isEmpty)
                                         ? l10n.pleaseEnterDebtorName
                                         : null,
                                   ),
@@ -1730,7 +1810,9 @@ class _DebtViewState extends State<DebtView>
                                   flex: 2,
                                   child: TextFormField(
                                     controller: phoneC,
-                                    style: const TextStyle(color: PopupTheme.textPrimary),
+                                    style: const TextStyle(
+                                      color: PopupTheme.textPrimary,
+                                    ),
                                     decoration: InputDecoration(
                                       labelText: l10n.phoneNumberLabel,
                                       isDense: true,
@@ -1761,8 +1843,13 @@ class _DebtViewState extends State<DebtView>
                                   flex: 2,
                                   child: TextField(
                                     controller: noteC,
-                                    style: const TextStyle(color: PopupTheme.textPrimary),
-                                    decoration: InputDecoration(labelText: l10n.note, isDense: true),
+                                    style: const TextStyle(
+                                      color: PopupTheme.textPrimary,
+                                    ),
+                                    decoration: InputDecoration(
+                                      labelText: l10n.note,
+                                      isDense: true,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -1780,7 +1867,8 @@ class _DebtViewState extends State<DebtView>
                               children: [
                                 Expanded(
                                   child: GestureDetector(
-                                    onTap: () => setS(() => debtType = "CUSTOMER_OWES"),
+                                    onTap: () =>
+                                        setS(() => debtType = "CUSTOMER_OWES"),
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(
                                         vertical: 12,
@@ -1789,13 +1877,17 @@ class _DebtViewState extends State<DebtView>
                                       decoration: BoxDecoration(
                                         color: debtType == "CUSTOMER_OWES"
                                             ? Colors.red.withValues(alpha: 0.15)
-                                            : Colors.grey.withValues(alpha: 0.1),
+                                            : Colors.grey.withValues(
+                                                alpha: 0.1,
+                                              ),
                                         borderRadius: BorderRadius.circular(8),
                                         border: Border.all(
                                           color: debtType == "CUSTOMER_OWES"
                                               ? Colors.red
                                               : Colors.grey.shade300,
-                                          width: debtType == "CUSTOMER_OWES" ? 2 : 1,
+                                          width: debtType == "CUSTOMER_OWES"
+                                              ? 2
+                                              : 1,
                                         ),
                                       ),
                                       child: Column(
@@ -1810,7 +1902,8 @@ class _DebtViewState extends State<DebtView>
                                           Text(
                                             l10n.receivableDebt,
                                             style: TextStyle(
-                                              fontSize: AppTextStyles.body1.fontSize,
+                                              fontSize:
+                                                  AppTextStyles.body1.fontSize,
                                               fontWeight: FontWeight.bold,
                                               color: debtType == "CUSTOMER_OWES"
                                                   ? Colors.red
@@ -1821,7 +1914,8 @@ class _DebtViewState extends State<DebtView>
                                           Text(
                                             l10n.customerOwesShop,
                                             style: const TextStyle(
-                                              fontSize: AppTextStyles.overlineSize,
+                                              fontSize:
+                                                  AppTextStyles.overlineSize,
                                               color: Colors.grey,
                                             ),
                                           ),
@@ -1833,7 +1927,8 @@ class _DebtViewState extends State<DebtView>
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: GestureDetector(
-                                    onTap: () => setS(() => debtType = "SHOP_OWES"),
+                                    onTap: () =>
+                                        setS(() => debtType = "SHOP_OWES"),
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(
                                         vertical: 12,
@@ -1841,14 +1936,20 @@ class _DebtViewState extends State<DebtView>
                                       ),
                                       decoration: BoxDecoration(
                                         color: debtType == "SHOP_OWES"
-                                            ? Colors.blue.withValues(alpha: 0.15)
-                                            : Colors.grey.withValues(alpha: 0.1),
+                                            ? Colors.blue.withValues(
+                                                alpha: 0.15,
+                                              )
+                                            : Colors.grey.withValues(
+                                                alpha: 0.1,
+                                              ),
                                         borderRadius: BorderRadius.circular(8),
                                         border: Border.all(
                                           color: debtType == "SHOP_OWES"
                                               ? Colors.blue
                                               : Colors.grey.shade300,
-                                          width: debtType == "SHOP_OWES" ? 2 : 1,
+                                          width: debtType == "SHOP_OWES"
+                                              ? 2
+                                              : 1,
                                         ),
                                       ),
                                       child: Column(
@@ -1863,7 +1964,8 @@ class _DebtViewState extends State<DebtView>
                                           Text(
                                             l10n.payableDebt,
                                             style: TextStyle(
-                                              fontSize: AppTextStyles.body1.fontSize,
+                                              fontSize:
+                                                  AppTextStyles.body1.fontSize,
                                               fontWeight: FontWeight.bold,
                                               color: debtType == "SHOP_OWES"
                                                   ? Colors.blue
@@ -1874,7 +1976,8 @@ class _DebtViewState extends State<DebtView>
                                           Text(
                                             l10n.shopOwesOther,
                                             style: const TextStyle(
-                                              fontSize: AppTextStyles.overlineSize,
+                                              fontSize:
+                                                  AppTextStyles.overlineSize,
                                               color: Colors.grey,
                                             ),
                                           ),
@@ -1912,16 +2015,28 @@ class _DebtViewState extends State<DebtView>
                                   foregroundColor: Colors.white,
                                 ),
                                 onPressed: () async {
-                                  if (!(formKey.currentState?.validate() ?? false)) return;
+                                  if (!(formKey.currentState?.validate() ??
+                                      false))
+                                    return;
 
-                                  final debtAmount = MoneyUtils.parseCurrency(amountC.text);
+                                  final debtAmount = MoneyUtils.parseCurrency(
+                                    amountC.text,
+                                  );
                                   if (debtAmount <= 0) return;
 
-                                  final user = FirebaseAuth.instance.currentUser;
+                                  final user =
+                                      FirebaseAuth.instance.currentUser;
                                   final userName =
-                                      user?.email?.split('@').first.toUpperCase() ?? "NV";
-                                  final now = DateTime.now().millisecondsSinceEpoch;
-                                  final shopId = await UserService.getCurrentShopId() ?? '';
+                                      user?.email
+                                          ?.split('@')
+                                          .first
+                                          .toUpperCase() ??
+                                      "NV";
+                                  final now =
+                                      DateTime.now().millisecondsSinceEpoch;
+                                  final shopId =
+                                      await UserService.getCurrentShopId() ??
+                                      '';
 
                                   final newDebtData = {
                                     'firestoreId': "debt_other_$now",
@@ -1932,18 +2047,23 @@ class _DebtViewState extends State<DebtView>
                                     'type': 'OTHER_$debtType',
                                     'status': 'ACTIVE',
                                     'createdAt': now,
-                                    'note': noteC.text.trim().isEmpty ? null : noteC.text.trim(),
+                                    'note': noteC.text.trim().isEmpty
+                                        ? null
+                                        : noteC.text.trim(),
                                     'createdBy': userName,
                                     'shopId': shopId,
                                     'deleted': 0,
                                     'isSynced': 0,
                                   };
 
-                                  final debtId = await db.insertDebt(newDebtData);
+                                  final debtId = await db.insertDebt(
+                                    newDebtData,
+                                  );
                                   await SyncOrchestrator().enqueue(
                                     entityType: SyncEntityType.debt,
                                     entityId: debtId,
-                                    firestoreId: newDebtData['firestoreId'] as String,
+                                    firestoreId:
+                                        newDebtData['firestoreId'] as String,
                                     operation: SyncOperation.create,
                                     data: newDebtData,
                                   );
@@ -1951,7 +2071,8 @@ class _DebtViewState extends State<DebtView>
                                   EventBus().emit('debts_changed');
                                   if (!mounted) return;
                                   if (ctx.mounted) {
-                                    FocusManager.instance.primaryFocus?.unfocus();
+                                    FocusManager.instance.primaryFocus
+                                        ?.unfocus();
                                     Navigator.pop(ctx);
                                   }
                                   NotificationService.showSnackBar(
@@ -2013,7 +2134,8 @@ class _DebtViewState extends State<DebtView>
         // cộng viewInsets (bàn phím) là chưa đủ trên máy có vùng điều hướng
         // lớn ở đáy, khiến nút Hủy/Xác nhận bị đẩy ra ngoài vùng chạm được.
         padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(context).bottom +
+          bottom:
+              MediaQuery.viewInsetsOf(context).bottom +
               MediaQuery.paddingOf(context).bottom,
         ),
         child: Container(
@@ -2064,12 +2186,15 @@ class _DebtViewState extends State<DebtView>
                               flex: 3,
                               child: TextFormField(
                                 controller: nameC,
-                                style: const TextStyle(color: PopupTheme.textPrimary),
+                                style: const TextStyle(
+                                  color: PopupTheme.textPrimary,
+                                ),
                                 decoration: InputDecoration(
                                   labelText: l10n.customerNameLabel,
                                   isDense: true,
                                 ),
-                                validator: (v) => (v == null || v.trim().isEmpty)
+                                validator: (v) =>
+                                    (v == null || v.trim().isEmpty)
                                     ? l10n.pleaseEnterCustomerNameDebt
                                     : null,
                               ),
@@ -2079,7 +2204,9 @@ class _DebtViewState extends State<DebtView>
                               flex: 2,
                               child: TextFormField(
                                 controller: phoneC,
-                                style: const TextStyle(color: PopupTheme.textPrimary),
+                                style: const TextStyle(
+                                  color: PopupTheme.textPrimary,
+                                ),
                                 decoration: InputDecoration(
                                   labelText: l10n.phoneNumberLabel,
                                   isDense: true,
@@ -2110,8 +2237,13 @@ class _DebtViewState extends State<DebtView>
                               flex: 2,
                               child: TextField(
                                 controller: noteC,
-                                style: const TextStyle(color: PopupTheme.textPrimary),
-                                decoration: InputDecoration(labelText: l10n.note, isDense: true),
+                                style: const TextStyle(
+                                  color: PopupTheme.textPrimary,
+                                ),
+                                decoration: InputDecoration(
+                                  labelText: l10n.note,
+                                  isDense: true,
+                                ),
                               ),
                             ),
                           ],
@@ -2143,17 +2275,26 @@ class _DebtViewState extends State<DebtView>
                               foregroundColor: Colors.white,
                             ),
                             onPressed: () async {
-                              if (!(formKey.currentState?.validate() ?? false)) return;
+                              if (!(formKey.currentState?.validate() ?? false))
+                                return;
 
                               try {
-                                final debtAmount = MoneyUtils.parseCurrency(amountC.text);
+                                final debtAmount = MoneyUtils.parseCurrency(
+                                  amountC.text,
+                                );
                                 if (debtAmount <= 0) return;
 
                                 final user = FirebaseAuth.instance.currentUser;
                                 final userName =
-                                    user?.email?.split('@').first.toUpperCase() ?? "NV";
-                                final now = DateTime.now().millisecondsSinceEpoch;
-                                final shopId = await UserService.getCurrentShopId() ?? '';
+                                    user?.email
+                                        ?.split('@')
+                                        .first
+                                        .toUpperCase() ??
+                                    "NV";
+                                final now =
+                                    DateTime.now().millisecondsSinceEpoch;
+                                final shopId =
+                                    await UserService.getCurrentShopId() ?? '';
 
                                 final newDebtData = {
                                   'firestoreId': "debt_customer_$now",
@@ -2175,7 +2316,8 @@ class _DebtViewState extends State<DebtView>
                                 await SyncOrchestrator().enqueue(
                                   entityType: SyncEntityType.debt,
                                   entityId: debtId,
-                                  firestoreId: newDebtData['firestoreId'] as String,
+                                  firestoreId:
+                                      newDebtData['firestoreId'] as String,
                                   operation: SyncOperation.create,
                                   data: newDebtData,
                                 );
@@ -2185,7 +2327,8 @@ class _DebtViewState extends State<DebtView>
                                   userName: userName,
                                   action: "TẠO NỢ",
                                   type: "DEBT",
-                                  targetId: newDebtData['firestoreId'] as String,
+                                  targetId:
+                                      newDebtData['firestoreId'] as String,
                                   desc:
                                       "Tạo nợ khách hàng: ${nameC.text} - ${MoneyUtils.formatCurrency(debtAmount)}.",
                                 );
@@ -2257,7 +2400,8 @@ class _DebtViewState extends State<DebtView>
         // cộng viewInsets (bàn phím) là chưa đủ trên máy có vùng điều hướng
         // lớn ở đáy, khiến nút Hủy/Xác nhận bị đẩy ra ngoài vùng chạm được.
         padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(context).bottom +
+          bottom:
+              MediaQuery.viewInsetsOf(context).bottom +
               MediaQuery.paddingOf(context).bottom,
         ),
         child: Container(
@@ -2308,12 +2452,15 @@ class _DebtViewState extends State<DebtView>
                               flex: 3,
                               child: TextFormField(
                                 controller: nameC,
-                                style: const TextStyle(color: PopupTheme.textPrimary),
+                                style: const TextStyle(
+                                  color: PopupTheme.textPrimary,
+                                ),
                                 decoration: InputDecoration(
                                   labelText: l10n.supplierNameLabel,
                                   isDense: true,
                                 ),
-                                validator: (v) => (v == null || v.trim().isEmpty)
+                                validator: (v) =>
+                                    (v == null || v.trim().isEmpty)
                                     ? l10n.pleaseEnterSupplierNameDebt
                                     : null,
                               ),
@@ -2323,7 +2470,9 @@ class _DebtViewState extends State<DebtView>
                               flex: 2,
                               child: TextFormField(
                                 controller: phoneC,
-                                style: const TextStyle(color: PopupTheme.textPrimary),
+                                style: const TextStyle(
+                                  color: PopupTheme.textPrimary,
+                                ),
                                 decoration: InputDecoration(
                                   labelText: l10n.phoneNumberLabel,
                                   isDense: true,
@@ -2354,8 +2503,13 @@ class _DebtViewState extends State<DebtView>
                               flex: 2,
                               child: TextField(
                                 controller: noteC,
-                                style: const TextStyle(color: PopupTheme.textPrimary),
-                                decoration: InputDecoration(labelText: l10n.note, isDense: true),
+                                style: const TextStyle(
+                                  color: PopupTheme.textPrimary,
+                                ),
+                                decoration: InputDecoration(
+                                  labelText: l10n.note,
+                                  isDense: true,
+                                ),
                               ),
                             ),
                           ],
@@ -2387,17 +2541,26 @@ class _DebtViewState extends State<DebtView>
                               foregroundColor: Colors.white,
                             ),
                             onPressed: () async {
-                              if (!(formKey.currentState?.validate() ?? false)) return;
+                              if (!(formKey.currentState?.validate() ?? false))
+                                return;
 
                               try {
-                                final debtAmount = MoneyUtils.parseCurrency(amountC.text);
+                                final debtAmount = MoneyUtils.parseCurrency(
+                                  amountC.text,
+                                );
                                 if (debtAmount <= 0) return;
 
                                 final user = FirebaseAuth.instance.currentUser;
                                 final userName =
-                                    user?.email?.split('@').first.toUpperCase() ?? "NV";
-                                final now = DateTime.now().millisecondsSinceEpoch;
-                                final shopId = await UserService.getCurrentShopId() ?? '';
+                                    user?.email
+                                        ?.split('@')
+                                        .first
+                                        .toUpperCase() ??
+                                    "NV";
+                                final now =
+                                    DateTime.now().millisecondsSinceEpoch;
+                                final shopId =
+                                    await UserService.getCurrentShopId() ?? '';
 
                                 final newDebtData = {
                                   'firestoreId': "debt_supplier_$now",
@@ -2419,7 +2582,8 @@ class _DebtViewState extends State<DebtView>
                                 await SyncOrchestrator().enqueue(
                                   entityType: SyncEntityType.debt,
                                   entityId: debtId,
-                                  firestoreId: newDebtData['firestoreId'] as String,
+                                  firestoreId:
+                                      newDebtData['firestoreId'] as String,
                                   operation: SyncOperation.create,
                                   data: newDebtData,
                                 );
@@ -2429,7 +2593,8 @@ class _DebtViewState extends State<DebtView>
                                   userName: userName,
                                   action: "TẠO NỢ",
                                   type: "DEBT",
-                                  targetId: newDebtData['firestoreId'] as String,
+                                  targetId:
+                                      newDebtData['firestoreId'] as String,
                                   desc:
                                       "Tạo nợ nhà cung cấp: ${nameC.text} - ${MoneyUtils.formatCurrency(debtAmount)}.",
                                 );
@@ -2499,7 +2664,11 @@ class _DebtChooserOption extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 label,
-                style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13),
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

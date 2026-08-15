@@ -87,7 +87,6 @@ class _StaffListViewState extends State<StaffListView> {
       _hasManageStaffAccess = perms['allowManageStaff'] ?? false;
       _loadingRole = false;
     });
-
   }
 
   bool get _canManageStaff =>
@@ -145,7 +144,8 @@ class _StaffListViewState extends State<StaffListView> {
 
               if (_isSuperAdmin && shopC.text.trim().isEmpty) {
                 setState(
-                  () => errorText = 'Nhập shopId khi tạo từ tài khoản super admin',
+                  () => errorText =
+                      'Nhập shopId khi tạo từ tài khoản super admin',
                 );
                 return;
               }
@@ -165,7 +165,9 @@ class _StaffListViewState extends State<StaffListView> {
                 builder: (_) => PopScope(
                   canPop: false,
                   child: AlertDialog(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     content: const Row(
                       children: [
                         CircularProgressIndicator(strokeWidth: 3),
@@ -173,7 +175,10 @@ class _StaffListViewState extends State<StaffListView> {
                         Expanded(
                           child: Text(
                             'Đang tạo tài khoản nhân viên...',
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ],
@@ -209,7 +214,7 @@ class _StaffListViewState extends State<StaffListView> {
                     : (_currentShopId ?? '');
                 if (!mounted) return;
                 Navigator.of(context).pop(); // đóng loading overlay
-                navigator.pop();             // đóng form dialog
+                navigator.pop(); // đóng form dialog
 
                 final passwordMessage = autoGeneratePassword
                     ? '\nMật khẩu tạm thời: $password\nKhuyến nghị đổi mật khẩu sau khi đăng nhập!'
@@ -223,12 +228,17 @@ class _StaffListViewState extends State<StaffListView> {
                   ),
                 );
               } on FirebaseFunctionsException catch (e) {
-                if (mounted) Navigator.of(context).pop(); // đóng loading overlay
+                if (mounted)
+                  Navigator.of(context).pop(); // đóng loading overlay
                 if (mounted) {
-                  setState(() => errorText = 'Lỗi Firebase: ${e.message ?? 'Không thể tạo tài khoản'}');
+                  setState(
+                    () => errorText =
+                        'Lỗi Firebase: ${e.message ?? 'Không thể tạo tài khoản'}',
+                  );
                 }
               } catch (e) {
-                if (mounted) Navigator.of(context).pop(); // đóng loading overlay
+                if (mounted)
+                  Navigator.of(context).pop(); // đóng loading overlay
                 if (mounted) {
                   setState(() => errorText = 'Lỗi: $e');
                 }
@@ -618,6 +628,7 @@ class _StaffListViewState extends State<StaffListView> {
       },
     );
   }
+
   @override
   Widget build(BuildContext context) {
     if (_loadingRole) {
@@ -1123,6 +1134,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
       _canViewSettingsPerm = true;
     }
   }
+
   Future<void> _loadShopSettings() async {
     final settings = await CategoryService().getShopSettings();
     if (!mounted) return;
@@ -1139,7 +1151,6 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
         oldController.dispose();
       });
     }
-
   }
 
   Future<void> _loadCurrentShop() async {
@@ -1663,7 +1674,6 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
         debugPrint('Photo uploaded: $photoUrl');
       }
 
-
       // Đảm bảo luôn có shopId tươi nhất từ Firestore (không dùng cache cũ)
       // để Firestore rules có thể xác minh quyền chủ shop khi ghi.
       if (!widget.isSuperAdmin && _currentUserShopId == null) {
@@ -1911,510 +1921,313 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.9,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 10),
-          Container(
-            width: 40,
-            height: 5,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(10),
+    final navBarBottom = MediaQuery.paddingOf(context).bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.9 - navBarBottom,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+            Container(
+              width: 40,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-          ),
 
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                GestureDetector(
-                  onTap: _showAvatarPreview,
-                  child: CircleAvatar(
-                    radius: 30,
-                    backgroundImage: _safeImageProvider(_photoPath),
-                    backgroundColor: Colors.blue.withAlpha(25),
-                    child: (_photoPath == null || _photoPath!.trim().isEmpty)
-                        ? const Icon(Icons.camera_alt, color: Colors.blue)
-                        : null,
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: _showAvatarPreview,
+                    child: CircleAvatar(
+                      radius: 30,
+                      backgroundImage: _safeImageProvider(_photoPath),
+                      backgroundColor: Colors.blue.withAlpha(25),
+                      child: (_photoPath == null || _photoPath!.trim().isEmpty)
+                          ? const Icon(Icons.camera_alt, color: Colors.blue)
+                          : null,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 15),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.name,
-                        style: TextStyle(
-                          fontSize: AppTextStyles.headline2.fontSize,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        widget.email,
-                        style: TextStyle(
-                          fontSize: AppTextStyles.subtitle1.fontSize,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      if (widget.isSuperAdmin)
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          "UID: ${widget.uid}",
+                          widget.name,
                           style: TextStyle(
-                            fontSize: AppTextStyles.body1.fontSize,
+                            fontSize: AppTextStyles.headline2.fontSize,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          widget.email,
+                          style: TextStyle(
+                            fontSize: AppTextStyles.subtitle1.fontSize,
                             color: Colors.grey,
                           ),
                         ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: _isSavingStaff
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Icon(
-                          _isEditing ? Icons.check_circle : Icons.edit,
-                          color: _isEditing ? Colors.green : Colors.blue,
-                        ),
-                  onPressed: _isSavingStaff
-                      ? null
-                      : () {
-                          if (_isEditing) {
-                            _saveStaffInfo();
-                          } else {
-                            setState(() => _isEditing = true);
-                          }
-                        },
-                ),
-              ],
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 260),
-                  child: OutlinedButton.icon(
-                    onPressed: _isSavingStaff ? null : _changeAvatarOnly,
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 40),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
+                        if (widget.isSuperAdmin)
+                          Text(
+                            "UID: ${widget.uid}",
+                            style: TextStyle(
+                              fontSize: AppTextStyles.body1.fontSize,
+                              color: Colors.grey,
+                            ),
+                          ),
+                      ],
                     ),
+                  ),
+                  IconButton(
                     icon: _isSavingStaff
                         ? const SizedBox(
-                            width: 14,
-                            height: 14,
+                            width: 20,
+                            height: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.add_a_photo_outlined, size: 18),
-                    label: Text(
-                      _isSavingStaff ? 'ĐANG LƯU ẢNH...' : 'ĐỔI ẢNH ĐẠI DIỆN',
+                        : Icon(
+                            _isEditing ? Icons.check_circle : Icons.edit,
+                            color: _isEditing ? Colors.green : Colors.blue,
+                          ),
+                    onPressed: _isSavingStaff
+                        ? null
+                        : () {
+                            if (_isEditing) {
+                              _saveStaffInfo();
+                            } else {
+                              setState(() => _isEditing = true);
+                            }
+                          },
+                  ),
+                ],
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 260),
+                    child: OutlinedButton.icon(
+                      onPressed: _isSavingStaff ? null : _changeAvatarOnly,
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 40),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                      ),
+                      icon: _isSavingStaff
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.add_a_photo_outlined, size: 18),
+                      label: Text(
+                        _isSavingStaff ? 'ĐANG LƯU ẢNH...' : 'ĐỔI ẢNH ĐẠI DIỆN',
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Mẹo: Nhân viên bị khóa tab Nhân viên vẫn có thể tự đổi ảnh trong Cài đặt.',
-                  style: TextStyle(
-                    fontSize: AppTextStyles.body1.fontSize,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          if (_isSavingStaff)
-            const Padding(
-              padding: EdgeInsets.only(top: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                  SizedBox(width: 8),
+                  const SizedBox(height: 6),
                   Text(
-                    'ĐANG LƯU CẬP NHẬT... VUI LÒNG CHỜ',
+                    'Mẹo: Nhân viên bị khóa tab Nhân viên vẫn có thể tự đổi ảnh trong Cài đặt.',
                     style: TextStyle(
-                      color: Colors.blueGrey,
-                      fontWeight: FontWeight.w600,
+                      fontSize: AppTextStyles.body1.fontSize,
+                      color: Colors.grey[600],
                     ),
                   ),
                 ],
               ),
             ),
 
-          if (_isEditing)
-            SizedBox(
-              height: MediaQuery.of(context).size.height * 0.4,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      _editInput(
-                        nameCtrl,
-                        "Họ và tên nhân viên",
-                        Icons.person_outline,
+            if (_isSavingStaff)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'ĐANG LƯU CẬP NHẬT... VUI LÒNG CHỜ',
+                      style: TextStyle(
+                        color: Colors.blueGrey,
+                        fontWeight: FontWeight.w600,
                       ),
-                      _editInput(
-                        phoneCtrl,
-                        "Số điện thoại liên hệ",
-                        Icons.phone_android_outlined,
-                        type: TextInputType.phone,
-                      ),
-                      _editInput(
-                        addressCtrl,
-                        "Địa chỉ thường trú",
-                        Icons.location_on_outlined,
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "Quyền hệ thống:",
-                            style: TextStyle(
-                              fontSize: AppTextStyles.headline5.fontSize,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          if (_canChangeRole)
-                            DropdownButton<String>(
-                              value: _selectedRole,
-                              items: const [
-                                DropdownMenuItem(
-                                  value: 'owner',
-                                  child: Text("CHỦ SHOP"),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'manager',
-                                  child: Text("QUẢN LÝ"),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'employee',
-                                  child: Text("NHÂN VIÊN"),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'technician',
-                                  child: Text("KỸ THUẬT"),
-                                ),
-                              ],
-                              onChanged: (v) {
-                                setState(() {
-                                  _selectedRole = v!;
-                                  _syncPermissionsWithRole();
-                                });
-                              },
-                            )
-                          else
+                    ),
+                  ],
+                ),
+              ),
+
+            if (_isEditing)
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.4,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        _editInput(
+                          nameCtrl,
+                          "Họ và tên nhân viên",
+                          Icons.person_outline,
+                        ),
+                        _editInput(
+                          phoneCtrl,
+                          "Số điện thoại liên hệ",
+                          Icons.phone_android_outlined,
+                          type: TextInputType.phone,
+                        ),
+                        _editInput(
+                          addressCtrl,
+                          "Địa chỉ thường trú",
+                          Icons.location_on_outlined,
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
                             Text(
-                              _roleLabel(_selectedRole),
+                              "Quyền hệ thống:",
                               style: TextStyle(
                                 fontSize: AppTextStyles.headline5.fontSize,
-                                color: Colors.blueGrey,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              "Cửa hàng của nhân viên: ${_staffShopId ?? 'Chưa gán'}",
-                              style: TextStyle(
-                                fontSize: AppTextStyles.subtitle1.fontSize,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
-                          if (!_loadingShop && _currentUserShopId != null)
-                            TextButton.icon(
-                              onPressed: _assigningShop
-                                  ? null
-                                  : _assignToMyShop,
-                              icon: _assigningShop
-                                  ? const SizedBox(
-                                      width: 14,
-                                      height: 14,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Icon(
-                                      Icons.store_mall_directory,
-                                      size: 18,
-                                    ),
-                              label: Text(
-                                "GÁN VÀO SHOP CỦA TÔI",
-                                style: TextStyle(
-                                  fontSize: AppTextStyles.body1.fontSize,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const Divider(),
-
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          "PHÂN QUYỀN NỘI DUNG CHO NHÂN VIÊN",
-                          style: TextStyle(
-                            fontSize: AppTextStyles.subtitle1.fontSize,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blueGrey[700],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.grey[50],
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.withAlpha(51)),
-                        ),
-                        child: Column(
-                          children: [
-                            if (_selectedRole == 'owner' ||
-                                _selectedRole == 'manager')
-                              Padding(
-                                padding: const EdgeInsets.all(10),
-                                child: Text(
-                                  "Tài khoản CHỦ SHOP/QUẢN LÝ luôn được xem đầy đủ mọi nội dung trong hệ thống.",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.body1.fontSize,
-                                    color: Colors.grey,
+                            if (_canChangeRole)
+                              DropdownButton<String>(
+                                value: _selectedRole,
+                                items: const [
+                                  DropdownMenuItem(
+                                    value: 'owner',
+                                    child: Text("CHỦ SHOP"),
                                   ),
-                                ),
+                                  DropdownMenuItem(
+                                    value: 'manager',
+                                    child: Text("QUẢN LÝ"),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'employee',
+                                    child: Text("NHÂN VIÊN"),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'technician',
+                                    child: Text("KỸ THUẬT"),
+                                  ),
+                                ],
+                                onChanged: (v) {
+                                  setState(() {
+                                    _selectedRole = v!;
+                                    _syncPermissionsWithRole();
+                                  });
+                                },
                               )
-                            else ...[
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  "MÀN HÌNH NGHIỆP VỤ",
+                            else
+                              Text(
+                                _roleLabel(_selectedRole),
+                                style: TextStyle(
+                                  fontSize: AppTextStyles.headline5.fontSize,
+                                  color: Colors.blueGrey,
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                "Cửa hàng của nhân viên: ${_staffShopId ?? 'Chưa gán'}",
+                                style: TextStyle(
+                                  fontSize: AppTextStyles.subtitle1.fontSize,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ),
+                            if (!_loadingShop && _currentUserShopId != null)
+                              TextButton.icon(
+                                onPressed: _assigningShop
+                                    ? null
+                                    : _assignToMyShop,
+                                icon: _assigningShop
+                                    ? const SizedBox(
+                                        width: 14,
+                                        height: 14,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.store_mall_directory,
+                                        size: 18,
+                                      ),
+                                label: Text(
+                                  "GÁN VÀO SHOP CỦA TÔI",
                                   style: TextStyle(
                                     fontSize: AppTextStyles.body1.fontSize,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blueGrey,
                                   ),
                                 ),
                               ),
-                              SwitchListTile(
-                                title: Text(
-                                  "BÁN HÀNG",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.subtitle1.fontSize,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  "Xem và tạo đơn bán máy / phụ kiện",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.body1.fontSize,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                value: _canViewSales,
-                                onChanged: (v) =>
-                                    setState(() => _canViewSales = v),
-                              ),
-                              // Chỉ hiển thị sửa chữa cho shop electronics
-                              if (_enableRepair)
-                                SwitchListTile(
-                                  title: Text(
-                                    "SỬA CHỮA",
-                                    style: TextStyle(
-                                      fontSize:
-                                          AppTextStyles.subtitle1.fontSize,
-                                    ),
-                                  ),
-                                  subtitle: Text(
-                                    "Xem danh sách đơn sửa, tạo đơn mới",
-                                    style: TextStyle(
-                                      fontSize: AppTextStyles.body1.fontSize,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                  value: _canViewRepairs,
-                                  onChanged: (v) =>
-                                      setState(() => _canViewRepairs = v),
-                                ),
-                              SwitchListTile(
-                                title: Text(
-                                  "KHO",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.subtitle1.fontSize,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  "Xem hàng tồn kho và phụ kiện",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.body1.fontSize,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                value: _canViewInventory,
-                                onChanged: (v) =>
-                                    setState(() => _canViewInventory = v),
-                              ),
-                              if (_enableRepair)
-                                SwitchListTile(
-                                  title: Text(
-                                    "KHO LINH KIỆN SỬA CHỮA",
-                                    style: TextStyle(
-                                      fontSize:
-                                          AppTextStyles.subtitle1.fontSize,
-                                    ),
-                                  ),
-                                  subtitle: Text(
-                                    "Quản lý linh kiện dùng cho sửa chữa",
-                                    style: TextStyle(
-                                      fontSize: AppTextStyles.body1.fontSize,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                  value: _canViewParts,
-                                  onChanged: (v) =>
-                                      setState(() => _canViewParts = v),
-                                ),
-                              SwitchListTile(
-                                title: Text(
-                                  "NHÀ CUNG CẤP",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.subtitle1.fontSize,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  "Xem sổ nhà phân phối, lịch sử nhập hàng",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.body1.fontSize,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                value: _canViewSuppliers,
-                                onChanged: (v) =>
-                                    setState(() => _canViewSuppliers = v),
-                              ),
-                              SwitchListTile(
-                                title: Text(
-                                  "KHÁCH HÀNG",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.subtitle1.fontSize,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  "Xem danh sách khách và lịch sử mua/sửa",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.body1.fontSize,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                value: _canViewCustomers,
-                                onChanged: (v) =>
-                                    setState(() => _canViewCustomers = v),
-                              ),
-                              SwitchListTile(
-                                title: Text(
-                                  "BẢO HÀNH",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.subtitle1.fontSize,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  "Truy cập sổ bảo hành của cửa hàng",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.body1.fontSize,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                value: _canViewWarranty,
-                                onChanged: (v) =>
-                                    setState(() => _canViewWarranty = v),
-                              ),
-                              SwitchListTile(
-                                title: Text(
-                                  "CHAT NỘI BỘ",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.subtitle1.fontSize,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  "Cho phép sử dụng phòng chat trong cửa hàng",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.body1.fontSize,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                value: _canViewChat,
-                                onChanged: (v) =>
-                                    setState(() => _canViewChat = v),
-                              ),
-                              SwitchListTile(
-                                title: Text(
-                                  "CHẤM CÔNG",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.subtitle1.fontSize,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  "Cho phép chấm công và xem báo cáo chấm công",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.body1.fontSize,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                value: _canViewAttendance,
-                                onChanged: (v) =>
-                                    setState(() => _canViewAttendance = v),
-                              ),
-                              SwitchListTile(
-                                title: Text(
-                                  "CẤU HÌNH MÁY IN",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.subtitle1.fontSize,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  "Kết nối và in hóa đơn qua Bluetooth",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.body1.fontSize,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                value: _canViewPrinter,
-                                onChanged: (v) =>
-                                    setState(() => _canViewPrinter = v),
-                              ),
+                          ],
+                        ),
+                        const Divider(),
 
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                child: Align(
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "PHÂN QUYỀN NỘI DUNG CHO NHÂN VIÊN",
+                            style: TextStyle(
+                              fontSize: AppTextStyles.subtitle1.fontSize,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blueGrey[700],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.grey[50],
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.grey.withAlpha(51),
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              if (_selectedRole == 'owner' ||
+                                  _selectedRole == 'manager')
+                                Padding(
+                                  padding: const EdgeInsets.all(10),
+                                  child: Text(
+                                    "Tài khoản CHỦ SHOP/QUẢN LÝ luôn được xem đầy đủ mọi nội dung trong hệ thống.",
+                                    style: TextStyle(
+                                      fontSize: AppTextStyles.body1.fontSize,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                )
+                              else ...[
+                                Align(
                                   alignment: Alignment.centerLeft,
                                   child: Text(
-                                    "MÀN HÌNH TÀI CHÍNH NHẠY CẢM",
+                                    "MÀN HÌNH NGHIỆP VỤ",
                                     style: TextStyle(
                                       fontSize: AppTextStyles.body1.fontSize,
                                       fontWeight: FontWeight.bold,
@@ -2422,165 +2235,381 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                                     ),
                                   ),
                                 ),
-                              ),
-                              SwitchListTile(
-                                title: Text(
-                                  "Cho phép xem màn DOANH THU",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.subtitle1.fontSize,
+                                SwitchListTile(
+                                  title: Text(
+                                    "BÁN HÀNG",
+                                    style: TextStyle(
+                                      fontSize:
+                                          AppTextStyles.subtitle1.fontSize,
+                                    ),
                                   ),
-                                ),
-                                subtitle: Text(
-                                  "Bao gồm báo cáo lời/lỗ, doanh số bán và sửa",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.body1.fontSize,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                value: _canViewRevenue,
-                                onChanged: (v) =>
-                                    setState(() => _canViewRevenue = v),
-                              ),
-                              SwitchListTile(
-                                title: Text(
-                                  "Cho phép xem màn CHI PHÍ",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.subtitle1.fontSize,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  "Xem và quản lý các khoản chi ra của cửa hàng",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.body1.fontSize,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                value: _canViewExpenses,
-                                onChanged: (v) =>
-                                    setState(() => _canViewExpenses = v),
-                              ),
-                              SwitchListTile(
-                                title: Text(
-                                  "Cho phép xem SỔ CÔNG NỢ",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.subtitle1.fontSize,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  "Bao gồm khách nợ shop và shop nợ nhà cung cấp",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.body1.fontSize,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                value: _canViewDebts,
-                                onChanged: (v) =>
-                                    setState(() => _canViewDebts = v),
-                              ),
-
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                child: Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: Text(
-                                    "QUYỀN QUẢN LÝ HỆ THỐNG",
+                                  subtitle: Text(
+                                    "Xem và tạo đơn bán máy / phụ kiện",
                                     style: TextStyle(
                                       fontSize: AppTextStyles.body1.fontSize,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.purple,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  value: _canViewSales,
+                                  onChanged: (v) =>
+                                      setState(() => _canViewSales = v),
+                                ),
+                                // Chỉ hiển thị sửa chữa cho shop electronics
+                                if (_enableRepair)
+                                  SwitchListTile(
+                                    title: Text(
+                                      "SỬA CHỮA",
+                                      style: TextStyle(
+                                        fontSize:
+                                            AppTextStyles.subtitle1.fontSize,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      "Xem danh sách đơn sửa, tạo đơn mới",
+                                      style: TextStyle(
+                                        fontSize: AppTextStyles.body1.fontSize,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    value: _canViewRepairs,
+                                    onChanged: (v) =>
+                                        setState(() => _canViewRepairs = v),
+                                  ),
+                                SwitchListTile(
+                                  title: Text(
+                                    "KHO",
+                                    style: TextStyle(
+                                      fontSize:
+                                          AppTextStyles.subtitle1.fontSize,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    "Xem hàng tồn kho và phụ kiện",
+                                    style: TextStyle(
+                                      fontSize: AppTextStyles.body1.fontSize,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  value: _canViewInventory,
+                                  onChanged: (v) =>
+                                      setState(() => _canViewInventory = v),
+                                ),
+                                if (_enableRepair)
+                                  SwitchListTile(
+                                    title: Text(
+                                      "KHO LINH KIỆN SỬA CHỮA",
+                                      style: TextStyle(
+                                        fontSize:
+                                            AppTextStyles.subtitle1.fontSize,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      "Quản lý linh kiện dùng cho sửa chữa",
+                                      style: TextStyle(
+                                        fontSize: AppTextStyles.body1.fontSize,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    value: _canViewParts,
+                                    onChanged: (v) =>
+                                        setState(() => _canViewParts = v),
+                                  ),
+                                SwitchListTile(
+                                  title: Text(
+                                    "NHÀ CUNG CẤP",
+                                    style: TextStyle(
+                                      fontSize:
+                                          AppTextStyles.subtitle1.fontSize,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    "Xem sổ nhà phân phối, lịch sử nhập hàng",
+                                    style: TextStyle(
+                                      fontSize: AppTextStyles.body1.fontSize,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  value: _canViewSuppliers,
+                                  onChanged: (v) =>
+                                      setState(() => _canViewSuppliers = v),
+                                ),
+                                SwitchListTile(
+                                  title: Text(
+                                    "KHÁCH HÀNG",
+                                    style: TextStyle(
+                                      fontSize:
+                                          AppTextStyles.subtitle1.fontSize,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    "Xem danh sách khách và lịch sử mua/sửa",
+                                    style: TextStyle(
+                                      fontSize: AppTextStyles.body1.fontSize,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  value: _canViewCustomers,
+                                  onChanged: (v) =>
+                                      setState(() => _canViewCustomers = v),
+                                ),
+                                SwitchListTile(
+                                  title: Text(
+                                    "BẢO HÀNH",
+                                    style: TextStyle(
+                                      fontSize:
+                                          AppTextStyles.subtitle1.fontSize,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    "Truy cập sổ bảo hành của cửa hàng",
+                                    style: TextStyle(
+                                      fontSize: AppTextStyles.body1.fontSize,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  value: _canViewWarranty,
+                                  onChanged: (v) =>
+                                      setState(() => _canViewWarranty = v),
+                                ),
+                                SwitchListTile(
+                                  title: Text(
+                                    "CHAT NỘI BỘ",
+                                    style: TextStyle(
+                                      fontSize:
+                                          AppTextStyles.subtitle1.fontSize,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    "Cho phép sử dụng phòng chat trong cửa hàng",
+                                    style: TextStyle(
+                                      fontSize: AppTextStyles.body1.fontSize,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  value: _canViewChat,
+                                  onChanged: (v) =>
+                                      setState(() => _canViewChat = v),
+                                ),
+                                SwitchListTile(
+                                  title: Text(
+                                    "CHẤM CÔNG",
+                                    style: TextStyle(
+                                      fontSize:
+                                          AppTextStyles.subtitle1.fontSize,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    "Cho phép chấm công và xem báo cáo chấm công",
+                                    style: TextStyle(
+                                      fontSize: AppTextStyles.body1.fontSize,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  value: _canViewAttendance,
+                                  onChanged: (v) =>
+                                      setState(() => _canViewAttendance = v),
+                                ),
+                                SwitchListTile(
+                                  title: Text(
+                                    "CẤU HÌNH MÁY IN",
+                                    style: TextStyle(
+                                      fontSize:
+                                          AppTextStyles.subtitle1.fontSize,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    "Kết nối và in hóa đơn qua Bluetooth",
+                                    style: TextStyle(
+                                      fontSize: AppTextStyles.body1.fontSize,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  value: _canViewPrinter,
+                                  onChanged: (v) =>
+                                      setState(() => _canViewPrinter = v),
+                                ),
+
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      "MÀN HÌNH TÀI CHÍNH NHẠY CẢM",
+                                      style: TextStyle(
+                                        fontSize: AppTextStyles.body1.fontSize,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blueGrey,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                              SwitchListTile(
-                                title: Text(
-                                  "QUẢN LÝ NHÂN VIÊN",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.subtitle1.fontSize,
+                                SwitchListTile(
+                                  title: Text(
+                                    "Cho phép xem màn DOANH THU",
+                                    style: TextStyle(
+                                      fontSize:
+                                          AppTextStyles.subtitle1.fontSize,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    "Bao gồm báo cáo lời/lỗ, doanh số bán và sửa",
+                                    style: TextStyle(
+                                      fontSize: AppTextStyles.body1.fontSize,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  value: _canViewRevenue,
+                                  onChanged: (v) =>
+                                      setState(() => _canViewRevenue = v),
+                                ),
+                                SwitchListTile(
+                                  title: Text(
+                                    "Cho phép xem màn CHI PHÍ",
+                                    style: TextStyle(
+                                      fontSize:
+                                          AppTextStyles.subtitle1.fontSize,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    "Xem và quản lý các khoản chi ra của cửa hàng",
+                                    style: TextStyle(
+                                      fontSize: AppTextStyles.body1.fontSize,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  value: _canViewExpenses,
+                                  onChanged: (v) =>
+                                      setState(() => _canViewExpenses = v),
+                                ),
+                                SwitchListTile(
+                                  title: Text(
+                                    "Cho phép xem SỔ CÔNG NỢ",
+                                    style: TextStyle(
+                                      fontSize:
+                                          AppTextStyles.subtitle1.fontSize,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    "Bao gồm khách nợ shop và shop nợ nhà cung cấp",
+                                    style: TextStyle(
+                                      fontSize: AppTextStyles.body1.fontSize,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  value: _canViewDebts,
+                                  onChanged: (v) =>
+                                      setState(() => _canViewDebts = v),
+                                ),
+
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      "QUYỀN QUẢN LÝ HỆ THỐNG",
+                                      style: TextStyle(
+                                        fontSize: AppTextStyles.body1.fontSize,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.purple,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                                subtitle: Text(
-                                  "Xem danh sách và phân quyền nhân viên",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.body1.fontSize,
-                                    color: Colors.grey,
+                                SwitchListTile(
+                                  title: Text(
+                                    "QUẢN LÝ NHÂN VIÊN",
+                                    style: TextStyle(
+                                      fontSize:
+                                          AppTextStyles.subtitle1.fontSize,
+                                    ),
                                   ),
-                                ),
-                                value: _canManageStaffPerm,
-                                onChanged: (v) =>
-                                    setState(() => _canManageStaffPerm = v),
-                              ),
-                              SwitchListTile(
-                                title: Text(
-                                  "CÀI ĐẶT HỆ THỐNG",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.subtitle1.fontSize,
+                                  subtitle: Text(
+                                    "Xem danh sách và phân quyền nhân viên",
+                                    style: TextStyle(
+                                      fontSize: AppTextStyles.body1.fontSize,
+                                      color: Colors.grey,
+                                    ),
                                   ),
+                                  value: _canManageStaffPerm,
+                                  onChanged: (v) =>
+                                      setState(() => _canManageStaffPerm = v),
                                 ),
-                                subtitle: Text(
-                                  "Truy cập màn hình cài đặt cửa hàng",
-                                  style: TextStyle(
-                                    fontSize: AppTextStyles.body1.fontSize,
-                                    color: Colors.grey,
+                                SwitchListTile(
+                                  title: Text(
+                                    "CÀI ĐẶT HỆ THỐNG",
+                                    style: TextStyle(
+                                      fontSize:
+                                          AppTextStyles.subtitle1.fontSize,
+                                    ),
                                   ),
+                                  subtitle: Text(
+                                    "Truy cập màn hình cài đặt cửa hàng",
+                                    style: TextStyle(
+                                      fontSize: AppTextStyles.body1.fontSize,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  value: _canViewSettingsPerm,
+                                  onChanged: (v) =>
+                                      setState(() => _canViewSettingsPerm = v),
                                 ),
-                                value: _canViewSettingsPerm,
-                                onChanged: (v) =>
-                                    setState(() => _canViewSettingsPerm = v),
-                              ),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                    ],
+                        const SizedBox(height: 10),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
 
-          const SizedBox(height: 8),
-          _buildStaffActionRow(),
-          const SizedBox(height: 4),
-          TabBar(
-            controller: _tabController,
-            labelColor: Colors.blueAccent,
-            unselectedLabelColor: Colors.grey,
-            labelStyle: TextStyle(
-              fontSize: AppTextStyles.body1.fontSize,
-              fontWeight: FontWeight.bold,
-            ),
-            tabs: [
-              if (_enableRepair)
-                const Tab(
-                  text: "ĐÃ SỬA",
-                  icon: Icon(Icons.build_rounded, size: 20),
-                ),
-              const Tab(
-                text: "ĐÃ BÁN",
-                icon: Icon(Icons.shopping_cart_checkout_rounded, size: 20),
-              ),
-              const Tab(
-                text: "LỊCH LÀM VIỆC",
-                icon: Icon(Icons.schedule, size: 20),
-              ),
-            ],
-          ),
-
-          Expanded(
-            child: TabBarView(
+            const SizedBox(height: 8),
+            _buildStaffActionRow(),
+            const SizedBox(height: 4),
+            TabBar(
               controller: _tabController,
-              children: [
-                if (_enableRepair) _buildRepairList(_repairsCompleted),
-                _buildSaleList(_sales),
-                _buildWorkScheduleTab(),
+              labelColor: Colors.blueAccent,
+              unselectedLabelColor: Colors.grey,
+              labelStyle: TextStyle(
+                fontSize: AppTextStyles.body1.fontSize,
+                fontWeight: FontWeight.bold,
+              ),
+              tabs: [
+                if (_enableRepair)
+                  const Tab(
+                    text: "ĐÃ SỬA",
+                    icon: Icon(Icons.build_rounded, size: 20),
+                  ),
+                const Tab(
+                  text: "ĐÃ BÁN",
+                  icon: Icon(Icons.shopping_cart_checkout_rounded, size: 20),
+                ),
+                const Tab(
+                  text: "LỊCH LÀM VIỆC",
+                  icon: Icon(Icons.schedule, size: 20),
+                ),
               ],
             ),
-          ),
-        ],
+
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  if (_enableRepair) _buildRepairList(_repairsCompleted),
+                  _buildSaleList(_sales),
+                  _buildWorkScheduleTab(),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

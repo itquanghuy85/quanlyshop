@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -2351,27 +2351,36 @@ class _HomeViewState extends State<HomeView>
       isDismissible: false, // Force user to choose
       enableDrag: false,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.85,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      // `context` bên dưới bị shadow bởi tham số cùng tên builder — dùng
+      // `this.context` (State) để tránh crash _dependents.isEmpty khi pop.
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(this.context).bottom,
         ),
-        child: BusinessTypeWizard(
-          shopId: shopId,
-          shopName: _shopName.isNotEmpty ? _shopName : 'Cửa hàng',
-          onComplete: (newSettings) async {
-            Navigator.pop(context);
-            _isShowingBusinessTypeWizard = false;
-            // Save the new settings
-            await CategoryService().saveShopSettings(newSettings);
-            // Reload settings to apply changes
-            _loadShopSettings();
-            NotificationService.showSnackBar(
-              'Đã thiết lập ngành kinh doanh: ${newSettings.businessTypeName}',
-              color: Colors.green,
-            );
-          },
+        child: Container(
+          height:
+              MediaQuery.of(this.context).size.height * 0.85 -
+              MediaQuery.paddingOf(this.context).bottom,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: BusinessTypeWizard(
+            shopId: shopId,
+            shopName: _shopName.isNotEmpty ? _shopName : 'Cửa hàng',
+            onComplete: (newSettings) async {
+              Navigator.pop(context);
+              _isShowingBusinessTypeWizard = false;
+              // Save the new settings
+              await CategoryService().saveShopSettings(newSettings);
+              // Reload settings to apply changes
+              _loadShopSettings();
+              NotificationService.showSnackBar(
+                'Đã thiết lập ngành kinh doanh: ${newSettings.businessTypeName}',
+                color: Colors.green,
+              );
+            },
+          ),
         ),
       ),
     ).whenComplete(() {

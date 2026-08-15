@@ -64,8 +64,10 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
       ]);
       if (!mounted) return;
       setState(() {
-        _incomeIntents = results[0]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        _expenseIntents = results[1]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        _incomeIntents = results[0]
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        _expenseIntents = results[1]
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         _historyIntents = results[2];
         _isLoading = false;
       });
@@ -103,7 +105,8 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator(color: Colors.white)),
+      builder: (_) =>
+          const Center(child: CircularProgressIndicator(color: Colors.white)),
     );
 
     try {
@@ -119,7 +122,9 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
 
       if (result.success) {
         NotificationService.showSnackBar(
-          intent.isIncome ? '✅ Thu tiền thành công!' : '✅ Thanh toán thành công!',
+          intent.isIncome
+              ? '✅ Thu tiền thành công!'
+              : '✅ Thanh toán thành công!',
           color: Colors.green,
         );
         _loadData();
@@ -145,7 +150,10 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
           '${intent.description}\n${_currencyFmt.format(intent.amount)}đ',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Hủy')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Hủy'),
+          ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Xác nhận'),
@@ -165,7 +173,10 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
         title: const Text('Hủy thanh toán?'),
         content: Text(intent.description),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Không')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Không'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.of(ctx).pop(true),
@@ -175,9 +186,15 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
       ),
     );
     if (confirm == true) {
-      final ok = await PaymentIntentService.cancelIntent(intent.id, reason: 'Hủy thủ công');
+      final ok = await PaymentIntentService.cancelIntent(
+        intent.id,
+        reason: 'Hủy thủ công',
+      );
       if (ok) {
-        NotificationService.showSnackBar('Đã hủy thanh toán', color: Colors.orange);
+        NotificationService.showSnackBar(
+          'Đã hủy thanh toán',
+          color: Colors.orange,
+        );
         _loadData();
       }
     }
@@ -193,15 +210,15 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
       appBar: _buildAppBar(),
       body: ResponsiveCenter(
         child: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildList(_incomeIntents, isIncome: true),
-                _buildList(_expenseIntents, isIncome: false),
-                _buildHistoryList(),
-              ],
-            ),
+            ? const Center(child: CircularProgressIndicator())
+            : TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildList(_incomeIntents, isIncome: true),
+                  _buildList(_expenseIntents, isIncome: false),
+                  _buildHistoryList(),
+                ],
+              ),
       ),
     );
   }
@@ -233,7 +250,10 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
             indicatorColor: Colors.white,
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white60,
-            labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            labelStyle: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
             unselectedLabelStyle: const TextStyle(fontSize: 14),
             tabs: [
               Tab(text: 'THU (${_incomeIntents.length})'),
@@ -263,7 +283,9 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
             ),
             const SizedBox(height: 8),
             Text(
-              isIncome ? 'Không có khoản thu chờ xử lý' : 'Không có khoản chi chờ xử lý',
+              isIncome
+                  ? 'Không có khoản thu chờ xử lý'
+                  : 'Không có khoản chi chờ xử lý',
               style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
             ),
           ],
@@ -355,11 +377,7 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
                   color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  _typeIcon(intent.type),
-                  color: color,
-                  size: 20,
-                ),
+                child: Icon(_typeIcon(intent.type), color: color, size: 20),
               ),
               const SizedBox(width: 10),
               // ── Info ──
@@ -369,7 +387,10 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
                   children: [
                     Text(
                       intent.description,
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -377,12 +398,19 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
                     Row(
                       children: [
                         if (intent.personName != null) ...[
-                          Icon(Icons.person_outline, size: 12, color: Colors.grey.shade500),
+                          Icon(
+                            Icons.person_outline,
+                            size: 12,
+                            color: Colors.grey.shade500,
+                          ),
                           const SizedBox(width: 2),
                           Flexible(
                             child: Text(
                               intent.personName!,
-                              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade600,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -391,7 +419,10 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
                         ],
                         Text(
                           dateStr,
-                          style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade400,
+                          ),
                         ),
                       ],
                     ),
@@ -416,14 +447,21 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
                     onTap: () => _quickPay(intent),
                     borderRadius: BorderRadius.circular(4),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: color.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         'Tiền mặt',
-                        style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: color,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
@@ -476,10 +514,12 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
         : Colors.grey;
     final statusIcon = isCompleted ? Icons.check_circle : Icons.cancel;
     final paidAt = intent.paidAt != null
-        ? DateFormat('dd/MM HH:mm').format(
-            DateTime.fromMillisecondsSinceEpoch(intent.paidAt!))
-        : DateFormat('dd/MM HH:mm').format(
-            DateTime.fromMillisecondsSinceEpoch(intent.createdAt));
+        ? DateFormat(
+            'dd/MM HH:mm',
+          ).format(DateTime.fromMillisecondsSinceEpoch(intent.paidAt!))
+        : DateFormat(
+            'dd/MM HH:mm',
+          ).format(DateTime.fromMillisecondsSinceEpoch(intent.createdAt));
     final methodText = intent.paymentMethod?.displayName ?? '';
 
     return Padding(
@@ -615,7 +655,9 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
                     'Chênh lệch chờ',
                     style: TextStyle(
                       fontSize: 13,
-                      color: net >= 0 ? Colors.green.shade700 : Colors.red.shade700,
+                      color: net >= 0
+                          ? Colors.green.shade700
+                          : Colors.red.shade700,
                     ),
                   ),
                   Text(
@@ -623,7 +665,9 @@ class _PendingPaymentsListViewState extends State<PendingPaymentsListView>
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: net >= 0 ? Colors.green.shade700 : Colors.red.shade700,
+                      color: net >= 0
+                          ? Colors.green.shade700
+                          : Colors.red.shade700,
                     ),
                   ),
                 ],
@@ -751,80 +795,104 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
     final color = isIncome ? Colors.green : const Color(0xFF0068FF);
     final fmt = NumberFormat('#,###', 'vi');
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom:
+            MediaQuery.viewInsetsOf(context).bottom +
+            MediaQuery.paddingOf(context).bottom,
       ),
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // ── Handle ──
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 12),
-          // ── Amount ──
-          Text(
-            '${fmt.format(intent.amount)}đ',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            intent.description,
-            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 16),
-          // ── Method buttons ──
-          Row(
-            children: [
-              _methodBtn(PaymentMethod.cash, Icons.money, 'Tiền mặt', color),
-              const SizedBox(width: 8),
-              _methodBtn(PaymentMethod.transfer, Icons.account_balance, 'Chuyển khoản', color),
-              const SizedBox(width: 8),
-              _methodBtn(PaymentMethod.debt, Icons.receipt_long, 'Công nợ', color),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // ── Confirm ──
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: FilledButton(
-              onPressed: () => Navigator.pop(context, _selected),
-              style: FilledButton.styleFrom(
-                backgroundColor: color,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ── Handle ──
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
               ),
-              child: Text(
-                isIncome ? 'XÁC NHẬN THU' : 'XÁC NHẬN CHI',
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+            ),
+            const SizedBox(height: 12),
+            // ── Amount ──
+            Text(
+              '${fmt.format(intent.amount)}đ',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              intent.description,
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 16),
+            // ── Method buttons ──
+            Row(
+              children: [
+                _methodBtn(PaymentMethod.cash, Icons.money, 'Tiền mặt', color),
+                const SizedBox(width: 8),
+                _methodBtn(
+                  PaymentMethod.transfer,
+                  Icons.account_balance,
+                  'Chuyển khoản',
+                  color,
+                ),
+                const SizedBox(width: 8),
+                _methodBtn(
+                  PaymentMethod.debt,
+                  Icons.receipt_long,
+                  'Công nợ',
+                  color,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // ── Confirm ──
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: FilledButton(
+                onPressed: () => Navigator.pop(context, _selected),
+                style: FilledButton.styleFrom(
+                  backgroundColor: color,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  isIncome ? 'XÁC NHẬN THU' : 'XÁC NHẬN CHI',
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _methodBtn(PaymentMethod method, IconData icon, String label, Color activeColor) {
+  Widget _methodBtn(
+    PaymentMethod method,
+    IconData icon,
+    String label,
+    Color activeColor,
+  ) {
     final isActive = _selected == method;
     return Expanded(
       child: InkWell(
@@ -834,7 +902,9 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isActive ? activeColor.withOpacity(0.1) : Colors.grey.shade100,
+            color: isActive
+                ? activeColor.withOpacity(0.1)
+                : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: isActive ? activeColor : Colors.grey.shade200,
@@ -860,5 +930,3 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
     );
   }
 }
-
-

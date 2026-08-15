@@ -1548,11 +1548,15 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) {
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.viewInsetsOf(context).bottom,
+            ),
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(PopupTheme.radiusSheet)),
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(PopupTheme.radiusSheet),
+                ),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1567,8 +1571,14 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            AppLocalizations.of(context)!.forgotCheckinRequest.toUpperCase(),
-                            style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
+                            AppLocalizations.of(
+                              context,
+                            )!.forgotCheckinRequest.toUpperCase(),
+                            style: const TextStyle(
+                              color: PopupTheme.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
@@ -1581,42 +1591,113 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           DropdownButtonFormField<String>(
-                            decoration: const InputDecoration(labelText: 'Nhân viên', border: OutlineInputBorder(), isDense: true),
-                            items: _staffList.map((s) => DropdownMenuItem(value: s['id'] as String, child: Text(s['name'] as String, style: const TextStyle(fontSize: 13)))).toList(),
+                            decoration: const InputDecoration(
+                              labelText: 'Nhân viên',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            items: _staffList
+                                .map(
+                                  (s) => DropdownMenuItem(
+                                    value: s['id'] as String,
+                                    child: Text(
+                                      s['name'] as String,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
                             onChanged: (v) => setDlg(() => selectedUserId = v),
                           ),
                           const SizedBox(height: 10),
                           ListTile(
-                            dense: true, contentPadding: EdgeInsets.zero,
-                            title: Text('Ngày: ${DateFormat('dd/MM/yyyy').format(selectedDate)}', style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary)),
-                            trailing: const Icon(Icons.calendar_today, size: 18, color: PopupTheme.textSecondary),
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              'Ngày: ${DateFormat('dd/MM/yyyy').format(selectedDate)}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: PopupTheme.textPrimary,
+                              ),
+                            ),
+                            trailing: const Icon(
+                              Icons.calendar_today,
+                              size: 18,
+                              color: PopupTheme.textSecondary,
+                            ),
                             onTap: () async {
-                              final d = await showDatePicker(context: ctx, initialDate: selectedDate, firstDate: DateTime(2020), lastDate: DateTime.now());
+                              final d = await showDatePicker(
+                                context: ctx,
+                                initialDate: selectedDate,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime.now(),
+                              );
                               if (d != null) setDlg(() => selectedDate = d);
                             },
                           ),
                           ListTile(
-                            dense: true, contentPadding: EdgeInsets.zero,
-                            title: Text('Giờ vào: ${checkInTime?.format(ctx) ?? '--:--'}', style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary)),
-                            trailing: const Icon(Icons.access_time, size: 18, color: PopupTheme.textSecondary),
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              'Giờ vào: ${checkInTime?.format(ctx) ?? '--:--'}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: PopupTheme.textPrimary,
+                              ),
+                            ),
+                            trailing: const Icon(
+                              Icons.access_time,
+                              size: 18,
+                              color: PopupTheme.textSecondary,
+                            ),
                             onTap: () async {
-                              final t = await showTimePicker(context: ctx, initialTime: const TimeOfDay(hour: 8, minute: 0));
+                              final t = await showTimePicker(
+                                context: ctx,
+                                initialTime: const TimeOfDay(
+                                  hour: 8,
+                                  minute: 0,
+                                ),
+                              );
                               if (t != null) setDlg(() => checkInTime = t);
                             },
                           ),
                           ListTile(
-                            dense: true, contentPadding: EdgeInsets.zero,
-                            title: Text('Giờ ra: ${checkOutTime?.format(ctx) ?? '--:--'}', style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary)),
-                            trailing: const Icon(Icons.access_time, size: 18, color: PopupTheme.textSecondary),
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              'Giờ ra: ${checkOutTime?.format(ctx) ?? '--:--'}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: PopupTheme.textPrimary,
+                              ),
+                            ),
+                            trailing: const Icon(
+                              Icons.access_time,
+                              size: 18,
+                              color: PopupTheme.textSecondary,
+                            ),
                             onTap: () async {
-                              final t = await showTimePicker(context: ctx, initialTime: const TimeOfDay(hour: 17, minute: 0));
+                              final t = await showTimePicker(
+                                context: ctx,
+                                initialTime: const TimeOfDay(
+                                  hour: 17,
+                                  minute: 0,
+                                ),
+                              );
                               if (t != null) setDlg(() => checkOutTime = t);
                             },
                           ),
                           const SizedBox(height: 8),
                           TextField(
-                            style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 13),
-                            decoration: const InputDecoration(labelText: 'Ghi chú', border: OutlineInputBorder(), isDense: true),
+                            style: const TextStyle(
+                              color: PopupTheme.textPrimary,
+                              fontSize: 13,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: 'Ghi chú',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
                             onChanged: (v) => note = v,
                           ),
                           const SizedBox(height: 12),
@@ -1628,31 +1709,67 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                     child: Row(
                       children: [
-                        Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(ctx), child: const Text('HỦY'))),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('HỦY'),
+                          ),
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           flex: 2,
                           child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                            ),
                             onPressed: () async {
-                              if (selectedUserId == null || checkInTime == null) {
-                                NotificationService.showSnackBar('Chọn nhân viên và giờ vào', color: Colors.red);
+                              if (selectedUserId == null ||
+                                  checkInTime == null) {
+                                NotificationService.showSnackBar(
+                                  'Chọn nhân viên và giờ vào',
+                                  color: Colors.red,
+                                );
                                 return;
                               }
-                              final staff = _staffList.firstWhere((s) => s['id'] == selectedUserId);
-                              final dateKey = DateFormat('yyyy-MM-dd').format(selectedDate);
-                              final inMs = DateTime(selectedDate.year, selectedDate.month, selectedDate.day, checkInTime!.hour, checkInTime!.minute).millisecondsSinceEpoch;
+                              final staff = _staffList.firstWhere(
+                                (s) => s['id'] == selectedUserId,
+                              );
+                              final dateKey = DateFormat(
+                                'yyyy-MM-dd',
+                              ).format(selectedDate);
+                              final inMs = DateTime(
+                                selectedDate.year,
+                                selectedDate.month,
+                                selectedDate.day,
+                                checkInTime!.hour,
+                                checkInTime!.minute,
+                              ).millisecondsSinceEpoch;
                               final outMs = checkOutTime != null
-                                  ? DateTime(selectedDate.year, selectedDate.month, selectedDate.day, checkOutTime!.hour, checkOutTime!.minute).millisecondsSinceEpoch
+                                  ? DateTime(
+                                      selectedDate.year,
+                                      selectedDate.month,
+                                      selectedDate.day,
+                                      checkOutTime!.hour,
+                                      checkOutTime!.minute,
+                                    ).millisecondsSinceEpoch
                                   : null;
                               Navigator.pop(ctx);
-                              final ok = await AttendanceApprovalService.createForgotCheckinRequest(
-                                userId: selectedUserId!, email: staff['email'], name: staff['name'],
-                                dateKey: dateKey, checkInAt: inMs, checkOutAt: outMs,
-                                note: note.isNotEmpty ? note : null,
-                              );
+                              final ok =
+                                  await AttendanceApprovalService.createForgotCheckinRequest(
+                                    userId: selectedUserId!,
+                                    email: staff['email'],
+                                    name: staff['name'],
+                                    dateKey: dateKey,
+                                    checkInAt: inMs,
+                                    checkOutAt: outMs,
+                                    note: note.isNotEmpty ? note : null,
+                                  );
                               if (ok) {
-                                NotificationService.showSnackBar('Đã tạo yêu cầu bổ sung chấm công', color: AppColors.success);
+                                NotificationService.showSnackBar(
+                                  'Đã tạo yêu cầu bổ sung chấm công',
+                                  color: AppColors.success,
+                                );
                                 await _loadData();
                               }
                             },
@@ -1686,14 +1803,20 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) {
           final otMinutes = (otStart != null && otEnd != null)
-              ? ((otEnd!.hour * 60 + otEnd!.minute) - (otStart!.hour * 60 + otStart!.minute)).clamp(0, 480)
+              ? ((otEnd!.hour * 60 + otEnd!.minute) -
+                        (otStart!.hour * 60 + otStart!.minute))
+                    .clamp(0, 480)
               : 0;
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.viewInsetsOf(context).bottom,
+            ),
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(PopupTheme.radiusSheet)),
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(PopupTheme.radiusSheet),
+                ),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1708,8 +1831,14 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            AppLocalizations.of(context)!.editOvertime.toUpperCase(),
-                            style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
+                            AppLocalizations.of(
+                              context,
+                            )!.editOvertime.toUpperCase(),
+                            style: const TextStyle(
+                              color: PopupTheme.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
@@ -1722,51 +1851,129 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           DropdownButtonFormField<String>(
-                            decoration: const InputDecoration(labelText: 'Nhân viên', border: OutlineInputBorder(), isDense: true),
-                            items: _staffList.map((s) => DropdownMenuItem(value: s['id'] as String, child: Text(s['name'] as String, style: const TextStyle(fontSize: 13)))).toList(),
+                            decoration: const InputDecoration(
+                              labelText: 'Nhân viên',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            items: _staffList
+                                .map(
+                                  (s) => DropdownMenuItem(
+                                    value: s['id'] as String,
+                                    child: Text(
+                                      s['name'] as String,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
                             onChanged: (v) => setDlg(() => selectedUserId = v),
                           ),
                           const SizedBox(height: 10),
                           ListTile(
-                            dense: true, contentPadding: EdgeInsets.zero,
-                            title: Text('Ngày: ${DateFormat('dd/MM/yyyy').format(selectedDate)}', style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary)),
-                            trailing: const Icon(Icons.calendar_today, size: 18, color: PopupTheme.textSecondary),
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              'Ngày: ${DateFormat('dd/MM/yyyy').format(selectedDate)}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: PopupTheme.textPrimary,
+                              ),
+                            ),
+                            trailing: const Icon(
+                              Icons.calendar_today,
+                              size: 18,
+                              color: PopupTheme.textSecondary,
+                            ),
                             onTap: () async {
-                              final d = await showDatePicker(context: ctx, initialDate: selectedDate, firstDate: DateTime(2020), lastDate: DateTime.now());
+                              final d = await showDatePicker(
+                                context: ctx,
+                                initialDate: selectedDate,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime.now(),
+                              );
                               if (d != null) setDlg(() => selectedDate = d);
                             },
                           ),
                           ListTile(
-                            dense: true, contentPadding: EdgeInsets.zero,
-                            title: Text('${AppLocalizations.of(context)!.overtimeFrom}: ${otStart?.format(ctx) ?? '--:--'}', style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary)),
-                            trailing: const Icon(Icons.access_time, size: 18, color: PopupTheme.textSecondary),
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              '${AppLocalizations.of(context)!.overtimeFrom}: ${otStart?.format(ctx) ?? '--:--'}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: PopupTheme.textPrimary,
+                              ),
+                            ),
+                            trailing: const Icon(
+                              Icons.access_time,
+                              size: 18,
+                              color: PopupTheme.textSecondary,
+                            ),
                             onTap: () async {
-                              final t = await showTimePicker(context: ctx, initialTime: const TimeOfDay(hour: 17, minute: 0));
+                              final t = await showTimePicker(
+                                context: ctx,
+                                initialTime: const TimeOfDay(
+                                  hour: 17,
+                                  minute: 0,
+                                ),
+                              );
                               if (t != null) setDlg(() => otStart = t);
                             },
                           ),
                           ListTile(
-                            dense: true, contentPadding: EdgeInsets.zero,
-                            title: Text('${AppLocalizations.of(context)!.overtimeTo}: ${otEnd?.format(ctx) ?? '--:--'}', style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary)),
-                            trailing: const Icon(Icons.access_time, size: 18, color: PopupTheme.textSecondary),
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              '${AppLocalizations.of(context)!.overtimeTo}: ${otEnd?.format(ctx) ?? '--:--'}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: PopupTheme.textPrimary,
+                              ),
+                            ),
+                            trailing: const Icon(
+                              Icons.access_time,
+                              size: 18,
+                              color: PopupTheme.textSecondary,
+                            ),
                             onTap: () async {
-                              final t = await showTimePicker(context: ctx, initialTime: const TimeOfDay(hour: 20, minute: 0));
+                              final t = await showTimePicker(
+                                context: ctx,
+                                initialTime: const TimeOfDay(
+                                  hour: 20,
+                                  minute: 0,
+                                ),
+                              );
                               if (t != null) setDlg(() => otEnd = t);
                             },
                           ),
                           if (otMinutes > 0)
                             Container(
                               padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(color: Colors.deepOrange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                              decoration: BoxDecoration(
+                                color: Colors.deepOrange.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
                               child: Text(
                                 '${AppLocalizations.of(context)!.overtimeMinutes}: $otMinutes phút (${(otMinutes / 60).toStringAsFixed(1)} giờ)',
-                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.deepOrange),
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.deepOrange,
+                                ),
                               ),
                             ),
                           const SizedBox(height: 8),
                           TextField(
-                            style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 13),
-                            decoration: const InputDecoration(labelText: 'Ghi chú', border: OutlineInputBorder(), isDense: true),
+                            style: const TextStyle(
+                              color: PopupTheme.textPrimary,
+                              fontSize: 13,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: 'Ghi chú',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
                             onChanged: (v) => note = v,
                           ),
                           const SizedBox(height: 12),
@@ -1778,33 +1985,74 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                     child: Row(
                       children: [
-                        Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(ctx), child: const Text('HỦY'))),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('HỦY'),
+                          ),
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           flex: 2,
                           child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, foregroundColor: Colors.white),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.deepOrange,
+                              foregroundColor: Colors.white,
+                            ),
                             onPressed: () async {
-                              if (selectedUserId == null || otStart == null || otEnd == null) {
-                                NotificationService.showSnackBar('Chọn nhân viên và giờ tăng ca', color: Colors.red);
+                              if (selectedUserId == null ||
+                                  otStart == null ||
+                                  otEnd == null) {
+                                NotificationService.showSnackBar(
+                                  'Chọn nhân viên và giờ tăng ca',
+                                  color: Colors.red,
+                                );
                                 return;
                               }
-                              final dateKey = DateFormat('yyyy-MM-dd').format(selectedDate);
-                              final existing = await _db.getAttendance(dateKey, selectedUserId!);
+                              final dateKey = DateFormat(
+                                'yyyy-MM-dd',
+                              ).format(selectedDate);
+                              final existing = await _db.getAttendance(
+                                dateKey,
+                                selectedUserId!,
+                              );
                               if (existing == null) {
-                                NotificationService.showSnackBar('Không tìm thấy bản ghi chấm công ngày này', color: Colors.red);
+                                NotificationService.showSnackBar(
+                                  'Không tìm thấy bản ghi chấm công ngày này',
+                                  color: Colors.red,
+                                );
                                 return;
                               }
                               if (ctx.mounted) Navigator.pop(ctx);
-                              final startMs = DateTime(selectedDate.year, selectedDate.month, selectedDate.day, otStart!.hour, otStart!.minute).millisecondsSinceEpoch;
-                              final endMs = DateTime(selectedDate.year, selectedDate.month, selectedDate.day, otEnd!.hour, otEnd!.minute).millisecondsSinceEpoch;
-                              final ok = await AttendanceApprovalService.editOvertime(
-                                record: existing, overtimeMinutes: otMinutes,
-                                overtimeStartAt: startMs, overtimeEndAt: endMs,
-                                note: note.isNotEmpty ? 'Tăng ca: $note' : null,
-                              );
+                              final startMs = DateTime(
+                                selectedDate.year,
+                                selectedDate.month,
+                                selectedDate.day,
+                                otStart!.hour,
+                                otStart!.minute,
+                              ).millisecondsSinceEpoch;
+                              final endMs = DateTime(
+                                selectedDate.year,
+                                selectedDate.month,
+                                selectedDate.day,
+                                otEnd!.hour,
+                                otEnd!.minute,
+                              ).millisecondsSinceEpoch;
+                              final ok =
+                                  await AttendanceApprovalService.editOvertime(
+                                    record: existing,
+                                    overtimeMinutes: otMinutes,
+                                    overtimeStartAt: startMs,
+                                    overtimeEndAt: endMs,
+                                    note: note.isNotEmpty
+                                        ? 'Tăng ca: $note'
+                                        : null,
+                                  );
                               if (ok) {
-                                NotificationService.showSnackBar('Đã ghi nhận tăng ca $otMinutes phút', color: AppColors.success);
+                                NotificationService.showSnackBar(
+                                  'Đã ghi nhận tăng ca $otMinutes phút',
+                                  color: AppColors.success,
+                                );
                                 await _loadData();
                               }
                             },
@@ -2136,11 +2384,15 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
         builder: (ctx, setDlg) {
           final days = endDate.difference(startDate).inDays + 1;
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.viewInsetsOf(context).bottom,
+            ),
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(PopupTheme.radiusSheet)),
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(PopupTheme.radiusSheet),
+                ),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -2155,8 +2407,14 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            AppLocalizations.of(context)!.createLeaveRequest.toUpperCase(),
-                            style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
+                            AppLocalizations.of(
+                              context,
+                            )!.createLeaveRequest.toUpperCase(),
+                            style: const TextStyle(
+                              color: PopupTheme.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
@@ -2169,48 +2427,144 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           DropdownButtonFormField<String>(
-                            decoration: const InputDecoration(labelText: 'Nhân viên', border: OutlineInputBorder(), isDense: true),
-                            items: _staffList.map((s) => DropdownMenuItem(value: s['id'] as String, child: Text(s['name'] as String, style: const TextStyle(fontSize: 13)))).toList(),
+                            decoration: const InputDecoration(
+                              labelText: 'Nhân viên',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            items: _staffList
+                                .map(
+                                  (s) => DropdownMenuItem(
+                                    value: s['id'] as String,
+                                    child: Text(
+                                      s['name'] as String,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
                             onChanged: (v) => setDlg(() => selectedUserId = v),
                           ),
                           const SizedBox(height: 10),
                           DropdownButtonFormField<String>(
                             value: leaveType,
-                            decoration: InputDecoration(labelText: AppLocalizations.of(context)!.leaveType, border: const OutlineInputBorder(), isDense: true),
-                            items: ['annual', 'sick', 'unpaid', 'personal', 'maternity']
-                                .map((t) => DropdownMenuItem(value: t, child: Text(LeaveRequest.leaveTypeDisplayVi(t), style: const TextStyle(fontSize: 13))))
-                                .toList(),
-                            onChanged: (v) => setDlg(() => leaveType = v ?? 'annual'),
+                            decoration: InputDecoration(
+                              labelText: AppLocalizations.of(
+                                context,
+                              )!.leaveType,
+                              border: const OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            items:
+                                [
+                                      'annual',
+                                      'sick',
+                                      'unpaid',
+                                      'personal',
+                                      'maternity',
+                                    ]
+                                    .map(
+                                      (t) => DropdownMenuItem(
+                                        value: t,
+                                        child: Text(
+                                          LeaveRequest.leaveTypeDisplayVi(t),
+                                          style: const TextStyle(fontSize: 13),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                            onChanged: (v) =>
+                                setDlg(() => leaveType = v ?? 'annual'),
                           ),
                           const SizedBox(height: 10),
                           ListTile(
-                            dense: true, contentPadding: EdgeInsets.zero,
-                            title: Text('${AppLocalizations.of(context)!.startDate}: ${DateFormat('dd/MM/yyyy').format(startDate)}', style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary)),
-                            trailing: const Icon(Icons.calendar_today, size: 18, color: PopupTheme.textSecondary),
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              '${AppLocalizations.of(context)!.startDate}: ${DateFormat('dd/MM/yyyy').format(startDate)}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: PopupTheme.textPrimary,
+                              ),
+                            ),
+                            trailing: const Icon(
+                              Icons.calendar_today,
+                              size: 18,
+                              color: PopupTheme.textSecondary,
+                            ),
                             onTap: () async {
-                              final d = await showDatePicker(context: ctx, initialDate: startDate, firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 365)));
-                              if (d != null) setDlg(() { startDate = d; if (endDate.isBefore(startDate)) endDate = startDate; });
+                              final d = await showDatePicker(
+                                context: ctx,
+                                initialDate: startDate,
+                                firstDate: DateTime.now(),
+                                lastDate: DateTime.now().add(
+                                  const Duration(days: 365),
+                                ),
+                              );
+                              if (d != null)
+                                setDlg(() {
+                                  startDate = d;
+                                  if (endDate.isBefore(startDate))
+                                    endDate = startDate;
+                                });
                             },
                           ),
                           ListTile(
-                            dense: true, contentPadding: EdgeInsets.zero,
-                            title: Text('${AppLocalizations.of(context)!.endDate}: ${DateFormat('dd/MM/yyyy').format(endDate)}', style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary)),
-                            trailing: const Icon(Icons.calendar_today, size: 18, color: PopupTheme.textSecondary),
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              '${AppLocalizations.of(context)!.endDate}: ${DateFormat('dd/MM/yyyy').format(endDate)}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: PopupTheme.textPrimary,
+                              ),
+                            ),
+                            trailing: const Icon(
+                              Icons.calendar_today,
+                              size: 18,
+                              color: PopupTheme.textSecondary,
+                            ),
                             onTap: () async {
-                              final d = await showDatePicker(context: ctx, initialDate: endDate, firstDate: startDate, lastDate: startDate.add(const Duration(days: 90)));
+                              final d = await showDatePicker(
+                                context: ctx,
+                                initialDate: endDate,
+                                firstDate: startDate,
+                                lastDate: startDate.add(
+                                  const Duration(days: 90),
+                                ),
+                              );
                               if (d != null) setDlg(() => endDate = d);
                             },
                           ),
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                            child: Text('${AppLocalizations.of(context)!.totalDays}: $days ngày', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: PopupTheme.textPrimary)),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '${AppLocalizations.of(context)!.totalDays}: $days ngày',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: PopupTheme.textPrimary,
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 8),
                           TextField(
-                            style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 13),
-                            decoration: InputDecoration(labelText: AppLocalizations.of(context)!.leaveReason, border: const OutlineInputBorder(), isDense: true),
+                            style: const TextStyle(
+                              color: PopupTheme.textPrimary,
+                              fontSize: 13,
+                            ),
+                            decoration: InputDecoration(
+                              labelText: AppLocalizations.of(
+                                context,
+                              )!.leaveReason,
+                              border: const OutlineInputBorder(),
+                              isDense: true,
+                            ),
                             onChanged: (v) => reason = v,
                             maxLines: 2,
                           ),
@@ -2223,38 +2577,67 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                     child: Row(
                       children: [
-                        Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(ctx), child: const Text('HỦY'))),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('HỦY'),
+                          ),
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           flex: 2,
                           child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                            ),
                             onPressed: () async {
                               if (selectedUserId == null) {
-                                NotificationService.showSnackBar('Chọn nhân viên', color: Colors.red);
+                                NotificationService.showSnackBar(
+                                  'Chọn nhân viên',
+                                  color: Colors.red,
+                                );
                                 return;
                               }
-                              final staff = _staffList.firstWhere((s) => s['id'] == selectedUserId);
+                              final staff = _staffList.firstWhere(
+                                (s) => s['id'] == selectedUserId,
+                              );
                               final lr = LeaveRequest(
-                                userId: selectedUserId!, email: staff['email'], name: staff['name'],
+                                userId: selectedUserId!,
+                                email: staff['email'],
+                                name: staff['name'],
                                 leaveType: leaveType,
-                                startDate: DateFormat('yyyy-MM-dd').format(startDate),
-                                endDate: DateFormat('yyyy-MM-dd').format(endDate),
+                                startDate: DateFormat(
+                                  'yyyy-MM-dd',
+                                ).format(startDate),
+                                endDate: DateFormat(
+                                  'yyyy-MM-dd',
+                                ).format(endDate),
                                 totalDays: days.toDouble(),
                                 reason: reason.isNotEmpty ? reason : null,
                                 status: 'pending',
-                                createdAt: DateTime.now().millisecondsSinceEpoch,
-                                updatedAt: DateTime.now().millisecondsSinceEpoch,
+                                createdAt:
+                                    DateTime.now().millisecondsSinceEpoch,
+                                updatedAt:
+                                    DateTime.now().millisecondsSinceEpoch,
                                 isSynced: false,
                               );
                               Navigator.pop(ctx);
-                              final ok = await AttendanceApprovalService.createLeaveRequest(lr);
+                              final ok =
+                                  await AttendanceApprovalService.createLeaveRequest(
+                                    lr,
+                                  );
                               if (ok) {
-                                NotificationService.showSnackBar('Đã tạo đơn xin nghỉ', color: AppColors.success);
+                                NotificationService.showSnackBar(
+                                  'Đã tạo đơn xin nghỉ',
+                                  color: AppColors.success,
+                                );
                                 await _loadData();
                               }
                             },
-                            child: Text(AppLocalizations.of(context)!.createLeaveRequest),
+                            child: Text(
+                              AppLocalizations.of(context)!.createLeaveRequest,
+                            ),
                           ),
                         ),
                       ],
@@ -2311,222 +2694,235 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.75,
+      builder: (ctx) => Padding(
+        // Đọc từ `context` ngoài (không phải `ctx`) để tránh crash
+        // _dependents.isEmpty khi pop.
+        padding: EdgeInsets.only(
+          bottom:
+              MediaQuery.viewInsetsOf(context).bottom +
+              MediaQuery.paddingOf(context).bottom,
         ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: AppColors.primary.withOpacity(0.1),
-                  child: Text(
-                    (staff['name'] as String).substring(0, 1),
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: AppTextStyles.headline5.fontSize,
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.75,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                    child: Text(
+                      (staff['name'] as String).substring(0, 1),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: AppTextStyles.headline5.fontSize,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          staff['name'],
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: AppTextStyles.headline5.fontSize,
+                          ),
+                        ),
+                        Text(
+                          staff['email'],
+                          style: TextStyle(
+                            color: AppColors.inactive,
+                            fontSize: AppTextStyles.caption.fontSize,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Edit times button
+                  IconButton(
+                    icon: const Icon(
+                      Icons.edit,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
+                    tooltip: loc.editCheckTime,
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _showEditTimesDialog(record, staff);
+                    },
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    icon: const Icon(Icons.close, size: 20),
+                  ),
+                ],
+              ),
+              const Divider(height: 16),
+              _detailRow(
+                loc.dateLabel,
+                DateFormat('dd/MM/yyyy').format(_selectedDate),
+              ),
+              _detailRow(
+                loc.checkInTimeShort,
+                record.checkInAt != null
+                    ? DateFormat('HH:mm:ss').format(
+                        DateTime.fromMillisecondsSinceEpoch(record.checkInAt!),
+                      )
+                    : '--',
+              ),
+              _detailRow(
+                loc.checkOutTimeShort,
+                record.checkOutAt != null
+                    ? DateFormat('HH:mm:ss').format(
+                        DateTime.fromMillisecondsSinceEpoch(record.checkOutAt!),
+                      )
+                    : '--',
+              ),
+              _detailRow(
+                loc.lateArrival,
+                record.isLate == 1 ? loc.yes : loc.no,
+              ),
+              _detailRow(
+                loc.earlyLeave,
+                record.isEarlyLeave == 1 ? loc.yes : loc.no,
+              ),
+              _detailRow('Trạng thái', _statusDisplayVi(record.status)),
+              if (record.overtimeOn > 0)
+                _detailRow('Tăng ca', '${record.overtimeOn} phút'),
+              if (record.overtimeStartAt != null &&
+                  record.overtimeEndAt != null)
+                _detailRow(
+                  'Giờ TC',
+                  '${DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(record.overtimeStartAt!))} - ${DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(record.overtimeEndAt!))}',
+                ),
+              if (record.note != null && record.note!.isNotEmpty)
+                _detailRow('Ghi chú', record.note!),
+              if (record.location != null)
+                _detailRow(loc.locationLabel, record.location!),
+              if (record.location != null &&
+                  OsmMapService.parseLatLng(record.location) != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final p = OsmMapService.parseLatLng(record.location);
+                      if (p != null) await OsmMapService.openPoint(p[0], p[1]);
+                    },
+                    icon: const Icon(Icons.map, size: 16),
+                    label: const Text(
+                      'Xem vị trí',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        staff['name'],
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: AppTextStyles.headline5.fontSize,
-                        ),
+              // Approve/Reject from detail
+              if (_needsAttendanceApproval(record)) ...[
+                const Divider(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _rejectAttendance(record);
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.error,
                       ),
-                      Text(
-                        staff['email'],
-                        style: TextStyle(
-                          color: AppColors.inactive,
-                          fontSize: AppTextStyles.caption.fontSize,
-                        ),
+                      child: Text(
+                        loc.rejectAttendance,
+                        style: const TextStyle(fontSize: 12),
                       ),
-                    ],
-                  ),
-                ),
-                // Edit times button
-                IconButton(
-                  icon: const Icon(
-                    Icons.edit,
-                    size: 18,
-                    color: AppColors.primary,
-                  ),
-                  tooltip: loc.editCheckTime,
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _showEditTimesDialog(record, staff);
-                  },
-                ),
-                IconButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  icon: const Icon(Icons.close, size: 20),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _approveAttendance(record);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.success,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text(
+                        loc.approveAttendance,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ),
-            const Divider(height: 16),
-            _detailRow(
-              loc.dateLabel,
-              DateFormat('dd/MM/yyyy').format(_selectedDate),
-            ),
-            _detailRow(
-              loc.checkInTimeShort,
-              record.checkInAt != null
-                  ? DateFormat('HH:mm:ss').format(
-                      DateTime.fromMillisecondsSinceEpoch(record.checkInAt!),
-                    )
-                  : '--',
-            ),
-            _detailRow(
-              loc.checkOutTimeShort,
-              record.checkOutAt != null
-                  ? DateFormat('HH:mm:ss').format(
-                      DateTime.fromMillisecondsSinceEpoch(record.checkOutAt!),
-                    )
-                  : '--',
-            ),
-            _detailRow(loc.lateArrival, record.isLate == 1 ? loc.yes : loc.no),
-            _detailRow(
-              loc.earlyLeave,
-              record.isEarlyLeave == 1 ? loc.yes : loc.no,
-            ),
-            _detailRow('Trạng thái', _statusDisplayVi(record.status)),
-            if (record.overtimeOn > 0)
-              _detailRow('Tăng ca', '${record.overtimeOn} phút'),
-            if (record.overtimeStartAt != null && record.overtimeEndAt != null)
-              _detailRow(
-                'Giờ TC',
-                '${DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(record.overtimeStartAt!))} - ${DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(record.overtimeEndAt!))}',
-              ),
-            if (record.note != null && record.note!.isNotEmpty)
-              _detailRow('Ghi chú', record.note!),
-            if (record.location != null)
-              _detailRow(loc.locationLabel, record.location!),
-            if (record.location != null &&
-                OsmMapService.parseLatLng(record.location) != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    final p = OsmMapService.parseLatLng(record.location);
-                    if (p != null) await OsmMapService.openPoint(p[0], p[1]);
-                  },
-                  icon: const Icon(Icons.map, size: 16),
-                  label: const Text(
-                    'Xem vị trí',
-                    style: TextStyle(fontSize: 12),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
+              const SizedBox(height: 8),
+              // Photos
+              if (record.photoIn != null || record.photoOut != null) ...[
+                Text(
+                  loc.attendancePhotos,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: AppTextStyles.headline6.fontSize,
                   ),
                 ),
-              ),
-            // Approve/Reject from detail
-            if (_needsAttendanceApproval(record)) ...[
-              const Divider(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      _rejectAttendance(record);
-                    },
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                    ),
-                    child: Text(
-                      loc.rejectAttendance,
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      _approveAttendance(record);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.success,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: Text(
-                      loc.approveAttendance,
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-            const SizedBox(height: 8),
-            // Photos
-            if (record.photoIn != null || record.photoOut != null) ...[
-              Text(
-                loc.attendancePhotos,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: AppTextStyles.headline6.fontSize,
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    if (record.photoIn != null)
+                      Expanded(
+                        child: Column(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: _buildAttendanceImage(record.photoIn!),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              loc.checkInPhoto,
+                              style: TextStyle(
+                                fontSize: AppTextStyles.caption.fontSize,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (record.photoIn != null && record.photoOut != null)
+                      const SizedBox(width: 8),
+                    if (record.photoOut != null)
+                      Expanded(
+                        child: Column(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: _buildAttendanceImage(record.photoOut!),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              loc.checkOutPhoto,
+                              style: TextStyle(
+                                fontSize: AppTextStyles.caption.fontSize,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  if (record.photoIn != null)
-                    Expanded(
-                      child: Column(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: _buildAttendanceImage(record.photoIn!),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            loc.checkInPhoto,
-                            style: TextStyle(
-                              fontSize: AppTextStyles.caption.fontSize,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  if (record.photoIn != null && record.photoOut != null)
-                    const SizedBox(width: 8),
-                  if (record.photoOut != null)
-                    Expanded(
-                      child: Column(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: _buildAttendanceImage(record.photoOut!),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            loc.checkOutPhoto,
-                            style: TextStyle(
-                              fontSize: AppTextStyles.caption.fontSize,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -2553,7 +2949,9 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) {
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.viewInsetsOf(context).bottom,
+            ),
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
@@ -2593,7 +2991,10 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                         children: [
                           Text(
                             'Ngày: ${record.dateKey}',
-                            style: const TextStyle(fontSize: 13, color: PopupTheme.textSecondary),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: PopupTheme.textSecondary,
+                            ),
                           ),
                           const SizedBox(height: 10),
                           ListTile(
@@ -2601,13 +3002,22 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                             contentPadding: EdgeInsets.zero,
                             title: Text(
                               'Giờ vào: ${newIn?.format(ctx) ?? '--:--'}',
-                              style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: PopupTheme.textPrimary,
+                              ),
                             ),
-                            trailing: const Icon(Icons.access_time, size: 18, color: PopupTheme.textSecondary),
+                            trailing: const Icon(
+                              Icons.access_time,
+                              size: 18,
+                              color: PopupTheme.textSecondary,
+                            ),
                             onTap: () async {
                               final t = await showTimePicker(
                                 context: ctx,
-                                initialTime: newIn ?? const TimeOfDay(hour: 8, minute: 0),
+                                initialTime:
+                                    newIn ??
+                                    const TimeOfDay(hour: 8, minute: 0),
                               );
                               if (t != null) setDlg(() => newIn = t);
                             },
@@ -2617,13 +3027,22 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                             contentPadding: EdgeInsets.zero,
                             title: Text(
                               'Giờ ra: ${newOut?.format(ctx) ?? '--:--'}',
-                              style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: PopupTheme.textPrimary,
+                              ),
                             ),
-                            trailing: const Icon(Icons.access_time, size: 18, color: PopupTheme.textSecondary),
+                            trailing: const Icon(
+                              Icons.access_time,
+                              size: 18,
+                              color: PopupTheme.textSecondary,
+                            ),
                             onTap: () async {
                               final t = await showTimePicker(
                                 context: ctx,
-                                initialTime: newOut ?? const TimeOfDay(hour: 17, minute: 0),
+                                initialTime:
+                                    newOut ??
+                                    const TimeOfDay(hour: 17, minute: 0),
                               );
                               if (t != null) setDlg(() => newOut = t);
                             },
@@ -2636,7 +3055,10 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                               isDense: true,
                             ),
                             onChanged: (v) => note = v,
-                            style: const TextStyle(fontSize: 13, color: PopupTheme.textPrimary),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: PopupTheme.textPrimary,
+                            ),
                           ),
                           const SizedBox(height: 8),
                         ],
@@ -2678,12 +3100,13 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                                     ).millisecondsSinceEpoch
                                   : null;
                               Navigator.pop(ctx);
-                              final ok = await AttendanceApprovalService.editAttendanceTimes(
-                                record: record,
-                                checkInAt: inMs,
-                                checkOutAt: outMs,
-                                note: note.isNotEmpty ? note : null,
-                              );
+                              final ok =
+                                  await AttendanceApprovalService.editAttendanceTimes(
+                                    record: record,
+                                    checkInAt: inMs,
+                                    checkOutAt: outMs,
+                                    note: note.isNotEmpty ? note : null,
+                                  );
                               if (ok) {
                                 NotificationService.showSnackBar(
                                   'Đã sửa giờ chấm công',
@@ -3310,7 +3733,9 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
       useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom,
+        ),
         child: Container(
           decoration: const BoxDecoration(
             color: PopupTheme.bgDark,
@@ -3344,7 +3769,10 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                 child: TextField(
                   autofocus: true,
-                  style: const TextStyle(color: PopupTheme.textPrimary, fontSize: 13),
+                  style: const TextStyle(
+                    color: PopupTheme.textPrimary,
+                    fontSize: 13,
+                  ),
                   decoration: InputDecoration(
                     hintText: hint,
                     border: const OutlineInputBorder(),
@@ -3374,7 +3802,10 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                         ),
                         onPressed: () {
                           if (reason.trim().isEmpty) {
-                            NotificationService.showSnackBar('Nhập lý do', color: Colors.red);
+                            NotificationService.showSnackBar(
+                              'Nhập lý do',
+                              color: Colors.red,
+                            );
                             return;
                           }
                           Navigator.pop(ctx, reason.trim());

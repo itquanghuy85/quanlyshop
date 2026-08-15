@@ -23,7 +23,8 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
   bool _isLoading = true;
   ShopSettings? _shopSettings;
 
-  BusinessTerminology get _terms => BusinessTypeHelper.instance.getTerminology(_shopSettings);
+  BusinessTerminology get _terms =>
+      BusinessTypeHelper.instance.getTerminology(_shopSettings);
 
   @override
   void initState() {
@@ -46,7 +47,9 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
   Future<void> _loadCategories() async {
     setState(() => _isLoading = true);
     try {
-      final categories = await _categoryService.getCategories(forceRefresh: true);
+      final categories = await _categoryService.getCategories(
+        forceRefresh: true,
+      );
       setState(() {
         _categories = categories;
         _isLoading = false;
@@ -54,9 +57,9 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi tải danh mục: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Lỗi tải danh mục: $e')));
       }
     }
   }
@@ -74,11 +77,13 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
           ),
         ],
       ),
-      body: ResponsiveCenter(child: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _categories.isEmpty
-              ? _buildEmptyState()
-              : _buildCategoryList()),
+      body: ResponsiveCenter(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _categories.isEmpty
+            ? _buildEmptyState()
+            : _buildCategoryList(),
+      ),
     );
   }
 
@@ -153,7 +158,11 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                   onPressed: () => _showAddEditDialog(category: category),
                 ),
                 IconButton(
-                  icon: Icon(Icons.delete, size: 20, color: Colors.red.shade400),
+                  icon: Icon(
+                    Icons.delete,
+                    size: 20,
+                    color: Colors.red.shade400,
+                  ),
                   onPressed: () => _confirmDelete(category),
                 ),
                 ReorderableDragStartListener(
@@ -177,7 +186,9 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
     if (category.description?.isNotEmpty == true) {
       features.add(category.description!);
     }
-    return features.isEmpty ? 'Không có tính năng đặc biệt' : features.join(' • ');
+    return features.isEmpty
+        ? 'Không có tính năng đặc biệt'
+        : features.join(' • ');
   }
 
   Color _parseColor(String? colorStr) {
@@ -206,7 +217,9 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
   void _showAddEditDialog({ProductCategory? category}) {
     final isEdit = category != null;
     final nameController = TextEditingController(text: category?.name ?? '');
-    final descController = TextEditingController(text: category?.description ?? '');
+    final descController = TextEditingController(
+      text: category?.description ?? '',
+    );
     String selectedIcon = category?.icon ?? '📦';
     bool trackSerial = category?.trackSerial ?? false;
     bool trackExpiry = category?.trackExpiry ?? false;
@@ -221,7 +234,9 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.viewInsetsOf(context).bottom,
+            ),
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
@@ -238,7 +253,10 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                     child: Row(
                       children: [
-                        const Icon(Icons.category_outlined, color: PopupTheme.blue),
+                        const Icon(
+                          Icons.category_outlined,
+                          color: PopupTheme.blue,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           isEdit ? 'SỬA DANH MỤC' : 'THÊM DANH MỤC',
@@ -261,30 +279,45 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                           Row(
                             children: [
                               GestureDetector(
-                                onTap: () => _showIconPicker(selectedIcon, (icon) {
-                                  setDialogState(() => selectedIcon = icon);
-                                }),
+                                onTap: () =>
+                                    _showIconPicker(selectedIcon, (icon) {
+                                      setDialogState(() => selectedIcon = icon);
+                                    }),
                                 child: Container(
                                   width: 60,
                                   height: 60,
                                   decoration: BoxDecoration(
                                     color: PopupTheme.surfaceDark,
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: PopupTheme.textSecondary.withValues(alpha: 0.3)),
+                                    border: Border.all(
+                                      color: PopupTheme.textSecondary
+                                          .withValues(alpha: 0.3),
+                                    ),
                                   ),
                                   child: Center(
-                                    child: Text(selectedIcon, style: const TextStyle(fontSize: 32)),
+                                    child: Text(
+                                      selectedIcon,
+                                      style: const TextStyle(fontSize: 32),
+                                    ),
                                   ),
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              const Text('Nhấn để chọn icon', style: TextStyle(fontSize: 14, color: PopupTheme.textSecondary)),
+                              const Text(
+                                'Nhấn để chọn icon',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: PopupTheme.textSecondary,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 16),
                           TextField(
                             controller: nameController,
-                            style: const TextStyle(color: PopupTheme.textPrimary),
+                            style: const TextStyle(
+                              color: PopupTheme.textPrimary,
+                            ),
                             decoration: const InputDecoration(
                               labelText: 'Tên danh mục *',
                               border: OutlineInputBorder(),
@@ -293,7 +326,9 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                           const SizedBox(height: 12),
                           TextField(
                             controller: descController,
-                            style: const TextStyle(color: PopupTheme.textPrimary),
+                            style: const TextStyle(
+                              color: PopupTheme.textPrimary,
+                            ),
                             decoration: const InputDecoration(
                               labelText: 'Mô tả / Đơn vị tính',
                               hintText: 'Ví dụ: cái, kg, hộp...',
@@ -304,34 +339,69 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                           const SizedBox(height: 16),
                           const Text(
                             'Tính năng',
-                            style: TextStyle(fontWeight: FontWeight.bold, color: PopupTheme.textPrimary),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: PopupTheme.textPrimary,
+                            ),
                           ),
                           SwitchListTile(
-                            title: Text('Theo dõi ${_terms.specialField1Label}', style: const TextStyle(color: PopupTheme.textPrimary)),
-                            subtitle: const Text('Cho sản phẩm cần theo dõi serial', style: TextStyle(color: PopupTheme.textSecondary)),
+                            title: Text(
+                              'Theo dõi ${_terms.specialField1Label}',
+                              style: const TextStyle(
+                                color: PopupTheme.textPrimary,
+                              ),
+                            ),
+                            subtitle: const Text(
+                              'Cho sản phẩm cần theo dõi serial',
+                              style: TextStyle(color: PopupTheme.textSecondary),
+                            ),
                             value: trackSerial,
-                            onChanged: (v) => setDialogState(() => trackSerial = v),
+                            onChanged: (v) =>
+                                setDialogState(() => trackSerial = v),
                             contentPadding: EdgeInsets.zero,
                           ),
                           SwitchListTile(
-                            title: const Text('Theo dõi hạn sử dụng', style: TextStyle(color: PopupTheme.textPrimary)),
-                            subtitle: const Text('Cho thực phẩm', style: TextStyle(color: PopupTheme.textSecondary)),
+                            title: const Text(
+                              'Theo dõi hạn sử dụng',
+                              style: TextStyle(color: PopupTheme.textPrimary),
+                            ),
+                            subtitle: const Text(
+                              'Cho thực phẩm',
+                              style: TextStyle(color: PopupTheme.textSecondary),
+                            ),
                             value: trackExpiry,
-                            onChanged: (v) => setDialogState(() => trackExpiry = v),
+                            onChanged: (v) =>
+                                setDialogState(() => trackExpiry = v),
                             contentPadding: EdgeInsets.zero,
                           ),
                           SwitchListTile(
-                            title: const Text('Có biến thể (size/màu)', style: TextStyle(color: PopupTheme.textPrimary)),
-                            subtitle: const Text('Cho thời trang', style: TextStyle(color: PopupTheme.textSecondary)),
+                            title: const Text(
+                              'Có biến thể (size/màu)',
+                              style: TextStyle(color: PopupTheme.textPrimary),
+                            ),
+                            subtitle: const Text(
+                              'Cho thời trang',
+                              style: TextStyle(color: PopupTheme.textSecondary),
+                            ),
                             value: hasVariants,
-                            onChanged: (v) => setDialogState(() => hasVariants = v),
+                            onChanged: (v) =>
+                                setDialogState(() => hasVariants = v),
                             contentPadding: EdgeInsets.zero,
                           ),
                           SwitchListTile(
-                            title: Text('Có ${_terms.specialField2Label.toLowerCase()}', style: const TextStyle(color: PopupTheme.textPrimary)),
-                            subtitle: const Text('Cho sản phẩm có thời hạn bảo hành', style: TextStyle(color: PopupTheme.textSecondary)),
+                            title: Text(
+                              'Có ${_terms.specialField2Label.toLowerCase()}',
+                              style: const TextStyle(
+                                color: PopupTheme.textPrimary,
+                              ),
+                            ),
+                            subtitle: const Text(
+                              'Cho sản phẩm có thời hạn bảo hành',
+                              style: TextStyle(color: PopupTheme.textSecondary),
+                            ),
                             value: hasWarranty,
-                            onChanged: (v) => setDialogState(() => hasWarranty = v),
+                            onChanged: (v) =>
+                                setDialogState(() => hasWarranty = v),
                             contentPadding: EdgeInsets.zero,
                           ),
                           const SizedBox(height: 8),
@@ -345,7 +415,10 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                       children: [
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
+                            onPressed: () {
+                              FocusScope.of(ctx).unfocus();
+                              Navigator.pop(ctx);
+                            },
                             child: const Text('HỦY'),
                           ),
                         ),
@@ -356,8 +429,10 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                             onPressed: () async {
                               if (nameController.text.trim().isEmpty) {
                                 ScaffoldMessenger.of(ctx).showSnackBar(
-                                const SnackBar(content: Text('Vui lòng nhập tên danh mục')),
-                              );
+                                  const SnackBar(
+                                    content: Text('Vui lòng nhập tên danh mục'),
+                                  ),
+                                );
                                 return;
                               }
                               Navigator.pop(ctx);
@@ -372,11 +447,14 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                                 trackExpiry: trackExpiry,
                                 hasVariants: hasVariants,
                                 hasWarranty: hasWarranty,
-                                sortOrder: category?.sortOrder ?? _categories.length,
+                                sortOrder:
+                                    category?.sortOrder ?? _categories.length,
                                 isActive: true,
                               );
                               if (isEdit) {
-                                await _categoryService.updateCategory(newCategory);
+                                await _categoryService.updateCategory(
+                                  newCategory,
+                                );
                               } else {
                                 await _categoryService.addCategory(newCategory);
                               }
@@ -399,47 +477,98 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
 
   void _showIconPicker(String current, Function(String) onSelected) {
     final icons = [
-      '📦', '📱', '💻', '🎧', '🔧', '⚡', '🔌', '📷',
-      '🍎', '🥬', '🍖', '🐟', '🥚', '🍚', '🧃', '🥫',
-      '👕', '👖', '👗', '👟', '👜', '🧣', '🧥', '💍',
-      '🛋️', '🪑', '🛏️', '🚗', '🏠', '⭐', '🎁', '📋',
+      '📦',
+      '📱',
+      '💻',
+      '🎧',
+      '🔧',
+      '⚡',
+      '🔌',
+      '📷',
+      '🍎',
+      '🥬',
+      '🍖',
+      '🐟',
+      '🥚',
+      '🍚',
+      '🧃',
+      '🥫',
+      '👕',
+      '👖',
+      '👗',
+      '👟',
+      '👜',
+      '🧣',
+      '🧥',
+      '💍',
+      '🛋️',
+      '🪑',
+      '🛏️',
+      '🚗',
+      '🏠',
+      '⭐',
+      '🎁',
+      '📋',
     ];
 
     showAppBottomSheet(
       context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Chọn icon', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: icons.map((icon) => GestureDetector(
-                onTap: () {
-                  Navigator.pop(context);
-                  onSelected(icon);
-                },
-                child: Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: icon == current ? Colors.blue.shade100 : Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: icon == current ? Colors.blue : Colors.transparent,
-                      width: 2,
-                    ),
-                  ),
-                  child: Center(child: Text(icon, style: const TextStyle(fontSize: 28))),
-                ),
-              )).toList(),
-            ),
-            const SizedBox(height: 10),
-          ],
+      // `context` trong builder bên dưới bị shadow bởi tham số cùng tên —
+      // dùng `this.context` (State) để tránh crash _dependents.isEmpty khi pop.
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.paddingOf(this.context).bottom,
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Chọn icon',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: icons
+                    .map(
+                      (icon) => GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                          onSelected(icon);
+                        },
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: icon == current
+                                ? Colors.blue.shade100
+                                : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: icon == current
+                                  ? Colors.blue
+                                  : Colors.transparent,
+                              width: 2,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              icon,
+                              style: const TextStyle(fontSize: 28),
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
         ),
       ),
     );
