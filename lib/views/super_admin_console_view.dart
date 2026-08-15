@@ -9,6 +9,8 @@ import '../services/claims_service.dart';
 import '../services/firestore_service.dart';
 import '../services/super_admin_security_service.dart';
 import '../services/user_service.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../widgets/custom_app_bar.dart';
 import '../l10n/app_localizations.dart';
@@ -62,19 +64,27 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
 
   Future<void> _bootstrapAccess() async {
     try {
-      final claims = await ClaimsService().getClaimsFromToken(forceRefresh: true);
-      final ok = claims?['isSuperAdmin'] == true || claims?['role'] == 'super_admin';
+      final claims = await ClaimsService().getClaimsFromToken(
+        forceRefresh: true,
+      );
+      final ok =
+          claims?['isSuperAdmin'] == true || claims?['role'] == 'super_admin';
       UserService.setCurrentUserSuperAdmin(ok);
       if (!mounted) return;
       if (ok) {
         SuperAdminSecurityService.touchActivity();
-        setState(() { _hasAccess = true; _checkingAccess = false; });
+        setState(() {
+          _hasAccess = true;
+          _checkingAccess = false;
+        });
         WidgetsBinding.instance.addPostFrameCallback((_) async {
           final hasPinSetup = await SuperAdminSecurityService.isPinSetup();
           if (!mounted) return;
           if (hasPinSetup && !SuperAdminSecurityService.isSessionValid()) {
             final loc = AppLocalizations.of(context)!;
-            final pinOk = await _requirePinReauth(title: loc.adminAuthSuperAdmin);
+            final pinOk = await _requirePinReauth(
+              title: loc.adminAuthSuperAdmin,
+            );
             if (!pinOk) {
               SuperAdminSecurityService.clearSession();
               UserService.clearCache();
@@ -83,11 +93,17 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
           }
         });
       } else {
-        setState(() { _hasAccess = false; _checkingAccess = false; });
+        setState(() {
+          _hasAccess = false;
+          _checkingAccess = false;
+        });
       }
     } catch (_) {
       if (!mounted) return;
-      setState(() { _hasAccess = false; _checkingAccess = false; });
+      setState(() {
+        _hasAccess = false;
+        _checkingAccess = false;
+      });
     }
   }
 
@@ -111,11 +127,13 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setD) => AlertDialog(
-          title: Row(children: [
-            const Icon(Icons.lock, color: Colors.deepPurple),
-            const SizedBox(width: 8),
-            Text(title ?? loc.adminAuthPin),
-          ]),
+          title: Row(
+            children: [
+              const Icon(Icons.lock, color: Colors.deepPurple),
+              const SizedBox(width: 8),
+              Text(title ?? loc.adminAuthPin),
+            ],
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -136,11 +154,19 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(loc.cancel)),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(loc.cancel),
+            ),
             FilledButton(
               onPressed: () async {
-                final verified = await SuperAdminSecurityService.verifyPin(pinC.text.trim());
-                if (!verified) { setD(() => error = loc.adminPinWrong); return; }
+                final verified = await SuperAdminSecurityService.verifyPin(
+                  pinC.text.trim(),
+                );
+                if (!verified) {
+                  setD(() => error = loc.adminPinWrong);
+                  return;
+                }
                 if (ctx.mounted) Navigator.pop(ctx, true);
               },
               child: Text(loc.confirm),
@@ -155,7 +181,9 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
   Future<void> _enterShop(Map<String, dynamic> shop) async {
     if (!mounted) return;
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ShopSelectorView(setLocale: null)),
+      MaterialPageRoute(
+        builder: (_) => const ShopSelectorView(setLocale: null),
+      ),
     );
   }
 
@@ -165,12 +193,19 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
     required bool newValue,
     required String label,
   }) async {
-    final requiresPin = flagName == 'appLocked' || flagName == 'adminFinanceLocked';
+    final requiresPin =
+        flagName == 'appLocked' || flagName == 'adminFinanceLocked';
     if (requiresPin) {
-      final ok = await _requirePinReauth(title: 'Xác thực để thay đổi $label'); // label is dynamic
+      final ok = await _requirePinReauth(
+        title: 'Xác thực để thay đổi $label',
+      ); // label is dynamic
       if (!ok) return;
     }
-    await UserService.updateShopControlFlags(shopId: shopId, flagName: flagName, flagValue: newValue);
+    await UserService.updateShopControlFlags(
+      shopId: shopId,
+      flagName: flagName,
+      flagValue: newValue,
+    );
     await SuperAdminSecurityService.logAction(
       action: 'toggle_$flagName',
       shopId: shopId,
@@ -179,10 +214,16 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
     );
     if (!mounted) return;
     final loc = AppLocalizations.of(context)!;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(newValue ? loc.adminLockedLabel(label) : loc.adminUnlockedLabel(label)),
-      backgroundColor: newValue ? Colors.orange : Colors.green,
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          newValue
+              ? loc.adminLockedLabel(label)
+              : loc.adminUnlockedLabel(label),
+        ),
+        backgroundColor: newValue ? Colors.orange : Colors.green,
+      ),
+    );
   }
 
   Future<void> _resetShopData(Map<String, dynamic> shop) async {
@@ -204,7 +245,10 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(loc.adminDeletingData), duration: const Duration(minutes: 2)),
+        SnackBar(
+          content: Text(loc.adminDeletingData),
+          duration: const Duration(minutes: 2),
+        ),
       );
     }
 
@@ -217,7 +261,12 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
     await SuperAdminSecurityService.logAction(
       action: 'reset_shop_data_selective',
       shopId: shopId,
-      metadata: {'shopName': shopName, 'collections': result.collections, 'storageRoots': result.storageRoots, 'error': error},
+      metadata: {
+        'shopName': shopName,
+        'collections': result.collections,
+        'storageRoots': result.storageRoots,
+        'error': error,
+      },
       success: error == null,
     );
 
@@ -226,10 +275,12 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
     final resetMsg = error == null
         ? loc.adminResetSuccess(shopName)
         : loc.adminResetFailed(error);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(resetMsg),
-      backgroundColor: error == null ? Colors.green : Colors.red,
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(resetMsg),
+        backgroundColor: error == null ? Colors.green : Colors.red,
+      ),
+    );
     if (error == null) setState(() => _shopsRefreshKey++);
   }
 
@@ -256,20 +307,36 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
     );
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('Đã soft-delete shop $shopName'),
-      backgroundColor: Colors.orange,
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Đã soft-delete shop $shopName'),
+        backgroundColor: Colors.orange,
+      ),
+    );
     setState(() => _shopsRefreshKey++);
   }
 
-  Future<void> _editUser(BuildContext context, String uid, Map<String, dynamic> data) async {
+  Future<void> _editUser(
+    BuildContext context,
+    String uid,
+    Map<String, dynamic> data,
+  ) async {
     final loc = AppLocalizations.of(context)!;
-    final nameC = TextEditingController(text: (data['displayName'] ?? '').toString());
-    final phoneC = TextEditingController(text: (data['phone'] ?? '').toString());
-    final addressC = TextEditingController(text: (data['address'] ?? '').toString());
-    final roleC = TextEditingController(text: (data['role'] ?? 'user').toString());
-    final shopC = TextEditingController(text: (data['shopId'] ?? '').toString());
+    final nameC = TextEditingController(
+      text: (data['displayName'] ?? '').toString(),
+    );
+    final phoneC = TextEditingController(
+      text: (data['phone'] ?? '').toString(),
+    );
+    final addressC = TextEditingController(
+      text: (data['address'] ?? '').toString(),
+    );
+    final roleC = TextEditingController(
+      text: (data['role'] ?? 'user').toString(),
+    );
+    final shopC = TextEditingController(
+      text: (data['shopId'] ?? '').toString(),
+    );
 
     final saved = await showDialog<bool>(
       context: context,
@@ -279,17 +346,38 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: nameC, decoration: const InputDecoration(labelText: 'Tên')),
-              TextField(controller: phoneC, decoration: const InputDecoration(labelText: 'SĐT')),
-              TextField(controller: addressC, decoration: const InputDecoration(labelText: 'Địa chỉ')),
-              TextField(controller: roleC, decoration: const InputDecoration(labelText: 'Vai trò')),
-              TextField(controller: shopC, decoration: const InputDecoration(labelText: 'Mã cửa hàng')),
+              TextField(
+                controller: nameC,
+                decoration: const InputDecoration(labelText: 'Tên'),
+              ),
+              TextField(
+                controller: phoneC,
+                decoration: const InputDecoration(labelText: 'SĐT'),
+              ),
+              TextField(
+                controller: addressC,
+                decoration: const InputDecoration(labelText: 'Địa chỉ'),
+              ),
+              TextField(
+                controller: roleC,
+                decoration: const InputDecoration(labelText: 'Vai trò'),
+              ),
+              TextField(
+                controller: shopC,
+                decoration: const InputDecoration(labelText: 'Mã cửa hàng'),
+              ),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Lưu')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Lưu'),
+          ),
         ],
       ),
     );
@@ -325,11 +413,18 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Row(children: [
-          Icon(Icons.delete_forever, color: Colors.red.shade700),
-          const SizedBox(width: 8),
-          Expanded(child: Text(withData ? 'Xóa user + dữ liệu' : 'Xóa user doc', overflow: TextOverflow.ellipsis)),
-        ]),
+        title: Row(
+          children: [
+            Icon(Icons.delete_forever, color: Colors.red.shade700),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                withData ? 'Xóa user + dữ liệu' : 'Xóa user doc',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -343,46 +438,107 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.red.shade200),
                 ),
-                child: Row(children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.red.shade700, size: 20),
-                  const SizedBox(width: 8),
-                  const Expanded(child: Text('Đây là CHỦ SHOP. Cẩn thận khi xóa!',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                ]),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.red.shade700,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Đây là CHỦ SHOP. Cẩn thận khi xóa!',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            Text.rich(TextSpan(children: [
-              const TextSpan(text: 'Tài khoản: '),
-              TextSpan(text: email, style: const TextStyle(fontWeight: FontWeight.bold)),
-            ])),
-            if (role != null) Text.rich(TextSpan(children: [
-              const TextSpan(text: 'Vai trò: '),
-              TextSpan(text: role, style: const TextStyle(fontWeight: FontWeight.bold)),
-            ])),
-            if (shopName != null) Text.rich(TextSpan(children: [
-              const TextSpan(text: 'Cửa hàng: '),
-              TextSpan(text: shopName, style: const TextStyle(fontWeight: FontWeight.bold)),
-            ])),
+            Text.rich(
+              TextSpan(
+                children: [
+                  const TextSpan(text: 'Tài khoản: '),
+                  TextSpan(
+                    text: email,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+            if (role != null)
+              Text.rich(
+                TextSpan(
+                  children: [
+                    const TextSpan(text: 'Vai trò: '),
+                    TextSpan(
+                      text: role,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            if (shopName != null)
+              Text.rich(
+                TextSpan(
+                  children: [
+                    const TextSpan(text: 'Cửa hàng: '),
+                    TextSpan(
+                      text: shopName,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 12),
             if (withData) ...[
-              const Text('Sẽ XÓA VĨNH VIỄN:', style: TextStyle(fontWeight: FontWeight.w600)),
+              const Text(
+                'Sẽ XÓA VĨNH VIỄN:',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
               const SizedBox(height: 4),
-              const Text('• Tài khoản Firebase Auth (mất đăng nhập)', style: TextStyle(fontSize: 13)),
-              const Text('• Hồ sơ user trong Firestore', style: TextStyle(fontSize: 13)),
-              const Text('• Đơn sửa, bán hàng, chi phí do user tạo', style: TextStyle(fontSize: 13)),
-              const Text('• Dữ liệu chấm công, thông báo của user', style: TextStyle(fontSize: 13)),
+              const Text(
+                '• Tài khoản Firebase Auth (mất đăng nhập)',
+                style: TextStyle(fontSize: 13),
+              ),
+              const Text(
+                '• Hồ sơ user trong Firestore',
+                style: TextStyle(fontSize: 13),
+              ),
+              const Text(
+                '• Đơn sửa, bán hàng, chi phí do user tạo',
+                style: TextStyle(fontSize: 13),
+              ),
+              const Text(
+                '• Dữ liệu chấm công, thông báo của user',
+                style: TextStyle(fontSize: 13),
+              ),
               const SizedBox(height: 4),
-              Text('⚠️ Dữ liệu shop (kho, khách hàng...) KHÔNG bị xóa.',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+              Text(
+                '⚠️ Dữ liệu shop (kho, khách hàng...) KHÔNG bị xóa.',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+              ),
             ] else ...[
-              const Text('Chỉ xóa hồ sơ user trong Firestore.', style: TextStyle(fontSize: 13)),
+              const Text(
+                'Chỉ xóa hồ sơ user trong Firestore.',
+                style: TextStyle(fontSize: 13),
+              ),
               const SizedBox(height: 4),
-              Text('Tài khoản Firebase Auth vẫn còn — user vẫn có thể đăng nhập nhưng mất liên kết shop.',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+              Text(
+                'Tài khoản Firebase Auth vẫn còn — user vẫn có thể đăng nhập nhưng mất liên kết shop.',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+              ),
             ],
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
@@ -410,9 +566,15 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
     );
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(withData ? 'Đã xóa user + dữ liệu: $email' : 'Đã xóa user doc: $email'),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          withData
+              ? 'Đã xóa user + dữ liệu: $email'
+              : 'Đã xóa user doc: $email',
+        ),
+      ),
+    );
     setState(() => _usersRefreshKey++);
   }
 
@@ -423,7 +585,10 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
         title: const Text('Thoát Console?'),
         content: const Text('Bạn có chắc muốn thoát khỏi Super Admin Console?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Ở lại')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Ở lại'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
@@ -439,14 +604,21 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Row(children: [
-          Icon(Icons.logout, color: Colors.red),
-          SizedBox(width: 8),
-          Text('Đăng xuất'),
-        ]),
-        content: const Text('Bạn có chắc muốn đăng xuất khỏi Super Admin Console?'),
+        title: const Row(
+          children: [
+            Icon(Icons.logout, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Đăng xuất'),
+          ],
+        ),
+        content: const Text(
+          'Bạn có chắc muốn đăng xuất khỏi Super Admin Console?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
@@ -469,7 +641,9 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
     }
     if (!_hasAccess) {
       return const Scaffold(
-        body: Center(child: Text('Bạn không có quyền truy cập Super Admin Console.')),
+        body: Center(
+          child: Text('Bạn không có quyền truy cập Super Admin Console.'),
+        ),
       );
     }
 
@@ -510,11 +684,13 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
           ),
           body: ResponsiveCenter(
             child: isDesktop
-                ? Row(children: [
-                    _buildSidebar(),
-                    const VerticalDivider(width: 1),
-                    Expanded(child: _buildContent()),
-                  ])
+                ? Row(
+                    children: [
+                      _buildSidebar(),
+                      const VerticalDivider(width: 1),
+                      Expanded(child: _buildContent()),
+                    ],
+                  )
                 : _buildContent(),
           ),
           bottomNavigationBar: isDesktop
@@ -522,13 +698,35 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
               : BottomNavigationBar(
                   type: BottomNavigationBarType.fixed,
                   currentIndex: _mobileIndexFor(_section),
-                  onTap: (i) => setState(() { _section = _sectionFromMobileIndex(i); }),
+                  onTap: (i) => setState(() {
+                    _section = _sectionFromMobileIndex(i);
+                  }),
                   items: const [
-                    BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), activeIcon: Icon(Icons.dashboard), label: 'Dashboard'),
-                    BottomNavigationBarItem(icon: Icon(Icons.store_outlined), activeIcon: Icon(Icons.store), label: 'Shops'),
-                    BottomNavigationBarItem(icon: Icon(Icons.people_outline), activeIcon: Icon(Icons.people), label: 'Users'),
-                    BottomNavigationBarItem(icon: Icon(Icons.receipt_long_outlined), activeIcon: Icon(Icons.receipt_long), label: 'Logs'),
-                    BottomNavigationBarItem(icon: Icon(Icons.more_horiz), activeIcon: Icon(Icons.more_horiz), label: 'More'),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.dashboard_outlined),
+                      activeIcon: Icon(Icons.dashboard),
+                      label: 'Dashboard',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.store_outlined),
+                      activeIcon: Icon(Icons.store),
+                      label: 'Shops',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.people_outline),
+                      activeIcon: Icon(Icons.people),
+                      label: 'Users',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.receipt_long_outlined),
+                      activeIcon: Icon(Icons.receipt_long),
+                      label: 'Logs',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.more_horiz),
+                      activeIcon: Icon(Icons.more_horiz),
+                      label: 'More',
+                    ),
                   ],
                 ),
         ),
@@ -538,25 +736,38 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
 
   int _mobileIndexFor(_AdminSection section) {
     switch (section) {
-      case _AdminSection.dashboard: return 0;
-      case _AdminSection.shops: return 1;
-      case _AdminSection.users: return 2;
-      case _AdminSection.audit: return 3;
+      case _AdminSection.dashboard:
+        return 0;
+      case _AdminSection.shops:
+        return 1;
+      case _AdminSection.users:
+        return 2;
+      case _AdminSection.audit:
+        return 3;
       case _AdminSection.broadcast:
       case _AdminSection.permissions:
       case _AdminSection.settings:
-      case _AdminSection.danger: return 4;
+      case _AdminSection.danger:
+        return 4;
     }
   }
 
   _AdminSection _sectionFromMobileIndex(int i) {
-    if (i == 4) { _showMoreSheet(); return _section; }
+    if (i == 4) {
+      _showMoreSheet();
+      return _section;
+    }
     switch (i) {
-      case 0: return _AdminSection.dashboard;
-      case 1: return _AdminSection.shops;
-      case 2: return _AdminSection.users;
-      case 3: return _AdminSection.audit;
-      default: return _AdminSection.dashboard;
+      case 0:
+        return _AdminSection.dashboard;
+      case 1:
+        return _AdminSection.shops;
+      case 2:
+        return _AdminSection.users;
+      case 3:
+        return _AdminSection.audit;
+      default:
+        return _AdminSection.dashboard;
     }
   }
 
@@ -570,27 +781,48 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
             ListTile(
               leading: const Icon(Icons.campaign_rounded, color: Colors.indigo),
               title: const Text('Thông báo'),
-              onTap: () { Navigator.pop(ctx); setState(() => _section = _AdminSection.broadcast); },
+              onTap: () {
+                Navigator.pop(ctx);
+                setState(() => _section = _AdminSection.broadcast);
+              },
             ),
             ListTile(
               leading: const Icon(Icons.shield_outlined),
               title: const Text('Quyền hạn'),
-              onTap: () { Navigator.pop(ctx); setState(() => _section = _AdminSection.permissions); },
+              onTap: () {
+                Navigator.pop(ctx);
+                setState(() => _section = _AdminSection.permissions);
+              },
             ),
             ListTile(
               leading: const Icon(Icons.settings_outlined),
               title: const Text('Cài đặt'),
-              onTap: () { Navigator.pop(ctx); setState(() => _section = _AdminSection.settings); },
+              onTap: () {
+                Navigator.pop(ctx);
+                setState(() => _section = _AdminSection.settings);
+              },
             ),
             ListTile(
-              leading: const Icon(Icons.warning_amber_rounded, color: Colors.red),
+              leading: const Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.red,
+              ),
               title: const Text('Vùng nguy hiểm'),
-              onTap: () { Navigator.pop(ctx); setState(() => _section = _AdminSection.danger); },
+              onTap: () {
+                Navigator.pop(ctx);
+                setState(() => _section = _AdminSection.danger);
+              },
             ),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text('Đăng xuất', style: TextStyle(color: Colors.red)),
-              onTap: () { Navigator.pop(ctx); _handleLogout(); },
+              title: const Text(
+                'Đăng xuất',
+                style: TextStyle(color: Colors.red),
+              ),
+              onTap: () {
+                Navigator.pop(ctx);
+                _handleLogout();
+              },
             ),
           ],
         ),
@@ -609,13 +841,25 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
           _navItem(Icons.people, 'Người dùng', _AdminSection.users),
           _navItem(Icons.shield, 'Quyền hạn', _AdminSection.permissions),
           _navItem(Icons.receipt_long, 'Nhật ký', _AdminSection.audit),
-          _navItem(Icons.campaign_rounded, 'Thông báo', _AdminSection.broadcast),
+          _navItem(
+            Icons.campaign_rounded,
+            'Thông báo',
+            _AdminSection.broadcast,
+          ),
           _navItem(Icons.settings, 'Cài đặt', _AdminSection.settings),
-          _navItem(Icons.warning_amber_rounded, 'Vùng nguy hiểm', _AdminSection.danger, danger: true),
+          _navItem(
+            Icons.warning_amber_rounded,
+            'Vùng nguy hiểm',
+            _AdminSection.danger,
+            danger: true,
+          ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text('Đăng xuất', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500)),
+            title: const Text(
+              'Đăng xuất',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
+            ),
             onTap: _handleLogout,
           ),
         ],
@@ -623,15 +867,26 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
     );
   }
 
-  Widget _navItem(IconData icon, String label, _AdminSection value, {bool danger = false}) {
+  Widget _navItem(
+    IconData icon,
+    String label,
+    _AdminSection value, {
+    bool danger = false,
+  }) {
     final selected = _section == value;
+    final dangerColor = danger ? AppColors.error : null;
     return ListTile(
-      leading: Icon(icon, color: danger ? Colors.red : null),
-      title: Text(label, style: TextStyle(
-        fontWeight: selected ? FontWeight.bold : FontWeight.w500,
-        color: danger ? Colors.red : null,
-      )),
+      leading: Icon(icon, color: dangerColor),
+      title: Text(
+        label,
+        style: TextStyle(
+          fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+          color: dangerColor,
+        ),
+      ),
       selected: selected,
+      selectedColor: AppColors.primary,
+      selectedTileColor: AppColors.primary.withValues(alpha: 0.08),
       onTap: () => setState(() => _section = value),
     );
   }
@@ -639,7 +894,10 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
   Widget _buildContent() {
     switch (_section) {
       case _AdminSection.dashboard:
-        return _DashboardSection(db: _db);
+        return _DashboardSection(
+          db: _db,
+          onNavigate: (s) => setState(() => _section = s),
+        );
       case _AdminSection.shops:
         return _ShopsSection(
           key: ValueKey(_shopsRefreshKey),
@@ -675,20 +933,123 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
       case _AdminSection.settings:
         return const _SettingsSection();
       case _AdminSection.danger:
-        return _DangerSection(db: _db, onResetShop: _resetShopData, onDeleteShop: _softDeleteShop);
+        return _DangerSection(
+          db: _db,
+          onResetShop: _resetShopData,
+          onDeleteShop: _softDeleteShop,
+        );
     }
+  }
+}
+
+// ─── Shared widgets (section header + status pill) ────────────────────────────
+//
+// Dùng chung cho mọi section để nhất quán style + giúp luôn biết đang ở mục
+// nào ("dễ theo dõi"). Chỉ ảnh hưởng giao diện, không đụng logic nghiệp vụ.
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.color,
+    this.trailing,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final Color? color;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = color ?? AppColors.primary;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: accent, size: 20),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTextStyles.headline3),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(subtitle!, style: AppTextStyles.caption),
+                ],
+              ],
+            ),
+          ),
+          if (trailing != null) trailing!,
+        ],
+      ),
+    );
+  }
+}
+
+enum _PillStatus { active, locked, deleted, owner, neutral }
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.label, required this.status});
+
+  final String label;
+  final _PillStatus status;
+
+  Color get _color {
+    switch (status) {
+      case _PillStatus.active:
+        return AppColors.success;
+      case _PillStatus.locked:
+        return AppColors.error;
+      case _PillStatus.deleted:
+        return AppColors.textDisabled;
+      case _PillStatus.owner:
+        return AppColors.info;
+      case _PillStatus.neutral:
+        return AppColors.textSecondary;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = _color;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: c.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: c.withValues(alpha: 0.35)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: c),
+      ),
+    );
   }
 }
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────
 
 class _DashboardSection extends StatelessWidget {
-  const _DashboardSection({required this.db});
+  const _DashboardSection({required this.db, required this.onNavigate});
   final FirebaseFirestore db;
+  final ValueChanged<_AdminSection> onNavigate;
 
   Future<Map<String, int>> _loadStats() async {
     final allShopsSnap = await db.collection('shops').get();
-    final allShops = allShopsSnap.docs.where((d) => d.data()['deleted'] != true).toList();
+    final allShops = allShopsSnap.docs
+        .where((d) => d.data()['deleted'] != true)
+        .toList();
     final locked = allShops.where((d) => d.data()['appLocked'] == true).length;
     final users = await db.collection('users').get();
     return {
@@ -705,67 +1066,214 @@ class _DashboardSection extends StatelessWidget {
       future: _loadStats(),
       builder: (context, snap) {
         final loading = snap.connectionState == ConnectionState.waiting;
-        final stats = snap.data ?? {'shops': 0, 'users': 0, 'locked': 0, 'active': 0};
+        final stats =
+            snap.data ?? {'shops': 0, 'users': 0, 'locked': 0, 'active': 0};
+        final lockedCount = stats['locked'] ?? 0;
         return ListView(
-          padding: const EdgeInsets.all(16),
           children: [
-            // 2×2 grid using Rows to avoid overflow
-            Row(children: [
-              Expanded(child: _statCard('Tổng shop', loading ? '—' : '${stats['shops']}', Icons.store_outlined, Colors.blue)),
-              const SizedBox(width: 10),
-              Expanded(child: _statCard('Hoạt động', loading ? '—' : '${stats['active']}', Icons.check_circle_outline, Colors.green)),
-            ]),
-            const SizedBox(height: 10),
-            Row(children: [
-              Expanded(child: _statCard('Tổng user', loading ? '—' : '${stats['users']}', Icons.people_outline, Colors.indigo)),
-              const SizedBox(width: 10),
-              Expanded(child: _statCard('Shop bị khóa', loading ? '—' : '${stats['locked']}', Icons.lock_outline, Colors.orange)),
-            ]),
-            const SizedBox(height: 12),
-            if (!loading && (stats['locked'] ?? 0) > 0)
-              Card(
-                color: Colors.orange.shade50,
-                child: ListTile(
-                  dense: true,
-                  leading: const Icon(Icons.warning_amber_rounded, color: Colors.orange),
-                  title: Text('${stats['locked']} shop đang bị khóa app'),
-                  subtitle: const Text('Vào tab Shops để mở khóa.'),
-                ),
+            const _SectionHeader(
+              icon: Icons.dashboard_rounded,
+              title: 'Tổng quan hệ thống',
+              subtitle: 'Số liệu realtime từ Firestore',
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(
+                children: [
+                  // 2×2 grid using Rows to avoid overflow
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _statCard(
+                          context,
+                          title: 'Tổng shop',
+                          value: loading ? '—' : '${stats['shops']}',
+                          icon: Icons.store_outlined,
+                          color: AppColors.info,
+                          onTap: () => onNavigate(_AdminSection.shops),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _statCard(
+                          context,
+                          title: 'Hoạt động',
+                          value: loading ? '—' : '${stats['active']}',
+                          icon: Icons.check_circle_outline,
+                          color: AppColors.success,
+                          onTap: () => onNavigate(_AdminSection.shops),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _statCard(
+                          context,
+                          title: 'Tổng user',
+                          value: loading ? '—' : '${stats['users']}',
+                          icon: Icons.people_outline,
+                          color: AppColors.primary,
+                          onTap: () => onNavigate(_AdminSection.users),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _statCard(
+                          context,
+                          title: 'Shop bị khóa',
+                          value: loading ? '—' : '$lockedCount',
+                          icon: Icons.lock_outline,
+                          color: AppColors.warning,
+                          onTap: () => onNavigate(_AdminSection.shops),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (!loading) _attentionCard(context, lockedCount),
+                  const SizedBox(height: 20),
+                  _quickAccessRow(context),
+                ],
               ),
-            if (!loading && (stats['locked'] ?? 0) == 0)
-              Card(
-                color: Colors.green.shade50,
-                child: const ListTile(
-                  dense: true,
-                  leading: Icon(Icons.check_circle_outline, color: Colors.green),
-                  title: Text('Hệ thống hoạt động bình thường'),
-                  subtitle: Text('Không có shop nào đang bị khóa.'),
-                ),
-              ),
+            ),
           ],
         );
       },
     );
   }
 
-  Widget _statCard(String title, String value, IconData icon, Color color) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: color.withValues(alpha: 0.25)),
+  Widget _attentionCard(BuildContext context, int lockedCount) {
+    final ok = lockedCount == 0;
+    final color = ok ? AppColors.success : AppColors.warning;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          Icon(
+            ok ? Icons.check_circle_outline : Icons.warning_amber_rounded,
+            color: color,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  ok
+                      ? 'Hệ thống hoạt động bình thường'
+                      : '$lockedCount shop đang bị khóa app',
+                  style: AppTextStyles.headline6,
+                ),
+                Text(
+                  ok
+                      ? 'Không có shop nào đang bị khóa.'
+                      : 'Vào mục Cửa hàng để xem và mở khóa.',
+                  style: AppTextStyles.caption,
+                ),
+              ],
+            ),
+          ),
+          if (!ok)
+            TextButton(
+              onPressed: () => onNavigate(_AdminSection.shops),
+              child: const Text('Xem'),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _quickAccessRow(BuildContext context) {
+    final items = <(IconData, String, _AdminSection)>[
+      (Icons.people_outline, 'Người dùng', _AdminSection.users),
+      (Icons.receipt_long_outlined, 'Nhật ký', _AdminSection.audit),
+      (Icons.campaign_rounded, 'Thông báo', _AdminSection.broadcast),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Truy cập nhanh', style: AppTextStyles.headline6),
+        const SizedBox(height: 8),
+        Row(
+          children: items
+              .map(
+                (it) => Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: OutlinedButton.icon(
+                      onPressed: () => onNavigate(it.$3),
+                      icon: Icon(it.$1, size: 16),
+                      label: Text(it.$2, overflow: TextOverflow.ellipsis),
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _statCard(
+    BuildContext context, {
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.divider),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(height: 6),
-            Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
-            Text(title, style: const TextStyle(fontSize: 11, color: Colors.grey),
-                maxLines: 1, overflow: TextOverflow.ellipsis),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 18),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            Text(
+              title,
+              style: AppTextStyles.caption,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
       ),
@@ -774,6 +1282,8 @@ class _DashboardSection extends StatelessWidget {
 }
 
 // ─── Shops ───────────────────────────────────────────────────────────────────
+
+enum _ShopFilter { all, active, locked, deleted }
 
 class _ShopsSection extends StatefulWidget {
   const _ShopsSection({
@@ -791,7 +1301,8 @@ class _ShopsSection extends StatefulWidget {
     required String flagName,
     required bool newValue,
     required String label,
-  }) onToggleLock;
+  })
+  onToggleLock;
   final Future<void> Function(Map<String, dynamic>) onResetShop;
 
   @override
@@ -803,7 +1314,7 @@ class _ShopsSectionState extends State<_ShopsSection> {
 
   final _searchC = TextEditingController();
   String _searchQuery = '';
-  bool _showDeleted = false;
+  _ShopFilter _filter = _ShopFilter.all;
 
   final List<Map<String, dynamic>> _shops = [];
   QueryDocumentSnapshot<Map<String, dynamic>>? _lastDoc;
@@ -852,7 +1363,20 @@ class _ShopsSectionState extends State<_ShopsSection> {
   }
 
   List<Map<String, dynamic>> get _filtered {
-    var list = _showDeleted ? _shops : _shops.where((s) => s['deleted'] != true).toList();
+    var list = _shops.where((s) {
+      final deleted = s['deleted'] == true;
+      final locked = s['appLocked'] == true;
+      switch (_filter) {
+        case _ShopFilter.all:
+          return !deleted;
+        case _ShopFilter.active:
+          return !deleted && !locked;
+        case _ShopFilter.locked:
+          return !deleted && locked;
+        case _ShopFilter.deleted:
+          return deleted;
+      }
+    }).toList();
     if (_searchQuery.isEmpty) return list;
     final q = _searchQuery.toLowerCase();
     return list.where((s) {
@@ -870,8 +1394,15 @@ class _ShopsSectionState extends State<_ShopsSection> {
 
     return Column(
       children: [
+        _SectionHeader(
+          icon: Icons.store_rounded,
+          title: 'Cửa hàng',
+          subtitle:
+              '${shops.length}${showLoadMore ? '+' : ''} shop'
+              '${_loading ? ' · đang tải...' : ''}',
+        ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
           child: TextField(
             controller: _searchC,
             decoration: InputDecoration(
@@ -879,7 +1410,10 @@ class _ShopsSectionState extends State<_ShopsSection> {
               prefixIcon: const Icon(Icons.search, size: 20),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
-                      onPressed: () { _searchC.clear(); setState(() => _searchQuery = ''); },
+                      onPressed: () {
+                        _searchC.clear();
+                        setState(() => _searchQuery = '');
+                      },
                       icon: const Icon(Icons.clear, size: 18),
                     )
                   : null,
@@ -890,35 +1424,14 @@ class _ShopsSectionState extends State<_ShopsSection> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+          child: Wrap(
+            spacing: 6,
             children: [
-              Text(
-                '${shops.length}${showLoadMore ? '+' : ''} shop',
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              const Spacer(),
-              if (_loading)
-                const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () => setState(() => _showDeleted = !_showDeleted),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      _showDeleted ? Icons.visibility : Icons.visibility_off,
-                      size: 16,
-                      color: _showDeleted ? Colors.red : Colors.grey,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Đã xóa',
-                      style: TextStyle(fontSize: 12, color: _showDeleted ? Colors.red : Colors.grey),
-                    ),
-                  ],
-                ),
-              ),
+              _filterChip('Tất cả', _ShopFilter.all),
+              _filterChip('Hoạt động', _ShopFilter.active),
+              _filterChip('Đã khóa', _ShopFilter.locked),
+              _filterChip('Đã xóa', _ShopFilter.deleted),
             ],
           ),
         ),
@@ -952,6 +1465,23 @@ class _ShopsSectionState extends State<_ShopsSection> {
     );
   }
 
+  Widget _filterChip(String label, _ShopFilter value) {
+    final selected = _filter == value;
+    return FilterChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => setState(() => _filter = value),
+      visualDensity: VisualDensity.compact,
+      selectedColor: AppColors.primary.withValues(alpha: 0.15),
+      checkmarkColor: AppColors.primary,
+      labelStyle: TextStyle(
+        fontSize: 12,
+        color: selected ? AppColors.primary : null,
+        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+      ),
+    );
+  }
+
   Widget _buildShopTile(BuildContext context, Map<String, dynamic> s) {
     final appLocked = s['appLocked'] == true;
     final deleted = s['deleted'] == true;
@@ -965,67 +1495,119 @@ class _ShopsSectionState extends State<_ShopsSection> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         leading: CircleAvatar(
           radius: 20,
-          backgroundColor: deleted ? Colors.grey.shade200 : appLocked ? Colors.red.shade50 : Colors.green.shade50,
+          backgroundColor: deleted
+              ? Colors.grey.shade200
+              : appLocked
+              ? Colors.red.shade50
+              : Colors.green.shade50,
           child: Icon(
-            deleted ? Icons.delete_outline : appLocked ? Icons.lock_outline : Icons.store_outlined,
+            deleted
+                ? Icons.delete_outline
+                : appLocked
+                ? Icons.lock_outline
+                : Icons.store_outlined,
             size: 18,
-            color: deleted ? Colors.grey : appLocked ? Colors.red : Colors.green,
+            color: deleted
+                ? Colors.grey
+                : appLocked
+                ? Colors.red
+                : Colors.green,
           ),
         ),
-        title: Row(children: [
-          Expanded(child: Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14))),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-            decoration: BoxDecoration(
-              color: deleted ? Colors.grey.shade100 : appLocked ? Colors.red.shade50 : Colors.green.shade50,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: deleted ? Colors.grey.shade300 : appLocked ? Colors.red.shade200 : Colors.green.shade200),
-            ),
-            child: Text(
-              deleted ? 'DELETED' : appLocked ? 'LOCKED' : 'ACTIVE',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: deleted ? Colors.grey : appLocked ? Colors.red : Colors.green.shade700,
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                name,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
               ),
             ),
-          ),
-        ]),
+            _StatusPill(
+              label: deleted
+                  ? 'DELETED'
+                  : appLocked
+                  ? 'LOCKED'
+                  : 'ACTIVE',
+              status: deleted
+                  ? _PillStatus.deleted
+                  : appLocked
+                  ? _PillStatus.locked
+                  : _PillStatus.active,
+            ),
+          ],
+        ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 2),
             Text(owner, style: const TextStyle(fontSize: 12)),
-            Text(shopId, style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+            Text(
+              shopId,
+              style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+            ),
           ],
         ),
         trailing: PopupMenuButton<String>(
           icon: const Icon(Icons.more_vert),
           onSelected: (v) {
             switch (v) {
-              case 'view': _showShopDetail(context, s);
-              case 'enter': widget.onEnterShop(s);
+              case 'view':
+                _showShopDetail(context, s);
+              case 'enter':
+                widget.onEnterShop(s);
               case 'lock':
-                widget.onToggleLock(shopId: shopId, flagName: 'appLocked', newValue: !appLocked, label: 'Toàn bộ app');
-              case 'reset': widget.onResetShop(s);
+                widget.onToggleLock(
+                  shopId: shopId,
+                  flagName: 'appLocked',
+                  newValue: !appLocked,
+                  label: 'Toàn bộ app',
+                );
+              case 'reset':
+                widget.onResetShop(s);
             }
           },
           itemBuilder: (_) => [
-            const PopupMenuItem(value: 'view', child: ListTile(dense: true, leading: Icon(Icons.visibility_outlined), title: Text('Xem chi tiết'))),
-            const PopupMenuItem(value: 'enter', child: ListTile(dense: true, leading: Icon(Icons.login, color: Colors.blue), title: Text('Vào shop'))),
+            const PopupMenuItem(
+              value: 'view',
+              child: ListTile(
+                dense: true,
+                leading: Icon(Icons.visibility_outlined),
+                title: Text('Xem chi tiết'),
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'enter',
+              child: ListTile(
+                dense: true,
+                leading: Icon(Icons.login, color: Colors.blue),
+                title: Text('Vào shop'),
+              ),
+            ),
             PopupMenuItem(
               value: 'lock',
               child: ListTile(
                 dense: true,
-                leading: Icon(appLocked ? Icons.lock_open_outlined : Icons.lock_outline, color: Colors.orange),
+                leading: Icon(
+                  appLocked ? Icons.lock_open_outlined : Icons.lock_outline,
+                  color: Colors.orange,
+                ),
                 title: Text(appLocked ? 'Mở khóa app' : 'Khóa app'),
               ),
             ),
-            const PopupMenuItem(value: 'reset', child: ListTile(
-              dense: true,
-              leading: Icon(Icons.restart_alt, color: Colors.red),
-              title: Text('Reset dữ liệu', style: TextStyle(color: Colors.red)),
-            )),
+            const PopupMenuItem(
+              value: 'reset',
+              child: ListTile(
+                dense: true,
+                leading: Icon(Icons.restart_alt, color: Colors.red),
+                title: Text(
+                  'Reset dữ liệu',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -1044,31 +1626,76 @@ class _ShopsSectionState extends State<_ShopsSection> {
             height: 520,
             child: Column(
               children: [
-                const TabBar(tabs: [
-                  Tab(text: 'Tổng quan'), Tab(text: 'Người dùng'), Tab(text: 'Khóa'), Tab(text: 'Hoạt động'),
-                ]),
+                const TabBar(
+                  tabs: [
+                    Tab(text: 'Tổng quan'),
+                    Tab(text: 'Người dùng'),
+                    Tab(text: 'Khóa'),
+                    Tab(text: 'Hoạt động'),
+                  ],
+                ),
                 const SizedBox(height: 8),
                 Expanded(
-                  child: TabBarView(children: [
-                    ListView(children: [
-                      ListTile(title: const Text('Mã cửa hàng'), subtitle: Text((shop['id'] ?? '').toString())),
-                      ListTile(title: const Text('Chủ cửa hàng'), subtitle: Text((shop['ownerEmail'] ?? 'N/A').toString())),
-                      ListTile(title: const Text('Loại hình'), subtitle: Text((shop['businessType'] ?? 'N/A').toString())),
-                    ]),
-                    _ShopUsersTab(shopId: (shop['id'] ?? '').toString()),
-                    ListView(children: [
-                      SwitchListTile(value: shop['adminFinanceLocked'] == true, onChanged: null, title: const Text('Khóa tài chính quản lý')),
-                      SwitchListTile(value: shop['staffInventoryLocked'] == true, onChanged: null, title: const Text('Khóa kho cho nhân viên')),
-                      SwitchListTile(value: shop['staffSalesLocked'] == true, onChanged: null, title: const Text('Khóa bán hàng cho nhân viên')),
-                      SwitchListTile(value: shop['staffDebtLocked'] == true, onChanged: null, title: const Text('Khóa công nợ cho nhân viên')),
-                    ]),
-                    _ShopActivityTab(shopId: (shop['id'] ?? '').toString()),
-                  ]),
+                  child: TabBarView(
+                    children: [
+                      ListView(
+                        children: [
+                          ListTile(
+                            title: const Text('Mã cửa hàng'),
+                            subtitle: Text((shop['id'] ?? '').toString()),
+                          ),
+                          ListTile(
+                            title: const Text('Chủ cửa hàng'),
+                            subtitle: Text(
+                              (shop['ownerEmail'] ?? 'N/A').toString(),
+                            ),
+                          ),
+                          ListTile(
+                            title: const Text('Loại hình'),
+                            subtitle: Text(
+                              (shop['businessType'] ?? 'N/A').toString(),
+                            ),
+                          ),
+                        ],
+                      ),
+                      _ShopUsersTab(shopId: (shop['id'] ?? '').toString()),
+                      ListView(
+                        children: [
+                          SwitchListTile(
+                            value: shop['adminFinanceLocked'] == true,
+                            onChanged: null,
+                            title: const Text('Khóa tài chính quản lý'),
+                          ),
+                          SwitchListTile(
+                            value: shop['staffInventoryLocked'] == true,
+                            onChanged: null,
+                            title: const Text('Khóa kho cho nhân viên'),
+                          ),
+                          SwitchListTile(
+                            value: shop['staffSalesLocked'] == true,
+                            onChanged: null,
+                            title: const Text('Khóa bán hàng cho nhân viên'),
+                          ),
+                          SwitchListTile(
+                            value: shop['staffDebtLocked'] == true,
+                            onChanged: null,
+                            title: const Text('Khóa công nợ cho nhân viên'),
+                          ),
+                        ],
+                      ),
+                      _ShopActivityTab(shopId: (shop['id'] ?? '').toString()),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Đóng'))],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Đóng'),
+            ),
+          ],
         ),
       ),
     );
@@ -1082,10 +1709,15 @@ class _ShopUsersTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: FirebaseFirestore.instance.collection('users').where('shopId', isEqualTo: shopId).snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .where('shopId', isEqualTo: shopId)
+          .snapshots(),
       builder: (_, snap) {
-        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-        if (snap.data!.docs.isEmpty) return const Center(child: Text('Không có user trong shop'));
+        if (!snap.hasData)
+          return const Center(child: CircularProgressIndicator());
+        if (snap.data!.docs.isEmpty)
+          return const Center(child: Text('Không có user trong shop'));
         return ListView(
           children: snap.data!.docs.map((d) {
             final u = d.data();
@@ -1115,8 +1747,10 @@ class _ShopActivityTab extends StatelessWidget {
           .limit(50)
           .snapshots(),
       builder: (_, snap) {
-        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-        if (snap.data!.docs.isEmpty) return const Center(child: Text('Chưa có activity'));
+        if (!snap.hasData)
+          return const Center(child: CircularProgressIndicator());
+        if (snap.data!.docs.isEmpty)
+          return const Center(child: Text('Chưa có activity'));
         return ListView(
           children: snap.data!.docs.map((d) {
             final a = d.data();
@@ -1141,20 +1775,35 @@ class _ShopActivityTab extends StatelessWidget {
 // ─── Users ───────────────────────────────────────────────────────────────────
 
 class _UsersSection extends StatefulWidget {
-  const _UsersSection({super.key, required this.onEdit, required this.onDelete});
+  const _UsersSection({
+    super.key,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
-  final Future<void> Function(BuildContext, String, Map<String, dynamic>) onEdit;
-  final Future<void> Function(String uid, String email, {required bool withData, String? role, String? shopName}) onDelete;
+  final Future<void> Function(BuildContext, String, Map<String, dynamic>)
+  onEdit;
+  final Future<void> Function(
+    String uid,
+    String email, {
+    required bool withData,
+    String? role,
+    String? shopName,
+  })
+  onDelete;
 
   @override
   State<_UsersSection> createState() => _UsersSectionState();
 }
+
+enum _UserRoleFilter { all, owner, staff }
 
 class _UsersSectionState extends State<_UsersSection> {
   static const int _pageSize = 20;
 
   final _searchC = TextEditingController();
   String _searchQuery = '';
+  _UserRoleFilter _roleFilter = _UserRoleFilter.all;
 
   final List<Map<String, dynamic>> _users = [];
   final List<String> _uids = [];
@@ -1176,12 +1825,19 @@ class _UsersSectionState extends State<_UsersSection> {
   }
 
   Future<void> _loadShopNames(List<String> shopIds) async {
-    final toFetch = shopIds.where((id) => id.isNotEmpty && !_shopNames.containsKey(id)).toSet().toList();
+    final toFetch = shopIds
+        .where((id) => id.isNotEmpty && !_shopNames.containsKey(id))
+        .toSet()
+        .toList();
     if (toFetch.isEmpty) return;
     try {
       for (final id in toFetch) {
-        final snap = await FirebaseFirestore.instance.collection('shops').doc(id).get();
-        final name = (snap.data()?['shopName'] ?? snap.data()?['name'] ?? '').toString();
+        final snap = await FirebaseFirestore.instance
+            .collection('shops')
+            .doc(id)
+            .get();
+        final name = (snap.data()?['shopName'] ?? snap.data()?['name'] ?? '')
+            .toString();
         _shopNames[id] = name.isNotEmpty ? name : id;
       }
       if (mounted) setState(() {});
@@ -1199,9 +1855,14 @@ class _UsersSectionState extends State<_UsersSection> {
       if (!reset && _lastDoc != null) q = q.startAfterDocument(_lastDoc!);
 
       final snap = await q.get();
-      final newUsers = snap.docs.map((d) => Map<String, dynamic>.from(d.data())).toList();
+      final newUsers = snap.docs
+          .map((d) => Map<String, dynamic>.from(d.data()))
+          .toList();
       setState(() {
-        if (reset) { _users.clear(); _uids.clear(); }
+        if (reset) {
+          _users.clear();
+          _uids.clear();
+        }
         for (int i = 0; i < snap.docs.length; i++) {
           _users.add(newUsers[i]);
           _uids.add(snap.docs[i].id);
@@ -1210,7 +1871,9 @@ class _UsersSectionState extends State<_UsersSection> {
         _hasMore = snap.docs.length >= _pageSize;
         _loading = false;
       });
-      final shopIds = newUsers.map((u) => (u['shopId'] ?? '').toString()).toList();
+      final shopIds = newUsers
+          .map((u) => (u['shopId'] ?? '').toString())
+          .toList();
       _loadShopNames(shopIds);
     } catch (_) {
       if (mounted) setState(() => _loading = false);
@@ -1218,7 +1881,13 @@ class _UsersSectionState extends State<_UsersSection> {
   }
 
   List<(String, Map<String, dynamic>)> get _filtered {
-    final pairs = List.generate(_users.length, (i) => (_uids[i], _users[i]));
+    var pairs = List.generate(_users.length, (i) => (_uids[i], _users[i]));
+    if (_roleFilter != _UserRoleFilter.all) {
+      pairs = pairs.where((p) {
+        final isOwner = (p.$2['role'] ?? '').toString() == 'owner';
+        return _roleFilter == _UserRoleFilter.owner ? isOwner : !isOwner;
+      }).toList();
+    }
     if (_searchQuery.isEmpty) return pairs;
     final q = _searchQuery.toLowerCase();
     return pairs.where((p) {
@@ -1227,7 +1896,10 @@ class _UsersSectionState extends State<_UsersSection> {
       final email = (u['email'] ?? '').toString().toLowerCase();
       final role = (u['role'] ?? '').toString().toLowerCase();
       final shopId = (u['shopId'] ?? '').toString().toLowerCase();
-      return name.contains(q) || email.contains(q) || role.contains(q) || shopId.contains(q);
+      return name.contains(q) ||
+          email.contains(q) ||
+          role.contains(q) ||
+          shopId.contains(q);
     }).toList();
   }
 
@@ -1238,8 +1910,15 @@ class _UsersSectionState extends State<_UsersSection> {
 
     return Column(
       children: [
+        _SectionHeader(
+          icon: Icons.people_rounded,
+          title: 'Người dùng',
+          subtitle:
+              '${users.length}${showLoadMore ? '+' : ''} user'
+              '${_loading ? ' · đang tải...' : ''}',
+        ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
           child: TextField(
             controller: _searchC,
             decoration: InputDecoration(
@@ -1247,7 +1926,10 @@ class _UsersSectionState extends State<_UsersSection> {
               prefixIcon: const Icon(Icons.search, size: 20),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
-                      onPressed: () { _searchC.clear(); setState(() => _searchQuery = ''); },
+                      onPressed: () {
+                        _searchC.clear();
+                        setState(() => _searchQuery = '');
+                      },
                       icon: const Icon(Icons.clear, size: 18),
                     )
                   : null,
@@ -1258,16 +1940,13 @@ class _UsersSectionState extends State<_UsersSection> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+          child: Wrap(
+            spacing: 6,
             children: [
-              Text(
-                '${users.length}${showLoadMore ? '+' : ''} user',
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              const Spacer(),
-              if (_loading)
-                const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+              _roleChip('Tất cả', _UserRoleFilter.all),
+              _roleChip('Chủ shop', _UserRoleFilter.owner),
+              _roleChip('Nhân viên', _UserRoleFilter.staff),
             ],
           ),
         ),
@@ -1320,31 +1999,43 @@ class _UsersSectionState extends State<_UsersSection> {
                       child: ListTile(
                         leading: CircleAvatar(
                           radius: 18,
-                          backgroundColor: isOwner ? Colors.indigo.shade100 : Colors.indigo.shade50,
+                          backgroundColor: isOwner
+                              ? Colors.indigo.shade100
+                              : Colors.indigo.shade50,
                           child: Icon(
-                            isOwner ? Icons.store_rounded : Icons.person_outline,
+                            isOwner
+                                ? Icons.store_rounded
+                                : Icons.person_outline,
                             size: 18,
                             color: Colors.indigo,
                           ),
                         ),
-                        title: Row(children: [
-                          Expanded(child: Text((u['displayName'] ?? email).toString(), style: const TextStyle(fontSize: 14))),
-                          if (isOwner)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.indigo.shade50,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.indigo.shade200),
+                        title: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                (u['displayName'] ?? email).toString(),
+                                style: const TextStyle(fontSize: 14),
                               ),
-                              child: const Text('OWNER', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.indigo)),
                             ),
-                        ]),
+                            if (isOwner)
+                              const _StatusPill(
+                                label: 'OWNER',
+                                status: _PillStatus.owner,
+                              ),
+                          ],
+                        ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(email, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                            Text(
+                              email,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
                             Text(
                               'Vai trò: $role · 🏪 $shopName$joinDate',
                               style: const TextStyle(fontSize: 12),
@@ -1358,27 +2049,69 @@ class _UsersSectionState extends State<_UsersSection> {
                             IconButton(
                               visualDensity: VisualDensity.compact,
                               onPressed: () => widget.onEdit(context, uid, u),
-                              icon: const Icon(Icons.edit, color: Colors.orange, size: 20),
+                              icon: const Icon(
+                                Icons.edit,
+                                color: Colors.orange,
+                                size: 20,
+                              ),
                             ),
                             PopupMenuButton<String>(
                               icon: const Icon(Icons.more_vert, size: 20),
                               onSelected: (v) {
-                                if (v == 'del') widget.onDelete(uid, email, withData: false, role: role, shopName: shopName);
-                                if (v == 'del_all') widget.onDelete(uid, email, withData: true, role: role, shopName: shopName);
+                                if (v == 'del')
+                                  widget.onDelete(
+                                    uid,
+                                    email,
+                                    withData: false,
+                                    role: role,
+                                    shopName: shopName,
+                                  );
+                                if (v == 'del_all')
+                                  widget.onDelete(
+                                    uid,
+                                    email,
+                                    withData: true,
+                                    role: role,
+                                    shopName: shopName,
+                                  );
                               },
                               itemBuilder: (_) => [
-                                const PopupMenuItem(value: 'del', child: ListTile(
-                                  dense: true,
-                                  leading: Icon(Icons.delete_outline, color: Colors.orange),
-                                  title: Text('Xóa user doc'),
-                                  subtitle: Text('Chỉ xóa hồ sơ, Auth còn', style: TextStyle(fontSize: 11)),
-                                )),
-                                const PopupMenuItem(value: 'del_all', child: ListTile(
-                                  dense: true,
-                                  leading: Icon(Icons.delete_forever, color: Colors.red),
-                                  title: Text('Xóa hoàn toàn', style: TextStyle(color: Colors.red)),
-                                  subtitle: Text('Auth + dữ liệu do user tạo', style: TextStyle(fontSize: 11, color: Colors.red)),
-                                )),
+                                const PopupMenuItem(
+                                  value: 'del',
+                                  child: ListTile(
+                                    dense: true,
+                                    leading: Icon(
+                                      Icons.delete_outline,
+                                      color: Colors.orange,
+                                    ),
+                                    title: Text('Xóa user doc'),
+                                    subtitle: Text(
+                                      'Chỉ xóa hồ sơ, Auth còn',
+                                      style: TextStyle(fontSize: 11),
+                                    ),
+                                  ),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'del_all',
+                                  child: ListTile(
+                                    dense: true,
+                                    leading: Icon(
+                                      Icons.delete_forever,
+                                      color: Colors.red,
+                                    ),
+                                    title: Text(
+                                      'Xóa hoàn toàn',
+                                      style: TextStyle(color: Colors.red),
+                                    ),
+                                    subtitle: Text(
+                                      'Auth + dữ liệu do user tạo',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.red,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ],
@@ -1389,6 +2122,23 @@ class _UsersSectionState extends State<_UsersSection> {
                 ),
         ),
       ],
+    );
+  }
+
+  Widget _roleChip(String label, _UserRoleFilter value) {
+    final selected = _roleFilter == value;
+    return FilterChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => setState(() => _roleFilter = value),
+      visualDensity: VisualDensity.compact,
+      selectedColor: AppColors.primary.withValues(alpha: 0.15),
+      checkmarkColor: AppColors.primary,
+      labelStyle: TextStyle(
+        fontSize: 12,
+        color: selected ? AppColors.primary : null,
+        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+      ),
     );
   }
 }
@@ -1406,31 +2156,52 @@ class _PermissionsSection extends StatelessWidget {
       ['staff', '✓', '✗', '✗', '✗'],
     ];
     return ListView(
-      padding: const EdgeInsets.all(16),
       children: [
-        const Card(
-          child: ListTile(
-            leading: Icon(Icons.info_outline),
-            title: Text('Bảng quyền hạn'),
-            subtitle: Text('Chuẩn role-based baseline cho owner/manager/staff. Các khóa cấp shop sẽ override tại runtime.'),
+        const _SectionHeader(
+          icon: Icons.shield_rounded,
+          title: 'Quyền hạn',
+          subtitle: 'Bảng quyền role-based baseline',
+        ),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: Card(
+            child: ListTile(
+              leading: Icon(Icons.info_outline),
+              title: Text('Bảng quyền hạn'),
+              subtitle: Text(
+                'Chuẩn role-based baseline cho owner/manager/staff. Các khóa cấp shop sẽ override tại runtime.',
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 12),
-        Card(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              columns: const [
-                DataColumn(label: Text('Vai trò')),
-                DataColumn(label: Text('Sửa đơn')),
-                DataColumn(label: Text('Xem tài chính')),
-                DataColumn(label: Text('Đổi lock flags')),
-                DataColumn(label: Text('Thao tác nguy hiểm')),
-              ],
-              rows: rows.map((r) => DataRow(cells: [
-                DataCell(Text(r[0])), DataCell(Text(r[1])), DataCell(Text(r[2])),
-                DataCell(Text(r[3])), DataCell(Text(r[4])),
-              ])).toList(),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Card(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                columns: const [
+                  DataColumn(label: Text('Vai trò')),
+                  DataColumn(label: Text('Sửa đơn')),
+                  DataColumn(label: Text('Xem tài chính')),
+                  DataColumn(label: Text('Đổi lock flags')),
+                  DataColumn(label: Text('Thao tác nguy hiểm')),
+                ],
+                rows: rows
+                    .map(
+                      (r) => DataRow(
+                        cells: [
+                          DataCell(Text(r[0])),
+                          DataCell(Text(r[1])),
+                          DataCell(Text(r[2])),
+                          DataCell(Text(r[3])),
+                          DataCell(Text(r[4])),
+                        ],
+                      ),
+                    )
+                    .toList(),
+              ),
             ),
           ),
         ),
@@ -1458,15 +2229,24 @@ class _AuditSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Query<Map<String, dynamic>> query =
-        db.collection('admin_audit_log').orderBy('timestamp', descending: true).limit(200);
-    if (shopFilter != null && shopFilter!.isNotEmpty) query = query.where('shopId', isEqualTo: shopFilter);
-    if (actionFilter != 'all') query = query.where('action', isEqualTo: actionFilter);
+    Query<Map<String, dynamic>> query = db
+        .collection('admin_audit_log')
+        .orderBy('timestamp', descending: true)
+        .limit(200);
+    if (shopFilter != null && shopFilter!.isNotEmpty)
+      query = query.where('shopId', isEqualTo: shopFilter);
+    if (actionFilter != 'all')
+      query = query.where('action', isEqualTo: actionFilter);
 
     return Column(
       children: [
+        const _SectionHeader(
+          icon: Icons.receipt_long_rounded,
+          title: 'Nhật ký',
+          subtitle: 'Lịch sử thao tác quản trị',
+        ),
         Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           child: Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -1474,22 +2254,43 @@ class _AuditSection extends StatelessWidget {
               SizedBox(
                 width: 220,
                 child: TextField(
-                  decoration: const InputDecoration(border: OutlineInputBorder(), labelText: 'Filter shopId', isDense: true),
-                  onChanged: (v) => onFilterChanged(v.trim().isEmpty ? null : v.trim(), actionFilter, textFilter),
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Filter shopId',
+                    isDense: true,
+                  ),
+                  onChanged: (v) => onFilterChanged(
+                    v.trim().isEmpty ? null : v.trim(),
+                    actionFilter,
+                    textFilter,
+                  ),
                 ),
               ),
               SizedBox(
                 width: 220,
                 child: TextField(
-                  decoration: const InputDecoration(border: OutlineInputBorder(), labelText: 'Filter action', isDense: true),
-                  onChanged: (v) => onFilterChanged(shopFilter, v.trim().isEmpty ? 'all' : v.trim(), textFilter),
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Filter action',
+                    isDense: true,
+                  ),
+                  onChanged: (v) => onFilterChanged(
+                    shopFilter,
+                    v.trim().isEmpty ? 'all' : v.trim(),
+                    textFilter,
+                  ),
                 ),
               ),
               SizedBox(
                 width: 260,
                 child: TextField(
-                  decoration: const InputDecoration(border: OutlineInputBorder(), labelText: 'Search email/user', isDense: true),
-                  onChanged: (v) => onFilterChanged(shopFilter, actionFilter, v.trim()),
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Search email/user',
+                    isDense: true,
+                  ),
+                  onChanged: (v) =>
+                      onFilterChanged(shopFilter, actionFilter, v.trim()),
                 ),
               ),
             ],
@@ -1499,16 +2300,22 @@ class _AuditSection extends StatelessWidget {
           child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
             stream: query.snapshots(),
             builder: (_, snap) {
-              if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+              if (!snap.hasData)
+                return const Center(child: CircularProgressIndicator());
               final docs = snap.data!.docs.where((d) {
                 if (textFilter.isEmpty) return true;
                 final data = d.data();
                 final email = (data['email'] ?? '').toString().toLowerCase();
-                final target = (data['targetUserId'] ?? '').toString().toLowerCase();
+                final target = (data['targetUserId'] ?? '')
+                    .toString()
+                    .toLowerCase();
                 final q = textFilter.toLowerCase();
                 return email.contains(q) || target.contains(q);
               }).toList();
-              if (docs.isEmpty) return const Center(child: Text('Không có audit logs phù hợp.'));
+              if (docs.isEmpty)
+                return const Center(
+                  child: Text('Không có audit logs phù hợp.'),
+                );
               return ListView.separated(
                 itemCount: docs.length,
                 separatorBuilder: (_, __) => const Divider(height: 1),
@@ -1518,7 +2325,9 @@ class _AuditSection extends StatelessWidget {
                     dense: true,
                     leading: const Icon(Icons.receipt_long, size: 18),
                     title: Text((a['action'] ?? '').toString()),
-                    subtitle: Text('Người dùng: ${(a['email'] ?? '')} · Cửa hàng: ${(a['shopId'] ?? '-')}'),
+                    subtitle: Text(
+                      'Người dùng: ${(a['email'] ?? '')} · Cửa hàng: ${(a['shopId'] ?? '-')}',
+                    ),
                     trailing: Text(_fmtTs(a['timestamp'])),
                   );
                 },
@@ -1568,40 +2377,77 @@ class _SettingsSectionState extends State<_SettingsSection> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setD) => AlertDialog(
-          title: Row(children: [
-            const Icon(Icons.lock, color: Colors.deepPurple),
-            const SizedBox(width: 8),
-            Text(isChange ? 'Đổi mã PIN' : 'Thiết lập mã PIN'),
-          ]),
+          title: Row(
+            children: [
+              const Icon(Icons.lock, color: Colors.deepPurple),
+              const SizedBox(width: 8),
+              Text(isChange ? 'Đổi mã PIN' : 'Thiết lập mã PIN'),
+            ],
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: pinC, keyboardType: TextInputType.number, obscureText: true, maxLength: 6, autofocus: true,
-                  decoration: const InputDecoration(labelText: 'Mã PIN mới (4-6 số)', border: OutlineInputBorder())),
+              TextField(
+                controller: pinC,
+                keyboardType: TextInputType.number,
+                obscureText: true,
+                maxLength: 6,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Mã PIN mới (4-6 số)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
               const SizedBox(height: 8),
-              TextField(controller: confirmC, keyboardType: TextInputType.number, obscureText: true, maxLength: 6,
-                  decoration: const InputDecoration(labelText: 'Nhập lại PIN', border: OutlineInputBorder())),
+              TextField(
+                controller: confirmC,
+                keyboardType: TextInputType.number,
+                obscureText: true,
+                maxLength: 6,
+                decoration: const InputDecoration(
+                  labelText: 'Nhập lại PIN',
+                  border: OutlineInputBorder(),
+                ),
+              ),
               if (error != null) ...[
                 const SizedBox(height: 6),
-                Text(error!, style: const TextStyle(color: Colors.red, fontSize: 13)),
+                Text(
+                  error!,
+                  style: const TextStyle(color: Colors.red, fontSize: 13),
+                ),
               ],
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Hủy'),
+            ),
             FilledButton(
               onPressed: () async {
-                if (pinC.text.length < 4) { setD(() => error = 'PIN phải từ 4-6 số'); return; }
-                if (pinC.text != confirmC.text) { setD(() => error = 'Hai mã PIN không khớp'); return; }
+                if (pinC.text.length < 4) {
+                  setD(() => error = 'PIN phải từ 4-6 số');
+                  return;
+                }
+                if (pinC.text != confirmC.text) {
+                  setD(() => error = 'Hai mã PIN không khớp');
+                  return;
+                }
                 final ok = await SuperAdminSecurityService.setupPin(pinC.text);
                 if (!ctx.mounted) return;
                 Navigator.pop(ctx);
                 if (ok) _reloadPinStatus();
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text(ok ? 'Đã thiết lập mã PIN thành công.' : 'Lỗi thiết lập PIN.'),
-                    backgroundColor: ok ? Colors.green : Colors.red,
-                  ));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        ok
+                            ? 'Đã thiết lập mã PIN thành công.'
+                            : 'Lỗi thiết lập PIN.',
+                      ),
+                      backgroundColor: ok ? Colors.green : Colors.red,
+                    ),
+                  );
                 }
               },
               child: const Text('Lưu'),
@@ -1619,32 +2465,57 @@ class _SettingsSectionState extends State<_SettingsSection> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setD) => AlertDialog(
-          title: const Row(children: [
-            Icon(Icons.lock_open, color: Colors.orange), SizedBox(width: 8), Text('Tắt mã PIN'),
-          ]),
+          title: const Row(
+            children: [
+              Icon(Icons.lock_open, color: Colors.orange),
+              SizedBox(width: 8),
+              Text('Tắt mã PIN'),
+            ],
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text('Nhập PIN hiện tại để xác nhận tắt:'),
               const SizedBox(height: 10),
-              TextField(controller: pinC, keyboardType: TextInputType.number, obscureText: true, maxLength: 6, autofocus: true,
-                  decoration: InputDecoration(labelText: 'Mã PIN hiện tại', border: const OutlineInputBorder(), errorText: error)),
+              TextField(
+                controller: pinC,
+                keyboardType: TextInputType.number,
+                obscureText: true,
+                maxLength: 6,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: 'Mã PIN hiện tại',
+                  border: const OutlineInputBorder(),
+                  errorText: error,
+                ),
+              ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Hủy'),
+            ),
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: Colors.orange),
               onPressed: () async {
-                final verified = await SuperAdminSecurityService.verifyPin(pinC.text);
-                if (!verified) { setD(() => error = 'Mã PIN không đúng'); return; }
+                final verified = await SuperAdminSecurityService.verifyPin(
+                  pinC.text,
+                );
+                if (!verified) {
+                  setD(() => error = 'Mã PIN không đúng');
+                  return;
+                }
                 await SuperAdminSecurityService.removePin();
                 if (!ctx.mounted) return;
                 Navigator.pop(ctx);
                 _reloadPinStatus();
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Đã tắt mã PIN.'), backgroundColor: Colors.orange),
+                    const SnackBar(
+                      content: Text('Đã tắt mã PIN.'),
+                      backgroundColor: Colors.orange,
+                    ),
                   );
                 }
               },
@@ -1660,74 +2531,131 @@ class _SettingsSectionState extends State<_SettingsSection> {
   Widget build(BuildContext context) {
     final hasPin = _hasPinSetup;
     return ListView(
-      padding: const EdgeInsets.all(16),
       children: [
-        Card(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.deepPurple.withValues(alpha: 0.3)),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(children: [
-                  Icon(Icons.shield_outlined, color: Colors.deepPurple),
-                  SizedBox(width: 8),
-                  Text('Bảo mật PIN', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                ]),
-                const SizedBox(height: 4),
-                Text('Bảo vệ Console bằng mã PIN khi session hết hạn', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                const Divider(height: 16),
-                if (hasPin == null)
-                  const Center(child: Padding(padding: EdgeInsets.all(8), child: CircularProgressIndicator(strokeWidth: 2)))
-                else
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(hasPin ? Icons.lock_outline : Icons.lock_open_outlined, color: hasPin ? Colors.green : Colors.orange),
-                    title: Text(hasPin ? 'Mã PIN đã bật' : 'Chưa thiết lập PIN',
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                    subtitle: Text(
-                      hasPin ? 'Yêu cầu PIN khi session hết hạn (30 phút idle)' : 'Bật PIN để bảo vệ console',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    trailing: hasPin
-                        ? PopupMenuButton<String>(
-                            onSelected: (v) {
-                              if (v == 'change') _showSetupPinDialog(isChange: true);
-                              if (v == 'remove') _showRemovePinDialog();
-                            },
-                            itemBuilder: (_) => const [
-                              PopupMenuItem(value: 'change', child: Text('Đổi PIN')),
-                              PopupMenuItem(value: 'remove', child: Text('Tắt PIN')),
-                            ],
-                          )
-                        : FilledButton.icon(
-                            onPressed: () => _showSetupPinDialog(),
-                            icon: const Icon(Icons.add, size: 16),
-                            label: const Text('Thiết lập'),
-                          ),
-                  ),
-              ],
-            ),
-          ),
+        const _SectionHeader(
+          icon: Icons.settings_rounded,
+          title: 'Cài đặt',
+          subtitle: 'Bảo mật PIN & đồng bộ hệ thống',
         ),
-        const SizedBox(height: 8),
-        Card(
-          child: ListTile(
-            leading: const Icon(Icons.cloud_sync),
-            title: const Text('Sync custom claims'),
-            subtitle: const Text('Đồng bộ claims cho toàn bộ user khi thay đổi rules/roles.'),
-            onTap: () async {
-              final result = await ClaimsService().batchSyncAllClaims();
-              if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(result['success'] == true
-                    ? 'Sync claims thành công.'
-                    : 'Sync claims lỗi: ${result['error'] ?? 'unknown'}')),
-              );
-            },
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            children: [
+              Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: Colors.deepPurple.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.shield_outlined, color: Colors.deepPurple),
+                          SizedBox(width: 8),
+                          Text(
+                            'Bảo mật PIN',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Bảo vệ Console bằng mã PIN khi session hết hạn',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const Divider(height: 16),
+                      if (hasPin == null)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(8),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      else
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(
+                            hasPin
+                                ? Icons.lock_outline
+                                : Icons.lock_open_outlined,
+                            color: hasPin ? Colors.green : Colors.orange,
+                          ),
+                          title: Text(
+                            hasPin ? 'Mã PIN đã bật' : 'Chưa thiết lập PIN',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                          subtitle: Text(
+                            hasPin
+                                ? 'Yêu cầu PIN khi session hết hạn (30 phút idle)'
+                                : 'Bật PIN để bảo vệ console',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          trailing: hasPin
+                              ? PopupMenuButton<String>(
+                                  onSelected: (v) {
+                                    if (v == 'change')
+                                      _showSetupPinDialog(isChange: true);
+                                    if (v == 'remove') _showRemovePinDialog();
+                                  },
+                                  itemBuilder: (_) => const [
+                                    PopupMenuItem(
+                                      value: 'change',
+                                      child: Text('Đổi PIN'),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'remove',
+                                      child: Text('Tắt PIN'),
+                                    ),
+                                  ],
+                                )
+                              : FilledButton.icon(
+                                  onPressed: () => _showSetupPinDialog(),
+                                  icon: const Icon(Icons.add, size: 16),
+                                  label: const Text('Thiết lập'),
+                                ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.cloud_sync),
+                  title: const Text('Sync custom claims'),
+                  subtitle: const Text(
+                    'Đồng bộ claims cho toàn bộ user khi thay đổi rules/roles.',
+                  ),
+                  onTap: () async {
+                    final result = await ClaimsService().batchSyncAllClaims();
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          result['success'] == true
+                              ? 'Sync claims thành công.'
+                              : 'Sync claims lỗi: ${result['error'] ?? 'unknown'}',
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -1768,13 +2696,20 @@ class _BroadcastSectionState extends State<_BroadcastSection> {
     final title = _titleCtrl.text.trim();
     final body = _bodyCtrl.text.trim();
     if (title.isEmpty || body.isEmpty) {
-      setState(() { _lastResult = 'Vui lòng nhập tiêu đề và nội dung.'; _lastSuccess = false; });
+      setState(() {
+        _lastResult = 'Vui lòng nhập tiêu đề và nội dung.';
+        _lastSuccess = false;
+      });
       return;
     }
-    setState(() { _sending = true; _lastResult = null; });
+    setState(() {
+      _sending = true;
+      _lastResult = null;
+    });
     try {
-      final callable = FirebaseFunctions.instanceFor(region: 'asia-southeast1')
-          .httpsCallable('sendBroadcastNotification');
+      final callable = FirebaseFunctions.instanceFor(
+        region: 'asia-southeast1',
+      ).httpsCallable('sendBroadcastNotification');
       await callable.call({'title': title, 'body': body, 'type': _type});
       setState(() {
         _lastResult = '✅ Đã gửi thành công tới toàn bộ người dùng!';
@@ -1783,14 +2718,20 @@ class _BroadcastSectionState extends State<_BroadcastSection> {
         _bodyCtrl.clear();
       });
     } catch (e) {
-      setState(() { _lastResult = '❌ Lỗi: ${e.toString()}'; _lastSuccess = false; });
+      setState(() {
+        _lastResult = '❌ Lỗi: ${e.toString()}';
+        _lastSuccess = false;
+      });
     } finally {
       setState(() => _sending = false);
     }
   }
 
   Future<void> _deleteBroadcast(String docId) async {
-    await FirebaseFirestore.instance.collection('broadcasts').doc(docId).delete();
+    await FirebaseFirestore.instance
+        .collection('broadcasts')
+        .doc(docId)
+        .delete();
   }
 
   Widget _buildFormCard() {
@@ -1803,26 +2744,46 @@ class _BroadcastSectionState extends State<_BroadcastSection> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.indigo.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.indigo.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.campaign_rounded,
+                    color: Colors.indigo,
+                    size: 24,
+                  ),
                 ),
-                child: const Icon(Icons.campaign_rounded, color: Colors.indigo, size: 24),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Gửi Thông Báo Hệ Thống', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Text('Gửi tới TẤT CẢ người dùng qua dialog + push.',
-                      style: TextStyle(fontSize: 12, color: Colors.grey)),
-                ]),
-              ),
-            ]),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Gửi Thông Báo Hệ Thống',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'Gửi tới TẤT CẢ người dùng qua dialog + push.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 20),
-            const Text('Loại thông báo', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const Text(
+              'Loại thông báo',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -1847,7 +2808,9 @@ class _BroadcastSectionState extends State<_BroadcastSection> {
               decoration: InputDecoration(
                 labelText: 'Tiêu đề',
                 hintText: 'VD: Yêu cầu cập nhật phiên bản mới',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 prefixIcon: const Icon(Icons.title_rounded),
                 isDense: true,
               ),
@@ -1859,7 +2822,9 @@ class _BroadcastSectionState extends State<_BroadcastSection> {
               decoration: InputDecoration(
                 labelText: 'Nội dung',
                 hintText: 'Nhập nội dung thông báo chi tiết...',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 prefixIcon: const Icon(Icons.message_rounded),
                 alignLabelWithHint: true,
                 isDense: true,
@@ -1871,25 +2836,50 @@ class _BroadcastSectionState extends State<_BroadcastSection> {
                 padding: const EdgeInsets.all(10),
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  color: _lastSuccess ? Colors.green.shade50 : Colors.red.shade50,
+                  color: _lastSuccess
+                      ? Colors.green.shade50
+                      : Colors.red.shade50,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: _lastSuccess ? Colors.green.shade200 : Colors.red.shade200),
+                  border: Border.all(
+                    color: _lastSuccess
+                        ? Colors.green.shade200
+                        : Colors.red.shade200,
+                  ),
                 ),
-                child: Text(_lastResult!, style: TextStyle(color: _lastSuccess ? Colors.green.shade800 : Colors.red.shade800, fontSize: 13)),
+                child: Text(
+                  _lastResult!,
+                  style: TextStyle(
+                    color: _lastSuccess
+                        ? Colors.green.shade800
+                        : Colors.red.shade800,
+                    fontSize: 13,
+                  ),
+                ),
               ),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: _sending ? null : _send,
                 icon: _sending
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : const Icon(Icons.send_rounded),
-                label: Text(_sending ? 'Đang gửi...' : 'Gửi tới toàn bộ người dùng'),
+                label: Text(
+                  _sending ? 'Đang gửi...' : 'Gửi tới toàn bộ người dùng',
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.indigo,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
             ),
@@ -1909,7 +2899,10 @@ class _BroadcastSectionState extends State<_BroadcastSection> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Lịch sử thông báo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            const Text(
+              'Lịch sử thông báo',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            ),
             const SizedBox(height: 8),
             StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -1918,12 +2911,21 @@ class _BroadcastSectionState extends State<_BroadcastSection> {
                   .limit(20)
                   .snapshots(),
               builder: (ctx, snap) {
-                if (!snap.hasData) return const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()));
+                if (!snap.hasData)
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
                 final docs = snap.data!.docs;
                 if (docs.isEmpty) {
                   return const Padding(
                     padding: EdgeInsets.all(16),
-                    child: Text('Chưa có thông báo nào.', style: TextStyle(color: Colors.grey)),
+                    child: Text(
+                      'Chưa có thông báo nào.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
                   );
                 }
                 return ListView.separated(
@@ -1934,29 +2936,58 @@ class _BroadcastSectionState extends State<_BroadcastSection> {
                   itemBuilder: (ctx, i) {
                     final d = docs[i].data() as Map<String, dynamic>;
                     final type = d['type'] ?? 'info';
-                    final color = type == 'update_required' ? Colors.red
-                        : type == 'warning' ? Colors.orange : Colors.indigo;
+                    final color = type == 'update_required'
+                        ? Colors.red
+                        : type == 'warning'
+                        ? Colors.orange
+                        : Colors.indigo;
                     final ts = (d['createdAt'] as Timestamp?)?.toDate();
                     final expiresAt = (d['expiresAt'] as Timestamp?)?.toDate();
-                    final expired = expiresAt != null && expiresAt.isBefore(DateTime.now());
+                    final expired =
+                        expiresAt != null && expiresAt.isBefore(DateTime.now());
                     return ListTile(
                       dense: true,
-                      leading: Icon(Icons.campaign_rounded, color: color, size: 20),
-                      title: Text(d['title'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontWeight: FontWeight.w600, color: expired ? Colors.grey : null)),
+                      leading: Icon(
+                        Icons.campaign_rounded,
+                        color: color,
+                        size: 20,
+                      ),
+                      title: Text(
+                        d['title'] ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: expired ? Colors.grey : null,
+                        ),
+                      ),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(d['body'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 12)),
-                          if (ts != null) Text(
-                            '${ts.day}/${ts.month}/${ts.year} ${ts.hour}:${ts.minute.toString().padLeft(2, '0')}${expired ? ' · Hết hạn' : ''}',
-                            style: TextStyle(fontSize: 11, color: expired ? Colors.red.shade300 : Colors.grey),
+                          Text(
+                            d['body'] ?? '',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12),
                           ),
+                          if (ts != null)
+                            Text(
+                              '${ts.day}/${ts.month}/${ts.year} ${ts.hour}:${ts.minute.toString().padLeft(2, '0')}${expired ? ' · Hết hạn' : ''}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: expired
+                                    ? Colors.red.shade300
+                                    : Colors.grey,
+                              ),
+                            ),
                         ],
                       ),
                       trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          size: 18,
+                          color: Colors.red,
+                        ),
                         tooltip: 'Xóa',
                         onPressed: () => _deleteBroadcast(docs[i].id),
                       ),
@@ -1976,26 +3007,46 @@ class _BroadcastSectionState extends State<_BroadcastSection> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth >= 700;
+        const header = _SectionHeader(
+          icon: Icons.campaign_rounded,
+          title: 'Thông báo hệ thống',
+          subtitle: 'Gửi tới toàn bộ người dùng',
+        );
         if (isWide) {
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(flex: 2, child: _buildFormCard()),
-                const SizedBox(width: 20),
-                Expanded(flex: 1, child: _buildHistoryCard()),
+                header,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(flex: 2, child: _buildFormCard()),
+                      const SizedBox(width: 20),
+                      Expanded(flex: 1, child: _buildHistoryCard()),
+                    ],
+                  ),
+                ),
               ],
             ),
           );
         }
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              _buildFormCard(),
-              const SizedBox(height: 16),
-              _buildHistoryCard(),
+              header,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Column(
+                  children: [
+                    _buildFormCard(),
+                    const SizedBox(height: 16),
+                    _buildHistoryCard(),
+                  ],
+                ),
+              ),
             ],
           ),
         );
@@ -2007,7 +3058,11 @@ class _BroadcastSectionState extends State<_BroadcastSection> {
 // ─── Danger Zone ─────────────────────────────────────────────────────────────
 
 class _DangerSection extends StatelessWidget {
-  const _DangerSection({required this.db, required this.onResetShop, required this.onDeleteShop});
+  const _DangerSection({
+    required this.db,
+    required this.onResetShop,
+    required this.onDeleteShop,
+  });
 
   final FirebaseFirestore db;
   final Future<void> Function(Map<String, dynamic>) onResetShop;
@@ -2018,7 +3073,8 @@ class _DangerSection extends StatelessWidget {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: db.collection('shops').orderBy('name').snapshots(),
       builder: (_, snap) {
-        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+        if (!snap.hasData)
+          return const Center(child: CircularProgressIndicator());
         final shops = snap.data!.docs.map((d) {
           final data = Map<String, dynamic>.from(d.data());
           data['id'] = d.id;
@@ -2026,40 +3082,62 @@ class _DangerSection extends StatelessWidget {
         }).toList();
 
         return ListView(
-          padding: const EdgeInsets.all(16),
           children: [
-            const Card(
-              color: Color(0xFFFFF3F3),
-              child: ListTile(
-                leading: Icon(Icons.warning_amber_rounded, color: Colors.red),
-                title: Text('Vùng nguy hiểm'),
-                subtitle: Text('Mọi thao tác tại đây đều yêu cầu xác thực PIN và được ghi audit log.'),
+            _SectionHeader(
+              icon: Icons.warning_amber_rounded,
+              title: 'Vùng nguy hiểm',
+              subtitle:
+                  '${shops.length} shop • thao tác yêu cầu xác thực PIN, được ghi audit log',
+              color: AppColors.error,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(
+                children: [
+                  const Card(
+                    color: AppColors.errorLight,
+                    child: ListTile(
+                      leading: Icon(
+                        Icons.warning_amber_rounded,
+                        color: AppColors.error,
+                      ),
+                      title: Text('Cẩn trọng'),
+                      subtitle: Text(
+                        'Mọi thao tác tại đây đều yêu cầu xác thực PIN và được ghi audit log.',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ...shops.map(
+                    (s) => Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        title: Text((s['name'] ?? 'Shop').toString()),
+                        subtitle: Text('ID: ${(s['id'] ?? '').toString()}'),
+                        trailing: Wrap(
+                          spacing: 8,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: () => onResetShop(s),
+                              icon: const Icon(Icons.restart_alt),
+                              label: const Text('Đặt lại'),
+                            ),
+                            FilledButton.icon(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppColors.error,
+                              ),
+                              onPressed: () => onDeleteShop(s),
+                              icon: const Icon(Icons.delete_forever),
+                              label: const Text('Xóa'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            ...shops.map((s) => Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                title: Text((s['name'] ?? 'Shop').toString()),
-                subtitle: Text('ID: ${(s['id'] ?? '').toString()}'),
-                trailing: Wrap(
-                  spacing: 8,
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: () => onResetShop(s),
-                      icon: const Icon(Icons.restart_alt),
-                      label: const Text('Đặt lại'),
-                    ),
-                    FilledButton.icon(
-                      style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                      onPressed: () => onDeleteShop(s),
-                      icon: const Icon(Icons.delete_forever),
-                      label: const Text('Xóa'),
-                    ),
-                  ],
-                ),
-              ),
-            )),
           ],
         );
       },
@@ -2072,7 +3150,10 @@ class _DangerSection extends StatelessWidget {
 class _ResetSelection {
   final List<String> collections;
   final List<String> storageRoots;
-  const _ResetSelection({required this.collections, required this.storageRoots});
+  const _ResetSelection({
+    required this.collections,
+    required this.storageRoots,
+  });
 }
 
 class _CollectionGroup {
@@ -2080,7 +3161,12 @@ class _CollectionGroup {
   final IconData icon;
   final Color color;
   final List<_CollectionItem> items;
-  const _CollectionGroup({required this.label, required this.icon, required this.color, required this.items});
+  const _CollectionGroup({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.items,
+  });
 }
 
 class _CollectionItem {
@@ -2146,9 +3232,7 @@ const _kGroups = [
     label: 'Hệ thống',
     icon: Icons.settings_outlined,
     color: Colors.grey,
-    items: [
-      _CollectionItem('audit_logs', 'Nhật ký thao tác'),
-    ],
+    items: [_CollectionItem('audit_logs', 'Nhật ký thao tác')],
   ),
   _CollectionGroup(
     label: 'File & Ảnh (Storage)',
@@ -2202,18 +3286,29 @@ class _SelectiveResetDialogState extends State<_SelectiveResetDialog> {
     }
   }
 
-  String _itemKey(_CollectionItem item) => item.isStorage ? 'storage:${item.key}' : 'col:${item.key}';
+  String _itemKey(_CollectionItem item) =>
+      item.isStorage ? 'storage:${item.key}' : 'col:${item.key}';
   bool get _anyChecked => _checked.values.any((v) => v);
   bool get _allChecked => _checked.values.every((v) => v);
-  bool _groupAllChecked(_CollectionGroup g) => g.items.every((item) => _checked[_itemKey(item)] == true);
-  bool _groupAnyChecked(_CollectionGroup g) => g.items.any((item) => _checked[_itemKey(item)] == true);
+  bool _groupAllChecked(_CollectionGroup g) =>
+      g.items.every((item) => _checked[_itemKey(item)] == true);
+  bool _groupAnyChecked(_CollectionGroup g) =>
+      g.items.any((item) => _checked[_itemKey(item)] == true);
 
   void _toggleGroup(_CollectionGroup g, bool value) {
-    setState(() { for (final item in g.items) { _checked[_itemKey(item)] = value; } });
+    setState(() {
+      for (final item in g.items) {
+        _checked[_itemKey(item)] = value;
+      }
+    });
   }
 
   void _toggleAll(bool value) {
-    setState(() { for (final key in _checked.keys) { _checked[key] = value; } });
+    setState(() {
+      for (final key in _checked.keys) {
+        _checked[key] = value;
+      }
+    });
   }
 
   void _applyCoreDataCleanupPreset() {
@@ -2249,19 +3344,31 @@ class _SelectiveResetDialogState extends State<_SelectiveResetDialog> {
   Widget build(BuildContext context) {
     final selectedCount = _checked.values.where((v) => v).length;
     return AlertDialog(
-      title: Row(children: [
-        const Icon(Icons.delete_sweep_outlined, color: Colors.red),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Chọn dữ liệu cần xóa', style: TextStyle(fontSize: 16)),
-              Text(widget.shopName, style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.normal)),
-            ],
+      title: Row(
+        children: [
+          const Icon(Icons.delete_sweep_outlined, color: Colors.red),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Chọn dữ liệu cần xóa',
+                  style: TextStyle(fontSize: 16),
+                ),
+                Text(
+                  widget.shopName,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ]),
+        ],
+      ),
       contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       content: SizedBox(
         width: double.maxFinite,
@@ -2279,7 +3386,10 @@ class _SelectiveResetDialogState extends State<_SelectiveResetDialog> {
                 value: _allChecked ? true : (_anyChecked ? null : false),
                 tristate: true,
                 activeColor: Colors.red,
-                title: const Text('Chọn tất cả', style: TextStyle(fontWeight: FontWeight.bold)),
+                title: const Text(
+                  'Chọn tất cả',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 subtitle: Text('$selectedCount mục đã chọn'),
                 onChanged: (v) => _toggleAll(v == true),
               ),
@@ -2295,17 +3405,20 @@ class _SelectiveResetDialogState extends State<_SelectiveResetDialog> {
             ),
             const SizedBox(height: 8),
             Expanded(
-              child: ListView(
-                children: _kGroups.map(_buildGroup).toList(),
-              ),
+              child: ListView(children: _kGroups.map(_buildGroup).toList()),
             ),
           ],
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Hủy'),
+        ),
         FilledButton.icon(
-          onPressed: _anyChecked ? () => Navigator.pop(context, _buildResult()) : null,
+          onPressed: _anyChecked
+              ? () => Navigator.pop(context, _buildResult())
+              : null,
           style: FilledButton.styleFrom(backgroundColor: Colors.red),
           icon: const Icon(Icons.delete_outline, size: 16),
           label: Text('Xóa ($selectedCount mục)'),
@@ -2328,17 +3441,30 @@ class _SelectiveResetDialogState extends State<_SelectiveResetDialog> {
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           leading: Icon(g.icon, color: g.color, size: 20),
-          title: Text(g.label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          title: Text(
+            g.label,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (anyChecked)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                  decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   child: Text(
                     '${g.items.where((i) => _checked[_itemKey(i)] == true).length}/${g.items.length}',
-                    style: TextStyle(fontSize: 11, color: Colors.red.shade700, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.red.shade700,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               const SizedBox(width: 4),
@@ -2350,17 +3476,30 @@ class _SelectiveResetDialogState extends State<_SelectiveResetDialog> {
               ),
             ],
           ),
-          children: g.items.map((item) => CheckboxListTile(
-            dense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-            value: _checked[_itemKey(item)] ?? false,
-            activeColor: g.color,
-            title: Text(item.label, style: const TextStyle(fontSize: 13)),
-            secondary: item.isStorage
-                ? const Icon(Icons.cloud_outlined, size: 16, color: Colors.indigo)
-                : const Icon(Icons.storage_outlined, size: 16, color: Colors.grey),
-            onChanged: (v) => setState(() => _checked[_itemKey(item)] = v ?? false),
-          )).toList(),
+          children: g.items
+              .map(
+                (item) => CheckboxListTile(
+                  dense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  value: _checked[_itemKey(item)] ?? false,
+                  activeColor: g.color,
+                  title: Text(item.label, style: const TextStyle(fontSize: 13)),
+                  secondary: item.isStorage
+                      ? const Icon(
+                          Icons.cloud_outlined,
+                          size: 16,
+                          color: Colors.indigo,
+                        )
+                      : const Icon(
+                          Icons.storage_outlined,
+                          size: 16,
+                          color: Colors.grey,
+                        ),
+                  onChanged: (v) =>
+                      setState(() => _checked[_itemKey(item)] = v ?? false),
+                ),
+              )
+              .toList(),
         ),
       ),
     );

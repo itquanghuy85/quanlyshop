@@ -12,8 +12,17 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Analyze Status:** ✅ 0 compile error (chỉ info/warning có sẵn từ trước)  
 **Database Version:** SQLite v104  
 **Branch:** master  
-**Active Initiative:** Multi-fix session 2026-08-08/10 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng, backup đơn sửa kèm ảnh, fix sheet Thêm dịch vụ) + review/fix regression + fix danh sách bán còn nợ sai + fix 42 popup che nút (toàn bộ audit) 2026-08-15/16
+**Active Initiative:** Multi-fix session 2026-08-08/10 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng, backup đơn sửa kèm ảnh, fix sheet Thêm dịch vụ) + review/fix regression + fix danh sách bán còn nợ sai + fix 42 popup che nút (toàn bộ audit) 2026-08-15/16 + redesign Super Admin Console 2026-08-16
 **⚠️ Known issue chưa fix:** crash intermittent trong bottom sheet có TextField qua đường Back hệ thống — xem Known Issues bên dưới (mục "Crash `_dependents.isEmpty`"). Toàn bộ 42 điểm popup che nút từ audit ban đầu (20 HIGH + 22 MEDIUM) đã fix xong, KHÔNG còn mục nào tồn đọng.
+**⚠️ Chưa test trực tiếp:** Redesign Super Admin Console chỉ verify qua `flutter analyze` + build + logcat, KHÔNG có tài khoản super admin thật trên máy test để tự vào xem UI — cần user xác nhận qua tài khoản `admin@huluca.com` hoặc super admin thật.
+
+### ✅ Vừa hoàn thành (2026-08-16b): refactor(admin): Redesign trang Super Admin Console
+- Yêu cầu user: "sửa lại trang supper admin cho chuẩn và dễ theo dõi" (Tổng quan thiếu info, Cửa hàng/Người dùng khó lọc, style không nhất quán)
+- Chỉ sửa UI (`super_admin_console_view.dart`), giữ nguyên 100% logic nghiệp vụ (reset/xóa shop, xóa user, khóa shop, PIN reauth, broadcast, sync claims)
+- Thêm `_SectionHeader`/`_StatusPill` dùng chung; viết lại Dashboard (stat card bấm được, khối "Cần chú ý", "Truy cập nhanh"); thêm `FilterChip` lọc trạng thái cho Cửa hàng/Người dùng; đồng bộ `AppColors`/`AppTextStyles` toàn bộ 8 section + sidebar
+- `flutter analyze` sạch, build + cài + khởi động Oppo CPH2203 không FATAL exception trong logcat
+- **Giới hạn:** không có tài khoản super admin thật trên máy test nên chưa tự vào được màn hình để xem trực tiếp — cần user xác nhận
+- Chi tiết: `docs/CHANGELOG.md` mục `[2026-08-16b]`
 
 ### ✅ Vừa hoàn thành (2026-08-16): fix(ui): 22 điểm popup MEDIUM risk còn lại — hoàn tất toàn bộ audit 42 điểm
 - Nốt phần MEDIUM risk còn lại từ audit `[2026-08-15c]` — thêm `MediaQuery.paddingOf(context).bottom` vào 22 điểm chỉ xử lý bàn phím mà thiếu thanh điều hướng, cùng pattern đã kiểm chứng

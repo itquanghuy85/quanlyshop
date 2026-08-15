@@ -4,6 +4,28 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-16b] - refactor(admin): Redesign trang Super Admin Console cho chuẩn & dễ theo dõi
+
+**Yêu cầu user:** "sửa lại trang supper admin cho chuẩn và dễ theo dõi" — 4 vấn đề được chọn: Tổng quan thiếu thông tin/khó nhìn, danh sách Cửa hàng/Người dùng khó tìm-lọc, style không nhất quán, và mô tả bổ sung khi thấy.
+
+**Phạm vi:** Chỉ sửa giao diện (`lib/views/super_admin_console_view.dart`, ~2400 dòng) — **không đổi 1 dòng logic nghiệp vụ** (reset shop, xóa shop/user, khóa shop, PIN reauth, selective reset, gửi broadcast, sync claims). File `super_admin_view.dart` cũ xác nhận không còn được import ở đâu, bỏ qua.
+
+**Thay đổi:**
+- Thêm 2 widget dùng chung: `_SectionHeader` (icon + tiêu đề + subtitle, đầu mỗi mục) và `_StatusPill` (badge trạng thái ACTIVE/LOCKED/DELETED/OWNER bo tròn, thay code badge lặp lại).
+- **Tổng quan (Dashboard):** viết lại hoàn toàn — `_SectionHeader`, 4 stat card restyle theo pattern `ai_usage_dashboard_view.dart` (nền trắng, bo góc 14, viền `AppColors.divider`, shadow nhẹ), bấm được để nhảy thẳng sang Cửa hàng/Người dùng; thêm khối "Cần chú ý" (cảnh báo số shop bị khóa + nút Xem) và hàng "Truy cập nhanh" (Người dùng/Nhật ký/Thông báo). Không thêm Firestore query mới — dùng lại dữ liệu đã có.
+- **Cửa hàng/Người dùng:** `_SectionHeader` + đếm số kết quả; thay toggle "Đã xóa" đơn lẻ bằng `FilterChip` (Cửa hàng: Tất cả/Hoạt động/Đã khóa/Đã xóa; Người dùng: Tất cả/Chủ shop/Nhân viên) lọc client-side trên dữ liệu đã tải — logic search/phân trang Firestore giữ nguyên. Badge trạng thái chuyển sang `_StatusPill`.
+- **Quyền hạn/Nhật ký/Thông báo/Cài đặt/Vùng nguy hiểm:** chỉ thêm `_SectionHeader` đầu mục, nội dung/logic bên trong giữ nguyên 100%. Vùng nguy hiểm đổi `Colors.red`/hex hardcode sang `AppColors.error`/`AppColors.errorLight`.
+- Sidebar: màu selected-state của mục điều hướng đổi sang `AppColors.primary` (trước dùng màu mặc định Material).
+
+**Verify:**
+- `flutter analyze lib/views/super_admin_console_view.dart` sạch (chỉ còn 1 warning vô hại: tham số `trailing` của `_SectionHeader` chưa được dùng ở đâu — để sẵn cho tương lai).
+- `flutter build apk --debug` thành công, cài lên Oppo CPH2203, mở app, `adb logcat` xác nhận không có FATAL/AndroidRuntime exception, process chạy ổn định.
+- **Giới hạn quan trọng:** không có tài khoản Super Admin thật trên máy test (`_bootstrapAccess` yêu cầu Firebase custom claim `isSuperAdmin`/`role=super_admin`, tài khoản test hiện tại chỉ là owner thường) nên **chưa tự vào được màn Super Admin Console để test trực tiếp**. Cần user tự xác nhận qua tài khoản `admin@huluca.com` hoặc tài khoản super admin thật.
+
+**Files:** `lib/views/super_admin_console_view.dart`.
+
+---
+
 ## [2026-08-16] - fix(ui): 22 điểm popup MEDIUM risk còn lại + thêm 2 điểm context-safety
 
 **Bối cảnh:** Nốt phần còn lại của audit 95 file ở mục `[2026-08-15c]` — 22 điểm chỉ xử lý bàn phím (`viewInsetsOf`) mà thiếu thanh điều hướng (`paddingOf`), theo yêu cầu user tiếp tục nhưng cẩn trọng vì app đã có người dùng/dữ liệu thật.
