@@ -17,6 +17,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
 import '../models/repair_model.dart';
 import '../models/repair_service_model.dart';
+import '../models/part_used_detail_model.dart';
+import '../services/pricing_engine_service.dart';
 import '../models/repair_partner_model.dart';
 import '../models/payment_intent_model.dart';
 import '../models/shop_settings_model.dart';
@@ -113,6 +115,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
   bool get _canViewAnyFinancial => _canViewRevenue || _canViewCostPrice;
 
+  // Bảng giá thông minh — chỉ tính 1 lần khi vào màn hình, không tính lại
+  // mỗi lần rebuild. Chỉ đọc local SQLite, không thay đổi giá/logic tài chính.
+  PricingSuggestion? _historicalPricing;
+
   @override
   void initState() {
     super.initState();
@@ -124,6 +130,22 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     unawaited(_loadFreshRepairFromDb());
     unawaited(_startRepairRealtimeListener(forceRestart: true));
     unawaited(_loadLastModifierInfo());
+    unawaited(_loadHistoricalPricing());
+  }
+
+  Future<void> _loadHistoricalPricing() async {
+    try {
+      final issueOrService = r.issue.trim().isNotEmpty
+          ? r.issue
+          : (r.services.length == 1 ? r.services.first.serviceName : null);
+      final suggestion = await PricingEngineService.getSuggestion(
+        model: r.model,
+        issueOrService: issueOrService,
+      );
+      if (mounted) setState(() => _historicalPricing = suggestion);
+    } catch (e) {
+      debugPrint('⚠️ [RepairDetailView] Lịch sử giá lỗi: $e');
+    }
   }
 
   /// Load bản mới nhất từ local DB để tránh hiển thị stale data từ list
@@ -2430,6 +2452,19 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         });
       }
 
+      // Chi tiết linh kiện cho Pricing Engine (Bảng giá thông minh) — song
+      // song với usedParts (text), chỉ dùng cho thống kê, không hiển thị UI.
+      final newDetailedParts = selectedPartsInfo
+          .map(
+            (p) => PartUsedDetail(
+              name: (p['name'] ?? '').toString(),
+              productId: p['source'] == 'products' ? p['id'] as int? : null,
+              cost: p['cost'] as int? ?? 0,
+              qty: p['qty'] as int? ?? 1,
+            ),
+          )
+          .toList();
+
       // === KIỂM TRA NGUỒN LINH KIỆN ===
       // Linh kiện từ 'products' hoặc 'repair_parts' đều đã được thanh toán khi nhập kho
       // → KHÔNG cần hỏi thanh toán lại (chi phí đã ghi nhận khi nhập kho: công nợ/tiền mặt/CK)
@@ -2446,6 +2481,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         final newPartsList = [...currentParts, ...usedParts];
         r.partsUsed = newPartsList.join(', ');
         r.cost = r.cost + totalCost;
+        final prevPartsUsedDetailed = List<PartUsedDetail>.from(
+          r.partsUsedDetailed,
+        );
+        r.partsUsedDetailed = [...r.partsUsedDetailed, ...newDetailedParts];
         r.isSynced = false;
         r.lastCaredAt = DateTime.now().millisecondsSinceEpoch;
 
@@ -2459,6 +2498,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           // Rollback repair object về trạng thái cũ
           r.partsUsed = currentParts.join(', ');
           r.cost = r.cost - totalCost;
+          r.partsUsedDetailed = prevPartsUsedDetailed;
           r.isSynced = true;
           NotificationService.showSnackBar(
             '❌ ${atomicResult.message ?? "Không thể trừ kho"}',
@@ -2533,12 +2573,16 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       // Cập nhật repair trong bộ nhớ trước khi thực hiện atomic
       final prevPartsUsed = r.partsUsed;
       final prevCost = r.cost;
+      final prevPartsUsedDetailed = List<PartUsedDetail>.from(
+        r.partsUsedDetailed,
+      );
       if (r.partsUsed.isNotEmpty) {
         r.partsUsed = '${r.partsUsed}, ${usedParts.join(', ')}';
       } else {
         r.partsUsed = usedParts.join(', ');
       }
       r.cost += totalCost;
+      r.partsUsedDetailed = [...r.partsUsedDetailed, ...newDetailedParts];
       r.isSynced = false;
       r.lastCaredAt = DateTime.now().millisecondsSinceEpoch;
 
@@ -2552,6 +2596,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         // Rollback repair object về trạng thái cũ
         r.partsUsed = prevPartsUsed;
         r.cost = prevCost;
+        r.partsUsedDetailed = prevPartsUsedDetailed;
         r.isSynced = true;
         NotificationService.showSnackBar(
           '❌ ${atomicResult.message ?? "Không thể trừ kho"}',
@@ -2811,7 +2856,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       builder: (ctx) => AlertDialog(
         title: const Text('Xác nhận xóa'),
         content: Text(
-          'Xóa "$removedPart" khỏi đơn sửa và trả lại $partQty vào kho?',
+          r.status == 4
+              ? 'Xóa "$removedPart" khỏi đơn sửa và trả lại $partQty vào kho?\n\n'
+                    '⚠️ Đơn này ĐÃ GIAO cho khách. Giá vốn/lợi nhuận của đơn sẽ được điều chỉnh lại.'
+              : 'Xóa "$removedPart" khỏi đơn sửa và trả lại $partQty vào kho?',
         ),
         actions: [
           TextButton(
@@ -2832,7 +2880,21 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
     if (confirm != true) return;
 
-    // 1. Restore part quantity to inventory
+    // 1. Estimate cost + current inventory quantity of the removed part
+    //    (looked up BEFORE restoring, so we can log old→new for audit).
+    int removedCost = 0;
+    int? oldQty;
+    final allParts = await db.getAllPartsUnified();
+    for (final p in allParts) {
+      final pName = (p['partName'] ?? '').toString().toUpperCase();
+      if (pName == partName.toUpperCase()) {
+        removedCost = (p['cost'] as int? ?? 0) * partQty;
+        oldQty = p['quantity'] as int? ?? 0;
+        break;
+      }
+    }
+
+    // 2. Restore part quantity to inventory
     final restored = await db.restorePartQuantityByNameUnified(
       partName,
       partQty,
@@ -2842,24 +2904,30 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     } else {
       debugPrint('⚠️ Could not find part "$partName" in inventory to restore');
     }
-
-    // 2. Estimate cost of the removed part (from parts data if possible)
-    int removedCost = 0;
-    final allParts = await db.getAllPartsUnified();
-    for (final p in allParts) {
-      final pName = (p['partName'] ?? '').toString().toUpperCase();
-      if (pName == partName.toUpperCase()) {
-        removedCost = (p['cost'] as int? ?? 0) * partQty;
-        break;
-      }
-    }
+    final newQty = (restored && oldQty != null) ? oldQty + partQty : oldQty;
 
     // 3. Update partsUsed string
     parts.removeAt(selectedIndex);
     r.partsUsed = parts.join(', ');
 
+    // 3b. Best-effort: gỡ 1 entry khớp tên khỏi partsUsedDetailed (nếu có).
+    //     Đơn cũ/không thêm qua kho sẽ không có entry nào — bỏ qua, không lỗi.
+    if (r.partsUsedDetailed.isNotEmpty) {
+      final updatedDetailed = List<PartUsedDetail>.from(r.partsUsedDetailed);
+      final matchIndex = updatedDetailed.indexWhere(
+        (p) => p.name.toUpperCase() == partName.toUpperCase(),
+      );
+      if (matchIndex != -1) {
+        updatedDetailed.removeAt(matchIndex);
+        r.partsUsedDetailed = updatedDetailed;
+      }
+    }
+
     // 4. Reduce cost
+    final oldCost = r.cost;
+    final wasDelivered = r.status == 4;
     r.cost = (r.cost - removedCost).clamp(0, r.cost);
+    final newCost = r.cost;
     r.isSynced = false;
     r.lastCaredAt = DateTime.now().millisecondsSinceEpoch;
     await db.updateRepair(r);
@@ -2879,18 +2947,25 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       } catch (_) {}
     }
 
-    // 6. Log audit
+    // 6. Log audit — ghi rõ giá trị cũ → mới của kho và giá vốn đơn
     await AuditService.logAction(
       action: 'PART_REMOVED',
       entityType: 'repair',
       entityId: r.id?.toString() ?? '',
       summary:
-          'Xóa phụ tùng: $removedPart (trả kho: ${restored ? "OK" : "Không tìm thấy"})',
+          'Xóa phụ tùng: $removedPart (kho: ${oldQty ?? "?"} → ${newQty ?? "?"}, '
+          'giá vốn đơn: $oldCost → $newCost)'
+          '${wasDelivered ? " [ĐƠN ĐÃ GIAO]" : ""}',
       payload: {
         'partName': partName,
         'quantity': partQty,
         'removedCost': removedCost,
         'restored': restored,
+        'oldInventoryQty': oldQty,
+        'newInventoryQty': newQty,
+        'oldCost': oldCost,
+        'newCost': newCost,
+        'wasDelivered': wasDelivered,
       },
     );
 
@@ -3021,6 +3096,17 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     parts.removeAt(selectedIndex);
     r.partsUsed = parts.join(', ');
     r.cost = (r.cost - removedCost).clamp(0, r.cost);
+    // Best-effort: gỡ entry khớp tên khỏi partsUsedDetailed (nếu có).
+    if (r.partsUsedDetailed.isNotEmpty) {
+      final updatedDetailed = List<PartUsedDetail>.from(r.partsUsedDetailed);
+      final matchIndex = updatedDetailed.indexWhere(
+        (p) => p.name.toUpperCase() == partName.toUpperCase(),
+      );
+      if (matchIndex != -1) {
+        updatedDetailed.removeAt(matchIndex);
+        r.partsUsedDetailed = updatedDetailed;
+      }
+    }
     r.isSynced = false;
     await db.updateRepair(r);
 
@@ -3582,13 +3668,22 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         final sheetLoc = AppLocalizations.of(ctx)!;
-        return Builder(
-          builder: (innerCtx) => Padding(
-            // Builder tạo context con an toàn, cập nhật reactive khi bàn phím xuất hiện
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.viewInsetsOf(innerCtx).bottom +
-                  MediaQuery.viewPaddingOf(innerCtx).bottom,
-            ),
+        // Read MediaQuery from the outer `context` (State's own), not a
+        // context inside this sheet's builder tree — reading from a
+        // route-scoped context (even via a nested Builder) can trip a
+        // _dependents.isEmpty assertion when Navigator.pop(ctx) runs; same
+        // root cause and fix as _editBasicInfo above.
+        //
+        // Use `padding` (not `viewPadding`) for the safe-area term: `padding`
+        // already subtracts the keyboard inset where it overlaps the nav-bar
+        // region, so it reads as ~0 while the keyboard is up and as the full
+        // nav-bar height once it's dismissed — no manual double-count needed.
+        final safeAreaBottom = MediaQuery.paddingOf(context).bottom;
+        final bottomSafe = safeAreaBottom > 16.0 ? safeAreaBottom : 16.0;
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(context).bottom + bottomSafe,
+          ),
           child: Container(
             decoration: const BoxDecoration(
               color: PopupTheme.bgDark,
@@ -3597,95 +3692,87 @@ class _RepairDetailViewState extends State<RepairDetailView> {
               ),
             ),
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            // Cuộn toàn bộ nội dung (kể cả hàng nút) thay vì chỉ ô nhập: đảm
-            // bảo caret/textfield và nút Lưu luôn cuộn lên được khỏi vùng bàn
-            // phím che, thay vì bị Column cố định đẩy ra ngoài — cùng pattern
-            // với lib/widgets/debt_payment_sheet.dart.
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const PopupDragHandle(),
-                  Text(
-                    sheetLoc.techNotesTitle,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: PopupTheme.textPrimary,
-                    ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const PopupDragHandle(),
+                Text(
+                  sheetLoc.techNotesTitle,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: PopupTheme.textPrimary,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    sheetLoc.repairProcessNotes,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: PopupTheme.textSecondary,
-                    ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  sheetLoc.repairProcessNotes,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: PopupTheme.textSecondary,
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: notesC,
-                    maxLines: 4,
-                    autofocus: true,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: InputDecoration(
-                      hintText: sheetLoc.techNotesHint,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(
-                          PopupTheme.radiusField,
-                        ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: notesC,
+                  maxLines: 4,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: InputDecoration(
+                    hintText: sheetLoc.techNotesHint,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(
+                        PopupTheme.radiusField,
                       ),
-                      filled: true,
-                      fillColor: PopupTheme.surfaceDark,
                     ),
+                    filled: true,
+                    fillColor: PopupTheme.surfaceDark,
                   ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () async {
-                            // See _editBasicInfo above: FocusManager (not
-                            // FocusScope.of(ctx)) avoids registering a fresh
-                            // widget-tree dependency right before this route
-                            // pops — the actual root cause of an intermittent
-                            // _dependents.isEmpty crash.
-                            FocusManager.instance.primaryFocus?.unfocus();
-                            await Future.delayed(Duration.zero);
-                            if (ctx.mounted) {
-                              Navigator.pop(ctx, false);
-                            }
-                          },
-                          child: Text(sheetLoc.cancel),
-                        ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () async {
+                          // See _editBasicInfo above: FocusManager (not
+                          // FocusScope.of(ctx)) avoids registering a fresh
+                          // widget-tree dependency right before this route
+                          // pops — the actual root cause of an intermittent
+                          // _dependents.isEmpty crash.
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          await Future.delayed(Duration.zero);
+                          if (ctx.mounted) {
+                            Navigator.pop(ctx, false);
+                          }
+                        },
+                        child: Text(sheetLoc.cancel),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            FocusManager.instance.primaryFocus?.unfocus();
-                            await Future.delayed(Duration.zero);
-                            if (ctx.mounted) {
-                              Navigator.pop(ctx, true);
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: Text(sheetLoc.save),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          await Future.delayed(Duration.zero);
+                          if (ctx.mounted) {
+                            Navigator.pop(ctx, true);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
                         ),
+                        child: Text(sheetLoc.save),
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-        ),
-      );
+        );
       },
     );
     final notesText = notesC.text.trim();
@@ -4470,6 +4557,20 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                               ),
                           ],
                         ),
+                        if ((_canViewRevenue || _canEditRepairCharge) &&
+                            _historicalPricing != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            '💡 Lịch sử tương tự: '
+                            '${MoneyUtils.formatCurrency(_historicalPricing!.minPrice)}đ - '
+                            '${MoneyUtils.formatCurrency(_historicalPricing!.maxPrice)}đ '
+                            '(${_historicalPricing!.sampleCount} đơn, '
+                            'độ tin cậy: ${_historicalPricing!.confidence.label})',
+                            style: AppTextStyles.overline.copyWith(
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
                         if (r.pendingDeliveryApproval &&
                             r.requestedDeliveryPrice != null) ...[
                           const SizedBox(height: 4),
@@ -4570,6 +4671,24 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                               Icons.note_add,
                               Colors.orange,
                               _editTechnicianNotes,
+                            ),
+                          ],
+                        ),
+                      ] else if (r.status == 4 &&
+                          r.partsUsed.isNotEmpty &&
+                          _canEditRepairOrder) ...[
+                        // Đơn đã giao: vẫn cho phép xóa phụ tùng (trả kho + audit log),
+                        // các thao tác sửa khác vẫn khóa vì đơn đã ở trạng thái cuối.
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: [
+                            _quickAction(
+                              'Xóa PT',
+                              Icons.delete_sweep,
+                              Colors.red,
+                              _removePartFromRepair,
                             ),
                           ],
                         ),
@@ -5333,238 +5452,242 @@ class _RepairDetailViewState extends State<RepairDetailView> {
               child: SafeArea(
                 top: false,
                 child: Container(
-                constraints: BoxConstraints(maxHeight: maxSheetHeight),
-                decoration: BoxDecoration(
-                  color: Theme.of(ctx).dialogBackgroundColor,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(16),
+                  constraints: BoxConstraints(maxHeight: maxSheetHeight),
+                  decoration: BoxDecoration(
+                    color: Theme.of(ctx).dialogBackgroundColor,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
                   ),
-                ),
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                child: SizedBox(
-                  height: maxSheetHeight,
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            editService != null
-                                ? dialogLoc.editService
-                                : dialogLoc.addServiceTitle,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: SizedBox(
+                    height: maxSheetHeight,
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              editService != null
+                                  ? dialogLoc.editService
+                                  : dialogLoc.addServiceTitle,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          IconButton(
-                            onPressed: () {
-                              Navigator.pop(ctx);
-                              _navigateToRepairPartners();
-                            },
-                            icon: const Icon(
-                              Icons.group,
-                              color: Colors.teal,
-                              size: 20,
+                            IconButton(
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                _navigateToRepairPartners();
+                              },
+                              icon: const Icon(
+                                Icons.group,
+                                color: Colors.teal,
+                                size: 20,
+                              ),
+                              tooltip: dialogLoc.viewRepairPartners,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
                             ),
-                            tooltip: dialogLoc.viewRepairPartners,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          child: Form(
-                            key: formKey,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                TextFormField(
-                                  controller: serviceCtrl,
-                                  decoration: InputDecoration(
-                                    labelText: dialogLoc.serviceNameRequired,
-                                  ),
-                                  textCapitalization:
-                                      TextCapitalization.characters,
-                                  validator: (v) => (v ?? '').trim().isEmpty
-                                      ? dialogLoc.pleaseEnterServiceName
-                                      : null,
-                                ),
-                                const SizedBox(height: 10),
-                                CurrencyTextField(
-                                  controller: costCtrl,
-                                  label: dialogLoc.costVnd,
-                                  validator: (v) => MoneyUtils.validateAmount(
-                                    v ?? '',
-                                    min: 1,
-                                    fieldName: dialogLoc.costField,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                if (availablePartners.isNotEmpty)
-                                  DropdownButtonFormField<RepairPartner?>(
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: Form(
+                              key: formKey,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  TextFormField(
+                                    controller: serviceCtrl,
                                     decoration: InputDecoration(
-                                      labelText: dialogLoc.partnerOptional2,
+                                      labelText: dialogLoc.serviceNameRequired,
                                     ),
-                                    initialValue: selectedPartner,
-                                    items: [
-                                      DropdownMenuItem<RepairPartner?>(
-                                        value: null,
-                                        child: Text(
-                                          dialogLoc.noPartnerOption,
-                                        ),
-                                      ),
-                                      ...availablePartners.map(
-                                        (p) => DropdownMenuItem<RepairPartner?>(
-                                          value: p,
-                                          child: Text(p.name),
-                                        ),
-                                      ),
-                                    ],
-                                    onChanged: (p) => setS(() {
-                                      selectedPartner = p;
-                                      if (p == null) {
-                                        selectedPaymentMethod = null;
-                                      }
-                                    }),
-                                  ),
-                                if (availablePartners.isEmpty)
-                                  Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.orange.shade50,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: Colors.orange.shade200,
-                                      ),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Chưa có đối tác sửa chữa để chọn.',
-                                          style: AppTextStyles.caption.copyWith(
-                                            color: Colors.orange.shade700,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        TextButton.icon(
-                                          onPressed: () async {
-                                            Navigator.pop(ctx);
-                                            await _navigateToRepairPartners();
-                                          },
-                                          icon: const Icon(
-                                            Icons.group,
-                                            size: 16,
-                                          ),
-                                          label: Text(
-                                            dialogLoc.viewRepairPartners,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                if (selectedPartner != null) ...[
-                                  const SizedBox(height: 10),
-                                  DropdownButtonFormField<String>(
-                                    decoration: InputDecoration(
-                                      labelText:
-                                          dialogLoc.partnerPaymentMethodRequired,
-                                      prefixIcon: const Icon(
-                                        Icons.payment,
-                                        size: 20,
-                                      ),
-                                    ),
-                                    initialValue: selectedPaymentMethod,
-                                    items: paymentMethods
-                                        .map(
-                                          (m) => DropdownMenuItem<String>(
-                                            value: m,
-                                            child: Text(m),
-                                          ),
-                                        )
-                                        .toList(),
-                                    onChanged: (v) =>
-                                        setS(() => selectedPaymentMethod = v),
-                                    validator: (v) =>
-                                        selectedPartner != null &&
-                                            (v == null || v.isEmpty)
-                                        ? dialogLoc.pleaseSelectPaymentMethod
+                                    textCapitalization:
+                                        TextCapitalization.characters,
+                                    validator: (v) => (v ?? '').trim().isEmpty
+                                        ? dialogLoc.pleaseEnterServiceName
                                         : null,
                                   ),
+                                  const SizedBox(height: 10),
+                                  CurrencyTextField(
+                                    controller: costCtrl,
+                                    label: dialogLoc.costVnd,
+                                    validator: (v) => MoneyUtils.validateAmount(
+                                      v ?? '',
+                                      min: 1,
+                                      fieldName: dialogLoc.costField,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  if (availablePartners.isNotEmpty)
+                                    DropdownButtonFormField<RepairPartner?>(
+                                      decoration: InputDecoration(
+                                        labelText: dialogLoc.partnerOptional2,
+                                      ),
+                                      initialValue: selectedPartner,
+                                      items: [
+                                        DropdownMenuItem<RepairPartner?>(
+                                          value: null,
+                                          child: Text(
+                                            dialogLoc.noPartnerOption,
+                                          ),
+                                        ),
+                                        ...availablePartners.map(
+                                          (p) =>
+                                              DropdownMenuItem<RepairPartner?>(
+                                                value: p,
+                                                child: Text(p.name),
+                                              ),
+                                        ),
+                                      ],
+                                      onChanged: (p) => setS(() {
+                                        selectedPartner = p;
+                                        if (p == null) {
+                                          selectedPaymentMethod = null;
+                                        }
+                                      }),
+                                    ),
+                                  if (availablePartners.isEmpty)
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.orange.shade50,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.orange.shade200,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Chưa có đối tác sửa chữa để chọn.',
+                                            style: AppTextStyles.caption
+                                                .copyWith(
+                                                  color: Colors.orange.shade700,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          TextButton.icon(
+                                            onPressed: () async {
+                                              Navigator.pop(ctx);
+                                              await _navigateToRepairPartners();
+                                            },
+                                            icon: const Icon(
+                                              Icons.group,
+                                              size: 16,
+                                            ),
+                                            label: Text(
+                                              dialogLoc.viewRepairPartners,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  if (selectedPartner != null) ...[
+                                    const SizedBox(height: 10),
+                                    DropdownButtonFormField<String>(
+                                      decoration: InputDecoration(
+                                        labelText: dialogLoc
+                                            .partnerPaymentMethodRequired,
+                                        prefixIcon: const Icon(
+                                          Icons.payment,
+                                          size: 20,
+                                        ),
+                                      ),
+                                      initialValue: selectedPaymentMethod,
+                                      items: paymentMethods
+                                          .map(
+                                            (m) => DropdownMenuItem<String>(
+                                              value: m,
+                                              child: Text(m),
+                                            ),
+                                          )
+                                          .toList(),
+                                      onChanged: (v) =>
+                                          setS(() => selectedPaymentMethod = v),
+                                      validator: (v) =>
+                                          selectedPartner != null &&
+                                              (v == null || v.isEmpty)
+                                          ? dialogLoc.pleaseSelectPaymentMethod
+                                          : null,
+                                    ),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          if (editService != null)
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            if (editService != null)
+                              TextButton(
+                                onPressed: () async {
+                                  Navigator.pop(ctx);
+                                  await _deleteService(editIndex!);
+                                },
+                                child: Text(
+                                  dialogLoc.delete,
+                                  style: const TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            const Spacer(),
                             TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: Text(dialogLoc.cancel),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              // minimumSize mặc định của theme là
+                              // Size(double.infinity, buttonHeight) — dùng
+                              // cho nút full-width. Trong Row có Spacer(),
+                              // width vô hạn đó bị "tighten" thành constraint
+                              // vô hạn cứng và crash layout. Ghi đè bằng
+                              // smallElevatedButtonStyle (minWidth: 0) để an
+                              // toàn khi đặt cạnh các nút khác trong Row.
+                              style: AppButtonStyles.smallElevatedButtonStyle,
                               onPressed: () async {
+                                if (!(formKey.currentState?.validate() ??
+                                    false)) {
+                                  return;
+                                }
+                                final cost = MoneyUtils.parseCurrency(
+                                  costCtrl.text,
+                                );
+                                final service = RepairService(
+                                  firestoreId:
+                                      editService?.firestoreId ??
+                                      RepairPartnerService.generateServiceFirestoreId(),
+                                  serviceName: serviceCtrl.text
+                                      .trim()
+                                      .toUpperCase(),
+                                  cost: cost,
+                                  partnerId: selectedPartner?.id,
+                                  partnerName: selectedPartner?.name,
+                                  paymentMethod: selectedPaymentMethod,
+                                );
                                 Navigator.pop(ctx);
-                                await _deleteService(editIndex!);
+                                await _saveService(service, editIndex);
                               },
                               child: Text(
-                                dialogLoc.delete,
-                                style: const TextStyle(color: Colors.red),
+                                editService != null
+                                    ? dialogLoc.update
+                                    : dialogLoc.add,
                               ),
                             ),
-                          const Spacer(),
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            child: Text(dialogLoc.cancel),
-                          ),
-                          const SizedBox(width: 8),
-                          ElevatedButton(
-                            // minimumSize mặc định của theme là
-                            // Size(double.infinity, buttonHeight) — dùng
-                            // cho nút full-width. Trong Row có Spacer(),
-                            // width vô hạn đó bị "tighten" thành constraint
-                            // vô hạn cứng và crash layout. Ghi đè bằng
-                            // smallElevatedButtonStyle (minWidth: 0) để an
-                            // toàn khi đặt cạnh các nút khác trong Row.
-                            style: AppButtonStyles.smallElevatedButtonStyle,
-                            onPressed: () async {
-                              if (!(formKey.currentState?.validate() ??
-                                  false)) {
-                                return;
-                              }
-                              final cost =
-                                  MoneyUtils.parseCurrency(costCtrl.text);
-                              final service = RepairService(
-                                firestoreId:
-                                    editService?.firestoreId ??
-                                    RepairPartnerService.generateServiceFirestoreId(),
-                                serviceName:
-                                    serviceCtrl.text.trim().toUpperCase(),
-                                cost: cost,
-                                partnerId: selectedPartner?.id,
-                                partnerName: selectedPartner?.name,
-                                paymentMethod: selectedPaymentMethod,
-                              );
-                              Navigator.pop(ctx);
-                              await _saveService(service, editIndex);
-                            },
-                            child: Text(
-                              editService != null
-                                  ? dialogLoc.update
-                                  : dialogLoc.add,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                    ],
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    ),
                   ),
-                ),
                 ),
               ),
             );

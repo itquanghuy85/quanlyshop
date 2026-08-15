@@ -13862,25 +13862,25 @@ abstract class AppLocalizations {
   /// Guide step 1 title: 3 debt types
   ///
   /// In en, this message translates to:
-  /// **'📊 3 debt types'**
+  /// **'📊 2 debt directions'**
   String get debtGuideStep1Title3Types;
 
   /// Guide step 1 title: 2 debt types
   ///
   /// In en, this message translates to:
-  /// **'📊 2 debt types'**
+  /// **'📊 2 debt directions'**
   String get debtGuideStep1Title2Types;
 
   /// Guide step 1 description: 3 debt types
   ///
   /// In en, this message translates to:
-  /// **'CUSTOMER OWES (unpaid customers), SUPPLIER DEBT (owed to suppliers), PARTNER DEBT (external repair partners).'**
+  /// **'RECEIVABLE (customers owe the shop, incl. other receivables), PAYABLE (owed to suppliers + repair partners, incl. other payables).'**
   String get debtGuideStep1Desc3Types;
 
   /// Guide step 1 description: 2 debt types
   ///
   /// In en, this message translates to:
-  /// **'CUSTOMER OWES (unpaid customers), SUPPLIER DEBT (owed to suppliers).'**
+  /// **'RECEIVABLE (customers owe the shop, incl. other receivables), PAYABLE (owed to suppliers, incl. other payables).'**
   String get debtGuideStep1Desc2Types;
 
   /// Guide step 2 title: record payment

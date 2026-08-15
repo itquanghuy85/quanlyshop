@@ -317,6 +317,12 @@ class OrderListViewState extends State<OrderListView> {
           shopId,
           useIndexedQuery: !_useRealtimeIndexFallback,
           indexedLimit: _indexedFetchLimit,
+          // Chỉ live-listen đơn CHƯA giao — đơn đã giao (phần lớn dữ liệu)
+          // đã được backfill sẵn vào SQLite (_doHistoricalBackfill) và phục vụ
+          // qua _sqliteRepairs/sqliteExtra merge bên dưới, giảm mạnh số document
+          // Firestore phải đọc lại mỗi khi có thay đổi mà vẫn giữ realtime cho
+          // các đơn đang xử lý.
+          activeOnly: true,
         ).listen(
           (snapshot) {
             unawaited(_handleRealtimeSnapshot(snapshot));

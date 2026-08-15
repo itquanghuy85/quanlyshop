@@ -199,10 +199,11 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
       minChildSize: 0.4,
       maxChildSize: 0.9,
       expand: false,
-      builder: (ctx2, controller) {
-        final bottomInset = MediaQuery.viewInsetsOf(ctx2).bottom;
-        return Column(
-          children: [
+      builder: (_, controller) => Builder(
+        builder: (ctx) {
+          final bottomInset = MediaQuery.viewInsetsOf(ctx).bottom;
+          return Column(
+            children: [
           // Handle bar
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
@@ -335,8 +336,9 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                   ),
           ),
         ],
-      );
-    },
+          );
+        },
+      ),
     );
   }
 }

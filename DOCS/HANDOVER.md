@@ -7,12 +7,20 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## ⚡ Trạng thái hiện tại
 
 **Version:** 1.x (develop) → Production live  
-**Last Updated:** 2026-08-10  
-**Build Status:** ✅ `flutter build apk --debug` OK, đã cài + test trên thiết bị Android thật (adb)  
+**Last Updated:** 2026-08-15  
+**Build Status:** ✅ `flutter build apk --debug` OK, đã cài + test trên thiết bị Android thật (adb, Oppo CPH2203) — chưa test Samsung A32 (không có máy trong phiên này)  
 **Analyze Status:** ✅ 0 compile error (chỉ info/warning có sẵn từ trước)  
 **Database Version:** SQLite v104  
 **Branch:** master  
-**Active Initiative:** Multi-fix session 2026-08-08/10 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng, backup đơn sửa kèm ảnh, fix sheet Thêm dịch vụ)
+**Active Initiative:** Multi-fix session 2026-08-08/10 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng, backup đơn sửa kèm ảnh, fix sheet Thêm dịch vụ) + review/fix regression 2026-08-15
+**⚠️ Known issue chưa fix:** xem mục 6 trong Known Issues bên dưới — crash intermittent trong bottom sheet có TextField qua đường Back hệ thống
+
+### ✅ Vừa hoàn thành (2026-08-15): fix(repair): revert regression crash ở sheet "Sửa ghi chú kỹ thuật"
+- Review code commit 08-10 phát hiện regression: đọc `MediaQuery` qua `Builder`/`innerCtx` thay vì `context` ngoài — đúng anti-pattern đã tốn công fix ngày 08-08. Đã revert về pattern an toàn (khớp `_editBasicInfo`)
+- Phát hiện + fix thêm: dùng nhầm `viewPaddingOf` thay vì `paddingOf` khiến sheet co lại còn 1 sliver khi bàn phím mở
+- **Phát hiện bug crash sâu hơn, CHƯA fix** (xem Known Issues mục 6) — đã thử `PopScope` nhưng gây crash khác nên revert, không ship fix chưa chắc chắn
+- Đã test trên Oppo CPH2203: luồng bình thường (không bấm Back hệ thống khi bàn phím mở) ổn định, không crash
+- Chi tiết: `docs/CHANGELOG.md` mục `[2026-08-15]`
 
 ### ✅ Vừa hoàn thành (2026-08-10): fix(repair): sheet "Thêm dịch vụ" hiện màn xám, không có popup
 - Root cause: `ElevatedButton` (nút Thêm/Cập nhật) trong `Row` cùng `Spacer()` không có `style` riêng → kế thừa `minimumSize: Size(double.infinity, buttonHeight)` từ theme toàn app → tạo constraint tight-infinite không hợp lệ khi Row đo layout → crash `performLayout()` ngay khi mở sheet, chỉ còn nền xám (barrier), không log lỗi rõ ràng qua adb logcat thường
@@ -1162,6 +1170,13 @@ e6584072 fix(finance): sync REPAIR_PARTNER type across all 3 debt-balance checkp
 5. **Geolocation**
    - Status: Active (connected)
    - Note: Requires permission từ user
+
+6. **Crash `_dependents.isEmpty` / disposed TextEditingController trong bottom sheet có TextField — CHƯA fix**
+   - Issue: Focus vào TextField trong 1 bottom sheet (bàn phím mở) → bấm Back hệ thống → bấm Back lần nữa hoặc bấm nút Lưu/xác nhận → có thể crash. Tái hiện trên `_editTechnicianNotes` (`repair_detail_view.dart`) ngày 2026-08-15, dù đã áp đủ 2 fix đã biết trước đó (outer context cho MediaQuery, `FocusManager.instance` cho unfocus).
+   - Status: ⚠ Intermittent, chưa fix — đã thử `PopScope` chặn pop nhưng lại sinh crash khác ("TextEditingController used after disposed", lỗi nằm trong nội bộ Flutter's `_ModalBottomSheetRoute`), nên đã revert
+   - Rủi ro: nghi có mặt ở MỌI bottom sheet có TextField trong app (không riêng 1 màn), vì đường crash đi qua nút Back hệ thống — nằm ngoài `onPressed` của các nút Hủy/Lưu vốn đã có bảo vệ
+   - Chi tiết kỹ thuật + cách tái hiện: memory `feedback_modal_sheet_dependents_crash.md` mục "Cause 3"; `docs/CHANGELOG.md` mục `[2026-08-15]`
+   - Next step: cần phiên điều tra riêng, có thể cần nâng cấp `android:enableOnBackInvokedCallback` (log cảnh báo hiện tại: "OnBackInvokedCallback is not enabled for the application") hoặc tìm hiểu sâu hơn Flutter's predictive-back handling
 
 ---
 

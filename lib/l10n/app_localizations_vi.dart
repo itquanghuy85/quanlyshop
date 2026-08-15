@@ -7277,16 +7277,16 @@ class AppLocalizationsVi extends AppLocalizations {
   String get debtGuideTitle => 'Quản Lý Công Nợ';
 
   @override
-  String get debtGuideStep1Title3Types => '📊 3 loại công nợ';
+  String get debtGuideStep1Title3Types => '📊 2 hướng công nợ';
 
   @override
-  String get debtGuideStep1Title2Types => '📊 2 loại công nợ';
+  String get debtGuideStep1Title2Types => '📊 2 hướng công nợ';
 
   @override
-  String get debtGuideStep1Desc3Types => 'KHÁCH NỢ (khách chưa TT), NỢ NCC (nợ nhà cung cấp), NỢ ĐỐI TÁC (nợ thợ sửa ngoài).';
+  String get debtGuideStep1Desc3Types => 'PHẢI THU (khách nợ shop, kể cả nợ khác), PHẢI TRẢ (nợ NCC + nợ đối tác sửa chữa, kể cả nợ khác).';
 
   @override
-  String get debtGuideStep1Desc2Types => 'KHÁCH NỢ (khách chưa TT), NỢ NCC (nợ nhà cung cấp).';
+  String get debtGuideStep1Desc2Types => 'PHẢI THU (khách nợ shop, kể cả nợ khác), PHẢI TRẢ (nợ NCC, kể cả nợ khác).';
 
   @override
   String get debtGuideStep2Title => '💰 Ghi nhận thanh toán';

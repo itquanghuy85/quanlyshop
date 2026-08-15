@@ -7277,16 +7277,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get debtGuideTitle => 'Debt Management';
 
   @override
-  String get debtGuideStep1Title3Types => '📊 3 debt types';
+  String get debtGuideStep1Title3Types => '📊 2 debt directions';
 
   @override
-  String get debtGuideStep1Title2Types => '📊 2 debt types';
+  String get debtGuideStep1Title2Types => '📊 2 debt directions';
 
   @override
-  String get debtGuideStep1Desc3Types => 'CUSTOMER OWES (unpaid customers), SUPPLIER DEBT (owed to suppliers), PARTNER DEBT (external repair partners).';
+  String get debtGuideStep1Desc3Types => 'RECEIVABLE (customers owe the shop, incl. other receivables), PAYABLE (owed to suppliers + repair partners, incl. other payables).';
 
   @override
-  String get debtGuideStep1Desc2Types => 'CUSTOMER OWES (unpaid customers), SUPPLIER DEBT (owed to suppliers).';
+  String get debtGuideStep1Desc2Types => 'RECEIVABLE (customers owe the shop, incl. other receivables), PAYABLE (owed to suppliers, incl. other payables).';
 
   @override
   String get debtGuideStep2Title => '💰 Record payment';

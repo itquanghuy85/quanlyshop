@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +15,7 @@ import '../services/firestore_service.dart';
 import '../services/unified_printer_service.dart';
 import '../services/adjustment_service.dart';
 import '../services/first_time_guide_service.dart';
+import '../services/pricing_engine_service.dart';
 import '../utils/money_utils.dart';
 import '../utils/vietnamese_utils.dart';
 import '../widgets/currency_text_field.dart';
@@ -105,6 +107,12 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   StorageLocation? _selectedLocation;
   String? _pickupSchedule; // 'now' | 'same_day' | 'later'
 
+  // Bảng giá thông minh — chỉ tính khi model+lỗi đã điền và người dùng dừng
+  // gõ (debounce), chạy local SQLite, không gọi Firestore.
+  Timer? _pricingDebounce;
+  PricingSuggestion? _pricingSuggestion;
+  bool _pricingChecked = false;
+
   final List<String> brands = [
     "IPHONE ",
     "SAMSUNG ",
@@ -143,6 +151,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     // re-queries as focus moves between the SĐT and Tên fields.
     phoneF.addListener(() => setState(() {}));
     nameF.addListener(() => setState(() {}));
+    modelCtrl.addListener(_schedulePricingLookup);
+    issueCtrl.addListener(_schedulePricingLookup);
     _loadPartners();
     // Hiển thị hướng dẫn cho người dùng mới
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -152,6 +162,125 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         _showFirstTimeGuide();
       }
     });
+  }
+
+  /// Bảng giá thông minh: debounce sau khi người dùng dừng gõ model/lỗi máy
+  /// (~700ms) rồi mới tính — không gọi theo từng ký tự, không gọi Firestore.
+  void _schedulePricingLookup() {
+    _pricingDebounce?.cancel();
+    _pricingDebounce = Timer(
+      const Duration(milliseconds: 700),
+      _runPricingLookup,
+    );
+  }
+
+  Future<void> _runPricingLookup() async {
+    final model = modelCtrl.text.trim();
+    final issue = issueCtrl.text.trim();
+    if (model.isEmpty || issue.isEmpty) {
+      if (mounted && (_pricingChecked || _pricingSuggestion != null)) {
+        setState(() {
+          _pricingSuggestion = null;
+          _pricingChecked = false;
+        });
+      }
+      return;
+    }
+    PricingSuggestion? suggestion;
+    try {
+      suggestion = await PricingEngineService.getSuggestion(
+        model: model,
+        issueOrService: issue,
+      );
+    } catch (e) {
+      debugPrint('⚠️ PricingEngine lookup lỗi: $e');
+      return;
+    }
+    if (!mounted) return;
+    // Bỏ kết quả nếu input đã đổi trong lúc đang tính (tránh hiện dữ liệu cũ).
+    if (modelCtrl.text.trim() != model || issueCtrl.text.trim() != issue) {
+      return;
+    }
+    setState(() {
+      _pricingSuggestion = suggestion;
+      _pricingChecked = true;
+    });
+  }
+
+  Widget _buildPricingSuggestionCard() {
+    if (!_pricingChecked) return const SizedBox.shrink();
+    final s = _pricingSuggestion;
+    if (s == null) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        child: Text(
+          'Chưa đủ dữ liệu lịch sử để đề xuất giá.',
+          style: AppTextStyles.caption.copyWith(color: Colors.grey.shade600),
+        ),
+      );
+    }
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 8, bottom: 4),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.amber.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text('💡', style: TextStyle(fontSize: 14)),
+              const SizedBox(width: 6),
+              Text(
+                'GIÁ THAM KHẢO',
+                style: AppTextStyles.caption.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.amber.shade900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Thu khách: ${MoneyUtils.formatCurrency(s.medianSalePrice)}đ   '
+            'Vốn: ${MoneyUtils.formatCurrency(s.medianCost)}đ',
+            style: AppTextStyles.body2,
+          ),
+          Text(
+            'Lợi nhuận: ${MoneyUtils.formatCurrency(s.medianProfit)}đ',
+            style: AppTextStyles.body2,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '${s.sampleCount} đơn tương tự · Khoảng giá thường gặp: '
+            '${MoneyUtils.formatCurrency(s.minPrice)}đ - ${MoneyUtils.formatCurrency(s.maxPrice)}đ\n'
+            'Độ tin cậy: ${s.confidence.label}',
+            style: AppTextStyles.caption.copyWith(color: Colors.grey.shade700),
+          ),
+          const SizedBox(height: 6),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () {
+                priceCtrl.text = MoneyUtils.formatCurrency(s.medianSalePrice);
+                setState(() {});
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.amber.shade900,
+                side: BorderSide(color: Colors.amber.shade400),
+              ),
+              child: Text(
+                'DÙNG GIÁ ${MoneyUtils.formatCurrency(s.medianSalePrice)}đ',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Hiển thị hướng dẫn lần đầu
@@ -985,7 +1114,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     ];
   }
 
-  void _showAddServiceDialog([RepairService? editService]) {
+  Future<void> _showAddServiceDialog([RepairService? editService]) async {
     final formKey = GlobalKey<FormState>();
     final serviceCtrl = TextEditingController(
       text: editService?.serviceName ?? '',
@@ -995,261 +1124,273 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
           ? CurrencyTextField.formatDisplay(editService.cost.toInt())
           : '',
     );
-    RepairPartner? selectedPartner = editService != null
-        ? _partners.firstWhere(
-            (p) => p.id == editService.partnerId,
-            orElse: () => _partners.first,
-          )
-        : null;
-    if (editService != null &&
-        selectedPartner == _partners.first &&
-        editService.partnerId == null) {
-      selectedPartner = null;
-    }
     final partnerSearchCtrl = TextEditingController();
 
-    // Thêm payment method đồng bộ với repair_detail_view
-    String? selectedPaymentMethod = editService?.paymentMethod ?? 'TIỀN MẶT';
-    final paymentMethods = ['TIỀN MẶT', 'CHUYỂN KHOẢN', 'CÔNG NỢ'];
+    RepairPartner? selectedPartner;
+    if (editService != null && editService.partnerId != null && _partners.isNotEmpty) {
+      selectedPartner = _partners.firstWhere(
+        (p) => p.id == editService.partnerId,
+        orElse: () => _partners.first,
+      );
+    }
 
-    showModalBottomSheet(
+    String? selectedPaymentMethod = editService?.paymentMethod ?? 'TIỀN MẶT';
+    const paymentMethods = ['TIỀN MẶT', 'CHUYỂN KHOẢN', 'CÔNG NỢ'];
+
+    await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
+          final sheetLoc = AppLocalizations.of(ctx)!;
           final query = partnerSearchCtrl.text.trim();
           final filteredPartners = _partners.where((p) {
             if (query.isEmpty) return true;
             return VietnameseUtils.containsVietnamese(p.name, query) ||
                 (p.phone?.contains(query) ?? false);
           }).toList();
+
           if (selectedPartner != null &&
               !filteredPartners.any((p) => p.id == selectedPartner?.id)) {
             filteredPartners.insert(0, selectedPartner!);
           }
 
-          return Padding(
+          final maxSheetHeight = MediaQuery.sizeOf(ctx).height * 0.85;
+
+          return AnimatedPadding(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
             padding: EdgeInsets.only(
-              bottom: MediaQuery.viewInsetsOf(context).bottom,
+              bottom: MediaQuery.viewInsetsOf(ctx).bottom,
             ),
             child: Container(
+              constraints: BoxConstraints(maxHeight: maxSheetHeight),
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
                 borderRadius: BorderRadius.vertical(
                   top: Radius.circular(PopupTheme.radiusSheet),
                 ),
               ),
-              child: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const PopupDragHandle(),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.build_circle_outlined,
-                            color: PopupTheme.blue,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            editService != null
-                                ? loc.editService.toUpperCase()
-                                : loc.addServiceTitle.toUpperCase(),
-                            style: const TextStyle(
-                              color: PopupTheme.textPrimary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Flexible(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
+              child: SizedBox(
+                height: maxSheetHeight,
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const PopupDragHandle(),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                        child: Row(
                           children: [
-                            TextFormField(
-                              controller: serviceCtrl,
+                            const Icon(
+                              Icons.build_circle_outlined,
+                              color: PopupTheme.blue,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              editService != null
+                                  ? sheetLoc.editService.toUpperCase()
+                                  : sheetLoc.addServiceTitle.toUpperCase(),
                               style: const TextStyle(
                                 color: PopupTheme.textPrimary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
-                              decoration: InputDecoration(
-                                labelText: loc.serviceName,
-                              ),
-                              textCapitalization: TextCapitalization.characters,
-                              validator: (v) => (v ?? '').trim().isEmpty
-                                  ? loc.pleaseEnterServiceName
-                                  : null,
                             ),
-                            const SizedBox(height: 10),
-                            if (_canViewCostPrice)
-                              CurrencyTextField(
-                                controller: costCtrl,
-                                label: loc.costVND,
-                                validator: (v) => MoneyUtils.validateAmount(
-                                  v ?? '',
-                                  min: 1,
-                                  fieldName: loc.costVND,
-                                ),
-                              ),
-                            const SizedBox(height: 10),
-                            TextField(
-                              controller: partnerSearchCtrl,
-                              style: const TextStyle(
-                                color: PopupTheme.textPrimary,
-                              ),
-                              decoration: InputDecoration(
-                                labelText: loc.searchPartner,
-                                prefixIcon: const Icon(Icons.search),
-                                suffixIcon: query.isEmpty
-                                    ? null
-                                    : IconButton(
-                                        onPressed: () {
-                                          partnerSearchCtrl.clear();
-                                          setS(() {});
-                                        },
-                                        icon: const Icon(Icons.close),
-                                      ),
-                              ),
-                              onChanged: (_) => setS(() {}),
-                            ),
-                            const SizedBox(height: 10),
-                            DropdownButtonFormField<RepairPartner>(
-                              decoration: InputDecoration(
-                                labelText: loc.partnerOptional,
-                                helperText: filteredPartners.isEmpty
-                                    ? loc.noPartnerFound
-                                    : '${filteredPartners.length} đối tác',
-                              ),
-                              value: selectedPartner,
-                              items: [
-                                DropdownMenuItem(
-                                  value: null,
-                                  child: Text(loc.noPartner),
-                                ),
-                                ...filteredPartners.map(
-                                  (p) => DropdownMenuItem(
-                                    value: p,
-                                    child: Text(
-                                      p.phone != null && p.phone!.isNotEmpty
-                                          ? '${p.name} • ${p.phone}'
-                                          : p.name,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              onChanged: (p) => setS(() => selectedPartner = p),
-                            ),
-                            if (selectedPartner != null) ...[
-                              const SizedBox(height: 10),
-                              DropdownButtonFormField<String>(
-                                decoration: InputDecoration(
-                                  labelText: loc.partnerPaymentMethod,
-                                  prefixIcon: const Icon(
-                                    Icons.payment,
-                                    size: 20,
-                                  ),
-                                ),
-                                value: selectedPaymentMethod,
-                                items: paymentMethods
-                                    .map(
-                                      (m) => DropdownMenuItem(
-                                        value: m,
-                                        child: Text(m),
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (v) =>
-                                    setS(() => selectedPaymentMethod = v),
-                                validator: (v) =>
-                                    selectedPartner != null &&
-                                        (v == null || v.isEmpty)
-                                    ? loc.pleaseSelectPaymentMethod
-                                    : null,
-                              ),
-                            ],
-                            const SizedBox(height: 16),
                           ],
                         ),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => Navigator.pop(ctx),
-                              child: Text(loc.cancel),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 2,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: PopupTheme.blue,
-                                foregroundColor: Colors.white,
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TextFormField(
+                                controller: serviceCtrl,
+                                style: const TextStyle(
+                                  color: PopupTheme.textPrimary,
+                                ),
+                                decoration: InputDecoration(
+                                  labelText: sheetLoc.serviceName,
+                                ),
+                                textCapitalization:
+                                    TextCapitalization.characters,
+                                validator: (v) => (v ?? '').trim().isEmpty
+                                    ? sheetLoc.pleaseEnterServiceName
+                                    : null,
                               ),
-                              onPressed: () {
-                                if (!(formKey.currentState?.validate() ??
-                                    false))
-                                  return;
-                                final cost = MoneyUtils.parseCurrency(
-                                  costCtrl.text,
-                                );
-                                final service = RepairService(
-                                  firestoreId:
-                                      editService?.firestoreId ??
-                                      RepairPartnerService.generateServiceFirestoreId(),
-                                  serviceName: serviceCtrl.text
-                                      .trim()
-                                      .toUpperCase(),
-                                  cost: cost,
-                                  partnerId: selectedPartner?.id,
-                                  partnerName: selectedPartner?.name,
-                                  paymentMethod: selectedPartner != null
-                                      ? selectedPaymentMethod
+                              const SizedBox(height: 10),
+                              if (_canViewCostPrice)
+                                CurrencyTextField(
+                                  controller: costCtrl,
+                                  label: sheetLoc.costVND,
+                                  validator: (v) => MoneyUtils.validateAmount(
+                                    v ?? '',
+                                    min: 1,
+                                    fieldName: sheetLoc.costVND,
+                                  ),
+                                ),
+                              const SizedBox(height: 10),
+                              TextField(
+                                controller: partnerSearchCtrl,
+                                style: const TextStyle(
+                                  color: PopupTheme.textPrimary,
+                                ),
+                                decoration: InputDecoration(
+                                  labelText: sheetLoc.searchPartner,
+                                  prefixIcon: const Icon(Icons.search),
+                                  suffixIcon: query.isEmpty
+                                      ? null
+                                      : IconButton(
+                                          onPressed: () {
+                                            partnerSearchCtrl.clear();
+                                            setS(() {});
+                                          },
+                                          icon: const Icon(Icons.close),
+                                        ),
+                                ),
+                                onChanged: (_) => setS(() {}),
+                              ),
+                              const SizedBox(height: 10),
+                              DropdownButtonFormField<RepairPartner>(
+                                decoration: InputDecoration(
+                                  labelText: sheetLoc.partnerOptional,
+                                  helperText: filteredPartners.isEmpty
+                                      ? sheetLoc.noPartnerFound
+                                      : '${filteredPartners.length} đối tác',
+                                ),
+                                value: selectedPartner,
+                                items: [
+                                  DropdownMenuItem<RepairPartner>(
+                                    value: null,
+                                    child: Text(sheetLoc.noPartner),
+                                  ),
+                                  ...filteredPartners.map(
+                                    (p) => DropdownMenuItem<RepairPartner>(
+                                      value: p,
+                                      child: Text(
+                                        p.phone != null && p.phone!.isNotEmpty
+                                            ? '${p.name} • ${p.phone}'
+                                            : p.name,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                onChanged: (p) => setS(() {
+                                  selectedPartner = p;
+                                  if (p == null) selectedPaymentMethod = null;
+                                }),
+                              ),
+                              if (selectedPartner != null) ...[
+                                const SizedBox(height: 10),
+                                DropdownButtonFormField<String>(
+                                  decoration: InputDecoration(
+                                    labelText: sheetLoc.partnerPaymentMethod,
+                                    prefixIcon: const Icon(
+                                      Icons.payment,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  value: selectedPaymentMethod,
+                                  items: paymentMethods
+                                      .map(
+                                        (m) => DropdownMenuItem<String>(
+                                          value: m,
+                                          child: Text(m),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (v) =>
+                                      setS(() => selectedPaymentMethod = v),
+                                  validator: (v) =>
+                                      selectedPartner != null &&
+                                          (v == null || v.isEmpty)
+                                      ? sheetLoc.pleaseSelectPaymentMethod
                                       : null,
-                                );
-                                setState(() {
-                                  if (editService != null) {
-                                    final index = _services.indexOf(
-                                      editService,
-                                    );
-                                    _services[index] = service;
-                                  } else {
-                                    _services.add(service);
-                                  }
-                                });
-                                EventBus().emit('repair_services_changed');
-                                Navigator.pop(ctx);
-                              },
-                              child: Text(
-                                editService != null ? loc.update : loc.add,
+                                ),
+                              ],
+                              const SizedBox(height: 16),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                child: Text(sheetLoc.cancel),
                               ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 2,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: PopupTheme.blue,
+                                  foregroundColor: Colors.white,
+                                ),
+                                onPressed: () {
+                                  if (!(formKey.currentState?.validate() ??
+                                      false)) {
+                                    return;
+                                  }
+
+                                  final cost =
+                                      MoneyUtils.parseCurrency(costCtrl.text);
+                                  final service = RepairService(
+                                    firestoreId:
+                                        editService?.firestoreId ??
+                                        RepairPartnerService.generateServiceFirestoreId(),
+                                    serviceName: serviceCtrl.text
+                                        .trim()
+                                        .toUpperCase(),
+                                    cost: cost,
+                                    partnerId: selectedPartner?.id,
+                                    partnerName: selectedPartner?.name,
+                                    paymentMethod: selectedPartner != null
+                                        ? selectedPaymentMethod
+                                        : null,
+                                  );
+
+                                  setState(() {
+                                    if (editService != null) {
+                                      final index =
+                                          _services.indexOf(editService);
+                                      _services[index] = service;
+                                    } else {
+                                      _services.add(service);
+                                    }
+                                  });
+                                  EventBus().emit('repair_services_changed');
+                                  Navigator.pop(ctx);
+                                },
+                                child: Text(
+                                  editService != null
+                                      ? sheetLoc.update
+                                      : sheetLoc.add,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           );
         },
       ),
-    ).whenComplete(partnerSearchCtrl.dispose);
+    );
   }
 
   @override
@@ -1748,6 +1889,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
               icon: Icons.monetization_on,
               onSubmitted: () => FocusScope.of(context).requestFocus(passF),
             ),
+            _buildPricingSuggestionCard(),
             const SizedBox(height: 8),
             Text(
               'Hẹn giao máy',
@@ -2147,6 +2289,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
 
   @override
   void dispose() {
+    _pricingDebounce?.cancel();
     phoneCtrl.dispose();
     nameCtrl.dispose();
     addressCtrl.dispose();

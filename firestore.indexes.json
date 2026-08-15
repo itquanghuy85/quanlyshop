@@ -210,6 +210,16 @@
       ]
     },
     {
+      "collectionId": "repairs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "shopId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" },
+        { "fieldPath": "__name__", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionId": "debt_payments",
       "queryScope": "COLLECTION",
       "fields": [

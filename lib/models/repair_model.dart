@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'repair_service_model.dart';
+import 'part_used_detail_model.dart';
 
 /// Safely parse int from dynamic value (handles int, double, num, String)
 int _parseIntSafe(dynamic value) {
@@ -115,6 +116,39 @@ List<RepairService> _parseRepairServices(dynamic rawValue) {
   return services;
 }
 
+List<PartUsedDetail> _parsePartsUsedDetailed(dynamic rawValue) {
+  if (rawValue == null) return const [];
+
+  List<dynamic> items;
+  if (rawValue is String) {
+    final trimmed = rawValue.trim();
+    if (trimmed.isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(trimmed);
+      if (decoded is! List) return const [];
+      items = decoded;
+    } catch (_) {
+      return const [];
+    }
+  } else if (rawValue is List) {
+    items = rawValue;
+  } else {
+    return const [];
+  }
+
+  final parts = <PartUsedDetail>[];
+  for (final item in items) {
+    if (item is Map<String, dynamic>) {
+      parts.add(PartUsedDetail.fromMap(item));
+      continue;
+    }
+    if (item is Map) {
+      parts.add(PartUsedDetail.fromMap(Map<String, dynamic>.from(item)));
+    }
+  }
+  return parts;
+}
+
 class Repair {
   int? id;
   String? firestoreId;
@@ -156,6 +190,11 @@ class Repair {
 
   // Dịch vụ sửa chữa với đối tác
   List<RepairService> services;
+
+  // Chi tiết linh kiện đã dùng (tên+giá vốn+productId) — song song với
+  // `partsUsed` (text), chỉ có khi linh kiện được thêm qua màn chọn kho.
+  // Dùng cho Pricing Engine (Bảng giá thông minh), không thay thế partsUsed.
+  List<PartUsedDetail> partsUsedDetailed;
 
   // Ghi chú đơn sửa
   String? notes;
@@ -277,6 +316,7 @@ class Repair {
     this.imei,
     this.condition,
     this.services = const [],
+    this.partsUsedDetailed = const [],
     this.notes,
     this.pendingDeliveryApproval = false,
     this.requestedDeliveryPrice,
@@ -362,6 +402,9 @@ class Repair {
       'imei': imei,
       'condition': condition,
       'services': jsonEncode(services.map((s) => s.toMap()).toList()),
+      'partsUsedDetailed': partsUsedDetailed.isEmpty
+          ? null
+          : jsonEncode(partsUsedDetailed.map((p) => p.toMap()).toList()),
       'notes': notes,
       'pendingDeliveryApproval': normalizedPendingDeliveryApproval ? 1 : 0,
       'requestedDeliveryPrice': normalizedRequestedDeliveryPrice,
@@ -379,6 +422,9 @@ class Repair {
 
   factory Repair.fromMap(Map<String, dynamic> map) {
     final services = _parseRepairServices(map['services']);
+    final partsUsedDetailed = _parsePartsUsedDetailed(
+      map['partsUsedDetailed'],
+    );
     final parsedCost = _parseIntSafe(map['cost']);
     final parsedTotalCost = _parseIntSafe(map['totalCost']);
     final fallbackServicesCost = services.fold<int>(
@@ -437,6 +483,7 @@ class Repair {
       imei: map['imei'],
       condition: map['condition'],
       services: services,
+      partsUsedDetailed: partsUsedDetailed,
       notes: map['notes'],
       pendingDeliveryApproval: _parseBoolSafe(map['pendingDeliveryApproval']),
       requestedDeliveryPrice: hasRequestedDeliveryPrice
@@ -493,6 +540,7 @@ class Repair {
     String? imei,
     String? condition,
     List<RepairService>? services,
+    List<PartUsedDetail>? partsUsedDetailed,
     String? notes,
     bool? pendingDeliveryApproval,
     int? requestedDeliveryPrice,
@@ -543,6 +591,7 @@ class Repair {
       imei: imei ?? this.imei,
       condition: condition ?? this.condition,
       services: services ?? this.services,
+      partsUsedDetailed: partsUsedDetailed ?? this.partsUsedDetailed,
       notes: notes ?? this.notes,
       pendingDeliveryApproval:
           pendingDeliveryApproval ?? this.pendingDeliveryApproval,

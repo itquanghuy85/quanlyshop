@@ -65,12 +65,22 @@ class FirestoreService {
     String shopId, {
     required bool useIndexedQuery,
     int indexedLimit = 50,
+    bool activeOnly = false,
   }) {
     assert(shopId.isNotEmpty, 'watchRepairsByShop: shopId must not be empty');
     if (shopId.isEmpty) return const Stream.empty();
     Query<Map<String, dynamic>> query = _db
         .collection('repairs')
         .where('shopId', isEqualTo: shopId);
+
+    // activeOnly: chỉ live-listen đơn CHƯA giao (status 1-3). Đơn đã giao
+    // (status=4, thường chiếm phần lớn dữ liệu) được phục vụ từ SQLite local
+    // (đã đồng bộ qua SyncService) — giảm mạnh số document trong listener mà
+    // vẫn realtime tức thời cho các đơn đang xử lý. Yêu cầu composite index
+    // (shopId, status, updatedAt) — xem firestore.indexes.json.
+    if (activeOnly) {
+      query = query.where('status', isLessThan: 4);
+    }
 
     if (useIndexedQuery) {
       query = query

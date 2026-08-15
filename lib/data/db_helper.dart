@@ -521,7 +521,7 @@ class DBHelper {
 
     final db = await openDatabase(
       path,
-      version: 104,
+      version: 105,
       onConfigure: (db) async {
         try {
           await db.execute('PRAGMA foreign_keys = ON');
@@ -2185,6 +2185,18 @@ class DBHelper {
             );
           } catch (e) {
             debugPrint('DB upgrade error (repairs pickupSchedule): $e');
+          }
+        }
+        if (oldV < 105) {
+          // Bảng giá thông minh: cột JSON tùy chọn lưu chi tiết linh kiện
+          // (tên+giá vốn+productId) cho đơn sửa mới, dùng để group chính xác
+          // hơn cho pricing engine. Nullable, không ảnh hưởng đơn cũ.
+          try {
+            await db.execute(
+              'ALTER TABLE repairs ADD COLUMN partsUsedDetailed TEXT',
+            );
+          } catch (e) {
+            debugPrint('DB upgrade error (repairs partsUsedDetailed): $e');
           }
         }
         if (oldV < 26) {
@@ -4515,6 +4527,21 @@ class DBHelper {
         }
       }
 
+      final hasPartsUsedDetailed = cols.any(
+        (c) => (c['name'] ?? c['name'.toString()]) == 'partsUsedDetailed',
+      );
+      if (!hasPartsUsedDetailed) {
+        data.remove('partsUsedDetailed');
+        try {
+          await txn.execute(
+            'ALTER TABLE repairs ADD COLUMN partsUsedDetailed TEXT',
+          );
+          data['partsUsedDetailed'] = r.toMap()['partsUsedDetailed'];
+        } catch (e) {
+          debugPrint('DB: Could not add partsUsedDetailed column: $e');
+        }
+      }
+
       if (existing.isNotEmpty) {
         await txn.update(
           'repairs',
@@ -4538,6 +4565,9 @@ class DBHelper {
     // Schema check once — avoid per-row PRAGMA overhead
     final cols = await db.rawQuery('PRAGMA table_info(repairs)');
     final hasServices = cols.any((c) => (c['name'] as String?) == 'services');
+    final hasPartsUsedDetailed = cols.any(
+      (c) => (c['name'] as String?) == 'partsUsedDetailed',
+    );
     int inserted = 0;
     // Batch in groups of 200 — single transaction per batch for speed
     const batchSize = 200;
@@ -4553,6 +4583,7 @@ class DBHelper {
               final data = Map<String, dynamic>.from(r.toMap());
               data.remove('id');
               if (!hasServices) data.remove('services');
+              if (!hasPartsUsedDetailed) data.remove('partsUsedDetailed');
               final rowId = await txn.insert(
                 'repairs',
                 data,
@@ -4594,6 +4625,21 @@ class DBHelper {
         data['services'] = r.toMap()['services'];
       } catch (e) {
         debugPrint('DB: Could not add services column: $e');
+      }
+    }
+
+    final hasPartsUsedDetailed = cols.any(
+      (c) => (c['name'] ?? c['name'.toString()]) == 'partsUsedDetailed',
+    );
+    if (!hasPartsUsedDetailed) {
+      data.remove('partsUsedDetailed');
+      try {
+        await db.execute(
+          'ALTER TABLE repairs ADD COLUMN partsUsedDetailed TEXT',
+        );
+        data['partsUsedDetailed'] = r.toMap()['partsUsedDetailed'];
+      } catch (e) {
+        debugPrint('DB: Could not add partsUsedDetailed column: $e');
       }
     }
 
@@ -4732,6 +4778,42 @@ class DBHelper {
         orderBy: 'COALESCE(lastCaredAt, createdAt, 0) DESC',
         limit: limit,
         offset: offset,
+      );
+    }
+    return List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
+  }
+
+  /// Đơn sửa đã hoàn thành (status trong [statuses], mặc định Xong/Đã giao)
+  /// dùng cho Pricing Engine (Bảng giá thông minh). Chỉ đọc local SQLite,
+  /// không gọi Firestore. Cap 5000 đơn gần nhất — đủ cho thống kê median,
+  /// tránh quét không giới hạn trên shop dữ liệu lớn.
+  Future<List<Repair>> getRepairsForPricing({
+    List<int> statuses = const [3, 4],
+    int limit = 5000,
+  }) async {
+    if (statuses.isEmpty) return [];
+    final shopId = await _getScopedShopId('getRepairsForPricing');
+    final db = await database;
+    final placeholders = List.filled(statuses.length, '?').join(',');
+    final List<Map<String, dynamic>> maps;
+    if (shopId != null && shopId.isNotEmpty) {
+      maps = await db.query(
+        'repairs',
+        where:
+            '(shopId = ? OR shopId IS NULL) AND (deleted = 0 OR deleted IS NULL) '
+            'AND status IN ($placeholders)',
+        whereArgs: [shopId, ...statuses],
+        orderBy: 'COALESCE(lastCaredAt, createdAt, 0) DESC',
+        limit: limit,
+      );
+    } else {
+      maps = await db.query(
+        'repairs',
+        where:
+            '(deleted = 0 OR deleted IS NULL) AND status IN ($placeholders)',
+        whereArgs: statuses,
+        orderBy: 'COALESCE(lastCaredAt, createdAt, 0) DESC',
+        limit: limit,
       );
     }
     return List.generate(maps.length, (i) => Repair.fromMap(maps[i]));

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../data/db_helper.dart';
 import '../models/supplier_model.dart';
 import '../services/event_bus.dart';
@@ -317,6 +318,8 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
                   _costRow(product.cost),
                   _divider(),
                   _supplierRow(product.supplier ?? ''),
+                  _divider(),
+                  _importDateRow(product),
                 ],
               ),
             ),
@@ -483,4 +486,58 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
   }
 
   Widget _divider() => const Divider(height: 1, indent: 16, endIndent: 16);
+
+  // Ngày giờ sản phẩm được nhập vào kho (product.createdAt).
+  // Với hàng gộp số lượng qua nhiều lần nhập (phụ kiện/linh kiện không IMEI),
+  // đây chỉ là mốc lần nhập đầu tiên — các lần nhập bổ sung sau không có
+  // dấu vết riêng trong dữ liệu hiện tại.
+  Widget _importDateRow(Product product) {
+    final formatted = DateFormat(
+      'HH:mm dd/MM/yyyy',
+    ).format(DateTime.fromMillisecondsSinceEpoch(product.createdAt));
+    final isAccumulated = (product.imei ?? '').trim().isEmpty;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              'Ngày nhập kho',
+              style: AppTextStyles.body2.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  formatted,
+                  textAlign: TextAlign.end,
+                  style: AppTextStyles.body1.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (isAccumulated)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      '(lần nhập đầu tiên, có thể đã nhập bổ sung sau đó)',
+                      textAlign: TextAlign.end,
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

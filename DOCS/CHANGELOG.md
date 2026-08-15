@@ -4,6 +4,22 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-15] - fix(repair): revert regression crash ở sheet "Sửa ghi chú kỹ thuật" + phát hiện bug crash sâu hơn CHƯA fix
+
+**Bối cảnh:** Review lại commit `0d38e3d2` (2026-08-10). Phát hiện `_editTechnicianNotes` đã bị đổi từ đọc `MediaQuery` qua `context` ngoài (an toàn) sang `Builder(builder: (innerCtx) => ...)` đọc qua `innerCtx` — đúng anti-pattern đã tốn công fix trước đó (xem mục `[2026-08-08]`, cause 1 trong `_editBasicInfo`). Đây là regression thật, không phải nghi ngờ suông.
+
+**Đã fix (verify OK qua `flutter run` trên Oppo CPH2203):**
+1. Đổi lại đọc `MediaQuery.viewInsetsOf(context)` từ `context` ngoài, bỏ `Builder`/`innerCtx` — khớp pattern đã chứng minh an toàn ở `_editBasicInfo`.
+2. Phát hiện thêm: công thức padding dùng `MediaQuery.viewPaddingOf(...)` (không tự trừ khi bàn phím hiện) thay vì `MediaQuery.paddingOf(...)` (tự trừ đúng) — gây sheet co lại chỉ còn 1 sliver khi bàn phím mở. Sửa theo đúng công thức `_editBasicInfo` (`paddingOf` + `bottomSafe = max(safeAreaBottom, 16.0)`).
+3. Gỡ `SingleChildScrollView` thừa (không giúp ích, không phải nguyên nhân của #2).
+
+**⚠️ CHƯA fix — phát hiện bug crash sâu hơn, độc lập với các fix trên:** Tái hiện được `_dependents.isEmpty` VÀ một crash khác ("TextEditingController used after being disposed", stack trace nằm trong nội bộ `_ModalBottomSheetRoute`/`AnimatedPadding` của Flutter framework) khi: focus vào ô ghi chú (bàn phím mở) → bấm nút Back hệ thống → bấm Back lần nữa hoặc bấm Lưu. Đường pop này KHÔNG đi qua `onPressed` của nút Hủy/Lưu (nơi có `FocusManager.instance.primaryFocus?.unfocus()` bảo vệ) nên không được bảo vệ. Đã thử bọc `PopScope(canPop:false, onPopInvokedWithResult: ...)` để chặn mọi đường pop — làm mất `_dependents.isEmpty` ở 1 lần test nhưng lại sinh ra crash "disposed controller" ở lần test sau → **đã revert PopScope**, không ship fix chưa chắc chắn. Lỗi intermittent (không phải lần nào cũng tái hiện), nghi là rủi ro có sẵn ở MỌI bottom sheet có TextField trong app này, không riêng sheet này. Cần phiên điều tra riêng, không vá vội. Chi tiết kỹ thuật đầy đủ đã lưu vào memory (`feedback_modal_sheet_dependents_crash.md`, mục "Cause 3").
+
+- File: `lib/views/repair_detail_view.dart` (hàm `_editTechnicianNotes`)
+- Luồng bình thường (mở sheet → gõ/không gõ → Hủy hoặc Lưu, không bấm Back hệ thống khi bàn phím đang mở) đã test ổn định, không crash, hiển thị đúng cả 2 trạng thái có/không bàn phím.
+
+---
+
 ## [2026-08-10] - fix(repair): sheet "Thêm dịch vụ" hiện màn xám, không có popup
 
 **Triệu chứng:** Bấm "+ Thêm" ở mục Dịch vụ trong Chi tiết đơn sửa → chỉ thấy nền mờ xám (barrier), không có popup nào hiện ra. Không có snackbar lỗi, không log gì rõ ràng qua `adb logcat` thường — chỉ phát hiện được nguyên nhân thật khi chạy `flutter run` (VM kết nối trực tiếp) để bắt exception layout đầy đủ.

@@ -4340,19 +4340,19 @@
   "@debtGuideTitle": {
     "description": "Title for debt management first-time guide"
   },
-  "debtGuideStep1Title3Types": "📊 3 loại công nợ",
+  "debtGuideStep1Title3Types": "📊 2 hướng công nợ",
   "@debtGuideStep1Title3Types": {
     "description": "Guide step 1 title: 3 debt types"
   },
-  "debtGuideStep1Title2Types": "📊 2 loại công nợ",
+  "debtGuideStep1Title2Types": "📊 2 hướng công nợ",
   "@debtGuideStep1Title2Types": {
     "description": "Guide step 1 title: 2 debt types"
   },
-  "debtGuideStep1Desc3Types": "KHÁCH NỢ (khách chưa TT), NỢ NCC (nợ nhà cung cấp), NỢ ĐỐI TÁC (nợ thợ sửa ngoài).",
+  "debtGuideStep1Desc3Types": "PHẢI THU (khách nợ shop, kể cả nợ khác), PHẢI TRẢ (nợ NCC + nợ đối tác sửa chữa, kể cả nợ khác).",
   "@debtGuideStep1Desc3Types": {
     "description": "Guide step 1 description: 3 debt types"
   },
-  "debtGuideStep1Desc2Types": "KHÁCH NỢ (khách chưa TT), NỢ NCC (nợ nhà cung cấp).",
+  "debtGuideStep1Desc2Types": "PHẢI THU (khách nợ shop, kể cả nợ khác), PHẢI TRẢ (nợ NCC, kể cả nợ khác).",
   "@debtGuideStep1Desc2Types": {
     "description": "Guide step 1 description: 2 debt types"
   },
