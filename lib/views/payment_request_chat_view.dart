@@ -1627,7 +1627,9 @@ class _PaymentRequestChatViewState extends State<PaymentRequestChatView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           duration: Duration(seconds: 7),
-          content: Text('Đang tải ảnh minh chứng lên hệ thống, vui lòng không thoát ứng dụng.'),
+          content: Text(
+            'Đang tải ảnh minh chứng lên hệ thống, vui lòng không thoát ứng dụng.',
+          ),
           backgroundColor: Colors.blue,
         ),
       );
@@ -1788,11 +1790,12 @@ class _CreatePaymentRequestSheetState
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final navBarInset = MediaQuery.paddingOf(context).bottom;
     return Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.88,
       ),
-      padding: EdgeInsets.only(bottom: bottomInset),
+      padding: EdgeInsets.only(bottom: bottomInset + navBarInset),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),

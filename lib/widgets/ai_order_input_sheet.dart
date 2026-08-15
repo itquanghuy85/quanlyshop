@@ -14,52 +14,52 @@ enum AiSheetMode { repair, sale, stock }
 
 extension _AiSheetModeX on AiSheetMode {
   String get title => switch (this) {
-        AiSheetMode.repair => 'NHẬP NHANH ĐƠN SỬA',
-        AiSheetMode.sale => 'NHẬP NHANH ĐƠN BÁN',
-        AiSheetMode.stock => 'NHẬP NHANH NHẬP KHO',
-      };
+    AiSheetMode.repair => 'NHẬP NHANH ĐƠN SỬA',
+    AiSheetMode.sale => 'NHẬP NHANH ĐƠN BÁN',
+    AiSheetMode.stock => 'NHẬP NHANH NHẬP KHO',
+  };
 
   String get subtitle => switch (this) {
-        AiSheetMode.repair => 'Gõ hoặc nói — AI tự điền form sửa chữa',
-        AiSheetMode.sale => 'Gõ hoặc nói — AI tự điền form bán hàng',
-        AiSheetMode.stock => 'Gõ hoặc nói — AI tự điền form nhập kho',
-      };
+    AiSheetMode.repair => 'Gõ hoặc nói — AI tự điền form sửa chữa',
+    AiSheetMode.sale => 'Gõ hoặc nói — AI tự điền form bán hàng',
+    AiSheetMode.stock => 'Gõ hoặc nói — AI tự điền form nhập kho',
+  };
 
   String get hintText => switch (this) {
-        AiSheetMode.repair =>
-          'VD: sửa iphone 13 mất face id khách Hùng 0901234567 thu 500k',
-        AiSheetMode.sale =>
-          'VD: bán samsung a55 imei 1234 khách Nam 0965444567 trả góp FE',
-        AiSheetMode.stock =>
-          'VD: nhập kho 5 iPhone 14 Pro giá vốn 18tr NCC Minh Đức',
-      };
+    AiSheetMode.repair =>
+      'VD: sửa iphone 13 mất face id khách Hùng 0901234567 thu 500k',
+    AiSheetMode.sale =>
+      'VD: bán samsung a55 imei 1234 khách Nam 0965444567 trả góp FE',
+    AiSheetMode.stock =>
+      'VD: nhập kho 5 iPhone 14 Pro giá vốn 18tr NCC Minh Đức',
+  };
 
   String get voiceExampleSentence => switch (this) {
-        AiSheetMode.repair =>
-          '"Sửa iPhone 13 Pro Max, mất Face ID,\nkhách Hùng, số 0901234567, thu 500 nghìn"',
-        AiSheetMode.sale =>
-          '"Bán Samsung A55, IMEI 1234,\nkhách Nam, số 0965444567, trả góp FE"',
-        AiSheetMode.stock =>
-          '"Nhập kho 5 iPhone 14 Pro,\ngiá vốn 18 triệu, NCC Minh Đức"',
-      };
+    AiSheetMode.repair =>
+      '"Sửa iPhone 13 Pro Max, mất Face ID,\nkhách Hùng, số 0901234567, thu 500 nghìn"',
+    AiSheetMode.sale =>
+      '"Bán Samsung A55, IMEI 1234,\nkhách Nam, số 0965444567, trả góp FE"',
+    AiSheetMode.stock =>
+      '"Nhập kho 5 iPhone 14 Pro,\ngiá vốn 18 triệu, NCC Minh Đức"',
+  };
 
   String get hintMode => switch (this) {
-        AiSheetMode.repair => 'repair',
-        AiSheetMode.sale => 'sale',
-        AiSheetMode.stock => 'stock',
-      };
+    AiSheetMode.repair => 'repair',
+    AiSheetMode.sale => 'sale',
+    AiSheetMode.stock => 'stock',
+  };
 
   IconData get icon => switch (this) {
-        AiSheetMode.repair => Icons.build_circle_rounded,
-        AiSheetMode.sale => Icons.point_of_sale_rounded,
-        AiSheetMode.stock => Icons.inventory_2_rounded,
-      };
+    AiSheetMode.repair => Icons.build_circle_rounded,
+    AiSheetMode.sale => Icons.point_of_sale_rounded,
+    AiSheetMode.stock => Icons.inventory_2_rounded,
+  };
 
   Color get accent => switch (this) {
-        AiSheetMode.repair => const Color(0xFF7C3AED), // purple
-        AiSheetMode.sale => const Color(0xFF0369A1),   // blue
-        AiSheetMode.stock => const Color(0xFF047857),  // green
-      };
+    AiSheetMode.repair => const Color(0xFF7C3AED), // purple
+    AiSheetMode.sale => const Color(0xFF0369A1), // blue
+    AiSheetMode.stock => const Color(0xFF047857), // green
+  };
 }
 
 // ── States ────────────────────────────────────────────────────────────────────
@@ -92,7 +92,8 @@ class AiOrderInputSheet extends StatefulWidget {
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => AiOrderInputSheet(mode: mode, prefilledText: prefilledText),
+      builder: (_) =>
+          AiOrderInputSheet(mode: mode, prefilledText: prefilledText),
     );
   }
 
@@ -185,10 +186,14 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
     await _speech.listen(
       onResult: (result) {
         if (!mounted) return;
-        final corrected = VoiceCorrectionService.correct(result.recognizedWords);
-        setState(() => _ctrl.text = corrected.corrected.isNotEmpty
-            ? corrected.corrected
-            : result.recognizedWords);
+        final corrected = VoiceCorrectionService.correct(
+          result.recognizedWords,
+        );
+        setState(
+          () => _ctrl.text = corrected.corrected.isNotEmpty
+              ? corrected.corrected
+              : result.recognizedWords,
+        );
         if (result.finalResult) _stopRecording();
       },
       listenOptions: SpeechListenOptions(
@@ -250,10 +255,11 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
 
     if (aiResult == null || aiResult.isUnknown || !aiResult.hasEnoughData) {
       // Merge: if local had partial data, use it even without AI confirmation
-      if (localResult != null && (localResult.device.isNotEmpty ||
-          localResult.issue.isNotEmpty ||
-          localResult.productHint.isNotEmpty ||
-          localResult.stockProductName.isNotEmpty)) {
+      if (localResult != null &&
+          (localResult.device.isNotEmpty ||
+              localResult.issue.isNotEmpty ||
+              localResult.productHint.isNotEmpty ||
+              localResult.stockProductName.isNotEmpty)) {
         setState(() {
           _result = localResult;
           _sheetState = _SheetState.preview;
@@ -326,7 +332,9 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
 
   /// Merge AI result with local fallback.
   AiUniversalResult _mergeResults(
-      AiUniversalResult ai, AiUniversalResult? local) {
+    AiUniversalResult ai,
+    AiUniversalResult? local,
+  ) {
     if (local == null) return ai;
     switch (_mode) {
       case AiSheetMode.repair:
@@ -382,10 +390,10 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
   }
 
   void _retry() => setState(() {
-        _sheetState = _SheetState.idle;
-        _errorMsg = '';
-        _result = null;
-      });
+    _sheetState = _SheetState.idle;
+    _errorMsg = '';
+    _result = null;
+  });
 
   void _apply() {
     if (_result != null && _result!.hasEnoughData) {
@@ -400,13 +408,15 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
   @override
   Widget build(BuildContext context) {
     final kb = MediaQuery.viewInsetsOf(context).bottom;
+    final navBar = MediaQuery.paddingOf(context).bottom;
     return Padding(
-      padding: EdgeInsets.only(bottom: kb),
+      padding: EdgeInsets.only(bottom: kb + navBar),
       child: Container(
         decoration: const BoxDecoration(
           color: PopupTheme.bgDark,
           borderRadius: BorderRadius.vertical(
-              top: Radius.circular(PopupTheme.radiusSheet)),
+            top: Radius.circular(PopupTheme.radiusSheet),
+          ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -482,7 +492,9 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
                 Text(
                   _mode.subtitle,
                   style: const TextStyle(
-                      color: PopupTheme.textSecondary, fontSize: 11.5),
+                    color: PopupTheme.textSecondary,
+                    fontSize: 11.5,
+                  ),
                 ),
               ],
             ),
@@ -492,37 +504,42 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
             Tooltip(
               message: 'Nhận diện nhanh (không tốn token)',
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
                   color: Colors.green.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                      color: Colors.green.withValues(alpha: 0.3)),
+                    color: Colors.green.withValues(alpha: 0.3),
+                  ),
                 ),
-                child: const Text('LOCAL',
-                    style: TextStyle(
-                        color: Color(0xFF16A34A),
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800)),
+                child: const Text(
+                  'LOCAL',
+                  style: TextStyle(
+                    color: Color(0xFF16A34A),
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
             )
           else if (_result?.fromAi == true)
             Tooltip(
               message: 'DeepSeek AI (có cache 24h)',
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
                   color: _accent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: _accentBorder),
                 ),
-                child: Text('AI',
-                    style: TextStyle(
-                        color: _accent,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800)),
+                child: Text(
+                  'AI',
+                  style: TextStyle(
+                    color: _accent,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
             ),
         ],
@@ -554,16 +571,19 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
         autofocus: _sheetState == _SheetState.idle,
         enabled: isEditable,
         style: const TextStyle(
-            color: PopupTheme.textPrimary, fontSize: 14, height: 1.5),
+          color: PopupTheme.textPrimary,
+          fontSize: 14,
+          height: 1.5,
+        ),
         decoration: InputDecoration(
           hintText: _mode.hintText,
-          hintStyle:
-              const TextStyle(color: PopupTheme.textMuted, fontSize: 12),
+          hintStyle: const TextStyle(color: PopupTheme.textMuted, fontSize: 12),
           filled: true,
-          fillColor:
-              isEditable ? PopupTheme.surfaceDark : PopupTheme.cardDark,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          fillColor: isEditable ? PopupTheme.surfaceDark : PopupTheme.cardDark,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 12,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(PopupTheme.radiusField),
             borderSide: BorderSide.none,
@@ -582,8 +602,11 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
           ),
           suffixIcon: isEditable && _ctrl.text.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.clear_rounded,
-                      size: 16, color: PopupTheme.textMuted),
+                  icon: const Icon(
+                    Icons.clear_rounded,
+                    size: 16,
+                    color: PopupTheme.textMuted,
+                  ),
                   onPressed: () => setState(() {
                     _ctrl.clear();
                     _result = null;
@@ -608,7 +631,8 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
   // ── Action row ────────────────────────────────────────────────────────────
 
   Widget _buildActionRow() {
-    final canAnalyze = _sheetState == _SheetState.idle ||
+    final canAnalyze =
+        _sheetState == _SheetState.idle ||
         _sheetState == _SheetState.error ||
         _sheetState == _SheetState.preview;
     final isActive =
@@ -640,7 +664,11 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
                       builder: (_, __) => Icon(
                         Icons.mic_rounded,
                         size: 22,
-                        color: Color.lerp(_kRed, Colors.red.shade300, _pulse.value),
+                        color: Color.lerp(
+                          _kRed,
+                          Colors.red.shade300,
+                          _pulse.value,
+                        ),
                       ),
                     )
                   : Icon(
@@ -659,8 +687,9 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
                 ? _buildParsingButton()
                 : ElevatedButton.icon(
                     key: const ValueKey('analyze'),
-                    onPressed:
-                        canAnalyze && _ctrl.text.trim().isNotEmpty ? _parse : null,
+                    onPressed: canAnalyze && _ctrl.text.trim().isNotEmpty
+                        ? _parse
+                        : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _accent,
                       foregroundColor: Colors.white,
@@ -669,14 +698,19 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 13),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                              PopupTheme.radiusButton)),
+                        borderRadius: BorderRadius.circular(
+                          PopupTheme.radiusButton,
+                        ),
+                      ),
                     ),
-                    icon:
-                        const Icon(Icons.auto_awesome_rounded, size: 17),
-                    label: const Text('Phân tích AI',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w700, fontSize: 13.5)),
+                    icon: const Icon(Icons.auto_awesome_rounded, size: 17),
+                    label: const Text(
+                      'Phân tích AI',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13.5,
+                      ),
+                    ),
                   ),
           ),
         ),
@@ -699,16 +733,16 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
           SizedBox(
             width: 16,
             height: 16,
-            child:
-                CircularProgressIndicator(strokeWidth: 2, color: _accent),
+            child: CircularProgressIndicator(strokeWidth: 2, color: _accent),
           ),
           const SizedBox(width: 10),
           Text(
             'AI đang phân tích...',
             style: TextStyle(
-                color: _accent,
-                fontWeight: FontWeight.w600,
-                fontSize: 13.5),
+              color: _accent,
+              fontWeight: FontWeight.w600,
+              fontSize: 13.5,
+            ),
           ),
         ],
       ),
@@ -723,10 +757,10 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
       transitionBuilder: (child, anim) => FadeTransition(
         opacity: anim,
         child: SlideTransition(
-          position:
-              Tween(begin: const Offset(0, 0.08), end: Offset.zero).animate(
-            CurvedAnimation(parent: anim, curve: Curves.easeOut),
-          ),
+          position: Tween(
+            begin: const Offset(0, 0.08),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
           child: child,
         ),
       ),
@@ -765,7 +799,8 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
                     boxShadow: [
                       BoxShadow(
                         color: _kRed.withValues(
-                            alpha: 0.4 + 0.3 * _pulse.value),
+                          alpha: 0.4 + 0.3 * _pulse.value,
+                        ),
                         blurRadius: 6,
                       ),
                     ],
@@ -777,24 +812,31 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
                 child: Text(
                   'Đang nghe... nói tự nhiên, dừng lại khi xong',
                   style: TextStyle(
-                      color: _kRed,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500),
+                    color: _kRed,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
               GestureDetector(
                 onTap: _stopRecording,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 5),
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
-                      color: _kRed,
-                      borderRadius: BorderRadius.circular(8)),
-                  child: const Text('Dừng',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold)),
+                    color: _kRed,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'Dừng',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -856,8 +898,7 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
         children: [
           // Badge header
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             child: Row(
               children: [
                 Icon(
@@ -871,24 +912,30 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
                 Text(
                   r.fromAi ? 'AI phân tích' : 'Nhận diện nhanh',
                   style: TextStyle(
-                      color: _accent,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700),
+                    color: _accent,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const Spacer(),
                 GestureDetector(
                   onTap: _retry,
                   child: Row(
                     children: [
-                      Icon(Icons.edit_rounded,
-                          size: 13,
-                          color: _accent.withValues(alpha: 0.7)),
+                      Icon(
+                        Icons.edit_rounded,
+                        size: 13,
+                        color: _accent.withValues(alpha: 0.7),
+                      ),
                       const SizedBox(width: 4),
-                      Text('Sửa lại',
-                          style: TextStyle(
-                              color: _accent.withValues(alpha: 0.7),
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w600)),
+                      Text(
+                        'Sửa lại',
+                        style: TextStyle(
+                          color: _accent.withValues(alpha: 0.7),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -904,14 +951,19 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
                 if (!r.hasEnoughData)
                   const Row(
                     children: [
-                      Icon(Icons.warning_amber_rounded,
-                          size: 15, color: Color(0xFFD97706)),
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        size: 15,
+                        color: Color(0xFFD97706),
+                      ),
                       SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           'Thiếu thông tin quan trọng. Thêm chi tiết và phân tích lại.',
                           style: TextStyle(
-                              color: Color(0xFFD97706), fontSize: 12.5),
+                            color: Color(0xFFD97706),
+                            fontSize: 12.5,
+                          ),
                         ),
                       ),
                     ],
@@ -958,22 +1010,32 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
           rows.add(_row(Icons.phone_rounded, 'SĐT', r.customerPhone));
         }
         if (r.paymentMethod.isNotEmpty) {
-          rows.add(_row(Icons.credit_card_rounded, 'Thanh toán', r.paymentMethod));
+          rows.add(
+            _row(Icons.credit_card_rounded, 'Thanh toán', r.paymentMethod),
+          );
         }
         if (r.financePartner.isNotEmpty) {
-          rows.add(_row(Icons.account_balance_rounded, 'Đối tác', r.financePartner));
+          rows.add(
+            _row(Icons.account_balance_rounded, 'Đối tác', r.financePartner),
+          );
         }
         if (r.totalPrice > 0) {
-          rows.add(_row(Icons.attach_money_rounded, 'Giá bán', _fmt(r.totalPrice)));
+          rows.add(
+            _row(Icons.attach_money_rounded, 'Giá bán', _fmt(r.totalPrice)),
+          );
         }
 
       case AiSheetMode.stock:
         if (r.stockProductName.isNotEmpty) {
-          rows.add(_row(Icons.inventory_2_rounded, 'Sản phẩm', r.stockProductName));
+          rows.add(
+            _row(Icons.inventory_2_rounded, 'Sản phẩm', r.stockProductName),
+          );
         }
         rows.add(_row(Icons.numbers_rounded, 'Số lượng', '${r.quantity} cái'));
         if (r.unitPrice > 0) {
-          rows.add(_row(Icons.price_change_rounded, 'Giá vốn', _fmt(r.unitPrice)));
+          rows.add(
+            _row(Icons.price_change_rounded, 'Giá vốn', _fmt(r.unitPrice)),
+          );
         }
         if (r.supplierName.isNotEmpty) {
           rows.add(_row(Icons.store_rounded, 'NCC', r.supplierName));
@@ -992,16 +1054,23 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
           const SizedBox(width: 8),
           SizedBox(
             width: 72,
-            child: Text(label,
-                style: const TextStyle(
-                    color: PopupTheme.textSecondary, fontSize: 12.5)),
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: PopupTheme.textSecondary,
+                fontSize: 12.5,
+              ),
+            ),
           ),
           Expanded(
-            child: Text(value,
-                style: const TextStyle(
-                    color: PopupTheme.textPrimary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600)),
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: PopupTheme.textPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
@@ -1022,22 +1091,28 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
           const Icon(Icons.error_outline_rounded, color: _kRed, size: 18),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(_errorMsg,
-                style: const TextStyle(color: _kRed, fontSize: 13)),
+            child: Text(
+              _errorMsg,
+              style: const TextStyle(color: _kRed, fontSize: 13),
+            ),
           ),
           const SizedBox(width: 8),
           GestureDetector(
             onTap: _retry,
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                  color: _kRed, borderRadius: BorderRadius.circular(6)),
-              child: const Text('Thử lại',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.bold)),
+                color: _kRed,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Text(
+                'Thử lại',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
         ],
@@ -1048,7 +1123,8 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
   // ── Footer ────────────────────────────────────────────────────────────────
 
   Widget _buildFooter() {
-    final canApply = _sheetState == _SheetState.preview &&
+    final canApply =
+        _sheetState == _SheetState.preview &&
         _result != null &&
         _result!.hasEnoughData;
 
@@ -1070,8 +1146,10 @@ class _AiOrderInputSheetState extends State<AiOrderInputSheet>
               onPressed: canApply ? _apply : null,
               style: PopupTheme.primaryButton(color: _accent),
               icon: const Icon(Icons.check_circle_rounded, size: 17),
-              label: const Text('ÁP DỤNG',
-                  style: TextStyle(fontWeight: FontWeight.w800)),
+              label: const Text(
+                'ÁP DỤNG',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
             ),
           ),
         ],

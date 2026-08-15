@@ -77,7 +77,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
   int get _totalItemLevelDiscount {
     int total = 0;
     for (final ref in _linkedProducts) {
-      if (ref.salePrice != null && ref.soldPrice != null && ref.salePrice! > ref.soldPrice!) {
+      if (ref.salePrice != null &&
+          ref.soldPrice != null &&
+          ref.salePrice! > ref.soldPrice!) {
         total += (ref.salePrice! - ref.soldPrice!) * (ref.soldQty ?? 1);
       }
     }
@@ -121,7 +123,8 @@ class _SaleDetailViewState extends State<SaleDetailView> {
         final item = Map<String, dynamic>.from(e as Map);
         final uc = (item['unitCost'] as num?)?.toInt() ?? 0;
         final q = (item['quantity'] as num?)?.toInt() ?? 1;
-        final newUc = ((uc * q) / oldTotal * newTotalCost).round() ~/ (q > 0 ? q : 1);
+        final newUc =
+            ((uc * q) / oldTotal * newTotalCost).round() ~/ (q > 0 ? q : 1);
         item['unitCost'] = newUc;
         item['lineCostTotal'] = newUc * q;
         return item;
@@ -325,22 +328,29 @@ class _SaleDetailViewState extends State<SaleDetailView> {
             ).trim();
             if (name.isEmpty) continue;
             // snapshot keys: imei (legacy) | serial | productImei (create_sale_view)
-            final rawImei = (item['imei'] ?? item['serial'] ?? item['productImei'] ?? '')
-                .toString()
-                .trim();
+            final rawImei =
+                (item['imei'] ?? item['serial'] ?? item['productImei'] ?? '')
+                    .toString()
+                    .trim();
             // Filter out placeholder values used for non-phone items
-            final isPlaceholderImei = rawImei.isEmpty ||
+            final isPlaceholderImei =
+                rawImei.isEmpty ||
                 rawImei.toUpperCase() == 'NO_IMEI' ||
                 rawImei.toUpperCase().startsWith('PKX');
             final imei = isPlaceholderImei ? '' : rawImei;
             final sku = (item['sku'] ?? '').toString().trim();
             final productId =
-                (item['id'] ?? item['productId'] ?? item['productFirestoreId'] ?? item['firestoreId'] ?? '')
+                (item['id'] ??
+                        item['productId'] ??
+                        item['productFirestoreId'] ??
+                        item['firestoreId'] ??
+                        '')
                     .toString()
                     .trim();
             final qty = (item['quantity'] as num?)?.toInt();
             // snapshot key: price (legacy) | unitPrice (create_sale_view)
-            final price = ((item['price'] ?? item['unitPrice']) as num?)?.toInt();
+            final price = ((item['price'] ?? item['unitPrice']) as num?)
+                ?.toInt();
             final sp = (item['salePrice'] as num?)?.toInt();
             items.add(
               ProductLinkRef(
@@ -395,7 +405,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     bool changed = false;
     final enriched = <ProductLinkRef>[];
     for (final ref in _linkedProducts) {
-      if (ref.salePrice != null || ref.soldPrice == null || ref.soldPrice! <= 0) {
+      if (ref.salePrice != null ||
+          ref.soldPrice == null ||
+          ref.soldPrice! <= 0) {
         enriched.add(ref);
         continue;
       }
@@ -409,19 +421,21 @@ class _SaleDetailViewState extends State<SaleDetailView> {
         }
       } catch (_) {}
       if (product != null && product.price > ref.soldPrice!) {
-        enriched.add(ProductLinkRef(
-          productId: ref.productId,
-          displayName: ref.displayName,
-          imei: ref.imei,
-          serial: ref.serial,
-          sku: ref.sku,
-          imageUrl: ref.imageUrl,
-          sourceEvent: ref.sourceEvent,
-          soldQty: ref.soldQty,
-          soldPrice: ref.soldPrice,
-          salePrice: product.price,
-          soldImei: ref.soldImei,
-        ));
+        enriched.add(
+          ProductLinkRef(
+            productId: ref.productId,
+            displayName: ref.displayName,
+            imei: ref.imei,
+            serial: ref.serial,
+            sku: ref.sku,
+            imageUrl: ref.imageUrl,
+            sourceEvent: ref.sourceEvent,
+            soldQty: ref.soldQty,
+            soldPrice: ref.soldPrice,
+            salePrice: product.price,
+            soldImei: ref.soldImei,
+          ),
+        );
         changed = true;
         continue;
       }
@@ -436,18 +450,18 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     final l10n = AppLocalizations.of(context)!;
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.needManagerLogin)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.needManagerLogin)));
       return;
     }
     final perms = await UserService.getCurrentUserPermissions();
     final isSuper = UserService.isCurrentUserSuperAdmin();
     if (!(perms['allowViewSales'] ?? false) && !isSuper) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.onlyManagerCanEdit)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.onlyManagerCanEdit)));
       return;
     }
 
@@ -462,7 +476,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
           content: TextField(
             controller: passCtrl,
             obscureText: true,
-            decoration: InputDecoration(labelText: dialogL10n.managerPasswordLabel),
+            decoration: InputDecoration(
+              labelText: dialogL10n.managerPasswordLabel,
+            ),
           ),
           actions: [
             TextButton(
@@ -501,7 +517,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       if (mounted) {
         setState(() => _checkingManager = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.wrongManagerPassword)),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.wrongManagerPassword),
+          ),
         );
       }
     }
@@ -610,7 +628,11 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+        padding: EdgeInsets.only(
+          bottom:
+              MediaQuery.viewInsetsOf(context).bottom +
+              MediaQuery.paddingOf(context).bottom,
+        ),
         child: Container(
           decoration: const BoxDecoration(
             color: PopupTheme.bgDark,
@@ -627,7 +649,11 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                 const PopupDragHandle(),
                 Row(
                   children: [
-                    const Icon(Icons.account_balance, size: 18, color: PopupTheme.blue),
+                    const Icon(
+                      Icons.account_balance,
+                      size: 18,
+                      color: PopupTheme.blue,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       AppLocalizations.of(ctx)!.receiveBankTitle,
@@ -665,7 +691,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                   decoration: InputDecoration(
                     labelText: AppLocalizations.of(ctx)!.notesFieldLabel,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                      borderRadius: BorderRadius.circular(
+                        PopupTheme.radiusField,
+                      ),
                     ),
                   ),
                 ),
@@ -687,7 +715,8 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                           foregroundColor: Colors.white,
                         ),
                         onPressed: () {
-                          if (!(formKey.currentState?.validate() ?? false)) return;
+                          if (!(formKey.currentState?.validate() ?? false))
+                            return;
                           Navigator.pop(ctx, true);
                         },
                         child: Text(AppLocalizations.of(ctx)!.confirmButton),
@@ -799,7 +828,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       },
     );
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocalizations.of(context)!.bankReceivedConfirmed)),
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.bankReceivedConfirmed),
+      ),
     );
     amountCtrl.dispose();
     feeCtrl.dispose();
@@ -846,17 +877,24 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                 children: [
                   TextFormField(
                     controller: name,
-                    decoration: InputDecoration(labelText: dialogL10n.customerNameFieldLabel),
-                    validator: (v) =>
-                        (v ?? '').trim().isEmpty ? dialogL10n.enterCustomerNameHint : null,
+                    decoration: InputDecoration(
+                      labelText: dialogL10n.customerNameFieldLabel,
+                    ),
+                    validator: (v) => (v ?? '').trim().isEmpty
+                        ? dialogL10n.enterCustomerNameHint
+                        : null,
                   ),
                   TextFormField(
                     controller: phone,
-                    decoration: InputDecoration(labelText: dialogL10n.phoneFieldLabel),
+                    decoration: InputDecoration(
+                      labelText: dialogL10n.phoneFieldLabel,
+                    ),
                   ),
                   TextFormField(
                     controller: address,
-                    decoration: InputDecoration(labelText: dialogL10n.addressFieldLabel),
+                    decoration: InputDecoration(
+                      labelText: dialogL10n.addressFieldLabel,
+                    ),
                   ),
                   TextFormField(
                     controller: products,
@@ -874,7 +912,11 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                     CurrencyTextField(
                       controller: totalPriceCtrl,
                       label: 'Giá bán',
-                      validator: (v) => MoneyUtils.validateAmount(v ?? '', min: 1, fieldName: 'Giá bán'),
+                      validator: (v) => MoneyUtils.validateAmount(
+                        v ?? '',
+                        min: 1,
+                        fieldName: 'Giá bán',
+                      ),
                     ),
                     const SizedBox(height: 8),
                     CurrencyTextField(
@@ -890,7 +932,10 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                     ],
                   ] else ...[
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(8),
@@ -898,13 +943,22 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.lock_outline, size: 14, color: Colors.grey.shade500),
+                          Icon(
+                            Icons.lock_outline,
+                            size: 14,
+                            color: Colors.grey.shade500,
+                          ),
                           const SizedBox(width: 6),
-                          Flexible(child: Text(
-                            'Giá bán/vốn chỉ sửa được trong ngày',
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                            overflow: TextOverflow.ellipsis,
-                          )),
+                          Flexible(
+                            child: Text(
+                              'Giá bán/vốn chỉ sửa được trong ngày',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -922,23 +976,28 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                   ),
                   DropdownButtonFormField<String>(
                     initialValue: payment,
-                    decoration: InputDecoration(labelText: dialogL10n.paymentMethodFieldLabel),
-                    items: const [
-                      "TIỀN MẶT",
-                      "CHUYỂN KHOẢN",
-                      "KẾT HỢP",
-                      "CÔNG NỢ",
-                      "TRẢ GÓP (NH)",
-                    ]
-                        .map(
-                          (e) => DropdownMenuItem(value: e, child: Text(e)),
-                        )
-                        .toList(),
+                    decoration: InputDecoration(
+                      labelText: dialogL10n.paymentMethodFieldLabel,
+                    ),
+                    items:
+                        const [
+                              "TIỀN MẶT",
+                              "CHUYỂN KHOẢN",
+                              "KẾT HỢP",
+                              "CÔNG NỢ",
+                              "TRẢ GÓP (NH)",
+                            ]
+                            .map(
+                              (e) => DropdownMenuItem(value: e, child: Text(e)),
+                            )
+                            .toList(),
                     onChanged: (v) => payment = v ?? payment,
                   ),
                   TextField(
                     controller: notes,
-                    decoration: InputDecoration(labelText: dialogL10n.notesFieldLabel),
+                    decoration: InputDecoration(
+                      labelText: dialogL10n.notesFieldLabel,
+                    ),
                   ),
                 ],
               ),
@@ -962,9 +1021,15 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     );
 
     if (ok != true) {
-      name.dispose(); phone.dispose(); address.dispose();
-      products.dispose(); imeis.dispose(); notes.dispose();
-      totalPriceCtrl.dispose(); discountCtrl.dispose(); totalCostCtrl.dispose();
+      name.dispose();
+      phone.dispose();
+      address.dispose();
+      products.dispose();
+      imeis.dispose();
+      notes.dispose();
+      totalPriceCtrl.dispose();
+      discountCtrl.dispose();
+      totalCostCtrl.dispose();
       return;
     }
 
@@ -1028,7 +1093,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     final debtAmount = s.finalPrice;
 
     if (s.paymentMethod == 'CÔNG NỢ') {
-      final linkedDebt = (await db.getDebtsByLinkedId(s.firestoreId ?? '')).firstOrNull;
+      final linkedDebt = (await db.getDebtsByLinkedId(
+        s.firestoreId ?? '',
+      )).firstOrNull;
       if (linkedDebt != null) {
         // Update existing debt
         linkedDebt['totalAmount'] = debtAmount;
@@ -1090,7 +1157,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       }
     } else if (oldPaymentMethod == 'CÔNG NỢ' && payment != 'CÔNG NỢ') {
       // FIX: Chỉ đánh dấu PAID khi đổi TỪ CÔNG NỢ sang hình thức khác
-      final linkedDebt = (await db.getDebtsByLinkedId(s.firestoreId ?? '')).firstOrNull;
+      final linkedDebt = (await db.getDebtsByLinkedId(
+        s.firestoreId ?? '',
+      )).firstOrNull;
       if (linkedDebt != null) {
         linkedDebt['status'] = 'PAID';
         linkedDebt['paidAmount'] = linkedDebt['totalAmount'];
@@ -1115,9 +1184,15 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     // Emit event và thông báo
     EventBus().emit('sales_changed');
     EventBus().emit('products_changed');
-    name.dispose(); phone.dispose(); address.dispose();
-    products.dispose(); imeis.dispose(); notes.dispose();
-    totalPriceCtrl.dispose(); discountCtrl.dispose(); totalCostCtrl.dispose();
+    name.dispose();
+    phone.dispose();
+    address.dispose();
+    products.dispose();
+    imeis.dispose();
+    notes.dispose();
+    totalPriceCtrl.dispose();
+    discountCtrl.dispose();
+    totalCostCtrl.dispose();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1153,7 +1228,10 @@ class _SaleDetailViewState extends State<SaleDetailView> {
               // Hiện giá bán để tham chiếu
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(8),
@@ -1161,10 +1239,19 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                 ),
                 child: Row(
                   children: [
-                    Text('Giá bán: ', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                    Text(
+                      'Giá bán: ',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 13,
+                      ),
+                    ),
                     Text(
                       '${MoneyUtils.formatCurrency(s.totalPrice)}đ',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
@@ -1177,7 +1264,10 @@ class _SaleDetailViewState extends State<SaleDetailView> {
               ),
               if (errorMsg != null) ...[
                 const SizedBox(height: 6),
-                Text(errorMsg!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                Text(
+                  errorMsg!,
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                ),
               ],
               const SizedBox(height: 10),
               Text(
@@ -1268,7 +1358,12 @@ class _SaleDetailViewState extends State<SaleDetailView> {
             children: [
               Icon(Icons.delete_forever, color: AppColors.error, size: 22),
               const SizedBox(width: 8),
-              Flexible(child: Text(dialogL10n.deleteSaleTitle, style: const TextStyle(fontSize: 17))),
+              Flexible(
+                child: Text(
+                  dialogL10n.deleteSaleTitle,
+                  style: const TextStyle(fontSize: 17),
+                ),
+              ),
             ],
           ),
           content: Column(
@@ -1283,7 +1378,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
               ),
               const SizedBox(height: 8),
               Text(
-                dialogL10n.saleOrderValue(NumberFormat('#,###', 'vi').format(finalPrice)),
+                dialogL10n.saleOrderValue(
+                  NumberFormat('#,###', 'vi').format(finalPrice),
+                ),
                 style: TextStyle(
                   color: AppColors.error,
                   fontWeight: FontWeight.w600,
@@ -1302,7 +1399,10 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                   children: [
                     Text(
                       dialogL10n.systemWillAutoLabel,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     _infoRow(Icons.inventory, dialogL10n.restoreStockQty),
@@ -1311,7 +1411,10 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                         Icons.account_balance_wallet,
                         dialogL10n.deleteLinkedDebt,
                       ),
-                    _infoRow(Icons.receipt_long, dialogL10n.deletePaymentRecord),
+                    _infoRow(
+                      Icons.receipt_long,
+                      dialogL10n.deletePaymentRecord,
+                    ),
                     _infoRow(Icons.person, dialogL10n.updateCustomerSpend),
                   ],
                 ),
@@ -1604,87 +1707,132 @@ class _SaleDetailViewState extends State<SaleDetailView> {
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
               child: SizedBox(
-                width: 18, height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
               ),
             )
           else
-            Builder(builder: (ctx) {
-              final l10n = AppLocalizations.of(ctx)!;
-              return PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
-                onSelected: (value) async {
-                  switch (value) {
-                    case 'sms':
-                      _sendSmsToCustomer();
-                    case 'chat':
-                      _sendToChat();
-                    case 'print':
-                      _printWifi();
-                    case 'preview':
-                      if (!mounted) return;
-                      Navigator.push(context, MaterialPageRoute(
-                        builder: (_) => SaleInvoicePreviewView(
-                          saleData: _buildSalePrintData(),
-                          paper: PaperSize.mm58,
-                        ),
-                      ));
-                    case 'template':
-                      if (!mounted) return;
-                      Navigator.push(context, MaterialPageRoute(
-                        builder: (_) => const SaleInvoiceTemplateView(),
-                      ));
-                    case 'return':
-                      _openReturnView();
-                    case 'edit':
-                      if (!_managerUnlocked) await _unlockManager();
-                      await Future.delayed(Duration.zero);
-                      if (_managerUnlocked && mounted) _openEditSaleDialog();
-                    case 'fix_cost':
-                      if (!_managerUnlocked) await _unlockManager();
-                      await Future.delayed(Duration.zero);
-                      if (_managerUnlocked && mounted) _showFixCostDialog();
-                    case 'delete':
-                      if (!_managerUnlocked) await _unlockManager();
-                      await Future.delayed(Duration.zero);
-                      if (_managerUnlocked && mounted) _deleteSale();
-                  }
-                },
-                itemBuilder: (_) => [
-                  _menuItem('sms', Icons.sms_rounded, 'SMS'),
-                  _menuItem('chat', Icons.chat_bubble_outline_rounded, 'Chat'),
-                  const PopupMenuDivider(),
-                  _menuItem('print', Icons.print_rounded, l10n.printInvoiceLabel),
-                  _menuItem('preview', Icons.preview_rounded, l10n.previewInvoiceLabel),
-                  _menuItem('template', Icons.design_services_rounded, l10n.printTemplateLabel),
-                  const PopupMenuDivider(),
-                  _menuItem(
-                    'return',
-                    Icons.assignment_return_rounded,
-                    _allItemsReturned ? l10n.returnAllLabel : l10n.returnGoodsLabel,
-                    enabled: !_allItemsReturned,
-                    color: _allItemsReturned ? Colors.grey : Colors.orange.shade700,
+            Builder(
+              builder: (ctx) {
+                final l10n = AppLocalizations.of(ctx)!;
+                return PopupMenuButton<String>(
+                  icon: const Icon(
+                    Icons.more_vert_rounded,
+                    color: Colors.white,
                   ),
-                  const PopupMenuDivider(),
-                  if (_canViewCostPrice && s.totalCost == 0 && s.totalPrice > 0) ...[
+                  onSelected: (value) async {
+                    switch (value) {
+                      case 'sms':
+                        _sendSmsToCustomer();
+                      case 'chat':
+                        _sendToChat();
+                      case 'print':
+                        _printWifi();
+                      case 'preview':
+                        if (!mounted) return;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => SaleInvoicePreviewView(
+                              saleData: _buildSalePrintData(),
+                              paper: PaperSize.mm58,
+                            ),
+                          ),
+                        );
+                      case 'template':
+                        if (!mounted) return;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SaleInvoiceTemplateView(),
+                          ),
+                        );
+                      case 'return':
+                        _openReturnView();
+                      case 'edit':
+                        if (!_managerUnlocked) await _unlockManager();
+                        await Future.delayed(Duration.zero);
+                        if (_managerUnlocked && mounted) _openEditSaleDialog();
+                      case 'fix_cost':
+                        if (!_managerUnlocked) await _unlockManager();
+                        await Future.delayed(Duration.zero);
+                        if (_managerUnlocked && mounted) _showFixCostDialog();
+                      case 'delete':
+                        if (!_managerUnlocked) await _unlockManager();
+                        await Future.delayed(Duration.zero);
+                        if (_managerUnlocked && mounted) _deleteSale();
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    _menuItem('sms', Icons.sms_rounded, 'SMS'),
                     _menuItem(
-                      'fix_cost',
-                      _managerUnlocked ? Icons.attach_money_rounded : Icons.lock_outline_rounded,
-                      'Sửa giá vốn (0đ)',
-                      color: Colors.orange.shade700,
+                      'chat',
+                      Icons.chat_bubble_outline_rounded,
+                      'Chat',
                     ),
                     const PopupMenuDivider(),
+                    _menuItem(
+                      'print',
+                      Icons.print_rounded,
+                      l10n.printInvoiceLabel,
+                    ),
+                    _menuItem(
+                      'preview',
+                      Icons.preview_rounded,
+                      l10n.previewInvoiceLabel,
+                    ),
+                    _menuItem(
+                      'template',
+                      Icons.design_services_rounded,
+                      l10n.printTemplateLabel,
+                    ),
+                    const PopupMenuDivider(),
+                    _menuItem(
+                      'return',
+                      Icons.assignment_return_rounded,
+                      _allItemsReturned
+                          ? l10n.returnAllLabel
+                          : l10n.returnGoodsLabel,
+                      enabled: !_allItemsReturned,
+                      color: _allItemsReturned
+                          ? Colors.grey
+                          : Colors.orange.shade700,
+                    ),
+                    const PopupMenuDivider(),
+                    if (_canViewCostPrice &&
+                        s.totalCost == 0 &&
+                        s.totalPrice > 0) ...[
+                      _menuItem(
+                        'fix_cost',
+                        _managerUnlocked
+                            ? Icons.attach_money_rounded
+                            : Icons.lock_outline_rounded,
+                        'Sửa giá vốn (0đ)',
+                        color: Colors.orange.shade700,
+                      ),
+                      const PopupMenuDivider(),
+                    ],
+                    _menuItem(
+                      'edit',
+                      _managerUnlocked
+                          ? Icons.edit_note_rounded
+                          : Icons.lock_outline_rounded,
+                      l10n.editSaleTooltip,
+                    ),
+                    _menuItem(
+                      'delete',
+                      Icons.delete_forever_rounded,
+                      'Xóa đơn',
+                      color: Colors.red,
+                    ),
                   ],
-                  _menuItem(
-                    'edit',
-                    _managerUnlocked ? Icons.edit_note_rounded : Icons.lock_outline_rounded,
-                    l10n.editSaleTooltip,
-                  ),
-                  _menuItem('delete', Icons.delete_forever_rounded, 'Xóa đơn',
-                      color: Colors.red),
-                ],
-              );
-            }),
+                );
+              },
+            ),
         ],
       ),
       body: ResponsiveCenter(
@@ -1710,7 +1858,13 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                     icon: const Icon(Icons.account_balance_wallet_outlined),
                     label: Text(
                       s.settlementReceivedAt != null
-                          ? AppLocalizations.of(context)!.updateSettlementBtn(_money(s.loanAmount + s.loanAmount2 - s.settlementAmount))
+                          ? AppLocalizations.of(context)!.updateSettlementBtn(
+                              _money(
+                                s.loanAmount +
+                                    s.loanAmount2 -
+                                    s.settlementAmount,
+                              ),
+                            )
                           : AppLocalizations.of(context)!.receiveBankTitle,
                     ),
                   ),
@@ -1750,8 +1904,17 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                           children: [
                             Text(
                               _allItemsReturned
-                                  ? AppLocalizations.of(context)!.returnedFullLabel(_money(_totalReturnedAmount))
-                                  : AppLocalizations.of(context)!.returnedPartialLabel(_money(_totalReturnedAmount), _allReturns.length),
+                                  ? AppLocalizations.of(
+                                      context,
+                                    )!.returnedFullLabel(
+                                      _money(_totalReturnedAmount),
+                                    )
+                                  : AppLocalizations.of(
+                                      context,
+                                    )!.returnedPartialLabel(
+                                      _money(_totalReturnedAmount),
+                                      _allReturns.length,
+                                    ),
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -1784,24 +1947,46 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                   phoneNumber: s.phone,
                   sourceEvent: 'customer_profile_opened_from_sale',
                 ),
-                _item(AppLocalizations.of(context)!.itemAddress, s.address.isEmpty ? "---" : s.address),
-                if (_linkedProducts.isEmpty && (s.notes?.startsWith('KV:') ?? false))
+                _item(
+                  AppLocalizations.of(context)!.itemAddress,
+                  s.address.isEmpty ? "---" : s.address,
+                ),
+                if (_linkedProducts.isEmpty &&
+                    (s.notes?.startsWith('KV:') ?? false))
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
                     child: Text(
                       'Hóa đơn KiotViet — không có chi tiết sản phẩm (nhập lại với "Ghi đè" để lấy dữ liệu)',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[500], fontStyle: FontStyle.italic),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[500],
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
                   )
                 else
                   ClickableProductList(
                     items: _linkedProducts,
-                    tooltip: AppLocalizations.of(context)!.openProductDetailTooltip,
+                    tooltip: AppLocalizations.of(
+                      context,
+                    )!.openProductDetailTooltip,
                   ),
-                _item(AppLocalizations.of(context)!.itemWarranty, s.warranty.isNotEmpty ? s.warranty : "KO BH"),
+                _item(
+                  AppLocalizations.of(context)!.itemWarranty,
+                  s.warranty.isNotEmpty ? s.warranty : "KO BH",
+                ),
                 _staffItem(s.sellerName, s.sellerUid),
-                _item(AppLocalizations.of(context)!.itemTime, _fmtDate(s.soldAt)),
-                _item(AppLocalizations.of(context)!.itemPaymentMethod, s.paymentMethod),
+                _item(
+                  AppLocalizations.of(context)!.itemTime,
+                  _fmtDate(s.soldAt),
+                ),
+                _item(
+                  AppLocalizations.of(context)!.itemPaymentMethod,
+                  s.paymentMethod,
+                ),
                 // Hiển thị chi tiết kết hợp thanh toán
                 if (s.paymentMethod.toUpperCase() == 'KẾT HỢP' &&
                     (s.cashAmount > 0 || s.transferAmount > 0)) ...[
@@ -1818,23 +2003,41 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                 ],
                 if (s.notes != null && s.notes!.isNotEmpty)
                   _item(AppLocalizations.of(context)!.itemNotes, s.notes!),
-                Builder(builder: (ctx) {
-                  final itemDisc = _totalItemLevelDiscount;
-                  final orderDisc = s.discount;
-                  final totalDisc = itemDisc + orderDisc;
-                  if (totalDisc <= 0) return const SizedBox.shrink();
-                  final hasBoth = itemDisc > 0 && orderDisc > 0;
-                  return Column(
-                    children: [
-                      if (hasBoth) ...[
-                        _item('Giảm sản phẩm', '-${_money(itemDisc)}', color: Colors.orange),
-                        _item('Giảm đơn', '-${_money(orderDisc)}', color: Colors.orange),
+                Builder(
+                  builder: (ctx) {
+                    final itemDisc = _totalItemLevelDiscount;
+                    final orderDisc = s.discount;
+                    final totalDisc = itemDisc + orderDisc;
+                    if (totalDisc <= 0) return const SizedBox.shrink();
+                    final hasBoth = itemDisc > 0 && orderDisc > 0;
+                    return Column(
+                      children: [
+                        if (hasBoth) ...[
+                          _item(
+                            'Giảm sản phẩm',
+                            '-${_money(itemDisc)}',
+                            color: Colors.orange,
+                          ),
+                          _item(
+                            'Giảm đơn',
+                            '-${_money(orderDisc)}',
+                            color: Colors.orange,
+                          ),
+                        ],
+                        _item(
+                          'Tổng giảm giá',
+                          '-${_money(totalDisc)}',
+                          color: Colors.deepOrange,
+                        ),
                       ],
-                      _item('Tổng giảm giá', '-${_money(totalDisc)}', color: Colors.deepOrange),
-                    ],
-                  );
-                }),
-                _item(AppLocalizations.of(context)!.itemTotal, _money(s.finalPrice), color: Colors.red),
+                    );
+                  },
+                ),
+                _item(
+                  AppLocalizations.of(context)!.itemTotal,
+                  _money(s.finalPrice),
+                  color: Colors.red,
+                ),
                 if (_canViewCostPrice && s.totalCost > 0) ...[
                   _item(
                     AppLocalizations.of(context)!.itemCostPrice,
@@ -1852,24 +2055,58 @@ class _SaleDetailViewState extends State<SaleDetailView> {
               ]),
               if (_isInstallmentNH)
                 _card(AppLocalizations.of(context)!.sectionInstallment, [
-                  _item(AppLocalizations.of(context)!.installmentDownPayment, _money(s.downPayment)),
-                  _item(AppLocalizations.of(context)!.installmentBank1, s.bankName ?? "---"),
-                  _item(AppLocalizations.of(context)!.installmentAmount1, _money(s.loanAmount)),
+                  _item(
+                    AppLocalizations.of(context)!.installmentDownPayment,
+                    _money(s.downPayment),
+                  ),
+                  _item(
+                    AppLocalizations.of(context)!.installmentBank1,
+                    s.bankName ?? "---",
+                  ),
+                  _item(
+                    AppLocalizations.of(context)!.installmentAmount1,
+                    _money(s.loanAmount),
+                  ),
                   if (s.bankName2 != null && s.bankName2!.isNotEmpty) ...[
-                    _item(AppLocalizations.of(context)!.installmentBank2, s.bankName2!),
-                    _item(AppLocalizations.of(context)!.installmentAmount2, _money(s.loanAmount2)),
+                    _item(
+                      AppLocalizations.of(context)!.installmentBank2,
+                      s.bankName2!,
+                    ),
+                    _item(
+                      AppLocalizations.of(context)!.installmentAmount2,
+                      _money(s.loanAmount2),
+                    ),
                   ],
-                  _item(AppLocalizations.of(context)!.installmentTotalLoan, _money(s.loanAmount + s.loanAmount2)),
-                  _item(AppLocalizations.of(context)!.installmentExpectedDate, _fmtShort(s.settlementPlannedAt)),
-                  _item(AppLocalizations.of(context)!.installmentFileCode, s.settlementCode ?? "---"),
-                  _item(AppLocalizations.of(context)!.installmentNotes, s.settlementNote ?? "---"),
+                  _item(
+                    AppLocalizations.of(context)!.installmentTotalLoan,
+                    _money(s.loanAmount + s.loanAmount2),
+                  ),
+                  _item(
+                    AppLocalizations.of(context)!.installmentExpectedDate,
+                    _fmtShort(s.settlementPlannedAt),
+                  ),
+                  _item(
+                    AppLocalizations.of(context)!.installmentFileCode,
+                    s.settlementCode ?? "---",
+                  ),
+                  _item(
+                    AppLocalizations.of(context)!.installmentNotes,
+                    s.settlementNote ?? "---",
+                  ),
                   _item(
                     AppLocalizations.of(context)!.installmentSettlement,
                     s.settlementReceivedAt == null
                         ? AppLocalizations.of(context)!.settlementNotReceived
                         : s.settlementAmount >= s.loanAmount + s.loanAmount2
-                        ? AppLocalizations.of(context)!.settlementFullyReceived(_fmtShort(s.settlementReceivedAt))
-                        : AppLocalizations.of(context)!.settlementPartialReceived(_money(s.settlementAmount), _money(s.loanAmount + s.loanAmount2)),
+                        ? AppLocalizations.of(context)!.settlementFullyReceived(
+                            _fmtShort(s.settlementReceivedAt),
+                          )
+                        : AppLocalizations.of(
+                            context,
+                          )!.settlementPartialReceived(
+                            _money(s.settlementAmount),
+                            _money(s.loanAmount + s.loanAmount2),
+                          ),
                   ),
                   if (s.settlementFee > 0)
                     _item(
@@ -1959,19 +2196,22 @@ class _SaleDetailViewState extends State<SaleDetailView> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(AppLocalizations.of(context)!.staffItemLabel, style: const TextStyle(color: Colors.grey)),
+          Text(
+            AppLocalizations.of(context)!.staffItemLabel,
+            style: const TextStyle(color: Colors.grey),
+          ),
           const SizedBox(width: 12),
           GestureDetector(
             onTap: tappable
                 ? () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => StaffPublicProfileView(
-                          userId: uid,
-                          fallbackName: name,
-                        ),
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => StaffPublicProfileView(
+                        userId: uid,
+                        fallbackName: name,
                       ),
-                    )
+                    ),
+                  )
                 : null,
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -1987,8 +2227,11 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                 ),
                 if (tappable) ...[
                   const SizedBox(width: 3),
-                  const Icon(Icons.chevron_right_rounded,
-                      size: 16, color: Color(0xFF4F46E5)),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 16,
+                    color: Color(0xFF4F46E5),
+                  ),
                 ],
               ],
             ),
@@ -1997,6 +2240,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       ),
     );
   }
+
   Future<void> _openReturnView() async {
     if (_allItemsReturned) return;
     final result = await Navigator.push<bool>(
@@ -2005,10 +2249,12 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     );
     if (result == true && mounted) {
       _loadReturnInfo();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(AppLocalizations.of(context)!.returnSuccessMsg),
-        backgroundColor: Colors.green,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.returnSuccessMsg),
+          backgroundColor: Colors.green,
+        ),
+      );
     }
   }
 
@@ -2023,15 +2269,19 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     return PopupMenuItem<String>(
       value: value,
       enabled: enabled,
-      child: Row(children: [
-        Icon(icon, size: 18, color: enabled ? c : Colors.grey),
-        const SizedBox(width: 12),
-        Text(label,
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: enabled ? c : Colors.grey),
+          const SizedBox(width: 12),
+          Text(
+            label,
             style: TextStyle(
               color: enabled ? c : Colors.grey,
               fontWeight: FontWeight.w500,
-            )),
-      ]),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -2055,9 +2305,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       linkedSummary: summary,
     );
 
-    messenger.showSnackBar(
-      SnackBar(content: Text(l10n.chatPinnedSale)),
-    );
+    messenger.showSnackBar(SnackBar(content: Text(l10n.chatPinnedSale)));
   }
 
   Future<void> _sendSmsToCustomer() async {
@@ -2065,9 +2313,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     final l10n = AppLocalizations.of(context)!;
     final phone = s.phone.trim();
     if (phone.isEmpty) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.noCustomerPhone)),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l10n.noCustomerPhone)));
       return;
     }
 
@@ -2086,18 +2332,12 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     try {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri);
-        messenger.showSnackBar(
-          SnackBar(content: Text(l10n.smsAppOpened)),
-        );
+        messenger.showSnackBar(SnackBar(content: Text(l10n.smsAppOpened)));
       } else {
-        messenger.showSnackBar(
-          SnackBar(content: Text(l10n.smsAppCannotOpen)),
-        );
+        messenger.showSnackBar(SnackBar(content: Text(l10n.smsAppCannotOpen)));
       }
     } catch (_) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.smsSendError)),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l10n.smsSendError)));
     }
   }
 }

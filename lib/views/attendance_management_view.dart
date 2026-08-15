@@ -1549,7 +1549,9 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
         builder: (ctx, setDlg) {
           return Padding(
             padding: EdgeInsets.only(
-              bottom: MediaQuery.viewInsetsOf(context).bottom,
+              bottom:
+                  MediaQuery.viewInsetsOf(context).bottom +
+                  MediaQuery.paddingOf(context).bottom,
             ),
             child: Container(
               decoration: const BoxDecoration(
@@ -1809,7 +1811,9 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
               : 0;
           return Padding(
             padding: EdgeInsets.only(
-              bottom: MediaQuery.viewInsetsOf(context).bottom,
+              bottom:
+                  MediaQuery.viewInsetsOf(context).bottom +
+                  MediaQuery.paddingOf(context).bottom,
             ),
             child: Container(
               decoration: const BoxDecoration(
@@ -2385,7 +2389,9 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
           final days = endDate.difference(startDate).inDays + 1;
           return Padding(
             padding: EdgeInsets.only(
-              bottom: MediaQuery.viewInsetsOf(context).bottom,
+              bottom:
+                  MediaQuery.viewInsetsOf(context).bottom +
+                  MediaQuery.paddingOf(context).bottom,
             ),
             child: Container(
               decoration: const BoxDecoration(
@@ -2950,7 +2956,9 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
         builder: (ctx, setDlg) {
           return Padding(
             padding: EdgeInsets.only(
-              bottom: MediaQuery.viewInsetsOf(context).bottom,
+              bottom:
+                  MediaQuery.viewInsetsOf(context).bottom +
+                  MediaQuery.paddingOf(context).bottom,
             ),
             child: Container(
               decoration: const BoxDecoration(
@@ -3734,7 +3742,9 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
       backgroundColor: Colors.transparent,
       builder: (ctx) => Padding(
         padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(context).bottom,
+          bottom:
+              MediaQuery.viewInsetsOf(context).bottom +
+              MediaQuery.paddingOf(context).bottom,
         ),
         child: Container(
           decoration: const BoxDecoration(

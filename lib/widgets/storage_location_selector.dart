@@ -53,7 +53,10 @@ class _StorageLocationSelectorState extends State<StorageLocationSelector> {
         if (mounted) setState(() => _loading = false);
         return;
       }
-      var locs = await DBHelper().getStorageLocations(shopId!, activeOnly: true);
+      var locs = await DBHelper().getStorageLocations(
+        shopId!,
+        activeOnly: true,
+      );
       if (locs.isEmpty) {
         // SQLite trống — trigger sync và thử lại một lần
         await SyncService.refreshCloudCollections(
@@ -62,7 +65,11 @@ class _StorageLocationSelectorState extends State<StorageLocationSelector> {
         );
         locs = await DBHelper().getStorageLocations(shopId, activeOnly: true);
       }
-      if (mounted) setState(() { _locations = locs; _loading = false; });
+      if (mounted)
+        setState(() {
+          _locations = locs;
+          _loading = false;
+        });
     } catch (e) {
       debugPrint('StorageLocationSelector._load error: $e');
       if (mounted) setState(() => _loading = false);
@@ -103,16 +110,13 @@ class _StorageLocationSelectorState extends State<StorageLocationSelector> {
             const SizedBox(width: 8),
             Expanded(
               child: _loading
-                  ? const SizedBox(
-                      height: 2,
-                      child: LinearProgressIndicator(),
-                    )
+                  ? const SizedBox(height: 2, child: LinearProgressIndicator())
                   : Text(
                       _hasSelection
                           ? (widget.selectedLocationCode != null &&
-                                  widget.selectedLocationCode!.isNotEmpty
-                              ? '${widget.selectedLocationCode} · ${widget.selectedLocationName ?? ''}'
-                              : widget.selectedLocationName ?? '')
+                                    widget.selectedLocationCode!.isNotEmpty
+                                ? '${widget.selectedLocationCode} · ${widget.selectedLocationName ?? ''}'
+                                : widget.selectedLocationName ?? '')
                           : 'Chọn vị trí lưu kho',
                       style: TextStyle(
                         fontSize: 13,
@@ -187,11 +191,14 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final filtered = widget.locations
-        .where((l) =>
-            _search.isEmpty ||
-            l.code.toLowerCase().contains(_search.toLowerCase()) ||
-            l.name.toLowerCase().contains(_search.toLowerCase()) ||
-            (l.warehouse?.toLowerCase().contains(_search.toLowerCase()) ?? false))
+        .where(
+          (l) =>
+              _search.isEmpty ||
+              l.code.toLowerCase().contains(_search.toLowerCase()) ||
+              l.name.toLowerCase().contains(_search.toLowerCase()) ||
+              (l.warehouse?.toLowerCase().contains(_search.toLowerCase()) ??
+                  false),
+        )
         .toList();
 
     return DraggableScrollableSheet(
@@ -199,146 +206,146 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
       minChildSize: 0.4,
       maxChildSize: 0.9,
       expand: false,
-      builder: (_, controller) => Builder(
-        builder: (ctx) {
-          final bottomInset = MediaQuery.viewInsetsOf(ctx).bottom;
-          return Column(
-            children: [
-          // Handle bar
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                const Text(
-                  'Chọn vị trí lưu kho',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const Spacer(),
-                TextButton.icon(
-                  onPressed: () {
-                    widget.onSelected(null);
-                  },
-                  icon: const Icon(Icons.clear, size: 14),
-                  label: const Text('Xóa', style: TextStyle(fontSize: 13)),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.red.shade700,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Tìm kiếm mã/tên vị trí...',
-                prefixIcon: const Icon(Icons.search, size: 18),
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+      // Đọc từ `context` ngoài (State's own), không dùng `Builder` lồng thêm
+      // — cùng anti-pattern đã tốn công fix ở repair_detail_view.dart
+      // (_dependents.isEmpty khi pop).
+      builder: (_, controller) {
+        final bottomInset =
+            MediaQuery.viewInsetsOf(context).bottom +
+            MediaQuery.paddingOf(context).bottom;
+        return Column(
+          children: [
+            // Handle bar
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              style: const TextStyle(fontSize: 13),
-              onChanged: (v) => setState(() => _search = v),
             ),
-          ),
-          Expanded(
-            child: filtered.isEmpty
-                ? Center(
-                    child: Text(
-                      widget.locations.isEmpty
-                          ? 'Chưa có vị trí nào.\nVào Kho → Vị trí lưu kho để thêm.'
-                          : 'Không tìm thấy vị trí',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.grey.shade500,
-                        fontSize: 13,
-                      ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  const Text(
+                    'Chọn vị trí lưu kho',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: () {
+                      widget.onSelected(null);
+                    },
+                    icon: const Icon(Icons.clear, size: 14),
+                    label: const Text('Xóa', style: TextStyle(fontSize: 13)),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.red.shade700,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                     ),
-                  )
-                : ListView.builder(
-                    controller: controller,
-                    // Đệm dưới để không bị bàn phím che khi search
-                    padding: EdgeInsets.only(bottom: bottomInset),
-                    itemCount: filtered.length,
-                    itemBuilder: (_, i) {
-                      final loc = filtered[i];
-                      final isSelected = loc.firestoreId ==
-                              widget.selectedId ||
-                          loc.id?.toString() == widget.selectedId;
-                      return ListTile(
-                        leading: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? const Color(0xFF1D4ED8)
-                                : const Color(0xFFEFF6FF),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Center(
-                            child: Icon(
-                              Icons.location_on_rounded,
-                              size: 18,
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Tìm kiếm mã/tên vị trí...',
+                  prefixIcon: const Icon(Icons.search, size: 18),
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                style: const TextStyle(fontSize: 13),
+                onChanged: (v) => setState(() => _search = v),
+              ),
+            ),
+            Expanded(
+              child: filtered.isEmpty
+                  ? Center(
+                      child: Text(
+                        widget.locations.isEmpty
+                            ? 'Chưa có vị trí nào.\nVào Kho → Vị trí lưu kho để thêm.'
+                            : 'Không tìm thấy vị trí',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 13,
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: controller,
+                      // Đệm dưới để không bị bàn phím che khi search
+                      padding: EdgeInsets.only(bottom: bottomInset),
+                      itemCount: filtered.length,
+                      itemBuilder: (_, i) {
+                        final loc = filtered[i];
+                        final isSelected =
+                            loc.firestoreId == widget.selectedId ||
+                            loc.id?.toString() == widget.selectedId;
+                        return ListTile(
+                          leading: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
                               color: isSelected
-                                  ? Colors.white
-                                  : const Color(0xFF1D4ED8),
+                                  ? const Color(0xFF1D4ED8)
+                                  : const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                Icons.location_on_rounded,
+                                size: 18,
+                                color: isSelected
+                                    ? Colors.white
+                                    : const Color(0xFF1D4ED8),
+                              ),
                             ),
                           ),
-                        ),
-                        title: Text(
-                          '${loc.code} · ${loc.name}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            color: isSelected
-                                ? const Color(0xFF1D4ED8)
-                                : null,
+                          title: Text(
+                            '${loc.code} · ${loc.name}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              color: isSelected
+                                  ? const Color(0xFF1D4ED8)
+                                  : null,
+                            ),
                           ),
-                        ),
-                        subtitle: loc.displayName != loc.name
-                            ? Text(
-                                loc.displayName,
-                                style: const TextStyle(fontSize: 12),
-                              )
-                            : null,
-                        trailing: isSelected
-                            ? const Icon(
-                                Icons.check_circle,
-                                color: Color(0xFF1D4ED8),
-                                size: 20,
-                              )
-                            : null,
-                        onTap: () => widget.onSelected(loc),
-                      );
-                    },
-                  ),
-          ),
-        ],
-          );
-        },
-      ),
+                          subtitle: loc.displayName != loc.name
+                              ? Text(
+                                  loc.displayName,
+                                  style: const TextStyle(fontSize: 12),
+                                )
+                              : null,
+                          trailing: isSelected
+                              ? const Icon(
+                                  Icons.check_circle,
+                                  color: Color(0xFF1D4ED8),
+                                  size: 20,
+                                )
+                              : null,
+                          onTap: () => widget.onSelected(loc),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

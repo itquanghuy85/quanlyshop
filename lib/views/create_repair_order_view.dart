@@ -1127,7 +1127,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     final partnerSearchCtrl = TextEditingController();
 
     RepairPartner? selectedPartner;
-    if (editService != null && editService.partnerId != null && _partners.isNotEmpty) {
+    if (editService != null &&
+        editService.partnerId != null &&
+        _partners.isNotEmpty) {
       selectedPartner = _partners.firstWhere(
         (p) => p.id == editService.partnerId,
         orElse: () => _partners.first,
@@ -1162,8 +1164,12 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
           return AnimatedPadding(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOut,
+            // Đọc từ `context` ngoài (không phải `ctx`) để tránh crash
+            // _dependents.isEmpty khi pop.
             padding: EdgeInsets.only(
-              bottom: MediaQuery.viewInsetsOf(ctx).bottom,
+              bottom:
+                  MediaQuery.viewInsetsOf(context).bottom +
+                  MediaQuery.paddingOf(context).bottom,
             ),
             child: Container(
               constraints: BoxConstraints(maxHeight: maxSheetHeight),
@@ -1343,8 +1349,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                                     return;
                                   }
 
-                                  final cost =
-                                      MoneyUtils.parseCurrency(costCtrl.text);
+                                  final cost = MoneyUtils.parseCurrency(
+                                    costCtrl.text,
+                                  );
                                   final service = RepairService(
                                     firestoreId:
                                         editService?.firestoreId ??
@@ -1362,8 +1369,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
 
                                   setState(() {
                                     if (editService != null) {
-                                      final index =
-                                          _services.indexOf(editService);
+                                      final index = _services.indexOf(
+                                        editService,
+                                      );
                                       _services[index] = service;
                                     } else {
                                       _services.add(service);

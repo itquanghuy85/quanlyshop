@@ -210,12 +210,9 @@ class _SupplierPickerSheetState extends State<_SupplierPickerSheet> {
                     isSearching
                         ? 'Tìm thấy ${_items.length} NCC'
                         : _hasMore
-                            ? 'Đã tải ${_items.length} / $_total NCC — Cuộn để tải thêm'
-                            : 'Đã tải ${_items.length} / $_total NCC',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey.shade500,
-                    ),
+                        ? 'Đã tải ${_items.length} / $_total NCC — Cuộn để tải thêm'
+                        : 'Đã tải ${_items.length} / $_total NCC',
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
                   ),
                 ),
               ),
@@ -224,7 +221,12 @@ class _SupplierPickerSheetState extends State<_SupplierPickerSheet> {
             Expanded(
               child: ListView.builder(
                 controller: _scrollCtrl,
-                padding: const EdgeInsets.symmetric(vertical: 4),
+                padding: EdgeInsets.fromLTRB(
+                  0,
+                  4,
+                  0,
+                  4 + MediaQuery.paddingOf(context).bottom,
+                ),
                 itemCount: _listItemCount(showRecent),
                 itemBuilder: (ctx, i) => _buildListItem(i, showRecent),
               ),
@@ -237,7 +239,8 @@ class _SupplierPickerSheetState extends State<_SupplierPickerSheet> {
 
   int _listItemCount(bool showRecent) {
     int n = 1; // "Không chọn NCC"
-    if (showRecent) n += 1 + _recentItems.length + 1; // section header + items + divider
+    if (showRecent)
+      n += 1 + _recentItems.length + 1; // section header + items + divider
     n += _items.length;
     if (_isLoading) n += 1; // loading spinner
     if (!_isLoading && _hasMore && _items.isNotEmpty) n += 1; // scroll hint
@@ -356,16 +359,15 @@ class _SupplierPickerSheetState extends State<_SupplierPickerSheet> {
     return ListTile(
       leading: CircleAvatar(
         radius: 16,
-        backgroundColor:
-            isRecent ? Colors.orange.shade100 : Colors.blue.shade50,
+        backgroundColor: isRecent
+            ? Colors.orange.shade100
+            : Colors.blue.shade50,
         child: Text(
           name.isNotEmpty ? name[0] : '?',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
-            color: isRecent
-                ? Colors.orange.shade700
-                : Colors.blue.shade700,
+            color: isRecent ? Colors.orange.shade700 : Colors.blue.shade700,
           ),
         ),
       ),
@@ -377,8 +379,7 @@ class _SupplierPickerSheetState extends State<_SupplierPickerSheet> {
       subtitle: phone.isNotEmpty
           ? Text(
               phone,
-              style:
-                  TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             )
           : null,
       trailing: isRecent

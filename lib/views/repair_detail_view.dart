@@ -2774,65 +2774,70 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       context: context,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: PopupTheme.bgDark,
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(PopupTheme.radiusSheet),
+      // Đọc từ `context` ngoài (không phải `ctx`) để tránh crash
+      // _dependents.isEmpty khi pop.
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: PopupTheme.bgDark,
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(PopupTheme.radiusSheet),
+            ),
           ),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const PopupDragHandle(),
-            const Row(
-              children: [
-                Icon(Icons.delete_sweep, color: Colors.red),
-                SizedBox(width: 8),
-                Text(
-                  'XÓA PHỤ TÙNG',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Chọn phụ tùng cần xóa và trả lại kho:',
-              style: TextStyle(fontSize: 14, color: PopupTheme.textSecondary),
-            ),
-            const SizedBox(height: 12),
-            ...parts.asMap().entries.map((entry) {
-              return Card(
-                margin: const EdgeInsets.only(bottom: 6),
-                child: ListTile(
-                  dense: true,
-                  leading: const Icon(
-                    Icons.build,
-                    size: 18,
-                    color: Colors.blue,
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const PopupDragHandle(),
+              const Row(
+                children: [
+                  Icon(Icons.delete_sweep, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text(
+                    'XÓA PHỤ TÙNG',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
                   ),
-                  title: Text(
-                    entry.value,
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.remove_circle, color: Colors.red),
-                    onPressed: () => Navigator.pop(ctx, entry.key),
-                  ),
-                ),
-              );
-            }),
-            const SizedBox(height: 4),
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('ĐÓNG'),
+                ],
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              const Text(
+                'Chọn phụ tùng cần xóa và trả lại kho:',
+                style: TextStyle(fontSize: 14, color: PopupTheme.textSecondary),
+              ),
+              const SizedBox(height: 12),
+              ...parts.asMap().entries.map((entry) {
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 6),
+                  child: ListTile(
+                    dense: true,
+                    leading: const Icon(
+                      Icons.build,
+                      size: 18,
+                      color: Colors.blue,
+                    ),
+                    title: Text(
+                      entry.value,
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.remove_circle, color: Colors.red),
+                      onPressed: () => Navigator.pop(ctx, entry.key),
+                    ),
+                  ),
+                );
+              }),
+              const SizedBox(height: 4),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('ĐÓNG'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -5441,8 +5446,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             return AnimatedPadding(
               duration: const Duration(milliseconds: 180),
               curve: Curves.easeOut,
+              // Đọc từ `context` ngoài (không phải `ctx`) để tránh crash
+              // _dependents.isEmpty khi pop.
               padding: EdgeInsets.only(
-                bottom: MediaQuery.viewInsetsOf(ctx).bottom,
+                bottom: MediaQuery.viewInsetsOf(context).bottom,
               ),
               // showModalBottomSheet's useSafeArea chỉ áp dụng
               // SafeArea(bottom: false) — sheet luôn được canh chạm đáy

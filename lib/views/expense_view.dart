@@ -189,7 +189,6 @@ class _ExpenseViewState extends State<ExpenseView> {
         _filterExpenses();
         _isLoading = false;
       });
-
     } catch (e) {
       debugPrint('DEBUG: Error loading expenses: $e');
       if (mounted) {
@@ -286,7 +285,6 @@ class _ExpenseViewState extends State<ExpenseView> {
     setState(() {
       _filteredExpenses = filtered;
     });
-
   }
 
   void _changeFilterType(String type) {
@@ -389,7 +387,11 @@ class _ExpenseViewState extends State<ExpenseView> {
       children: [
         buildScopeBox(label: 'SHOP', value: shopTotal, isPersonal: false),
         const SizedBox(width: 8),
-        buildScopeBox(label: l10n.expenseScopePersonal, value: personalTotal, isPersonal: true),
+        buildScopeBox(
+          label: l10n.expenseScopePersonal,
+          value: personalTotal,
+          isPersonal: true,
+        ),
       ],
     );
   }
@@ -415,7 +417,10 @@ class _ExpenseViewState extends State<ExpenseView> {
     if (!canEdit && mounted) {
       final expenseDate = DateTime.fromMillisecondsSinceEpoch(expenseTimestamp);
       NotificationService.showSnackBar(
-        l10n.closedDayCannotDelete(DateFormat('dd/MM/yyyy').format(expenseDate), label),
+        l10n.closedDayCannotDelete(
+          DateFormat('dd/MM/yyyy').format(expenseDate),
+          label,
+        ),
         color: Colors.red,
       );
       return;
@@ -437,8 +442,14 @@ class _ExpenseViewState extends State<ExpenseView> {
           children: [
             Text(
               isIncome
-                  ? l10n.deleteIncomeContent(exp['title'].toString(), MoneyUtils.formatCurrency(exp['amount']))
-                  : l10n.deleteExpenseContent(exp['title'].toString(), MoneyUtils.formatCurrency(exp['amount'])),
+                  ? l10n.deleteIncomeContent(
+                      exp['title'].toString(),
+                      MoneyUtils.formatCurrency(exp['amount']),
+                    )
+                  : l10n.deleteExpenseContent(
+                      exp['title'].toString(),
+                      MoneyUtils.formatCurrency(exp['amount']),
+                    ),
             ),
             const SizedBox(height: 15),
             TextField(
@@ -453,11 +464,17 @@ class _ExpenseViewState extends State<ExpenseView> {
         ),
         actions: [
           TextButton(
-            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, false); },
+            onPressed: () {
+              FocusScope.of(ctx).unfocus();
+              Navigator.pop(ctx, false);
+            },
             child: Text(l10n.cancel),
           ),
           ElevatedButton(
-            onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx, true); },
+            onPressed: () {
+              FocusScope.of(ctx).unfocus();
+              Navigator.pop(ctx, true);
+            },
             style: AppButtonStyles.errorElevatedButtonStyle,
             child: Text(
               l10n.confirmDeleteButton,
@@ -579,7 +596,11 @@ class _ExpenseViewState extends State<ExpenseView> {
           titleC.addListener(() => setS(() {}));
           amountC.addListener(() => setS(() {}));
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+            padding: EdgeInsets.only(
+              bottom:
+                  MediaQuery.viewInsetsOf(context).bottom +
+                  MediaQuery.paddingOf(context).bottom,
+            ),
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
@@ -598,7 +619,10 @@ class _ExpenseViewState extends State<ExpenseView> {
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                       child: Row(
                         children: [
-                          const Icon(Icons.trending_down, color: Colors.redAccent),
+                          const Icon(
+                            Icons.trending_down,
+                            color: Colors.redAccent,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             l10n.writeExpensesTitle,
@@ -628,32 +652,39 @@ class _ExpenseViewState extends State<ExpenseView> {
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
-                              children: [
-                                "CỐ ĐỊNH",
-                                "PHÁT SINH",
-                                "LƯƠNG",
-                                "MẶT BẰNG",
-                                "ĐIỆN NƯỚC",
-                                "KHÁC",
-                              ]
-                                  .map(
-                                    (c) => ChoiceChip(
-                                      label: Text(
-                                        c,
-                                        style: AppTextStyles.caption.copyWith(
-                                          fontSize: AppTextStyles.body1.fontSize,
+                              children:
+                                  [
+                                        "CỐ ĐỊNH",
+                                        "PHÁT SINH",
+                                        "LƯƠNG",
+                                        "MẶT BẰNG",
+                                        "ĐIỆN NƯỚC",
+                                        "KHÁC",
+                                      ]
+                                      .map(
+                                        (c) => ChoiceChip(
+                                          label: Text(
+                                            c,
+                                            style: AppTextStyles.caption
+                                                .copyWith(
+                                                  fontSize: AppTextStyles
+                                                      .body1
+                                                      .fontSize,
+                                                ),
+                                          ),
+                                          selected: category == c,
+                                          onSelected: (v) =>
+                                              setS(() => category = c),
                                         ),
-                                      ),
-                                      selected: category == c,
-                                      onSelected: (v) => setS(() => category = c),
-                                    ),
-                                  )
-                                  .toList(),
+                                      )
+                                      .toList(),
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
                               controller: titleC,
-                              style: const TextStyle(color: PopupTheme.textPrimary),
+                              style: const TextStyle(
+                                color: PopupTheme.textPrimary,
+                              ),
                               decoration: InputDecoration(
                                 labelText: l10n.expenseContentRequired,
                                 prefixIcon: const Icon(Icons.edit_note),
@@ -677,7 +708,9 @@ class _ExpenseViewState extends State<ExpenseView> {
                             const SizedBox(height: 12),
                             TextField(
                               controller: noteC,
-                              style: const TextStyle(color: PopupTheme.textPrimary),
+                              style: const TextStyle(
+                                color: PopupTheme.textPrimary,
+                              ),
                               decoration: InputDecoration(
                                 labelText: l10n.extraNoteLabel,
                                 prefixIcon: const Icon(Icons.description),
@@ -696,11 +729,17 @@ class _ExpenseViewState extends State<ExpenseView> {
                                   .map(
                                     (m) => Expanded(
                                       child: Padding(
-                                        padding: const EdgeInsets.only(right: 4),
+                                        padding: const EdgeInsets.only(
+                                          right: 4,
+                                        ),
                                         child: ChoiceChip(
-                                          label: Text(m, style: AppTextStyles.caption),
+                                          label: Text(
+                                            m,
+                                            style: AppTextStyles.caption,
+                                          ),
                                           selected: payMethod == m,
-                                          onSelected: (v) => setS(() => payMethod = m),
+                                          onSelected: (v) =>
+                                              setS(() => payMethod = m),
                                         ),
                                       ),
                                     ),
@@ -718,18 +757,26 @@ class _ExpenseViewState extends State<ExpenseView> {
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
-                              children: [
-                                {'value': 'SHOP', 'label': 'SHOP'},
-                                {'value': 'CA_NHAN', 'label': l10n.expenseScopePersonal},
-                              ].map((item) {
-                                final value = item['value']!;
-                                final label = item['label']!;
-                                return ChoiceChip(
-                                  label: Text(label, style: AppTextStyles.caption),
-                                  selected: scope == value,
-                                  onSelected: (_) => setS(() => scope = value),
-                                );
-                              }).toList(),
+                              children:
+                                  [
+                                    {'value': 'SHOP', 'label': 'SHOP'},
+                                    {
+                                      'value': 'CA_NHAN',
+                                      'label': l10n.expenseScopePersonal,
+                                    },
+                                  ].map((item) {
+                                    final value = item['value']!;
+                                    final label = item['label']!;
+                                    return ChoiceChip(
+                                      label: Text(
+                                        label,
+                                        style: AppTextStyles.caption,
+                                      ),
+                                      selected: scope == value,
+                                      onSelected: (_) =>
+                                          setS(() => scope = value),
+                                    );
+                                  }).toList(),
                             ),
                             const SizedBox(height: 16),
                           ],
@@ -742,7 +789,10 @@ class _ExpenseViewState extends State<ExpenseView> {
                         children: [
                           Expanded(
                             child: OutlinedButton(
-                              onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
+                              onPressed: () {
+                                FocusScope.of(ctx).unfocus();
+                                Navigator.pop(ctx);
+                              },
                               child: Text(l10n.cancel),
                             ),
                           ),
@@ -760,11 +810,16 @@ class _ExpenseViewState extends State<ExpenseView> {
                               onPressed: _isSaving
                                   ? null
                                   : () async {
-                                      if (!(formKey.currentState?.validate() ?? false)) return;
+                                      if (!(formKey.currentState?.validate() ??
+                                          false))
+                                        return;
                                       setS(() => _isSaving = true);
 
-                                      final amount = MoneyUtils.parseCurrency(amountC.text);
-                                      final user = FirebaseAuth.instance.currentUser;
+                                      final amount = MoneyUtils.parseCurrency(
+                                        amountC.text,
+                                      );
+                                      final user =
+                                          FirebaseAuth.instance.currentUser;
                                       final navigator = Navigator.of(ctx);
                                       final method = payMethod == 'CHUYỂN KHOẢN'
                                           ? PaymentMethod.transfer
@@ -774,26 +829,37 @@ class _ExpenseViewState extends State<ExpenseView> {
 
                                       navigator.pop();
 
-                                      final result = await PaymentIntentService.executePaymentDirect(
-                                        type: category == 'ĐIỆN NƯỚC' || category == 'INTERNET'
-                                            ? PaymentIntentType.utilityExpense
-                                            : PaymentIntentType.operatingExpense,
-                                        amount: amount,
-                                        paymentMethod: method,
-                                        description:
-                                            '${titleC.text.toUpperCase()}${noteC.text.isNotEmpty ? " - ${noteC.text}" : ""}',
-                                        executedBy: user?.displayName ?? user?.email ?? 'unknown',
-                                        referenceId: txRef,
-                                        referenceType: 'quick_expense',
-                                        notes: noteC.text.trim().isEmpty ? null : noteC.text.trim(),
-                                        idempotencyKey: txRef,
-                                        metadata: {
-                                          'category': category,
-                                          'title': titleC.text.toUpperCase(),
-                                          'note': noteC.text,
-                                          'scope': scope,
-                                        },
-                                      );
+                                      final result =
+                                          await PaymentIntentService.executePaymentDirect(
+                                            type:
+                                                category == 'ĐIỆN NƯỚC' ||
+                                                    category == 'INTERNET'
+                                                ? PaymentIntentType
+                                                      .utilityExpense
+                                                : PaymentIntentType
+                                                      .operatingExpense,
+                                            amount: amount,
+                                            paymentMethod: method,
+                                            description:
+                                                '${titleC.text.toUpperCase()}${noteC.text.isNotEmpty ? " - ${noteC.text}" : ""}',
+                                            executedBy:
+                                                user?.displayName ??
+                                                user?.email ??
+                                                'unknown',
+                                            referenceId: txRef,
+                                            referenceType: 'quick_expense',
+                                            notes: noteC.text.trim().isEmpty
+                                                ? null
+                                                : noteC.text.trim(),
+                                            idempotencyKey: txRef,
+                                            metadata: {
+                                              'category': category,
+                                              'title': titleC.text
+                                                  .toUpperCase(),
+                                              'note': noteC.text,
+                                              'scope': scope,
+                                            },
+                                          );
 
                                       if (result.success) {
                                         EventBus().emit('expenses_changed');
@@ -808,7 +874,9 @@ class _ExpenseViewState extends State<ExpenseView> {
                                     },
                               child: Text(
                                 l10n.saveExpenseButton,
-                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
@@ -918,7 +986,9 @@ class _ExpenseViewState extends State<ExpenseView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: CustomAppBar.build(
-        title: _viewMode == 'CHI' ? l10n.expenseManagementTitle : l10n.incomeManagementTitle,
+        title: _viewMode == 'CHI'
+            ? l10n.expenseManagementTitle
+            : l10n.incomeManagementTitle,
         subtitle: _viewMode == 'CHI'
             ? l10n.expenseCountSubtitle(_filteredExpenses.length)
             : l10n.incomeCountSubtitle(_filteredExpenses.length),
@@ -1246,7 +1316,11 @@ class _ExpenseViewState extends State<ExpenseView> {
           titleC.addListener(() => setS(() {}));
           amountC.addListener(() => setS(() {}));
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+            padding: EdgeInsets.only(
+              bottom:
+                  MediaQuery.viewInsetsOf(context).bottom +
+                  MediaQuery.paddingOf(context).bottom,
+            ),
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
@@ -1265,7 +1339,10 @@ class _ExpenseViewState extends State<ExpenseView> {
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                       child: Row(
                         children: [
-                          const Icon(Icons.trending_up, color: Color(0xFF66BB6A)),
+                          const Icon(
+                            Icons.trending_up,
+                            color: Color(0xFF66BB6A),
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             l10n.writeIncomeTitle,
@@ -1295,32 +1372,41 @@ class _ExpenseViewState extends State<ExpenseView> {
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
-                              children: [
-                                "PHÁT SINH",
-                                "DỊCH VỤ",
-                                "HOÀN TIỀN",
-                                "BÁN TÀI SẢN",
-                                "KHÁC",
-                              ]
-                                  .map(
-                                    (c) => ChoiceChip(
-                                      label: Text(
-                                        c,
-                                        style: AppTextStyles.caption.copyWith(
-                                          fontSize: AppTextStyles.body1.fontSize,
+                              children:
+                                  [
+                                        "PHÁT SINH",
+                                        "DỊCH VỤ",
+                                        "HOÀN TIỀN",
+                                        "BÁN TÀI SẢN",
+                                        "KHÁC",
+                                      ]
+                                      .map(
+                                        (c) => ChoiceChip(
+                                          label: Text(
+                                            c,
+                                            style: AppTextStyles.caption
+                                                .copyWith(
+                                                  fontSize: AppTextStyles
+                                                      .body1
+                                                      .fontSize,
+                                                ),
+                                          ),
+                                          selected: category == c,
+                                          selectedColor: const Color(
+                                            0xFF66BB6A,
+                                          ),
+                                          onSelected: (v) =>
+                                              setS(() => category = c),
                                         ),
-                                      ),
-                                      selected: category == c,
-                                      selectedColor: const Color(0xFF66BB6A),
-                                      onSelected: (v) => setS(() => category = c),
-                                    ),
-                                  )
-                                  .toList(),
+                                      )
+                                      .toList(),
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
                               controller: titleC,
-                              style: const TextStyle(color: PopupTheme.textPrimary),
+                              style: const TextStyle(
+                                color: PopupTheme.textPrimary,
+                              ),
                               decoration: InputDecoration(
                                 labelText: l10n.incomeContentRequired,
                                 prefixIcon: const Icon(Icons.edit_note),
@@ -1344,7 +1430,9 @@ class _ExpenseViewState extends State<ExpenseView> {
                             const SizedBox(height: 12),
                             TextField(
                               controller: noteC,
-                              style: const TextStyle(color: PopupTheme.textPrimary),
+                              style: const TextStyle(
+                                color: PopupTheme.textPrimary,
+                              ),
                               decoration: InputDecoration(
                                 labelText: l10n.extraNoteLabel,
                                 prefixIcon: const Icon(Icons.description),
@@ -1363,11 +1451,17 @@ class _ExpenseViewState extends State<ExpenseView> {
                                   .map(
                                     (m) => Expanded(
                                       child: Padding(
-                                        padding: const EdgeInsets.only(right: 4),
+                                        padding: const EdgeInsets.only(
+                                          right: 4,
+                                        ),
                                         child: ChoiceChip(
-                                          label: Text(m, style: AppTextStyles.caption),
+                                          label: Text(
+                                            m,
+                                            style: AppTextStyles.caption,
+                                          ),
                                           selected: payMethod == m,
-                                          onSelected: (v) => setS(() => payMethod = m),
+                                          onSelected: (v) =>
+                                              setS(() => payMethod = m),
                                         ),
                                       ),
                                     ),
@@ -1385,18 +1479,26 @@ class _ExpenseViewState extends State<ExpenseView> {
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
-                              children: [
-                                {'value': 'SHOP', 'label': 'SHOP'},
-                                {'value': 'CA_NHAN', 'label': l10n.expenseScopePersonal},
-                              ].map((item) {
-                                final value = item['value']!;
-                                final label = item['label']!;
-                                return ChoiceChip(
-                                  label: Text(label, style: AppTextStyles.caption),
-                                  selected: scope == value,
-                                  onSelected: (_) => setS(() => scope = value),
-                                );
-                              }).toList(),
+                              children:
+                                  [
+                                    {'value': 'SHOP', 'label': 'SHOP'},
+                                    {
+                                      'value': 'CA_NHAN',
+                                      'label': l10n.expenseScopePersonal,
+                                    },
+                                  ].map((item) {
+                                    final value = item['value']!;
+                                    final label = item['label']!;
+                                    return ChoiceChip(
+                                      label: Text(
+                                        label,
+                                        style: AppTextStyles.caption,
+                                      ),
+                                      selected: scope == value,
+                                      onSelected: (_) =>
+                                          setS(() => scope = value),
+                                    );
+                                  }).toList(),
                             ),
                             const SizedBox(height: 16),
                           ],
@@ -1409,7 +1511,10 @@ class _ExpenseViewState extends State<ExpenseView> {
                         children: [
                           Expanded(
                             child: OutlinedButton(
-                              onPressed: () { FocusScope.of(ctx).unfocus(); Navigator.pop(ctx); },
+                              onPressed: () {
+                                FocusScope.of(ctx).unfocus();
+                                Navigator.pop(ctx);
+                              },
                               child: Text(l10n.cancel),
                             ),
                           ),
@@ -1427,11 +1532,16 @@ class _ExpenseViewState extends State<ExpenseView> {
                               onPressed: _isSaving
                                   ? null
                                   : () async {
-                                      if (!(formKey.currentState?.validate() ?? false)) return;
+                                      if (!(formKey.currentState?.validate() ??
+                                          false))
+                                        return;
                                       setS(() => _isSaving = true);
 
-                                      final amount = MoneyUtils.parseCurrency(amountC.text);
-                                      final user = FirebaseAuth.instance.currentUser;
+                                      final amount = MoneyUtils.parseCurrency(
+                                        amountC.text,
+                                      );
+                                      final user =
+                                          FirebaseAuth.instance.currentUser;
                                       final navigator = Navigator.of(ctx);
                                       final method = payMethod == 'CHUYỂN KHOẢN'
                                           ? PaymentMethod.transfer
@@ -1441,24 +1551,31 @@ class _ExpenseViewState extends State<ExpenseView> {
 
                                       navigator.pop();
 
-                                      final result = await PaymentIntentService.executePaymentDirect(
-                                        type: PaymentIntentType.otherIncome,
-                                        amount: amount,
-                                        paymentMethod: method,
-                                        description:
-                                            '${titleC.text.toUpperCase()}${noteC.text.isNotEmpty ? " - ${noteC.text}" : ""}',
-                                        executedBy: user?.displayName ?? user?.email ?? 'unknown',
-                                        referenceId: txRef,
-                                        referenceType: 'quick_income',
-                                        notes: noteC.text.trim().isEmpty ? null : noteC.text.trim(),
-                                        idempotencyKey: txRef,
-                                        metadata: {
-                                          'category': category,
-                                          'title': titleC.text.toUpperCase(),
-                                          'note': noteC.text,
-                                          'scope': scope,
-                                        },
-                                      );
+                                      final result =
+                                          await PaymentIntentService.executePaymentDirect(
+                                            type: PaymentIntentType.otherIncome,
+                                            amount: amount,
+                                            paymentMethod: method,
+                                            description:
+                                                '${titleC.text.toUpperCase()}${noteC.text.isNotEmpty ? " - ${noteC.text}" : ""}',
+                                            executedBy:
+                                                user?.displayName ??
+                                                user?.email ??
+                                                'unknown',
+                                            referenceId: txRef,
+                                            referenceType: 'quick_income',
+                                            notes: noteC.text.trim().isEmpty
+                                                ? null
+                                                : noteC.text.trim(),
+                                            idempotencyKey: txRef,
+                                            metadata: {
+                                              'category': category,
+                                              'title': titleC.text
+                                                  .toUpperCase(),
+                                              'note': noteC.text,
+                                              'scope': scope,
+                                            },
+                                          );
 
                                       if (result.success) {
                                         EventBus().emit('expenses_changed');
@@ -1473,7 +1590,9 @@ class _ExpenseViewState extends State<ExpenseView> {
                                     },
                               child: Text(
                                 l10n.saveIncomeButton,
-                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),

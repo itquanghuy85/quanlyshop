@@ -590,7 +590,12 @@ class _InventoryViewState extends State<InventoryView>
               Expanded(
                 child: ListView(
                   controller: scrollCtrl,
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    8,
+                    20,
+                    20 + MediaQuery.paddingOf(context).bottom,
+                  ),
                   children: [
                     // Pending warning banner
                     if (displayProduct.isPending) ...[
@@ -1114,10 +1119,14 @@ class _InventoryViewState extends State<InventoryView>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      // Đọc từ `context` ngoài (không phải `outerCtx`/`ctx` — cả hai đều là
+      // context bên trong route) để tránh crash _dependents.isEmpty khi pop.
       builder: (outerCtx) => StatefulBuilder(
         builder: (ctx, setSheetState) => Padding(
           padding: EdgeInsets.only(
-            bottom: MediaQuery.of(outerCtx).viewInsets.bottom,
+            bottom:
+                MediaQuery.of(context).viewInsets.bottom +
+                MediaQuery.paddingOf(context).bottom,
           ),
           child: Container(
             decoration: const BoxDecoration(
@@ -1494,10 +1503,12 @@ class _InventoryViewState extends State<InventoryView>
       useSafeArea: true,
       backgroundColor: Colors.transparent,
       showDragHandle: false,
+      // Đọc từ `context` ngoài (không phải `outerCtx`/`ctx`) để tránh crash
+      // _dependents.isEmpty khi pop.
       builder: (outerCtx) => StatefulBuilder(
         builder: (ctx, setS) {
-          final keyboardInset = MediaQuery.viewInsetsOf(ctx).bottom;
-          final bottomInset = MediaQuery.paddingOf(ctx).bottom;
+          final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+          final bottomInset = MediaQuery.paddingOf(context).bottom;
 
           return AnimatedPadding(
             duration: const Duration(milliseconds: 120),

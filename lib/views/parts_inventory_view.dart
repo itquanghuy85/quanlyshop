@@ -4578,8 +4578,9 @@ class _SupplierPickerSheetState extends State<_SupplierPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+    final navBarBottom = MediaQuery.paddingOf(context).bottom;
     return Padding(
-      padding: EdgeInsets.only(bottom: bottomPadding),
+      padding: EdgeInsets.only(bottom: bottomPadding + navBarBottom),
       child: SizedBox(
         height: MediaQuery.of(context).size.height * 0.55,
         child: Column(

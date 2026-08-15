@@ -4,6 +4,22 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-16] - fix(ui): 22 điểm popup MEDIUM risk còn lại + thêm 2 điểm context-safety
+
+**Bối cảnh:** Nốt phần còn lại của audit 95 file ở mục `[2026-08-15c]` — 22 điểm chỉ xử lý bàn phím (`viewInsetsOf`) mà thiếu thanh điều hướng (`paddingOf`), theo yêu cầu user tiếp tục nhưng cẩn trọng vì app đã có người dùng/dữ liệu thật.
+
+**Fix:** Thêm `MediaQuery.paddingOf(context).bottom` vào công thức padding đáy đã có sẵn ở 22 điểm, cùng pattern đã kiểm chứng ở đợt HIGH risk trước. Một số sheet dùng `context` bị shadow nhiều lớp (`create_repair_order_view.dart`, `hr_salary_settings_view.dart` — 3 lớp builder cùng tên `context`) được capture riêng ra biến trước khi bị shadow.
+
+**Tiện sửa cùng lúc:** 2 điểm context-safety riêng biệt (đọc `MediaQuery` từ `ctx` bên trong thay vì `context` ngoài — nguy cơ crash `_dependents.isEmpty`) mà audit ghi nhận là "otherwise safe pattern": `missing_info_products_view.dart` (`_editCost`), `repair_detail_view.dart` (`_showAddServiceDialog`, chỉ đổi context cho dòng `viewInsetsOf`, không đụng gì khác trong hàm này vì đã test kỹ từ trước).
+
+**Files:** `attendance_management_view.dart` (5), `cash_closing_view.dart` (2), `create_repair_order_view.dart`, `expense_view.dart` (2), `community_view.dart`, `inventory_view.dart` (3, gồm 1 điểm loại bỏ `Builder` lồng thừa giống pattern đã fix ở `repair_detail_view.dart`), `payment_request_chat_view.dart`, `repair_detail_view.dart` (2), `sale_detail_view.dart`, `ai_repair_input_sheet.dart`, `ai_order_input_sheet.dart`, `storage_location_selector.dart`, `quick_code_picker_sheet.dart`, `supplier_picker_sheet.dart`, `attendance_view.dart` (2), `category_management_view.dart`, `hr_salary_settings_view.dart`, `parts_inventory_view.dart`, `missing_info_products_view.dart`.
+
+- `flutter analyze` sạch trên toàn `lib/` (không có lỗi/warning mới so với trước khi sửa)
+- `flutter build apk --debug` thành công, cài + khởi động trên Oppo CPH2203, kiểm tra `adb logcat` không có FATAL/AndroidRuntime exception khi mở app — theo phản hồi user về tiết kiệm token, không lặp lại screenshot cho từng file/màn hình riêng lẻ lần này
+- **Toàn bộ danh sách 42 điểm (20 HIGH + 22 MEDIUM) từ audit ban đầu nay đã fix xong.**
+
+---
+
 ## [2026-08-15c] - fix(ui): 20 điểm popup/bottom sheet bị che nút bấm bởi thanh điều hướng/bàn phím
 
 **Triệu chứng (user báo):** "rất nhiều chỗ khi popup bị che nút bấm ở dưới màn hình hoặc che ít hoặc che hết khó bấm".

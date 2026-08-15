@@ -32,7 +32,8 @@ class MissingInfoProductsView extends StatefulWidget {
   });
 
   @override
-  State<MissingInfoProductsView> createState() => _MissingInfoProductsViewState();
+  State<MissingInfoProductsView> createState() =>
+      _MissingInfoProductsViewState();
 }
 
 class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
@@ -53,7 +54,8 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
 
   /// Key duy nhất cho mỗi sản phẩm: ưu tiên firestoreId → imei → name+ngày
   static String _productKey(Product p) {
-    if (p.firestoreId != null && p.firestoreId!.isNotEmpty) return p.firestoreId!;
+    if (p.firestoreId != null && p.firestoreId!.isNotEmpty)
+      return p.firestoreId!;
     if (p.imei != null && p.imei!.isNotEmpty) return 'imei:${p.imei}';
     return 'name:${p.name}:${p.createdAt}';
   }
@@ -66,7 +68,10 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
       (p.imei != null && p.imei!.isNotEmpty ? 1 : 0);
 
   /// Loại bỏ record trùng — khi 2 record cùng key, giữ cái có nhiều thông tin hơn
-  static List<Product> _dedup(List<Product> list, [Map<String, Product>? seen]) {
+  static List<Product> _dedup(
+    List<Product> list, [
+    Map<String, Product>? seen,
+  ]) {
     final map = seen ?? <String, Product>{};
     for (final p in list) {
       final key = _productKey(p);
@@ -76,6 +81,7 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
     }
     return map.values.toList();
   }
+
   final _scrollCtrs = [ScrollController(), ScrollController()];
   StreamSubscription<String>? _productEventSub;
 
@@ -96,7 +102,12 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
     _load(1);
     _productEventSub = EventBus().stream
         .where((e) => e == 'financial_changed' || e == 'products_changed')
-        .listen((_) { if (mounted) { _load(0); _load(1); } });
+        .listen((_) {
+          if (mounted) {
+            _load(0);
+            _load(1);
+          }
+        });
   }
 
   @override
@@ -127,7 +138,8 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
     });
     final inStock = tab == 0;
     final page = await _db.getProductsPaged(
-      _pageSize, 0,
+      _pageSize,
+      0,
       inStockOnly: inStock,
       soldOnly: !inStock,
       missingInfoOnly: true,
@@ -153,7 +165,8 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
     setState(() => _loading[tab] = true);
     final inStock = tab == 0;
     final page = await _db.getProductsPaged(
-      _pageSize, _offsets[tab],
+      _pageSize,
+      _offsets[tab],
       inStockOnly: inStock,
       soldOnly: !inStock,
       missingInfoOnly: true,
@@ -183,24 +196,28 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
       if (!mounted) return;
       if (saleMaps.isNotEmpty) {
         final sale = SaleOrder.fromMap(saleMaps.last); // lấy hóa đơn gần nhất
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => SaleDetailView(sale: sale),
-        ));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => SaleDetailView(sale: sale)),
+        );
         return;
       }
     }
     // Fallback hoặc còn hàng → xem chi tiết kho
     if (mounted) {
-      Navigator.push(context, MaterialPageRoute(
-        builder: (_) => InventoryDetailView(product: p),
-      ));
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => InventoryDetailView(product: p)),
+      );
     }
   }
 
   Future<void> _editCost(Product p) async {
     final costCtrl = TextEditingController();
     // Pre-fill payment from existing record so the two dialogs stay consistent
-    String selectedPayment = (p.paymentMethod?.isNotEmpty == true) ? p.paymentMethod! : 'TIỀN MẶT';
+    String selectedPayment = (p.paymentMethod?.isNotEmpty == true)
+        ? p.paymentMethod!
+        : 'TIỀN MẶT';
     String supplierName = p.supplier?.trim() ?? '';
     const fieldTextColor = Color(0xFF1F2937);
     const fieldLabelColor = Color(0xFF6B7280);
@@ -210,10 +227,12 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
+      // Đọc từ `context` ngoài (không phải `ctx`) để tránh crash
+      // _dependents.isEmpty khi pop.
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
-          final keyboardInset = MediaQuery.viewInsetsOf(ctx).bottom;
-          final bottomInset = MediaQuery.paddingOf(ctx).bottom;
+          final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+          final bottomInset = MediaQuery.paddingOf(context).bottom;
 
           return AnimatedPadding(
             duration: const Duration(milliseconds: 120),
@@ -227,113 +246,203 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
                 ),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade50,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
                 ),
                 padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + bottomInset),
-                child: SingleChildScrollView(child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(child: Container(
-                  width: 36, height: 4,
-                  decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
-                )),
-                const SizedBox(height: 12),
-                Row(children: [
-                  const Icon(Icons.attach_money_rounded, color: Colors.orange, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(
-                    'Nhập giá vốn: ${p.name}',
-                    style: const TextStyle(color: Color(0xFF1C2331), fontWeight: FontWeight.w700, fontSize: 15),
-                    maxLines: 1, overflow: TextOverflow.ellipsis,
-                  )),
-                ]),
-                const SizedBox(height: 16),
-                CurrencyTextField(controller: costCtrl, label: 'Giá vốn (đ)', icon: Icons.account_balance_wallet_outlined),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedPayment,
-                  decoration: const InputDecoration(
-                    labelText: 'Phương thức thanh toán',
-                    labelStyle: TextStyle(color: fieldLabelColor),
-                    prefixIcon: Icon(Icons.payment, color: fieldLabelColor),
-                    border: OutlineInputBorder(),
-                    filled: true,
-                    fillColor: Colors.white,
-                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFFD1D5DB))),
-                  ),
-                  dropdownColor: Colors.white,
-                  style: const TextStyle(color: fieldTextColor, fontWeight: FontWeight.w600),
-                  items: ['TIỀN MẶT', 'CHUYỂN KHOẢN', 'CÔNG NỢ']
-                      .map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
-                  onChanged: (v) => setS(() => selectedPayment = v ?? 'TIỀN MẶT'),
-                ),
-                if (_enableSupplier) ...[
-                  const SizedBox(height: 12),
-                  InkWell(
-                    onTap: () async {
-                      final picked = await showSupplierPickerSheet(ctx);
-                      final name = (picked?['name'] as String?)?.trim() ?? '';
-                      if (name.isNotEmpty) setS(() => supplierName = name);
-                    },
-                    child: InputDecorator(
-                      decoration: InputDecoration(
-                        labelText: selectedPayment == 'CÔNG NỢ' ? 'Nhà cung cấp (bắt buộc)' : 'Nhà cung cấp',
-                        labelStyle: const TextStyle(color: fieldLabelColor),
-                        prefixIcon: const Icon(Icons.storefront_outlined, color: fieldLabelColor),
-                        suffixIcon: const Icon(Icons.search, color: fieldLabelColor),
-                        border: const OutlineInputBorder(),
-                        filled: true,
-                        fillColor: Colors.white,
-                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                          color: selectedPayment == 'CÔNG NỢ' && supplierName.isEmpty
-                              ? Colors.red.shade400 : const Color(0xFFD1D5DB),
-                        )),
-                      ),
-                      child: Text(
-                        supplierName.isEmpty ? '-- Chạm để chọn --' : supplierName,
-                        style: TextStyle(
-                          color: supplierName.isEmpty ? fieldLabelColor : fieldTextColor,
-                          fontWeight: supplierName.isEmpty ? FontWeight.w500 : FontWeight.w600,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 36,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.attach_money_rounded,
+                            color: Colors.orange,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Nhập giá vốn: ${p.name}',
+                              style: const TextStyle(
+                                color: Color(0xFF1C2331),
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      CurrencyTextField(
+                        controller: costCtrl,
+                        label: 'Giá vốn (đ)',
+                        icon: Icons.account_balance_wallet_outlined,
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedPayment,
+                        decoration: const InputDecoration(
+                          labelText: 'Phương thức thanh toán',
+                          labelStyle: TextStyle(color: fieldLabelColor),
+                          prefixIcon: Icon(
+                            Icons.payment,
+                            color: fieldLabelColor,
+                          ),
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          fillColor: Colors.white,
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFFD1D5DB)),
+                          ),
+                        ),
+                        dropdownColor: Colors.white,
+                        style: const TextStyle(
+                          color: fieldTextColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        items: ['TIỀN MẶT', 'CHUYỂN KHOẢN', 'CÔNG NỢ']
+                            .map(
+                              (m) => DropdownMenuItem(value: m, child: Text(m)),
+                            )
+                            .toList(),
+                        onChanged: (v) =>
+                            setS(() => selectedPayment = v ?? 'TIỀN MẶT'),
+                      ),
+                      if (_enableSupplier) ...[
+                        const SizedBox(height: 12),
+                        InkWell(
+                          onTap: () async {
+                            final picked = await showSupplierPickerSheet(ctx);
+                            final name =
+                                (picked?['name'] as String?)?.trim() ?? '';
+                            if (name.isNotEmpty)
+                              setS(() => supplierName = name);
+                          },
+                          child: InputDecorator(
+                            decoration: InputDecoration(
+                              labelText: selectedPayment == 'CÔNG NỢ'
+                                  ? 'Nhà cung cấp (bắt buộc)'
+                                  : 'Nhà cung cấp',
+                              labelStyle: const TextStyle(
+                                color: fieldLabelColor,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.storefront_outlined,
+                                color: fieldLabelColor,
+                              ),
+                              suffixIcon: const Icon(
+                                Icons.search,
+                                color: fieldLabelColor,
+                              ),
+                              border: const OutlineInputBorder(),
+                              filled: true,
+                              fillColor: Colors.white,
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color:
+                                      selectedPayment == 'CÔNG NỢ' &&
+                                          supplierName.isEmpty
+                                      ? Colors.red.shade400
+                                      : const Color(0xFFD1D5DB),
+                                ),
+                              ),
+                            ),
+                            child: Text(
+                              supplierName.isEmpty
+                                  ? '-- Chạm để chọn --'
+                                  : supplierName,
+                              style: TextStyle(
+                                color: supplierName.isEmpty
+                                    ? fieldLabelColor
+                                    : fieldTextColor,
+                                fontWeight: supplierName.isEmpty
+                                    ? FontWeight.w500
+                                    : FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () {
+                                FocusScope.of(ctx).unfocus();
+                                Navigator.pop(ctx);
+                              },
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.grey.shade700,
+                                side: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              child: const Text('Hủy'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton.icon(
+                              icon: const Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                              label: const Text(
+                                'Lưu giá vốn',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange,
+                              ),
+                              onPressed: () {
+                                final cost = CurrencyTextField.parseValue(
+                                  costCtrl.text,
+                                );
+                                if (cost <= 0) {
+                                  NotificationService.showSnackBar(
+                                    'Giá vốn phải lớn hơn 0',
+                                    color: Colors.red,
+                                  );
+                                  return;
+                                }
+                                if (selectedPayment == 'CÔNG NỢ' &&
+                                    supplierName.isEmpty) {
+                                  NotificationService.showSnackBar(
+                                    'Thanh toán CÔNG NỢ phải chọn nhà cung cấp',
+                                    color: Colors.red,
+                                  );
+                                  return;
+                                }
+                                Navigator.pop(ctx, {
+                                  'payment': selectedPayment,
+                                  'supplier': supplierName,
+                                });
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
-                const SizedBox(height: 16),
-                Row(children: [
-                  Expanded(child: OutlinedButton(
-                    onPressed: () {
-                      FocusScope.of(ctx).unfocus();
-                      Navigator.pop(ctx);
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.grey.shade700,
-                      side: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    child: const Text('Hủy'),
-                  )),
-                  const SizedBox(width: 12),
-                  Expanded(flex: 2, child: ElevatedButton.icon(
-                    icon: const Icon(Icons.check, color: Colors.white, size: 16),
-                    label: const Text('Lưu giá vốn', style: TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                    onPressed: () {
-                      final cost = CurrencyTextField.parseValue(costCtrl.text);
-                      if (cost <= 0) {
-                        NotificationService.showSnackBar('Giá vốn phải lớn hơn 0', color: Colors.red);
-                        return;
-                      }
-                      if (selectedPayment == 'CÔNG NỢ' && supplierName.isEmpty) {
-                        NotificationService.showSnackBar('Thanh toán CÔNG NỢ phải chọn nhà cung cấp', color: Colors.red);
-                        return;
-                      }
-                      Navigator.pop(ctx, {'payment': selectedPayment, 'supplier': supplierName});
-                    },
-                  )),
-                ]),
-              ],
-            )),
+                ),
               ),
             ),
           );
@@ -370,7 +479,9 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
       final now = DateTime.now().millisecondsSinceEpoch;
       final shopId = await UserService.getCurrentShopId() ?? '';
       if (!mounted) return;
-      final supplierLabel = supplier.isNotEmpty ? supplier : (p.supplier?.isNotEmpty == true ? p.supplier! : 'NCC');
+      final supplierLabel = supplier.isNotEmpty
+          ? supplier
+          : (p.supplier?.isNotEmpty == true ? p.supplier! : 'NCC');
 
       // Fix 1+2: Retroactively patch sale_orders.totalCost to avoid double counting.
       // IMEI products: find by IMEI. Non-IMEI (accessories): find by productId.
@@ -383,7 +494,11 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
           final saleId = saleMap['id'] as int?;
           final fid = saleMap['firestoreId'] as String?;
           if (saleId != null) {
-            final changed = await _db.updateSaleCostByImei(saleId, imei, newCost);
+            final changed = await _db.updateSaleCostByImei(
+              saleId,
+              imei,
+              newCost,
+            );
             if (changed) {
               updatedSaleCount++;
               // Enqueue sync so Firestore totalCost is also updated
@@ -403,8 +518,11 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
           final saleId = saleMap['id'] as int?;
           final fid = saleMap['firestoreId'] as String?;
           if (saleId != null) {
-            final changed =
-                await _db.updateSaleCostByProductId(saleId, p.id!, newCost);
+            final changed = await _db.updateSaleCostByProductId(
+              saleId,
+              p.id!,
+              newCost,
+            );
             if (changed) {
               updatedSaleCount++;
               await SyncOrchestrator().enqueue(
@@ -425,7 +543,10 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
       // (a) cost was 0 before → first time setting cost, OR
       // (b) cost existed but paymentMethod was never recorded → _pickSupplier hadn't run yet
       // Avoids double-count when _pickSupplier already created expense/debt for the same product.
-      final needFinancial = newCost > 0 && (p.cost <= 0 || (p.paymentMethod == null || p.paymentMethod!.isEmpty));
+      final needFinancial =
+          newCost > 0 &&
+          (p.cost <= 0 ||
+              (p.paymentMethod == null || p.paymentMethod!.isEmpty));
 
       if (needFinancial && payment == 'CÔNG NỢ') {
         // Always record debt regardless of sale update (cash-flow obligation to supplier)
@@ -439,7 +560,8 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
           'totalAmount': newCost,
           'paidAmount': 0,
           'status': 'ACTIVE',
-          'note': 'Nhập giá vốn: ${p.name} - ${MoneyUtils.formatCurrency(newCost)}đ',
+          'note':
+              'Nhập giá vốn: ${p.name} - ${MoneyUtils.formatCurrency(newCost)}đ',
           'linkedId': p.firestoreId ?? '',
           'linkedType': 'product_cost',
           'createdAt': now,
@@ -546,9 +668,11 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
       builder: (ctx) => SimpleDialog(
         title: const Text('Phương thức thanh toán'),
         children: ['TIỀN MẶT', 'CHUYỂN KHOẢN', 'CÔNG NỢ']
-            .map((m) => SimpleDialogOption(
-                  onPressed: () => Navigator.pop(ctx, m),
-                  child: Row(children: [
+            .map(
+              (m) => SimpleDialogOption(
+                onPressed: () => Navigator.pop(ctx, m),
+                child: Row(
+                  children: [
                     SizedBox(
                       width: 24,
                       child: m == defaultPm
@@ -557,8 +681,10 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
                     ),
                     const SizedBox(width: 8),
                     Text(m, style: const TextStyle(fontSize: 15)),
-                  ]),
-                ))
+                  ],
+                ),
+              ),
+            )
             .toList(),
       ),
     );
@@ -585,7 +711,8 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
 
       // Record financial entries only if cost > 0 AND payment was never previously recorded
       // (avoids double-counting if fast_stock_in or _editCost already created expense/debt)
-      final needFinancial = p.cost > 0 && (p.paymentMethod == null || p.paymentMethod!.isEmpty);
+      final needFinancial =
+          p.cost > 0 && (p.paymentMethod == null || p.paymentMethod!.isEmpty);
       if (needFinancial) {
         if (payment == 'CÔNG NỢ') {
           final debtFid = 'debt_ncc_${p.firestoreId ?? p.id}_$now';
@@ -598,7 +725,8 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
             'totalAmount': p.cost,
             'paidAmount': 0,
             'status': 'ACTIVE',
-            'note': 'Bổ sung NCC: ${p.name} - ${MoneyUtils.formatCurrency(p.cost)}đ',
+            'note':
+                'Bổ sung NCC: ${p.name} - ${MoneyUtils.formatCurrency(p.cost)}đ',
             'linkedId': p.firestoreId ?? '',
             'linkedType': 'product_cost',
             'createdAt': now,
@@ -731,8 +859,14 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
           controller: _tabController,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
-          labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          labelStyle: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 13,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
           indicatorColor: Colors.white,
           indicatorWeight: 3,
           tabs: [
@@ -758,10 +892,16 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle_outline_rounded, size: 64, color: Colors.green.shade300),
+            Icon(
+              Icons.check_circle_outline_rounded,
+              size: 64,
+              color: Colors.green.shade300,
+            ),
             const SizedBox(height: 12),
             Text(
-              tab == 0 ? 'Tất cả hàng còn đều đủ thông tin!' : 'Không có hàng đã bán thiếu thông tin.',
+              tab == 0
+                  ? 'Tất cả hàng còn đều đủ thông tin!'
+                  : 'Không có hàng đã bán thiếu thông tin.',
               style: AppTextStyles.body1.copyWith(color: Colors.grey),
               textAlign: TextAlign.center,
             ),
@@ -789,8 +929,10 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
   }
 
   Widget _buildCard(Product p, int tab) {
-    final missingCost = _allowPendingCost && widget.canViewCostPrice && p.cost == 0;
-    final missingSupplier = _enableSupplier && (p.supplier == null || p.supplier!.trim().isEmpty);
+    final missingCost =
+        _allowPendingCost && widget.canViewCostPrice && p.cost == 0;
+    final missingSupplier =
+        _enableSupplier && (p.supplier == null || p.supplier!.trim().isEmpty);
     // Edge case: cả 2 chức năng tắt → không có badge/action nào → ẩn card
     if (!missingCost && !missingSupplier) return const SizedBox.shrink();
     final isSold = tab == 1;
@@ -798,141 +940,183 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
     return GestureDetector(
       onTap: () => _openDetail(p, isSold: isSold),
       child: Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: missingCost && missingSupplier
-              ? Colors.red.shade200
-              : missingCost
-                  ? Colors.orange.shade200
-                  : Colors.indigo.shade100,
-          width: 1.2,
+        margin: const EdgeInsets.only(bottom: 10),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: missingCost && missingSupplier
+                ? Colors.red.shade200
+                : missingCost
+                ? Colors.orange.shade200
+                : Colors.indigo.shade100,
+            width: 1.2,
+          ),
         ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header: tên + ngày
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    p.name,
-                    style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.w700),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header: tên + ngày
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      p.name,
+                      style: AppTextStyles.body1.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-                Text(
-                  DateFormat('dd/MM/yy').format(
-                    DateTime.fromMillisecondsSinceEpoch(p.createdAt),
+                  Text(
+                    DateFormat(
+                      'dd/MM/yy',
+                    ).format(DateTime.fromMillisecondsSinceEpoch(p.createdAt)),
+                    style: AppTextStyles.caption.copyWith(color: Colors.grey),
                   ),
-                  style: AppTextStyles.caption.copyWith(color: Colors.grey),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            // Meta info
-            Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              children: [
-                if (p.imei != null && p.imei!.isNotEmpty)
-                  _chip(p.imei!, Colors.blueGrey, Icons.tag_rounded),
-                if (p.supplier != null && p.supplier!.isNotEmpty)
-                  _chip(p.supplier!, Colors.teal.shade700, Icons.storefront_outlined),
-                if (p.cost > 0 && widget.canViewCostPrice)
-                  _chip(MoneyUtils.formatCompactCurrency(p.cost), Colors.deepPurple, Icons.account_balance_wallet_outlined),
-                if (isSold)
-                  _chip('Đã bán', Colors.grey.shade600, Icons.sell_outlined),
-                if (!isSold)
-                  _chip('Tồn: ${p.quantity}', Colors.blue.shade700, Icons.inventory_2_outlined),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // Missing badges + actions
-            Row(
-              children: [
-                if (missingCost)
-                  _badge('⚠ Chưa vốn', Colors.orange.shade700, Colors.orange.shade50),
-                if (missingCost) const SizedBox(width: 6),
-                if (missingSupplier)
-                  _badge('⚠ Chưa NCC', Colors.red.shade600, Colors.red.shade50),
-                const Spacer(),
-                if (missingCost && _canManage)
-                  _actionBtn(
-                    label: 'Nhập vốn',
-                    icon: Icons.edit_rounded,
-                    color: Colors.orange,
-                    onTap: () => _editCost(p),
-                  ),
-                if (missingCost && missingSupplier && _canManage)
-                  const SizedBox(width: 6),
-                if (missingSupplier && _canManage)
-                  _actionBtn(
-                    label: 'Chọn NCC',
-                    icon: Icons.store_mall_directory_outlined,
-                    color: Colors.indigo,
-                    onTap: () => _pickSupplier(p),
-                  ),
-              ],
-            ),
-          ],
+                ],
+              ),
+              const SizedBox(height: 6),
+              // Meta info
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  if (p.imei != null && p.imei!.isNotEmpty)
+                    _chip(p.imei!, Colors.blueGrey, Icons.tag_rounded),
+                  if (p.supplier != null && p.supplier!.isNotEmpty)
+                    _chip(
+                      p.supplier!,
+                      Colors.teal.shade700,
+                      Icons.storefront_outlined,
+                    ),
+                  if (p.cost > 0 && widget.canViewCostPrice)
+                    _chip(
+                      MoneyUtils.formatCompactCurrency(p.cost),
+                      Colors.deepPurple,
+                      Icons.account_balance_wallet_outlined,
+                    ),
+                  if (isSold)
+                    _chip('Đã bán', Colors.grey.shade600, Icons.sell_outlined),
+                  if (!isSold)
+                    _chip(
+                      'Tồn: ${p.quantity}',
+                      Colors.blue.shade700,
+                      Icons.inventory_2_outlined,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // Missing badges + actions
+              Row(
+                children: [
+                  if (missingCost)
+                    _badge(
+                      '⚠ Chưa vốn',
+                      Colors.orange.shade700,
+                      Colors.orange.shade50,
+                    ),
+                  if (missingCost) const SizedBox(width: 6),
+                  if (missingSupplier)
+                    _badge(
+                      '⚠ Chưa NCC',
+                      Colors.red.shade600,
+                      Colors.red.shade50,
+                    ),
+                  const Spacer(),
+                  if (missingCost && _canManage)
+                    _actionBtn(
+                      label: 'Nhập vốn',
+                      icon: Icons.edit_rounded,
+                      color: Colors.orange,
+                      onTap: () => _editCost(p),
+                    ),
+                  if (missingCost && missingSupplier && _canManage)
+                    const SizedBox(width: 6),
+                  if (missingSupplier && _canManage)
+                    _actionBtn(
+                      label: 'Chọn NCC',
+                      icon: Icons.store_mall_directory_outlined,
+                      color: Colors.indigo,
+                      onTap: () => _pickSupplier(p),
+                    ),
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
-    ),   // Card
-    );   // GestureDetector
+      ), // Card
+    ); // GestureDetector
   }
 
   Widget _chip(String label, Color color, IconData icon) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 12, color: color),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: AppTextStyles.caption.copyWith(
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 12, color: color),
-            const SizedBox(width: 4),
-            Text(label, style: AppTextStyles.caption.copyWith(color: color, fontWeight: FontWeight.w600)),
-          ],
-        ),
-      );
+      ],
+    ),
+  );
 
   Widget _badge(String label, Color fg, Color bg) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
-        child: Text(label, style: AppTextStyles.caption.copyWith(color: fg, fontWeight: FontWeight.bold)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: bg,
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Text(
+      label,
+      style: AppTextStyles.caption.copyWith(
+        color: fg,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+  );
 
   Widget _actionBtn({
     required String label,
     required IconData icon,
     required Color color,
     required VoidCallback onTap,
-  }) =>
-      InkWell(
-        onTap: onTap,
+  }) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(8),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: color.withValues(alpha: 0.4)),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: AppTextStyles.caption.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 13, color: color),
-              const SizedBox(width: 4),
-              Text(label, style: AppTextStyles.caption.copyWith(color: color, fontWeight: FontWeight.w700)),
-            ],
-          ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }

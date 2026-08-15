@@ -7,13 +7,19 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## ⚡ Trạng thái hiện tại
 
 **Version:** 1.x (develop) → Production live  
-**Last Updated:** 2026-08-15  
-**Build Status:** ✅ `flutter build apk --debug` OK, đã cài + test trên thiết bị Android thật (adb, Oppo CPH2203) — chưa test Samsung A32 (không có máy trong phiên này)  
+**Last Updated:** 2026-08-16  
+**Build Status:** ✅ `flutter build apk --debug` OK, đã cài + khởi động trên Oppo CPH2203 (adb logcat không có FATAL exception) — chưa test Samsung A32 (không có máy trong phiên này)  
 **Analyze Status:** ✅ 0 compile error (chỉ info/warning có sẵn từ trước)  
 **Database Version:** SQLite v104  
 **Branch:** master  
-**Active Initiative:** Multi-fix session 2026-08-08/10 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng, backup đơn sửa kèm ảnh, fix sheet Thêm dịch vụ) + review/fix regression + fix danh sách bán còn nợ sai + fix 20 popup che nút 2026-08-15
-**⚠️ Known issue chưa fix:** xem Known Issues bên dưới — (1) crash intermittent trong bottom sheet có TextField qua đường Back hệ thống, (2) 22 điểm MEDIUM risk popup còn thiếu xử lý thanh điều hướng (chưa fix, ưu tiên thấp hơn 20 điểm HIGH đã xong)
+**Active Initiative:** Multi-fix session 2026-08-08/10 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng, backup đơn sửa kèm ảnh, fix sheet Thêm dịch vụ) + review/fix regression + fix danh sách bán còn nợ sai + fix 42 popup che nút (toàn bộ audit) 2026-08-15/16
+**⚠️ Known issue chưa fix:** crash intermittent trong bottom sheet có TextField qua đường Back hệ thống — xem Known Issues bên dưới (mục "Crash `_dependents.isEmpty`"). Toàn bộ 42 điểm popup che nút từ audit ban đầu (20 HIGH + 22 MEDIUM) đã fix xong, KHÔNG còn mục nào tồn đọng.
+
+### ✅ Vừa hoàn thành (2026-08-16): fix(ui): 22 điểm popup MEDIUM risk còn lại — hoàn tất toàn bộ audit 42 điểm
+- Nốt phần MEDIUM risk còn lại từ audit `[2026-08-15c]` — thêm `MediaQuery.paddingOf(context).bottom` vào 22 điểm chỉ xử lý bàn phím mà thiếu thanh điều hướng, cùng pattern đã kiểm chứng
+- Tiện sửa thêm 2 điểm context-safety (`missing_info_products_view.dart`, `repair_detail_view.dart` — chỉ đổi dòng đọc MediaQuery, không đụng gì khác)
+- `flutter analyze` sạch, `flutter build apk --debug` thành công, cài + khởi động trên Oppo CPH2203 không FATAL exception trong logcat — không lặp lại screenshot từng file (theo phản hồi user về token)
+- Chi tiết: `docs/CHANGELOG.md` mục `[2026-08-16]`
 
 ### ✅ Vừa hoàn thành (2026-08-15c): fix(ui): 20 điểm popup/bottom sheet bị che nút bấm
 - User báo "rất nhiều chỗ khi popup bị che nút bấm" — audit 95 file dùng `showModalBottomSheet`/`showDialog`/`showAppBottomSheet`, tìm ra 20 điểm HIGH risk (không xử lý safe-area/keyboard gì cả) + 22 điểm MEDIUM risk (chỉ thiếu xử lý thanh điều hướng) trên 30+ file
@@ -1191,11 +1197,7 @@ e6584072 fix(finance): sync REPAIR_PARTNER type across all 3 debt-balance checkp
    - Chi tiết kỹ thuật + cách tái hiện: memory `feedback_modal_sheet_dependents_crash.md` mục "Cause 3"; `docs/CHANGELOG.md` mục `[2026-08-15]`
    - Next step: cần phiên điều tra riêng, có thể cần nâng cấp `android:enableOnBackInvokedCallback` (log cảnh báo hiện tại: "OnBackInvokedCallback is not enabled for the application") hoặc tìm hiểu sâu hơn Flutter's predictive-back handling
 
-7. **22 điểm popup MEDIUM risk còn thiếu xử lý thanh điều hướng — CHƯA fix**
-   - Issue: Sheet chỉ xử lý `MediaQuery.viewInsetsOf(context).bottom` (bàn phím) mà thiếu `MediaQuery.paddingOf(context).bottom` (thanh điều hướng hệ thống) — nút bấm có thể bị che trên máy dùng nav bar 3-nút (thường không sao trên máy dùng gesture nav)
-   - Status: ⚠ Chưa fix — user yêu cầu ưu tiên 20 điểm HIGH risk trước (đã xong, xem mục `[2026-08-15c]`), 22 điểm này để sau
-   - Danh sách đầy đủ (file:line + lý do): kết quả audit gốc còn trong lịch sử hội thoại phiên 2026-08-15; các file chính: `attendance_management_view.dart` (5 chỗ), `cash_closing_view.dart`, `create_repair_order_view.dart`, `expense_view.dart`, `community_view.dart`, `inventory_view.dart` (2 chỗ), `payment_request_chat_view.dart`, `repair_detail_view.dart`, `sale_detail_view.dart`, `ai_repair_input_sheet.dart`, `ai_order_input_sheet.dart`, `storage_location_selector.dart`, `quick_code_picker_sheet.dart`, `supplier_picker_sheet.dart`, `attendance_view.dart` (2 chỗ), `category_management_view.dart`, `hr_salary_settings_view.dart`, `parts_inventory_view.dart`
-   - Riêng biệt: 6 chỗ đọc `MediaQuery` từ context trong (route-scoped) thay vì context ngoài — cùng họ bug crash `_dependents.isEmpty` ở mục 6, KHÔNG tính vào 22 điểm trên: `inventory_view.dart` (2 chỗ), `create_repair_order_view.dart`, `community_view.dart`, `missing_info_products_view.dart`, `repair_detail_view.dart`
+7. ~~22 điểm popup MEDIUM risk còn thiếu xử lý thanh điều hướng~~ — **✅ Đã fix xong 2026-08-16** (xem `docs/CHANGELOG.md` mục `[2026-08-16]`). Toàn bộ 42 điểm popup từ audit gốc (20 HIGH + 22 MEDIUM, gồm cả 6 điểm context-safety liên quan) nay đã xử lý hết.
 
 ---
 

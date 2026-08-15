@@ -71,14 +71,17 @@ class _QuickCodePickerSheetState extends State<_QuickCodePickerSheet> {
       _offset = 0;
       _hasMore = true;
     });
-    final search = _searchCtrl.text.trim().isEmpty ? null : _searchCtrl.text.trim();
+    final search = _searchCtrl.text.trim().isEmpty
+        ? null
+        : _searchCtrl.text.trim();
     final total = await _db.countQuickInputCodes(
       shopId: _shopId,
       search: search,
       activeOnly: true,
     );
     final page = await _db.getQuickInputCodesPaged(
-      _pageSize, 0,
+      _pageSize,
+      0,
       shopId: _shopId,
       search: search,
       activeOnly: true,
@@ -97,9 +100,12 @@ class _QuickCodePickerSheetState extends State<_QuickCodePickerSheet> {
     if (_loadingMore || !_hasMore || _loading) return;
     if (!mounted) return;
     setState(() => _loadingMore = true);
-    final search = _searchCtrl.text.trim().isEmpty ? null : _searchCtrl.text.trim();
+    final search = _searchCtrl.text.trim().isEmpty
+        ? null
+        : _searchCtrl.text.trim();
     final page = await _db.getQuickInputCodesPaged(
-      _pageSize, _offset,
+      _pageSize,
+      _offset,
       shopId: _shopId,
       search: search,
       activeOnly: true,
@@ -160,7 +166,11 @@ class _QuickCodePickerSheetState extends State<_QuickCodePickerSheet> {
               padding: const EdgeInsets.fromLTRB(16, 0, 4, 4),
               child: Row(
                 children: [
-                  const Icon(Icons.flash_on_rounded, color: Colors.blue, size: 22),
+                  const Icon(
+                    Icons.flash_on_rounded,
+                    color: Colors.blue,
+                    size: 22,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -175,9 +185,11 @@ class _QuickCodePickerSheetState extends State<_QuickCodePickerSheet> {
                     onPressed: () {
                       final nav = Navigator.of(context, rootNavigator: true);
                       nav.pop();
-                      nav.push(MaterialPageRoute(
-                        builder: (_) => const QuickInputCodesView(),
-                      ));
+                      nav.push(
+                        MaterialPageRoute(
+                          builder: (_) => const QuickInputCodesView(),
+                        ),
+                      );
                     },
                     icon: const Icon(Icons.tune_rounded, size: 15),
                     label: const Text('Quản lý'),
@@ -221,9 +233,15 @@ class _QuickCodePickerSheetState extends State<_QuickCodePickerSheet> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.blue, width: 1.5),
+                    borderSide: const BorderSide(
+                      color: Colors.blue,
+                      width: 1.5,
+                    ),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   filled: true,
                   fillColor: Colors.grey.shade50,
                 ),
@@ -253,6 +271,7 @@ class _QuickCodePickerSheetState extends State<_QuickCodePickerSheet> {
       onRefresh: _load,
       child: ListView.builder(
         controller: _scrollCtrl,
+        padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
         itemCount: _codes.length + (_loadingMore || _hasMore ? 1 : 0),
         itemBuilder: (_, i) {
           if (i >= _codes.length) {
@@ -318,7 +337,9 @@ class _QuickCodePickerSheetState extends State<_QuickCodePickerSheet> {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
-                isPhone ? Icons.phone_android_rounded : Icons.inventory_2_outlined,
+                isPhone
+                    ? Icons.phone_android_rounded
+                    : Icons.inventory_2_outlined,
                 color: isPhone ? Colors.blue : Colors.orange,
                 size: 20,
               ),
@@ -374,7 +395,11 @@ class _QuickCodePickerSheetState extends State<_QuickCodePickerSheet> {
               ),
 
             const SizedBox(width: 4),
-            Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400, size: 18),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.grey.shade400,
+              size: 18,
+            ),
           ],
         ),
       ),

@@ -228,10 +228,10 @@ class _AiRepairInputSheetState extends State<AiRepairInputSheet>
   }
 
   void _retry() => setState(() {
-        _state = _SheetState.idle;
-        _errorMsg = '';
-        _result = null;
-      });
+    _state = _SheetState.idle;
+    _errorMsg = '';
+    _result = null;
+  });
 
   void _apply() {
     if (_result != null && _result!.hasEnoughData) {
@@ -246,13 +246,15 @@ class _AiRepairInputSheetState extends State<AiRepairInputSheet>
   @override
   Widget build(BuildContext context) {
     final kb = MediaQuery.viewInsetsOf(context).bottom;
+    final navBar = MediaQuery.paddingOf(context).bottom;
     return Padding(
-      padding: EdgeInsets.only(bottom: kb),
+      padding: EdgeInsets.only(bottom: kb + navBar),
       child: Container(
         decoration: const BoxDecoration(
           color: PopupTheme.bgDark,
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(PopupTheme.radiusSheet)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(PopupTheme.radiusSheet),
+          ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -307,8 +309,11 @@ class _AiRepairInputSheetState extends State<AiRepairInputSheet>
                 ),
               ],
             ),
-            child: const Icon(Icons.auto_awesome_rounded,
-                color: Colors.white, size: 20),
+            child: const Icon(
+              Icons.auto_awesome_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 12),
           const Expanded(
@@ -348,18 +353,20 @@ class _AiRepairInputSheetState extends State<AiRepairInputSheet>
       autofocus: _state == _SheetState.idle,
       enabled: isEditable,
       style: const TextStyle(
-          color: PopupTheme.textPrimary, fontSize: 14, height: 1.5),
+        color: PopupTheme.textPrimary,
+        fontSize: 14,
+        height: 1.5,
+      ),
       decoration: InputDecoration(
         hintText:
             'Ví dụ: iphone 13 mất face id khách Hùng sdt 0901234567 đặt cọc 500',
-        hintStyle:
-            const TextStyle(color: PopupTheme.textMuted, fontSize: 12.5),
+        hintStyle: const TextStyle(color: PopupTheme.textMuted, fontSize: 12.5),
         filled: true,
-        fillColor: isEditable
-            ? PopupTheme.surfaceDark
-            : PopupTheme.cardDark,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        fillColor: isEditable ? PopupTheme.surfaceDark : PopupTheme.cardDark,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(PopupTheme.radiusField),
           borderSide: const BorderSide(color: PopupTheme.borderDark),
@@ -374,13 +381,15 @@ class _AiRepairInputSheetState extends State<AiRepairInputSheet>
         ),
         disabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(PopupTheme.radiusField),
-          borderSide:
-              const BorderSide(color: PopupTheme.borderDark),
+          borderSide: const BorderSide(color: PopupTheme.borderDark),
         ),
         suffixIcon: isEditable && _ctrl.text.isNotEmpty
             ? IconButton(
-                icon: const Icon(Icons.clear_rounded,
-                    size: 16, color: PopupTheme.textMuted),
+                icon: const Icon(
+                  Icons.clear_rounded,
+                  size: 16,
+                  color: PopupTheme.textMuted,
+                ),
                 onPressed: () => setState(() {
                   _ctrl.clear();
                   _result = null;
@@ -401,7 +410,8 @@ class _AiRepairInputSheetState extends State<AiRepairInputSheet>
   }
 
   Widget _buildActionRow() {
-    final canAnalyze = _state == _SheetState.idle ||
+    final canAnalyze =
+        _state == _SheetState.idle ||
         _state == _SheetState.error ||
         _state == _SheetState.preview;
     final isActive = _state == _SheetState.idle || _state == _SheetState.error;
@@ -434,15 +444,16 @@ class _AiRepairInputSheetState extends State<AiRepairInputSheet>
                         Icons.mic_rounded,
                         size: 22,
                         color: Color.lerp(
-                            _kRed, Colors.red.shade300, _pulse.value),
+                          _kRed,
+                          Colors.red.shade300,
+                          _pulse.value,
+                        ),
                       ),
                     )
                   : Icon(
                       Icons.mic_rounded,
                       size: 22,
-                      color: isActive
-                          ? _kPurple
-                          : PopupTheme.textMuted,
+                      color: isActive ? _kPurple : PopupTheme.textMuted,
                     ),
             ),
           ),
@@ -468,14 +479,18 @@ class _AiRepairInputSheetState extends State<AiRepairInputSheet>
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 13),
                       shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(PopupTheme.radiusButton)),
+                        borderRadius: BorderRadius.circular(
+                          PopupTheme.radiusButton,
+                        ),
+                      ),
                     ),
                     icon: const Icon(Icons.auto_awesome_rounded, size: 17),
                     label: const Text(
                       'Phân tích AI',
                       style: TextStyle(
-                          fontWeight: FontWeight.w700, fontSize: 13.5),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13.5,
+                      ),
                     ),
                   ),
           ),
@@ -499,10 +514,7 @@ class _AiRepairInputSheetState extends State<AiRepairInputSheet>
           SizedBox(
             width: 16,
             height: 16,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: _kPurple,
-            ),
+            child: CircularProgressIndicator(strokeWidth: 2, color: _kPurple),
           ),
           SizedBox(width: 10),
           Text(
@@ -524,8 +536,10 @@ class _AiRepairInputSheetState extends State<AiRepairInputSheet>
       transitionBuilder: (child, anim) => FadeTransition(
         opacity: anim,
         child: SlideTransition(
-          position: Tween(begin: const Offset(0, 0.08), end: Offset.zero)
-              .animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
+          position: Tween(
+            begin: const Offset(0, 0.08),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
           child: child,
         ),
       ),
@@ -559,8 +573,7 @@ class _AiRepairInputSheetState extends State<AiRepairInputSheet>
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: _kRed.withValues(
-                        alpha: 0.4 + 0.3 * _pulse.value),
+                    color: _kRed.withValues(alpha: 0.4 + 0.3 * _pulse.value),
                     blurRadius: 6,
                   ),
                 ],
@@ -572,9 +585,10 @@ class _AiRepairInputSheetState extends State<AiRepairInputSheet>
             child: Text(
               'Đang nghe... Nói tự nhiên, dừng lại khi xong',
               style: TextStyle(
-                  color: _kRed,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500),
+                color: _kRed,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
           GestureDetector(
@@ -585,11 +599,14 @@ class _AiRepairInputSheetState extends State<AiRepairInputSheet>
                 color: _kRed,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text('Dừng',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold)),
+              child: const Text(
+                'Dừng',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
         ],
@@ -616,14 +633,11 @@ class _AiRepairInputSheetState extends State<AiRepairInputSheet>
         children: [
           // Badge header
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             child: Row(
               children: [
                 Icon(
-                  isAi
-                      ? Icons.auto_awesome_rounded
-                      : Icons.flash_on_rounded,
+                  isAi ? Icons.auto_awesome_rounded : Icons.flash_on_rounded,
                   size: 14,
                   color: accent,
                 ),
@@ -641,8 +655,11 @@ class _AiRepairInputSheetState extends State<AiRepairInputSheet>
                   onTap: _retry,
                   child: Row(
                     children: [
-                      Icon(Icons.edit_rounded,
-                          size: 13, color: accent.withValues(alpha: 0.7)),
+                      Icon(
+                        Icons.edit_rounded,
+                        size: 13,
+                        color: accent.withValues(alpha: 0.7),
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         'Sửa lại',
@@ -667,13 +684,28 @@ class _AiRepairInputSheetState extends State<AiRepairInputSheet>
             child: Column(
               children: [
                 if (r.device.isNotEmpty)
-                  _previewRow(Icons.smartphone_rounded, 'Thiết bị', r.device, accent),
+                  _previewRow(
+                    Icons.smartphone_rounded,
+                    'Thiết bị',
+                    r.device,
+                    accent,
+                  ),
                 if (r.issue.isNotEmpty)
                   _previewRow(Icons.build_rounded, 'Lỗi', r.issue, accent),
                 if (r.customerName.isNotEmpty)
-                  _previewRow(Icons.person_rounded, 'Khách', r.customerName, accent),
+                  _previewRow(
+                    Icons.person_rounded,
+                    'Khách',
+                    r.customerName,
+                    accent,
+                  ),
                 if (r.customerPhone.isNotEmpty)
-                  _previewRow(Icons.phone_rounded, 'SĐT', r.customerPhone, accent),
+                  _previewRow(
+                    Icons.phone_rounded,
+                    'SĐT',
+                    r.customerPhone,
+                    accent,
+                  ),
                 if (r.deposit > 0)
                   _previewRow(
                     Icons.payments_rounded,
@@ -684,14 +716,19 @@ class _AiRepairInputSheetState extends State<AiRepairInputSheet>
                 if (!r.hasEnoughData)
                   const Row(
                     children: [
-                      Icon(Icons.warning_amber_rounded,
-                          size: 15, color: Color(0xFFD97706)),
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        size: 15,
+                        color: Color(0xFFD97706),
+                      ),
                       SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           'Thiếu thông tin. Thêm tên thiết bị hoặc lỗi.',
                           style: TextStyle(
-                              color: Color(0xFFD97706), fontSize: 12.5),
+                            color: Color(0xFFD97706),
+                            fontSize: 12.5,
+                          ),
                         ),
                       ),
                     ],
@@ -717,8 +754,9 @@ class _AiRepairInputSheetState extends State<AiRepairInputSheet>
             child: Text(
               label,
               style: const TextStyle(
-                  color: PopupTheme.textSecondary,
-                  fontSize: 12.5),
+                color: PopupTheme.textSecondary,
+                fontSize: 12.5,
+              ),
             ),
           ),
           Expanded(
@@ -747,8 +785,7 @@ class _AiRepairInputSheetState extends State<AiRepairInputSheet>
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline_rounded,
-              color: _kRed, size: 18),
+          const Icon(Icons.error_outline_rounded, color: _kRed, size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -760,17 +797,19 @@ class _AiRepairInputSheetState extends State<AiRepairInputSheet>
           GestureDetector(
             onTap: _retry,
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
                 color: _kRed,
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: const Text('Thử lại',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.bold)),
+              child: const Text(
+                'Thử lại',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
         ],
@@ -779,7 +818,8 @@ class _AiRepairInputSheetState extends State<AiRepairInputSheet>
   }
 
   Widget _buildFooter() {
-    final canApply = _state == _SheetState.preview &&
+    final canApply =
+        _state == _SheetState.preview &&
         _result != null &&
         _result!.hasEnoughData;
 
@@ -801,8 +841,10 @@ class _AiRepairInputSheetState extends State<AiRepairInputSheet>
               onPressed: canApply ? _apply : null,
               style: PopupTheme.primaryButton(color: _kPurple),
               icon: const Icon(Icons.check_circle_rounded, size: 17),
-              label: const Text('ÁP DỤNG',
-                  style: TextStyle(fontWeight: FontWeight.w800)),
+              label: const Text(
+                'ÁP DỤNG',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
             ),
           ),
         ],

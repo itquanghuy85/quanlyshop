@@ -48,11 +48,11 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
     'salaryType': 'monthly',
     'saleCommType': 'percent',
     'saleCommValue': 1.0,
-    'saleCommTier1Max': 10000000.0,   // Dưới 10 triệu
-    'saleCommTier1Value': 20000.0,    // 20k
-    'saleCommTier2Max': 50000000.0,   // 10-50 triệu
-    'saleCommTier2Value': 50000.0,    // 50k
-    'saleCommTier3Value': 100000.0,   // Trên 50 triệu -> 100k
+    'saleCommTier1Max': 10000000.0, // Dưới 10 triệu
+    'saleCommTier1Value': 20000.0, // 20k
+    'saleCommTier2Max': 50000000.0, // 10-50 triệu
+    'saleCommTier2Value': 50000.0, // 50k
+    'saleCommTier3Value': 100000.0, // Trên 50 triệu -> 100k
     'repairCommType': 'percent',
     'repairCommValue': 10.0,
     'transportAllowance': 0.0,
@@ -107,7 +107,10 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
     final role = await UserService.getUserRole(uid);
     if (mounted) {
       // Cho phép admin, owner (chủ shop) hoặc manager có quyền cài đặt lương
-      setState(() => _isAdmin = role == 'admin' || role == 'owner' || role == 'manager');
+      setState(
+        () =>
+            _isAdmin = role == 'admin' || role == 'owner' || role == 'manager',
+      );
     }
   }
 
@@ -260,11 +263,16 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
         'baseSalary': (_shopDefaults['baseSalary'] ?? 0).toInt(),
         'saleCommPercent': _shopDefaults['saleCommValue'] ?? 1.0,
         'saleCommType': _shopDefaults['saleCommType'] ?? 'percent',
-        'saleCommTier1Max': (_shopDefaults['saleCommTier1Max'] ?? 10000000).toInt(),
-        'saleCommTier1Value': (_shopDefaults['saleCommTier1Value'] ?? 20000).toInt(),
-        'saleCommTier2Max': (_shopDefaults['saleCommTier2Max'] ?? 50000000).toInt(),
-        'saleCommTier2Value': (_shopDefaults['saleCommTier2Value'] ?? 50000).toInt(),
-        'saleCommTier3Value': (_shopDefaults['saleCommTier3Value'] ?? 100000).toInt(),
+        'saleCommTier1Max': (_shopDefaults['saleCommTier1Max'] ?? 10000000)
+            .toInt(),
+        'saleCommTier1Value': (_shopDefaults['saleCommTier1Value'] ?? 20000)
+            .toInt(),
+        'saleCommTier2Max': (_shopDefaults['saleCommTier2Max'] ?? 50000000)
+            .toInt(),
+        'saleCommTier2Value': (_shopDefaults['saleCommTier2Value'] ?? 50000)
+            .toInt(),
+        'saleCommTier3Value': (_shopDefaults['saleCommTier3Value'] ?? 100000)
+            .toInt(),
         'repairProfitPercent': _shopDefaults['repairCommValue'] ?? 10.0,
         'repairCommType': _shopDefaults['repairCommType'] ?? 'percent',
         'transportAllowance': (_shopDefaults['transportAllowance'] ?? 0)
@@ -335,7 +343,8 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
     return Scaffold(
       backgroundColor: FinanceV2Theme.pageBg,
       appBar: CustomAppBar.build(
-        title: AppLocalizations.of(context)?.salarySettings ?? 'SALARY SETTINGS',
+        title:
+            AppLocalizations.of(context)?.salarySettings ?? 'SALARY SETTINGS',
         accentColor: AppBarAccents.staff,
         elevation: 0,
         bottom: TabBar(
@@ -362,23 +371,25 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
           ),
         ],
       ),
-      body: ResponsiveCenter(child: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                if (UserService.isCurrentUserSuperAdmin())
-                  _buildAdminShopSelectorCard(),
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildShopDefaultsTab(),
-                      _buildEmployeeSettingsTab(),
-                    ],
+      body: ResponsiveCenter(
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                children: [
+                  if (UserService.isCurrentUserSuperAdmin())
+                    _buildAdminShopSelectorCard(),
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildShopDefaultsTab(),
+                        _buildEmployeeSettingsTab(),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            )),
+                ],
+              ),
+      ),
     );
   }
 
@@ -458,7 +469,9 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
                       if (ownerEmail.toString().isNotEmpty)
                         Text(
                           ownerEmail,
-                          style: FinanceV2Theme.micro.copyWith(color: FinanceV2Theme.subInk),
+                          style: FinanceV2Theme.micro.copyWith(
+                            color: FinanceV2Theme.subInk,
+                          ),
                         ),
                     ],
                   ),
@@ -672,7 +685,9 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
               padding: const EdgeInsets.only(top: 8),
               child: Text(
                 '⚠️ Chỉ chủ shop hoặc admin mới có thể thay đổi',
-                style: FinanceV2Theme.caption.copyWith(color: FinanceV2Theme.warn),
+                style: FinanceV2Theme.caption.copyWith(
+                  color: FinanceV2Theme.warn,
+                ),
               ),
             ),
         ],
@@ -691,7 +706,9 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
             const SizedBox(height: 16),
             Text(
               'Chưa có nhân viên nào',
-              style: FinanceV2Theme.bodyMd.copyWith(color: FinanceV2Theme.subInk),
+              style: FinanceV2Theme.bodyMd.copyWith(
+                color: FinanceV2Theme.subInk,
+              ),
             ),
             const SizedBox(height: 8),
             TextButton.icon(
@@ -741,7 +758,9 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
             ),
             subtitle: Text(
               staff['email'] ?? staffId,
-              style: FinanceV2Theme.caption.copyWith(color: FinanceV2Theme.subInk),
+              style: FinanceV2Theme.caption.copyWith(
+                color: FinanceV2Theme.subInk,
+              ),
               overflow: TextOverflow.ellipsis,
             ),
             trailing: Row(
@@ -767,6 +786,9 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
   }
 
   void _showEmployeeSettingsDialog(Map<String, dynamic> staff) {
+    // Captured before the nested builders shadow `context` with their own
+    // — dùng biến này để đọc MediaQuery, tránh crash _dependents.isEmpty.
+    final outerContext = context;
     final staffId = staff['uid'] ?? staff['id'] ?? '';
     final staffName = staff['name'] ?? staff['displayName'] ?? 'Chưa có tên';
     final shopId = staff['shopId'] ?? '';
@@ -800,405 +822,420 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.9,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: StatefulBuilder(
-            builder: (context, setDialogState) => Column(
-              children: [
-                // Handle bar
-                Container(
-                  margin: const EdgeInsets.only(top: 12),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(outerContext).bottom,
+        ),
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.9,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) => Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: StatefulBuilder(
+              builder: (context, setDialogState) => Column(
+                children: [
+                  // Handle bar
+                  Container(
+                    margin: const EdgeInsets.only(top: 12),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                ),
-                // Header
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: AppColors.primary,
-                        child: Text(
-                          staffName.isNotEmpty
-                              ? staffName[0].toUpperCase()
-                              : '?',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(staffName, style: FinanceV2Theme.titleLg),
-                            Text(
-                              staff['email'] ?? staffId,
-                              style: FinanceV2Theme.caption.copyWith(
-                                color: FinanceV2Theme.subInk,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                      TextButton.icon(
-                        onPressed: () {
-                          setDialogState(() {
-                            settings = EmployeeSalarySettings(
-                              id: settings.id,
-                              staffId: staffId,
-                              staffName: staffName,
-                              shopId: shopId,
-                              baseSalary: (_shopDefaults['baseSalary'] ?? 0)
-                                  .toDouble(),
-                              dailyRate: (_shopDefaults['dailyRate'] ?? 0)
-                                  .toDouble(),
-                              salaryType:
-                                  _shopDefaults['salaryType'] ?? 'monthly',
-                              saleCommType:
-                                  _shopDefaults['saleCommType'] ?? 'percent',
-                              saleCommValue:
-                                  (_shopDefaults['saleCommValue'] ?? 1.0)
-                                      .toDouble(),
-                              repairCommType:
-                                  _shopDefaults['repairCommType'] ?? 'percent',
-                              repairCommValue:
-                                  (_shopDefaults['repairCommValue'] ?? 10.0)
-                                      .toDouble(),
-                              transportAllowance:
-                                  (_shopDefaults['transportAllowance'] ?? 0)
-                                      .toDouble(),
-                              mealAllowance:
-                                  (_shopDefaults['mealAllowance'] ?? 0)
-                                      .toDouble(),
-                              phoneAllowance:
-                                  (_shopDefaults['phoneAllowance'] ?? 0)
-                                      .toDouble(),
-                              standardHoursPerDay:
-                                  (_shopDefaults['standardHoursPerDay'] ?? 8.0)
-                                      .toDouble(),
-                              overtimeRate:
-                                  (_shopDefaults['overtimeRate'] ?? 150)
-                                      .toDouble(),
-                            );
-                          });
-                        },
-                        icon: const Icon(Icons.restore, size: 18),
-                        label: const Text('Mặc định'),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1),
-                // Content
-                Expanded(
-                  child: ListView(
-                    controller: scrollController,
+                  // Header
+                  Padding(
                     padding: const EdgeInsets.all(16),
-                    children: [
-                      // LƯƠNG CƠ BẢN
-                      _buildSectionCard(
-                        title: '💰 LƯƠNG CƠ BẢN',
-                        color: Colors.green,
-                        children: [
-                          _buildDropdownField(
-                            label: 'Loại lương',
-                            value: settings.salaryType,
-                            items: const [
-                              DropdownMenuItem(
-                                value: 'monthly',
-                                child: Text('Theo tháng'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'daily',
-                                child: Text('Theo ngày'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'hourly',
-                                child: Text('Theo giờ'),
-                              ),
-                            ],
-                            onChanged: (v) => setDialogState(() {
-                              settings = settings.copyWith(salaryType: v);
-                            }),
-                          ),
-                          const SizedBox(height: 12),
-                          _buildCurrencyField(
-                            label: settings.salaryType == 'daily'
-                                ? 'Lương/ngày (đ)'
-                                : settings.salaryType == 'hourly'
-                                ? 'Lương/giờ (đ)'
-                                : 'Lương cơ bản/tháng (đ)',
-                            value: settings.baseSalary,
-                            onChanged: (v) => setDialogState(() {
-                              settings = settings.copyWith(baseSalary: v);
-                            }),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // HOA HỒNG BÁN HÀNG
-                      _buildSectionCard(
-                        title: '🛒 HOA HỒNG BÁN HÀNG',
-                        color: Colors.orange,
-                        children: [
-                          _buildDropdownField(
-                            label: 'Loại tính',
-                            value: settings.saleCommType,
-                            items: const [
-                              DropdownMenuItem(
-                                value: 'percent',
-                                child: Text('% Doanh số'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'tiered',
-                                child: Text('Theo bậc giá trị đơn'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'fixed_per_order',
-                                child: Text('Tiền cố định/đơn'),
-                              ),
-                            ],
-                            onChanged: (v) => setDialogState(() {
-                              settings = settings.copyWith(saleCommType: v);
-                            }),
-                          ),
-                          const SizedBox(height: 12),
-                          if (settings.saleCommType == 'percent')
-                            _buildPercentField(
-                              label: '% Hoa hồng doanh số',
-                              value: settings.saleCommValue,
-                              onChanged: (v) => setDialogState(() {
-                                settings = settings.copyWith(saleCommValue: v);
-                              }),
-                            )
-                          else if (settings.saleCommType == 'tiered')
-                            ..._buildEmployeeTieredFields(settings, setDialogState, (s) => settings = s)
-                          else
-                            _buildCurrencyField(
-                              label: 'Tiền/đơn bán (đ)',
-                              value: settings.saleCommValue,
-                              onChanged: (v) => setDialogState(() {
-                                settings = settings.copyWith(saleCommValue: v);
-                              }),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // HOA HỒNG SỬA CHỮA
-                      _buildSectionCard(
-                        title: '🔧 HOA HỒNG SỬA CHỮA',
-                        color: Colors.blue,
-                        children: [
-                          _buildDropdownField(
-                            label: 'Loại tính',
-                            value: settings.repairCommType,
-                            items: const [
-                              DropdownMenuItem(
-                                value: 'percent',
-                                child: Text('% Lợi nhuận'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'fixed_per_order',
-                                child: Text('Tiền cố định/đơn'),
-                              ),
-                            ],
-                            onChanged: (v) => setDialogState(() {
-                              settings = settings.copyWith(repairCommType: v);
-                            }),
-                          ),
-                          const SizedBox(height: 12),
-                          if (settings.repairCommType == 'percent')
-                            _buildPercentField(
-                              label: '% Hoa hồng lợi nhuận',
-                              value: settings.repairCommValue,
-                              onChanged: (v) => setDialogState(() {
-                                settings = settings.copyWith(
-                                  repairCommValue: v,
-                                );
-                              }),
-                            )
-                          else
-                            _buildCurrencyField(
-                              label: 'Tiền/đơn sửa (đ)',
-                              value: settings.repairCommValue,
-                              onChanged: (v) => setDialogState(() {
-                                settings = settings.copyWith(
-                                  repairCommValue: v,
-                                );
-                              }),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // PHỤ CẤP
-                      _buildSectionCard(
-                        title: '🎁 PHỤ CẤP',
-                        color: Colors.teal,
-                        children: [
-                          _buildCurrencyField(
-                            label: 'Phụ cấp xăng xe/tháng (đ)',
-                            value: settings.transportAllowance,
-                            onChanged: (v) => setDialogState(() {
-                              settings = settings.copyWith(
-                                transportAllowance: v,
-                              );
-                            }),
-                          ),
-                          const SizedBox(height: 12),
-                          _buildCurrencyField(
-                            label: 'Phụ cấp ăn trưa/tháng (đ)',
-                            value: settings.mealAllowance,
-                            onChanged: (v) => setDialogState(() {
-                              settings = settings.copyWith(mealAllowance: v);
-                            }),
-                          ),
-                          const SizedBox(height: 12),
-                          _buildCurrencyField(
-                            label: 'Phụ cấp điện thoại/tháng (đ)',
-                            value: settings.phoneAllowance,
-                            onChanged: (v) => setDialogState(() {
-                              settings = settings.copyWith(phoneAllowance: v);
-                            }),
-                          ),
-                          const SizedBox(height: 12),
-                          _buildCurrencyField(
-                            label: 'Phụ cấp khác/tháng (đ)',
-                            value: settings.otherAllowance,
-                            onChanged: (v) => setDialogState(() {
-                              settings = settings.copyWith(otherAllowance: v);
-                            }),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // THƯỞNG DOANH SỐ
-                      _buildSectionCard(
-                        title: '🎯 THƯỞNG DOANH SỐ',
-                        color: Colors.amber.shade700,
-                        children: [
-                          _buildCurrencyField(
-                            label: 'Mục tiêu doanh số/tháng (đ)',
-                            value: settings.monthlyTarget,
-                            onChanged: (v) => setDialogState(() {
-                              settings = settings.copyWith(monthlyTarget: v);
-                            }),
-                          ),
-                          const SizedBox(height: 12),
-                          _buildPercentField(
-                            label: '% Thưởng khi đạt mục tiêu',
-                            value: settings.targetBonusPercent,
-                            onChanged: (v) => setDialogState(() {
-                              settings = settings.copyWith(
-                                targetBonusPercent: v,
-                              );
-                            }),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // GIỜ LÀM & OT
-                      _buildSectionCard(
-                        title: '⏰ GIỜ LÀM & OT',
-                        color: Colors.indigo,
-                        children: [
-                          _buildNumberField(
-                            label: 'Giờ chuẩn/ngày',
-                            value: settings.standardHoursPerDay,
-                            onChanged: (v) => setDialogState(() {
-                              settings = settings.copyWith(
-                                standardHoursPerDay: v,
-                              );
-                            }),
-                            suffix: 'giờ',
-                          ),
-                          const SizedBox(height: 12),
-                          _buildPercentField(
-                            label: 'Hệ số OT (%)',
-                            value: settings.overtimeRate,
-                            max: 300,
-                            onChanged: (v) => setDialogState(() {
-                              settings = settings.copyWith(overtimeRate: v);
-                            }),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-
-                      // PREVIEW
-                      _buildPreviewCard(settings),
-                      const SizedBox(height: 24),
-                    ],
-                  ),
-                ),
-                // Bottom buttons
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.2),
-                        spreadRadius: 1,
-                        blurRadius: 4,
-                        offset: const Offset(0, -2),
-                      ),
-                    ],
-                  ),
-                  child: SafeArea(
                     child: Row(
                       children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('HỦY'),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          flex: 2,
-                          child: ElevatedButton.icon(
-                            onPressed: _isAdmin
-                                ? () async {
-                                    await _saveEmployeeSettings(settings);
-                                    setState(() {
-                                      _employeeSettings[staffId] = settings;
-                                    });
-                                    if (mounted) Navigator.pop(context);
-                                  }
-                                : null,
-                            icon: const Icon(Icons.save),
-                            label: const Text('LƯU'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.white,
+                        CircleAvatar(
+                          backgroundColor: AppColors.primary,
+                          child: Text(
+                            staffName.isNotEmpty
+                                ? staffName[0].toUpperCase()
+                                : '?',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(staffName, style: FinanceV2Theme.titleLg),
+                              Text(
+                                staff['email'] ?? staffId,
+                                style: FinanceV2Theme.caption.copyWith(
+                                  color: FinanceV2Theme.subInk,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: () {
+                            setDialogState(() {
+                              settings = EmployeeSalarySettings(
+                                id: settings.id,
+                                staffId: staffId,
+                                staffName: staffName,
+                                shopId: shopId,
+                                baseSalary: (_shopDefaults['baseSalary'] ?? 0)
+                                    .toDouble(),
+                                dailyRate: (_shopDefaults['dailyRate'] ?? 0)
+                                    .toDouble(),
+                                salaryType:
+                                    _shopDefaults['salaryType'] ?? 'monthly',
+                                saleCommType:
+                                    _shopDefaults['saleCommType'] ?? 'percent',
+                                saleCommValue:
+                                    (_shopDefaults['saleCommValue'] ?? 1.0)
+                                        .toDouble(),
+                                repairCommType:
+                                    _shopDefaults['repairCommType'] ??
+                                    'percent',
+                                repairCommValue:
+                                    (_shopDefaults['repairCommValue'] ?? 10.0)
+                                        .toDouble(),
+                                transportAllowance:
+                                    (_shopDefaults['transportAllowance'] ?? 0)
+                                        .toDouble(),
+                                mealAllowance:
+                                    (_shopDefaults['mealAllowance'] ?? 0)
+                                        .toDouble(),
+                                phoneAllowance:
+                                    (_shopDefaults['phoneAllowance'] ?? 0)
+                                        .toDouble(),
+                                standardHoursPerDay:
+                                    (_shopDefaults['standardHoursPerDay'] ??
+                                            8.0)
+                                        .toDouble(),
+                                overtimeRate:
+                                    (_shopDefaults['overtimeRate'] ?? 150)
+                                        .toDouble(),
+                              );
+                            });
+                          },
+                          icon: const Icon(Icons.restore, size: 18),
+                          label: const Text('Mặc định'),
                         ),
                       ],
                     ),
                   ),
-                ),
-              ],
+                  const Divider(height: 1),
+                  // Content
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        // LƯƠNG CƠ BẢN
+                        _buildSectionCard(
+                          title: '💰 LƯƠNG CƠ BẢN',
+                          color: Colors.green,
+                          children: [
+                            _buildDropdownField(
+                              label: 'Loại lương',
+                              value: settings.salaryType,
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'monthly',
+                                  child: Text('Theo tháng'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'daily',
+                                  child: Text('Theo ngày'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'hourly',
+                                  child: Text('Theo giờ'),
+                                ),
+                              ],
+                              onChanged: (v) => setDialogState(() {
+                                settings = settings.copyWith(salaryType: v);
+                              }),
+                            ),
+                            const SizedBox(height: 12),
+                            _buildCurrencyField(
+                              label: settings.salaryType == 'daily'
+                                  ? 'Lương/ngày (đ)'
+                                  : settings.salaryType == 'hourly'
+                                  ? 'Lương/giờ (đ)'
+                                  : 'Lương cơ bản/tháng (đ)',
+                              value: settings.baseSalary,
+                              onChanged: (v) => setDialogState(() {
+                                settings = settings.copyWith(baseSalary: v);
+                              }),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // HOA HỒNG BÁN HÀNG
+                        _buildSectionCard(
+                          title: '🛒 HOA HỒNG BÁN HÀNG',
+                          color: Colors.orange,
+                          children: [
+                            _buildDropdownField(
+                              label: 'Loại tính',
+                              value: settings.saleCommType,
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'percent',
+                                  child: Text('% Doanh số'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'tiered',
+                                  child: Text('Theo bậc giá trị đơn'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'fixed_per_order',
+                                  child: Text('Tiền cố định/đơn'),
+                                ),
+                              ],
+                              onChanged: (v) => setDialogState(() {
+                                settings = settings.copyWith(saleCommType: v);
+                              }),
+                            ),
+                            const SizedBox(height: 12),
+                            if (settings.saleCommType == 'percent')
+                              _buildPercentField(
+                                label: '% Hoa hồng doanh số',
+                                value: settings.saleCommValue,
+                                onChanged: (v) => setDialogState(() {
+                                  settings = settings.copyWith(
+                                    saleCommValue: v,
+                                  );
+                                }),
+                              )
+                            else if (settings.saleCommType == 'tiered')
+                              ..._buildEmployeeTieredFields(
+                                settings,
+                                setDialogState,
+                                (s) => settings = s,
+                              )
+                            else
+                              _buildCurrencyField(
+                                label: 'Tiền/đơn bán (đ)',
+                                value: settings.saleCommValue,
+                                onChanged: (v) => setDialogState(() {
+                                  settings = settings.copyWith(
+                                    saleCommValue: v,
+                                  );
+                                }),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // HOA HỒNG SỬA CHỮA
+                        _buildSectionCard(
+                          title: '🔧 HOA HỒNG SỬA CHỮA',
+                          color: Colors.blue,
+                          children: [
+                            _buildDropdownField(
+                              label: 'Loại tính',
+                              value: settings.repairCommType,
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'percent',
+                                  child: Text('% Lợi nhuận'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'fixed_per_order',
+                                  child: Text('Tiền cố định/đơn'),
+                                ),
+                              ],
+                              onChanged: (v) => setDialogState(() {
+                                settings = settings.copyWith(repairCommType: v);
+                              }),
+                            ),
+                            const SizedBox(height: 12),
+                            if (settings.repairCommType == 'percent')
+                              _buildPercentField(
+                                label: '% Hoa hồng lợi nhuận',
+                                value: settings.repairCommValue,
+                                onChanged: (v) => setDialogState(() {
+                                  settings = settings.copyWith(
+                                    repairCommValue: v,
+                                  );
+                                }),
+                              )
+                            else
+                              _buildCurrencyField(
+                                label: 'Tiền/đơn sửa (đ)',
+                                value: settings.repairCommValue,
+                                onChanged: (v) => setDialogState(() {
+                                  settings = settings.copyWith(
+                                    repairCommValue: v,
+                                  );
+                                }),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // PHỤ CẤP
+                        _buildSectionCard(
+                          title: '🎁 PHỤ CẤP',
+                          color: Colors.teal,
+                          children: [
+                            _buildCurrencyField(
+                              label: 'Phụ cấp xăng xe/tháng (đ)',
+                              value: settings.transportAllowance,
+                              onChanged: (v) => setDialogState(() {
+                                settings = settings.copyWith(
+                                  transportAllowance: v,
+                                );
+                              }),
+                            ),
+                            const SizedBox(height: 12),
+                            _buildCurrencyField(
+                              label: 'Phụ cấp ăn trưa/tháng (đ)',
+                              value: settings.mealAllowance,
+                              onChanged: (v) => setDialogState(() {
+                                settings = settings.copyWith(mealAllowance: v);
+                              }),
+                            ),
+                            const SizedBox(height: 12),
+                            _buildCurrencyField(
+                              label: 'Phụ cấp điện thoại/tháng (đ)',
+                              value: settings.phoneAllowance,
+                              onChanged: (v) => setDialogState(() {
+                                settings = settings.copyWith(phoneAllowance: v);
+                              }),
+                            ),
+                            const SizedBox(height: 12),
+                            _buildCurrencyField(
+                              label: 'Phụ cấp khác/tháng (đ)',
+                              value: settings.otherAllowance,
+                              onChanged: (v) => setDialogState(() {
+                                settings = settings.copyWith(otherAllowance: v);
+                              }),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // THƯỞNG DOANH SỐ
+                        _buildSectionCard(
+                          title: '🎯 THƯỞNG DOANH SỐ',
+                          color: Colors.amber.shade700,
+                          children: [
+                            _buildCurrencyField(
+                              label: 'Mục tiêu doanh số/tháng (đ)',
+                              value: settings.monthlyTarget,
+                              onChanged: (v) => setDialogState(() {
+                                settings = settings.copyWith(monthlyTarget: v);
+                              }),
+                            ),
+                            const SizedBox(height: 12),
+                            _buildPercentField(
+                              label: '% Thưởng khi đạt mục tiêu',
+                              value: settings.targetBonusPercent,
+                              onChanged: (v) => setDialogState(() {
+                                settings = settings.copyWith(
+                                  targetBonusPercent: v,
+                                );
+                              }),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // GIỜ LÀM & OT
+                        _buildSectionCard(
+                          title: '⏰ GIỜ LÀM & OT',
+                          color: Colors.indigo,
+                          children: [
+                            _buildNumberField(
+                              label: 'Giờ chuẩn/ngày',
+                              value: settings.standardHoursPerDay,
+                              onChanged: (v) => setDialogState(() {
+                                settings = settings.copyWith(
+                                  standardHoursPerDay: v,
+                                );
+                              }),
+                              suffix: 'giờ',
+                            ),
+                            const SizedBox(height: 12),
+                            _buildPercentField(
+                              label: 'Hệ số OT (%)',
+                              value: settings.overtimeRate,
+                              max: 300,
+                              onChanged: (v) => setDialogState(() {
+                                settings = settings.copyWith(overtimeRate: v);
+                              }),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+
+                        // PREVIEW
+                        _buildPreviewCard(settings),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                  // Bottom buttons
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.2),
+                          spreadRadius: 1,
+                          blurRadius: 4,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
+                    ),
+                    child: SafeArea(
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('HỦY'),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton.icon(
+                              onPressed: _isAdmin
+                                  ? () async {
+                                      await _saveEmployeeSettings(settings);
+                                      setState(() {
+                                        _employeeSettings[staffId] = settings;
+                                      });
+                                      if (mounted) Navigator.pop(context);
+                                    }
+                                  : null,
+                              icon: const Icon(Icons.save),
+                              label: const Text('LƯU'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -1259,7 +1296,9 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
             'Giả định: DS ${_currencyFormat.format(exampleSaleRevenue)}đ, '
             'LN sửa ${_currencyFormat.format(exampleRepairProfit)}đ, '
             '$exampleSaleOrders đơn bán, $exampleRepairOrders đơn sửa',
-            style: FinanceV2Theme.caption.copyWith(color: FinanceV2Theme.subInk),
+            style: FinanceV2Theme.caption.copyWith(
+              color: FinanceV2Theme.subInk,
+            ),
             overflow: TextOverflow.ellipsis,
             maxLines: 2,
           ),
@@ -1286,7 +1325,7 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
                 child: Text(
                   '${_currencyFormat.format(total)}đ',
                   style: TextStyle(
-                  fontSize: FinanceV2Theme.amountLg.fontSize,
+                    fontSize: FinanceV2Theme.amountLg.fontSize,
                     fontWeight: FontWeight.w700,
                     color: FinanceV2Theme.positive,
                   ),
@@ -1344,7 +1383,9 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
           Expanded(
             child: Text(
               text,
-              style: FinanceV2Theme.bodyMd.copyWith(color: color.withValues(alpha: 0.85)),
+              style: FinanceV2Theme.bodyMd.copyWith(
+                color: color.withValues(alpha: 0.85),
+              ),
             ),
           ),
         ],
@@ -1487,7 +1528,8 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
             child: _buildCurrencyField(
               label: 'Mức 1: Đơn dưới (đ)',
               value: (_shopDefaults['saleCommTier1Max'] ?? 10000000).toDouble(),
-              onChanged: (v) => setState(() => _shopDefaults['saleCommTier1Max'] = v),
+              onChanged: (v) =>
+                  setState(() => _shopDefaults['saleCommTier1Max'] = v),
             ),
           ),
           const SizedBox(width: 8),
@@ -1495,7 +1537,8 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
             child: _buildCurrencyField(
               label: 'Hoa hồng 1 (đ)',
               value: (_shopDefaults['saleCommTier1Value'] ?? 20000).toDouble(),
-              onChanged: (v) => setState(() => _shopDefaults['saleCommTier1Value'] = v),
+              onChanged: (v) =>
+                  setState(() => _shopDefaults['saleCommTier1Value'] = v),
             ),
           ),
         ],
@@ -1508,7 +1551,8 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
             child: _buildCurrencyField(
               label: 'Mức 2: Đơn đến (đ)',
               value: (_shopDefaults['saleCommTier2Max'] ?? 50000000).toDouble(),
-              onChanged: (v) => setState(() => _shopDefaults['saleCommTier2Max'] = v),
+              onChanged: (v) =>
+                  setState(() => _shopDefaults['saleCommTier2Max'] = v),
             ),
           ),
           const SizedBox(width: 8),
@@ -1516,7 +1560,8 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
             child: _buildCurrencyField(
               label: 'Hoa hồng 2 (đ)',
               value: (_shopDefaults['saleCommTier2Value'] ?? 50000).toDouble(),
-              onChanged: (v) => setState(() => _shopDefaults['saleCommTier2Value'] = v),
+              onChanged: (v) =>
+                  setState(() => _shopDefaults['saleCommTier2Value'] = v),
             ),
           ),
         ],
@@ -1539,7 +1584,8 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
             child: _buildCurrencyField(
               label: 'Hoa hồng 3 (đ)',
               value: (_shopDefaults['saleCommTier3Value'] ?? 100000).toDouble(),
-              onChanged: (v) => setState(() => _shopDefaults['saleCommTier3Value'] = v),
+              onChanged: (v) =>
+                  setState(() => _shopDefaults['saleCommTier3Value'] = v),
             ),
           ),
         ],
@@ -1717,7 +1763,7 @@ class _CurrencyFieldWidgetState extends State<_CurrencyFieldWidget> {
   void _formatLive(String value) {
     final clean = value.replaceAll(RegExp(r'[^0-9]'), '');
     _currentValue = double.tryParse(clean) ?? 0;
-    
+
     if (clean.isEmpty) {
       _controller.value = const TextEditingValue(
         text: '',
@@ -1725,14 +1771,14 @@ class _CurrencyFieldWidgetState extends State<_CurrencyFieldWidget> {
       );
       return;
     }
-    
+
     final formatted = widget.currencyFormat.format(_currentValue);
     // Preserve cursor position
     final oldLength = _controller.text.length;
     final oldCursor = _controller.selection.baseOffset;
     final newLength = formatted.length;
     final newCursor = (oldCursor + (newLength - oldLength)).clamp(0, newLength);
-    
+
     _controller.value = TextEditingValue(
       text: formatted,
       selection: TextSelection.collapsed(offset: newCursor),

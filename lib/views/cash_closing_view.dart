@@ -1445,7 +1445,9 @@ class _CashClosingViewState extends State<CashClosingView>
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
+          bottom:
+              MediaQuery.of(context).viewInsets.bottom +
+              MediaQuery.paddingOf(context).bottom,
         ),
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -2900,7 +2902,9 @@ class _CashClosingViewState extends State<CashClosingView>
           final canSubmit = !hasDiff || noteCtrl.text.trim().isNotEmpty;
           return Container(
             padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
+              bottom:
+                  MediaQuery.of(context).viewInsets.bottom +
+                  MediaQuery.paddingOf(context).bottom,
             ),
             decoration: const BoxDecoration(
               color: Colors.white,
