@@ -47,6 +47,8 @@ import 'create_sale_view.dart';
 import 'customer_management_view.dart';
 import 'create_repair_order_view.dart';
 import 'about_developer_view.dart';
+import 'other_apps_view.dart';
+import 'data_reconciliation_view.dart';
 import 'cash_closing_view.dart';
 import 'bank_installment_report_view.dart';
 import 'salvage_phone_view.dart';
@@ -6278,6 +6280,14 @@ class _HomeViewState extends State<HomeView>
             color: AppColors.secondary,
             onTap: () => _fadePush(context, const AboutDeveloperView()),
           ),
+          _SettingsItem(
+            group: 'help',
+            title: 'Ứng dụng khác',
+            subtitle: 'Các ứng dụng khác của chúng tôi',
+            icon: Icons.apps_rounded,
+            color: Colors.deepPurple,
+            onTap: () => _fadePush(context, const OtherAppsView()),
+          ),
           // === Dữ liệu & Hệ thống (admin) ===
           if (hasFullAccess)
             _SettingsItem(
@@ -6306,6 +6316,16 @@ class _HomeViewState extends State<HomeView>
               icon: Icons.import_export,
               color: Colors.green,
               onTap: () => _fadePush(context, const ImportExportView()),
+            ),
+          if (hasFullAccess)
+            _SettingsItem(
+              group: 'system',
+              title: 'Công cụ điều chỉnh dữ liệu',
+              subtitle:
+                  'Dọn đơn dư thừa, miễn nợ, sửa kho — có kèm hoàn tài chính',
+              icon: Icons.build_circle_outlined,
+              color: Colors.deepOrange,
+              onTap: () => _fadePush(context, const DataReconciliationView()),
             ),
           if (_isSuperAdmin)
             _SettingsItem(

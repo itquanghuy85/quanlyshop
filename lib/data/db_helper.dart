@@ -480,32 +480,140 @@ class DBHelper {
   /// Normalize Vietnamese diacritics to ASCII for accent-insensitive search.
   static String _normalizeVi(String s) {
     const map = {
-      'à':'a','á':'a','ả':'a','ã':'a','ạ':'a',
-      'ă':'a','ắ':'a','ằ':'a','ẳ':'a','ẵ':'a','ặ':'a',
-      'â':'a','ấ':'a','ầ':'a','ẩ':'a','ẫ':'a','ậ':'a',
-      'è':'e','é':'e','ẻ':'e','ẽ':'e','ẹ':'e',
-      'ê':'e','ế':'e','ề':'e','ể':'e','ễ':'e','ệ':'e',
-      'ì':'i','í':'i','ỉ':'i','ĩ':'i','ị':'i',
-      'ò':'o','ó':'o','ỏ':'o','õ':'o','ọ':'o',
-      'ô':'o','ố':'o','ồ':'o','ổ':'o','ỗ':'o','ộ':'o',
-      'ơ':'o','ớ':'o','ờ':'o','ở':'o','ỡ':'o','ợ':'o',
-      'ù':'u','ú':'u','ủ':'u','ũ':'u','ụ':'u',
-      'ư':'u','ứ':'u','ừ':'u','ử':'u','ữ':'u','ự':'u',
-      'ỳ':'y','ý':'y','ỷ':'y','ỹ':'y','ỵ':'y',
-      'đ':'d',
-      'À':'A','Á':'A','Ả':'A','Ã':'A','Ạ':'A',
-      'Ă':'A','Ắ':'A','Ằ':'A','Ẳ':'A','Ẵ':'A','Ặ':'A',
-      'Â':'A','Ấ':'A','Ầ':'A','Ẩ':'A','Ẫ':'A','Ậ':'A',
-      'È':'E','É':'E','Ẻ':'E','Ẽ':'E','Ẹ':'E',
-      'Ê':'E','Ế':'E','Ề':'E','Ể':'E','Ễ':'E','Ệ':'E',
-      'Ì':'I','Í':'I','Ỉ':'I','Ĩ':'I','Ị':'I',
-      'Ò':'O','Ó':'O','Ỏ':'O','Õ':'O','Ọ':'O',
-      'Ô':'O','Ố':'O','Ồ':'O','Ổ':'O','Ỗ':'O','Ộ':'O',
-      'Ơ':'O','Ớ':'O','Ờ':'O','Ở':'O','Ỡ':'O','Ợ':'O',
-      'Ù':'U','Ú':'U','Ủ':'U','Ũ':'U','Ụ':'U',
-      'Ư':'U','Ứ':'U','Ừ':'U','Ử':'U','Ữ':'U','Ự':'U',
-      'Ỳ':'Y','Ý':'Y','Ỷ':'Y','Ỹ':'Y','Ỵ':'Y',
-      'Đ':'D',
+      'à': 'a',
+      'á': 'a',
+      'ả': 'a',
+      'ã': 'a',
+      'ạ': 'a',
+      'ă': 'a',
+      'ắ': 'a',
+      'ằ': 'a',
+      'ẳ': 'a',
+      'ẵ': 'a',
+      'ặ': 'a',
+      'â': 'a',
+      'ấ': 'a',
+      'ầ': 'a',
+      'ẩ': 'a',
+      'ẫ': 'a',
+      'ậ': 'a',
+      'è': 'e',
+      'é': 'e',
+      'ẻ': 'e',
+      'ẽ': 'e',
+      'ẹ': 'e',
+      'ê': 'e',
+      'ế': 'e',
+      'ề': 'e',
+      'ể': 'e',
+      'ễ': 'e',
+      'ệ': 'e',
+      'ì': 'i',
+      'í': 'i',
+      'ỉ': 'i',
+      'ĩ': 'i',
+      'ị': 'i',
+      'ò': 'o',
+      'ó': 'o',
+      'ỏ': 'o',
+      'õ': 'o',
+      'ọ': 'o',
+      'ô': 'o',
+      'ố': 'o',
+      'ồ': 'o',
+      'ổ': 'o',
+      'ỗ': 'o',
+      'ộ': 'o',
+      'ơ': 'o',
+      'ớ': 'o',
+      'ờ': 'o',
+      'ở': 'o',
+      'ỡ': 'o',
+      'ợ': 'o',
+      'ù': 'u',
+      'ú': 'u',
+      'ủ': 'u',
+      'ũ': 'u',
+      'ụ': 'u',
+      'ư': 'u',
+      'ứ': 'u',
+      'ừ': 'u',
+      'ử': 'u',
+      'ữ': 'u',
+      'ự': 'u',
+      'ỳ': 'y',
+      'ý': 'y',
+      'ỷ': 'y',
+      'ỹ': 'y',
+      'ỵ': 'y',
+      'đ': 'd',
+      'À': 'A',
+      'Á': 'A',
+      'Ả': 'A',
+      'Ã': 'A',
+      'Ạ': 'A',
+      'Ă': 'A',
+      'Ắ': 'A',
+      'Ằ': 'A',
+      'Ẳ': 'A',
+      'Ẵ': 'A',
+      'Ặ': 'A',
+      'Â': 'A',
+      'Ấ': 'A',
+      'Ầ': 'A',
+      'Ẩ': 'A',
+      'Ẫ': 'A',
+      'Ậ': 'A',
+      'È': 'E',
+      'É': 'E',
+      'Ẻ': 'E',
+      'Ẽ': 'E',
+      'Ẹ': 'E',
+      'Ê': 'E',
+      'Ế': 'E',
+      'Ề': 'E',
+      'Ể': 'E',
+      'Ễ': 'E',
+      'Ệ': 'E',
+      'Ì': 'I',
+      'Í': 'I',
+      'Ỉ': 'I',
+      'Ĩ': 'I',
+      'Ị': 'I',
+      'Ò': 'O',
+      'Ó': 'O',
+      'Ỏ': 'O',
+      'Õ': 'O',
+      'Ọ': 'O',
+      'Ô': 'O',
+      'Ố': 'O',
+      'Ồ': 'O',
+      'Ổ': 'O',
+      'Ỗ': 'O',
+      'Ộ': 'O',
+      'Ơ': 'O',
+      'Ớ': 'O',
+      'Ờ': 'O',
+      'Ở': 'O',
+      'Ỡ': 'O',
+      'Ợ': 'O',
+      'Ù': 'U',
+      'Ú': 'U',
+      'Ủ': 'U',
+      'Ũ': 'U',
+      'Ụ': 'U',
+      'Ư': 'U',
+      'Ứ': 'U',
+      'Ừ': 'U',
+      'Ử': 'U',
+      'Ữ': 'U',
+      'Ự': 'U',
+      'Ỳ': 'Y',
+      'Ý': 'Y',
+      'Ỷ': 'Y',
+      'Ỹ': 'Y',
+      'Ỵ': 'Y',
+      'Đ': 'D',
     };
     final buf = StringBuffer();
     for (int i = 0; i < s.length; i++) {
@@ -2133,10 +2241,15 @@ class DBHelper {
             int created = 0;
             for (final row in rows) {
               final rawImei = (row['imei'] as String? ?? '');
-              final imeis = rawImei.split('|').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+              final imeis = rawImei
+                  .split('|')
+                  .map((e) => e.trim())
+                  .where((e) => e.isNotEmpty)
+                  .toList();
               if (imeis.length <= 1) continue;
               final parentId = row['id'] as int;
-              final parentFid = (row['firestoreId'] as String?) ?? 'prod_${row['createdAt']}';
+              final parentFid =
+                  (row['firestoreId'] as String?) ?? 'prod_${row['createdAt']}';
               final now = DateTime.now().millisecondsSinceEpoch;
               // Update original: keep first IMEI, set quantity to 1
               await db.update(
@@ -2148,7 +2261,9 @@ class DBHelper {
               // Insert sibling records for the remaining IMEIs
               for (int i = 1; i < imeis.length; i++) {
                 final newFid = '${parentFid}__s$i';
-                final Map<String, dynamic> newRow = Map<String, dynamic>.from(row);
+                final Map<String, dynamic> newRow = Map<String, dynamic>.from(
+                  row,
+                );
                 newRow.remove('id');
                 newRow['firestoreId'] = newFid;
                 newRow['imei'] = imeis[i];
@@ -2156,11 +2271,17 @@ class DBHelper {
                 newRow['isSynced'] = 0;
                 newRow['createdAt'] = now + i;
                 newRow['updatedAt'] = now;
-                await db.insert('products', newRow, conflictAlgorithm: ConflictAlgorithm.ignore);
+                await db.insert(
+                  'products',
+                  newRow,
+                  conflictAlgorithm: ConflictAlgorithm.ignore,
+                );
                 created++;
               }
             }
-            debugPrint('DB v102: split ${rows.length} DIEN_THOAI products → $created new IMEI records');
+            debugPrint(
+              'DB v102: split ${rows.length} DIEN_THOAI products → $created new IMEI records',
+            );
           } catch (e) {
             debugPrint('DB upgrade v102 error: $e');
           }
@@ -2171,9 +2292,16 @@ class DBHelper {
           try {
             final restored = await db.rawUpdate(
               "UPDATE products SET deleted = 0, isSynced = 0 WHERE type = 'DIEN_THOAI' AND deleted = 1 AND quantity > 0 AND updatedAt > ?",
-              [DateTime.now().subtract(const Duration(hours: 48)).millisecondsSinceEpoch],
+              [
+                DateTime.now()
+                    .subtract(const Duration(hours: 48))
+                    .millisecondsSinceEpoch,
+              ],
             );
-            if (restored > 0) debugPrint('DB v103: restored $restored DIEN_THOAI products incorrectly deleted by dedup');
+            if (restored > 0)
+              debugPrint(
+                'DB v103: restored $restored DIEN_THOAI products incorrectly deleted by dedup',
+              );
           } catch (e) {
             debugPrint('DB upgrade v103 error: $e');
           }
@@ -3644,7 +3772,9 @@ class DBHelper {
             debugPrint('DB onOpen: added allowPendingCost to shop_settings');
           }
         } catch (e) {
-          debugPrint('DB onOpen check error (shop_settings allowPendingCost): $e');
+          debugPrint(
+            'DB onOpen check error (shop_settings allowPendingCost): $e',
+          );
         }
 
         // Ensure enableSupplier / requireSupplier columns exist in shop_settings table
@@ -4390,15 +4520,33 @@ class DBHelper {
 
         // Performance indexes — added lazily so existing devices get them on next open
         try {
-          await db.execute('CREATE INDEX IF NOT EXISTS idx_sales_shopId ON sales(shopId)');
-          await db.execute('CREATE INDEX IF NOT EXISTS idx_sales_shopId_soldAt ON sales(shopId, soldAt)');
-          await db.execute('CREATE INDEX IF NOT EXISTS idx_sales_shopId_deleted ON sales(shopId, deleted)');
-          await db.execute('CREATE INDEX IF NOT EXISTS idx_repairs_shopId ON repairs(shopId)');
-          await db.execute('CREATE INDEX IF NOT EXISTS idx_repairs_shopId_status ON repairs(shopId, status)');
-          await db.execute('CREATE INDEX IF NOT EXISTS idx_repairs_shopId_deleted ON repairs(shopId, deleted)');
-          await db.execute('CREATE INDEX IF NOT EXISTS idx_products_isSynced ON products(isSynced)');
-          await db.execute('CREATE INDEX IF NOT EXISTS idx_sales_isSynced ON sales(isSynced)');
-          await db.execute('CREATE INDEX IF NOT EXISTS idx_repairs_isSynced ON repairs(isSynced)');
+          await db.execute(
+            'CREATE INDEX IF NOT EXISTS idx_sales_shopId ON sales(shopId)',
+          );
+          await db.execute(
+            'CREATE INDEX IF NOT EXISTS idx_sales_shopId_soldAt ON sales(shopId, soldAt)',
+          );
+          await db.execute(
+            'CREATE INDEX IF NOT EXISTS idx_sales_shopId_deleted ON sales(shopId, deleted)',
+          );
+          await db.execute(
+            'CREATE INDEX IF NOT EXISTS idx_repairs_shopId ON repairs(shopId)',
+          );
+          await db.execute(
+            'CREATE INDEX IF NOT EXISTS idx_repairs_shopId_status ON repairs(shopId, status)',
+          );
+          await db.execute(
+            'CREATE INDEX IF NOT EXISTS idx_repairs_shopId_deleted ON repairs(shopId, deleted)',
+          );
+          await db.execute(
+            'CREATE INDEX IF NOT EXISTS idx_products_isSynced ON products(isSynced)',
+          );
+          await db.execute(
+            'CREATE INDEX IF NOT EXISTS idx_sales_isSynced ON sales(isSynced)',
+          );
+          await db.execute(
+            'CREATE INDEX IF NOT EXISTS idx_repairs_isSynced ON repairs(isSynced)',
+          );
         } catch (e) {
           debugPrint('DB onOpen: perf index creation error: $e');
         }
@@ -4572,7 +4720,9 @@ class DBHelper {
     // Batch in groups of 200 — single transaction per batch for speed
     const batchSize = 200;
     for (int start = 0; start < repairs.length; start += batchSize) {
-      final end = (start + batchSize < repairs.length) ? start + batchSize : repairs.length;
+      final end = (start + batchSize < repairs.length)
+          ? start + batchSize
+          : repairs.length;
       final batch = repairs.sublist(start, end);
       try {
         await db.transaction((txn) async {
@@ -4765,7 +4915,8 @@ class DBHelper {
     if (shopId != null && shopId.isNotEmpty) {
       maps = await db.query(
         'repairs',
-        where: '(shopId = ? OR shopId IS NULL) AND (deleted = 0 OR deleted IS NULL)',
+        where:
+            '(shopId = ? OR shopId IS NULL) AND (deleted = 0 OR deleted IS NULL)',
         whereArgs: [shopId],
         orderBy: 'COALESCE(lastCaredAt, createdAt, 0) DESC',
         limit: limit,
@@ -4809,8 +4960,7 @@ class DBHelper {
     } else {
       maps = await db.query(
         'repairs',
-        where:
-            '(deleted = 0 OR deleted IS NULL) AND status IN ($placeholders)',
+        where: '(deleted = 0 OR deleted IS NULL) AND status IN ($placeholders)',
         whereArgs: statuses,
         orderBy: 'COALESCE(lastCaredAt, createdAt, 0) DESC',
         limit: limit,
@@ -4844,7 +4994,8 @@ class DBHelper {
     if (shopId != null && shopId.isNotEmpty) {
       maps = await db.query(
         'repairs',
-        where: '(shopId = ? OR shopId IS NULL) AND (deleted = 0 OR deleted IS NULL)',
+        where:
+            '(shopId = ? OR shopId IS NULL) AND (deleted = 0 OR deleted IS NULL)',
         whereArgs: [shopId],
         orderBy: 'createdAt DESC',
       );
@@ -4856,7 +5007,9 @@ class DBHelper {
       );
     }
     final repairs = List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
-    debugPrint("DB_TRACE: getAllRepairs returned ${repairs.length} repairs (shopId=$shopId)");
+    debugPrint(
+      "DB_TRACE: getAllRepairs returned ${repairs.length} repairs (shopId=$shopId)",
+    );
     return repairs;
   }
 
@@ -4894,16 +5047,13 @@ class DBHelper {
     final shopClause = hasShop ? 'AND (shopId = ? OR shopId IS NULL)' : '';
     final args = <dynamic>[name, uid, name, uid];
     if (hasShop) args.add(shopId);
-    final maps = await db.rawQuery(
-      '''SELECT * FROM repairs
+    final maps = await db.rawQuery('''SELECT * FROM repairs
          WHERE (deleted = 0 OR deleted IS NULL)
            AND (repairedBy = ? OR repairedBy = ?
                 OR ((repairedBy IS NULL OR repairedBy = '') AND status >= 3
                     AND (createdBy = ? OR createdBy = ?)))
            $shopClause
-         ORDER BY createdAt DESC''',
-      args,
-    );
+         ORDER BY createdAt DESC''', args);
     return List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
   }
 
@@ -4918,31 +5068,32 @@ class DBHelper {
       shopFilter = 'AND (shopId = ? OR shopId IS NULL) ';
       args.add(shopId);
     }
-    final maps = await db.rawQuery(
-      '''SELECT * FROM sales
+    final maps = await db.rawQuery('''SELECT * FROM sales
          WHERE sellerName = ?
            $shopFilter
            AND (deleted = 0 OR deleted IS NULL)
-         ORDER BY soldAt DESC''',
-      args,
-    );
+         ORDER BY soldAt DESC''', args);
     return List.generate(maps.length, (i) => SaleOrder.fromMap(maps[i]));
   }
 
   /// Chỉ lấy bản ghi chưa sync (cho cash_closing merge với Firestore)
   Future<List<SaleOrder>> getUnsyncedSales() async {
     final db = await database;
-    final maps = await db.query('sales',
-        where: 'isSynced = 0 AND (deleted = 0 OR deleted IS NULL)',
-        orderBy: 'soldAt DESC');
+    final maps = await db.query(
+      'sales',
+      where: 'isSynced = 0 AND (deleted = 0 OR deleted IS NULL)',
+      orderBy: 'soldAt DESC',
+    );
     return List.generate(maps.length, (i) => SaleOrder.fromMap(maps[i]));
   }
 
   Future<List<Repair>> getUnsyncedRepairs() async {
     final db = await database;
-    final maps = await db.query('repairs',
-        where: 'isSynced = 0 AND (deleted = 0 OR deleted IS NULL)',
-        orderBy: 'createdAt DESC');
+    final maps = await db.query(
+      'repairs',
+      where: 'isSynced = 0 AND (deleted = 0 OR deleted IS NULL)',
+      orderBy: 'createdAt DESC',
+    );
     return List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
   }
 
@@ -4955,22 +5106,21 @@ class DBHelper {
   Future<List<Repair>> getActiveWarrantyRepairs() async {
     final shopId = await _getScopedShopId('getActiveWarrantyRepairs');
     final db = await database;
-    final cutoff = DateTime.now().subtract(const Duration(days: 366)).millisecondsSinceEpoch;
+    final cutoff = DateTime.now()
+        .subtract(const Duration(days: 366))
+        .millisecondsSinceEpoch;
     final whereArgs = <dynamic>[cutoff];
     String shopFilter = '';
     if (shopId != null && shopId.isNotEmpty) {
       shopFilter = 'AND (shopId = ? OR shopId IS NULL) ';
       whereArgs.add(shopId);
     }
-    final maps = await db.rawQuery(
-      '''SELECT * FROM repairs
+    final maps = await db.rawQuery('''SELECT * FROM repairs
          WHERE warranty != '' AND warranty != 'KO BH'
            AND deliveredAt IS NOT NULL AND deliveredAt > ?
            $shopFilter
            AND (deleted = 0 OR deleted IS NULL)
-         ORDER BY deliveredAt DESC''',
-      whereArgs,
-    );
+         ORDER BY deliveredAt DESC''', whereArgs);
     return List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
   }
 
@@ -4985,14 +5135,16 @@ class DBHelper {
     if (shopId != null && shopId.isNotEmpty) {
       maps = await db.query(
         'repairs',
-        where: '(shopId = ? OR shopId IS NULL) AND createdAt >= ? AND createdAt <= ? AND (deleted = 0 OR deleted IS NULL)',
+        where:
+            '(shopId = ? OR shopId IS NULL) AND createdAt >= ? AND createdAt <= ? AND (deleted = 0 OR deleted IS NULL)',
         whereArgs: [shopId, startMs, endMs],
         orderBy: 'createdAt DESC',
       );
     } else {
       maps = await db.query(
         'repairs',
-        where: 'createdAt >= ? AND createdAt <= ? AND (deleted = 0 OR deleted IS NULL)',
+        where:
+            'createdAt >= ? AND createdAt <= ? AND (deleted = 0 OR deleted IS NULL)',
         whereArgs: [startMs, endMs],
         orderBy: 'createdAt DESC',
       );
@@ -5074,8 +5226,14 @@ class DBHelper {
       return db.query(
         'repairs',
         columns: [
-          'id', 'firestoreId', 'customerName', 'model',
-          'costRecordedAmount', 'cost', 'costPaymentMethod', 'costRecordedAt',
+          'id',
+          'firestoreId',
+          'customerName',
+          'model',
+          'costRecordedAmount',
+          'cost',
+          'costPaymentMethod',
+          'costRecordedAt',
         ],
         where:
             '(shopId = ? OR shopId IS NULL) AND costRecordedInFund = 1 '
@@ -5088,8 +5246,14 @@ class DBHelper {
     return db.query(
       'repairs',
       columns: [
-        'id', 'firestoreId', 'customerName', 'model',
-        'costRecordedAmount', 'cost', 'costPaymentMethod', 'costRecordedAt',
+        'id',
+        'firestoreId',
+        'customerName',
+        'model',
+        'costRecordedAmount',
+        'cost',
+        'costPaymentMethod',
+        'costRecordedAt',
       ],
       where:
           'costRecordedInFund = 1 AND costRecordedAt IS NOT NULL '
@@ -5124,15 +5288,19 @@ class DBHelper {
     final shopId = UserService.getShopIdSync();
     final db = await database;
     final res = shopId != null && shopId.isNotEmpty
-        ? await db.query('repairs',
+        ? await db.query(
+            'repairs',
             where: 'shopId = ? AND (deleted = 0 OR deleted IS NULL)',
             whereArgs: [shopId],
             orderBy: 'createdAt DESC',
-            limit: 1)
-        : await db.query('repairs',
+            limit: 1,
+          )
+        : await db.query(
+            'repairs',
             where: 'deleted = 0 OR deleted IS NULL',
             orderBy: 'createdAt DESC',
-            limit: 1);
+            limit: 1,
+          );
     return res.isNotEmpty ? Repair.fromMap(res.first) : null;
   }
 
@@ -5140,15 +5308,19 @@ class DBHelper {
     final shopId = UserService.getShopIdSync();
     final db = await database;
     final res = shopId != null && shopId.isNotEmpty
-        ? await db.query('sales',
+        ? await db.query(
+            'sales',
             where: 'shopId = ? AND (deleted = 0 OR deleted IS NULL)',
             whereArgs: [shopId],
             orderBy: 'soldAt DESC',
-            limit: 1)
-        : await db.query('sales',
+            limit: 1,
+          )
+        : await db.query(
+            'sales',
             where: 'deleted = 0 OR deleted IS NULL',
             orderBy: 'soldAt DESC',
-            limit: 1);
+            limit: 1,
+          );
     return res.isNotEmpty ? SaleOrder.fromMap(res.first) : null;
   }
 
@@ -5215,13 +5387,18 @@ class DBHelper {
     final shopId = await _getScopedShopId('getAllSales');
     final db = await database;
     final maps = shopId != null
-        ? await db.query('sales',
-            where: '(shopId = ? OR shopId IS NULL) AND (deleted IS NULL OR deleted = 0)',
+        ? await db.query(
+            'sales',
+            where:
+                '(shopId = ? OR shopId IS NULL) AND (deleted IS NULL OR deleted = 0)',
             whereArgs: [shopId],
-            orderBy: 'soldAt DESC')
+            orderBy: 'soldAt DESC',
+          )
         : await db.query('sales', orderBy: 'soldAt DESC');
     final sales = List.generate(maps.length, (i) => SaleOrder.fromMap(maps[i]));
-    debugPrint("DB_TRACE: getAllSales returned ${sales.length} sales (shopId=$shopId)");
+    debugPrint(
+      "DB_TRACE: getAllSales returned ${sales.length} sales (shopId=$shopId)",
+    );
     return sales;
   }
 
@@ -5229,22 +5406,21 @@ class DBHelper {
   Future<List<SaleOrder>> getActiveWarrantySales() async {
     final shopId = await _getScopedShopId('getActiveWarrantySales');
     final db = await database;
-    final cutoff = DateTime.now().subtract(const Duration(days: 366)).millisecondsSinceEpoch;
+    final cutoff = DateTime.now()
+        .subtract(const Duration(days: 366))
+        .millisecondsSinceEpoch;
     final whereArgs = <dynamic>[cutoff];
     String shopFilter = '';
     if (shopId != null && shopId.isNotEmpty) {
       shopFilter = 'AND (shopId = ? OR shopId IS NULL) ';
       whereArgs.add(shopId);
     }
-    final maps = await db.rawQuery(
-      '''SELECT * FROM sales
+    final maps = await db.rawQuery('''SELECT * FROM sales
          WHERE warranty != '' AND warranty != 'KO BH'
            AND soldAt > ?
            $shopFilter
            AND (deleted = 0 OR deleted IS NULL)
-         ORDER BY soldAt DESC''',
-      whereArgs,
-    );
+         ORDER BY soldAt DESC''', whereArgs);
     return List.generate(maps.length, (i) => SaleOrder.fromMap(maps[i]));
   }
 
@@ -5323,13 +5499,25 @@ class DBHelper {
         }
       }
     }
-    await _upsert('products', p.toMap(), p.firestoreId ?? "prod_${p.createdAt}");
+    await _upsert(
+      'products',
+      p.toMap(),
+      p.firestoreId ?? "prod_${p.createdAt}",
+    );
   }
 
   Future<void> _upsertPhoneSplit(Product p) async {
-    final imeis = (p.imei ?? '').split('|').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    final imeis = (p.imei ?? '')
+        .split('|')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
     if (imeis.isEmpty) {
-      await _upsert('products', p.toMap(), p.firestoreId ?? "prod_${p.createdAt}");
+      await _upsert(
+        'products',
+        p.toMap(),
+        p.firestoreId ?? "prod_${p.createdAt}",
+      );
       return;
     }
     final parentFid = p.firestoreId ?? "prod_${p.createdAt}";
@@ -5344,6 +5532,7 @@ class DBHelper {
       await _upsert('products', split.toMap(), fid);
     }
   }
+
   Future<int> updateProduct(Product p) async => (await database).update(
     'products',
     p.toMap(),
@@ -5395,7 +5584,9 @@ class DBHelper {
   /// Tìm nhanh debt theo linkedId (firestoreId của đơn bán/sửa) — không load toàn bộ
   Future<List<Map<String, dynamic>>> getDebtsByLinkedId(String linkedId) async {
     if (linkedId.isEmpty) {
-      debugPrint('⚠️ getDebtsByLinkedId: linkedId rỗng — caller cần kiểm tra firestoreId');
+      debugPrint(
+        '⚠️ getDebtsByLinkedId: linkedId rỗng — caller cần kiểm tra firestoreId',
+      );
       return [];
     }
     final shopId = UserService.getShopIdSync();
@@ -5403,22 +5594,43 @@ class DBHelper {
     if (shopId != null && shopId.isNotEmpty) {
       return db.query(
         'debts',
-        where: 'linkedId = ? AND (shopId = ? OR shopId IS NULL) AND (deleted = 0 OR deleted IS NULL)',
+        where:
+            'linkedId = ? AND (shopId = ? OR shopId IS NULL) AND (deleted = 0 OR deleted IS NULL)',
         whereArgs: [linkedId, shopId],
       );
     }
-    return db.query('debts', where: 'linkedId = ? AND (deleted = 0 OR deleted IS NULL)', whereArgs: [linkedId]);
+    return db.query(
+      'debts',
+      where: 'linkedId = ? AND (deleted = 0 OR deleted IS NULL)',
+      whereArgs: [linkedId],
+    );
   }
 
   /// Soft delete công nợ — đặt deleted=1 thay vì xóa cứng để giữ lịch sử
   Future<int> softDeleteDebt(int debtId, {String? reason}) async {
+    final db = await database;
     final now = DateTime.now().millisecondsSinceEpoch;
-    return (await database).update(
-      'debts',
-      {'deleted': 1, 'updatedAt': now, 'isSynced': 0},
-      where: 'id = ?',
-      whereArgs: [debtId],
-    );
+    final data = <String, dynamic>{
+      'deleted': 1,
+      'updatedAt': now,
+      'isSynced': 0,
+    };
+    if (reason != null && reason.trim().isNotEmpty) {
+      final existing = await db.query(
+        'debts',
+        columns: ['note'],
+        where: 'id = ?',
+        whereArgs: [debtId],
+        limit: 1,
+      );
+      final oldNote = existing.isNotEmpty
+          ? (existing.first['note'] as String? ?? '')
+          : '';
+      data['note'] = oldNote.trim().isEmpty
+          ? reason.trim()
+          : '$oldNote\n${reason.trim()}';
+    }
+    return db.update('debts', data, where: 'id = ?', whereArgs: [debtId]);
   }
 
   /// Xóa lịch sử nhập hàng theo product
@@ -5475,17 +5687,30 @@ class DBHelper {
   /// Retroactively update totalCost and itemSnapshotsJson.unitCost for the item
   /// matching [imei]. Only patches snapshot items whose unitCost was 0.
   /// Returns true if any change was written (caller uses this to skip duplicate expense).
-  Future<bool> updateSaleCostByImei(int saleId, String imei, int newCost) async {
+  Future<bool> updateSaleCostByImei(
+    int saleId,
+    String imei,
+    int newCost,
+  ) async {
     final db = await database;
-    final rows = await db.query('sales', where: 'id = ?', whereArgs: [saleId], limit: 1);
+    final rows = await db.query(
+      'sales',
+      where: 'id = ?',
+      whereArgs: [saleId],
+      limit: 1,
+    );
     if (rows.isEmpty) return false;
     final row = rows.first;
     final snapshotsRaw = row['itemSnapshotsJson'] as String?;
     if (snapshotsRaw == null || snapshotsRaw.isEmpty) {
       // No snapshot — bump totalCost only if currently 0
       if ((row['totalCost'] as int? ?? 0) == 0) {
-        await db.update('sales', {'totalCost': newCost, 'isSynced': 0},
-            where: 'id = ?', whereArgs: [saleId]);
+        await db.update(
+          'sales',
+          {'totalCost': newCost, 'isSynced': 0},
+          where: 'id = ?',
+          whereArgs: [saleId],
+        );
         return true;
       }
       return false;
@@ -5508,11 +5733,16 @@ class DBHelper {
       }
       if (costDelta == 0) return false; // item already had cost set
       final oldTotal = row['totalCost'] as int? ?? 0;
-      await db.update('sales', {
-        'totalCost': oldTotal + costDelta,
-        'itemSnapshotsJson': jsonEncode(snapshots),
-        'isSynced': 0,
-      }, where: 'id = ?', whereArgs: [saleId]);
+      await db.update(
+        'sales',
+        {
+          'totalCost': oldTotal + costDelta,
+          'itemSnapshotsJson': jsonEncode(snapshots),
+          'isSynced': 0,
+        },
+        where: 'id = ?',
+        whereArgs: [saleId],
+      );
       return true;
     } catch (_) {
       return false;
@@ -5532,10 +5762,17 @@ class DBHelper {
   }
 
   Future<bool> updateSaleCostByProductId(
-      int saleId, int productId, int newCost) async {
+    int saleId,
+    int productId,
+    int newCost,
+  ) async {
     final db = await database;
-    final rows =
-        await db.query('sales', where: 'id = ?', whereArgs: [saleId], limit: 1);
+    final rows = await db.query(
+      'sales',
+      where: 'id = ?',
+      whereArgs: [saleId],
+      limit: 1,
+    );
     if (rows.isEmpty) return false;
     final row = rows.first;
     final snapshotsRaw = row['itemSnapshotsJson'] as String?;
@@ -5557,11 +5794,16 @@ class DBHelper {
       }
       if (costDelta == 0) return false;
       final oldTotal = row['totalCost'] as int? ?? 0;
-      await db.update('sales', {
-        'totalCost': oldTotal + costDelta,
-        'itemSnapshotsJson': jsonEncode(snapshots),
-        'isSynced': 0,
-      }, where: 'id = ?', whereArgs: [saleId]);
+      await db.update(
+        'sales',
+        {
+          'totalCost': oldTotal + costDelta,
+          'itemSnapshotsJson': jsonEncode(snapshots),
+          'isSynced': 0,
+        },
+        where: 'id = ?',
+        whereArgs: [saleId],
+      );
       return true;
     } catch (_) {
       return false;
@@ -5645,7 +5887,8 @@ class DBHelper {
 
     if (missingInfoOnly) {
       // Hàng thiếu giá vốn hoặc NCC, bao gồm cả kho tạm (isPending=1)
-      where += ' AND (cost = 0 OR cost IS NULL OR supplier IS NULL OR supplier = \'\')';
+      where +=
+          ' AND (cost = 0 OR cost IS NULL OR supplier IS NULL OR supplier = \'\')';
     }
 
     final maps = await (await database).query(
@@ -5685,7 +5928,8 @@ class DBHelper {
     }
 
     if (missingInfoOnly) {
-      where += ' AND (cost = 0 OR cost IS NULL OR supplier IS NULL OR supplier = \'\')';
+      where +=
+          ' AND (cost = 0 OR cost IS NULL OR supplier IS NULL OR supplier = \'\')';
     }
 
     String query = 'SELECT COUNT(*) as count FROM products WHERE $where';
@@ -5765,17 +6009,14 @@ class DBHelper {
         where += ' AND ${_typeWhereClause(type, args)}';
       }
 
-      final result = await (await database).rawQuery(
-        '''
+      final result = await (await database).rawQuery('''
           SELECT
             COALESCE(COUNT(*), 0) as totalItems,
             COALESCE(SUM(quantity), 0) as totalQty,
             COALESCE(SUM(cost * quantity), 0) as totalCapital
           FROM products
           WHERE $where
-        ''',
-        args,
-      );
+        ''', args);
 
       if (result.isEmpty) {
         return {'totalItems': 0, 'totalQty': 0, 'totalCapital': 0};
@@ -5828,7 +6069,8 @@ class DBHelper {
     if (shopId == null) return [];
     final maps = await (await database).query(
       'products',
-      where: 'shopId = ? AND deleted = 1 AND isSynced = 0 AND firestoreId IS NOT NULL',
+      where:
+          'shopId = ? AND deleted = 1 AND isSynced = 0 AND firestoreId IS NOT NULL',
       whereArgs: [shopId],
     );
     return List.generate(maps.length, (i) => Product.fromMap(maps[i]));
@@ -6128,7 +6370,8 @@ class DBHelper {
     if (shopId == null) return [];
     final maps = await (await database).query(
       'products',
-      where: 'shopId = ? AND (price = 0 OR price IS NULL) AND (cost = 0 OR cost IS NULL)'
+      where:
+          'shopId = ? AND (price = 0 OR price IS NULL) AND (cost = 0 OR cost IS NULL)'
           ' AND (isPending = 0 OR isPending IS NULL)'
           ' AND firestoreId IS NOT NULL'
           ' AND (deleted = 0 OR deleted IS NULL)',
@@ -6191,10 +6434,10 @@ class DBHelper {
         [status, id],
       );
     }
-    return await db.rawUpdate(
-      'UPDATE products SET status = ? WHERE id = ?',
-      [status, id],
-    );
+    return await db.rawUpdate('UPDATE products SET status = ? WHERE id = ?', [
+      status,
+      id,
+    ]);
   }
 
   /// Trừ số lượng sản phẩm trong kho và sync ngay lập tức
@@ -6579,14 +6822,19 @@ class DBHelper {
       logScope: 'getSuppliersPage',
     );
 
-    final whereParts = <String>['shopId = ?', '(deleted = 0 OR deleted IS NULL)'];
+    final whereParts = <String>[
+      'shopId = ?',
+      '(deleted = 0 OR deleted IS NULL)',
+    ];
     final whereArgs = <dynamic>[shopId];
 
     final q = search?.trim() ?? '';
     if (q.isNotEmpty) {
       final upper = '%${q.toUpperCase()}%';
       final norm = '%${_normalizeVi(q).toUpperCase()}%';
-      whereParts.add('(UPPER(name) LIKE ? OR phone LIKE ? OR UPPER(nameNorm) LIKE ?)');
+      whereParts.add(
+        '(UPPER(name) LIKE ? OR phone LIKE ? OR UPPER(nameNorm) LIKE ?)',
+      );
       whereArgs.addAll([upper, '%$q%', norm]);
     }
 
@@ -6609,11 +6857,16 @@ class DBHelper {
     int total = 0;
     if (cursorName == null) {
       final countArgs = <dynamic>[shopId];
-      final countParts = <String>['shopId = ?', '(deleted = 0 OR deleted IS NULL)'];
+      final countParts = <String>[
+        'shopId = ?',
+        '(deleted = 0 OR deleted IS NULL)',
+      ];
       if (q.isNotEmpty) {
         final upper = '%${q.toUpperCase()}%';
         final norm = '%${_normalizeVi(q).toUpperCase()}%';
-        countParts.add('(UPPER(name) LIKE ? OR phone LIKE ? OR UPPER(nameNorm) LIKE ?)');
+        countParts.add(
+          '(UPPER(name) LIKE ? OR phone LIKE ? OR UPPER(nameNorm) LIKE ?)',
+        );
         countArgs.addAll([upper, '%$q%', norm]);
       }
       final countRes = await db.rawQuery(
@@ -6630,12 +6883,15 @@ class DBHelper {
   }
 
   /// Returns recently-used suppliers (by name, from debts table) — only id, name, phone.
-  Future<List<Map<String, dynamic>>> getRecentSuppliersForPicker({int limit = 5}) async {
+  Future<List<Map<String, dynamic>>> getRecentSuppliersForPicker({
+    int limit = 5,
+  }) async {
     final db = await database;
     final shopId = await _getScopedShopId('getRecentSuppliersForPicker');
     if (shopId == null) return [];
 
-    final recentRows = await db.rawQuery('''
+    final recentRows = await db.rawQuery(
+      '''
       SELECT personName, MAX(createdAt) as lastUsed
       FROM debts
       WHERE shopId = ? AND type = 'SHOP_OWES' AND (deleted IS NULL OR deleted = 0)
@@ -6643,7 +6899,9 @@ class DBHelper {
       GROUP BY personName
       ORDER BY lastUsed DESC
       LIMIT ?
-    ''', [shopId, limit]);
+    ''',
+      [shopId, limit],
+    );
 
     if (recentRows.isEmpty) return [];
 
@@ -6653,17 +6911,23 @@ class DBHelper {
         .toList();
 
     final placeholders = names.map((_) => '?').join(',');
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT id, name, phone FROM suppliers
       WHERE shopId = ? AND name IN ($placeholders)
         AND (deleted = 0 OR deleted IS NULL)
       ORDER BY name ASC
-    ''', [shopId, ...names]);
+    ''',
+      [shopId, ...names],
+    );
 
     // Preserve recency order from debts query
     final nameOrder = {for (var i = 0; i < names.length; i++) names[i]: i};
     final sorted = rows.map((e) => Map<String, dynamic>.from(e)).toList()
-      ..sort((a, b) => (nameOrder[a['name']] ?? 99).compareTo(nameOrder[b['name']] ?? 99));
+      ..sort(
+        (a, b) =>
+            (nameOrder[a['name']] ?? 99).compareTo(nameOrder[b['name']] ?? 99),
+      );
 
     return sorted;
   }
@@ -6749,7 +7013,8 @@ class DBHelper {
 
     // Dedup theo (imei + name): cùng IMEI + cùng tên → trùng nhau
     // Giữ bản updatedAt mới nhất, soft-delete phần còn lại
-    final duplicates = await db.rawQuery('''
+    final duplicates = await db.rawQuery(
+      '''
       SELECT LOWER(imei) as imei_key, LOWER(name) as name_key,
              COUNT(*) as cnt, GROUP_CONCAT(id) as ids
       FROM products
@@ -6758,7 +7023,9 @@ class DBHelper {
         AND type = 'DIEN_THOAI' AND shopId = ?
       GROUP BY LOWER(imei), LOWER(name), shopId
       HAVING cnt > 1
-    ''', [shopId]);
+    ''',
+      [shopId],
+    );
 
     for (final group in duplicates) {
       final ids = (group['ids'] as String).split(',').map(int.parse).toList();
@@ -6778,11 +7045,16 @@ class DBHelper {
           whereArgs: [deleteId],
         );
         dedupRemoved++;
-        debugPrint('🔧 Dedup phone: kept id=$keepId, removed id=$deleteId (imei=${r['imei']}, name=${r['name']})');
+        debugPrint(
+          '🔧 Dedup phone: kept id=$keepId, removed id=$deleteId (imei=${r['imei']}, name=${r['name']})',
+        );
       }
     }
 
-    if (dedupRemoved > 0) debugPrint('🔧 deduplicateProductsByImei: removed $dedupRemoved duplicate phones');
+    if (dedupRemoved > 0)
+      debugPrint(
+        '🔧 deduplicateProductsByImei: removed $dedupRemoved duplicate phones',
+      );
     return {'dedupRemoved': dedupRemoved};
   }
 
@@ -6937,12 +7209,17 @@ class DBHelper {
     if (shopId != null && shopId.isNotEmpty) {
       return db.query(
         'debts',
-        where: '(shopId = ? OR shopId IS NULL) AND (deleted = 0 OR deleted IS NULL)',
+        where:
+            '(shopId = ? OR shopId IS NULL) AND (deleted = 0 OR deleted IS NULL)',
         whereArgs: [shopId],
         orderBy: 'status ASC, createdAt DESC',
       );
     }
-    return db.query('debts', where: 'deleted = 0 OR deleted IS NULL', orderBy: 'status ASC, createdAt DESC');
+    return db.query(
+      'debts',
+      where: 'deleted = 0 OR deleted IS NULL',
+      orderBy: 'status ASC, createdAt DESC',
+    );
   }
 
   /// Lấy công nợ được tạo trong khoảng thời gian (by createdAt) — dùng cho Finance V2 thay vì getAllDebts()
@@ -7211,10 +7488,7 @@ class DBHelper {
   /// Lấy các bút toán điều chỉnh chưa sync lên cloud
   Future<List<Map<String, dynamic>>> getUnsyncedAdjustmentEntries() async {
     final db = await database;
-    return db.query(
-      'adjustment_entries',
-      where: 'isSynced = 0',
-    );
+    return db.query('adjustment_entries', where: 'isSynced = 0');
   }
 
   /// Đánh dấu bút toán điều chỉnh đã sync
@@ -8844,7 +9118,8 @@ class DBHelper {
     }
     if (search != null && search.isNotEmpty) {
       final q = '%$search%';
-      where += (where.isEmpty ? '' : ' AND ') +
+      where +=
+          (where.isEmpty ? '' : ' AND ') +
           '(name LIKE ? OR code LIKE ? OR model LIKE ? OR color LIKE ?)';
       args.addAll([q, q, q, q]);
     }
@@ -8879,7 +9154,8 @@ class DBHelper {
     }
     if (search != null && search.isNotEmpty) {
       final q = '%$search%';
-      where += (where.isEmpty ? '' : ' AND ') +
+      where +=
+          (where.isEmpty ? '' : ' AND ') +
           '(name LIKE ? OR code LIKE ? OR model LIKE ? OR color LIKE ?)';
       args.addAll([q, q, q, q]);
     }
@@ -10419,7 +10695,8 @@ class DBHelper {
     if (shopId == null) return [];
     return await db.query(
       'customers',
-      where: 'shopId = ? AND (isSynced = 0 OR isSynced IS NULL) AND deleted = 0',
+      where:
+          'shopId = ? AND (isSynced = 0 OR isSynced IS NULL) AND deleted = 0',
       whereArgs: [shopId],
     );
   }
@@ -11902,8 +12179,11 @@ class DBHelper {
     map.remove('id');
     // Normalize booleans/nulls from Firestore
     final rawActive = map['isActive'];
-    map['isActive'] = rawActive is bool ? (rawActive ? 1 : 0) : (rawActive ?? 1);
-    if (map['deleted'] is bool) map['deleted'] = (map['deleted'] as bool) ? 1 : 0;
+    map['isActive'] = rawActive is bool
+        ? (rawActive ? 1 : 0)
+        : (rawActive ?? 1);
+    if (map['deleted'] is bool)
+      map['deleted'] = (map['deleted'] as bool) ? 1 : 0;
     map['isSynced'] = 1;
     await db.insert(
       'storage_locations',
@@ -11942,7 +12222,10 @@ class DBHelper {
     );
   }
 
-  Future<List<StorageLocation>> getStorageLocations(String shopId, {bool activeOnly = false}) async {
+  Future<List<StorageLocation>> getStorageLocations(
+    String shopId, {
+    bool activeOnly = false,
+  }) async {
     final db = await database;
     final where = activeOnly
         ? 'shopId = ? AND (deleted = 0 OR deleted IS NULL) AND (isActive = 1 OR isActive IS NULL)'
@@ -12008,7 +12291,9 @@ class DBHelper {
 
   /// Returns count + total cost + total price for products at a given locationCode.
   Future<Map<String, dynamic>> getLocationStats(
-      String shopId, String locationCode) async {
+    String shopId,
+    String locationCode,
+  ) async {
     final db = await database;
     final rows = await db.rawQuery(
       '''SELECT COUNT(*) AS cnt,
@@ -12057,13 +12342,16 @@ class DBHelper {
       limit: pageSize,
       offset: offset,
     );
-    return rows.map((r) => Product.fromMap(Map<String, dynamic>.from(r))).toList();
+    return rows
+        .map((r) => Product.fromMap(Map<String, dynamic>.from(r)))
+        .toList();
   }
 
   /// Returns stats for ALL locations in one query (code → stats map).
   /// Includes both inventory products AND active repair orders at each location.
   Future<Map<String, Map<String, dynamic>>> getAllLocationStats(
-      String shopId) async {
+    String shopId,
+  ) async {
     final db = await database;
     final rows = await db.rawQuery(
       '''SELECT locationCode,

@@ -398,7 +398,8 @@ class FinancialActivity {
       referenceType: 'repair',
       referenceId: firestoreId,
       title: 'VỐN LK: $deviceModel',
-      description: 'Chi phí vốn linh kiện — ${customerName.isNotEmpty ? customerName : "KH vãng lai"}',
+      description:
+          'Chi phí vốn linh kiện — ${customerName.isNotEmpty ? customerName : "KH vãng lai"}',
       customerName: customerName,
       phone: phone,
       productInfo: deviceModel,
@@ -431,7 +432,8 @@ class FinancialActivity {
       referenceType: 'sales_return',
       referenceId: firestoreId,
       title: 'HOÀN TIỀN TRẢ HÀNG: $productInfo',
-      description: 'KH: ${customerName.isNotEmpty ? customerName : "Vãng lai"}${note != null && note.isNotEmpty ? ". Lý do: $note" : ""}',
+      description:
+          'KH: ${customerName.isNotEmpty ? customerName : "Vãng lai"}${note != null && note.isNotEmpty ? ". Lý do: $note" : ""}',
       customerName: customerName,
       phone: customerPhone,
       productInfo: productInfo,
@@ -492,6 +494,9 @@ class FinancialActivity {
         return '👷';
       case 'OTHER_INCOME':
         return '💵';
+      case 'SALE_VOID':
+      case 'REPAIR_VOID':
+        return '🗑️';
       default:
         return '📝';
     }
@@ -550,6 +555,10 @@ class FinancialActivity {
         return 'Thu đóng tiền';
       case 'PAYMENT_REQUEST_OUT':
         return 'CK cho NH';
+      case 'SALE_VOID':
+        return 'Hủy đơn bán';
+      case 'REPAIR_VOID':
+        return 'Hủy đơn sửa';
       default:
         return 'Khác';
     }

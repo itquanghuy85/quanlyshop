@@ -4,6 +4,27 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-16m] - feat(admin): Công cụ điều chỉnh dữ liệu (dọn đơn dư thừa/miễn nợ/sửa kho)
+
+**Yêu cầu user:** "đơn sửa đơn bán và 1 số dữ liệu khác bạn làm theo ý bạn làm công cụ điều chỉnh dữ liệu" — user giao toàn quyền thiết kế, bối cảnh: shop có nhiều đơn sửa/đơn bán dư thừa (dữ liệu test/nhập nhầm) muốn xóa, công nợ muốn miễn, kho/linh kiện muốn sửa số lượng — nhưng không được làm sai lệch báo cáo tài chính (hoặc chấp nhận giữ nguyên sổ sách cũ nếu muốn).
+
+**Khảo sát trước khi làm** (2 agent đọc sâu + tự verify lại code quan trọng): xóa đơn sửa hiện tại (`order_list_view.dart`) để mồ côi hoàn toàn công nợ/payment/log tài chính liên quan; xóa đơn bán (`sale_detail_view.dart:_deleteSale`) đã làm khá tốt (hoàn kho, xóa nợ, xóa payment, ghi bù trừ `SALE_VOID`) — dùng làm logic tham chiếu; `softDeleteDebt` có sẵn nhưng chưa từng được gọi và tham số `reason` bị bỏ qua; kho/linh kiện chưa có khái niệm "điều chỉnh tồn kho".
+
+**Thiết kế:** Xây 1 màn hình MỚI, hoàn toàn tách biệt — **không sửa 1 dòng nào** ở `order_list_view.dart`/`sale_detail_view.dart` để tránh hồi quy lên luồng xóa đang chạy thật. Mọi thao tác xóa đơn đều có 2 lựa chọn rõ ràng: "Xóa, hoàn tài chính" (tự tìm & xóa công nợ liên quan, hủy/bù trừ payment intent, hoàn kho) hoặc "Xóa, giữ sổ sách" (chỉ xóa đơn, không đụng công nợ/tài chính — dùng khi ngày đó đã báo cáo/chốt).
+
+- File mới `lib/services/data_reconciliation_service.dart`: `deleteRepairWithReversal`/`deleteRepairKeepBooks`, `deleteSaleWithReversal`/`deleteSaleKeepBooks` (mirror logic đã kiểm chứng của `_deleteSale`), `writeOffDebt` (miễn nợ — không ghi bút toán tiền vì không phải thu tiền thật), `adjustPartQuantity`/`adjustProductQuantity` (sửa số lượng kho, bắt buộc lý do, ghi audit log), `deletePart`/`deleteProduct` (soft-delete, cảnh báo nếu còn công nợ NCC liên quan).
+- File mới `lib/views/data_reconciliation_view.dart`: 4 tab (Đơn sửa | Đơn bán | Công nợ | Kho & SP), chọn nhiều bằng checkbox, tóm tắt trước khi thực thi, **bắt buộc xác nhận lại mật khẩu đăng nhập** trước mọi thao tác xóa/sửa.
+- `db_helper.dart:softDeleteDebt`: sửa để thực sự lưu `reason` (lý do miễn nợ) vào cột `note` có sẵn thay vì bỏ qua như trước.
+- `financial_activity_model.dart`: thêm nhãn/icon cho `REPAIR_VOID`/`SALE_VOID` (trước đây `SALE_VOID` đã dùng ở `_deleteSale` nhưng rơi về nhãn mặc định "Khác").
+- `home_view.dart`: thêm mục "Công cụ điều chỉnh dữ liệu" trong Cài đặt > Dữ liệu & Hệ thống, **chỉ chủ shop/quản lý (`hasFullAccess`) thấy được**.
+
+**Verify:** `flutter analyze` sạch (0 lỗi, chỉ info/warning có sẵn từ trước, không liên quan). Build + cài Oppo CPH2203, đăng nhập tài khoản chủ shop thật (huy@huluca.com). Test trực tiếp trên dữ liệu shop thật: cả 4 tab tải đúng dữ liệu, không crash; chọn/bỏ chọn đơn hoạt động đúng; dialog "Sửa số lượng" và "Miễn nợ" mở đúng dữ liệu, nút xác nhận tự động khoá khi chưa nhập lý do, HỦY không lưu gì; tạo 1 đơn sửa test hoàn toàn giả (SAMSUNG TÉTMODEL, 0đ, không nợ không phụ tùng) → chọn trong tool → bảng tóm tắt hiện đúng → **màn hình xác nhận mật khẩu xuất hiện đúng** (xác nhận cơ chế bảo vệ hoạt động).
+**Giới hạn đã biết:** KHÔNG thể tự test tiếp bước sau khi nhập mật khẩu vì không có mật khẩu đăng nhập thật của chủ shop (không tự đoán mật khẩu) — logic thực thi (`deleteRepairKeepBooks`) chỉ được xác nhận qua code review (mirror chính xác logic đã chạy thật nhiều năm trong `order_list_view.dart`), chưa được chạy thật đến cùng. **Còn sót lại 1 đơn test vô hại** trong danh sách đơn sửa thật của shop: "SAMSUNG TÉTMODEL / TẼTOACC / 0900000000", giá 0đ, không nợ không phụ tùng — cần chủ shop tự xóa (qua chính công cụ này hoặc màn Danh sách đơn sửa) khi có mật khẩu.
+
+**Files:** `lib/services/data_reconciliation_service.dart` (mới), `lib/views/data_reconciliation_view.dart` (mới), `lib/data/db_helper.dart`, `lib/models/financial_activity_model.dart`, `lib/views/home_view.dart`.
+
+---
+
 ## [2026-08-16l] - fix(repair): ẩn giá vốn/lợi nhuận khỏi nhân viên trong "Giá tham khảo" + "Đơn sửa tương tự"
 
 **Phát hiện khi làm việc khác:** user hỏi "giá vốn trong lịch sử sửa giá có ẩn với nhân viên chưa" — kiểm tra thấy 2 chỗ MỚI thêm ở entry `[2026-08-16k]` phía trên (thẻ "GIÁ THAM KHẢO" khi tạo đơn mới, và trang `SimilarRepairHistoryView`) hiện Vốn/Lợi nhuận **không kiểm tra quyền xem giá vốn** — rò rỉ giá vốn cho nhân viên không có quyền.

@@ -1,0 +1,1066 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
+import '../data/db_helper.dart';
+import '../models/debt_model.dart';
+import '../models/product_model.dart';
+import '../models/repair_model.dart';
+import '../models/sale_order_model.dart';
+import '../services/data_reconciliation_service.dart';
+import '../services/notification_service.dart';
+import '../theme/app_colors.dart';
+import '../utils/money_utils.dart';
+import '../widgets/custom_app_bar.dart';
+
+/// Công cụ điều chỉnh dữ liệu — dùng để dọn đơn sửa/đơn bán dư thừa
+/// (dữ liệu test/nhập nhầm), miễn nợ, và chỉnh số lượng kho/linh kiện.
+///
+/// CHỈ chủ shop/quản lý (hasFullAccess) mới thấy mục này trong Cài đặt.
+/// Đây là công cụ XÓA THẬT — mọi thao tác đều yêu cầu xác nhận mật khẩu.
+class DataReconciliationView extends StatefulWidget {
+  const DataReconciliationView({super.key});
+
+  @override
+  State<DataReconciliationView> createState() => _DataReconciliationViewState();
+}
+
+class _DataReconciliationViewState extends State<DataReconciliationView>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+  final DBHelper _db = DBHelper();
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF0F4F8),
+      appBar: CustomAppBar.build(
+        title: 'CÔNG CỤ ĐIỀU CHỈNH DỮ LIỆU',
+        subtitle: 'Dọn đơn dư thừa • miễn nợ • sửa kho',
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          tabs: const [
+            Tab(text: 'ĐƠN SỬA'),
+            Tab(text: 'ĐƠN BÁN'),
+            Tab(text: 'CÔNG NỢ'),
+            Tab(text: 'KHO & SP'),
+          ],
+        ),
+      ),
+      body: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            color: Colors.orange.shade50,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.orange.shade800,
+                  size: 18,
+                ),
+                const SizedBox(width: 6),
+                const Expanded(
+                  child: Text(
+                    'Xóa thật — dùng để dọn dữ liệu test/nhập nhầm. Mọi thao tác đều cần mật khẩu xác nhận.',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _RepairTab(db: _db),
+                _SaleTab(db: _db),
+                _DebtTab(db: _db),
+                _InventoryTab(db: _db),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════ Shared helpers ═══════════════════════════
+
+/// Yêu cầu nhập lại mật khẩu đăng nhập trước khi thực thi hành động nguy
+/// hiểm. Trả về true nếu xác thực đúng.
+Future<bool> _confirmPassword(BuildContext context) async {
+  final passCtrl = TextEditingController();
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Xác nhận mật khẩu'),
+      content: TextField(
+        controller: passCtrl,
+        obscureText: true,
+        autofocus: true,
+        decoration: const InputDecoration(
+          hintText: 'Nhập mật khẩu đăng nhập để xác nhận',
+          border: OutlineInputBorder(),
+          isDense: true,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('HỦY'),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('XÁC NHẬN', style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    ),
+  );
+  if (ok != true) return false;
+
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null || user.email == null) return false;
+  try {
+    final cred = EmailAuthProvider.credential(
+      email: user.email!,
+      password: passCtrl.text,
+    );
+    await user.reauthenticateWithCredential(cred);
+    return true;
+  } catch (_) {
+    if (context.mounted) {
+      NotificationService.showSnackBar('❌ Mật khẩu sai', color: Colors.red);
+    }
+    return false;
+  }
+}
+
+/// Hiện tóm tắt trước khi thực thi, trả về true nếu user bấm tiếp tục.
+Future<bool> _confirmSummary(
+  BuildContext context, {
+  required String title,
+  required List<String> lines,
+  required bool withReversal,
+}) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(title),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ...lines.map(
+            (l) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text('• $l'),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: withReversal ? Colors.blue.shade50 : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              withReversal
+                  ? 'Sẽ tự động hoàn kho/xóa công nợ/bù trừ tài chính liên quan.'
+                  : 'CHỈ xóa dữ liệu — công nợ/tài chính liên quan giữ nguyên như cũ.',
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Thao tác này không thể hoàn tác.',
+            style: TextStyle(
+              color: AppColors.error,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('HỦY'),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('TIẾP TỤC', style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    ),
+  );
+  return ok == true;
+}
+
+Widget _emptyState(String text) => Center(
+  child: Padding(
+    padding: const EdgeInsets.all(24),
+    child: Text(text, style: TextStyle(color: Colors.grey.shade600)),
+  ),
+);
+
+Widget _searchField(
+  TextEditingController ctrl,
+  String hint,
+  VoidCallback onChanged,
+) {
+  return Padding(
+    padding: const EdgeInsets.all(10),
+    child: TextField(
+      controller: ctrl,
+      onChanged: (_) => onChanged(),
+      decoration: InputDecoration(
+        hintText: hint,
+        prefixIcon: const Icon(Icons.search),
+        isDense: true,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        filled: true,
+        fillColor: Colors.white,
+      ),
+    ),
+  );
+}
+
+// ═══════════════════════════════ TAB: ĐƠN SỬA ═══════════════════════════════
+
+class _RepairTab extends StatefulWidget {
+  const _RepairTab({required this.db});
+  final DBHelper db;
+
+  @override
+  State<_RepairTab> createState() => _RepairTabState();
+}
+
+class _RepairTabState extends State<_RepairTab> {
+  List<Repair> _all = [];
+  List<Repair> _filtered = [];
+  final Set<int> _selected = {};
+  final _searchCtrl = TextEditingController();
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    final list = await widget.db.getAllRepairs();
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    setState(() {
+      _all = list;
+      _filtered = list;
+      _selected.clear();
+      _loading = false;
+    });
+  }
+
+  void _filter() {
+    final q = _searchCtrl.text.trim().toLowerCase();
+    setState(() {
+      _filtered = q.isEmpty
+          ? _all
+          : _all
+                .where(
+                  (r) =>
+                      r.model.toLowerCase().contains(q) ||
+                      r.customerName.toLowerCase().contains(q) ||
+                      r.phone.contains(q),
+                )
+                .toList();
+    });
+  }
+
+  List<Repair> get _selectedRepairs =>
+      _all.where((r) => _selected.contains(r.id)).toList();
+
+  Future<void> _execute(bool withReversal) async {
+    if (_selected.isEmpty) return;
+    final selected = _selectedRepairs;
+    final proceed = await _confirmSummary(
+      context,
+      title: 'Xóa ${selected.length} đơn sửa',
+      lines: [
+        '${selected.length} đơn: ${selected.take(3).map((r) => r.model).join(", ")}${selected.length > 3 ? "..." : ""}',
+      ],
+      withReversal: withReversal,
+    );
+    if (!proceed) return;
+    if (!await _confirmPassword(context)) return;
+
+    int restored = 0, debts = 0;
+    for (final r in selected) {
+      final result = withReversal
+          ? await DataReconciliationService.deleteRepairWithReversal(r)
+          : await DataReconciliationService.deleteRepairKeepBooks(r);
+      restored += result.inventoryRestored;
+      debts += result.debtsRemoved;
+    }
+    if (!mounted) return;
+    NotificationService.showSnackBar(
+      '✅ Đã xóa ${selected.length} đơn'
+      '${withReversal && restored > 0 ? " • Kho +$restored" : ""}'
+      '${withReversal && debts > 0 ? " • Xóa $debts nợ" : ""}',
+      color: Colors.green,
+    );
+    _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    return Column(
+      children: [
+        _searchField(_searchCtrl, 'Tìm theo model/khách/SĐT...', _filter),
+        Expanded(
+          child: _filtered.isEmpty
+              ? _emptyState('Không có đơn sửa nào')
+              : ListView.builder(
+                  itemCount: _filtered.length,
+                  itemBuilder: (_, i) {
+                    final r = _filtered[i];
+                    return CheckboxListTile(
+                      value: _selected.contains(r.id),
+                      onChanged: (v) => setState(() {
+                        if (v == true) {
+                          _selected.add(r.id!);
+                        } else {
+                          _selected.remove(r.id);
+                        }
+                      }),
+                      dense: true,
+                      title: Text(
+                        r.model,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${r.customerName} • ${r.phone} • ${MoneyUtils.formatCurrency(r.price)}đ • '
+                        '${DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(r.createdAt))}',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    );
+                  },
+                ),
+        ),
+        if (_selected.isNotEmpty)
+          _ActionBar(
+            count: _selected.length,
+            onWithReversal: () => _execute(true),
+            onKeepBooks: () => _execute(false),
+          ),
+      ],
+    );
+  }
+}
+
+// ═══════════════════════════════ TAB: ĐƠN BÁN ═══════════════════════════════
+
+class _SaleTab extends StatefulWidget {
+  const _SaleTab({required this.db});
+  final DBHelper db;
+
+  @override
+  State<_SaleTab> createState() => _SaleTabState();
+}
+
+class _SaleTabState extends State<_SaleTab> {
+  List<SaleOrder> _all = [];
+  List<SaleOrder> _filtered = [];
+  final Set<int> _selected = {};
+  final _searchCtrl = TextEditingController();
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    final list = await widget.db.getAllSales();
+    list.sort((a, b) => b.soldAt.compareTo(a.soldAt));
+    setState(() {
+      _all = list;
+      _filtered = list;
+      _selected.clear();
+      _loading = false;
+    });
+  }
+
+  void _filter() {
+    final q = _searchCtrl.text.trim().toLowerCase();
+    setState(() {
+      _filtered = q.isEmpty
+          ? _all
+          : _all
+                .where(
+                  (s) =>
+                      s.productNamesDisplay.toLowerCase().contains(q) ||
+                      s.customerName.toLowerCase().contains(q) ||
+                      s.phone.contains(q),
+                )
+                .toList();
+    });
+  }
+
+  List<SaleOrder> get _selectedSales =>
+      _all.where((s) => _selected.contains(s.id)).toList();
+
+  Future<void> _execute(bool withReversal) async {
+    if (_selected.isEmpty) return;
+    final selected = _selectedSales;
+    final proceed = await _confirmSummary(
+      context,
+      title: 'Xóa ${selected.length} đơn bán',
+      lines: [
+        '${selected.length} đơn: ${selected.take(3).map((s) => s.productNamesDisplay).join(", ")}${selected.length > 3 ? "..." : ""}',
+      ],
+      withReversal: withReversal,
+    );
+    if (!proceed) return;
+    if (!await _confirmPassword(context)) return;
+
+    int restored = 0, debts = 0;
+    for (final s in selected) {
+      final result = withReversal
+          ? await DataReconciliationService.deleteSaleWithReversal(s)
+          : await DataReconciliationService.deleteSaleKeepBooks(s);
+      restored += result.inventoryRestored;
+      debts += result.debtsRemoved;
+    }
+    if (!mounted) return;
+    NotificationService.showSnackBar(
+      '✅ Đã xóa ${selected.length} đơn'
+      '${withReversal && restored > 0 ? " • Kho +$restored" : ""}'
+      '${withReversal && debts > 0 ? " • Xóa $debts nợ" : ""}',
+      color: Colors.green,
+    );
+    _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    return Column(
+      children: [
+        _searchField(_searchCtrl, 'Tìm theo sản phẩm/khách/SĐT...', _filter),
+        Expanded(
+          child: _filtered.isEmpty
+              ? _emptyState('Không có đơn bán nào')
+              : ListView.builder(
+                  itemCount: _filtered.length,
+                  itemBuilder: (_, i) {
+                    final s = _filtered[i];
+                    return CheckboxListTile(
+                      value: _selected.contains(s.id),
+                      onChanged: (v) => setState(() {
+                        if (v == true) {
+                          _selected.add(s.id!);
+                        } else {
+                          _selected.remove(s.id);
+                        }
+                      }),
+                      dense: true,
+                      title: Text(
+                        s.productNamesDisplay,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        '${s.customerName} • ${s.phone} • ${MoneyUtils.formatCurrency(s.finalPrice)}đ • '
+                        '${DateFormat('dd/MM/yyyy').format(DateTime.fromMillisecondsSinceEpoch(s.soldAt))}',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    );
+                  },
+                ),
+        ),
+        if (_selected.isNotEmpty)
+          _ActionBar(
+            count: _selected.length,
+            onWithReversal: () => _execute(true),
+            onKeepBooks: () => _execute(false),
+          ),
+      ],
+    );
+  }
+}
+
+// ═══════════════════════════════ TAB: CÔNG NỢ ═══════════════════════════════
+
+class _DebtTab extends StatefulWidget {
+  const _DebtTab({required this.db});
+  final DBHelper db;
+
+  @override
+  State<_DebtTab> createState() => _DebtTabState();
+}
+
+class _DebtTabState extends State<_DebtTab> {
+  List<Debt> _all = [];
+  List<Debt> _filtered = [];
+  final _searchCtrl = TextEditingController();
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    final raw = await widget.db.getAllDebts();
+    final list = raw.map((m) => Debt.fromMap(m)).toList();
+    setState(() {
+      _all = list;
+      _filtered = list;
+      _loading = false;
+    });
+  }
+
+  void _filter() {
+    final q = _searchCtrl.text.trim().toLowerCase();
+    setState(() {
+      _filtered = q.isEmpty
+          ? _all
+          : _all
+                .where(
+                  (d) =>
+                      d.personName.toLowerCase().contains(q) ||
+                      d.phone.contains(q),
+                )
+                .toList();
+    });
+  }
+
+  Future<void> _writeOff(Debt d) async {
+    final reasonCtrl = TextEditingController();
+    final remaining = d.totalAmount - d.paidAmount;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Miễn nợ'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${d.personName} — còn ${MoneyUtils.formatCurrency(remaining)}đ',
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonCtrl,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'Lý do miễn nợ (bắt buộc)',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Không ghi nhận là đã thu tiền — chỉ đánh dấu xóa khoản nợ này.',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('HỦY'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: reasonCtrl.text.trim().isEmpty
+                ? null
+                : () => Navigator.pop(ctx, true),
+            child: const Text('MIỄN NỢ', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || reasonCtrl.text.trim().isEmpty) return;
+    if (!await _confirmPassword(context)) return;
+
+    await DataReconciliationService.writeOffDebt(
+      d.id!,
+      reason: reasonCtrl.text.trim(),
+      personName: d.personName,
+    );
+    if (!mounted) return;
+    NotificationService.showSnackBar(
+      '✅ Đã miễn nợ cho ${d.personName}',
+      color: Colors.green,
+    );
+    _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    return Column(
+      children: [
+        _searchField(_searchCtrl, 'Tìm theo tên/SĐT...', _filter),
+        Expanded(
+          child: _filtered.isEmpty
+              ? _emptyState('Không có công nợ nào')
+              : ListView.builder(
+                  itemCount: _filtered.length,
+                  itemBuilder: (_, i) {
+                    final d = _filtered[i];
+                    final remaining = d.totalAmount - d.paidAmount;
+                    return ListTile(
+                      dense: true,
+                      title: Text(
+                        d.personName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${d.phone} • Còn ${MoneyUtils.formatCurrency(remaining)}đ • ${d.type}',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      trailing: TextButton(
+                        onPressed: () => _writeOff(d),
+                        child: const Text('Miễn nợ'),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+// ═══════════════════════════════ TAB: KHO & SẢN PHẨM ═══════════════════════════════
+
+class _InventoryTab extends StatefulWidget {
+  const _InventoryTab({required this.db});
+  final DBHelper db;
+
+  @override
+  State<_InventoryTab> createState() => _InventoryTabState();
+}
+
+class _InventoryTabState extends State<_InventoryTab> {
+  List<Map<String, dynamic>> _parts = [];
+  List<Product> _products = [];
+  final _searchCtrl = TextEditingController();
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    final parts = await widget.db.getAllParts();
+    final products = await widget.db.getAllProducts();
+    setState(() {
+      _parts = parts;
+      _products = products;
+      _loading = false;
+    });
+  }
+
+  Future<void> _adjustPart(Map<String, dynamic> part) async {
+    final qtyCtrl = TextEditingController(text: '${part['quantity'] ?? 0}');
+    final reasonCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Sửa số lượng: ${part['partName']}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: qtyCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Số lượng mới',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: reasonCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Lý do điều chỉnh (bắt buộc)',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('HỦY'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('LƯU'),
+          ),
+        ],
+      ),
+    );
+    final newQty = int.tryParse(qtyCtrl.text.trim());
+    if (confirmed != true || newQty == null || reasonCtrl.text.trim().isEmpty)
+      return;
+    if (!await _confirmPassword(context)) return;
+
+    await DataReconciliationService.adjustPartQuantity(
+      part['id'] as int,
+      newQuantity: newQty,
+      reason: reasonCtrl.text.trim(),
+      partName: part['partName']?.toString() ?? '',
+    );
+    if (!mounted) return;
+    NotificationService.showSnackBar(
+      '✅ Đã cập nhật số lượng',
+      color: Colors.green,
+    );
+    _load();
+  }
+
+  Future<void> _deletePart(Map<String, dynamic> part) async {
+    final linkedDebts =
+        await DataReconciliationService.countLinkedSupplierDebtsForPart(
+          part['firestoreId']?.toString() ?? '',
+        );
+    if (!mounted) return;
+    final proceed = await _confirmSummary(
+      context,
+      title: 'Xóa linh kiện: ${part['partName']}',
+      lines: [
+        if (linkedDebts > 0)
+          '⚠️ Còn $linkedDebts công nợ NCC liên quan (KHÔNG bị xóa theo)',
+        'Linh kiện sẽ ẩn khỏi kho, không xóa lịch sử đã dùng.',
+      ],
+      withReversal: false,
+    );
+    if (!proceed) return;
+    if (!await _confirmPassword(context)) return;
+
+    await DataReconciliationService.deletePart(
+      part['id'] as int,
+      partName: part['partName']?.toString() ?? '',
+    );
+    if (!mounted) return;
+    NotificationService.showSnackBar('✅ Đã xóa linh kiện', color: Colors.green);
+    _load();
+  }
+
+  Future<void> _adjustProduct(Product p) async {
+    final qtyCtrl = TextEditingController(text: '${p.quantity}');
+    final reasonCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Sửa số lượng: ${p.name}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: qtyCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Số lượng mới',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: reasonCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Lý do điều chỉnh (bắt buộc)',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('HỦY'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('LƯU'),
+          ),
+        ],
+      ),
+    );
+    final newQty = int.tryParse(qtyCtrl.text.trim());
+    if (confirmed != true || newQty == null || reasonCtrl.text.trim().isEmpty)
+      return;
+    if (!await _confirmPassword(context)) return;
+
+    await DataReconciliationService.adjustProductQuantity(
+      p,
+      newQuantity: newQty,
+      reason: reasonCtrl.text.trim(),
+    );
+    if (!mounted) return;
+    NotificationService.showSnackBar(
+      '✅ Đã cập nhật số lượng',
+      color: Colors.green,
+    );
+    _load();
+  }
+
+  Future<void> _deleteProduct(Product p) async {
+    final proceed = await _confirmSummary(
+      context,
+      title: 'Xóa sản phẩm: ${p.name}',
+      lines: const ['Sản phẩm sẽ ẩn khỏi kho, không xóa lịch sử đã bán.'],
+      withReversal: false,
+    );
+    if (!proceed) return;
+    if (!await _confirmPassword(context)) return;
+
+    await DataReconciliationService.deleteProduct(p);
+    if (!mounted) return;
+    NotificationService.showSnackBar('✅ Đã xóa sản phẩm', color: Colors.green);
+    _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    final q = _searchCtrl.text.trim().toLowerCase();
+    final parts = q.isEmpty
+        ? _parts
+        : _parts
+              .where(
+                (p) =>
+                    (p['partName']?.toString() ?? '').toLowerCase().contains(q),
+              )
+              .toList();
+    final products = q.isEmpty
+        ? _products
+        : _products.where((p) => p.name.toLowerCase().contains(q)).toList();
+
+    if (parts.isEmpty && products.isEmpty && q.isEmpty) {
+      return Column(
+        children: [
+          _searchField(_searchCtrl, 'Tìm theo tên...', () => setState(() {})),
+          Expanded(child: _emptyState('Không có linh kiện/sản phẩm nào')),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        _searchField(_searchCtrl, 'Tìm theo tên...', () => setState(() {})),
+        Expanded(
+          child: ListView(
+            children: [
+              if (parts.isNotEmpty) ...[
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(12, 8, 12, 4),
+                  child: Text(
+                    'LINH KIỆN',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueGrey,
+                    ),
+                  ),
+                ),
+                ...parts.map(
+                  (p) => ListTile(
+                    dense: true,
+                    title: Text(
+                      p['partName']?.toString() ?? '',
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    subtitle: Text(
+                      'SL: ${p['quantity'] ?? 0}',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, size: 20),
+                          onPressed: () => _adjustPart(p),
+                          tooltip: 'Sửa số lượng',
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            Icons.delete_outline,
+                            size: 20,
+                            color: AppColors.error,
+                          ),
+                          onPressed: () => _deletePart(p),
+                          tooltip: 'Xóa',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              if (products.isNotEmpty) ...[
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(12, 8, 12, 4),
+                  child: Text(
+                    'SẢN PHẨM',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueGrey,
+                    ),
+                  ),
+                ),
+                ...products.map(
+                  (p) => ListTile(
+                    dense: true,
+                    title: Text(p.name, style: const TextStyle(fontSize: 14)),
+                    subtitle: Text(
+                      'SL: ${p.quantity}',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, size: 20),
+                          onPressed: () => _adjustProduct(p),
+                          tooltip: 'Sửa số lượng',
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            Icons.delete_outline,
+                            size: 20,
+                            color: AppColors.error,
+                          ),
+                          onPressed: () => _deleteProduct(p),
+                          tooltip: 'Xóa',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ═══════════════════════════════ Shared action bar ═══════════════════════════════
+
+class _ActionBar extends StatelessWidget {
+  const _ActionBar({
+    required this.count,
+    required this.onWithReversal,
+    required this.onKeepBooks,
+  });
+
+  final int count;
+  final VoidCallback onWithReversal;
+  final VoidCallback onKeepBooks;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 6,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Đã chọn $count đơn',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onKeepBooks,
+                    child: const Text(
+                      'Xóa, giữ sổ sách',
+                      style: TextStyle(fontSize: 12.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.error,
+                    ),
+                    onPressed: onWithReversal,
+                    child: const Text(
+                      'Xóa, hoàn tài chính',
+                      style: TextStyle(fontSize: 12.5, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
