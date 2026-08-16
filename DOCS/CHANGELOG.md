@@ -4,6 +4,22 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-16p] - fix(build): commit file bị thiếu khiến build iOS lỗi "No such file or directory"
+
+**User báo:** build iOS trên Mac báo lỗi ngay sau lần fix trước đó, nghi do mình vừa sửa gây ra. Gửi ảnh chụp Xcode: `Error when reading 'lib/views/other_apps_view.dart': No such file or directory` + `Not a constant expression` tại `home_view.dart:6289` (`const OtherAppsView()`).
+
+**Nguyên nhân thật (không liên quan tới fix sync trước đó):** tính năng "Ứng dụng khác" (trang giới thiệu app khác, làm ở phiên trước lúc compact) có 4 phần: `other_apps_view.dart` (mới), mục quản lý trong `super_admin_console_view.dart`, rule Firestore, và đoạn import + Settings entry trong `home_view.dart`. Khi commit "Công cụ điều chỉnh dữ liệu" (`[2026-08-16m]`), lệnh `git add` có gồm `lib/views/home_view.dart` — vô tình commit theo luôn phần import/entry "Ứng dụng khác" đã có sẵn trong file (từ phiên trước), nhưng **`other_apps_view.dart` (file định nghĩa class) lại chưa từng được `git add`** — vẫn nằm ở trạng thái untracked chỉ có trên máy Windows đang làm việc. Máy Mac của user `git pull` về thì thiếu hẳn file này → lỗi biên dịch.
+
+**Fix:** `git add` + commit 4 file còn treo uncommitted từ tính năng "Ứng dụng khác": `lib/views/other_apps_view.dart` (file bị thiếu — nguyên nhân chính), `lib/views/super_admin_console_view.dart` (mục quản lý), `firestore.rules` (đã deploy production từ trước, giờ mới đồng bộ vào git), `pubspec.yaml` (bump version 3.3.0+541, cũng đang treo).
+
+**Verify:** `flutter analyze` sạch trên cả 3 file liên quan (0 lỗi, chỉ info/warning có sẵn). Build Android debug APK thành công (dùng chung Dart frontend compiler với iOS nên xác nhận gián tiếp lỗi thiếu file đã hết). **Chưa tự build iOS được** (máy Windows, không có Xcode) — cần user tự pull code mới và build lại trên Mac để xác nhận dứt điểm.
+
+**Bài học:** khi 1 file có NHIỀU thay đổi từ nhiều tính năng khác nhau chưa commit hết, `git add <file>` sẽ gộp TẤT CẢ vào cùng 1 commit dù không liên quan — cần `git status`/`git diff` soát kỹ trước khi add file đã biết có lịch sử sửa dở từ trước, không chỉ add theo tên file đang làm.
+
+**Files:** `lib/views/other_apps_view.dart` (mới), `lib/views/super_admin_console_view.dart`, `firestore.rules`, `pubspec.yaml`.
+
+---
+
 ## [2026-08-16o] - fix(sync): đơn sửa từ máy khác không hiện tới khi thoát app vào lại
 
 **Yêu cầu user:** "sau khi tối ưu read cho repair có phát sinh 1 số vấn đề: khi người khác nhận máy sửa ở máy A thì máy B không có trên list phải thoát ra vào lại mới thấy. Khi sửa hay chuyển trạng thái cũng không cập nhật ngay."
