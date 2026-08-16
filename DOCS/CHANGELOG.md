@@ -4,6 +4,23 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-16c] - feat(notification): Thông báo broadcast có thể kèm link (VD: link App Store để cập nhật)
+
+**Yêu cầu user:** "tạo thông báo để gửi yêu cầu cập nhật nhấp vào là vào kho store được ko" — gửi broadcast toàn hệ thống có link, bấm vào mở link đó (VD: link App Store).
+
+**Thay đổi:**
+- `functions/index.js` (`sendBroadcastNotification`): nhận thêm field `url` (optional) từ client, validate phải bắt đầu `http://`/`https://`, lưu vào doc Firestore `broadcasts` và đưa vào `data` payload của FCM (`{..., url}`).
+- `lib/views/super_admin_console_view.dart` (form gửi broadcast): thêm ô "Link (không bắt buộc)", validate client-side trước khi gọi Cloud Function, xóa cùng lúc với tiêu đề/nội dung sau khi gửi thành công.
+- `lib/services/notification_service.dart`:
+  - Dialog broadcast hiển thị khi app đang mở (`_showBroadcastDialog`) — nếu có `url`, thêm nút "Cập nhật ngay" (mở link qua `url_launcher`, `LaunchMode.externalApplication`) bên cạnh nút đóng ("Để sau"/"Đã hiểu").
+  - Bấm vào thông báo hệ thống (push, app nền/đã đóng) hoặc local notification — `_handleNotificationNavigation` giờ ưu tiên mở `url` nếu có trong data payload, trước khi thử điều hướng deep-link như cũ.
+
+**Verify:** `flutter analyze` sạch (không lỗi mới), `node -c index.js` cú pháp hợp lệ, `flutter build apk --debug` + cài + khởi động Oppo CPH2203 không FATAL exception trong logcat. **Chưa deploy Cloud Function** — cần xác nhận riêng trước khi chạy `firebase deploy --only functions` vì ảnh hưởng hệ thống production đang chạy thật.
+
+**Files:** `functions/index.js`, `lib/views/super_admin_console_view.dart`, `lib/services/notification_service.dart`.
+
+---
+
 ## [2026-08-16b] - refactor(admin): Redesign trang Super Admin Console cho chuẩn & dễ theo dõi
 
 **Yêu cầu user:** "sửa lại trang supper admin cho chuẩn và dễ theo dõi" — 4 vấn đề được chọn: Tổng quan thiếu thông tin/khó nhìn, danh sách Cửa hàng/Người dùng khó tìm-lọc, style không nhất quán, và mô tả bổ sung khi thấy.

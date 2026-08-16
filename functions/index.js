@@ -1655,9 +1655,13 @@ exports.sendBroadcastNotification = onCall(async (request) => {
   const body  = (data.body  || "").toString().trim();
   const type  = (data.type  || "info").toString(); // info | warning | update_required
   const expiresAfterDays = typeof data.expiresAfterDays === 'number' ? data.expiresAfterDays : 7;
+  const url = (data.url || "").toString().trim();
 
   if (!title) throw new HttpsError("invalid-argument", "Thiếu tiêu đề thông báo");
   if (!body)  throw new HttpsError("invalid-argument", "Thiếu nội dung thông báo");
+  if (url && !/^https?:\/\//i.test(url)) {
+    throw new HttpsError("invalid-argument", "Link phải bắt đầu bằng http:// hoặc https://");
+  }
 
   const db = admin.firestore();
   const expiresAt = new Date(Date.now() + expiresAfterDays * 24 * 60 * 60 * 1000);
@@ -1667,6 +1671,7 @@ exports.sendBroadcastNotification = onCall(async (request) => {
     title,
     body,
     type,
+    ...(url && { url }),
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     createdBy: auth.uid,
     expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
@@ -1683,6 +1688,7 @@ exports.sendBroadcastNotification = onCall(async (request) => {
         type,
         broadcastId: broadcastRef.id,
         source: 'broadcast',
+        ...(url && { url }),
       },
       android: {
         priority: type === 'update_required' ? 'high' : 'normal',

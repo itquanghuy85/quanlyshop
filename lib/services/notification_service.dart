@@ -10,6 +10,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../core/utils/money_utils.dart';
 import 'user_service.dart';
 import '../developer/firestore_audit/firestore_audit_module.dart';
@@ -862,6 +863,14 @@ class NotificationService {
   }
 
   static void _handleNotificationNavigation(Map<String, dynamic> data) {
+    final nestedData = data['data'];
+    final nestedUrl = nestedData is Map ? nestedData['url'] : null;
+    final rawUrl = (data['url'] ?? nestedUrl ?? '').toString().trim();
+    if (rawUrl.isNotEmpty) {
+      unawaited(_openBroadcastUrl(rawUrl));
+      return;
+    }
+
     final navigationData = _extractNavigationData(data);
     final targetType = navigationData['targetType']?.toString() ?? '';
     final targetId = navigationData['targetId']?.toString() ?? '';
@@ -1692,6 +1701,7 @@ class NotificationService {
     final title = (data['title'] ?? 'Thông báo hệ thống').toString();
     final body = (data['body'] ?? '').toString();
     final type = (data['type'] ?? 'info').toString();
+    final url = (data['url'] ?? '').toString().trim();
 
     Color color;
     IconData icon;
@@ -1748,6 +1758,27 @@ class NotificationService {
         ),
         content: Text(body, style: const TextStyle(fontSize: 15, height: 1.4)),
         actions: [
+          if (url.isNotEmpty)
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _openBroadcastUrl(url);
+                },
+                icon: const Icon(Icons.open_in_new_rounded),
+                label: const Text('Cập nhật ngay'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: color,
+                  side: BorderSide(color: color),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+          if (url.isNotEmpty) const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -1760,12 +1791,21 @@ class NotificationService {
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              child: const Text('Đã hiểu'),
+              child: Text(url.isNotEmpty ? 'Để sau' : 'Đã hiểu'),
             ),
           ),
         ],
       ),
     );
+  }
+
+  static Future<void> _openBroadcastUrl(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      debugPrint('Không mở được link broadcast "$url": $e');
+    }
   }
 
   static void stopBroadcastListener() {

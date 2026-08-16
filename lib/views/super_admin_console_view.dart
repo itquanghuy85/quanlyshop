@@ -2674,6 +2674,7 @@ class _BroadcastSection extends StatefulWidget {
 class _BroadcastSectionState extends State<_BroadcastSection> {
   final _titleCtrl = TextEditingController();
   final _bodyCtrl = TextEditingController();
+  final _urlCtrl = TextEditingController();
   String _type = 'info';
   bool _sending = false;
   String? _lastResult;
@@ -2689,15 +2690,26 @@ class _BroadcastSectionState extends State<_BroadcastSection> {
   void dispose() {
     _titleCtrl.dispose();
     _bodyCtrl.dispose();
+    _urlCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _send() async {
     final title = _titleCtrl.text.trim();
     final body = _bodyCtrl.text.trim();
+    final url = _urlCtrl.text.trim();
     if (title.isEmpty || body.isEmpty) {
       setState(() {
         _lastResult = 'Vui lòng nhập tiêu đề và nội dung.';
+        _lastSuccess = false;
+      });
+      return;
+    }
+    if (url.isNotEmpty &&
+        !url.startsWith('http://') &&
+        !url.startsWith('https://')) {
+      setState(() {
+        _lastResult = 'Link phải bắt đầu bằng http:// hoặc https://';
         _lastSuccess = false;
       });
       return;
@@ -2710,12 +2722,18 @@ class _BroadcastSectionState extends State<_BroadcastSection> {
       final callable = FirebaseFunctions.instanceFor(
         region: 'asia-southeast1',
       ).httpsCallable('sendBroadcastNotification');
-      await callable.call({'title': title, 'body': body, 'type': _type});
+      await callable.call({
+        'title': title,
+        'body': body,
+        'type': _type,
+        if (url.isNotEmpty) 'url': url,
+      });
       setState(() {
         _lastResult = '✅ Đã gửi thành công tới toàn bộ người dùng!';
         _lastSuccess = true;
         _titleCtrl.clear();
         _bodyCtrl.clear();
+        _urlCtrl.clear();
       });
     } catch (e) {
       setState(() {
@@ -2827,6 +2845,20 @@ class _BroadcastSectionState extends State<_BroadcastSection> {
                 ),
                 prefixIcon: const Icon(Icons.message_rounded),
                 alignLabelWithHint: true,
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _urlCtrl,
+              keyboardType: TextInputType.url,
+              decoration: InputDecoration(
+                labelText: 'Link (không bắt buộc)',
+                hintText: 'VD: link App Store / Play Store để bấm vào cập nhật',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                prefixIcon: const Icon(Icons.link_rounded),
                 isDense: true,
               ),
             ),
