@@ -4,6 +4,20 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-16q] - feat(repair): cho phép bỏ qua yêu cầu SĐT khi giao máy (đơn cũ thiếu thông tin)
+
+**Yêu cầu user:** "có 1 số đơn sửa chỉ có tên khách mà không có số điện thoại, khi giao yêu cầu cập nhật cái này mình bỏ qua được không" — đơn cũ nhập thiếu SĐT bị chặn cứng không giao máy được.
+
+**Trước đây:** dialog "⚠️ Thiếu thông tin khách hàng" chỉ có 2 lựa chọn "Hủy" hoặc "Cập nhật ngay" — không có cách nào giao máy nếu chưa bổ sung đủ tên+SĐT (trừ đánh dấu "Khách vãng lai", không hợp lý với đơn đã có tên khách thật).
+
+**Fix:** thêm nút **"Bỏ qua, giao máy luôn"** — CHỈ hiện khi đơn đã có tên khách nhưng thiếu SĐT (thiếu cả tên thì vẫn chặn cứng như cũ, vì lúc đó gần như không xác định được đơn của ai). Áp dụng cho cả 2 luồng giao máy: `_submitForDeliveryApproval` (nhân viên gửi chờ duyệt) và `_approveDelivery` (quản lý duyệt giao).
+
+**Verify:** `flutter analyze` sạch. Build + cài Oppo CPH2203 (tài khoản test), tạo 1 đơn sửa test có tên khách nhưng cố tình để trống SĐT → chuyển trạng thái tới "SỬA XONG" → bấm "GIAO" → xác nhận dialog mới hiện đúng 3 nút, bấm "Bỏ qua, giao máy luôn" → vào thẳng màn xác nhận duyệt giao, bấm "DUYỆT" → đơn chuyển đúng sang "ĐÃ GIAO" thành công. Không crash trong toàn bộ quá trình.
+
+**Files:** `lib/views/repair_detail_view.dart`.
+
+---
+
 ## [2026-08-16p] - fix(build): commit file bị thiếu khiến build iOS lỗi "No such file or directory"
 
 **User báo:** build iOS trên Mac báo lỗi ngay sau lần fix trước đó, nghi do mình vừa sửa gây ra. Gửi ảnh chụp Xcode: `Error when reading 'lib/views/other_apps_view.dart': No such file or directory` + `Not a constant expression` tại `home_view.dart:6289` (`const OtherAppsView()`).

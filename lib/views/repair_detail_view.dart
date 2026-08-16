@@ -1386,29 +1386,48 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     // Khách vãng lai (isWalkIn) được phép giao mà không cần thông tin đầy đủ
     if (!_isWalkInRepair(r) &&
         (r.phone.trim().isEmpty || r.customerName.trim().isEmpty)) {
-      final shouldEdit = await showDialog<bool>(
+      // Có tên nhưng thiếu SĐT: cho phép bỏ qua giao máy luôn (đơn cũ nhập
+      // thiếu, không chặn cứng nữa). Thiếu cả tên thì vẫn bắt buộc cập nhật
+      // vì lúc đó gần như không xác định được đơn của khách nào.
+      final hasNameOnly =
+          r.customerName.trim().isNotEmpty && r.phone.trim().isEmpty;
+      final action = await showDialog<String>(
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('⚠️ Thiếu thông tin khách hàng'),
-          content: const Text(
-            'Vui lòng cập nhật thông tin khách hàng (Tên, SĐT) trước khi giao máy.',
+          content: Text(
+            hasNameOnly
+                ? 'Đơn này có tên khách nhưng chưa có số điện thoại. Bạn có thể cập nhật ngay, hoặc bỏ qua để giao máy luôn (sẽ khó liên hệ lại khách sau này).'
+                : 'Vui lòng cập nhật thông tin khách hàng (Tên, SĐT) trước khi giao máy.',
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
+              onPressed: () => Navigator.pop(ctx, null),
               child: const Text('Hủy'),
             ),
+            if (hasNameOnly)
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, 'skip'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.orange.shade800,
+                ),
+                child: const Text('Bỏ qua, giao máy luôn'),
+              ),
             ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
+              onPressed: () => Navigator.pop(ctx, 'update'),
               child: const Text('Cập nhật ngay'),
             ),
           ],
         ),
       );
-      if (shouldEdit == true) {
+      if (action == 'update') {
         await _editBasicInfo();
+        return;
       }
-      return;
+      if (action != 'skip') {
+        return; // Hủy hoặc đóng dialog
+      }
+      // action == 'skip' → tiếp tục quy trình giao máy bên dưới
     }
 
     String payMethod = loc.cash;
@@ -1676,29 +1695,48 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     // Khách vãng lai (isWalkIn) được phép giao mà không cần thông tin đầy đủ
     if (!_isWalkInRepair(r) &&
         (r.phone.trim().isEmpty || r.customerName.trim().isEmpty)) {
-      final shouldEdit = await showDialog<bool>(
+      // Có tên nhưng thiếu SĐT: cho phép bỏ qua duyệt giao luôn (đơn cũ
+      // nhập thiếu, không chặn cứng nữa). Thiếu cả tên thì vẫn bắt buộc
+      // cập nhật vì lúc đó gần như không xác định được đơn của khách nào.
+      final hasNameOnly =
+          r.customerName.trim().isNotEmpty && r.phone.trim().isEmpty;
+      final action = await showDialog<String>(
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('⚠️ Thiếu thông tin khách hàng'),
-          content: const Text(
-            'Vui lòng cập nhật thông tin khách hàng (Tên, SĐT) trước khi duyệt giao máy.',
+          content: Text(
+            hasNameOnly
+                ? 'Đơn này có tên khách nhưng chưa có số điện thoại. Bạn có thể cập nhật ngay, hoặc bỏ qua để duyệt giao luôn (sẽ khó liên hệ lại khách sau này).'
+                : 'Vui lòng cập nhật thông tin khách hàng (Tên, SĐT) trước khi duyệt giao máy.',
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
+              onPressed: () => Navigator.pop(ctx, null),
               child: const Text('Hủy'),
             ),
+            if (hasNameOnly)
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, 'skip'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.orange.shade800,
+                ),
+                child: const Text('Bỏ qua, duyệt giao luôn'),
+              ),
             ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
+              onPressed: () => Navigator.pop(ctx, 'update'),
               child: const Text('Cập nhật ngay'),
             ),
           ],
         ),
       );
-      if (shouldEdit == true) {
+      if (action == 'update') {
         await _editBasicInfo();
+        return;
       }
-      return;
+      if (action != 'skip') {
+        return; // Hủy hoặc đóng dialog
+      }
+      // action == 'skip' → tiếp tục quy trình duyệt giao bên dưới
     }
 
     String selectedWarranty = r.warranty.isEmpty ? 'KO BH' : r.warranty;
