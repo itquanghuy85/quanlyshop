@@ -3641,7 +3641,7 @@
   "@smsSendError": {
     "description": "Snackbar when SMS launch throws an exception"
   },
-  "debtManagementTitle": "QUẢN LÝ CÔNG NỢ",
+  "debtManagementTitle": "CÔNG NỢ",
   "@debtManagementTitle": {
     "description": "Title for debt management screen"
   },
@@ -3698,7 +3698,7 @@
   "@searchNamePhone": {
     "description": "Hint text for debt search field"
   },
-  "filterPaid": "Đã trả",
+  "filterPaid": "Hiện đã trả",
   "@filterPaid": {
     "description": "Filter chip label to show paid debts"
   },

@@ -4,6 +4,23 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-16n] - fix(debt): dọn giao diện màn Công nợ — bớt cấn, chuyên nghiệp hơn
+
+**Yêu cầu user:** gửi 2 ảnh chụp màn "Quản lý công nợ" (tab Phải thu, Phải trả), nhận xét thao tác/trải nghiệm "cấn cấn không chuyên nghiệp", nhờ xem và cho ý kiến sửa. Sau khi review + đối chiếu code, user đồng ý sửa cả 4 điểm.
+
+1. **Tiêu đề AppBar bị cắt chữ** ("QUẢN LÝ CÔN...") — chuỗi "QUẢN LÝ CÔNG NỢ" quá dài so với khoảng trống còn lại (đã có nút back + phụ đề + 3 icon bên phải). Rút gọn còn "CÔNG NỢ" (`debtManagementTitle` trong `app_vi.arb`).
+2. **Mỗi thẻ nợ lặp lại chỉ báo "thu/trả" tới 3 lần dư thừa**: số thứ tự (badge vuông "1","2"...) + icon mũi tên ↓/↑ cùng màu + chữ "Phải thu"/"Phải trả" — trong khi đang lọc theo tab thì cả 3 đều nói cùng 1 điều. Bỏ số thứ tự (không mang ý nghĩa gì với người dùng — chỉ là thứ tự hiển thị) và bỏ chip chữ "Phải thu"/"Phải trả" (trùng lặp với icon + ngữ cảnh tab); chỉ còn hiện 1 chip khi có điều thật sự cần báo (đã trả đủ / quá hạn). Áp dụng cho cả thẻ nợ khách/NCC (`_debtCard`) lẫn thẻ nợ đối tác sửa chữa (`_partnerDebtCard`).
+3. **Khối "TỔNG NỢ ĐỐI TÁC SỬA CHỮA" bị cắt cụt giữa chừng** (nguyên nhân chính gây cảm giác giật/thiếu chuyên nghiệp) — code cũ chia màn thành 2 khung theo **tỷ lệ cố định** (danh sách nợ thường : nợ đối tác = 3:2, `Expanded(flex: ...)`), nên khi danh sách ngắn vẫn bị ép cắt cụt ngay trước khối tổng. Gộp lại thành **1 `ListView` cuộn liền mạch duy nhất**, cao theo đúng nội dung — `_buildSimpleDebtList`/`_buildPartnerDebtList` đổi thành `_buildSimpleDebtItems`/`_buildPartnerDebtItems` trả về `List<Widget>` thay vì `Widget` có `Expanded` riêng.
+4. **Nút "+" tạo nợ mới đè sát thẻ cuối danh sách** — thêm `padding: EdgeInsets.only(bottom: 88)` cho `ListView` gộp để chừa chỗ cho FAB, không che nội dung.
+
+**Nhỏ hơn (đi kèm):** nút lọc "Đã trả" cạnh ô tìm kiếm đổi nhãn thành "Hiện đã trả" + thêm icon phễu lọc (`Icons.filter_alt_outlined`) để rõ đây là bộ lọc bấm được, không phải nhãn trạng thái.
+
+**Verify:** `flutter analyze` sạch (0 lỗi, chỉ info/warning có sẵn từ trước không liên quan). `flutter gen-l10n` chạy lại sau khi sửa `app_vi.arb`. Build + cài Oppo CPH2203, test trên tài khoản thật (shop "M", có cả nợ phải thu lẫn nợ đối tác sửa chữa) — xác nhận: tiêu đề hiện đúng "CÔNG NỢ" không còn bị cắt, nút lọc hiện "Hiện đã trả" có icon, thẻ nợ không còn số thứ tự/chip trùng lặp ở cả 2 loại thẻ, không crash trong suốt quá trình test cả 2 tab. **Không tái hiện được đúng 1:1 kịch bản cắt cụt gốc trong ảnh chụp** vì tài khoản test hiện tại (shop "M") có ít dữ liệu nợ NCC hơn HULUCA STORE — độ tin cậy dựa trên việc cơ chế gây lỗi gốc (tỷ lệ `flex` cố định) đã được gỡ bỏ hoàn toàn, thay bằng cuộn tự nhiên theo nội dung (fix cấu trúc, không phải fix theo dữ liệu cụ thể).
+
+**Files:** `lib/views/debt_view.dart`, `lib/l10n/app_vi.arb`.
+
+---
+
 ## [2026-08-16m] - feat(admin): Công cụ điều chỉnh dữ liệu (dọn đơn dư thừa/miễn nợ/sửa kho)
 
 **Yêu cầu user:** "đơn sửa đơn bán và 1 số dữ liệu khác bạn làm theo ý bạn làm công cụ điều chỉnh dữ liệu" — user giao toàn quyền thiết kế, bối cảnh: shop có nhiều đơn sửa/đơn bán dư thừa (dữ liệu test/nhập nhầm) muốn xóa, công nợ muốn miễn, kho/linh kiện muốn sửa số lượng — nhưng không được làm sai lệch báo cáo tài chính (hoặc chấp nhận giữ nguyên sổ sách cũ nếu muốn).

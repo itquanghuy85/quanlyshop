@@ -682,6 +682,13 @@ class _DebtViewState extends State<DebtView>
                   l10n.filterPaid,
                   style: const TextStyle(fontSize: 12),
                 ),
+                avatar: Icon(
+                  Icons.filter_alt_outlined,
+                  size: 16,
+                  color: _showPaidDebts
+                      ? Colors.green.shade700
+                      : FinanceV2Theme.subInk,
+                ),
                 selected: _showPaidDebts,
                 onSelected: (v) => setState(() => _showPaidDebts = v),
                 selectedColor: Colors.green.shade100,
@@ -743,21 +750,18 @@ class _DebtViewState extends State<DebtView>
             ),
           )
         else
+          // Gộp 2 danh sách (nợ thường + nợ đối tác sửa chữa) vào 1 khung
+          // cuộn liền mạch duy nhất, cao theo đúng nội dung thay vì chia
+          // theo tỷ lệ cố định (3:2) — tỷ lệ cố định trước đây khiến danh
+          // sách ngắn vẫn bị ép cắt cụt ngay trước khối tổng phía dưới.
           Expanded(
-            child: Column(
+            child: ListView(
+              // padding-bottom chừa chỗ cho nút "+" nổi, tránh che thẻ cuối
+              padding: const EdgeInsets.only(bottom: 88),
               children: [
-                if (list.isNotEmpty)
-                  Expanded(
-                    flex: (showPartnerSection && _partnerDebts.isNotEmpty)
-                        ? 3
-                        : 1,
-                    child: _buildSimpleDebtList(list),
-                  ),
+                if (list.isNotEmpty) ..._buildSimpleDebtItems(list),
                 if (showPartnerSection && _partnerDebts.isNotEmpty)
-                  Expanded(
-                    flex: list.isEmpty ? 1 : 2,
-                    child: _buildPartnerDebtList(),
-                  ),
+                  ..._buildPartnerDebtItems(),
               ],
             ),
           ),
@@ -765,7 +769,7 @@ class _DebtViewState extends State<DebtView>
     );
   }
 
-  Widget _buildSimpleDebtList(List<Map<String, dynamic>> list) {
+  List<Widget> _buildSimpleDebtItems(List<Map<String, dynamic>> list) {
     final l10n = AppLocalizations.of(context)!;
     final activeList = list.where(_isActiveDebt).toList();
     final totalRemain = activeList.fold(0, (sum, d) => sum + _remainingDebt(d));
@@ -787,43 +791,46 @@ class _DebtViewState extends State<DebtView>
     }
     final hasUrgency = veryUrgentCount > 0 || urgentCount > 0;
 
-    return Column(
-      children: [
-        _summaryHeader(l10n.totalRemainingDebt, totalRemain, Colors.redAccent),
-        if (hasUrgency)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-            child: Row(
-              children: [
-                if (veryUrgentCount > 0)
-                  _urgencyChip(
-                    l10n.overdueCountDays(veryUrgentCount),
-                    Colors.red.shade100,
-                    Colors.red.shade700,
-                    Icons.warning_rounded,
-                  ),
-                if (veryUrgentCount > 0 && urgentCount > 0)
-                  const SizedBox(width: 6),
-                if (urgentCount > 0)
-                  _urgencyChip(
-                    l10n.urgentCountDays(urgentCount),
-                    Colors.orange.shade100,
-                    Colors.orange.shade700,
-                    Icons.schedule_rounded,
-                  ),
-              ],
-            ),
-          ),
-        if (hasUrgency) const SizedBox(height: 4),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            itemCount: list.length,
-            itemBuilder: (ctx, i) => _debtCard(list[i], i + 1),
+    return [
+      _summaryHeader(l10n.totalRemainingDebt, totalRemain, Colors.redAccent),
+      if (hasUrgency)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+          child: Row(
+            children: [
+              if (veryUrgentCount > 0)
+                _urgencyChip(
+                  l10n.overdueCountDays(veryUrgentCount),
+                  Colors.red.shade100,
+                  Colors.red.shade700,
+                  Icons.warning_rounded,
+                ),
+              if (veryUrgentCount > 0 && urgentCount > 0)
+                const SizedBox(width: 6),
+              if (urgentCount > 0)
+                _urgencyChip(
+                  l10n.urgentCountDays(urgentCount),
+                  Colors.orange.shade100,
+                  Colors.orange.shade700,
+                  Icons.schedule_rounded,
+                ),
+            ],
           ),
         ),
-      ],
-    );
+      if (hasUrgency) const SizedBox(height: 4) else const SizedBox(height: 8),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Column(
+          children: [
+            for (int i = 0; i < list.length; i++)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: _debtCard(list[i], i + 1),
+              ),
+          ],
+        ),
+      ),
+    ];
   }
 
   Widget _urgencyChip(String label, Color bg, Color fg, IconData icon) {
@@ -897,14 +904,16 @@ class _DebtViewState extends State<DebtView>
   }
 
   /// Build danh sách công nợ đối tác sửa chữa
-  Widget _buildPartnerDebtList() {
+  List<Widget> _buildPartnerDebtItems() {
     final l10n = AppLocalizations.of(context)!;
     if (_partnerDebts.isEmpty) {
-      return EmptyStateWidget(
-        icon: Icons.handshake_outlined,
-        title: l10n.noPartnerDebt,
-        subtitle: l10n.partnerDebtManageGuide,
-      );
+      return [
+        EmptyStateWidget(
+          icon: Icons.handshake_outlined,
+          title: l10n.noPartnerDebt,
+          subtitle: l10n.partnerDebtManageGuide,
+        ),
+      ];
     }
 
     // Tính tổng còn nợ
@@ -912,18 +921,22 @@ class _DebtViewState extends State<DebtView>
       return sum + (p['remainingDebt'] as int? ?? 0);
     });
 
-    return Column(
-      children: [
-        _summaryHeader(l10n.totalPartnerRepairDebt, totalRemain, Colors.orange),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            itemCount: _partnerDebts.length,
-            itemBuilder: (ctx, i) => _partnerDebtCard(_partnerDebts[i], i + 1),
-          ),
+    return [
+      _summaryHeader(l10n.totalPartnerRepairDebt, totalRemain, Colors.orange),
+      const SizedBox(height: 4),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Column(
+          children: [
+            for (int i = 0; i < _partnerDebts.length; i++)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: _partnerDebtCard(_partnerDebts[i], i + 1),
+              ),
+          ],
         ),
-      ],
-    );
+      ),
+    ];
   }
 
   /// Card hiển thị công nợ đối tác - style giống pending_stock_list_view
@@ -962,27 +975,8 @@ class _DebtViewState extends State<DebtView>
               // Header row
               Row(
                 children: [
-                  // Index badge
-                  Container(
-                    width: 24,
-                    height: 24,
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(7),
-                    ),
-                    child: Center(
-                      child: Text(
-                        '$index',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.orange.shade800,
-                          fontSize: AppTextStyles.subtitle1.fontSize,
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Type icon (warning if partner document missing)
+                  // Type icon (warning if partner document missing) — bỏ số
+                  // thứ tự vì không mang ý nghĩa gì với người dùng
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
@@ -1351,27 +1345,9 @@ class _DebtViewState extends State<DebtView>
               // Header row
               Row(
                 children: [
-                  // Index badge
-                  if (index != null)
-                    Container(
-                      width: 24,
-                      height: 24,
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
-                        color: mainColor.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(7),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '$index',
-                          style: FinanceV2Theme.bodySm.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: mainColor,
-                          ),
-                        ),
-                      ),
-                    ),
-                  // Type icon
+                  // Type icon (đủ để phân biệt phải thu/phải trả — không cần
+                  // thêm số thứ tự vì đang lọc theo tab, số 1,2,3.. không có
+                  // ý nghĩa gì với người dùng)
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
@@ -1438,35 +1414,35 @@ class _DebtViewState extends State<DebtView>
                 ],
               ),
 
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  _debtInfoChip(
-                    isCustomerDebt ? l10n.debtReceivable : l10n.debtPayable,
-                    mainColor.withValues(alpha: 0.14),
-                    mainColor,
-                  ),
-                  const SizedBox(width: 6),
-                  if (remain == 0)
-                    _debtInfoChip(
-                      l10n.paidFullLabel,
-                      Colors.green.shade100,
-                      Colors.green.shade700,
-                    )
-                  else if (isVeryUrgent)
-                    _debtInfoChip(
-                      l10n.overdueDaysLabel(daysSince),
-                      Colors.red.shade100,
-                      Colors.red.shade800,
-                    )
-                  else if (isUrgent)
-                    _debtInfoChip(
-                      l10n.daysLabel(daysSince),
-                      Colors.orange.shade100,
-                      Colors.orange.shade800,
-                    ),
-                ],
-              ),
+              // Bỏ chip "Phải thu/Phải trả" ở đây vì đã lặp lại đúng thông
+              // tin của icon mũi tên bên trên + đang lọc theo tab rồi — chỉ
+              // còn hiện chip khi có điều thật sự cần báo (đã trả đủ/quá
+              // hạn), tránh dòng trống vô nghĩa khi đơn bình thường.
+              if (remain == 0 || isVeryUrgent || isUrgent) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    if (remain == 0)
+                      _debtInfoChip(
+                        l10n.paidFullLabel,
+                        Colors.green.shade100,
+                        Colors.green.shade700,
+                      )
+                    else if (isVeryUrgent)
+                      _debtInfoChip(
+                        l10n.overdueDaysLabel(daysSince),
+                        Colors.red.shade100,
+                        Colors.red.shade800,
+                      )
+                    else if (isUrgent)
+                      _debtInfoChip(
+                        l10n.daysLabel(daysSince),
+                        Colors.orange.shade100,
+                        Colors.orange.shade800,
+                      ),
+                  ],
+                ),
+              ],
 
               if (hasMeaningfulNote) ...[
                 const SizedBox(height: 4),

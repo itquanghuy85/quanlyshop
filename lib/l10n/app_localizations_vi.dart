@@ -6794,7 +6794,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get smsSendError => 'LỖI KHI GỬI TIN NHẮN, nhưng nội dung đã được copy sẵn.';
 
   @override
-  String get debtManagementTitle => 'QUẢN LÝ CÔNG NỢ';
+  String get debtManagementTitle => 'CÔNG NỢ';
 
   @override
   String activeDebtsCount(int count) {
@@ -6835,7 +6835,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get searchNamePhone => 'Tìm kiếm tên, SĐT...';
 
   @override
-  String get filterPaid => 'Đã trả';
+  String get filterPaid => 'Hiện đã trả';
 
   @override
   String get debtReceivable => 'Phải thu';
