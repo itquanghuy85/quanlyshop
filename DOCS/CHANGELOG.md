@@ -4,6 +4,25 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-16f] - fix(auth): chuẩn hoá email về chữ thường khi tự đăng ký — tránh trùng tài khoản
+
+**User báo:** tab Người dùng trong Super Admin Console hiện nhiều dòng "trùng nhau" — cùng email nhưng khác vai trò/shop/ngày tạo. User xác nhận có khách hàng thật gặp tình trạng này (không phải chỉ dữ liệu test).
+
+**Điều tra:** Đã thử đọc trực tiếp Firestore/Auth thật để xác định chính xác cơ chế, nhưng máy này chưa có quyền đọc DB (không có service account key / Application Default Credentials, chỉ có phiên đăng nhập Firebase CLI dùng để deploy) — không tự ý tạo credential mới khi chưa hỏi. Chuyển sang rà code:
+- `/users/{uid}` luôn dùng đúng UID thật của Firebase Auth làm khoá — 2 dòng cùng email chỉ có thể là 2 tài khoản Auth THẬT SỰ khác nhau.
+- `functions/index.js` (`createStaffAccount` — luồng chủ shop mời nhân viên) đã `.toLowerCase()` email trước khi tạo tài khoản → không thể tạo trùng qua đường này (Auth chặn email đã tồn tại).
+- **`lib/views/register_view.dart`** (luồng tự đăng ký, gọi thẳng `FirebaseAuth.createUserWithEmailAndPassword` từ client) chỉ `.trim()` email, **KHÔNG `.toLowerCase()`**. Nếu cùng 1 người gõ email lệch hoa/thường giữa các lần (VD lần đầu "Khuyen@H.com", lần sau "khuyen@h.com"), Firebase Auth có thể tạo 2 tài khoản THẬT riêng biệt — khớp đúng với hiện tượng: cùng email (nhìn qua tưởng giống hệt), khác uid, khác shop/vai trò/ngày tạo.
+
+**Fix:** `register_view.dart` — chuẩn hoá `email = _emailC.text.trim().toLowerCase()` trước khi tạo tài khoản, khớp với luồng mời nhân viên đã làm đúng từ trước.
+
+**Cân nhắc thêm nhưng CHƯA làm:** cũng cân nhắc sửa `removeUserFromShop` (Cloud Function, dùng khi chủ shop "Xóa nhân viên khỏi shop") vì nó chỉ set `shopId: null` chứ không xoá hẳn document — nhưng sau khi xem kỹ hơn: (1) hàm này không tạo dòng mới nên không phải nguyên nhân gây "trùng" như trong ảnh chụp màn hình (các dòng trùng đều có shop THẬT, không phải `shopId: null`), (2) xoá document ở đây có rủi ro làm hỏng khả năng mời lại đúng người đó vào shop sau này (khoá `email-already-exists` ở tài khoản Auth vẫn còn) mà chưa kiểm chứng được tác động đầy đủ trên dữ liệu thật. Quyết định KHÔNG đụng vào để tránh regression trên 1 tính năng đang được khách hàng thật dùng thường xuyên — chỉ ship phần chắc chắn, an toàn (chuẩn hoá email).
+
+**Verify:** `flutter analyze` sạch, build + cài + khởi động Oppo CPH2203 không FATAL exception. Chỉ ngăn được trùng MỚI phát sinh — **không tự động dọn các dòng trùng đã có sẵn trong dữ liệu** (cần xử lý riêng, nên xác nhận qua Firebase Console trước khi xoá thủ công dữ liệu thật).
+
+**Files:** `lib/views/register_view.dart`.
+
+---
+
 ## [2026-08-16e] - fix(admin): 3 lỗi tab Cửa hàng (Shops) trong Super Admin Console
 
 **User báo:** (1) "trong tab Shops, tìm kiếm nếu chưa load thì không tìm ra được shop", (2) "bấm vào shop lại hiện ra thêm 1 list và phải bấm thêm 1 lần nữa mới vào shop muốn vào được", (3) "khi bấm 1 shop: xóa hoàn toàn nhưng vẫn còn trong list mà không mất đi".

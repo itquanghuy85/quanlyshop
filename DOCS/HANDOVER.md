@@ -12,9 +12,21 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Analyze Status:** ✅ 0 compile error (chỉ info/warning có sẵn từ trước)  
 **Database Version:** SQLite v104  
 **Branch:** master  
-**Active Initiative:** Multi-fix session 2026-08-08/10 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng, backup đơn sửa kèm ảnh, fix sheet Thêm dịch vụ) + review/fix regression + fix danh sách bán còn nợ sai + fix 42 popup che nút (toàn bộ audit) 2026-08-15/16 + redesign Super Admin Console + broadcast có link + auto store-link theo nền tảng + fix 3 lỗi tab Cửa hàng 2026-08-16
+**Active Initiative:** Multi-fix session 2026-08-08/10 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng, backup đơn sửa kèm ảnh, fix sheet Thêm dịch vụ) + review/fix regression + fix danh sách bán còn nợ sai + fix 42 popup che nút (toàn bộ audit) 2026-08-15/16 + redesign Super Admin Console + broadcast có link + auto store-link theo nền tảng + fix 3 lỗi tab Cửa hàng + fix trùng tài khoản khi đăng ký 2026-08-16
 **⚠️ Known issue chưa fix:** crash intermittent trong bottom sheet có TextField qua đường Back hệ thống — xem Known Issues bên dưới (mục "Crash `_dependents.isEmpty`"). Toàn bộ 42 điểm popup che nút từ audit ban đầu (20 HIGH + 22 MEDIUM) đã fix xong, KHÔNG còn mục nào tồn đọng.
 **⚠️ Chưa test trực tiếp:** Toàn bộ thay đổi Super Admin Console (redesign + fix tab Cửa hàng) chỉ verify qua `flutter analyze` + build + logcat, KHÔNG có tài khoản super admin thật trên máy test để tự vào xem UI/luồng vào-shop/xóa-shop — cần user xác nhận qua tài khoản `admin@huluca.com` hoặc super admin thật.
+**⚠️ Dữ liệu trùng đã có sẵn CHƯA được dọn:** fix `[2026-08-16f]` chỉ ngăn trùng MỚI phát sinh khi tự đăng ký (chuẩn hoá lowercase email) — các dòng user trùng đã tồn tại trong Firestore từ trước vẫn còn nguyên, cần dọn thủ công qua Super Admin (xác nhận qua Firebase Console trước khi xoá dữ liệu thật). Máy dev hiện KHÔNG có quyền đọc trực tiếp Firestore/Auth (không có service account/ADC) nên chưa tự xác minh/dọn được.
+**⚠️ Cân nhắc nhưng chưa sửa:** `removeUserFromShop` (Cloud Function, "Xóa nhân viên khỏi shop") chỉ set `shopId: null` chứ không xoá hẳn document — cân nhắc dọn nhưng có rủi ro regression (có thể chặn mời lại đúng người vào shop sau này) nên tạm giữ nguyên, xem chi tiết ở `[2026-08-16f]`.
+
+### ✅ Vừa hoàn thành (2026-08-16f): fix(auth): chuẩn hoá email lowercase khi tự đăng ký — tránh trùng tài khoản
+- User báo tab Người dùng trong Super Admin Console có nhiều dòng "trùng nhau" (cùng email, khác vai trò/shop/ngày) — xác nhận có khách hàng thật gặp, không chỉ dữ liệu test
+- Thử đọc trực tiếp Firestore/Auth thật để xác minh nhưng máy này không có quyền đọc DB (không có service account/ADC) — không tự tạo credential khi chưa hỏi, chuyển sang rà code
+- Tìm ra: `register_view.dart` (tự đăng ký, gọi thẳng Firebase Auth từ client) chỉ `.trim()` email, thiếu `.toLowerCase()` — trong khi luồng mời nhân viên (`createStaffAccount`, server) đã chuẩn hoá đúng từ trước. Nếu cùng 1 người gõ email lệch hoa/thường giữa 2 lần đăng ký, Auth có thể tạo 2 tài khoản thật khác uid — khớp đúng hiện tượng trong ảnh chụp
+- Fix: thêm `.toLowerCase()` vào `register_view.dart`
+- Cân nhắc sửa thêm `removeUserFromShop` nhưng quyết định KHÔNG làm — không khớp đúng triệu chứng (không tạo dòng mới) và có rủi ro regression trên tính năng khách hàng thật đang dùng thường xuyên
+- `flutter analyze` sạch, build + cài + khởi động Oppo CPH2203 không FATAL exception
+- **Chưa dọn dữ liệu trùng đã có sẵn** — chỉ ngăn phát sinh mới
+- Chi tiết: `docs/CHANGELOG.md` mục `[2026-08-16f]`
 
 ### ✅ Vừa hoàn thành (2026-08-16e): fix(admin): 3 lỗi tab Cửa hàng (Shops) trong Super Admin Console
 - User báo: (1) tìm kiếm không ra shop chưa tải, (2) bấm vào shop phải bấm 2 lần mới vào được, (3) xóa shop xong vẫn còn trong danh sách

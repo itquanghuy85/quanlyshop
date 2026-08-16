@@ -87,7 +87,7 @@ class _RegisterViewState extends State<RegisterView> {
     setState(() { _loading = true; _error = null; });
     _showLoadingDialog('Đang tạo tài khoản...');
     try {
-      final email = _emailC.text.trim();
+      final email = _emailC.text.trim().toLowerCase();
       final pass = _passC.text.trim();
       final shopName = _shopNameC.text.trim();
       final name = _nameC.text.trim();
