@@ -4,6 +4,24 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-16i] - fix(repair): đơn "Sửa xong" hiện sai dù đã "Đã giao" ở thiết bị khác
+
+**User báo:** Máy A (chủ shop, bản test đang sửa lỗi) hiện nhiều đơn trạng thái "SỬA XONG" nhưng thực chất đã "ĐÃ GIAO" từ lâu. Máy B (nhân viên, bản release App Store) hiện đúng dữ liệu.
+
+**Nguyên nhân:** `order_list_view.dart` gộp 2 nguồn dữ liệu: (1) realtime Firestore listener chỉ theo dõi đơn CHƯA giao (`status < 4`, để giảm tải), (2) SQLite local cho lịch sử/đơn đã giao. Khi 1 đơn chuyển trạng thái từ "chưa giao" sang "Đã giao" (`status=4`) ở **thiết bị khác** (VD nhân viên bấm giao máy trên Máy B), Firestore đúng đắn loại đơn đó khỏi kết quả realtime (`DocumentChangeType.removed`) — nhưng code cũ chỉ đơn giản `_repairsByFirestoreId.remove(id)` mà **không cập nhật gì vào SQLite**. Vì vậy bản ghi SQLite cục bộ vẫn giữ nguyên trạng thái CŨ (VD "Sửa xong") mãi mãi, và khi rơi về nguồn `sqliteExtra` (đơn không còn trong tập realtime), nó hiển thị đúng trạng thái SAI đó.
+
+Đây là lý do Máy B (nơi hành động "giao máy" diễn ra trực tiếp, tự ghi đúng trạng thái vào local) hiện đúng, còn Máy A (chỉ QUAN SÁT thay đổi qua realtime listener) hiện sai.
+
+**Fix:** khi 1 đơn bị `removed` khỏi kết quả realtime, thay vì chỉ xoá khỏi map trong bộ nhớ, refetch 1 lần từ Firestore (`FirestoreService.getRepairDoc`) và ghi đè lại đúng trạng thái mới nhất vào SQLite (`db.upsertRepair`).
+
+**Giới hạn quan trọng:** fix này chỉ ngăn **phát sinh mới** từ bây giờ — KHÔNG tự sửa các đơn ĐÃ bị sai sẵn trong SQLite của Máy A hiện tại (do `_doHistoricalBackfill` chỉ `INSERT OR IGNORE`, không ghi đè bản ghi cũ). Để sửa ngay dữ liệu hiện có trên Máy A: vào Cài đặt > "Nhận kho từ Cloud" (xoá local + tải lại toàn bộ từ cloud).
+
+**Verify:** `flutter analyze` sạch, build + cài + khởi động Oppo CPH2203 không FATAL exception. Không tái hiện được đúng kịch bản 2-thiết-bị trên máy test (chỉ có 1 thiết bị Android), cần user tự xác nhận trên Máy A/B thật.
+
+**Files:** `lib/views/order_list_view.dart`.
+
+---
+
 ## [2026-08-16h] - fix(sync,firestore): deploy composite index bị thiếu + fix audit_logs retry vô hạn
 
 **Bối cảnh:** User dán 1 log iOS đã qua phân tích bởi công cụ khác (báo App Check lỗi, audit_logs permission-denied, repairs thiếu index, mismatch dữ liệu). Tôi đọc code thật để kiểm chứng từng điểm thay vì tin nguyên bản phân tích.

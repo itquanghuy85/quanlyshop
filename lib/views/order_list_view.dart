@@ -418,6 +418,25 @@ class OrderListViewState extends State<OrderListView> {
     }
   }
 
+  /// Đơn vừa bị loại khỏi kết quả realtime (activeOnly: status<4) — refetch
+  /// 1 lần để lưu đúng trạng thái mới nhất (VD "Đã giao") vào SQLite, tránh
+  /// hiển thị lại trạng thái active cũ khi rơi về nguồn dữ liệu sqliteExtra.
+  Future<void> _refreshRemovedRepairFromCloud(String firestoreId) async {
+    try {
+      final doc = await FirestoreService.getRepairDoc(firestoreId);
+      if (!doc.exists) return;
+      final payload = _decodeRepairDocPayload(doc);
+      if (payload == null) return;
+      final repair = _parseRepairDoc(payload, firestoreId);
+      if (repair == null) return;
+      await db.upsertRepair(repair);
+    } catch (e) {
+      debugPrint(
+        '⚠️ [OrderListView] Refresh removed repair $firestoreId lỗi: $e',
+      );
+    }
+  }
+
   Future<Repair?> _preferUnsyncedLocalRepair(
     String firestoreId,
     Map<String, dynamic> cloudData,
@@ -622,6 +641,13 @@ class OrderListViewState extends State<OrderListView> {
         final id = change.doc.id;
         if (change.type == DocumentChangeType.removed) {
           _repairsByFirestoreId.remove(id);
+          // Đơn vừa rời khỏi cửa sổ theo dõi realtime (activeOnly: status<4)
+          // — thường do trạng thái vừa chuyển sang "Đã giao" ở THIẾT BỊ
+          // KHÁC. Nếu không làm gì thêm, bản ghi SQLite cũ (còn status active
+          // trước đó, VD "Sửa xong") sẽ tiếp tục hiển thị qua nguồn
+          // sqliteExtra — sai lệch với trạng thái thật trên cloud. Refetch 1
+          // lần để cập nhật đúng trạng thái mới nhất vào SQLite.
+          upsertFutures.add(_refreshRemovedRepairFromCloud(id));
           continue;
         }
 
