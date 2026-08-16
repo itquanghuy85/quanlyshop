@@ -12,9 +12,20 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Analyze Status:** ✅ 0 compile error (chỉ info/warning có sẵn từ trước)  
 **Database Version:** SQLite v104  
 **Branch:** master  
-**Active Initiative:** Multi-fix session 2026-08-08/10 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng, backup đơn sửa kèm ảnh, fix sheet Thêm dịch vụ) + review/fix regression + fix danh sách bán còn nợ sai + fix 42 popup che nút (toàn bộ audit) 2026-08-15/16 + redesign Super Admin Console + broadcast có link 2026-08-16
+**Active Initiative:** Multi-fix session 2026-08-08/10 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng, backup đơn sửa kèm ảnh, fix sheet Thêm dịch vụ) + review/fix regression + fix danh sách bán còn nợ sai + fix 42 popup che nút (toàn bộ audit) 2026-08-15/16 + redesign Super Admin Console + broadcast có link + auto store-link theo nền tảng 2026-08-16
 **⚠️ Known issue chưa fix:** crash intermittent trong bottom sheet có TextField qua đường Back hệ thống — xem Known Issues bên dưới (mục "Crash `_dependents.isEmpty`"). Toàn bộ 42 điểm popup che nút từ audit ban đầu (20 HIGH + 22 MEDIUM) đã fix xong, KHÔNG còn mục nào tồn đọng.
 **⚠️ Chưa test trực tiếp:** Redesign Super Admin Console chỉ verify qua `flutter analyze` + build + logcat, KHÔNG có tài khoản super admin thật trên máy test để tự vào xem UI — cần user xác nhận qua tài khoản `admin@huluca.com` hoặc super admin thật.
+**⚠️ Chưa deploy:** `functions/index.js` (`sendBroadcastNotification` — chấp nhận thêm sentinel `auto:store`) đã sửa xong nhưng CHƯA `firebase deploy --only functions` — cần xác nhận riêng trước khi deploy production.
+
+### ✅ Vừa hoàn thành (2026-08-16d): feat(notification): "Yêu cầu cập nhật" tự mở đúng App Store/Google Play theo máy người dùng
+- Yêu cầu user: không muốn dán link thủ công mỗi lần gửi broadcast cập nhật; 1 broadcast phải tự mở đúng store theo nền tảng của TỪNG người dùng (iOS → App Store, Android → Google Play `https://play.google.com/store/apps/details?id=com.huluca.shopmanager`)
+- Chọn loại "Yêu cầu cập nhật" → tự bật switch "Bấm vào là mở kho ứng dụng" (mặc định bật, ẩn ô link thủ công); gửi giá trị sentinel `auto:store` thay vì URL cố định — thiết bị người NHẬN tự resolve đúng store khi bấm, không phải theo máy admin gửi
+- `notification_service.dart`: thêm `storeLinkSentinel`/`androidStoreUrl`/`iosStoreUrl`, `_openBroadcastUrl` resolve theo `Platform.isIOS`
+- `functions/index.js`: validate URL nới thêm để chấp nhận sentinel `auto:store`
+- `flutter analyze` sạch, `node -c` hợp lệ, build + cài + khởi động Oppo CPH2203 không FATAL exception
+- **CHƯA deploy Cloud Function** — cần user xác nhận trước khi `firebase deploy --only functions`
+- Chi tiết: `docs/CHANGELOG.md` mục `[2026-08-16d]`
+
 ### ✅ Vừa hoàn thành (2026-08-16c): feat(notification): Broadcast có thể kèm link (VD: link App Store)
 - Yêu cầu user: gửi thông báo broadcast, bấm vào mở link App Store để cập nhật app
 - `functions/index.js`: `sendBroadcastNotification` nhận thêm `url` (optional, validate http/https), lưu Firestore + đưa vào FCM data payload

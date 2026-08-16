@@ -4,6 +4,21 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-16d] - feat(notification): "Yêu cầu cập nhật" tự động mở đúng App Store/Google Play theo máy người dùng
+
+**Yêu cầu user:** "đưa link sẵn vào và giúp tôi luôn mỗi lần cập nhật chỉ cần bấm yêu cầu cập nhật là người dùng có thể đến thẳng store luôn ios hoặc chplay" — không muốn phải dán link thủ công mỗi lần, và 1 broadcast phải mở ĐÚNG store theo nền tảng của từng người dùng (không thể gửi 1 link cố định vì iOS/Android khác store).
+
+**Cách làm:** Thay vì gửi 1 URL cố định, khi chọn loại "🔴 Yêu cầu cập nhật" trong Super Admin Console, form tự bật công tắc "Bấm vào là mở kho ứng dụng" (mặc định BẬT, có thể tắt để dán link tuỳ chỉnh khác). Khi bật, client gửi 1 giá trị đặc biệt (`auto:store`) thay vì URL — **thiết bị người nhận** tự chọn đúng link theo nền tảng của chính nó tại thời điểm bấm, không phải theo máy admin gửi.
+
+**Files:**
+- `lib/services/notification_service.dart`: thêm hằng số `storeLinkSentinel` ('auto:store'), `androidStoreUrl` (Google Play: `https://play.google.com/store/apps/details?id=com.huluca.shopmanager`), `iosStoreUrl` (App Store, đã có từ trước). `_openBroadcastUrl` giờ resolve sentinel → `Platform.isIOS ? iosStoreUrl : androidStoreUrl` trước khi `launchUrl`.
+- `lib/views/super_admin_console_view.dart`: form broadcast — khi chọn "Yêu cầu cập nhật", hiện `SwitchListTile` "Bấm vào là mở kho ứng dụng" (mặc định bật), ẩn ô nhập link thủ công; tắt công tắc mới hiện lại ô link để dán link tuỳ chỉnh.
+- `functions/index.js` (`sendBroadcastNotification`): validate URL nới thêm để chấp nhận giá trị sentinel `auto:store` (khớp hằng số bên Flutter) bên cạnh `http(s)://`.
+
+**Verify:** `flutter analyze` sạch, `node -c index.js` hợp lệ, build + cài + khởi động Oppo CPH2203 không FATAL exception. **Chưa deploy Cloud Function** — cần xác nhận riêng trước `firebase deploy --only functions:sendBroadcastNotification`.
+
+---
+
 ## [2026-08-16c] - feat(notification): Thông báo broadcast có thể kèm link (VD: link App Store để cập nhật)
 
 **Yêu cầu user:** "tạo thông báo để gửi yêu cầu cập nhật nhấp vào là vào kho store được ko" — gửi broadcast toàn hệ thống có link, bấm vào mở link đó (VD: link App Store).

@@ -1799,12 +1799,24 @@ class NotificationService {
     );
   }
 
+  /// Giá trị đặc biệt cho field `url` của broadcast: thay vì 1 link cố định,
+  /// client sẽ tự chọn đúng link kho ứng dụng theo nền tảng của người dùng
+  /// (App Store trên iOS, Google Play trên Android) khi mở.
+  static const String storeLinkSentinel = 'auto:store';
+  static const String androidStoreUrl =
+      'https://play.google.com/store/apps/details?id=com.huluca.shopmanager';
+  static const String iosStoreUrl =
+      'https://apps.apple.com/us/app/qu%E1%BA%A3n-l%C3%BD-shop/id6760490441';
+
   static Future<void> _openBroadcastUrl(String url) async {
+    final target = url == storeLinkSentinel
+        ? (Platform.isIOS ? iosStoreUrl : androidStoreUrl)
+        : url;
     try {
-      final uri = Uri.parse(url);
+      final uri = Uri.parse(target);
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (e) {
-      debugPrint('Không mở được link broadcast "$url": $e');
+      debugPrint('Không mở được link broadcast "$target": $e');
     }
   }
 

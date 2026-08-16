@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../services/claims_service.dart';
 import '../services/firestore_service.dart';
+import '../services/notification_service.dart';
 import '../services/super_admin_security_service.dart';
 import '../services/user_service.dart';
 import '../theme/app_colors.dart';
@@ -2679,6 +2680,7 @@ class _BroadcastSectionState extends State<_BroadcastSection> {
   bool _sending = false;
   String? _lastResult;
   bool _lastSuccess = false;
+  bool _useStoreLink = false;
 
   static const _types = [
     ('info', '📢 Thông tin', Colors.indigo),
@@ -2694,10 +2696,14 @@ class _BroadcastSectionState extends State<_BroadcastSection> {
     super.dispose();
   }
 
+  bool get _showStoreLinkOption => _type == 'update_required';
+
   Future<void> _send() async {
     final title = _titleCtrl.text.trim();
     final body = _bodyCtrl.text.trim();
-    final url = _urlCtrl.text.trim();
+    final url = _showStoreLinkOption && _useStoreLink
+        ? NotificationService.storeLinkSentinel
+        : _urlCtrl.text.trim();
     if (title.isEmpty || body.isEmpty) {
       setState(() {
         _lastResult = 'Vui lòng nhập tiêu đề và nội dung.';
@@ -2706,6 +2712,7 @@ class _BroadcastSectionState extends State<_BroadcastSection> {
       return;
     }
     if (url.isNotEmpty &&
+        url != NotificationService.storeLinkSentinel &&
         !url.startsWith('http://') &&
         !url.startsWith('https://')) {
       setState(() {
@@ -2812,7 +2819,10 @@ class _BroadcastSectionState extends State<_BroadcastSection> {
                   label: Text(t.$2, style: const TextStyle(fontSize: 13)),
                   selected: selected,
                   selectedColor: t.$3.withValues(alpha: 0.2),
-                  onSelected: (_) => setState(() => _type = t.$1),
+                  onSelected: (_) => setState(() {
+                    _type = t.$1;
+                    if (t.$1 == 'update_required') _useStoreLink = true;
+                  }),
                   labelStyle: TextStyle(
                     color: selected ? t.$3 : null,
                     fontWeight: selected ? FontWeight.bold : FontWeight.normal,
@@ -2848,20 +2858,53 @@ class _BroadcastSectionState extends State<_BroadcastSection> {
                 isDense: true,
               ),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _urlCtrl,
-              keyboardType: TextInputType.url,
-              decoration: InputDecoration(
-                labelText: 'Link (không bắt buộc)',
-                hintText: 'VD: link App Store / Play Store để bấm vào cập nhật',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+            if (_showStoreLinkOption) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
                 ),
-                prefixIcon: const Icon(Icons.link_rounded),
-                isDense: true,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  value: _useStoreLink,
+                  onChanged: (v) => setState(() => _useStoreLink = v),
+                  activeThumbColor: AppColors.primary,
+                  title: const Text(
+                    'Bấm vào là mở kho ứng dụng',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: const Text(
+                    'Tự động mở App Store (iOS) hoặc Google Play (Android) đúng theo máy người dùng — không cần dán link',
+                    style: TextStyle(fontSize: 11.5),
+                  ),
+                ),
               ),
-            ),
+            ],
+            if (!_showStoreLinkOption || !_useStoreLink) ...[
+              const SizedBox(height: 12),
+              TextField(
+                controller: _urlCtrl,
+                keyboardType: TextInputType.url,
+                decoration: InputDecoration(
+                  labelText: 'Link (không bắt buộc)',
+                  hintText: 'VD: link bài viết, link khuyến mãi...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  prefixIcon: const Icon(Icons.link_rounded),
+                  isDense: true,
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             if (_lastResult != null)
               Container(

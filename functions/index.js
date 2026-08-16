@@ -1656,10 +1656,13 @@ exports.sendBroadcastNotification = onCall(async (request) => {
   const type  = (data.type  || "info").toString(); // info | warning | update_required
   const expiresAfterDays = typeof data.expiresAfterDays === 'number' ? data.expiresAfterDays : 7;
   const url = (data.url || "").toString().trim();
+  // Giá trị đặc biệt — phải khớp NotificationService.storeLinkSentinel bên Flutter.
+  // Client sẽ tự chọn App Store/Google Play theo nền tảng người dùng khi mở.
+  const STORE_LINK_SENTINEL = "auto:store";
 
   if (!title) throw new HttpsError("invalid-argument", "Thiếu tiêu đề thông báo");
   if (!body)  throw new HttpsError("invalid-argument", "Thiếu nội dung thông báo");
-  if (url && !/^https?:\/\//i.test(url)) {
+  if (url && url !== STORE_LINK_SENTINEL && !/^https?:\/\//i.test(url)) {
     throw new HttpsError("invalid-argument", "Link phải bắt đầu bằng http:// hoặc https://");
   }
 
