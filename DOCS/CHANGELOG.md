@@ -4,6 +4,20 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-16r] - fix(inventory): tab "Tất cả" trong Kho hiện trống dù tổng vốn/số lượng vẫn đúng
+
+**User báo:** kèm ảnh chụp — tab "Tất cả" ở màn Quản lý kho hiện "Kho hàng đang trống" dù khối tổng phía trên vẫn hiện số liệu (TỔNG KHO, VỐN TỒN KHO) khác 0. Tab "Điện thoại" vẫn hiện đúng 160 sản phẩm bình thường.
+
+**Nguyên nhân:** tab "Tất cả" dùng riêng 1 đường tải dữ liệu phân trang (`getProductsPaged` — tải 20 sản phẩm/lần để tối ưu tốc độ), khác hẳn các tab Điện thoại/Phụ kiện/Linh kiện (dùng `getAllProducts` tải toàn bộ rồi lọc phía client). 2 đường này không nhất quán với nhau trên dữ liệu thật của user, khiến tab "Tất cả" trả về danh sách trống trong khi khối tổng (tính bằng 1 query riêng, `getInventorySummary`) vẫn ra số đúng — số 527.367/500.603 trong ảnh không phải lỗi, đó là TỔNG SỐ LƯỢNG tồn kho (cộng dồn `quantity` từng dòng), không phải số dòng sản phẩm.
+
+**Fix:** bỏ hẳn nhánh phân trang riêng cho "Tất cả" — mọi tab giờ dùng chung 1 đường tải duy nhất (`_needsFullData` luôn `true`), đã kiểm chứng hoạt động đúng qua các tab khác từ trước. Đơn giản hoá đường tải dữ liệu, giảm khả năng lệch giữa các tab.
+
+**Verify:** `flutter analyze` sạch. Build + cài Oppo CPH2203, test trên tài khoản test: tab "Tất cả" hiện đúng dữ liệu, chuyển qua "Điện thoại" rồi quay lại "Tất cả" vẫn hiện đúng, không crash. **Không tái hiện được lỗi gốc trên dữ liệu test** (quá ít sản phẩm để lặp lại tình huống lệch dữ liệu của user) — cần user tự kiểm tra lại trên dữ liệu thật sau khi cập nhật.
+
+**Files:** `lib/views/inventory_view.dart`.
+
+---
+
 ## [2026-08-16q] - feat(repair): cho phép bỏ qua yêu cầu SĐT khi giao máy (đơn cũ thiếu thông tin)
 
 **Yêu cầu user:** "có 1 số đơn sửa chỉ có tên khách mà không có số điện thoại, khi giao yêu cầu cập nhật cái này mình bỏ qua được không" — đơn cũ nhập thiếu SĐT bị chặn cứng không giao máy được.

@@ -121,12 +121,13 @@ class _InventoryViewState extends State<InventoryView>
     EventBus.shopChanged,
   };
 
-  /// Check if we need full data (for filtering)
-  bool get _needsFullData =>
-      _searchQuery.isNotEmpty ||
-      _filterType != 'TẤT CẢ' ||
-      _showOutOfStock ||
-      _filterLocationCode != null;
+  /// Luôn tải toàn bộ sản phẩm rồi lọc phía client (giống hệt cách các tab
+  /// Điện thoại/Phụ kiện/Linh kiện đang làm) — trước đây riêng tab "TẤT CẢ"
+  /// dùng đường tải phân trang (getProductsPaged) khác hẳn, gây lệch dữ
+  /// liệu: có shop thấy tab "Tất cả" trống dù tổng vốn/số lượng vẫn tính
+  /// đúng (do 2 đường tải không nhất quán với nhau). Bỏ nhánh phân trang để
+  /// mọi tab cùng đi qua 1 đường tải duy nhất, đã kiểm chứng hoạt động đúng.
+  bool get _needsFullData => true;
 
   final Set<int> _selectedIds = {};
   bool _isSelectionMode = false;
