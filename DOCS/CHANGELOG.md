@@ -15,7 +15,7 @@ Lịch sử tất cả thay đổi từng phiên bản.
   - Dialog broadcast hiển thị khi app đang mở (`_showBroadcastDialog`) — nếu có `url`, thêm nút "Cập nhật ngay" (mở link qua `url_launcher`, `LaunchMode.externalApplication`) bên cạnh nút đóng ("Để sau"/"Đã hiểu").
   - Bấm vào thông báo hệ thống (push, app nền/đã đóng) hoặc local notification — `_handleNotificationNavigation` giờ ưu tiên mở `url` nếu có trong data payload, trước khi thử điều hướng deep-link như cũ.
 
-**Verify:** `flutter analyze` sạch (không lỗi mới), `node -c index.js` cú pháp hợp lệ, `flutter build apk --debug` + cài + khởi động Oppo CPH2203 không FATAL exception trong logcat. **Chưa deploy Cloud Function** — cần xác nhận riêng trước khi chạy `firebase deploy --only functions` vì ảnh hưởng hệ thống production đang chạy thật.
+**Verify:** `flutter analyze` sạch (không lỗi mới), `node -c index.js` cú pháp hợp lệ, `flutter build apk --debug` + cài + khởi động Oppo CPH2203 không FATAL exception trong logcat. Đã `firebase deploy --only functions:sendBroadcastNotification` thành công (project `huyaka-1809`, asia-southeast1) sau khi user xác nhận.
 
 **Files:** `functions/index.js`, `lib/views/super_admin_console_view.dart`, `lib/services/notification_service.dart`.
 
