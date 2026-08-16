@@ -1870,6 +1870,7 @@ class _UsersSectionState extends State<_UsersSection> {
   bool _loading = false;
   bool _hasMore = true;
   final Map<String, String> _shopNames = {};
+  bool _findingDuplicates = false;
 
   @override
   void initState() {
@@ -1881,6 +1882,65 @@ class _UsersSectionState extends State<_UsersSection> {
   void dispose() {
     _searchC.dispose();
     super.dispose();
+  }
+
+  /// Quét toàn bộ /users, gom theo email (chuẩn hoá lowercase) để tìm tài
+  /// khoản trùng — CHỈ đọc dữ liệu, không tự xoá gì. Admin xem chi tiết rồi
+  /// tự quyết định xoá cái nào qua đúng nút "Xóa" đã có sẵn (yêu cầu PIN).
+  Future<void> _showDuplicateFinder(BuildContext context) async {
+    setState(() => _findingDuplicates = true);
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .limit(5000)
+          .get();
+      final byEmail = <String, List<(String, Map<String, dynamic>)>>{};
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        final email = (data['email'] ?? '').toString().trim().toLowerCase();
+        if (email.isEmpty) continue;
+        byEmail.putIfAbsent(email, () => []).add((doc.id, data));
+      }
+      final duplicates =
+          byEmail.entries.where((e) => e.value.length > 1).toList()
+            ..sort((a, b) => b.value.length.compareTo(a.value.length));
+
+      final shopIds = duplicates
+          .expand((e) => e.value)
+          .map((p) => (p.$2['shopId'] ?? '').toString())
+          .where((id) => id.isNotEmpty)
+          .toList();
+      await _loadShopNames(shopIds);
+
+      if (!mounted) return;
+      setState(() => _findingDuplicates = false);
+
+      if (duplicates.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Không tìm thấy tài khoản trùng email.'),
+          ),
+        );
+        return;
+      }
+
+      if (!context.mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (_) => _DuplicateUsersDialog(
+          groups: duplicates,
+          shopNames: _shopNames,
+          onDelete: widget.onDelete,
+        ),
+      );
+    } catch (e) {
+      if (mounted) setState(() => _findingDuplicates = false);
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Lỗi tìm trùng: $e')));
+      }
+    }
   }
 
   Future<void> _loadShopNames(List<String> shopIds) async {
@@ -1975,6 +2035,19 @@ class _UsersSectionState extends State<_UsersSection> {
           subtitle:
               '${users.length}${showLoadMore ? '+' : ''} user'
               '${_loading ? ' · đang tải...' : ''}',
+          trailing: IconButton(
+            tooltip: 'Tìm tài khoản trùng email',
+            onPressed: _findingDuplicates
+                ? null
+                : () => _showDuplicateFinder(context),
+            icon: _findingDuplicates
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.content_copy_rounded),
+          ),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
@@ -2198,6 +2271,127 @@ class _UsersSectionState extends State<_UsersSection> {
         color: selected ? AppColors.primary : null,
         fontWeight: selected ? FontWeight.bold : FontWeight.normal,
       ),
+    );
+  }
+}
+
+// ─── Duplicate users (cùng email, khác uid) ───────────────────────────────────
+
+class _DuplicateUsersDialog extends StatelessWidget {
+  const _DuplicateUsersDialog({
+    required this.groups,
+    required this.shopNames,
+    required this.onDelete,
+  });
+
+  final List<MapEntry<String, List<(String, Map<String, dynamic>)>>> groups;
+  final Map<String, String> shopNames;
+  final Future<void> Function(
+    String uid,
+    String email, {
+    required bool withData,
+    String? role,
+    String? shopName,
+  })
+  onDelete;
+
+  String _fmtDate(dynamic ts) {
+    if (ts is Timestamp) {
+      final d = ts.toDate();
+      return '${d.day}/${d.month}/${d.year}';
+    }
+    return '?';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final totalExtra = groups.fold<int>(0, (s, e) => s + e.value.length - 1);
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(Icons.content_copy_rounded, color: AppColors.warning),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '${groups.length} email trùng · $totalExtra dòng thừa',
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 560,
+        height: 480,
+        child: ListView.separated(
+          itemCount: groups.length,
+          separatorBuilder: (_, __) => const Divider(height: 20),
+          itemBuilder: (_, i) {
+            final email = groups[i].key;
+            final members = groups[i].value;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  email,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                ...members.map((m) {
+                  final uid = m.$1;
+                  final data = m.$2;
+                  final role = (data['role'] ?? '?').toString();
+                  final shopId = (data['shopId'] ?? '').toString();
+                  final shopName = shopId.isEmpty
+                      ? '(không thuộc shop)'
+                      : (shopNames[shopId] ?? shopId);
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '$role · $shopName · tạo ${_fmtDate(data['createdAt'])} · $uid',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: Colors.grey.shade700,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Xóa dòng này',
+                          visualDensity: VisualDensity.compact,
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            size: 18,
+                            color: Colors.red,
+                          ),
+                          onPressed: () => onDelete(
+                            uid,
+                            email,
+                            withData: true,
+                            role: role,
+                            shopName: shopName,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Đóng'),
+        ),
+      ],
     );
   }
 }

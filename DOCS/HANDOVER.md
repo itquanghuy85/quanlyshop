@@ -12,11 +12,20 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Analyze Status:** ✅ 0 compile error (chỉ info/warning có sẵn từ trước)  
 **Database Version:** SQLite v104  
 **Branch:** master  
-**Active Initiative:** Multi-fix session 2026-08-08/10 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng, backup đơn sửa kèm ảnh, fix sheet Thêm dịch vụ) + review/fix regression + fix danh sách bán còn nợ sai + fix 42 popup che nút (toàn bộ audit) 2026-08-15/16 + redesign Super Admin Console + broadcast có link + auto store-link theo nền tảng + fix 3 lỗi tab Cửa hàng + fix trùng tài khoản khi đăng ký 2026-08-16
+**Active Initiative:** Multi-fix session 2026-08-08/10 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng, backup đơn sửa kèm ảnh, fix sheet Thêm dịch vụ) + review/fix regression + fix danh sách bán còn nợ sai + fix 42 popup che nút (toàn bộ audit) 2026-08-15/16 + redesign Super Admin Console + broadcast có link + auto store-link theo nền tảng + fix 3 lỗi tab Cửa hàng + fix trùng tài khoản khi đăng ký + công cụ tìm/dọn trùng 2026-08-16
 **⚠️ Known issue chưa fix:** crash intermittent trong bottom sheet có TextField qua đường Back hệ thống — xem Known Issues bên dưới (mục "Crash `_dependents.isEmpty`"). Toàn bộ 42 điểm popup che nút từ audit ban đầu (20 HIGH + 22 MEDIUM) đã fix xong, KHÔNG còn mục nào tồn đọng.
-**⚠️ Chưa test trực tiếp:** Toàn bộ thay đổi Super Admin Console (redesign + fix tab Cửa hàng) chỉ verify qua `flutter analyze` + build + logcat, KHÔNG có tài khoản super admin thật trên máy test để tự vào xem UI/luồng vào-shop/xóa-shop — cần user xác nhận qua tài khoản `admin@huluca.com` hoặc super admin thật.
-**⚠️ Dữ liệu trùng đã có sẵn CHƯA được dọn:** fix `[2026-08-16f]` chỉ ngăn trùng MỚI phát sinh khi tự đăng ký (chuẩn hoá lowercase email) — các dòng user trùng đã tồn tại trong Firestore từ trước vẫn còn nguyên, cần dọn thủ công qua Super Admin (xác nhận qua Firebase Console trước khi xoá dữ liệu thật). Máy dev hiện KHÔNG có quyền đọc trực tiếp Firestore/Auth (không có service account/ADC) nên chưa tự xác minh/dọn được.
+**⚠️ Chưa test trực tiếp:** Toàn bộ thay đổi Super Admin Console (redesign + fix tab Cửa hàng + công cụ tìm trùng) chỉ verify qua `flutter analyze` + build + logcat, KHÔNG có tài khoản super admin thật trên máy test để tự vào xem UI/luồng vào-shop/xóa-shop/tìm-trùng — cần user tự mở app xác nhận qua tài khoản `admin@huluca.com` hoặc super admin thật.
+**➡️ Việc cần user tự làm:** vào Super Admin Console > Người dùng > bấm nút "Tìm tài khoản trùng email" (icon 📋 cạnh tiêu đề) để xem danh sách trùng thật + tự quyết định xoá dòng nào (bắt buộc nhập PIN cho từng dòng, không có xoá hàng loạt tự động).
 **⚠️ Cân nhắc nhưng chưa sửa:** `removeUserFromShop` (Cloud Function, "Xóa nhân viên khỏi shop") chỉ set `shopId: null` chứ không xoá hẳn document — cân nhắc dọn nhưng có rủi ro regression (có thể chặn mời lại đúng người vào shop sau này) nên tạm giữ nguyên, xem chi tiết ở `[2026-08-16f]`.
+
+### ✅ Vừa hoàn thành (2026-08-16g): feat(admin): công cụ tìm & dọn tài khoản trùng email
+- User hỏi có thể dọn tài khoản trùng đã có sẵn không — không có quyền đọc/ghi trực tiếp DB từ máy dev nên xây công cụ ngay trong Super Admin Console để user (đã có quyền super admin thật) tự chạy
+- Nút "Tìm tài khoản trùng email" ở mục Người dùng — quét toàn bộ `/users` (≤5000 doc), gom theo email chuẩn hoá, chỉ hiện nhóm ≥2 tài khoản kèm đủ vai trò/shop/ngày tạo/uid để admin tự đối chiếu
+- Xoá từng dòng dùng lại nguyên luồng `_deleteUser` đã có sẵn — vẫn bắt buộc dialog xác nhận + xác thực PIN, luôn xoá "hoàn toàn" (Firestore + Auth qua `deleteUserData`) để không lặp lại lỗi mồ côi đã phân tích ở `[2026-08-16f]`
+- Toàn bộ chỉ ĐỌC cho tới khi admin chủ động xoá từng dòng — không có xoá hàng loạt/tự động
+- `flutter analyze` sạch, build + cài + khởi động Oppo CPH2203 không FATAL exception
+- **Chưa tự test được trên dữ liệu thật** — không có tài khoản super admin, cần user tự mở app kiểm tra
+- Chi tiết: `docs/CHANGELOG.md` mục `[2026-08-16g]`
 
 ### ✅ Vừa hoàn thành (2026-08-16f): fix(auth): chuẩn hoá email lowercase khi tự đăng ký — tránh trùng tài khoản
 - User báo tab Người dùng trong Super Admin Console có nhiều dòng "trùng nhau" (cùng email, khác vai trò/shop/ngày) — xác nhận có khách hàng thật gặp, không chỉ dữ liệu test

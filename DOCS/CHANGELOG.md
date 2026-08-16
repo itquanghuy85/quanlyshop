@@ -4,6 +4,22 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-16g] - feat(admin): công cụ tìm & dọn tài khoản trùng email trong Super Admin Console
+
+**Bối cảnh:** Sau khi fix nguyên nhân phát sinh trùng mới (`[2026-08-16f]`), user hỏi có thể dọn các tài khoản trùng ĐÃ CÓ SẴN trong dữ liệu thật hay không. Vì không có quyền đọc/ghi trực tiếp Firestore/Auth từ máy dev (không có service account/ADC), giải pháp an toàn nhất là xây công cụ NGAY TRONG Super Admin Console để user (đã có quyền super admin thật) tự chạy trên máy — không có ai khác tự ý xoá dữ liệu khách hàng thật thay họ.
+
+**Thiết kế (ưu tiên an toàn tuyệt đối vì đây là xoá dữ liệu thật):**
+- Nút "Tìm tài khoản trùng email" (icon 📋) mới ở góc mục Người dùng — quét TOÀN BỘ `/users` (tối đa 5000 doc, 1 lần đọc), gom nhóm theo email đã chuẩn hoá (trim + lowercase, khớp đúng chuẩn hoá vừa fix), chỉ hiện nhóm có ≥ 2 tài khoản.
+- Dialog kết quả hiện đầy đủ thông tin từng dòng trùng: vai trò, tên shop (tra ngược từ shopId), ngày tạo, uid — để admin (con người) tự đối chiếu và quyết định giữ/xoá dòng nào, KHÔNG có bất kỳ hành vi tự động xoá nào.
+- Nút xoá từng dòng dùng lại NGUYÊN VẸN luồng xoá đã có sẵn, đã kiểm chứng (`_deleteUser`) — vẫn bắt buộc xác nhận dialog + **xác thực lại mã PIN** trước khi xoá thật, và luôn xoá "hoàn toàn" (cả Firestore doc lẫn tài khoản đăng nhập Firebase Auth qua `deleteUserData`) để tránh lặp lại đúng lỗi mồ côi đã phân tích ở `[2026-08-16f]`.
+- Toàn bộ thao tác CHỈ ĐỌC cho tới khi admin chủ động bấm xoá + nhập đúng PIN cho từng dòng cụ thể.
+
+**Verify:** `flutter analyze` sạch, build + cài + khởi động Oppo CPH2203 không FATAL exception. **Chưa tự test được luồng tìm/xoá trùng trên dữ liệu thật** — không có tài khoản super admin thật trên máy dev. Cần user tự mở "Người dùng" > nút tìm trùng để kiểm tra và xử lý.
+
+**Files:** `lib/views/super_admin_console_view.dart`.
+
+---
+
 ## [2026-08-16f] - fix(auth): chuẩn hoá email về chữ thường khi tự đăng ký — tránh trùng tài khoản
 
 **User báo:** tab Người dùng trong Super Admin Console hiện nhiều dòng "trùng nhau" — cùng email nhưng khác vai trò/shop/ngày tạo. User xác nhận có khách hàng thật gặp tình trạng này (không phải chỉ dữ liệu test).
