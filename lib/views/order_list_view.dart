@@ -67,8 +67,7 @@ class OrderListViewState extends State<OrderListView> {
   bool _receivedServerSnapshot = false;
   bool _isRealtimeConnected = false;
   bool _useRealtimeIndexFallback = false;
-  int _indexedFetchLimit = 50;
-  int _lastFirestoreDocCount = 0;
+  final int _indexedFetchLimit = 50;
   bool _isLoadingMoreRealtime = false;
   // SQLite-first pagination
   List<Repair> _sqliteRepairs = [];
@@ -130,6 +129,32 @@ class OrderListViewState extends State<OrderListView> {
       return requested;
     }
     return repair.price;
+  }
+
+  static const int _overdueThresholdDays = 7;
+
+  /// Số ngày đơn đã treo ở trạng thái hiện tại (Tiếp nhận hoặc Sửa xong chưa
+  /// giao) — null nếu không thuộc 2 trạng thái này hoặc thiếu mốc thời gian.
+  int? _daysStuck(Repair repair) {
+    if (repair.status == 4) return null;
+    if (repair.status == 3 && repair.pendingDeliveryApproval) return null;
+    if (repair.status != 1 && repair.status != 3) return null;
+
+    final referenceMs = repair.status == 1
+        ? repair.createdAt
+        : (repair.finishedAt ?? repair.lastCaredAt ?? repair.createdAt);
+    if (referenceMs <= 0) return null;
+
+    return DateTime.now()
+        .difference(DateTime.fromMillisecondsSinceEpoch(referenceMs))
+        .inDays;
+  }
+
+  /// Đơn "Tiếp nhận" hoặc "Sửa xong" (chưa giao) bị treo quá
+  /// [_overdueThresholdDays] ngày mà chưa xử lý tiếp.
+  bool _isOverdue(Repair repair) {
+    final days = _daysStuck(repair);
+    return days != null && days > _overdueThresholdDays;
   }
 
   @override
@@ -251,19 +276,13 @@ class OrderListViewState extends State<OrderListView> {
     final pos = _listScrollController.position;
     if (pos.pixels < pos.maxScrollExtent - 220) return;
 
-    // SQLite pagination takes priority: loads all historical data
+    // SQLite pagination: chỉ còn dùng để tải thêm lịch sử ĐÃ GIAO — đơn
+    // CHƯA giao luôn được tải đầy đủ ngay từ đầu qua realtime listener
+    // (watchRepairsByShop không giới hạn số lượng khi activeOnly), nên không
+    // cần "load more" phía Firestore cho phần đó nữa.
     if (_hasMoreData) {
       unawaited(_loadMoreFromSQLite());
-      return;
     }
-
-    // Firestore pagination fallback (for realtime index mode only)
-    if (_useRealtimeIndexFallback) return;
-    if (_lastFirestoreDocCount < _indexedFetchLimit) return;
-
-    setState(() => _isLoadingMoreRealtime = true);
-    _indexedFetchLimit = (_indexedFetchLimit + 50).clamp(50, 500);
-    unawaited(_startRealtimeRepairsListener(forceRestart: true));
   }
 
   Future<void> _startRealtimeRepairsListener({
@@ -607,7 +626,6 @@ class OrderListViewState extends State<OrderListView> {
 
     if (!snapshot.metadata.isFromCache) {
       _receivedServerSnapshot = true;
-      _lastFirestoreDocCount = snapshot.docs.length;
       // Trigger one-time historical backfill on first real server snapshot
       unawaited(_doHistoricalBackfill());
     }
@@ -1855,13 +1873,15 @@ class OrderListViewState extends State<OrderListView> {
   Widget build(BuildContext context) {
     final count = _displayedRepairs.length;
     final pendingCount = _displayedRepairs.where((r) => r.status < 3).length;
+    final overdueCount = _displayedRepairs.where(_isOverdue).length;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F8),
       appBar: CustomAppBar.build(
         title: "DANH SÁCH ${_terms.productLabel.toUpperCase()} SỬA",
         subtitle:
-            '$count ${_terms.productLabel.toLowerCase()} • $pendingCount đang xử lý',
+            '$count ${_terms.productLabel.toLowerCase()} • $pendingCount đang xử lý'
+            '${overdueCount > 0 ? ' • ⚠️ $overdueCount quá hạn' : ''}',
         actions: [
           IconButton(
             onPressed: () => Navigator.push(
@@ -2428,6 +2448,14 @@ class OrderListViewState extends State<OrderListView> {
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
+                    if (_isOverdue(r))
+                      _repairInfoChip(
+                        '⚠️ QUÁ HẠN ${_daysStuck(r)} NGÀY',
+                        Colors.red.shade100,
+                        textColor: Colors.red.shade900,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
                     // Khách hàng / SĐT: tách riêng để tránh overflow trên màn hình nhỏ.
                     if (r.customerName.trim().isNotEmpty)
                       _repairInfoChip(

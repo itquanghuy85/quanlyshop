@@ -4,6 +4,52 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-16k] - feat(repair): cho sửa giá/thông tin đơn đã giao + xem chi tiết "đơn tương tự"
+
+**Yêu cầu user:** (1) Đơn "Đã giao" vẫn cho phép chỉnh sửa giá vốn/giá thu/thông tin chung (trước đây bị khoá hoàn toàn). (2) Dòng "Lịch sử tương tự" (Bảng giá thông minh) ở màn Tạo đơn sửa mới và Chi tiết đơn — bấm vào phải mở được trang liệt kê từng đơn thực tế trong lịch sử đó để xem/tham khảo.
+
+**1) Mở khoá sửa đơn đã giao:**
+- Trước khi sửa, đọc kỹ toàn bộ 10 điểm gate theo `status==4` trong `repair_detail_view.dart` để chỉ gỡ đúng 2 điểm liên quan (giá + thông tin chung), giữ nguyên các khoá khác không thuộc phạm vi yêu cầu (VD nút trạng thái "Giao máy" tiếp theo, sửa dịch vụ từng dòng...).
+- `_editFinancials()`: gỡ bỏ chặn `if (r.status == 4) { snackbar 'Đã giao máy — không thể sửa giá'; return; }`. Logic tính chênh lệch khi sửa giá vốn/giá thu (`FinancialActivityService.logCustomActivity` ghi REPAIR_PRICE_ADJUST/REPAIR_COST_ADJUST, `_applyCostFundDelta` tránh nhân đôi chi phí sổ quỹ) đã có sẵn từ trước và an toàn dùng lại — không đổi gì trong phần này.
+- `_editBasicInfo()`: gỡ bỏ `if (r.status == 4) return;` (trước đây im lặng không làm gì, không cả thông báo).
+- Nút "Chỉnh sửa thông tin" (icon bút cạnh tên khách) đổi từ `if (r.status < 4 && quyền)` sang chỉ còn `if (quyền)` — hiện luôn, không ẩn khi đã giao.
+- **Không đụng tới:** nút hành động trạng thái cuối trang (`_buildActionButtons` — vẫn ẩn khi đã giao, đúng vì không có "trạng thái tiếp theo"), sửa từng dịch vụ, thêm/đổi phụ tùng (đã có carve-out riêng cho phép xoá phụ tùng từ trước, giữ nguyên).
+
+**2) Trang "Đơn sửa tương tự" (Bảng giá thông minh):**
+- `pricing_engine_service.dart`: `PricingSuggestion` thêm field `matchedRepairs` (danh sách `Repair` thực tế đã dùng để tính gợi ý) — lấy free từ dữ liệu đã có trong `_buildSuggestion`, không query thêm.
+- File mới `lib/views/similar_repair_history_view.dart`: màn hình CHỈ ĐỌC, liệt kê từng đơn (model, lỗi/dịch vụ, trạng thái, ngày, giá thu/vốn/lãi), bấm vào 1 dòng mở thẳng `RepairDetailView` của đơn đó để xem/tham khảo.
+- Gắn `InkWell` + gạch chân vào dòng "Lịch sử tương tự"/"N đơn tương tự" ở cả `create_repair_order_view.dart` và `repair_detail_view.dart`, thêm chữ "(chạm để xem)" để gợi ý bấm được.
+
+**Verify (test trực tiếp trên thiết bị thật, dữ liệu shop thật):** `flutter analyze` sạch, build + cài + khởi động Oppo CPH2203 không FATAL exception. Mở 1 đơn "ĐÃ GIAO" thật (IPHONE 11PROMAX — Nguyễn Khánh Duy) — xác nhận nút "Sửa" (tài chính) và "Chỉnh sửa thông tin" đều hiện và mở được dialog đúng (trước đây bị chặn/ẩn) — **đã bấm HỦY ở cả 2 dialog, không lưu**, để không đụng dữ liệu tài chính thật khi test. Bấm dòng "Lịch sử tương tự (chạm để xem)" — mở đúng trang liệt kê 2 đơn tương tự khớp số liệu gợi ý. Không có crash trong toàn bộ quá trình test.
+
+**Files:** `lib/views/repair_detail_view.dart`, `lib/services/pricing_engine_service.dart`, `lib/views/create_repair_order_view.dart`, `lib/views/similar_repair_history_view.dart` (mới).
+
+**Cập nhật thêm cùng ngày (theo phản hồi user "hay rồi, thêm link + hiển thị thêm thông tin"):** viết lại `similar_repair_history_view.dart` — mỗi thẻ đơn giờ hiện đủ model, trạng thái, lỗi/dịch vụ, khách hàng, SĐT, ngày, KTV sửa (nếu có), giá thu/vốn/lãi ngay trên danh sách (không cần bấm vào mới xem), kèm nút "Xem chi tiết" rõ ràng ở mỗi thẻ (bên cạnh việc cả thẻ vẫn bấm được). Test trực tiếp trên đơn thật — hiện đủ thông tin đúng, bấm "Xem chi tiết" mở đúng chi tiết đơn, không crash.
+
+---
+
+## [2026-08-16j] - feat(repair): danh sách không bỏ sót đơn chưa giao + cảnh báo đơn treo quá 7 ngày
+
+**Bối cảnh:** Điều tra sâu báo cáo "đơn hiện sai trạng thái" ở mục `[2026-08-16i]` — sau khi kiểm tra trực tiếp dữ liệu gốc trên Firestore Console (field `status` = 1 thật) VÀ xác nhận lại trên đúng bản App Store release (không phải bản test), kết luận: **đây không phải bug đồng bộ** — đơn đó thực sự chưa từng được cập nhật trạng thái trong app (có thể nhân viên xử lý xong ngoài đời nhưng quên bấm cập nhật). Toàn bộ nghi vấn về sync/ghi đè/race-condition trước đó (`[2026-08-16i]`) đã được loại trừ bằng bằng chứng thực tế.
+
+Tuy nhiên phát hiện thêm 1 vấn đề thật: đơn cũ không cập nhật trạng thái **biến mất khỏi danh sách chính** (chỉ tìm thấy qua search) — nguyên nhân do query realtime các đơn CHƯA GIAO (`activeOnly`) có `.limit()` (tối đa 500, mặc định 50, tăng dần khi cuộn) sắp xếp theo `updatedAt` mới nhất trước — đơn càng lâu không ai đụng tới càng dễ bị đẩy khỏi cửa sổ hiển thị.
+
+**Fix 1 — không bỏ sót đơn chưa giao dù cũ đến đâu:**
+- `firestore_service.dart` (`watchRepairsByShop`): bỏ hẳn `.limit()` khi `activeOnly=true` — tập hợp đơn CHƯA GIAO vốn bị chặn tự nhiên (1 shop không thể có hàng nghìn máy đang xử lý cùng lúc) nên an toàn để tải toàn bộ, không giới hạn số lượng.
+- `order_list_view.dart`: bỏ luôn cơ chế "tải thêm khi cuộn" phía Firestore (đã thành thừa vì không còn giới hạn) — chỉ giữ lại phân trang SQLite cho phần lịch sử đã giao.
+- Thứ tự hiển thị Tiếp nhận → Đang sửa → Sửa xong → Chờ duyệt giao → Đã giao đã có sẵn từ trước (`_compareRepairs`), không cần đổi.
+
+**Fix 2 — cảnh báo đơn "Tiếp nhận"/"Sửa xong" treo quá 7 ngày:**
+- Thêm `_isOverdue()`: đơn status=1 (Tiếp nhận) tính từ `createdAt`, status=3 chưa chờ duyệt (Sửa xong) tính từ `finishedAt`/`lastCaredAt` — quá 7 ngày chưa xử lý tiếp thì đánh dấu quá hạn.
+- Hiện chip cảnh báo đỏ "⚠️ QUÁ HẠN X NGÀY" ngay trên từng đơn trong danh sách.
+- Header danh sách hiện thêm số lượng quá hạn: "62 điện thoại • 11 đang xử lý • ⚠️ 3 quá hạn".
+
+**Verify:** `flutter analyze` sạch, build + cài + khởi động Oppo CPH2203 không FATAL exception. Chưa test được với dữ liệu có đơn thật sự cũ nhiều năm (không có sẵn trên máy test) — cần user tự xác nhận trên Máy A/B.
+
+**Files:** `lib/services/firestore_service.dart`, `lib/views/order_list_view.dart`.
+
+---
+
 ## [2026-08-16i] - fix(repair): đơn "Sửa xong" hiện sai dù đã "Đã giao" ở thiết bị khác
 
 **User báo:** Máy A (chủ shop, bản test đang sửa lỗi) hiện nhiều đơn trạng thái "SỬA XONG" nhưng thực chất đã "ĐÃ GIAO" từ lâu. Máy B (nhân viên, bản release App Store) hiện đúng dữ liệu.
@@ -14,9 +60,11 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 **Fix:** khi 1 đơn bị `removed` khỏi kết quả realtime, thay vì chỉ xoá khỏi map trong bộ nhớ, refetch 1 lần từ Firestore (`FirestoreService.getRepairDoc`) và ghi đè lại đúng trạng thái mới nhất vào SQLite (`db.upsertRepair`).
 
-**Giới hạn quan trọng:** fix này chỉ ngăn **phát sinh mới** từ bây giờ — KHÔNG tự sửa các đơn ĐÃ bị sai sẵn trong SQLite của Máy A hiện tại (do `_doHistoricalBackfill` chỉ `INSERT OR IGNORE`, không ghi đè bản ghi cũ). Để sửa ngay dữ liệu hiện có trên Máy A: vào Cài đặt > "Nhận kho từ Cloud" (xoá local + tải lại toàn bộ từ cloud).
+**Giới hạn quan trọng:** fix này chỉ ngăn **phát sinh mới** từ bây giờ — KHÔNG tự sửa các đơn ĐÃ bị sai sẵn trong SQLite của Máy A hiện tại (do `_doHistoricalBackfill` chỉ `INSERT OR IGNORE`, không ghi đè bản ghi cũ). Để sửa dữ liệu cục bộ hiện có: Đăng xuất rồi đăng nhập lại (KHÔNG dùng "Nhận kho từ Cloud" — nút đó chỉ làm mới sản phẩm/kho, không đụng tới đơn sửa, xem đính chính ở `[2026-08-16j]`).
 
 **Verify:** `flutter analyze` sạch, build + cài + khởi động Oppo CPH2203 không FATAL exception. Không tái hiện được đúng kịch bản 2-thiết-bị trên máy test (chỉ có 1 thiết bị Android), cần user tự xác nhận trên Máy A/B thật.
+
+**Cập nhật sau khi điều tra tiếp (`[2026-08-16j]`):** đã kiểm tra trực tiếp 1 case cụ thể user báo — dữ liệu gốc trên Firestore Console thật sự là `status: 1`, xác nhận lại trên đúng bản App Store release cũng cho kết quả giống vậy. Kết luận: case đó KHÔNG phải do bug đồng bộ này gây ra (đơn chưa từng được cập nhật trạng thái trong app) — nhưng fix `removed`-transition ở trên vẫn là fix đúng, hợp lệ cho race-condition đa thiết bị thật sự tồn tại trong code, không rút lại.
 
 **Files:** `lib/views/order_list_view.dart`.
 

@@ -39,6 +39,11 @@ class PricingSuggestion {
   final int maxPrice;
   final PricingConfidence confidence;
 
+  /// Các đơn sửa thực tế đã dùng để tính gợi ý này — chỉ để XEM/THAM KHẢO
+  /// (VD mở trang danh sách khi bấm vào dòng "N đơn tương tự"), không dùng
+  /// để tính toán lại gì thêm.
+  final List<Repair> matchedRepairs;
+
   const PricingSuggestion({
     required this.matchLevel,
     required this.sampleCount,
@@ -48,6 +53,7 @@ class PricingSuggestion {
     required this.minPrice,
     required this.maxPrice,
     required this.confidence,
+    required this.matchedRepairs,
   });
 }
 
@@ -200,9 +206,7 @@ class PricingEngineService {
   ) {
     final costs = matches.map((m) => m.repair.cost).toList();
     final prices = matches.map((m) => m.repair.price).toList();
-    final profits = matches
-        .map((m) => m.repair.price - m.repair.cost)
-        .toList();
+    final profits = matches.map((m) => m.repair.price - m.repair.cost).toList();
 
     final trimmedCosts = _trimOutliers(costs);
     final trimmedPrices = _trimOutliers(prices);
@@ -229,6 +233,7 @@ class PricingEngineService {
       minPrice: sortedTrimmedPrices.first.round(),
       maxPrice: sortedTrimmedPrices.last.round(),
       confidence: confidence,
+      matchedRepairs: matches.map((m) => m.repair).toList(),
     );
   }
 
@@ -245,16 +250,14 @@ class PricingEngineService {
 
     // Phòng vệ: loại đơn đã soft-delete nếu caller lỡ truyền vào chưa lọc
     // (tầng DB — getRepairsForPricing — đã lọc sẵn, đây chỉ là an toàn kép).
-    final candidates = repairs
-        .where((r) => !r.deleted)
-        .map(_annotate)
-        .toList();
+    final candidates = repairs.where((r) => !r.deleted).map(_annotate).toList();
     final modelMatches = candidates
         .where((c) => c.normModel == normModel)
         .toList();
     if (modelMatches.isEmpty) return null;
 
-    final normService = (issueOrService == null || issueOrService.trim().isEmpty)
+    final normService =
+        (issueOrService == null || issueOrService.trim().isEmpty)
         ? null
         : normalizeText(issueOrService);
     final normPart = (partName == null || partName.trim().isEmpty)

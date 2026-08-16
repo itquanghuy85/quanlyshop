@@ -82,13 +82,21 @@ class FirestoreService {
       query = query.where('status', isLessThan: 4);
     }
 
-    if (useIndexedQuery) {
-      query = query
-          .orderBy('updatedAt', descending: true)
-          .limit(indexedLimit.clamp(20, 500));
-    } else {
-      // Fallback mode (missing index): still cap at 300 to avoid unbounded reads.
-      query = query.limit(300);
+    // Đơn CHƯA giao là tập hợp bị chặn tự nhiên (1 shop không thể có hàng
+    // nghìn máy đang xử lý cùng lúc) — KHÔNG giới hạn số lượng, để không bao
+    // giờ bỏ sót đơn cũ chưa xử lý dù đã tồn đọng bao lâu. Chỉ giới hạn khi
+    // KHÔNG phải activeOnly (đường này hiện chưa dùng tới, giữ lại để an toàn
+    // nếu hàm được tái sử dụng cho mục đích khác trong tương lai).
+    if (!activeOnly) {
+      if (useIndexedQuery) {
+        query = query
+            .orderBy('updatedAt', descending: true)
+            .limit(indexedLimit.clamp(20, 500));
+      } else {
+        query = query.limit(300);
+      }
+    } else if (useIndexedQuery) {
+      query = query.orderBy('updatedAt', descending: true);
     }
 
     return query.snapshots().map((snap) {

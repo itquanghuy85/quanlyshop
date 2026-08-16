@@ -16,6 +16,7 @@ import '../services/unified_printer_service.dart';
 import '../services/adjustment_service.dart';
 import '../services/first_time_guide_service.dart';
 import '../services/pricing_engine_service.dart';
+import 'similar_repair_history_view.dart';
 import '../utils/money_utils.dart';
 import '../utils/vietnamese_utils.dart';
 import '../widgets/currency_text_field.dart';
@@ -255,11 +256,24 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             style: AppTextStyles.body2,
           ),
           const SizedBox(height: 2),
-          Text(
-            '${s.sampleCount} đơn tương tự · Khoảng giá thường gặp: '
-            '${MoneyUtils.formatCurrency(s.minPrice)}đ - ${MoneyUtils.formatCurrency(s.maxPrice)}đ\n'
-            'Độ tin cậy: ${s.confidence.label}',
-            style: AppTextStyles.caption.copyWith(color: Colors.grey.shade700),
+          InkWell(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    SimilarRepairHistoryView(repairs: s.matchedRepairs),
+              ),
+            ),
+            child: Text(
+              '${s.sampleCount} đơn tương tự (chạm để xem) · Khoảng giá thường gặp: '
+              '${MoneyUtils.formatCurrency(s.minPrice)}đ - ${MoneyUtils.formatCurrency(s.maxPrice)}đ\n'
+              'Độ tin cậy: ${s.confidence.label}',
+              style: AppTextStyles.caption.copyWith(
+                color: Colors.grey.shade700,
+                decoration: TextDecoration.underline,
+                decorationColor: Colors.grey.shade400,
+              ),
+            ),
           ),
           const SizedBox(height: 6),
           SizedBox(

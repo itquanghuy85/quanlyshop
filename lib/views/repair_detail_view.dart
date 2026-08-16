@@ -19,6 +19,7 @@ import '../models/repair_model.dart';
 import '../models/repair_service_model.dart';
 import '../models/part_used_detail_model.dart';
 import '../services/pricing_engine_service.dart';
+import 'similar_repair_history_view.dart';
 import '../models/repair_partner_model.dart';
 import '../models/payment_intent_model.dart';
 import '../models/shop_settings_model.dart';
@@ -3171,15 +3172,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       return;
     }
 
-    // Lock editing when repair is delivered (status 4)
-    if (r.status == 4) {
-      NotificationService.showSnackBar(
-        'Đã giao máy — không thể sửa giá',
-        color: Colors.orange,
-      );
-      return;
-    }
-
     final formKey = GlobalKey<FormState>();
     final priceC = TextEditingController(
       text: CurrencyTextField.formatDisplay(r.price),
@@ -3802,8 +3794,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       );
       return;
     }
-    if (r.status == 4) return; // Đã giao thì khóa chỉnh sửa
-
     final formKey = GlobalKey<FormState>();
     final nameC = TextEditingController(text: r.customerName);
     final phoneC = TextEditingController(text: r.phone);
@@ -4565,14 +4555,26 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                         if ((_canViewRevenue || _canEditRepairCharge) &&
                             _historicalPricing != null) ...[
                           const SizedBox(height: 4),
-                          Text(
-                            '💡 Lịch sử tương tự: '
-                            '${MoneyUtils.formatCurrency(_historicalPricing!.minPrice)}đ - '
-                            '${MoneyUtils.formatCurrency(_historicalPricing!.maxPrice)}đ '
-                            '(${_historicalPricing!.sampleCount} đơn, '
-                            'độ tin cậy: ${_historicalPricing!.confidence.label})',
-                            style: AppTextStyles.overline.copyWith(
-                              color: Colors.grey.shade600,
+                          InkWell(
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => SimilarRepairHistoryView(
+                                  repairs: _historicalPricing!.matchedRepairs,
+                                ),
+                              ),
+                            ),
+                            child: Text(
+                              '💡 Lịch sử tương tự (chạm để xem): '
+                              '${MoneyUtils.formatCurrency(_historicalPricing!.minPrice)}đ - '
+                              '${MoneyUtils.formatCurrency(_historicalPricing!.maxPrice)}đ '
+                              '(${_historicalPricing!.sampleCount} đơn, '
+                              'độ tin cậy: ${_historicalPricing!.confidence.label})',
+                              style: AppTextStyles.overline.copyWith(
+                                color: Colors.grey.shade600,
+                                decoration: TextDecoration.underline,
+                                decorationColor: Colors.grey.shade400,
+                              ),
                             ),
                           ),
                         ],
@@ -4791,7 +4793,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                               tooltip: 'Mở hồ sơ khách hàng từ phiếu sửa',
                             ),
                           ),
-                          if (r.status < 4 && _canEditRepairBasicInfo)
+                          if (_canEditRepairBasicInfo)
                             IconButton(
                               onPressed: _editBasicInfo,
                               icon: const Icon(Icons.edit, size: 16),
