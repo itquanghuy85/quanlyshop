@@ -4,6 +4,28 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-16h] - fix(sync,firestore): deploy composite index bị thiếu + fix audit_logs retry vô hạn
+
+**Bối cảnh:** User dán 1 log iOS đã qua phân tích bởi công cụ khác (báo App Check lỗi, audit_logs permission-denied, repairs thiếu index, mismatch dữ liệu). Tôi đọc code thật để kiểm chứng từng điểm thay vì tin nguyên bản phân tích.
+
+**1) Composite index cho `repairs` (và ~55 collection khác) đã khai báo trong `firestore.indexes.json` nhưng CHƯA từng deploy lên production:**
+- Kiểm tra bằng `firebase firestore:indexes` (đọc index đang chạy thật) → chỉ thấy đúng `attendance` (5 index), toàn bộ phần còn lại trong file local (repairs, products, sales_returns, payment_requests, debt_payments...) không tồn tại trên server.
+- Đây là nguyên nhân trực tiếp khiến `OrderListView` (`lib/views/order_list_view.dart`) phải fallback "no orderBy/limit" cho query `repairs` (`shopId + status<4 + orderBy updatedAt` — cần đúng composite index đã khai báo sẵn ở `firestore.indexes.json` dòng ~212-221, xem comment tại [firestore_service.dart:79-80](lib/services/firestore_service.dart#L79-L80)) — khả năng cao cũng là nguyên nhân mismatch "OrderListView Firestore count: 0" trong log.
+- **Đã chạy `firebase deploy --only firestore:indexes`** — deploy thành công, xác nhận lại bằng `firebase firestore:indexes` thấy tăng từ 5 lên 60 collectionGroup có index. Việc build index cho dữ liệu hiện có chạy nền phía Firestore, không ảnh hưởng app đang dùng, có thể mất vài phút tới vài giờ tuỳ khối lượng dữ liệu.
+
+**2) `audit_logs` bị "Missing or insufficient permissions" lặp lại — do vòng lặp retry vô hạn, không liên quan App Check:**
+- `firestore.rules` quy định `audit_logs` bất biến: `allow update: if false` (chỉ cho phép `create`, không cho `update`).
+- `sync_service.dart` (`syncAllToCloud`, mục audit logs) sau khi batch commit thành công, bọc bước đánh dấu "đã sync" ở local trong `try { ... } catch (_) {}` — nếu bước NÀY lỗi (không phải lỗi Firestore) vì bất kỳ lý do gì, local vẫn coi log đó là "chưa sync" **mãi mãi**, dù bản ghi đã có thật trên Firestore. Lần sync sau, code cố ghi lại → doc đã tồn tại → bị rule chặn vì đó là "update" một tài liệu bất biến → permission-denied → lặp lại vô hạn không tự phục hồi. Batch ghi atomic nên nếu 1 dòng kẹt kiểu này nằm chung batch với các dòng mới hợp lệ, cả batch cùng fail theo.
+- **Fix:** khi batch commit lỗi, thay vì chỉ log lỗi, giờ thử ghi lại **từng dòng riêng lẻ** (không batch) để không để 1 dòng kẹt chặn các dòng khác. Nếu ghi riêng vẫn lỗi, kiểm tra xem doc đã tồn tại trên cloud chưa (`.get()`) — nếu đã tồn tại (đúng trường hợp kẹt do lỗi cũ) thì tự đánh dấu synced ở local, không retry nữa; nếu chưa tồn tại thật thì vẫn giữ nguyên là lỗi để tiếp tục điều tra (không che giấu lỗi thật).
+
+**3) App Check "App not registered" (iOS):** xác nhận không chặn app (Auth tự fallback về placeholder token khi thất bại). Đây là việc cần làm ở **Firebase Console** (đăng ký app iOS `1:51200928212:ios:04c10eca3b61a3be910e41` cho App Check, hoặc tắt enforcement nếu chưa cần) — không sửa được bằng code, để lại cho user xử lý.
+
+**Verify:** `flutter analyze` sạch, build + cài + khởi động Oppo CPH2203 không FATAL exception. **Không tự test được nhánh self-heal audit_logs trên máy dev** (shop test không có bản ghi audit_logs bị kẹt để tái hiện) — cần theo dõi log lần sync tiếp theo trên thiết bị thật đã gặp lỗi để xác nhận hết lặp lại.
+
+**Files:** `firestore.indexes.json` (deploy, không đổi nội dung file), `lib/services/sync_service.dart`.
+
+---
+
 ## [2026-08-16g] - feat(admin): công cụ tìm & dọn tài khoản trùng email trong Super Admin Console
 
 **Bối cảnh:** Sau khi fix nguyên nhân phát sinh trùng mới (`[2026-08-16f]`), user hỏi có thể dọn các tài khoản trùng ĐÃ CÓ SẴN trong dữ liệu thật hay không. Vì không có quyền đọc/ghi trực tiếp Firestore/Auth từ máy dev (không có service account/ADC), giải pháp an toàn nhất là xây công cụ NGAY TRONG Super Admin Console để user (đã có quyền super admin thật) tự chạy trên máy — không có ai khác tự ý xoá dữ liệu khách hàng thật thay họ.
