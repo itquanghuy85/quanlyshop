@@ -24,6 +24,7 @@ enum _AdminSection {
   permissions,
   audit,
   broadcast,
+  otherApps,
   settings,
   danger,
 }
@@ -752,6 +753,7 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
       case _AdminSection.audit:
         return 3;
       case _AdminSection.broadcast:
+      case _AdminSection.otherApps:
       case _AdminSection.permissions:
       case _AdminSection.settings:
       case _AdminSection.danger:
@@ -791,6 +793,14 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
               onTap: () {
                 Navigator.pop(ctx);
                 setState(() => _section = _AdminSection.broadcast);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.apps_rounded, color: Colors.deepPurple),
+              title: const Text('Ứng dụng khác'),
+              onTap: () {
+                Navigator.pop(ctx);
+                setState(() => _section = _AdminSection.otherApps);
               },
             ),
             ListTile(
@@ -852,6 +862,11 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
             Icons.campaign_rounded,
             'Thông báo',
             _AdminSection.broadcast,
+          ),
+          _navItem(
+            Icons.apps_rounded,
+            'Ứng dụng khác',
+            _AdminSection.otherApps,
           ),
           _navItem(Icons.settings, 'Cài đặt', _AdminSection.settings),
           _navItem(
@@ -937,6 +952,8 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
         );
       case _AdminSection.broadcast:
         return const _BroadcastSection();
+      case _AdminSection.otherApps:
+        return const _OtherAppsSection();
       case _AdminSection.settings:
         return const _SettingsSection();
       case _AdminSection.danger:
@@ -2271,6 +2288,336 @@ class _UsersSectionState extends State<_UsersSection> {
         color: selected ? AppColors.primary : null,
         fontWeight: selected ? FontWeight.bold : FontWeight.normal,
       ),
+    );
+  }
+}
+
+// ─── Other apps (Ứng dụng khác của chúng tôi) ─────────────────────────────────
+
+class _OtherAppsSection extends StatefulWidget {
+  const _OtherAppsSection();
+  @override
+  State<_OtherAppsSection> createState() => _OtherAppsSectionState();
+}
+
+class _OtherAppsSectionState extends State<_OtherAppsSection> {
+  final _db = FirebaseFirestore.instance;
+
+  Future<void> _showEditDialog({
+    String? docId,
+    Map<String, dynamic>? existing,
+  }) async {
+    final nameC = TextEditingController(
+      text: (existing?['name'] ?? '').toString(),
+    );
+    final descC = TextEditingController(
+      text: (existing?['description'] ?? '').toString(),
+    );
+    final iconC = TextEditingController(
+      text: (existing?['iconUrl'] ?? '').toString(),
+    );
+    final androidC = TextEditingController(
+      text: (existing?['androidUrl'] ?? '').toString(),
+    );
+    final iosC = TextEditingController(
+      text: (existing?['iosUrl'] ?? '').toString(),
+    );
+    final orderC = TextEditingController(
+      text: (existing?['order'] ?? 0).toString(),
+    );
+    bool active = existing?['active'] != false; // default true khi tạo mới
+    final formKey = GlobalKey<FormState>();
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(docId == null ? 'Thêm ứng dụng' : 'Sửa ứng dụng'),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: nameC,
+                    decoration: const InputDecoration(
+                      labelText: 'Tên ứng dụng *',
+                    ),
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Bắt buộc' : null,
+                  ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: descC,
+                    maxLines: 2,
+                    decoration: const InputDecoration(labelText: 'Mô tả ngắn'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: iconC,
+                    decoration: const InputDecoration(
+                      labelText: 'Link ảnh icon (URL)',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: androidC,
+                    decoration: const InputDecoration(
+                      labelText: 'Link Google Play',
+                      hintText: 'https://play.google.com/store/apps/...',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: iosC,
+                    decoration: const InputDecoration(
+                      labelText: 'Link App Store',
+                      hintText: 'https://apps.apple.com/...',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: orderC,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Thứ tự hiển thị (số nhỏ hơn hiện trước)',
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: active,
+                    onChanged: (v) => setDialogState(() => active = v),
+                    title: const Text('Đang hiển thị cho người dùng'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Hủy'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (!(formKey.currentState?.validate() ?? false)) return;
+                Navigator.pop(ctx, true);
+              },
+              child: const Text('Lưu'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (saved != true) return;
+
+    final androidUrl = androidC.text.trim();
+    final iosUrl = iosC.text.trim();
+    if (androidUrl.isNotEmpty &&
+        !androidUrl.startsWith('http://') &&
+        !androidUrl.startsWith('https://')) {
+      _showSnack('Link Google Play phải bắt đầu bằng http:// hoặc https://');
+      return;
+    }
+    if (iosUrl.isNotEmpty &&
+        !iosUrl.startsWith('http://') &&
+        !iosUrl.startsWith('https://')) {
+      _showSnack('Link App Store phải bắt đầu bằng http:// hoặc https://');
+      return;
+    }
+
+    final data = {
+      'name': nameC.text.trim(),
+      'description': descC.text.trim(),
+      'iconUrl': iconC.text.trim(),
+      'androidUrl': androidUrl,
+      'iosUrl': iosUrl,
+      'order': int.tryParse(orderC.text.trim()) ?? 0,
+      'active': active,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    try {
+      if (docId == null) {
+        data['createdAt'] = FieldValue.serverTimestamp();
+        await _db.collection('other_apps').add(data);
+      } else {
+        await _db
+            .collection('other_apps')
+            .doc(docId)
+            .set(data, SetOptions(merge: true));
+      }
+      if (mounted) _showSnack('Đã lưu "${nameC.text.trim()}"', success: true);
+    } catch (e) {
+      if (mounted) _showSnack('Lỗi lưu: $e');
+    }
+  }
+
+  Future<void> _confirmDelete(String docId, String name) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xóa ứng dụng'),
+        content: Text('Xóa "$name" khỏi danh sách giới thiệu?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    try {
+      await _db.collection('other_apps').doc(docId).delete();
+      if (mounted) _showSnack('Đã xóa "$name"', success: true);
+    } catch (e) {
+      if (mounted) _showSnack('Lỗi xóa: $e');
+    }
+  }
+
+  void _showSnack(String msg, {bool success = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: success ? Colors.green : Colors.red,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: _db.collection('other_apps').orderBy('order').snapshots(),
+      builder: (context, snap) {
+        final docs = snap.data?.docs ?? [];
+        return Column(
+          children: [
+            _SectionHeader(
+              icon: Icons.apps_rounded,
+              title: 'Ứng dụng khác',
+              subtitle:
+                  '${docs.length} ứng dụng • hiển thị cho toàn bộ người dùng',
+              trailing: FilledButton.icon(
+                onPressed: () => _showEditDialog(),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Thêm'),
+              ),
+            ),
+            Expanded(
+              child: !snap.hasData
+                  ? const Center(child: CircularProgressIndicator())
+                  : docs.isEmpty
+                  ? const Center(child: Text('Chưa có ứng dụng nào'))
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      itemCount: docs.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (_, i) {
+                        final doc = docs[i];
+                        final data = doc.data();
+                        final name = (data['name'] ?? '').toString();
+                        final desc = (data['description'] ?? '').toString();
+                        final active = data['active'] != false;
+                        final iconUrl = (data['iconUrl'] ?? '')
+                            .toString()
+                            .trim();
+                        return Card(
+                          margin: EdgeInsets.zero,
+                          child: ListTile(
+                            leading: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: iconUrl.isEmpty
+                                  ? Container(
+                                      width: 44,
+                                      height: 44,
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                      child: Icon(
+                                        Icons.apps_rounded,
+                                        color: AppColors.primary,
+                                      ),
+                                    )
+                                  : Image.network(
+                                      iconUrl,
+                                      width: 44,
+                                      height: 44,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Container(
+                                        width: 44,
+                                        height: 44,
+                                        color: AppColors.primary.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        child: Icon(
+                                          Icons.apps_rounded,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ),
+                            ),
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                _StatusPill(
+                                  label: active ? 'HIỆN' : 'ẨN',
+                                  status: active
+                                      ? _PillStatus.active
+                                      : _PillStatus.neutral,
+                                ),
+                              ],
+                            ),
+                            subtitle: desc.isEmpty
+                                ? null
+                                : Text(
+                                    desc,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit, size: 20),
+                                  onPressed: () => _showEditDialog(
+                                    docId: doc.id,
+                                    existing: data,
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.delete_outline,
+                                    size: 20,
+                                    color: AppColors.error,
+                                  ),
+                                  onPressed: () => _confirmDelete(doc.id, name),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

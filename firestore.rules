@@ -1143,6 +1143,14 @@ service cloud.firestore {
       allow create, update, delete: if isSuperAdmin();
     }
 
+    // ═══════════ 9.2b OTHER_APPS (Super Admin → All Users) ═══════════
+    // Danh sách "Ứng dụng khác của chúng tôi" — quảng bá chéo, hiển thị cho
+    // toàn bộ user mọi shop, chỉ Super Admin được thêm/sửa/xoá.
+    match /other_apps/{appId} {
+      allow read: if isAuth();
+      allow create, update, delete: if isSuperAdmin();
+    }
+
     // ═══════════ 9.3 SHOP_NOTIFICATIONS (broadcast) ═══════════
     match /shop_notifications/{notificationId} {
       allow read: if isAuth() && docInMyShop();
