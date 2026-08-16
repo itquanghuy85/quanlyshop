@@ -4,6 +4,21 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-16e] - fix(admin): 3 lỗi tab Cửa hàng (Shops) trong Super Admin Console
+
+**User báo:** (1) "trong tab Shops, tìm kiếm nếu chưa load thì không tìm ra được shop", (2) "bấm vào shop lại hiện ra thêm 1 list và phải bấm thêm 1 lần nữa mới vào shop muốn vào được", (3) "khi bấm 1 shop: xóa hoàn toàn nhưng vẫn còn trong list mà không mất đi".
+
+**Nguyên nhân & fix:**
+1. **Tìm kiếm bỏ sót shop chưa tải**: `_ShopsSection` phân trang 20 shop/lần và tìm kiếm chỉ lọc trên dữ liệu ĐÃ tải (`_shops`) — shop chưa được tải tới trang đó thì tìm không ra. Fix: khi có từ khóa tìm kiếm, tải toàn bộ shop 1 lần (debounce 300ms, cache lại, tối đa 2000 shop) để tìm đúng trên toàn bộ dữ liệu thay vì chỉ trang hiện tại. `lib/views/super_admin_console_view.dart` (`_ShopsSectionState`).
+2. **Bấm shop phải bấm 2 lần mới vào được**: `ListTile` của mỗi shop không có `onTap` — chỉ bấm được nút "..." (PopupMenuButton) để mở menu, chọn "Vào shop" mới điều hướng. Đã vậy, `_enterShop()` khi điều hướng lại **bỏ qua hoàn toàn shop đã bấm**, chỉ mở `ShopSelectorView` — màn hình hiện DANH SÁCH TẤT CẢ shop để chọn lại từ đầu (đúng là "hiện ra thêm 1 list, bấm thêm 1 lần nữa"). Fix: thêm `onTap` trực tiếp trên dòng shop để vào ngay (1 chạm); `ShopSelectorView` thêm tham số `autoSelectShopId`/`autoSelectShopName` — khi được truyền (từ Super Admin Console), bỏ qua màn chọn shop, tự động vào thẳng đúng shop đã bấm sau khi xác thực PIN. `lib/views/shop_selector_view.dart`, `lib/views/super_admin_console_view.dart`.
+3. **Xóa shop nhưng vẫn còn trong danh sách**: Nút "Xóa" nằm ở mục "Vùng nguy hiểm" (`_DangerSection`) — danh sách này lấy TẤT CẢ shop qua Firestore stream nhưng KHÔNG lọc bỏ shop đã `deleted:true`, nên sau khi xóa, shop đó vẫn nằm y nguyên trong danh sách với 2 nút Đặt lại/Xóa y hệt như trước — nhìn như thao tác không có tác dụng (dù Firestore đã ghi đúng `deleted:true`). Fix: `_DangerSection` lọc bỏ shop đã xóa khỏi danh sách thao tác, hiện số lượng đã ẩn kèm gợi ý xem lại ở tab Cửa hàng > bộ lọc "Đã xóa". `lib/views/super_admin_console_view.dart`.
+
+**Verify:** `flutter analyze` sạch (0 lỗi mới), build + cài + khởi động Oppo CPH2203 không FATAL exception. **Chưa test trực tiếp luồng vào shop/xóa shop trên máy** (không có tài khoản super admin thật) — cần user xác nhận qua tài khoản `admin@huluca.com` hoặc super admin thật.
+
+**Files:** `lib/views/super_admin_console_view.dart`, `lib/views/shop_selector_view.dart`.
+
+---
+
 ## [2026-08-16d] - feat(notification): "Yêu cầu cập nhật" tự động mở đúng App Store/Google Play theo máy người dùng
 
 **Yêu cầu user:** "đưa link sẵn vào và giúp tôi luôn mỗi lần cập nhật chỉ cần bấm yêu cầu cập nhật là người dùng có thể đến thẳng store luôn ios hoặc chplay" — không muốn phải dán link thủ công mỗi lần, và 1 broadcast phải mở ĐÚNG store theo nền tảng của từng người dùng (không thể gửi 1 link cố định vì iOS/Android khác store).

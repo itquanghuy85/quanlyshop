@@ -12,9 +12,19 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Analyze Status:** ✅ 0 compile error (chỉ info/warning có sẵn từ trước)  
 **Database Version:** SQLite v104  
 **Branch:** master  
-**Active Initiative:** Multi-fix session 2026-08-08/10 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng, backup đơn sửa kèm ảnh, fix sheet Thêm dịch vụ) + review/fix regression + fix danh sách bán còn nợ sai + fix 42 popup che nút (toàn bộ audit) 2026-08-15/16 + redesign Super Admin Console + broadcast có link + auto store-link theo nền tảng 2026-08-16
+**Active Initiative:** Multi-fix session 2026-08-08/10 (audit tool, sync cost, double notification, hẹn giao máy, autocomplete khách hàng, backup đơn sửa kèm ảnh, fix sheet Thêm dịch vụ) + review/fix regression + fix danh sách bán còn nợ sai + fix 42 popup che nút (toàn bộ audit) 2026-08-15/16 + redesign Super Admin Console + broadcast có link + auto store-link theo nền tảng + fix 3 lỗi tab Cửa hàng 2026-08-16
 **⚠️ Known issue chưa fix:** crash intermittent trong bottom sheet có TextField qua đường Back hệ thống — xem Known Issues bên dưới (mục "Crash `_dependents.isEmpty`"). Toàn bộ 42 điểm popup che nút từ audit ban đầu (20 HIGH + 22 MEDIUM) đã fix xong, KHÔNG còn mục nào tồn đọng.
-**⚠️ Chưa test trực tiếp:** Redesign Super Admin Console chỉ verify qua `flutter analyze` + build + logcat, KHÔNG có tài khoản super admin thật trên máy test để tự vào xem UI — cần user xác nhận qua tài khoản `admin@huluca.com` hoặc super admin thật.
+**⚠️ Chưa test trực tiếp:** Toàn bộ thay đổi Super Admin Console (redesign + fix tab Cửa hàng) chỉ verify qua `flutter analyze` + build + logcat, KHÔNG có tài khoản super admin thật trên máy test để tự vào xem UI/luồng vào-shop/xóa-shop — cần user xác nhận qua tài khoản `admin@huluca.com` hoặc super admin thật.
+
+### ✅ Vừa hoàn thành (2026-08-16e): fix(admin): 3 lỗi tab Cửa hàng (Shops) trong Super Admin Console
+- User báo: (1) tìm kiếm không ra shop chưa tải, (2) bấm vào shop phải bấm 2 lần mới vào được, (3) xóa shop xong vẫn còn trong danh sách
+- (1) Tìm kiếm giờ tải toàn bộ shop (debounce 300ms, cache, tối đa 2000) khi có từ khóa thay vì chỉ lọc trang 20 shop đã tải
+- (2) `_enterShop()` trước đây bỏ qua shop đã bấm, mở `ShopSelectorView` hiện lại TOÀN BỘ danh sách để chọn lại — giờ thêm `onTap` 1 chạm trên dòng shop + `ShopSelectorView` nhận `autoSelectShopId` để vào thẳng đúng shop sau khi xác thực PIN
+- (3) "Vùng nguy hiểm" trước đây không lọc shop đã `deleted:true` nên xóa xong shop vẫn nằm y nguyên trong danh sách với đủ 2 nút Đặt lại/Xóa — giờ tự ẩn khỏi danh sách sau khi xóa
+- `flutter analyze` sạch, build + cài + khởi động Oppo CPH2203 không FATAL exception
+- **Chưa test trực tiếp luồng vào-shop/xóa-shop** — không có tài khoản super admin thật trên máy, cần user xác nhận
+- Chi tiết: `docs/CHANGELOG.md` mục `[2026-08-16e]`
+
 ### ✅ Vừa hoàn thành (2026-08-16d): feat(notification): "Yêu cầu cập nhật" tự mở đúng App Store/Google Play theo máy người dùng
 - Yêu cầu user: không muốn dán link thủ công mỗi lần gửi broadcast cập nhật; 1 broadcast phải tự mở đúng store theo nền tảng của TỪNG người dùng (iOS → App Store, Android → Google Play `https://play.google.com/store/apps/details?id=com.huluca.shopmanager`)
 - Chọn loại "Yêu cầu cập nhật" → tự bật switch "Bấm vào là mở kho ứng dụng" (mặc định bật, ẩn ô link thủ công); gửi giá trị sentinel `auto:store` thay vì URL cố định — thiết bị người NHẬN tự resolve đúng store khi bấm, không phải theo máy admin gửi

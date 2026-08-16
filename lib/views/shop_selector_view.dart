@@ -16,7 +16,17 @@ import '../widgets/custom_app_bar.dart';
 class ShopSelectorView extends StatefulWidget {
   final void Function(Locale)? setLocale;
 
-  const ShopSelectorView({super.key, this.setLocale});
+  /// Khi được truyền (từ Super Admin Console bấm thẳng vào 1 shop cụ thể),
+  /// bỏ qua màn hình chọn shop — vào thẳng shop này sau khi xác thực PIN.
+  final String? autoSelectShopId;
+  final String? autoSelectShopName;
+
+  const ShopSelectorView({
+    super.key,
+    this.setLocale,
+    this.autoSelectShopId,
+    this.autoSelectShopName,
+  });
 
   @override
   State<ShopSelectorView> createState() => _ShopSelectorViewState();
@@ -35,7 +45,8 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
   void initState() {
     super.initState();
     _searchC.addListener(() {
-      if (mounted) setState(() => _searchQuery = _searchC.text.trim().toLowerCase());
+      if (mounted)
+        setState(() => _searchQuery = _searchC.text.trim().toLowerCase());
     });
     _checkPinAndLoad();
   }
@@ -68,6 +79,17 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
       _showPinDialog();
     } else {
       // No PIN set up or session still valid
+      _afterPinVerified();
+    }
+  }
+
+  /// Sau khi PIN đã xác thực (hoặc không cần PIN): vào thẳng shop được chỉ
+  /// định sẵn (bấm từ Super Admin Console), hoặc hiện danh sách để chọn.
+  void _afterPinVerified() {
+    final shopId = widget.autoSelectShopId;
+    if (shopId != null && shopId.isNotEmpty) {
+      _selectShop(shopId, widget.autoSelectShopName ?? '');
+    } else {
       _loadShops();
     }
   }
@@ -105,10 +127,12 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
                   prefixIcon: const Icon(Icons.pin),
                 ),
                 onSubmitted: (_) async {
-                  final ok = await SuperAdminSecurityService.verifyPin(pinController.text);
+                  final ok = await SuperAdminSecurityService.verifyPin(
+                    pinController.text,
+                  );
                   if (ok) {
                     Navigator.pop(ctx);
-                    _loadShops();
+                    _afterPinVerified();
                   } else {
                     setDialogState(() => errorText = 'Mã PIN không đúng');
                   }
@@ -129,10 +153,12 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
             ),
             ElevatedButton(
               onPressed: () async {
-                final ok = await SuperAdminSecurityService.verifyPin(pinController.text);
+                final ok = await SuperAdminSecurityService.verifyPin(
+                  pinController.text,
+                );
                 if (ok) {
                   Navigator.pop(ctx);
-                  _loadShops();
+                  _afterPinVerified();
                 } else {
                   setDialogState(() => errorText = 'Mã PIN không đúng');
                 }
@@ -147,17 +173,27 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
 
   Future<void> _loadShops() async {
     try {
-      if (mounted) setState(() { _loading = true; _error = null; });
+      if (mounted)
+        setState(() {
+          _loading = true;
+          _error = null;
+        });
 
       final shops = await UserService.getAllShops();
       debugPrint('ShopSelectorView: loaded ${shops.length} shops');
       if (mounted) {
-        setState(() { _shops = shops; _loading = false; });
+        setState(() {
+          _shops = shops;
+          _loading = false;
+        });
       }
     } catch (e) {
       debugPrint('ShopSelectorView error: $e');
       if (mounted) {
-        setState(() { _error = '$e'; _loading = false; });
+        setState(() {
+          _error = '$e';
+          _loading = false;
+        });
       }
     }
   }
@@ -184,12 +220,12 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
           'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
         }, SetOptions(merge: true));
         debugPrint('✅ Đã update shopId trong Firestore user doc');
-        
+
         // 2.1 Refresh claims để token có shopId mới
         try {
           await ClaimsService().refreshMyClaims();
           debugPrint('✅ Đã refresh claims');
-          
+
           // 2.2 Force refresh token
           await user.getIdToken(true);
           debugPrint('✅ Đã refresh token');
@@ -217,10 +253,8 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => HomeView(
-              role: 'admin',
-              setLocale: widget.setLocale,
-            ),
+            builder: (context) =>
+                HomeView(role: 'admin', setLocale: widget.setLocale),
           ),
         );
       }
@@ -230,6 +264,13 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
         setState(() {
           _switching = false;
           _selectedShopId = null;
+          // Nếu đang tự động vào thẳng shop (từ Super Admin Console) mà lỗi,
+          // thoát trạng thái loading để hiện màn hình lỗi có nút Thử lại
+          // thay vì kẹt mãi ở spinner "Đang tải danh sách shop...".
+          if (widget.autoSelectShopId != null) {
+            _loading = false;
+            _error = '$e';
+          }
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -270,13 +311,18 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(
+      final autoSelecting = widget.autoSelectShopId != null;
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Đang tải danh sách shop...'),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(
+              autoSelecting
+                  ? 'Đang vào shop "${widget.autoSelectShopName ?? ''}"...'
+                  : 'Đang tải danh sách shop...',
+            ),
           ],
         ),
       );
@@ -291,9 +337,20 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
             children: [
               Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
               const SizedBox(height: 16),
-              Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: Colors.red.shade700)),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.red.shade700),
+              ),
               const SizedBox(height: 16),
-              ElevatedButton.icon(onPressed: _loadShops, icon: const Icon(Icons.refresh), label: const Text('Thử lại')),
+              ElevatedButton.icon(
+                onPressed: () {
+                  setState(() => _error = null);
+                  _afterPinVerified();
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Thử lại'),
+              ),
             ],
           ),
         ),
@@ -309,11 +366,21 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
             children: [
               Icon(Icons.store_outlined, size: 64, color: Colors.grey.shade400),
               const SizedBox(height: 16),
-              Text('Không tìm thấy shop', style: TextStyle(fontSize: 18, color: Colors.grey.shade600)),
+              Text(
+                'Không tìm thấy shop',
+                style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+              ),
               const SizedBox(height: 8),
-              Text('Email: ${FirebaseAuth.instance.currentUser?.email ?? "N/A"}', style: TextStyle(fontSize: 13, color: Colors.grey.shade400)),
+              Text(
+                'Email: ${FirebaseAuth.instance.currentUser?.email ?? "N/A"}',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+              ),
               const SizedBox(height: 16),
-              ElevatedButton.icon(onPressed: _loadShops, icon: const Icon(Icons.refresh), label: const Text('Tải lại')),
+              ElevatedButton.icon(
+                onPressed: _loadShops,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Tải lại'),
+              ),
             ],
           ),
         ),
@@ -321,7 +388,10 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
     }
 
     final filtered = _filteredShops;
-    final totalUsers = _shops.fold<int>(0, (sum, s) => sum + ((s['userCount'] as int?) ?? 0));
+    final totalUsers = _shops.fold<int>(
+      0,
+      (sum, s) => sum + ((s['userCount'] as int?) ?? 0),
+    );
 
     return Column(
       children: [
@@ -330,15 +400,27 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [Colors.deepPurple.shade50, Colors.blue.shade50]),
+            gradient: LinearGradient(
+              colors: [Colors.deepPurple.shade50, Colors.blue.shade50],
+            ),
           ),
           child: Row(
             children: [
-              Icon(Icons.admin_panel_settings, size: 28, color: Colors.deepPurple.shade700),
+              Icon(
+                Icons.admin_panel_settings,
+                size: 28,
+                color: Colors.deepPurple.shade700,
+              ),
               const SizedBox(width: 10),
               Expanded(
-                child: Text('Super Admin · ${_shops.length} shop · $totalUsers user',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.deepPurple.shade700)),
+                child: Text(
+                  'Super Admin · ${_shops.length} shop · $totalUsers user',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.deepPurple.shade700,
+                  ),
+                ),
               ),
             ],
           ),
@@ -352,11 +434,19 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
               hintText: 'Tìm theo tên, email, loại hình...',
               prefixIcon: const Icon(Icons.search, size: 20),
               suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(icon: const Icon(Icons.clear, size: 18), onPressed: () => _searchC.clear())
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      onPressed: () => _searchC.clear(),
+                    )
                   : null,
               isDense: true,
-              contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 8,
+                horizontal: 12,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
               filled: true,
               fillColor: Colors.white,
             ),
@@ -366,11 +456,17 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
         // Shop list
         Expanded(
           child: filtered.isEmpty
-              ? Center(child: Text('Không tìm thấy shop phù hợp', style: TextStyle(color: Colors.grey.shade500)))
+              ? Center(
+                  child: Text(
+                    'Không tìm thấy shop phù hợp',
+                    style: TextStyle(color: Colors.grey.shade500),
+                  ),
+                )
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 6, 12, 80),
                   itemCount: filtered.length,
-                  itemBuilder: (context, index) => _buildShopCard(filtered[index]),
+                  itemBuilder: (context, index) =>
+                      _buildShopCard(filtered[index]),
                 ),
         ),
       ],
@@ -379,34 +475,52 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
 
   IconData _businessIcon(String? type) {
     switch (type) {
-      case 'electronics': return Icons.phone_android;
-      case 'fashion': return Icons.checkroom;
-      case 'food': return Icons.restaurant;
-      case 'pharmacy': return Icons.local_pharmacy;
-      case 'grocery': return Icons.shopping_basket;
-      default: return Icons.store;
+      case 'electronics':
+        return Icons.phone_android;
+      case 'fashion':
+        return Icons.checkroom;
+      case 'food':
+        return Icons.restaurant;
+      case 'pharmacy':
+        return Icons.local_pharmacy;
+      case 'grocery':
+        return Icons.shopping_basket;
+      default:
+        return Icons.store;
     }
   }
 
   String _businessLabel(String? type) {
     switch (type) {
-      case 'electronics': return 'Điện tử';
-      case 'fashion': return 'Thời trang';
-      case 'food': return 'Ẩm thực';
-      case 'pharmacy': return 'Dược phẩm';
-      case 'grocery': return 'Tạp hoá';
-      default: return type ?? 'Chung';
+      case 'electronics':
+        return 'Điện tử';
+      case 'fashion':
+        return 'Thời trang';
+      case 'food':
+        return 'Ẩm thực';
+      case 'pharmacy':
+        return 'Dược phẩm';
+      case 'grocery':
+        return 'Tạp hoá';
+      default:
+        return type ?? 'Chung';
     }
   }
 
   Color _businessColor(String? type) {
     switch (type) {
-      case 'electronics': return Colors.blue;
-      case 'fashion': return Colors.pink;
-      case 'food': return Colors.orange;
-      case 'pharmacy': return Colors.green;
-      case 'grocery': return Colors.teal;
-      default: return Colors.deepPurple;
+      case 'electronics':
+        return Colors.blue;
+      case 'fashion':
+        return Colors.pink;
+      case 'food':
+        return Colors.orange;
+      case 'pharmacy':
+        return Colors.green;
+      case 'grocery':
+        return Colors.teal;
+      default:
+        return Colors.deepPurple;
     }
   }
 
@@ -434,7 +548,9 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
       elevation: isSelecting ? 3 : 1,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: isSelecting ? BorderSide(color: bColor, width: 2) : BorderSide.none,
+        side: isSelecting
+            ? BorderSide(color: bColor, width: 2)
+            : BorderSide.none,
       ),
       child: InkWell(
         onTap: _switching ? null : () => _selectShop(shopId, shopName),
@@ -456,33 +572,83 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
                         color: bColor.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(_businessIcon(businessType), size: 24, color: bColor),
+                      child: Icon(
+                        _businessIcon(businessType),
+                        size: 24,
+                        color: bColor,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(shopName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          Text(
+                            shopName,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                           const SizedBox(height: 3),
                           Wrap(
                             spacing: 6,
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                decoration: BoxDecoration(color: bColor.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
-                                child: Text(_businessLabel(businessType), style: TextStyle(fontSize: 11, color: bColor, fontWeight: FontWeight.w600)),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 1,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: bColor.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  _businessLabel(businessType),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: bColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(4)),
-                                child: Text('$userCount NV', style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 1,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  '$userCount NV',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade700,
+                                  ),
+                                ),
                               ),
                               if (isDeleted)
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                  decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(4)),
-                                  child: Text('Đã xoá', style: TextStyle(fontSize: 11, color: Colors.red.shade700, fontWeight: FontWeight.w600)),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 1,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.shade50,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'Đã xoá',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.red.shade700,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                 ),
                             ],
                           ),
@@ -490,9 +656,17 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
                       ),
                     ),
                     if (isSelecting)
-                      const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))
+                      const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     else
-                      Icon(Icons.chevron_right, size: 22, color: Colors.grey.shade400),
+                      Icon(
+                        Icons.chevron_right,
+                        size: 22,
+                        color: Colors.grey.shade400,
+                      ),
                   ],
                 ),
                 // Row 2: Details
@@ -503,8 +677,14 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
                     children: [
                       if (ownerEmail.isNotEmpty)
                         _detailRow(Icons.email_outlined, ownerEmail),
-                      _detailRow(Icons.calendar_today_outlined, 'Tạo: ${_formatTimestamp(createdAt)}'),
-                      _detailRow(Icons.tag, 'ID: ${shopId.length > 20 ? '${shopId.substring(0, 20)}...' : shopId}'),
+                      _detailRow(
+                        Icons.calendar_today_outlined,
+                        'Tạo: ${_formatTimestamp(createdAt)}',
+                      ),
+                      _detailRow(
+                        Icons.tag,
+                        'ID: ${shopId.length > 20 ? '${shopId.substring(0, 20)}...' : shopId}',
+                      ),
                     ],
                   ),
                 ),
@@ -524,12 +704,15 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
           Icon(icon, size: 13, color: Colors.grey.shade500),
           const SizedBox(width: 5),
           Flexible(
-            child: Text(text, style: TextStyle(fontSize: 12, color: Colors.grey.shade600), maxLines: 1, overflow: TextOverflow.ellipsis),
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
     );
   }
-
 }
-

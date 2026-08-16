@@ -181,9 +181,15 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
 
   Future<void> _enterShop(Map<String, dynamic> shop) async {
     if (!mounted) return;
+    final shopId = (shop['id'] ?? '').toString();
+    if (shopId.isEmpty) return;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => const ShopSelectorView(setLocale: null),
+        builder: (_) => ShopSelectorView(
+          setLocale: null,
+          autoSelectShopId: shopId,
+          autoSelectShopName: (shop['name'] ?? '').toString(),
+        ),
       ),
     );
   }
@@ -1322,6 +1328,13 @@ class _ShopsSectionState extends State<_ShopsSection> {
   bool _loading = false;
   bool _hasMore = true;
 
+  // Tìm kiếm chỉ lọc trên _shops (dữ liệu đã phân trang) sẽ bỏ sót shop
+  // chưa được tải — nên khi có từ khóa, tải TOÀN BỘ shop 1 lần (cache lại)
+  // để tìm đúng, thay vì chỉ tìm trong trang hiện tại.
+  List<Map<String, dynamic>>? _allShopsCache;
+  bool _searchLoading = false;
+  Timer? _searchDebounce;
+
   @override
   void initState() {
     super.initState();
@@ -1331,7 +1344,43 @@ class _ShopsSectionState extends State<_ShopsSection> {
   @override
   void dispose() {
     _searchC.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadAllShopsForSearch() async {
+    if (_allShopsCache != null || _searchLoading) return;
+    setState(() => _searchLoading = true);
+    try {
+      final snap = await widget.db
+          .collection('shops')
+          .orderBy('name')
+          .limit(2000)
+          .get();
+      final all = snap.docs.map((d) {
+        final data = Map<String, dynamic>.from(d.data());
+        data['id'] = d.id;
+        return data;
+      }).toList();
+      if (!mounted) return;
+      setState(() {
+        _allShopsCache = all;
+        _searchLoading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _searchLoading = false);
+    }
+  }
+
+  void _onSearchChanged(String v) {
+    final q = v.trim();
+    setState(() => _searchQuery = q);
+    _searchDebounce?.cancel();
+    if (q.isEmpty) return;
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 300),
+      _loadAllShopsForSearch,
+    );
   }
 
   Future<void> _loadPage({bool reset = false}) async {
@@ -1364,7 +1413,11 @@ class _ShopsSectionState extends State<_ShopsSection> {
   }
 
   List<Map<String, dynamic>> get _filtered {
-    var list = _shops.where((s) {
+    final searching = _searchQuery.isNotEmpty;
+    final source = (searching && _allShopsCache != null)
+        ? _allShopsCache!
+        : _shops;
+    var list = source.where((s) {
       final deleted = s['deleted'] == true;
       final locked = s['appLocked'] == true;
       switch (_filter) {
@@ -1378,7 +1431,7 @@ class _ShopsSectionState extends State<_ShopsSection> {
           return deleted;
       }
     }).toList();
-    if (_searchQuery.isEmpty) return list;
+    if (!searching) return list;
     final q = _searchQuery.toLowerCase();
     return list.where((s) {
       final name = (s['name'] ?? '').toString().toLowerCase();
@@ -1392,6 +1445,8 @@ class _ShopsSectionState extends State<_ShopsSection> {
   Widget build(BuildContext context) {
     final shops = _filtered;
     final showLoadMore = _hasMore && _searchQuery.isEmpty;
+    final searchingUnindexed =
+        _searchQuery.isNotEmpty && _allShopsCache == null;
 
     return Column(
       children: [
@@ -1400,7 +1455,8 @@ class _ShopsSectionState extends State<_ShopsSection> {
           title: 'Cửa hàng',
           subtitle:
               '${shops.length}${showLoadMore ? '+' : ''} shop'
-              '${_loading ? ' · đang tải...' : ''}',
+              '${_loading ? ' · đang tải...' : ''}'
+              '${searchingUnindexed ? ' · đang tìm toàn bộ...' : ''}',
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
@@ -1413,6 +1469,7 @@ class _ShopsSectionState extends State<_ShopsSection> {
                   ? IconButton(
                       onPressed: () {
                         _searchC.clear();
+                        _searchDebounce?.cancel();
                         setState(() => _searchQuery = '');
                       },
                       icon: const Icon(Icons.clear, size: 18),
@@ -1421,7 +1478,7 @@ class _ShopsSectionState extends State<_ShopsSection> {
               isDense: true,
               border: const OutlineInputBorder(),
             ),
-            onChanged: (v) => setState(() => _searchQuery = v.trim()),
+            onChanged: _onSearchChanged,
           ),
         ),
         Padding(
@@ -1494,6 +1551,7 @@ class _ShopsSectionState extends State<_ShopsSection> {
       margin: EdgeInsets.zero,
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        onTap: deleted ? null : () => widget.onEnterShop(s),
         leading: CircleAvatar(
           radius: 20,
           backgroundColor: deleted
@@ -3150,11 +3208,16 @@ class _DangerSection extends StatelessWidget {
       builder: (_, snap) {
         if (!snap.hasData)
           return const Center(child: CircularProgressIndicator());
-        final shops = snap.data!.docs.map((d) {
+        final allDocs = snap.data!.docs.map((d) {
           final data = Map<String, dynamic>.from(d.data());
           data['id'] = d.id;
           return data;
         }).toList();
+        // Shop đã xóa (deleted: true) không còn hành động gì để làm ở đây —
+        // ẩn khỏi danh sách để "Xóa" biến mất thật sự thay vì trông như vẫn
+        // còn nguyên (xem tab Cửa hàng > bộ lọc "Đã xóa" để xem lại).
+        final shops = allDocs.where((s) => s['deleted'] != true).toList();
+        final deletedCount = allDocs.length - shops.length;
 
         return ListView(
           children: [
@@ -3162,7 +3225,9 @@ class _DangerSection extends StatelessWidget {
               icon: Icons.warning_amber_rounded,
               title: 'Vùng nguy hiểm',
               subtitle:
-                  '${shops.length} shop • thao tác yêu cầu xác thực PIN, được ghi audit log',
+                  '${shops.length} shop'
+                  '${deletedCount > 0 ? ' • $deletedCount đã xóa (xem ở tab Cửa hàng)' : ''}'
+                  ' • thao tác yêu cầu xác thực PIN, được ghi audit log',
               color: AppColors.error,
             ),
             Padding(
