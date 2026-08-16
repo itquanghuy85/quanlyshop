@@ -15,7 +15,7 @@ Lịch sử tất cả thay đổi từng phiên bản.
 - `lib/views/super_admin_console_view.dart`: form broadcast — khi chọn "Yêu cầu cập nhật", hiện `SwitchListTile` "Bấm vào là mở kho ứng dụng" (mặc định bật), ẩn ô nhập link thủ công; tắt công tắc mới hiện lại ô link để dán link tuỳ chỉnh.
 - `functions/index.js` (`sendBroadcastNotification`): validate URL nới thêm để chấp nhận giá trị sentinel `auto:store` (khớp hằng số bên Flutter) bên cạnh `http(s)://`.
 
-**Verify:** `flutter analyze` sạch, `node -c index.js` hợp lệ, build + cài + khởi động Oppo CPH2203 không FATAL exception. **Chưa deploy Cloud Function** — cần xác nhận riêng trước `firebase deploy --only functions:sendBroadcastNotification`.
+**Verify:** `flutter analyze` sạch, `node -c index.js` hợp lệ, build + cài + khởi động Oppo CPH2203 không FATAL exception. Đã `firebase deploy --only functions:sendBroadcastNotification` thành công (project `huyaka-1809`) sau khi user xác nhận.
 
 ---
 
