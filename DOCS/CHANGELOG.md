@@ -4,6 +4,22 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-16o] - fix(sync): đơn sửa từ máy khác không hiện tới khi thoát app vào lại
+
+**Yêu cầu user:** "sau khi tối ưu read cho repair có phát sinh 1 số vấn đề: khi người khác nhận máy sửa ở máy A thì máy B không có trên list phải thoát ra vào lại mới thấy. Khi sửa hay chuyển trạng thái cũng không cập nhật ngay."
+
+**Nguyên nhân:** đợt tối ưu Firestore read trước đó (commit `55b4870e`) đổi cách đồng bộ nhiều collection (bao gồm `repairs`) từ `snapshots()` (đẩy realtime) sang `get()` polling 1 lần lúc mở app/đăng nhập, để giảm số lần đọc. Nhưng KHÔNG có điểm nào kích hoạt fetch lại sau đó — không có polling định kỳ, không refresh khi app resume từ nền, và màn Danh sách đơn sửa cũng không nằm trong 5 nơi đang gọi `refreshCloudCollections()` (kho, chi nhánh...). Nên chỉ có cách thoát app rồi vào lại (kích hoạt lại `initRealTimeSync` → fetch 1 lần) mới thấy thay đổi từ thiết bị khác.
+
+**Fix (tái dùng hạ tầng polling có sẵn, không quay lại `snapshots()` toàn phần để tránh đội read cost trở lại):**
+- `sync_service.dart`: thêm 1 `Timer.periodic` (45s) CHỈ fetch lại riêng collection `repairs` — gọi thẳng `_collectionRefreshers['repairs']` thay vì `refreshCloudCollections()` chung, để không kéo theo ~20 collection khác cũng đang polling (tránh đội read cost trở lại đúng thứ đợt tối ưu trước vừa giảm). Timer được lưu vào `_pollingTimers` (hạ tầng có sẵn nhưng trước đây chưa từng được dùng tới) nên tự dừng đúng khi đổi shop/đăng xuất qua `cancelAllSubscriptions()` sẵn có.
+- `main.dart`: thêm `SyncService.refreshCloudCollections(reason: 'app_resumed')` khi app resume từ nền (`AppLifecycleState.resumed`) — bắt kịp ngay lập tức thay vì chờ tick định kỳ tiếp theo.
+
+**Verify:** `flutter analyze` sạch (0 lỗi). Build + cài Oppo CPH2203, theo dõi logcat qua nhiều chu kỳ — xác nhận cả 3 cơ chế fetch đều chạy đúng: `reason=initial` lúc mở app, `reason=manual_refresh` (qua Timer riêng cho repairs) đúng 45s sau, và `reason=app_resumed` (tổng 35 collection) ngay khi đưa app từ nền lên lại. Mở màn Danh sách đơn sửa thật (13 đơn) không crash trong suốt quá trình. **Giới hạn đã biết:** chỉ có 1 thiết bị test nên KHÔNG mô phỏng được đúng kịch bản "máy A tạo/sửa đơn, xác nhận máy B nhận được" — chỉ xác nhận được cơ chế fetch (Timer + resume trigger) tự chạy đúng lịch, không lỗi; không có sẵn service-account/Admin SDK credentials để giả lập ghi từ "thiết bị khác" trực tiếp vào Firestore.
+
+**Files:** `lib/services/sync_service.dart`, `lib/main.dart`.
+
+---
+
 ## [2026-08-16n] - fix(debt): dọn giao diện màn Công nợ — bớt cấn, chuyên nghiệp hơn
 
 **Yêu cầu user:** gửi 2 ảnh chụp màn "Quản lý công nợ" (tab Phải thu, Phải trả), nhận xét thao tác/trải nghiệm "cấn cấn không chuyên nghiệp", nhờ xem và cho ý kiến sửa. Sau khi review + đối chiếu code, user đồng ý sửa cả 4 điểm.

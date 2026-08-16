@@ -263,6 +263,11 @@ class SyncService {
   static const _syncAllToCloudCooldown = Duration(seconds: 12);
   static const int _collectionPollLimit = 20;
   static const Duration _collectionRefreshCooldown = Duration(seconds: 120);
+  // Nhịp nền chỉ bắt kịp riêng "repairs" — collection duy nhất user báo bị
+  // trễ (đơn mới/đổi trạng thái ở máy khác không thấy tới khi thoát app vào
+  // lại). Cố tình KHÔNG áp dụng cho tất cả ~20 collection đang polling để
+  // tránh đội read cost trở lại đúng thứ đợt tối ưu trước đã giảm.
+  static const Duration _periodicRepairsRefreshInterval = Duration(seconds: 45);
   static const Duration _cloudReadTimeout = Duration(seconds: 20);
   static const Duration _cloudReadLogCooldown = Duration(seconds: 15);
   static DateTime? _lastCloudReadTimeoutLogAt;
@@ -1491,6 +1496,22 @@ class SyncService {
       debugPrint(
         "✅ Critical sync ready (${_subscriptions.length} subs) — "
         "deferred collections will load in 3s...",
+      );
+
+      // Nhịp nền tự động fetch lại riêng "repairs" — bù cho việc collection
+      // này dùng controlled get() polling thay vì snapshots() realtime nên
+      // không thấy ngay đơn mới/đổi trạng thái từ thiết bị khác cho tới khi
+      // thoát app vào lại. Gọi thẳng refresher của riêng "repairs" (không
+      // dùng refreshCloudCollections() chung) để không kéo theo ~20 collection
+      // khác cũng đang polling, tránh đội read cost trở lại. Mỗi tick chỉ tải
+      // incremental (updatedAt > cursor cuối) nên rẻ; tự dừng khi đổi
+      // shop/đăng xuất qua cancelAllSubscriptions().
+      _pollingTimers.add(
+        Timer.periodic(_periodicRepairsRefreshInterval, (_) {
+          if (_currentShopId != shopId) return;
+          final refresher = _collectionRefreshers['repairs'];
+          if (refresher != null) unawaited(refresher());
+        }),
       );
 
       // Schedule DEFERRED subscriptions after 3s to reduce initial load

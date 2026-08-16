@@ -499,6 +499,11 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       // Khi app resume từ background, kiểm tra và đảm bảo FCM token vẫn hợp lệ
       debugPrint('App resumed - checking FCM token validity...');
       NotificationService.ensureFCMTokenValid();
+
+      // Bắt kịp dữ liệu ngay khi quay lại app — các collection dùng
+      // controlled get() polling (không phải snapshots() realtime) nên cần
+      // chủ động fetch lại thay vì chờ tới nhịp polling định kỳ tiếp theo.
+      unawaited(SyncService.refreshCloudCollections(reason: 'app_resumed'));
     }
 
     // Super admin: Tự động logout khi thoát app (paused/detached) để bảo mật
