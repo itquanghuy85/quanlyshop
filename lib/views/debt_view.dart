@@ -28,6 +28,8 @@ import '../widgets/skeleton_list.dart';
 import '../models/shop_settings_model.dart';
 import '../services/category_service.dart';
 import '../widgets/responsive_wrapper.dart';
+import 'sale_detail_view.dart';
+import 'repair_detail_view.dart';
 import 'repair_partner_detail_view.dart';
 import '../utils/excel_export_helper.dart';
 import '../utils/vietnamese_utils.dart';
@@ -315,6 +317,18 @@ class _DebtViewState extends State<DebtView>
                   color: AppColors.onSurface.withOpacity(0.7),
                 ),
               ),
+              if (((debt['linkedId'] as String?) ?? '').trim().isNotEmpty) ...[
+                const SizedBox(height: 6),
+                TextButton.icon(
+                  onPressed: () => _openSourceOrder(ctx, debt),
+                  icon: const Icon(Icons.open_in_new_rounded, size: 15),
+                  label: const Text('Xem đơn gốc'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
               const Divider(height: 30),
               if (payments.isEmpty) ...[
                 Padding(
@@ -412,6 +426,43 @@ class _DebtViewState extends State<DebtView>
       onSuccess: _refresh,
     );
     if (didPay && mounted) await _refresh();
+  }
+
+  /// Mở đơn bán/sửa gốc đã phát sinh khoản nợ này — công nợ hiện đang tách
+  /// biệt khỏi đơn gốc, chỉ tìm được bằng cách tự nhớ đơn nào. Thử tìm theo
+  /// đơn bán trước (đa số nợ phát sinh từ bán CÔNG NỢ), rồi tới đơn sửa.
+  Future<void> _openSourceOrder(
+    BuildContext sheetCtx,
+    Map<String, dynamic> debt,
+  ) async {
+    Navigator.pop(sheetCtx);
+    final linkedId = ((debt['linkedId'] as String?) ?? '').trim();
+    if (linkedId.isEmpty) return;
+
+    final sale = await db.getSaleByFirestoreId(linkedId);
+    if (!mounted) return;
+    if (sale != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => SaleDetailView(sale: sale)),
+      );
+      return;
+    }
+
+    final repair = await db.getRepairByFirestoreId(linkedId);
+    if (!mounted) return;
+    if (repair != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => RepairDetailView(repair: repair)),
+      );
+      return;
+    }
+
+    NotificationService.showSnackBar(
+      'Không tìm thấy đơn gốc (có thể đã bị xóa)',
+      color: Colors.orange,
+    );
   }
 
   @override

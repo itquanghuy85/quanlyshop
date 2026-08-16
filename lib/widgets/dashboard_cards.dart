@@ -16,6 +16,8 @@ class ActionRequiredCard extends StatefulWidget {
   final VoidCallback? onExpiryTap;
   final int reminderCount;
   final VoidCallback? onReminderTap;
+  final VoidCallback? onOverdueDebtsTap;
+  final VoidCallback? onPendingInstallmentTap;
 
   const ActionRequiredCard({
     super.key,
@@ -28,6 +30,8 @@ class ActionRequiredCard extends StatefulWidget {
     this.onExpiryTap,
     this.reminderCount = 0,
     this.onReminderTap,
+    this.onOverdueDebtsTap,
+    this.onPendingInstallmentTap,
   });
 
   @override
@@ -39,6 +43,8 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
   int _pendingStock = 0;
   int _expiringWarranty = 0;
   int _expiringProducts = 0;
+  int _overdueDebts = 0;
+  int _pendingInstallments = 0;
   bool _loaded = false;
 
   @override
@@ -50,6 +56,9 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
   Future<void> _loadCounts() async {
     try {
       final db = await DBHelper().database;
+      final overdueDebtCutoffMs = DateTime.now()
+          .subtract(const Duration(days: 30))
+          .millisecondsSinceEpoch;
       final results = await Future.wait([
         db.rawQuery('SELECT COUNT(*) FROM repairs WHERE status IN (1, 2)'),
         db.rawQuery('SELECT COUNT(*) FROM products WHERE isPending = 1'),
@@ -60,10 +69,27 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
           where:
               "deliveredAt IS NOT NULL AND warranty IS NOT NULL AND warranty != '' AND UPPER(warranty) != 'KO BH' AND status = 4",
         ),
+        // Công nợ quá hạn (>30 ngày chưa trả hết) — cùng ngưỡng "quá hạn"
+        // đang dùng ở debt_view.dart để nhất quán khái niệm "khẩn cấp".
+        db.rawQuery(
+          'SELECT COUNT(*) FROM debts WHERE (deleted = 0 OR deleted IS NULL) '
+          'AND (totalAmount - paidAmount) > 0 AND createdAt < ?',
+          [overdueDebtCutoffMs],
+        ),
+        // Đơn bán trả góp NH chưa được ngân hàng tất toán
+        db.rawQuery(
+          'SELECT COUNT(*) FROM sales WHERE isInstallment = 1 '
+          'AND settlementReceivedAt IS NULL '
+          'AND (deleted IS NULL OR deleted != 1)',
+        ),
       ]);
 
       final pendingR = (results[0].first.values.first as num?)?.toInt() ?? 0;
       final pendingS = (results[1].first.values.first as num?)?.toInt() ?? 0;
+      final overdueDebts =
+          (results[3].first.values.first as num?)?.toInt() ?? 0;
+      final pendingInstallments =
+          (results[4].first.values.first as num?)?.toInt() ?? 0;
 
       // Calculate expiring warranties
       int expW = 0;
@@ -85,6 +111,8 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
           _pendingRepairs = pendingR;
           _pendingStock = pendingS;
           _expiringWarranty = expW;
+          _overdueDebts = overdueDebts;
+          _pendingInstallments = pendingInstallments;
           _loaded = true;
         });
       }
@@ -138,6 +166,26 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
           label: '$_expiringProducts sản phẩm sắp hết HSD',
           color: Colors.red,
           onTap: widget.onExpiryTap,
+        ),
+      );
+    }
+    if (_overdueDebts > 0) {
+      items.add(
+        _ActionItem(
+          icon: Icons.account_balance_wallet,
+          label: '$_overdueDebts công nợ quá hạn cần thu/trả',
+          color: Colors.red.shade700,
+          onTap: widget.onOverdueDebtsTap,
+        ),
+      );
+    }
+    if (_pendingInstallments > 0) {
+      items.add(
+        _ActionItem(
+          icon: Icons.account_balance,
+          label: '$_pendingInstallments đơn trả góp chờ NH tất toán',
+          color: Colors.indigo,
+          onTap: widget.onPendingInstallmentTap,
         ),
       );
     }
@@ -610,13 +658,19 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
         final at = (d['paidAt'] as num?)?.toInt() ?? 0;
         final debtType = (d['debtType'] as String? ?? '').toUpperCase();
         final note = (d['note'] ?? '').toString();
-        final personName = ((d['personName'] as String?) ?? (d['customerName'] as String?) ?? '').trim();
+        final personName =
+            ((d['personName'] as String?) ??
+                    (d['customerName'] as String?) ??
+                    '')
+                .trim();
         final isShopOwes =
             debtType == 'SHOP_OWES' ||
             debtType == 'OTHER_SHOP_OWES' ||
             debtType == 'OWED' ||
             debtType == 'REPAIR_PARTNER';
-        final debtLabel = personName.isNotEmpty ? personName : (note.isNotEmpty ? note : '');
+        final debtLabel = personName.isNotEmpty
+            ? personName
+            : (note.isNotEmpty ? note : '');
         activities.add(
           _ActivityItem(
             icon: isShopOwes ? Icons.payment : Icons.account_balance_wallet,

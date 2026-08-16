@@ -4,6 +4,22 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-16t] - feat: gom mối các khoản cần thu/trả (công nợ, trả góp NH) đang rải rác
+
+**Yêu cầu user:** "khi đơn hàng bán công nợ, bán trả góp, hay trả nợ thì nằm rải rác muốn thanh toán phải tìm từng chỗ" — user hỏi giải pháp, mình đề xuất tận dụng khung "CẦN XỬ LÝ" có sẵn ở trang chủ thay vì xây màn hình mới, user đồng ý theo đề xuất.
+
+**Khảo sát trước khi làm:** xác nhận `debt_view.dart` đã có sẵn `linkedId` trỏ về đơn bán/sửa gốc trong dữ liệu nhưng chưa từng dùng để điều hướng; báo cáo trả góp NH (`bank_installment_report_view.dart`) là màn hình riêng, chỉ mở được qua 1 shortcut cụ thể; khung "CẦN XỬ LÝ" ở trang chủ (`ActionRequiredCard`) chưa gồm công nợ hay trả góp.
+
+**1) Nút "Xem đơn gốc" trong lịch sử công nợ:** `debt_view.dart` — thêm nút mở đúng đơn bán/sửa đã phát sinh khoản nợ (thử tìm theo đơn bán trước, không thấy thì tìm đơn sửa, dùng `linkedId` có sẵn) — chỉ hiện khi đơn có `linkedId`.
+
+**2) Thêm 2 mục mới vào "CẦN XỬ LÝ" ở trang chủ:** `dashboard_cards.dart` — "X công nợ quá hạn cần thu/trả" (đếm nợ còn > 0 và tạo trên 30 ngày, cùng ngưỡng "quá hạn" debt_view.dart đang dùng, bấm vào mở màn Công nợ) + "Y đơn trả góp chờ NH tất toán" (đếm đơn `isInstallment=1` chưa có `settlementReceivedAt`, bấm vào mở báo cáo Trả góp NH). Wiring 2 callback mới trong `home_view.dart`.
+
+**Verify:** `flutter analyze` sạch (0 lỗi). Build + cài Oppo CPH2203, test trực tiếp trên đơn thật (đơn bán ABC — CÔNG NỢ, ỐP x2): mở Công nợ > Lịch sử > bấm "Xem đơn gốc" → mở đúng "CHI TIẾT ĐƠN BÁN — ABC" khớp dữ liệu, không crash. **2 mục mới ở "CẦN XỬ LÝ"** chỉ xác nhận query chạy không lỗi qua logcat (dữ liệu test hiện không có công nợ quá hạn/đơn trả góp để tự thấy mục thực sự xuất hiện trên UI) — cần user tự kiểm tra khi có dữ liệu phù hợp.
+
+**Files:** `lib/views/debt_view.dart`, `lib/widgets/dashboard_cards.dart`, `lib/views/home_view.dart`.
+
+---
+
 ## [2026-08-16s] - fix(ui): overflow ở Firestore Audit Monitor + đổi nhãn menu "Thao tác nhanh"
 
 **Yêu cầu user:** (1) ảnh chụp Firestore Audit Monitor (dev tool) — cả 6 thẻ thống kê đều bị "BOTTOM OVERFLOWED BY 11 PIXELS". (2) menu "Thao tác nhanh" (nút nổi kéo thả) — thêm chữ "Tạo" trước mỗi mục cho dễ đọc.

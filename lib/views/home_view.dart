@@ -3478,6 +3478,16 @@ class _HomeViewState extends State<HomeView>
                   ),
                 ),
               ).then((_) => _loadReminderCount()),
+              onOverdueDebtsTap: () => _pushRoute(
+                context,
+                MaterialPageRoute(builder: (_) => const DebtView()),
+              ),
+              onPendingInstallmentTap: () => _pushRoute(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const BankInstallmentReportView(),
+                ),
+              ),
             ),
           );
           break;
