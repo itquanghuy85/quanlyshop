@@ -4561,6 +4561,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                               MaterialPageRoute(
                                 builder: (_) => SimilarRepairHistoryView(
                                   repairs: _historicalPricing!.matchedRepairs,
+                                  showCost: canShowCost,
                                 ),
                               ),
                             ),

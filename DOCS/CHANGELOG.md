@@ -4,6 +4,20 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-16l] - fix(repair): ẩn giá vốn/lợi nhuận khỏi nhân viên trong "Giá tham khảo" + "Đơn sửa tương tự"
+
+**Phát hiện khi làm việc khác:** user hỏi "giá vốn trong lịch sử sửa giá có ẩn với nhân viên chưa" — kiểm tra thấy 2 chỗ MỚI thêm ở entry `[2026-08-16k]` phía trên (thẻ "GIÁ THAM KHẢO" khi tạo đơn mới, và trang `SimilarRepairHistoryView`) hiện Vốn/Lợi nhuận **không kiểm tra quyền xem giá vốn** — rò rỉ giá vốn cho nhân viên không có quyền.
+
+- `similar_repair_history_view.dart`: thêm param `showCost` (mặc định `false` — an toàn theo hướng đóng), chỉ hiện Vốn/Lãi-Lỗ khi `true`, giá thu ("Thu khách") luôn hiện.
+- `create_repair_order_view.dart`: thẻ "GIÁ THAM KHẢO" gate Vốn/Lợi nhuận theo `_canViewCostPrice` (field quyền có sẵn, đã dùng ở chỗ khác trong file); truyền `showCost: _canViewCostPrice` khi mở `SimilarRepairHistoryView`.
+- `repair_detail_view.dart`: truyền `showCost: canShowCost` (biến quyền có sẵn tại nơi gọi, đã dùng để gate các chỗ hiện giá vốn khác trong màn Chi tiết đơn) khi mở `SimilarRepairHistoryView`.
+
+**Verify:** `flutter analyze` sạch (chỉ còn info/warning cũ không liên quan). Build + cài Oppo CPH2203, đăng nhập tài khoản **nhân viên** (không có quyền xem giá vốn) — tạo đơn mới IPHONE 11PROMAX + THAY MÀN: thẻ "GIÁ THAM KHẢO" chỉ hiện "Thu khách: 620.000đ", không còn "Vốn"/"Lợi nhuận". Bấm "9 đơn tương tự (chạm để xem)" — trang liệt kê 9 đơn thật, mỗi thẻ chỉ hiện giá thu (VD "990.000đ"), không hiện Vốn/Lãi/Lỗ. Không có FATAL exception trong toàn bộ quá trình test.
+
+**Files:** `lib/views/similar_repair_history_view.dart`, `lib/views/create_repair_order_view.dart`, `lib/views/repair_detail_view.dart`.
+
+---
+
 ## [2026-08-16k] - feat(repair): cho sửa giá/thông tin đơn đã giao + xem chi tiết "đơn tương tự"
 
 **Yêu cầu user:** (1) Đơn "Đã giao" vẫn cho phép chỉnh sửa giá vốn/giá thu/thông tin chung (trước đây bị khoá hoàn toàn). (2) Dòng "Lịch sử tương tự" (Bảng giá thông minh) ở màn Tạo đơn sửa mới và Chi tiết đơn — bấm vào phải mở được trang liệt kê từng đơn thực tế trong lịch sử đó để xem/tham khảo.

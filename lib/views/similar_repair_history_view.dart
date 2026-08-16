@@ -10,9 +10,17 @@ import 'repair_detail_view.dart';
 /// thông minh) — CHỈ ĐỌC, cho phép xem/tham khảo từng đơn, không có thao
 /// tác chỉnh sửa nào trên màn này.
 class SimilarRepairHistoryView extends StatelessWidget {
-  const SimilarRepairHistoryView({super.key, required this.repairs});
+  const SimilarRepairHistoryView({
+    super.key,
+    required this.repairs,
+    this.showCost = false,
+  });
 
   final List<Repair> repairs;
+
+  /// Chỉ hiện "Vốn"/"Lãi/Lỗ" khi người xem có quyền xem giá vốn (mặc định
+  /// ẨN để an toàn — không rò rỉ giá vốn cho nhân viên không có quyền).
+  final bool showCost;
 
   String _statusLabel(int status, {bool pendingApproval = false}) {
     switch (status) {
@@ -193,25 +201,27 @@ class SimilarRepairHistoryView extends StatelessWidget {
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                    Text(
-                                      'Vốn ${MoneyUtils.formatCurrency(r.cost)}đ',
-                                      style: TextStyle(
-                                        fontSize: 11.5,
-                                        color: Colors.grey.shade600,
+                                    if (showCost) ...[
+                                      Text(
+                                        'Vốn ${MoneyUtils.formatCurrency(r.cost)}đ',
+                                        style: TextStyle(
+                                          fontSize: 11.5,
+                                          color: Colors.grey.shade600,
+                                        ),
                                       ),
-                                    ),
-                                    Text(
-                                      profit >= 0
-                                          ? 'Lãi ${MoneyUtils.formatCurrency(profit)}đ'
-                                          : 'Lỗ ${MoneyUtils.formatCurrency(profit.abs())}đ',
-                                      style: TextStyle(
-                                        fontSize: 11.5,
-                                        fontWeight: FontWeight.w600,
-                                        color: profit >= 0
-                                            ? Colors.green.shade700
-                                            : Colors.red.shade700,
+                                      Text(
+                                        profit >= 0
+                                            ? 'Lãi ${MoneyUtils.formatCurrency(profit)}đ'
+                                            : 'Lỗ ${MoneyUtils.formatCurrency(profit.abs())}đ',
+                                        style: TextStyle(
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w600,
+                                          color: profit >= 0
+                                              ? Colors.green.shade700
+                                              : Colors.red.shade700,
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ],
                                 ),
                               ),

@@ -247,21 +247,26 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Thu khách: ${MoneyUtils.formatCurrency(s.medianSalePrice)}đ   '
-            'Vốn: ${MoneyUtils.formatCurrency(s.medianCost)}đ',
+            _canViewCostPrice
+                ? 'Thu khách: ${MoneyUtils.formatCurrency(s.medianSalePrice)}đ   '
+                      'Vốn: ${MoneyUtils.formatCurrency(s.medianCost)}đ'
+                : 'Thu khách: ${MoneyUtils.formatCurrency(s.medianSalePrice)}đ',
             style: AppTextStyles.body2,
           ),
-          Text(
-            'Lợi nhuận: ${MoneyUtils.formatCurrency(s.medianProfit)}đ',
-            style: AppTextStyles.body2,
-          ),
+          if (_canViewCostPrice)
+            Text(
+              'Lợi nhuận: ${MoneyUtils.formatCurrency(s.medianProfit)}đ',
+              style: AppTextStyles.body2,
+            ),
           const SizedBox(height: 2),
           InkWell(
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) =>
-                    SimilarRepairHistoryView(repairs: s.matchedRepairs),
+                builder: (_) => SimilarRepairHistoryView(
+                  repairs: s.matchedRepairs,
+                  showCost: _canViewCostPrice,
+                ),
               ),
             ),
             child: Text(
