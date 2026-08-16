@@ -359,7 +359,7 @@ class _FirestoreAuditDashboardState extends State<FirestoreAuditDashboard>
 
     return GridView.count(
       crossAxisCount: 2,
-      childAspectRatio: 1.65,
+      childAspectRatio: 1.3,
       crossAxisSpacing: 10,
       mainAxisSpacing: 10,
       shrinkWrap: true,

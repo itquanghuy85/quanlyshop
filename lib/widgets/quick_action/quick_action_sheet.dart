@@ -75,55 +75,55 @@ class QuickActionSheet extends StatelessWidget {
 
   List<_ActionItem> _buildActions(BuildContext context) {
     void push(Widget view) {
-      Navigator.of(context, rootNavigator: true).push(
-        MaterialPageRoute(builder: (_) => view),
-      );
+      Navigator.of(
+        context,
+        rootNavigator: true,
+      ).push(MaterialPageRoute(builder: (_) => view));
     }
 
     final items = <_ActionItem>[];
 
     if (controller.enableRepair) {
-      items.add(_ActionItem(
-        icon: Icons.build_rounded,
-        label: 'Sửa mới',
-        color: const Color(0xFF7986CB),
-        onTap: () => push(CreateRepairOrderView(role: controller.role)),
-      ));
+      items.add(
+        _ActionItem(
+          icon: Icons.build_rounded,
+          label: 'Tạo sửa mới',
+          color: const Color(0xFF7986CB),
+          onTap: () => push(CreateRepairOrderView(role: controller.role)),
+        ),
+      );
     }
 
     items.addAll([
       _ActionItem(
         icon: Icons.shopping_cart_rounded,
-        label: 'Bán mới',
+        label: 'Tạo bán mới',
         color: const Color(0xFF26C6DA),
         onTap: () => push(const CreateSaleView()),
       ),
       _ActionItem(
         icon: Icons.inventory_2_rounded,
-        label: 'Sản phẩm mới',
+        label: 'Tạo sản phẩm mới',
         color: const Color(0xFF66BB6A),
         onTap: () => push(const SmartStockInView()),
       ),
       _ActionItem(
         icon: Icons.account_balance_wallet_rounded,
-        label: 'Công nợ mới',
+        label: 'Tạo công nợ mới',
         color: const Color(0xFFEF5350),
         onTap: () => push(const DebtView()),
       ),
       _ActionItem(
         icon: Icons.receipt_long_rounded,
-        label: 'Thu chi mới',
+        label: 'Tạo thu chi mới',
         color: const Color(0xFFFF7043),
         onTap: () => push(
-          const ExpenseView(
-            initialMode: 'CHI',
-            openCreateDialogOnStart: true,
-          ),
+          const ExpenseView(initialMode: 'CHI', openCreateDialogOnStart: true),
         ),
       ),
       _ActionItem(
         icon: Icons.phonelink_erase_rounded,
-        label: 'Máy xác mới',
+        label: 'Tạo máy xác mới',
         color: const Color(0xFF8D6E63),
         onTap: () => push(const SalvagePhoneView()),
       ),

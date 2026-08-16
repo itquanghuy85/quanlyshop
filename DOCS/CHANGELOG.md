@@ -4,6 +4,20 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-16s] - fix(ui): overflow ở Firestore Audit Monitor + đổi nhãn menu "Thao tác nhanh"
+
+**Yêu cầu user:** (1) ảnh chụp Firestore Audit Monitor (dev tool) — cả 6 thẻ thống kê đều bị "BOTTOM OVERFLOWED BY 11 PIXELS". (2) menu "Thao tác nhanh" (nút nổi kéo thả) — thêm chữ "Tạo" trước mỗi mục cho dễ đọc.
+
+**1) Fix overflow:** `firestore_audit_dashboard.dart` — lưới 6 thẻ thống kê dùng `GridView.count(childAspectRatio: 1.65)`, tỉ lệ này ép chiều cao ô hơi thấp hơn nội dung thực tế (icon + nhãn + số liệu + chú thích), tràn 11px đều trên cả 6 thẻ. Giảm `childAspectRatio` xuống `1.3` để ô đủ cao chứa hết nội dung, có thêm khoảng dư an toàn.
+
+**2) Đổi nhãn menu Thao tác nhanh:** `quick_action_sheet.dart` — 6 mục đổi từ "Sửa mới/Bán mới/Sản phẩm mới/Công nợ mới/Thu chi mới/Máy xác mới" thành "Tạo sửa mới/Tạo bán mới/Tạo sản phẩm mới/Tạo công nợ mới/Tạo thu chi mới/Tạo máy xác mới".
+
+**Verify:** `flutter analyze` sạch (0 lỗi). Build + cài Oppo CPH2203, mở Cài đặt > Firestore Audit Monitor — xác nhận cả 6 thẻ hiện đủ nội dung, logcat không còn dòng "OVERFLOWED" nào, không crash. Đổi nhãn menu là thay đổi chuỗi văn bản thuần, xác nhận qua code review (không có logic liên quan).
+
+**Files:** `lib/developer/firestore_audit/dashboard/firestore_audit_dashboard.dart`, `lib/widgets/quick_action/quick_action_sheet.dart`.
+
+---
+
 ## [2026-08-16r] - fix(inventory): tab "Tất cả" trong Kho hiện trống dù tổng vốn/số lượng vẫn đúng
 
 **User báo:** kèm ảnh chụp — tab "Tất cả" ở màn Quản lý kho hiện "Kho hàng đang trống" dù khối tổng phía trên vẫn hiện số liệu (TỔNG KHO, VỐN TỒN KHO) khác 0. Tab "Điện thoại" vẫn hiện đúng 160 sản phẩm bình thường.
