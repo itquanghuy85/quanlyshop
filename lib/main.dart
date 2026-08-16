@@ -40,6 +40,7 @@ import 'services/firebase_usage_stats_service.dart'; // For audit hook registrat
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'widgets/loading_intro_screen.dart'; // Loading intro animation
+import 'widgets/version_gate_wrapper.dart'; // Chặn bản cũ, buộc cập nhật
 
 final Completer<void> _firebaseBootstrapCompleter = Completer<void>();
 bool _appCheckActivated = false;
@@ -363,7 +364,10 @@ class _MyAppState extends State<MyApp> {
         final fixed = rawTop > mq.padding.top
             ? mq.copyWith(padding: mq.padding.copyWith(top: rawTop))
             : mq;
-        return MediaQuery(data: fixed, child: child!);
+        return MediaQuery(
+          data: fixed,
+          child: VersionGateWrapper(child: child!),
+        );
       },
       home: SplashView(
         setLocale: setLocale,

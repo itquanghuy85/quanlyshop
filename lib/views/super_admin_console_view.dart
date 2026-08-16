@@ -25,6 +25,7 @@ enum _AdminSection {
   audit,
   broadcast,
   otherApps,
+  versionGate,
   settings,
   danger,
 }
@@ -754,6 +755,7 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
         return 3;
       case _AdminSection.broadcast:
       case _AdminSection.otherApps:
+      case _AdminSection.versionGate:
       case _AdminSection.permissions:
       case _AdminSection.settings:
       case _AdminSection.danger:
@@ -801,6 +803,17 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
               onTap: () {
                 Navigator.pop(ctx);
                 setState(() => _section = _AdminSection.otherApps);
+              },
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.system_update_rounded,
+                color: Colors.teal,
+              ),
+              title: const Text('Buộc cập nhật'),
+              onTap: () {
+                Navigator.pop(ctx);
+                setState(() => _section = _AdminSection.versionGate);
               },
             ),
             ListTile(
@@ -867,6 +880,11 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
             Icons.apps_rounded,
             'Ứng dụng khác',
             _AdminSection.otherApps,
+          ),
+          _navItem(
+            Icons.system_update_rounded,
+            'Buộc cập nhật',
+            _AdminSection.versionGate,
           ),
           _navItem(Icons.settings, 'Cài đặt', _AdminSection.settings),
           _navItem(
@@ -954,6 +972,8 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
         return const _BroadcastSection();
       case _AdminSection.otherApps:
         return const _OtherAppsSection();
+      case _AdminSection.versionGate:
+        return const _VersionGateSection();
       case _AdminSection.settings:
         return const _SettingsSection();
       case _AdminSection.danger:
@@ -2288,6 +2308,258 @@ class _UsersSectionState extends State<_UsersSection> {
         color: selected ? AppColors.primary : null,
         fontWeight: selected ? FontWeight.bold : FontWeight.normal,
       ),
+    );
+  }
+}
+
+// ─── Version gate (buộc cập nhật bản cũ) ──────────────────────────────────────
+
+class _VersionGateSection extends StatefulWidget {
+  const _VersionGateSection();
+  @override
+  State<_VersionGateSection> createState() => _VersionGateSectionState();
+}
+
+class _VersionGateSectionState extends State<_VersionGateSection> {
+  final _db = FirebaseFirestore.instance;
+  static const _docRef = 'app_config/version_gate';
+
+  final _androidC = TextEditingController();
+  final _iosC = TextEditingController();
+  final _messageC = TextEditingController();
+  bool _dirty = false;
+  bool _loadedOnce = false;
+
+  @override
+  void dispose() {
+    _androidC.dispose();
+    _iosC.dispose();
+    _messageC.dispose();
+    super.dispose();
+  }
+
+  void _showSnack(String msg, {bool success = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: success ? Colors.green : Colors.red,
+      ),
+    );
+  }
+
+  Future<void> _save(Map<String, dynamic> current) async {
+    final androidMin = int.tryParse(_androidC.text.trim()) ?? 0;
+    final iosMin = int.tryParse(_iosC.text.trim()) ?? 0;
+    final message = _messageC.text.trim();
+
+    final currentAndroid = (current['minAndroidBuild'] as num?)?.toInt() ?? 0;
+    final currentIos = (current['minIosBuild'] as num?)?.toInt() ?? 0;
+    final turningOnAndroid = androidMin > 0 && androidMin != currentAndroid;
+    final turningOnIos = iosMin > 0 && iosMin != currentIos;
+
+    if (turningOnAndroid || turningOnIos) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: AppColors.error),
+              const SizedBox(width: 8),
+              const Expanded(child: Text('Xác nhận chặn bản cũ')),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (turningOnAndroid)
+                Text('• Android: chặn mọi máy có build < $androidMin'),
+              if (turningOnIos) Text('• iOS: chặn mọi máy có build < $iosMin'),
+              const SizedBox(height: 12),
+              Text(
+                'CHỈ đặt số build của bản ĐÃ ĐƯỢC DUYỆT và có sẵn trên kho '
+                'ứng dụng. Nếu đặt bằng bản đang chờ duyệt, người dùng sẽ bị '
+                'chặn nhưng chưa tải được bản mới để cập nhật — kẹt cứng '
+                'không lối thoát.',
+                style: TextStyle(
+                  color: AppColors.error,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Hủy'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Chắc chắn, áp dụng'),
+            ),
+          ],
+        ),
+      );
+      if (confirm != true) return;
+    }
+
+    try {
+      await _db.doc(_docRef).set({
+        'minAndroidBuild': androidMin,
+        'minIosBuild': iosMin,
+        'message': message,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      if (mounted) {
+        setState(() => _dirty = false);
+        _showSnack('Đã lưu cấu hình', success: true);
+      }
+    } catch (e) {
+      if (mounted) _showSnack('Lỗi lưu: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: _db.doc(_docRef).snapshots(),
+      builder: (context, snap) {
+        final data = snap.data?.data() ?? {};
+        if (!_loadedOnce && snap.hasData) {
+          _loadedOnce = true;
+          final androidMin = (data['minAndroidBuild'] as num?)?.toInt() ?? 0;
+          final iosMin = (data['minIosBuild'] as num?)?.toInt() ?? 0;
+          _androidC.text = androidMin > 0 ? '$androidMin' : '';
+          _iosC.text = iosMin > 0 ? '$iosMin' : '';
+          _messageC.text = (data['message'] as String?) ?? '';
+        }
+
+        final activeAndroid = (data['minAndroidBuild'] as num?)?.toInt() ?? 0;
+        final activeIos = (data['minIosBuild'] as num?)?.toInt() ?? 0;
+        final gateActive = activeAndroid > 0 || activeIos > 0;
+
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _SectionHeader(
+                icon: Icons.system_update_rounded,
+                title: 'Buộc cập nhật',
+                subtitle:
+                    'Chặn các bản app cũ hơn số build tối thiểu, bắt buộc '
+                    'người dùng cập nhật mới dùng tiếp được',
+                color: Colors.teal,
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.orange.shade200),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.warning_amber_rounded,
+                            color: Colors.orange.shade800,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'CHỈ đặt số build của bản ĐÃ DUYỆT và có sẵn '
+                              'trên kho ứng dụng. Nếu app không đọc được cấu '
+                              'hình này (mất mạng, lỗi mạng...) thì sẽ KHÔNG '
+                              'chặn — an toàn theo hướng không khoá nhầm.',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: Colors.orange.shade900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Icon(
+                          gateActive
+                              ? Icons.lock_clock_rounded
+                              : Icons.lock_open_rounded,
+                          size: 16,
+                          color: gateActive ? AppColors.error : Colors.green,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          gateActive
+                              ? 'Đang bật — Android ≥ $activeAndroid, iOS ≥ $activeIos'
+                              : 'Đang tắt — chưa chặn bản nào',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: gateActive
+                                ? AppColors.error
+                                : Colors.green.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _androidC,
+                      keyboardType: TextInputType.number,
+                      onChanged: (_) => setState(() => _dirty = true),
+                      decoration: const InputDecoration(
+                        labelText: 'Số build Android tối thiểu',
+                        hintText: 'VD: 541 — để trống hoặc 0 = tắt',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _iosC,
+                      keyboardType: TextInputType.number,
+                      onChanged: (_) => setState(() => _dirty = true),
+                      decoration: const InputDecoration(
+                        labelText: 'Số build iOS tối thiểu',
+                        hintText: 'VD: 541 — để trống hoặc 0 = tắt',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _messageC,
+                      maxLines: 2,
+                      onChanged: (_) => setState(() => _dirty = true),
+                      decoration: const InputDecoration(
+                        labelText:
+                            'Thông báo hiển thị cho người dùng (tuỳ chọn)',
+                        hintText: 'Để trống dùng thông báo mặc định',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: _dirty ? () => _save(data) : null,
+                      icon: const Icon(Icons.save_rounded),
+                      label: const Text('Lưu cấu hình'),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

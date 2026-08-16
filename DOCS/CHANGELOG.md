@@ -4,6 +4,27 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-16u] - feat: buộc cập nhật — chặn bản app cũ, bắt buộc lên bản mới
+
+**Yêu cầu user:** "có cách nào chặn toàn bộ những app bản cũ không cho sử dụng mà buộc cập nhật hay không". User hỏi thêm liệu vừa build bản 3.3.0/541 (đang chờ Apple duyệt) có bị ảnh hưởng không — đã giải thích: bản đang chờ duyệt là nhị phân "đóng băng", sửa code bây giờ không đụng tới; tính năng chỉ có hiệu lực từ bản MỚI (sau 541) có chứa code này. User đồng ý làm.
+
+**Thiết kế theo nguyên tắc an toàn bắt buộc (do đây là tính năng có thể khoá TOÀN BỘ người dùng thật nếu sai sót):**
+- **Fail-open tuyệt đối**: bất kỳ lỗi/timeout nào khi đọc cấu hình (mất mạng, chưa có doc, permission-denied...) đều KHÔNG chặn app — chỉ chặn khi đọc được cấu hình rõ ràng và chắc chắn build hiện tại thấp hơn mức tối thiểu.
+- **Cảnh báo rõ ràng trong màn cấu hình**: nhắc CHỈ đặt số build của bản ĐÃ ĐƯỢC DUYỆT và có sẵn trên kho ứng dụng — tránh tình huống khoá user nhưng họ chưa tải được bản mới để cập nhật (kẹt cứng không lối thoát).
+- **Dialog xác nhận trước khi bật**: khi Super Admin đặt số build > 0 (bật gate), hiện dialog tóm tắt chính xác sẽ chặn ai, kèm cảnh báo trên, bắt xác nhận lại mới lưu.
+
+**Files mới/sửa:**
+- `lib/widgets/version_gate_wrapper.dart` (mới) — đọc `app_config/version_gate` từ Firestore lúc mở app (gắn ở `builder:` của `MaterialApp` trong `main.dart` nên áp dụng cho MỌI màn hình), so `AppInfo.getBuildNumber()` hiện tại với `minAndroidBuild`/`minIosBuild` theo đúng nền tảng. Nếu bị chặn: hiện màn toàn màn hình không đóng được (`PopScope(canPop: false)`), chỉ có nút "CẬP NHẬT NGAY" mở đúng link store theo nền tảng (tái dùng `NotificationService.androidStoreUrl`/`iosStoreUrl` có sẵn).
+- `lib/main.dart` — bọc `child` trong `MaterialApp.builder` bằng `VersionGateWrapper`.
+- `lib/views/super_admin_console_view.dart` — thêm mục "Buộc cập nhật" mới (`_VersionGateSection`): 2 ô nhập số build tối thiểu Android/iOS + thông báo tuỳ chỉnh, hiện rõ trạng thái đang bật/tắt, nút Lưu kèm dialog xác nhận nếu đang bật gate.
+- `firestore.rules` — thêm collection `app_config`: đọc công khai (`allow read: if true` — phải đọc được ngay lúc mở app, trước khi biết user là ai), chỉ Super Admin được ghi. Đã `firebase deploy --only firestore:rules` thành công.
+
+**Verify:** `flutter analyze` sạch (0 lỗi). Build + cài Oppo CPH2203 — xác nhận đúng hành vi fail-open QUAN TRỌNG NHẤT: chưa tạo doc `app_config/version_gate` nên app mở bình thường, không bị chặn, không crash (đây là trạng thái mặc định mà 100% user thật đang gặp cho tới khi user chủ động bật gate). **Chưa test được nhánh CHẶN thật** — tài khoản test hiện tại không có quyền Super Admin nên không mở được màn cấu hình mới, và không có Admin SDK credentials để tự tạo doc test giả lập. Logic so sánh build đơn giản, đã qua code review kỹ — nhưng khuyến nghị user tự bật thử với số build rất cao (chắc chắn cao hơn build hiện tại) trên 1 thiết bị test trước khi dùng thật.
+
+**Files:** `lib/widgets/version_gate_wrapper.dart` (mới), `lib/main.dart`, `lib/views/super_admin_console_view.dart`, `firestore.rules`.
+
+---
+
 ## [2026-08-16t] - feat: gom mối các khoản cần thu/trả (công nợ, trả góp NH) đang rải rác
 
 **Yêu cầu user:** "khi đơn hàng bán công nợ, bán trả góp, hay trả nợ thì nằm rải rác muốn thanh toán phải tìm từng chỗ" — user hỏi giải pháp, mình đề xuất tận dụng khung "CẦN XỬ LÝ" có sẵn ở trang chủ thay vì xây màn hình mới, user đồng ý theo đề xuất.

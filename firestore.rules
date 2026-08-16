@@ -1151,6 +1151,15 @@ service cloud.firestore {
       allow create, update, delete: if isSuperAdmin();
     }
 
+    // ═══════════ 9.2c APP_CONFIG (buộc cập nhật bản cũ) ═══════════
+    // Cấu hình "số build tối thiểu bắt buộc" — đọc công khai KHÔNG cần đăng
+    // nhập vì phải kiểm tra được ngay lúc mở app, trước khi biết user là ai.
+    // Chỉ Super Admin được ghi.
+    match /app_config/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isSuperAdmin();
+    }
+
     // ═══════════ 9.3 SHOP_NOTIFICATIONS (broadcast) ═══════════
     match /shop_notifications/{notificationId} {
       allow read: if isAuth() && docInMyShop();
