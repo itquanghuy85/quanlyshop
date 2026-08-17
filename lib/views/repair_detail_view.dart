@@ -664,6 +664,12 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       'status': status,
       'statusFlow': _statusFlowFor(status, pendingApproval: pendingApproval),
       'pendingDeliveryApproval': pendingApproval,
+      // Gồm luôn giá thu/vốn hiện tại trong patch — trước đây patch này chỉ
+      // có trạng thái, để trống 1 khoảng hở giữa lúc trạng thái lên cloud
+      // và lúc giá lên cloud (ghi riêng, có thể trễ/lỗi mạng), khiến cloud
+      // tạm thời/vĩnh viễn có trạng thái mới nhưng giá cũ.
+      'price': r.price,
+      'cost': r.cost,
       'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
     };
 
@@ -2049,6 +2055,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
       await db.upsertRepair(r);
 
+      bool cloudSynced = false;
       try {
         await _pushRepairStatusToCloud(
           status: r.status,
@@ -2063,6 +2070,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           requestedDeliveryPrice: null,
           includeRequestedDeliveryPrice: true,
         );
+        cloudSynced = true;
       } catch (e) {
         debugPrint(
           '⚠️ [RepairDetailView] Push approved delivery realtime lỗi: $e',
@@ -2079,13 +2087,25 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         );
 
         // Await sync để tránh trạng thái pending kéo dài (nút sync vàng).
-        try {
-          await SyncOrchestrator().syncAll();
-          if (mounted) setState(() => r.isSynced = true);
-        } catch (_) {}
+        // Không cần chạy lại nếu bước push trực tiếp ở trên đã thành công.
+        if (!cloudSynced) {
+          try {
+            await SyncOrchestrator().syncAll();
+          } catch (_) {}
+        }
         // FIX: Also trigger targeted repair sync for reliability
         // ignore: unawaited_futures
         SyncService.syncRepairData();
+      }
+
+      // Đọc lại trạng thái đồng bộ THẬT SỰ từ DB — trước đây set isSynced=true
+      // trong bộ nhớ ngay sau khi syncAll() chạy xong dù không xác nhận đúng
+      // đơn này đã lên cloud, khiến bộ bảo vệ chống ghi đè coi local là "đã
+      // sync" và có thể bị đồng bộ nền sau đó ghi đè ngược về dữ liệu cũ.
+      final freshLocal = r.id != null ? await db.getRepairById(r.id!) : null;
+      final actuallySynced = freshLocal?.isSynced ?? cloudSynced;
+      if (actuallySynced && mounted) {
+        setState(() => r.isSynced = true);
       }
 
       // Log
@@ -2145,8 +2165,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       }
 
       NotificationService.showSnackBar(
-        loc.approvedAndCompletedDelivery,
-        color: Colors.green,
+        actuallySynced
+            ? loc.approvedAndCompletedDelivery
+            : '⚠️ Đã duyệt trên máy — mạng chập chờn nên CHƯA đồng bộ lên cloud, app sẽ tự thử lại. Vui lòng kiểm tra lại đơn này sau.',
+        color: actuallySynced ? Colors.green : Colors.orange,
       );
       _emitRepairChanged(financialImpact: true, includeDebts: debtImpact);
       // Trở về danh sách đơn sửa sau khi duyệt giao
@@ -2265,17 +2287,24 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             'Cập nhật đơn sửa ${r.model} - ${r.customerName} - Giá: ${r.price}đ',
       );
 
-      // Direct write for immediate badge clear (< 2s); orchestrator is backup
-      unawaited(
-        FirestoreService.upsertRepair(r)
-            .then((_) async {
-              r.isSynced = true;
-              await db.upsertRepair(r);
-              if (mounted) setState(() {});
-            })
-            .catchError((_) {}),
-      );
-      // Also queue via orchestrator for any remaining pending items
+      // Đẩy lên cloud và CHỜ xác nhận thật sự — trước đây bắn đi không đợi
+      // (unawaited) + nuốt lỗi im lặng, khiến app báo "Đã lưu" ngay cả khi
+      // cloud chưa nhận được (mất mạng/chập chờn), rồi bị đồng bộ nền sau
+      // đó ghi đè ngược local về dữ liệu cũ trên cloud mà không ai biết.
+      bool cloudSynced = false;
+      try {
+        await FirestoreService.upsertRepair(
+          r,
+        ).timeout(const Duration(seconds: 8));
+        cloudSynced = true;
+      } catch (e) {
+        debugPrint(
+          '⚠️ [RepairDetailView] Direct cloud write lỗi, dựa vào hàng đợi sync: $e',
+        );
+      }
+      // Luôn queue qua orchestrator để có cơ chế retry nếu lần ghi trực tiếp
+      // ở trên thất bại; nếu đã thành công thì lần queue này chỉ ghi lại dữ
+      // liệu giống hệt (vô hại, idempotent).
       if (r.id != null) {
         await SyncOrchestrator().enqueue(
           entityType: SyncEntityType.repair,
@@ -2284,7 +2313,17 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           operation: SyncOperation.update,
           data: r.toMap(),
         );
-        unawaited(SyncOrchestrator().syncAll());
+        if (!cloudSynced) {
+          await SyncOrchestrator().syncAll();
+        }
+      }
+      // Đọc lại trạng thái đồng bộ THẬT SỰ từ DB (không dựa vào biến isSynced
+      // cũ trong bộ nhớ) để biết chắc có nên báo "Đã lưu" hay "đang đồng bộ".
+      final freshLocal = r.id != null ? await db.getRepairById(r.id!) : null;
+      final actuallySynced = freshLocal?.isSynced ?? cloudSynced;
+      if (actuallySynced) {
+        r.isSynced = true;
+        if (mounted) setState(() {});
       }
 
       // Update debt if payment method is debt and repair is delivered
@@ -2320,8 +2359,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       }
 
       NotificationService.showSnackBar(
-        loc.savedOrderChanges,
-        color: AppColors.success,
+        actuallySynced
+            ? loc.savedOrderChanges
+            : '⚠️ Đã lưu trên máy — mạng chập chờn nên CHƯA đồng bộ lên cloud, app sẽ tự thử lại',
+        color: actuallySynced ? AppColors.success : Colors.orange,
       );
       _emitRepairChanged(
         financialImpact: financialImpact || debtChanged,

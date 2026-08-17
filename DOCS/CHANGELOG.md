@@ -4,6 +4,28 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-17a] - fix(repair): 🔴 NGHIÊM TRỌNG — đơn đã Duyệt giao/sửa giá vốn bị "hiện lại như chưa làm gì"
+
+**User báo (kèm 4 ảnh chụp):** cài bản test mới nhất, bấm DUYỆT giao máy đơn IPHONE 13 + sửa giá vốn 3.500.000. Chat nội bộ và Nhật ký đều xác nhận đã làm — nhưng vào lại app, đơn vẫn hiện "CHỜ DUYỆT" và giá vốn về lại 0, như chưa từng thao tác. User nhấn mạnh đây là lỗi nghiêm trọng, ảnh hưởng uy tín, dù không phải đơn nào cũng gặp (thỉnh thoảng).
+
+**Nguyên nhân (2 lỗ hổng có thật trong code, đọc kỹ toàn bộ luồng Duyệt giao + Sửa giá vốn để xác nhận):**
+
+1. **Patch trạng thái lên cloud thiếu giá thu/vốn**: khi Duyệt giao, app gửi 1 patch riêng lên cloud chỉ gồm trạng thái/ngày giao/bảo hành — KHÔNG gồm giá. Giá được ghi bằng 1 lần riêng chạy sau. Nếu lần ghi giá đó trễ/lỗi mạng, cloud tạm thời (hoặc vĩnh viễn nếu lỗi hẳn) chỉ có đúng trạng thái mà thiếu giá.
+
+2. **Ghi lên cloud kiểu "bắn đi không đợi, lỗi thì im lặng bỏ qua"**: cả bước Duyệt giao và bước Sửa giá vốn đều gọi ghi Firestore theo kiểu không chờ xác nhận (`unawaited`) + lỗi bị nuốt im lặng (`catchError((_) {})`), rồi vẫn báo "Đã lưu thành công" cho user bất kể ghi cloud có thật sự thành công hay không. Nếu đúng lúc đó mạng chập chờn, cloud KHÔNG nhận được thay đổi dù màn hình báo thành công — cơ chế tự đồng bộ định kỳ (mới thêm hôm qua để đơn không "trễ tin" giữa các máy) sau đó vô tình lấy về đúng dữ liệu CŨ trên cloud, ghi đè local — khớp chính xác triệu chứng user báo.
+
+**Fix (chỉ thêm/siết chặt, không đổi cấu trúc luồng chính):**
+- `_pushRepairStatusToCloud()`: thêm `price`/`cost` vào patch — đóng khoảng hở giữa lúc trạng thái lên cloud và lúc giá lên cloud. Xác nhận an toàn ở cả 4 nơi gọi hàm này (giá/vốn hiện tại luôn đúng ý định tại thời điểm gọi).
+- `_approveDelivery()` và `_saveData()`: đổi từ "bắn đi không đợi + nuốt lỗi" sang **chờ xác nhận thật sự** (có timeout), rồi **đọc lại tình trạng đồng bộ từ DB** (không dựa vào biến bộ nhớ cũ) để biết chắc đã lên cloud hay chưa. Nếu chưa lên được cloud, báo rõ cho user bằng snackbar cam "⚠️ Đã lưu trên máy — mạng chập chờn nên CHƯA đồng bộ lên cloud, app sẽ tự thử lại" thay vì báo xanh "Đã lưu" gây hiểu lầm.
+
+**Verify:** `flutter analyze` sạch (0 lỗi). Build + cài Oppo CPH2203, test trực tiếp toàn bộ luồng trên đơn thật: tạo đơn test → chuyển SỬA XONG → bấm GIAO, nhập giá 999.000đ → DUYỆT → xác nhận: chuyển đúng "ĐÃ GIAO", "Đã sync", giá hiện đúng 999.000đ. Thoát ra vào lại (cả màn chi tiết lẫn danh sách reload mới hoàn toàn) — **dữ liệu vẫn đúng, không hề revert** — xác nhận đã sửa đúng lỗi báo cáo. Không crash trong toàn bộ quá trình. **Giới hạn:** không mô phỏng được chính xác kịch bản "mất mạng giữa chừng" qua adb nên chỉ xác nhận chắc chắn nhánh mạng bình thường (happy path) hoạt động đúng và không có hồi quy — nhánh mất mạng dựa trên suy luận logic code (đã đọc kỹ, tin cậy cao) chứ chưa tận mắt thấy.
+
+**Còn sót lại 1 đơn test** trong danh sách thật: "SAMSUNG ETMODELSYNC / TESTSYNCFIX / 0900001111", đã giao, giá 999.000đ — user tự xóa qua Công cụ điều chỉnh dữ liệu khi tiện.
+
+**Files:** `lib/views/repair_detail_view.dart`.
+
+---
+
 ## [2026-08-16u] - feat: buộc cập nhật — chặn bản app cũ, bắt buộc lên bản mới
 
 **Yêu cầu user:** "có cách nào chặn toàn bộ những app bản cũ không cho sử dụng mà buộc cập nhật hay không". User hỏi thêm liệu vừa build bản 3.3.0/541 (đang chờ Apple duyệt) có bị ảnh hưởng không — đã giải thích: bản đang chờ duyệt là nhị phân "đóng băng", sửa code bây giờ không đụng tới; tính năng chỉ có hiệu lực từ bản MỚI (sau 541) có chứa code này. User đồng ý làm.
