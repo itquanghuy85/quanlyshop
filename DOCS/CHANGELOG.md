@@ -4,6 +4,18 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-17e] - chore(release): lên bản 3.4.0+545 + nâng iOS min deployment lên 15.0
+
+**Version:** `pubspec.yaml` 3.3.0+541 → **3.4.0+545** (gồm toàn bộ fix trong ngày 2026-08-17: chống mất dữ liệu khi duyệt giao/sửa giá vốn, sửa báo nhầm mạng chập chờn, list đơn sửa cập nhật ngay, xóa đơn không còn mồ côi dữ liệu cloud, chặn công nợ đoán sai chiều).
+
+**iOS min deployment 14.0 → 15.0:** thực hiện sớm theo cảnh báo Apple (App Store Connect bắt buộc tối thiểu 15.0 từ mùa xuân 2027) — sửa `ios/Podfile` (3 chỗ: `platform :ios`, 2 dòng `IPHONEOS_DEPLOYMENT_TARGET` trong `post_install`), `ios/Runner.xcodeproj/project.pbxproj` (3 config Debug/Release/Profile), và `ios/Flutter/AppFrameworkInfo.plist` (`MinimumOSVersion`).
+
+**Verify:** Android — `flutter build apk --debug` OK, cài lên Oppo CPH2203 xác nhận `versionName=3.4.0 versionCode=545`, mở app không crash (logcat sạch FATAL/AndroidRuntime). **iOS chưa build được** (máy làm việc Windows, không có Xcode) — cấu hình đã sẵn sàng trong code, **user cần tự build trên Mac** (`pod install` sẽ áp dụng target 15.0 mới) rồi archive/submit App Store Connect như bình thường.
+
+**Files:** `pubspec.yaml`, `ios/Podfile`, `ios/Runner.xcodeproj/project.pbxproj`, `ios/Flutter/AppFrameworkInfo.plist`.
+
+---
+
 ## [2026-08-17d] - fix: xóa đơn sửa mồ côi dữ liệu cloud + chặn công nợ đoán sai chiều thu/trả
 
 **Bối cảnh:** User yêu cầu test toàn diện module Sửa chữa trước khi lên Store. Trong lúc test, user tự dùng "Công cụ điều chỉnh dữ liệu" xóa hàng loạt đơn test — sau đó Trung tâm đồng bộ báo "11 bản ghi chưa khớp" (Local: 59, Cloud: 70) không tự hết. User cũng báo 1 lần gặp màn hình đỏ (crash) khi thanh toán công nợ NCC vừa tạo từ giá vốn đơn sửa, sau khi thoát/vào lại thấy giao dịch ghi nhầm thành "Thu nợ KH" thay vì "Trả nợ NCC".
