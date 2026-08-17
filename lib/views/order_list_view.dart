@@ -19,6 +19,7 @@ import '../services/storage_service.dart';
 import '../services/user_service.dart';
 import '../services/encryption_service.dart';
 import '../services/sync_service.dart';
+import '../services/sync_orchestrator.dart';
 import '../services/firestore_service.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/empty_state_widget.dart';
@@ -1784,6 +1785,17 @@ class OrderListViewState extends State<OrderListView> {
           await FirestoreService.deleteRepair(repairFirestoreId);
         } catch (e) {
           debugPrint('❌ Failed to soft delete on Firestore: $e');
+          // Cloud delete lỗi (mạng/timeout) — vẫn xóa local theo đúng thao
+          // tác user vừa xác nhận, nhưng xếp hàng đợi retry để cloud không
+          // mồ côi document vĩnh viễn (trước đây bỏ qua bước này, khiến
+          // "Trung tâm đồng bộ" báo lệch Local/Cloud kéo dài không tự hết).
+          if (repairId != null) {
+            await SyncOrchestrator().enqueueRepair(
+              repairId,
+              firestoreId: repairFirestoreId,
+              operation: SyncOperation.delete,
+            );
+          }
         }
       }
 

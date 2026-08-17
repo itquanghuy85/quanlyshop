@@ -4,6 +4,18 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-17d] - fix: xóa đơn sửa mồ côi dữ liệu cloud + chặn công nợ đoán sai chiều thu/trả
+
+**Bối cảnh:** User yêu cầu test toàn diện module Sửa chữa trước khi lên Store. Trong lúc test, user tự dùng "Công cụ điều chỉnh dữ liệu" xóa hàng loạt đơn test — sau đó Trung tâm đồng bộ báo "11 bản ghi chưa khớp" (Local: 59, Cloud: 70) không tự hết. User cũng báo 1 lần gặp màn hình đỏ (crash) khi thanh toán công nợ NCC vừa tạo từ giá vốn đơn sửa, sau khi thoát/vào lại thấy giao dịch ghi nhầm thành "Thu nợ KH" thay vì "Trả nợ NCC".
+
+**Bug 1 — xóa đơn mồ côi dữ liệu cloud (nguyên nhân gốc của "11 chưa khớp"):** `FirestoreService.deleteRepair`/`deleteSale` tự nuốt lỗi mạng (`catch (e) { debugPrint(...) }` rồi thôi), khiến 2 nơi gọi nó — `data_reconciliation_service.dart:_deleteRepairRecord` và `order_list_view.dart` (nút xóa đơn gốc) — luôn tưởng cloud đã xóa thành công rồi xóa local vô điều kiện. Khi mạng chập chờn giữa lúc xóa hàng loạt, document trên Firestore không hề bị đánh dấu `deleted:true`, mồ côi vĩnh viễn, khiến "Trung tâm đồng bộ" báo lệch mãi không tự hết — và nguy hiểm hơn, lần sync lịch sử tiếp theo có thể **kéo ngược đơn tưởng đã xóa trở lại local**. Đã sửa: `deleteRepair`/`deleteSale` hết nuốt lỗi (rethrow), 2 nơi gọi bắt lỗi và xếp vào hàng đợi `SyncOrchestrator` (`SyncOperation.delete`) để tự động thử lại thay vì bỏ cuộc âm thầm. (Nhánh xóa đơn bán ở `sale_detail_view.dart`/`data_reconciliation_service.dart` đã có sẵn cơ chế này từ trước — chỉ nhánh đơn sửa thiếu.)
+
+**Bug 2 — công nợ đoán nhầm chiều thu/trả khi thiếu `type` (đã hardening, chưa xác nhận 100% là nguyên nhân crash):** `debt_payment_sheet.dart` cũ: `(debt['type'] ?? 'CUSTOMER_OWES')` — nếu map công nợ truyền vào thiếu field `type` (bản ghi lỗi/đường dữ liệu hiếm gặp), code **âm thầm coi là "Thu nợ khách"** thay vì báo lỗi — sai hướng hoàn toàn nếu bản chất là nợ NCC (phải trả). Đây là kiểu lỗi nguy hiểm hơn crash vì không ai để ý ngay, im lặng ghi sai chiều dòng tiền. Đã sửa: nếu `type` rỗng/thiếu, chặn thanh toán + báo lỗi rõ ràng thay vì đoán. **Lưu ý minh bạch:** đã cố tái hiện lại crash gốc (đọc kỹ toàn bộ chuỗi gọi `Ghi vào sổ quỹ` → `DebtPaymentSheet` → `PaymentIntentService` → `PaymentResultSheet`, dựng lại dữ liệu test) nhưng KHÔNG bắt được đúng stack trace lúc crash thật (log đã trôi khỏi buffer do quá nhiều hoạt động sync xen giữa) và không dựng lại được chính xác thao tác user đã làm. Toàn bộ logic chiều tiền (SHOP_OWES → OUT/Trả, CUSTOMER_OWES → IN/Thu) đã rà lại, đúng khi `type` có mặt — bản vá này chặn đúng trường hợp duy nhất có thể gây sai hướng mà code review tìm ra được.
+
+**Verify:** `flutter analyze` sạch (chỉ info/warning có sẵn) trên cả 4 file. Build + cài lại Oppo CPH2203. Test trực tiếp trên máy: tạo đơn sửa mới → đổi trạng thái đủ vòng đời (Tiếp nhận → Sửa xong → Duyệt giao) → sửa giá vốn có ghi nợ NCC → xác nhận không còn báo "mạng chập chờn" giả, danh sách cập nhật ngay lập tức (thừa hưởng đúng từ fix `[2026-08-17c]`), không crash qua nhiều vòng mở/đóng sheet Ghi chú KTV. Dữ liệu test hiện đã được user tự dọn sạch (shop test "M"), sẵn sàng cho vòng test tiếp theo trên dữ liệu sạch.
+
+**Files:** `lib/services/firestore_service.dart`, `lib/services/data_reconciliation_service.dart`, `lib/views/order_list_view.dart`, `lib/widgets/debt_payment_sheet.dart`.
+
 ## [2026-08-17c] - fix(repair): fix `[2026-08-17b]` (việc 2) mới chỉ đúng 1 nửa — sửa tiếp cho đơn CHƯA giao
 
 **User test lại, báo tiếp:** đơn Samsung hiện "TIẾP NHẬN" trong danh sách, bấm vào thấy "ĐÃ GIAO" đúng, back ra danh sách vẫn còn "TIẾP NHẬN" — y hệt lỗi tưởng đã sửa ở `[2026-08-17b]`.

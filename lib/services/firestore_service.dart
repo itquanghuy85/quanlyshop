@@ -387,14 +387,13 @@ class FirestoreService {
   }
 
   static Future<void> deleteRepair(String firestoreId) async {
-    try {
-      await _db.collection('repairs').doc(firestoreId).update({
-        'deleted': true,
-        'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-      });
-    } catch (e) {
-      debugPrint('Firestore deleteRepair error: $e');
-    }
+    // Không nuốt lỗi ở đây — caller cần biết cloud delete thất bại để xóa
+    // local đúng cách (giữ lại hoặc xếp hàng đợi retry), tránh mồ côi vĩnh
+    // viễn document trên cloud trong khi local đã xóa sạch.
+    await _db.collection('repairs').doc(firestoreId).update({
+      'deleted': true,
+      'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
+    });
   }
 
   static Future<String?> addSale(SaleOrder s) async {
@@ -510,15 +509,12 @@ class FirestoreService {
   }
 
   static Future<void> deleteSale(String firestoreId) async {
-    try {
-      await _db.collection('sales').doc(firestoreId).update({
-        'deleted': true,
-        'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-      });
-      EventBus().emit('sales_changed');
-    } catch (e) {
-      debugPrint('Firestore deleteSale error: $e');
-    }
+    // Không nuốt lỗi — xem lý do ở deleteRepair() ngay trên.
+    await _db.collection('sales').doc(firestoreId).update({
+      'deleted': true,
+      'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
+    });
+    EventBus().emit('sales_changed');
   }
 
   static Future<String?> addProduct(Product p) async {

@@ -46,7 +46,20 @@ class DebtPaymentSheet {
     final int totalAmount = (debt['totalAmount'] as num?)?.toInt() ?? 0;
     final int paidAmount = (debt['paidAmount'] as num?)?.toInt() ?? 0;
     final int remaining = totalAmount - paidAmount;
-    final String debtType = (debt['type'] ?? 'CUSTOMER_OWES').toString();
+    final String debtType = (debt['type'] as String?)?.trim() ?? '';
+    // Trước đây thiếu 'type' âm thầm mặc định về CUSTOMER_OWES (thu nợ) —
+    // hướng đi ngược hoàn toàn nếu bản ghi thật ra là nợ NCC (SHOP_OWES,
+    // phải trả). Ghi sai chiều dòng tiền còn nguy hiểm hơn crash vì không
+    // ai để ý ngay. Nên chặn hẳn thay vì đoán khi không rõ loại nợ.
+    if (debtType.isEmpty) {
+      if (context.mounted) {
+        NotificationService.showSnackBar(
+          'Không xác định được loại công nợ (thu/trả) — vui lòng mở lại từ danh sách công nợ',
+          color: Colors.red,
+        );
+      }
+      return false;
+    }
     final bool isCustomerDebt = !_isPayable(debtType);
 
     if (remaining <= 0) {

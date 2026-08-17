@@ -164,6 +164,17 @@ class DataReconciliationService {
         await FirestoreService.deleteRepair(r.firestoreId!);
       } catch (e) {
         debugPrint('⚠️ DataReconciliation: cloud delete repair failed: $e');
+        // Cloud delete lỗi (mạng/timeout) — vẫn xóa local theo đúng mục đích
+        // công cụ này (dọn dữ liệu ngay), nhưng xếp hàng đợi retry để cloud
+        // không mồ côi document vĩnh viễn (trước đây bỏ qua bước này, gây
+        // lệch "Local/Cloud" kéo dài sau mỗi lần xóa hàng loạt).
+        if (r.id != null) {
+          await SyncOrchestrator().enqueueRepair(
+            r.id!,
+            firestoreId: r.firestoreId,
+            operation: SyncOperation.delete,
+          );
+        }
       }
       await _db.deleteRepairByFirestoreId(r.firestoreId!);
     } else if (r.id != null) {
