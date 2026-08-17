@@ -4,6 +4,20 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-17c] - fix(repair): fix `[2026-08-17b]` (việc 2) mới chỉ đúng 1 nửa — sửa tiếp cho đơn CHƯA giao
+
+**User test lại, báo tiếp:** đơn Samsung hiện "TIẾP NHẬN" trong danh sách, bấm vào thấy "ĐÃ GIAO" đúng, back ra danh sách vẫn còn "TIẾP NHẬN" — y hệt lỗi tưởng đã sửa ở `[2026-08-17b]`.
+
+**Nguyên nhân thật sự (fix trước chưa đủ):** `order_list_view.dart` gộp 2 nguồn dữ liệu để hiển thị — `_repairsByFirestoreId` (cache realtime Firestore, dùng cho đơn CHƯA giao, status < 4) và SQLite (dùng cho đơn ĐÃ giao). Code merge ưu tiên tuyệt đối cache realtime cho các đơn CHƯA giao. Fix `[2026-08-17b]` chỉ gọi `_refreshFromSQLite()` — với đơn còn đang xử lý (chưa giao), dữ liệu SQLite mới bị merge LOẠI BỎ hoàn toàn vì đã có mặt trong cache realtime, nên list vẫn hiển thị giá trị cache cũ cho tới khi có 1 snapshot Firestore mới tự đẩy về (không đồng bộ với thời điểm quay lại màn hình).
+
+**Fix đúng:** sau khi quay lại từ chi tiết, đọc lại đúng bản ghi đơn đó bằng `db.getRepairByFirestoreId(fid)` (không dùng `r.id` vì đơn nguồn cache realtime thường không có `id` cục bộ) rồi cập nhật thẳng vào `_repairsByFirestoreId`: nếu đã chuyển sang "Đã giao" (status ≥ 4) thì gỡ khỏi cache active để rơi về nguồn SQLite, ngược lại ghi đè giá trị mới tại chỗ — rồi `_rebuildDisplayedRepairs()` ngay, không đợi snapshot Firestore.
+
+**Verify:** Build + cài lại Oppo CPH2203, test trực tiếp qua danh sách "đơn chờ xử lý" (không phải mở lại app): bấm "XONG" trên 1 đơn đang xử lý → back → đơn biến mất khỏi list NGAY LẬP TỨC kèm toast xác nhận, không cần thoát app. Lặp lại 2 lần trên 2 đơn khác nhau (VIVO, OPPO), cả 2 lần đều đúng.
+
+**Files:** `lib/views/order_list_view.dart`.
+
+---
+
 ## [2026-08-17b] - fix(repair): sửa lỗi TỰ GÂY RA — báo nhầm "mạng chập chờn" ở MỌI đơn + list không tự cập nhật
 
 **User báo 2 việc liền sau bản `[2026-08-17a]`:** (1) đơn nào cũng thấy banner cam "⚠️ Đã duyệt trên máy — mạng chập chờn..." dù mạng bình thường; (2) đổi trạng thái xong back về danh sách vẫn thấy trạng thái cũ, phải thoát hẳn ra Trang chủ vào lại mới đúng.

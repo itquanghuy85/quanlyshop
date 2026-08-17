@@ -2187,12 +2187,29 @@ class OrderListViewState extends State<OrderListView> {
               context,
               MaterialPageRoute(builder: (_) => RepairDetailView(repair: r)),
             );
-            // Luôn làm mới từ SQLite khi quay lại, bất kể màn chi tiết trả
-            // về gì — trước đây chỉ refresh khi trả về đúng `true`, nhưng
-            // nhiều thao tác đổi trạng thái nhanh (VD nút "XONG") không
-            // pop kèm true, khiến list hiện trạng thái cũ cho tới khi thoát
-            // hẳn ra Trang chủ rồi vào lại. Đọc SQLite là thao tác cục bộ,
-            // rẻ, nên gọi vô điều kiện không ảnh hưởng hiệu năng.
+            if (!mounted) return;
+            // _rebuildDisplayedRepairs ưu tiên _repairsByFirestoreId (cache
+            // realtime, dùng cho đơn CHƯA giao) hơn SQLite — refresh SQLite
+            // suông không đủ vì đơn đang xử lý không lấy từ đó. Đọc lại đúng
+            // bản ghi này (SQLite luôn mới nhất ngay sau khi lưu) rồi đẩy
+            // thẳng vào cache realtime: nếu đã giao (status 4) thì bỏ khỏi
+            // cache active để rơi về nguồn SQLite, ngược lại cập nhật tại chỗ.
+            final fid = (r.firestoreId ?? '').trim();
+            if (fid.isNotEmpty) {
+              // Dùng firestoreId thay vì r.id — đơn đang xử lý (chưa giao)
+              // trong danh sách này được dựng trực tiếp từ dữ liệu Firestore
+              // realtime (_repairsByFirestoreId), nên r.id cục bộ thường
+              // đang null dù đơn đã có bản ghi SQLite thật.
+              final fresh = await db.getRepairByFirestoreId(fid);
+              if (fresh != null) {
+                if (fresh.status >= 4) {
+                  _repairsByFirestoreId.remove(fid);
+                } else {
+                  _repairsByFirestoreId[fid] = fresh;
+                }
+                _rebuildDisplayedRepairs();
+              }
+            }
             unawaited(_refreshFromSQLite());
           },
           onLongPress: () {
