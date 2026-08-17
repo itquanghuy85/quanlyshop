@@ -2088,7 +2088,14 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
         // Await sync để tránh trạng thái pending kéo dài (nút sync vàng).
         // Không cần chạy lại nếu bước push trực tiếp ở trên đã thành công.
-        if (!cloudSynced) {
+        if (cloudSynced) {
+          // Ghi trực tiếp đã thành công — tự đánh dấu isSynced=1 trong DB
+          // ngay, vì cờ này chỉ do SyncOrchestrator set khi xử lý hàng đợi;
+          // nếu không tự set ở đây, đọc lại DB ngay sau sẽ luôn thấy false
+          // dù cloud đã nhận đúng, gây báo nhầm "chưa đồng bộ" mọi lúc.
+          r.isSynced = true;
+          await db.upsertRepair(r);
+        } else {
           try {
             await SyncOrchestrator().syncAll();
           } catch (_) {}
@@ -2313,7 +2320,14 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           operation: SyncOperation.update,
           data: r.toMap(),
         );
-        if (!cloudSynced) {
+        if (cloudSynced) {
+          // Ghi trực tiếp đã thành công — tự đánh dấu isSynced=1 trong DB
+          // ngay (cờ này chỉ do SyncOrchestrator set khi xử lý hàng đợi,
+          // nếu không tự set ở đây thì đọc lại DB ngay sau sẽ luôn thấy
+          // false dù cloud đã nhận đúng, gây báo nhầm "chưa đồng bộ").
+          r.isSynced = true;
+          await db.upsertRepair(r);
+        } else {
           await SyncOrchestrator().syncAll();
         }
       }

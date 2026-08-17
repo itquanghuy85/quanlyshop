@@ -2183,13 +2183,17 @@ class OrderListViewState extends State<OrderListView> {
         ),
         child: InkWell(
           onTap: () async {
-            final res = await Navigator.push(
+            await Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => RepairDetailView(repair: r)),
             );
-            if (res == true) {
-              unawaited(_refreshFromSQLite());
-            }
+            // Luôn làm mới từ SQLite khi quay lại, bất kể màn chi tiết trả
+            // về gì — trước đây chỉ refresh khi trả về đúng `true`, nhưng
+            // nhiều thao tác đổi trạng thái nhanh (VD nút "XONG") không
+            // pop kèm true, khiến list hiện trạng thái cũ cho tới khi thoát
+            // hẳn ra Trang chủ rồi vào lại. Đọc SQLite là thao tác cục bộ,
+            // rẻ, nên gọi vô điều kiện không ảnh hưởng hiệu năng.
+            unawaited(_refreshFromSQLite());
           },
           onLongPress: () {
             if (!canDelete) {

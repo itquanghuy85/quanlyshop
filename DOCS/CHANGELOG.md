@@ -4,6 +4,20 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-17b] - fix(repair): sửa lỗi TỰ GÂY RA — báo nhầm "mạng chập chờn" ở MỌI đơn + list không tự cập nhật
+
+**User báo 2 việc liền sau bản `[2026-08-17a]`:** (1) đơn nào cũng thấy banner cam "⚠️ Đã duyệt trên máy — mạng chập chờn..." dù mạng bình thường; (2) đổi trạng thái xong back về danh sách vẫn thấy trạng thái cũ, phải thoát hẳn ra Trang chủ vào lại mới đúng.
+
+**Việc 1 — lỗi do CHÍNH fix `[2026-08-17a]` gây ra, xin lỗi:** logic "đọc lại DB xem đã đồng bộ chưa" mới thêm chỉ tin vào cờ `isSynced` trong SQLite — nhưng cờ này CHỈ được `SyncOrchestrator` bật lên khi nó tự xử lý hàng đợi (`syncAll()`). Code mới lại có nhánh: nếu bước ghi trực tiếp lên cloud đã thành công thì **bỏ qua không gọi `syncAll()`** (tưởng là tối ưu, đỡ tốn 1 lượt mạng) — kết quả là cờ `isSynced` trong DB không bao giờ được bật lên dù cloud đã nhận đúng dữ liệu, nên lần đọc lại sau đó LUÔN thấy "chưa đồng bộ" — báo nhầm cảnh báo ở MỌI đơn, kể cả khi mạng hoàn toàn ổn định. Fix: khi ghi trực tiếp thành công, tự đánh dấu `isSynced=true` thẳng vào DB ngay lúc đó thay vì trông chờ `syncAll()`.
+
+**Việc 2 — lỗi có sẵn từ trước, không liên quan gói vừa rồi:** `order_list_view.dart` chỉ làm mới danh sách khi màn chi tiết trả về đúng giá trị `true` lúc pop — nhưng các nút đổi trạng thái nhanh (VD "XONG") không tự đóng màn hình, người dùng phải tự bấm nút Back, trả về `null` chứ không phải `true`, nên bị bỏ qua bước làm mới. Fix: luôn làm mới từ SQLite (thao tác cục bộ, rẻ) mỗi khi quay lại từ màn chi tiết, không còn phụ thuộc giá trị trả về.
+
+**Verify:** `flutter analyze` sạch. Build + cài Oppo CPH2203, test lại trên đơn thật: Duyệt giao 1 đơn mới → xác nhận KHÔNG còn báo nhầm, hiện đúng "Đã sync" → back về danh sách → đơn đã giao biến mất khỏi danh sách hoạt động NGAY LẬP TỨC (trước đây phải thoát hẳn ra Trang chủ mới thấy đúng). Không crash.
+
+**Files:** `lib/views/repair_detail_view.dart`, `lib/views/order_list_view.dart`.
+
+---
+
 ## [2026-08-17a] - fix(repair): 🔴 NGHIÊM TRỌNG — đơn đã Duyệt giao/sửa giá vốn bị "hiện lại như chưa làm gì"
 
 **User báo (kèm 4 ảnh chụp):** cài bản test mới nhất, bấm DUYỆT giao máy đơn IPHONE 13 + sửa giá vốn 3.500.000. Chat nội bộ và Nhật ký đều xác nhận đã làm — nhưng vào lại app, đơn vẫn hiện "CHỜ DUYỆT" và giá vốn về lại 0, như chưa từng thao tác. User nhấn mạnh đây là lỗi nghiêm trọng, ảnh hưởng uy tín, dù không phải đơn nào cũng gặp (thỉnh thoảng).
