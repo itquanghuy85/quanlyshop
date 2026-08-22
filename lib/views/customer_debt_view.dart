@@ -239,7 +239,10 @@ class _CustomerDebtViewState extends State<CustomerDebtView> {
       iconColor: AppColors.primary,
       iconBg: AppColors.primarySurface,
       title: type == 'sale' ? 'TẠO ĐƠN BÁN' : 'TẠO ĐƠN SỬA',
-      subtitle: 'Đã thu lúc tạo: ${MoneyUtils.formatCurrency(paid)}đ • $dateStr',
+      // "paid" là tổng đã thu LŨY KẾ hiện tại của đơn (không phải số đã thu
+      // tại đúng thời điểm tạo đơn — không lưu snapshot lịch sử), nên ghi rõ
+      // "hiện tại" để tránh hiểu nhầm là đã thu ngay lúc tạo.
+      subtitle: 'Tổng đã thu (hiện tại): ${MoneyUtils.formatCurrency(paid)}đ • $dateStr',
       trailing: '+${MoneyUtils.formatCurrency(total)}đ',
       trailingColor: const Color(0xFF1F2937),
     );

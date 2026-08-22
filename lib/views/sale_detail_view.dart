@@ -2029,6 +2029,15 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                           if (changed == true) _loadCustomerDebt();
                         },
                         style: ElevatedButton.styleFrom(
+                          // Ghi đè minimumSize mặc định toàn app (double.infinity
+                          // width — AppButtonStyles.elevatedButtonStyle) vì nút
+                          // này nằm trong Row cạnh 1 Expanded khác. Nếu không
+                          // ghi đè, RenderFlex đo nút này với minWidth=infinity
+                          // ở bước layout children không-flex (unbounded), làm
+                          // hỏng toàn bộ layout của Row/Container cha (Container
+                          // phình to bất thường, nội dung không hiện) — đã tái
+                          // hiện + xác nhận nguyên nhân trên thiết bị thật.
+                          minimumSize: Size.zero,
                           backgroundColor: Colors.red.shade700,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
