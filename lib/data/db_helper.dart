@@ -629,7 +629,7 @@ class DBHelper {
 
     final db = await openDatabase(
       path,
-      version: 105,
+      version: 106,
       onConfigure: (db) async {
         try {
           await db.execute('PRAGMA foreign_keys = ON');
@@ -746,7 +746,7 @@ class DBHelper {
           'CREATE TABLE IF NOT EXISTS work_schedules(id INTEGER PRIMARY KEY AUTOINCREMENT, userId TEXT UNIQUE, startTime TEXT DEFAULT "08:00", endTime TEXT DEFAULT "17:00", breakTime INTEGER DEFAULT 1, maxOtHours INTEGER DEFAULT 4, workDays TEXT DEFAULT "[1,2,3,4,5,6]", holidays TEXT, weekdayOtRate INTEGER DEFAULT 150, weekendOtRate INTEGER DEFAULT 200, holidayOtRate INTEGER DEFAULT 300, shopId TEXT, updatedAt INTEGER)',
         );
         await db.execute(
-          'CREATE TABLE IF NOT EXISTS debt_payments(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, debtId INTEGER, debtFirestoreId TEXT, debtType TEXT, amount INTEGER, paidAt INTEGER, paymentMethod TEXT, note TEXT, createdBy TEXT, createdAt INTEGER, updatedAt INTEGER, isSynced INTEGER DEFAULT 0, shopId TEXT, personName TEXT, receivedBy TEXT, totalDebt INTEGER DEFAULT 0, alreadyPaid INTEGER DEFAULT 0, customerName TEXT, deleted INTEGER DEFAULT 0)',
+          'CREATE TABLE IF NOT EXISTS debt_payments(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, debtId INTEGER, debtFirestoreId TEXT, debtType TEXT, amount INTEGER, paidAt INTEGER, paymentMethod TEXT, note TEXT, createdBy TEXT, createdAt INTEGER, updatedAt INTEGER, isSynced INTEGER DEFAULT 0, shopId TEXT, personName TEXT, receivedBy TEXT, totalDebt INTEGER DEFAULT 0, alreadyPaid INTEGER DEFAULT 0, customerName TEXT, deleted INTEGER DEFAULT 0, paymentGroupId TEXT)',
         );
         await db.execute(
           'CREATE TABLE IF NOT EXISTS quick_input_codes(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, shopId TEXT, code TEXT, name TEXT, type TEXT, brand TEXT, model TEXT, capacity TEXT, color TEXT, condition TEXT, cost INTEGER, price INTEGER, description TEXT, labelInfo TEXT, supplier TEXT, paymentMethod TEXT, isActive INTEGER DEFAULT 1, createdAt INTEGER, isSynced INTEGER DEFAULT 0)',
@@ -2325,6 +2325,18 @@ class DBHelper {
             );
           } catch (e) {
             debugPrint('DB upgrade error (repairs partsUsedDetailed): $e');
+          }
+        }
+        if (oldV < 106) {
+          // Công nợ khách hàng gộp nhiều đơn: cột tùy chọn nhóm nhiều dòng
+          // debt_payments thành 1 phiếu thu khi khách trả gộp cho nhiều đơn
+          // cùng lúc. Nullable, đơn/khoản thu cũ không bị ảnh hưởng.
+          try {
+            await db.execute(
+              'ALTER TABLE debt_payments ADD COLUMN paymentGroupId TEXT',
+            );
+          } catch (e) {
+            debugPrint('DB upgrade error (debt_payments paymentGroupId): $e');
           }
         }
         if (oldV < 26) {

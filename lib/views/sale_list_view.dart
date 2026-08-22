@@ -26,6 +26,7 @@ import '../services/customer_service.dart';
 import '../services/notification_service.dart';
 import '../services/encryption_service.dart';
 import '../services/firestore_write_helper.dart';
+import '../services/debt_summary_service.dart';
 import '../models/customer_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'create_sales_return_view.dart';
@@ -67,6 +68,10 @@ class _SaleListViewState extends State<SaleListView> {
   // ghi ngược lại các field đó, nên phải tra riêng bảng debts để biết đúng
   // trạng thái đã trả hết hay chưa.
   Map<String, Map<String, dynamic>> _debtByLinkedId = {};
+
+  // Công nợ ròng hiện tại theo phone (khách có thể có nhiều đơn nợ) — 1 query
+  // gộp, tránh N+1 khi hiển thị "Công nợ khách hiện tại" cho từng dòng.
+  Map<String, int> _netDebtByPhone = {};
 
   // Permission
   bool _canViewCostPrice = false;
@@ -250,13 +255,20 @@ class _SaleListViewState extends State<SaleListView> {
     try {
       final debts = await db.getAllDebts();
       final debtMap = <String, Map<String, dynamic>>{};
+      final phones = <String>{};
       for (final d in debts) {
         final linkedId = d['linkedId'] as String?;
         if (linkedId != null && linkedId.isNotEmpty) {
           debtMap[linkedId] = d;
         }
+        final phone = d['phone'] as String?;
+        if (phone != null && phone.isNotEmpty) phones.add(phone);
       }
       _debtByLinkedId = debtMap;
+      _netDebtByPhone = {
+        for (final phone in phones)
+          phone: _debtSummary.computeNetDebtForPhone(phone, debts),
+      };
     } catch (_) {}
 
     if (_needsFullData || widget.todayOnly) {
@@ -345,18 +357,12 @@ class _SaleListViewState extends State<SaleListView> {
   /// nợ liên kết) thay vì SaleOrder.remainingDebt — field đó chỉ tính từ
   /// downPayment/loanAmount (trả góp NH), không biết gì về các khoản đã trả
   /// qua màn Công nợ (DebtPaymentSheet).
+  final _debtSummary = DebtSummaryService();
+
   int _effectiveRemainingDebt(SaleOrder s) {
     final firestoreId = s.firestoreId;
-    if (firestoreId != null) {
-      final debt = _debtByLinkedId[firestoreId];
-      if (debt != null) {
-        final total = (debt['totalAmount'] as num?)?.toInt() ?? 0;
-        final paid = (debt['paidAmount'] as num?)?.toInt() ?? 0;
-        final remain = total - paid;
-        return remain > 0 ? remain : 0;
-      }
-    }
-    return s.remainingDebt;
+    final linkedDebt = firestoreId != null ? _debtByLinkedId[firestoreId] : null;
+    return _debtSummary.getOrderRemainingDebt(s, linkedDebt: linkedDebt);
   }
 
   List<SaleOrder> _applyFilters() {
@@ -1469,6 +1475,30 @@ class _SaleListViewState extends State<SaleListView> {
                                                           )
                                                         : null,
                                                   ),
+                                                // Công nợ khách hiện tại (chỉ hiện khi
+                                                // khách còn nợ đơn khác ngoài đơn này)
+                                                Builder(
+                                                  builder: (ctx) {
+                                                    final netDebt =
+                                                        _netDebtByPhone[s.phone] ?? 0;
+                                                    if (netDebt <= remain) {
+                                                      return const SizedBox.shrink();
+                                                    }
+                                                    return Padding(
+                                                      padding: const EdgeInsets.only(
+                                                        top: 2,
+                                                      ),
+                                                      child: Text(
+                                                        'Công nợ khách hiện tại: ${MoneyUtils.formatCompactCurrency(netDebt)}',
+                                                        style: TextStyle(
+                                                          fontSize: 10.5,
+                                                          color: Colors.grey.shade500,
+                                                          fontStyle: FontStyle.italic,
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
                                                 const SizedBox(height: 3),
                                                 // ROW 4: Bán / Vốn
                                                 _saleInfoRow(

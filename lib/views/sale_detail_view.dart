@@ -26,6 +26,9 @@ import '../services/business_type_helper.dart';
 import '../services/customer_service.dart';
 import '../services/financial_activity_service.dart';
 import '../services/notification_service.dart';
+import '../services/debt_summary_service.dart';
+import 'customer_debt_view.dart';
+import 'collect_customer_debt_view.dart';
 import '../models/payment_intent_model.dart';
 import '../models/shop_settings_model.dart';
 import '../models/printer_types.dart';
@@ -151,7 +154,40 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     _loadShopInfo();
     _loadReturnInfo();
     _loadCostPermission();
+    _loadCustomerDebt();
   }
+
+  // Công nợ khách hàng gộp nhiều đơn: toàn bộ đơn CUSTOMER_OWES còn dư của
+  // khách (theo phone) — dùng để tách "nợ đơn này" khỏi "tổng công nợ khách".
+  final _debtSummary = DebtSummaryService();
+  List<Map<String, dynamic>> _customerActiveDebts = [];
+  bool _loadingCustomerDebt = true;
+
+  Future<void> _loadCustomerDebt() async {
+    final debts = await _debtSummary.getCustomerActiveDebts(s.phone);
+    if (!mounted) return;
+    setState(() {
+      _customerActiveDebts = debts;
+      _loadingCustomerDebt = false;
+    });
+  }
+
+  Map<String, dynamic>? get _linkedDebtForThisOrder => _customerActiveDebts
+      .where((d) => d['linkedId'] == s.firestoreId)
+      .firstOrNull;
+
+  int get _orderRemainingDebt =>
+      _debtSummary.getOrderRemainingDebt(s, linkedDebt: _linkedDebtForThisOrder);
+
+  int get _otherOrdersDebt => _customerActiveDebts
+      .where((d) => d['linkedId'] != s.firestoreId)
+      .fold<int>(
+        0,
+        (sum, d) =>
+            sum +
+            (((d['totalAmount'] as num?)?.toInt() ?? 0) -
+                ((d['paidAmount'] as num?)?.toInt() ?? 0)),
+      );
 
   SaleOrder _normalizeSaleForDisplay(SaleOrder sale) {
     return SaleOrder.fromMap({
@@ -605,7 +641,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       'installmentTerm': s.installmentTerm,
       'bankName': s.bankName,
       'bankName2': s.bankName2,
-      'remainingDebt': s.remainingDebt,
+      'remainingDebt': _loadingCustomerDebt ? s.remainingDebt : _orderRemainingDebt,
+      'customerTotalDebt':
+          _loadingCustomerDebt ? s.remainingDebt : (_otherOrdersDebt + _orderRemainingDebt),
     };
   }
 
@@ -1941,12 +1979,76 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                   ),
                 ),
 
+              if (!_loadingCustomerDebt && _orderRemainingDebt > 0)
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.red.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'CÒN NỢ ĐƠN',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red.shade700,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            Text(
+                              _money(_orderRemainingDebt),
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red.shade800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          final changed = await Navigator.push<bool>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => CollectCustomerDebtView(
+                                phone: s.phone,
+                                personName: s.customerName,
+                              ),
+                            ),
+                          );
+                          if (changed == true) _loadCustomerDebt();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red.shade700,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        icon: const Icon(Icons.payments_outlined, size: 18),
+                        label: const Text('THU TIỀN'),
+                      ),
+                    ],
+                  ),
+                ),
+
               _card(AppLocalizations.of(context)!.sectionTransaction, [
                 ClickableCustomerHeader(
                   customerName: s.customerName,
                   phoneNumber: s.phone,
                   sourceEvent: 'customer_profile_opened_from_sale',
                 ),
+                if (!_loadingCustomerDebt) _buildCustomerDebtCard(),
                 _item(
                   AppLocalizations.of(context)!.itemAddress,
                   s.address.isEmpty ? "---" : s.address,
@@ -2038,6 +2140,12 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                   _money(s.finalPrice),
                   color: Colors.red,
                 ),
+                if (!_loadingCustomerDebt)
+                  _item(
+                    'Tổng đã thu',
+                    _money((s.finalPrice - _orderRemainingDebt).clamp(0, s.finalPrice)),
+                    color: Colors.green.shade700,
+                  ),
                 if (_canViewCostPrice && s.totalCost > 0) ...[
                   _item(
                     AppLocalizations.of(context)!.itemCostPrice,
@@ -2119,6 +2227,105 @@ class _SaleDetailViewState extends State<SaleDetailView> {
           ),
         ),
       ),
+    );
+  }
+
+  // CÔNG NỢ KHÁCH HÀNG: tách rõ "nợ đơn này" khỏi "tổng công nợ khách qua
+  // nhiều đơn" — không được hiển thị công nợ khách như thể là nợ của riêng
+  // đơn này. Nợ trước đơn tính real-time (tổng nợ các đơn KHÁC hiện tại),
+  // không lưu snapshot lịch sử.
+  Widget _buildCustomerDebtCard() {
+    final before = _otherOrdersDebt;
+    final thisOrder = _orderRemainingDebt;
+    final after = before + thisOrder;
+    if (before == 0 && thisOrder == 0) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBEB),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFFDE68A)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'CÔNG NỢ KHÁCH HÀNG',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF92400E),
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _debtColumn('Nợ trước đơn', _money(before)),
+              ),
+              const Text('+', style: TextStyle(fontWeight: FontWeight.bold)),
+              Expanded(
+                child: _debtColumn('Nợ phát sinh từ đơn', _money(thisOrder)),
+              ),
+              const Text('=', style: TextStyle(fontWeight: FontWeight.bold)),
+              Expanded(
+                child: _debtColumn(
+                  'Công nợ sau đơn',
+                  _money(after),
+                  bold: true,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CustomerDebtView(
+                  phone: s.phone,
+                  customerName: s.customerName,
+                ),
+              ),
+            ).then((_) => _loadCustomerDebt()),
+            child: const Text(
+              'Xem công nợ khách >',
+              style: TextStyle(
+                fontSize: 12,
+                color: Color(0xFF92400E),
+                fontWeight: FontWeight.bold,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _debtColumn(String label, String value, {bool bold = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 10.5, color: Colors.grey),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: bold ? 14 : 12.5,
+            fontWeight: FontWeight.bold,
+            color: bold ? const Color(0xFF92400E) : Colors.black87,
+          ),
+        ),
+      ],
     );
   }
 

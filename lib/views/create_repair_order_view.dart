@@ -17,6 +17,7 @@ import '../services/adjustment_service.dart';
 import '../services/first_time_guide_service.dart';
 import '../services/pricing_engine_service.dart';
 import 'similar_repair_history_view.dart';
+import 'customer_history_view.dart';
 import '../utils/money_utils.dart';
 import '../utils/vietnamese_utils.dart';
 import '../widgets/currency_text_field.dart';
@@ -25,6 +26,7 @@ import '../models/repair_service_model.dart';
 import '../services/repair_partner_service.dart';
 import '../services/user_service.dart';
 import '../services/payment_intent_service.dart';
+import '../services/debt_summary_service.dart';
 import '../models/customer_model.dart';
 import '../models/payment_intent_model.dart';
 import '../constants/financial_constants.dart';
@@ -104,6 +106,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   Map<String, dynamic>? _lastRepair; // most recent repair row for this phone
   int _customerTotalRepairs = 0;
   int _customerActiveDebt = 0; // net debt amount (positive = owes shop)
+  int _customerTotalSpent = 0; // lifetime repair revenue for this phone
 
   StorageLocation? _selectedLocation;
   String? _pickupSchedule; // 'now' | 'same_day' | 'later'
@@ -416,7 +419,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       [phone],
     );
     final countRow = await dbInst.rawQuery(
-      "SELECT COUNT(*) as cnt FROM repairs WHERE phone = ? AND deleted != 1",
+      "SELECT COUNT(*) as cnt, COALESCE(SUM(price), 0) as total FROM repairs WHERE phone = ? AND deleted != 1",
       [phone],
     );
     final debts = await dbInst.rawQuery(
@@ -425,24 +428,14 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     );
     if (!mounted) return;
 
-    int netDebt = 0;
-    for (final d in debts) {
-      final total = (d['totalAmount'] as int?) ?? 0;
-      final paid = (d['paidAmount'] as int?) ?? 0;
-      final remaining = total - paid;
-      if (remaining <= 0) continue;
-      if (d['type'] == 'CUSTOMER_OWES') {
-        netDebt += remaining;
-      } else {
-        netDebt -= remaining;
-      }
-    }
+    final netDebt = DebtSummaryService().sumNetDebt(debts);
 
     setState(() {
       _lastRepair = repairs.isNotEmpty
           ? Map<String, dynamic>.from(repairs.first)
           : null;
       _customerTotalRepairs = (countRow.first['cnt'] as int?) ?? 0;
+      _customerTotalSpent = (countRow.first['total'] as int?) ?? 0;
       _customerActiveDebt = netDebt;
     });
   }
@@ -451,6 +444,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     setState(() {
       _lastRepair = null;
       _customerTotalRepairs = 0;
+      _customerTotalSpent = 0;
       _customerActiveDebt = 0;
     });
   }
@@ -1648,78 +1642,118 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         : loc.shopOwesCustomer;
 
     String? lastDate;
+    String? relativeLabel;
     if (repair != null) {
       final ts = repair['createdAt'] as int?;
       if (ts != null && ts > 0) {
         final dt = DateTime.fromMillisecondsSinceEpoch(ts);
         lastDate = '${dt.day}/${dt.month}/${dt.year}';
+        relativeLabel = _relativeDaysLabel(dt);
       }
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.blue.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.history_rounded, size: 16, color: Colors.blue.shade400),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      'Khách cũ · $_customerTotalRepairs đơn',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.blue.shade700,
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: () {
+        final phone = phoneCtrl.text.trim();
+        if (phone.isEmpty) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                CustomerHistoryView(phone: phone, name: nameCtrl.text.trim()),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.blue.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.history_rounded, size: 16, color: Colors.blue.shade400),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Khách cũ · $_customerTotalRepairs đơn',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue.shade700,
+                        ),
                       ),
-                    ),
-                    if (hasDebt) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: debtColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '$debtLabel ${MoneyUtils.formatCompactCurrency(_customerActiveDebt.abs())}',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: debtColor,
-                            fontWeight: FontWeight.w600,
+                      if (hasDebt) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: debtColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '$debtLabel ${MoneyUtils.formatCompactCurrency(_customerActiveDebt.abs())}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: debtColor,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
-                ),
-                if (repair != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    '${repair['model'] ?? ''}${repair['issue'] != null ? ' · ${repair['issue']}' : ''}${lastDate != null ? ' · $lastDate' : ''}',
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
+                  if (repair != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      '${repair['model'] ?? ''}${repair['issue'] != null ? ' · ${repair['issue']}' : ''}${lastDate != null ? ' · $lastDate' : ''}${relativeLabel != null ? ' ($relativeLabel)' : ''}',
+                      style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  if (_customerTotalSpent > 0) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      'Đã chi: ${MoneyUtils.formatCompactCurrency(_customerTotalSpent)}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.blue.shade600,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-        ],
+            Icon(Icons.chevron_right, size: 18, color: Colors.blue.shade300),
+          ],
+        ),
       ),
     );
+  }
+
+  String _relativeDaysLabel(DateTime dt) {
+    final now = DateTime.now();
+    final diffDays = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).difference(DateTime(dt.year, dt.month, dt.day)).inDays;
+    if (diffDays <= 0) return 'hôm nay';
+    if (diffDays == 1) return 'hôm qua';
+    return '$diffDays ngày trước';
   }
 
   Widget _buildCompactMainSection() {

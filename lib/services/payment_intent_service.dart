@@ -700,7 +700,8 @@ class PaymentIntentService {
           final debtId = intent.metadata!['debtId'];
           final debtFirestoreId = intent.metadata!['debtFirestoreId'];
           final debtType = intent.metadata!['debtType'] as String? ?? 'SHOP_OWES';
-          
+          final paymentGroupId = intent.metadata!['paymentGroupId'] as String?;
+
           await _db.insertDebtPayment({
             'firestoreId': 'dp_${intent.id}',
             'debtId': debtId,
@@ -712,6 +713,7 @@ class PaymentIntentService {
             'createdBy': intent.paidBy,
             'note': intent.notes,
             'shopId': UserService.getShopIdSync(),
+            if (paymentGroupId != null) 'paymentGroupId': paymentGroupId,
             'isSynced': 0,
           });
           
@@ -781,7 +783,8 @@ class PaymentIntentService {
           final debtId = intent.metadata!['debtId'];
           final debtFirestoreId = intent.metadata!['debtFirestoreId'];
           final debtType = intent.metadata!['debtType'] as String? ?? 'CUSTOMER_OWES';
-          
+          final paymentGroupId = intent.metadata!['paymentGroupId'] as String?;
+
           await _db.insertDebtPayment({
             'firestoreId': 'dp_${intent.id}',
             'debtId': debtId,
@@ -793,6 +796,7 @@ class PaymentIntentService {
             'createdBy': intent.paidBy,
             'note': intent.notes,
             'shopId': UserService.getShopIdSync(),
+            if (paymentGroupId != null) 'paymentGroupId': paymentGroupId,
             'isSynced': 0,
           });
           

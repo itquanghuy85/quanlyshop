@@ -13,6 +13,8 @@ import '../widgets/custom_app_bar.dart';
 import '../widgets/entity_avatar.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../data/db_helper.dart';
+import '../services/debt_summary_service.dart';
+import 'customer_debt_view.dart';
 import 'repair_detail_view.dart';
 import 'sale_detail_view.dart';
 
@@ -49,6 +51,9 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
 
   String _historyFilter = 'all';
 
+  int _currentDebt = 0;
+  bool _loadingDebt = true;
+
   @override
   void initState() {
     super.initState();
@@ -59,6 +64,29 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
     _notesCtrl.text = c.notes ?? '';
     _avatarUrl = c.avatarUrl ?? '';
     _loadHistory();
+    _loadDebt();
+  }
+
+  Future<void> _loadDebt() async {
+    try {
+      final debts = await DebtSummaryService().getCustomerActiveDebts(
+        _phoneCtrl.text.trim(),
+      );
+      if (!mounted) return;
+      final total = debts.fold<int>(
+        0,
+        (sum, d) =>
+            sum +
+            (((d['totalAmount'] as num?)?.toInt() ?? 0) -
+                ((d['paidAmount'] as num?)?.toInt() ?? 0)),
+      );
+      setState(() {
+        _currentDebt = total;
+        _loadingDebt = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingDebt = false);
+    }
   }
 
   @override
@@ -439,6 +467,61 @@ class _CustomerProfileViewState extends State<CustomerProfileView> {
                 ],
               ),
             ),
+            if (!_loadingDebt && _currentDebt > 0) ...[
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Card(
+                  color: const Color(0xFFFEF2F2),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: Colors.red.shade100),
+                  ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CustomerDebtView(
+                          phone: _phoneCtrl.text.trim(),
+                          customerName: _nameCtrl.text.trim(),
+                        ),
+                      ),
+                    ).then((_) => _loadDebt()),
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Công nợ hiện tại',
+                                  style: AppTextStyles.caption.copyWith(
+                                    color: Colors.red.shade700,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  MoneyUtils.formatVND(_currentDebt),
+                                  style: AppTextStyles.subtitle1.copyWith(
+                                    color: Colors.red.shade800,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(Icons.chevron_right, color: Colors.red.shade300),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             Card(
               margin: const EdgeInsets.symmetric(horizontal: 12),

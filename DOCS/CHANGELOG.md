@@ -4,6 +4,36 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-22a] - feat(sale,debt): công nợ khách hàng gộp nhiều đơn (bán sỉ) + thu tiền phân bổ FIFO
+
+**Bối cảnh:** User chuyển hướng bán sỉ — 1 khách mua nhiều đơn, nợ cộng dồn qua nhiều đơn, muốn trả gộp sau thay vì trả từng đơn riêng lẻ. Trước đây `debts` là 1 dòng nợ : 1 đơn, không có khái niệm "tổng công nợ khách qua nhiều đơn", và `sale_detail_view.dart` không hiển thị số đã thu/còn nợ nào cả. Yêu cầu đầy đủ đã lập plan trước khi code (`/plan`), người dùng chốt: (1) làm toàn bộ nhưng cẩn thận từng bước; (2) "Nợ trước đơn" tính real-time (không lưu snapshot); (3) chặn thu vượt tổng công nợ hiện tại.
+
+**Nguyên tắc an toàn:** không đổi schema `sales`/`customers`/`debts`; chỉ thêm 1 cột mới nullable `debt_payments.paymentGroupId`; không đổi công thức doanh thu/giá vốn/tồn kho; không đổi cấu trúc Firestore — tái dùng nguyên `debts`/`debt_payments`/`payment_intents` + đường sync hiện có (`SyncOrchestrator`, `syncPaymentRelatedData`).
+
+**1. Migration DB (v105 → v106):** thêm cột `debt_payments.paymentGroupId TEXT` (nullable) — nhóm nhiều dòng `debt_payments` (mỗi dòng vẫn 1 khoản trả cho đúng 1 đơn như cơ chế cũ) thành 1 "phiếu thu gộp" khi khách trả 1 lần cho nhiều đơn. `PaymentIntentService._updateRelatedEntities` đọc thêm `metadata['paymentGroupId']` nếu có — backward-compatible, caller cũ không set thì vẫn `null`, hành vi cũ giữ nguyên 100%.
+
+**2. Service layer mới:**
+- `DebtSummaryService` (mở rộng): `getCustomerActiveDebts(phone)` (danh sách đơn còn nợ của khách, sort cũ nhất trước = FIFO), `getAllCustomerDebtsForHistory(phone)`, `getNetDebtByPhoneMap()` (1-query cho danh sách, tránh N+1), `getOrderRemainingDebt(sale)`, `sumNetDebt()`/`computeNetDebtForPhone()`. Đã refactor 3 chỗ đang lặp SQL thô y hệt (`create_sale_view.dart`, `create_repair_order_view.dart`, `sale_list_view.dart._effectiveRemainingDebt`) gọi lại các hàm này — cùng công thức, cùng kết quả, chỉ gom về 1 chỗ.
+- `CustomerDebtPaymentService` (mới, `lib/services/customer_debt_payment_service.dart`): `suggestFifoAllocation()` (hàm thuần, đề xuất phân bổ cũ-nhất-trước) + `collectPayment()` — validate chặn vượt tổng nợ (server-side, không chỉ tin UI), lặp gọi `PaymentIntentService.executePaymentDirect` cho từng đơn (tái dùng nguyên cơ chế 1-đơn đã chạy production của `DebtPaymentSheet`, không xây pipeline mới), gắn chung `paymentGroupId`, ghi 1 audit log tổng hợp cho cả phiếu.
+
+**3. Màn hình mới:**
+- `lib/views/customer_debt_view.dart` — Công nợ khách hàng: tổng nợ hiện tại, danh sách đơn còn nợ (bán + sửa, tap mở đúng đơn), lịch sử công nợ dạng timeline (tạo đơn + thu tiền, gộp cả đơn đã trả hết). Mở từ `customer_profile_view.dart` (card mới, chỉ hiện khi có nợ) và từ `sale_detail_view.dart`.
+- `lib/views/collect_customer_debt_view.dart` — luồng thu tiền gộp 3 bước: (1) nhập tiền + phương thức, chặn nhập vượt tổng nợ; (2) bảng phân bổ FIFO đề xuất sẵn nhưng sửa tay được từng đơn (không khóa cứng FIFO), validate tổng phân bổ khớp số tiền nhập; (3) kết quả — công nợ trước/sau, breakdown từng đơn, đơn nào hết nợ.
+
+**4. `sale_detail_view.dart` (thuần cộng thêm):** card "CÔNG NỢ KHÁCH HÀNG" (Nợ trước đơn + Nợ phát sinh từ đơn = Công nợ sau đơn, tách rõ khỏi nợ riêng đơn này); banner "CÒN NỢ ĐƠN" + nút THU TIỀN khi đơn còn nợ; dòng "Tổng đã thu" trong khối tổng tiền (nhãn rõ ràng, tránh gây hiểu lầm đã thu đủ). Tiện thể sửa `remainingDebt` trong `_buildSalePrintData()` từ `s.remainingDebt` thô (chỉ tính trả góp NH) sang `_orderRemainingDebt` (ưu tiên bảng `debts`, đúng cho cả đơn CÔNG NỢ) — cùng công thức `sale_list_view.dart` đã dùng, sửa đúng cho mọi đơn, không đổi gì cho đơn không có công nợ qua bảng `debts`.
+
+**5. Biên nhận:** thêm token `{customerTotalDebt}` (tách riêng khỏi `{remainingDebt}` — không trộn "nợ đơn này" với "tổng công nợ khách") ở `sale_invoice_preview_view.dart` + mẫu mặc định `sale_invoice_template_view.dart`. Chỉ ảnh hưởng shop dùng mẫu mặc định (chưa tự tùy biến) — shop đã lưu mẫu riêng trong SharedPreferences giữ nguyên, có thể tự thêm token mới nếu muốn.
+
+**6. `sale_list_view.dart`:** thêm dòng nhỏ "Công nợ khách hiện tại" dưới chip Nợ (chỉ hiện khi khách còn nợ đơn khác ngoài đơn đang xem), dùng `getNetDebtByPhoneMap()` gọi 1 lần khi load danh sách.
+
+**Quyết định phạm vi có ý thức:** không tách `debt_view.dart._showDebtHistory()` thành widget dùng chung như plan ban đầu dự tính — thay vào đó xây timeline riêng, độc lập trong `CustomerDebtView`, để **không đụng vào màn công nợ shop-wide đang chạy production hàng ngày**. Timeline mới không tính lại "công nợ sau mỗi giao dịch" theo lịch sử (event-sourcing replay) — chỉ hiển thị từng sự kiện (tạo đơn / thu tiền) kèm số tiền, không có cột số dư lũy kế tại mỗi thời điểm.
+
+**Verify:** `flutter analyze` sạch trên toàn bộ project (0 error, chỉ info/warning có sẵn từ trước) sau từng bước. `flutter build apk --debug` thành công (`app-debug.apk`). **CHƯA cài + test trên thiết bị thật** — không có máy/adb kết nối trong phiên làm việc này. Toàn bộ luồng nghiệp vụ (tạo nhiều đơn công nợ, xem tổng nợ, thu tiền gộp FIFO, sửa tay phân bổ, kiểm tra doanh thu không tăng sai, đồng bộ nhiều máy) mới chỉ được kiểm bằng code review + build thành công, **chưa tự tay chạy qua trên app thật**.
+
+**Files:** `lib/data/db_helper.dart`, `lib/services/payment_intent_service.dart`, `lib/services/debt_summary_service.dart`, `lib/services/customer_debt_payment_service.dart` (mới), `lib/views/customer_debt_view.dart` (mới), `lib/views/collect_customer_debt_view.dart` (mới), `lib/views/customer_profile_view.dart`, `lib/views/sale_detail_view.dart`, `lib/views/sale_list_view.dart`, `lib/views/create_sale_view.dart`, `lib/views/create_repair_order_view.dart`, `lib/views/sale_invoice_preview_view.dart`, `lib/views/sale_invoice_template_view.dart`.
+
+---
+
 ## [2026-08-17e] - chore(release): lên bản 3.4.0+545 + nâng iOS min deployment lên 15.0
 
 **Version:** `pubspec.yaml` 3.3.0+541 → **3.4.0+545** (gồm toàn bộ fix trong ngày 2026-08-17: chống mất dữ liệu khi duyệt giao/sửa giá vốn, sửa báo nhầm mạng chập chờn, list đơn sửa cập nhật ngay, xóa đơn không còn mồ côi dữ liệu cloud, chặn công nợ đoán sai chiều).
