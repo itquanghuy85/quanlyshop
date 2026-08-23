@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -16,9 +17,12 @@ import '../services/unified_printer_service.dart';
 import '../services/bluetooth_printer_service.dart';
 import '../services/notification_service.dart';
 import '../services/debt_summary_service.dart';
+import '../services/chat_service.dart';
+import '../services/audit_service.dart';
 import '../widgets/printer_selection_dialog.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/receipt_paper_view.dart';
+import '../widgets/share_receipt_sheet.dart';
 
 class RepairInvoicePreviewView extends StatefulWidget {
   final Repair repair;
@@ -38,8 +42,12 @@ class RepairInvoicePreviewView extends StatefulWidget {
 
 class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
   bool _isLoading = true;
-  bool _useTemplate = false;
+  // true = shop đã tự bật + tùy biến mẫu in riêng → hiển thị lại y hệt chuỗi
+  // mẫu đó. false = chưa tùy biến, máy in dùng layout ESC/POS mặc định dựng
+  // sẵn (unified_printer_service.dart) → dựng lại đúng layout đó bằng widget.
+  bool _useCustomTemplate = false;
   String _previewText = '';
+  List<Widget> _defaultChildren = [];
   bool _sharing = false;
 
   final _screenshotController = ScreenshotController();
@@ -86,12 +94,52 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
   Future<void> _loadPreview() async {
     final prefs = await SharedPreferences.getInstance();
     final useTemplate = prefs.getBool('repair_invoice_use_template') ?? false;
-    final header = prefs.getString('repair_invoice_header') ??
-        '=== PHIẾU SỬA CHỮA ===\n{shopName}\n{shopAddr}\nHotline: {shopPhone}\n--------------------------------';
-    final body = prefs.getString('repair_invoice_body') ??
-      'Mã đơn: {code}\nNgày: {date} {time}\n\nKhách: {customerName}\nSĐT: {customerPhone}\n\nMáy: {model}\nIMEI: {imei}\nLỗi: {issue}\nPhụ kiện: {accessories}\nLinh kiện đã dùng: {partsUsed}\nDịch vụ: {services}\nBảo hành: {warranty}\nGhi chú: {notes}\n{warrantyPolicy}\n\nGiá: {price} đ\nThanh toán: {paymentMethod}\nTrạng thái: {status}\n[QR]{qrData}';
-    final footer = prefs.getString('repair_invoice_footer') ??
-        '--------------------------------\nCảm ơn quý khách!';
+    final rawHeader = prefs.getString('repair_invoice_header') ?? '';
+    final rawBody = prefs.getString('repair_invoice_body') ?? '';
+    final rawFooter = prefs.getString('repair_invoice_footer') ?? '';
+    // Khớp đúng điều kiện `useTemplate && hasTemplate` bên
+    // UnifiedPrinterService.printRepairReceiptFromRepair — xem giải thích
+    // đầy đủ ở sale_invoice_preview_view.dart._loadPreview().
+    final hasTemplate = rawHeader.trim().isNotEmpty ||
+        rawBody.trim().isNotEmpty ||
+        rawFooter.trim().isNotEmpty;
+    final useCustomTemplate = useTemplate && hasTemplate;
+
+    int remainingDebt = 0;
+    try {
+      final activeDebts = await _debtSummary.getCustomerActiveDebts(widget.repair.phone);
+      final linkedDebt = activeDebts
+          .where((d) => d['linkedId'] == widget.repair.firestoreId)
+          .firstOrNull;
+      remainingDebt = _debtSummary.remainingDebtFromLinkedDebt(linkedDebt);
+    } catch (_) {}
+
+    final bankBin = prefs.getString('bank_qr_bin') ?? '';
+    final bankName = prefs.getString('bank_qr_name') ?? '';
+    final bankAccount = prefs.getString('bank_qr_account') ?? '';
+    final bankHolder = prefs.getString('bank_qr_holder') ?? '';
+
+    if (!useCustomTemplate) {
+      final children = _buildDefaultChildren();
+      setState(() {
+        _useCustomTemplate = false;
+        _defaultChildren = children;
+        _remainingDebt = remainingDebt;
+        _bankBin = bankBin;
+        _bankName = bankName;
+        _bankAccount = bankAccount;
+        _bankHolder = bankHolder;
+        _isLoading = false;
+      });
+      if (widget.autoShare && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _shareImage());
+      }
+      return;
+    }
+
+    final header = rawHeader;
+    final body = rawBody;
+    final footer = rawFooter;
 
     final createdAt = DateTime.fromMillisecondsSinceEpoch(widget.repair.createdAt);
     final data = <String, String>{
@@ -135,22 +183,8 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
         .where((line) => !line.trimLeft().startsWith('[QR]'))
         .join('\n');
 
-    int remainingDebt = 0;
-    try {
-      final activeDebts = await _debtSummary.getCustomerActiveDebts(widget.repair.phone);
-      final linkedDebt = activeDebts
-          .where((d) => d['linkedId'] == widget.repair.firestoreId)
-          .firstOrNull;
-      remainingDebt = _debtSummary.remainingDebtFromLinkedDebt(linkedDebt);
-    } catch (_) {}
-
-    final bankBin = prefs.getString('bank_qr_bin') ?? '';
-    final bankName = prefs.getString('bank_qr_name') ?? '';
-    final bankAccount = prefs.getString('bank_qr_account') ?? '';
-    final bankHolder = prefs.getString('bank_qr_holder') ?? '';
-
     setState(() {
-      _useTemplate = useTemplate;
+      _useCustomTemplate = true;
       _previewText = displayText;
       _remainingDebt = remainingDebt;
       _bankBin = bankBin;
@@ -165,8 +199,52 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
     }
   }
 
+  /// Dựng lại ĐÚNG layout ESC/POS mặc định của
+  /// `UnifiedPrinterService.printRepairReceiptFromRepair` (nhánh không có
+  /// mẫu tùy biến, dạng "phiếu tiếp nhận máy") bằng widget — cùng nội
+  /// dung/thứ tự/phân cấp như giấy in thật. Bỏ hàng ký tên "Khách hàng |
+  /// Nhân viên" — chỉ có ý nghĩa trên giấy thật để ký tay, không áp dụng
+  /// cho ảnh số.
+  List<Widget> _buildDefaultChildren() {
+    final r = widget.repair;
+    final createdAt = DateTime.fromMillisecondsSinceEpoch(r.createdAt);
+    String subInfo = '';
+    if (r.color != null && r.color!.isNotEmpty) subInfo += 'Màu: ${r.color} | ';
+    if (r.condition != null && r.condition!.isNotEmpty) subInfo += 'Vỏ: ${r.condition}';
+
+    return [
+      receiptTitle(widget.shopInfo['shopName']?.toString() ?? 'SHOP NEW'),
+      receiptCenter(widget.shopInfo['shopAddr']?.toString() ?? ''),
+      receiptCenter('Hotline: ${widget.shopInfo['shopPhone']?.toString() ?? ''}', bold: true),
+      receiptDivider(),
+      receiptTitle('PHIẾU TIẾP NHẬN MÁY', fontSize: 17),
+      receiptCenter('Mã đơn: ${r.firestoreId ?? r.createdAt}'),
+      receiptCenter('Ngày nhận: ${DateFormat('dd/MM/yyyy HH:mm').format(createdAt)}'),
+      receiptGap(),
+      receiptLeft('Khách hàng: ${r.customerName}', bold: true),
+      receiptLeft('SĐT: ${r.phone}'),
+      receiptGap(),
+      receiptLeft('Máy: ${r.model}', bold: true),
+      if (r.imei != null && r.imei!.isNotEmpty) receiptLeft('IMEI/SN: ${r.imei}'),
+      receiptLeft('Tình trạng: ${r.issue}'),
+      if (subInfo.trim().isNotEmpty) receiptSmall(subInfo),
+      receiptLeft('Phụ kiện: ${r.accessories}'),
+      receiptGap(),
+      receiptLeft('Giá dự kiến: ${MoneyUtils.formatVND(r.price)} đ', bold: true, fontSize: 17),
+      receiptLeft('Hình thức: ${r.paymentMethod}'),
+      receiptGap(),
+      receiptSmall('- Quý khách vui lòng giữ phiếu để nhận máy.'),
+      receiptSmall('- Shop không chịu trách nhiệm về dữ liệu trong máy.'),
+      receiptGap(),
+      receiptCenter('CẢM ƠN QUÝ KHÁCH!', bold: true),
+    ];
+  }
+
   Future<void> _shareImage() async {
     if (_sharing) return;
+    final target = await showShareReceiptTargetSheet(context);
+    if (target == null || !mounted) return;
+
     setState(() => _sharing = true);
     try {
       final bytes = await _screenshotController.capture(pixelRatio: 2.5);
@@ -177,7 +255,26 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
       final file = File('${dir.path}/phieu_sua_$code.png');
       await file.writeAsBytes(bytes);
 
-      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
+      if (target == ReceiptShareTarget.customer) {
+        await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
+      } else {
+        final caption =
+            '🔧 Phiếu sửa - ${widget.repair.customerName} - ${widget.repair.model} - ${MoneyUtils.formatVND(widget.repair.price)} đ';
+        final sentId = await ChatService.sendImageMessage(images: [file], caption: caption);
+        if (sentId == null) throw Exception('Không gửi được vào chat nội bộ');
+        if (mounted) {
+          NotificationService.showSnackBar('Đã gửi ảnh vào chat nội bộ', color: Colors.green);
+        }
+      }
+
+      unawaited(AuditService.logAction(
+        action: target == ReceiptShareTarget.customer ? 'SHARE_RECEIPT_CUSTOMER' : 'SHARE_RECEIPT_INTERNAL',
+        entityType: 'REPAIR',
+        entityId: code,
+        summary: target == ReceiptShareTarget.customer
+            ? 'Chia sẻ ảnh phiếu sửa cho khách'
+            : 'Gửi ảnh phiếu sửa vào chat nội bộ',
+      ));
     } catch (e) {
       if (mounted) {
         NotificationService.showSnackBar('Không tạo được ảnh: $e', color: Colors.red);
@@ -234,12 +331,12 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (!_useTemplate)
+                  if (!_useCustomTemplate)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                       child: Text(
-                        'Mẫu đang tắt, bản xem trước dùng template mặc định.',
-                        style: TextStyle(color: Colors.orange.shade800),
+                        'Đang dùng mẫu in mặc định — khớp đúng bản in giấy. Tự tùy biến mẫu riêng ở Cài đặt > Mẫu in.',
+                        style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                       ),
                     ),
                   Expanded(
@@ -251,12 +348,19 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
                           child: Container(
                             color: const Color(0xFFE7E9EC),
                             padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: ReceiptPaperView(
-                              text: _previewText,
-                              footer: (_remainingDebt > 0 && _hasBankInfo)
-                                  ? _buildPaymentQrContent()
-                                  : null,
-                            ),
+                            child: _useCustomTemplate
+                                ? ReceiptPaperView(
+                                    text: _previewText,
+                                    footer: (_remainingDebt > 0 && _hasBankInfo)
+                                        ? _buildPaymentQrContent()
+                                        : null,
+                                  )
+                                : ReceiptPaperView(
+                                    footer: (_remainingDebt > 0 && _hasBankInfo)
+                                        ? _buildPaymentQrContent()
+                                        : null,
+                                    children: _defaultChildren,
+                                  ),
                           ),
                         ),
                       ),

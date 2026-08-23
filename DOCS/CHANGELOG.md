@@ -4,6 +4,28 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-24a] - feat(sale,repair,kho): chia sẻ ảnh gửi khách/nội bộ + đồng nhất sửa NCC/thanh toán ở màn Sửa sản phẩm + fix bug sửa lần 2
+
+**Bối cảnh:** Nối tiếp `[2026-08-23d]`. (1) User yêu cầu làm gọn nút "Chia sẻ ảnh" của đơn bán/phiếu sửa sao cho chuyên nghiệp — trước đây chỉ có 1 hành vi (share sheet hệ thống), không phân biệt gửi khách hay báo nội bộ. (2) User phát hiện đúng 1 điểm KHÔNG đồng nhất còn sót lại từ `[2026-08-23d]`: màn "Sửa sản phẩm" (khác với màn Chi tiết phiếu nhập kho) có ô "Nhà cung cấp" bị khoá cứng (không sửa được) và hoàn toàn KHÔNG có ô "Phương thức thanh toán" — trong khi đây chính là 2 thứ vừa làm được ở phiếu nhập kho.
+
+**1. `lib/widgets/share_receipt_sheet.dart` (mới):** bottom sheet 2 lựa chọn khi bấm "Chia sẻ ảnh" — "Gửi cho khách" (giữ nguyên hành vi cũ: share sheet hệ thống — Zalo, Messenger, lưu ảnh...) và "Gửi nội bộ" (mới — đăng thẳng ảnh vào chat nội bộ shop qua `ChatService.sendImageMessage`, kèm caption tóm tắt đơn, không cần thoát màn hình). Áp dụng cho cả `sale_invoice_preview_view.dart` và `repair_invoice_preview_view.dart`. Mỗi lần chia sẻ đều ghi 1 dòng `AuditService.logAction` (`SHARE_RECEIPT_CUSTOMER`/`SHARE_RECEIPT_INTERNAL`) để truy vết.
+
+**2. `lib/widgets/correct_supplier_payment_dialog.dart` (mới, tách từ `import_order_detail_view.dart`):** gom logic dialog "Sửa NCC/thanh toán" (chọn NCC + phương thức, cảnh báo chốt quỹ, gọi `StockEntryService.correctSupplierAndPayment`) thành 1 hàm dùng chung `showCorrectSupplierPaymentDialog()`, để cả màn Chi tiết phiếu nhập kho lẫn màn Sửa sản phẩm gọi chung 1 chỗ — tránh lặp code + đảm bảo hành vi nhất quán.
+
+**3. `lib/data/db_helper.dart`:** thêm `getStockEntryIdForImei()` — tra `supplier_import_history` theo IMEI để tìm ngược đúng phiếu nhập kho đã tạo ra 1 sản phẩm cụ thể (bảng này có `referenceId` = entryId, sản phẩm thì không có liên kết ngược trực tiếp).
+
+**4. `lib/views/inventory_view.dart` (màn Sửa sản phẩm):** thêm ô "Phương thức thanh toán" (khoá, hiển thị — trước đây thiếu hẳn) cạnh ô NCC đã có. Thêm nút "Sửa NCC / thanh toán" — bấm vào sẽ tự tìm phiếu nhập kho gốc qua IMEI rồi mở đúng dialog dùng chung ở mục 2; sản phẩm không có IMEI (không tự tìm được phiếu gốc) sẽ báo rõ lý do thay vì im lặng. Sau khi sửa thành công, ô NCC/thanh toán cập nhật ngay tại chỗ.
+
+**Bug fix quan trọng tìm thấy khi test sửa 1 phiếu LẦN THỨ HAI:** `StockEntryService.correctSupplierAndPayment()` xác định "đang là công nợ hay không" (`wasDebt`) bằng cách đọc `paymentMethod` từ `StockEntry` gốc — nhưng đây là bản ghi **bất biến lúc tạo**, không phản ánh lần sửa trước đó. Hậu quả: sửa lần 1 luôn đúng, nhưng sửa lần 2 trở đi luôn đọc nhầm về trạng thái gốc ban đầu → tìm sai bảng (`debts` thay vì `expenses` hoặc ngược lại) → báo "Không tìm thấy công nợ gốc của phiếu này" dù dữ liệu vẫn còn nguyên, không sửa được nữa. Đã sửa: đọc `wasDebt`/tên NCC cũ từ `ImportOrder` (bản ghi phản ánh trạng thái HIỆN TẠI, được cập nhật đúng sau mỗi lần sửa) thay vì từ `StockEntry`.
+
+**Verify (test trên Oppo CPH2203, `m@m.com`/shop "M"):** `flutter analyze` sạch (0 lỗi) sau từng bước + toàn project. Build debug + cài lại 2 lần (1 lần fix bug sửa-lần-2 phát hiện ngay trong lúc test).
+- Từ màn Sửa sản phẩm (IMEI thật, phiếu NK-0039 đã tạo ở `[2026-08-23d]`): bấm "Sửa NCC / thanh toán" → tự tìm đúng phiếu nhập kho gốc, dialog hiện đúng NCC/thanh toán hiện tại (CHUYỂN KHOẢN, từ lần sửa trước) — xác nhận đây chính là bug: đổi sang TIỀN MẶT → lưu → **lần đầu chạy thất bại thầm lặng** (ô vẫn hiện CHUYỂN KHOẢN, không có bug trước đó nên chưa nghi ngờ) → phát hiện qua dump lại dialog vẫn hiện giá trị cũ → xác định đúng nguyên nhân → sửa code → build lại → test lại: đổi TIỀN MẶT thành công, ô cập nhật ngay, `Lịch sử nhập kho` xác nhận badge đổi CK→TM đúng.
+- Chia sẻ ảnh gửi nội bộ (mục 1): mở phiếu sửa HUY (IPHONE 8) → bấm ZALO (autoShare) → sheet "Chia sẻ ảnh" hiện đúng 2 lựa chọn → bấm "Gửi nội bộ" → **lần đầu bấm không thấy tin nhắn mới xuất hiện trong Chat nội bộ** (nghi ngờ bug) → dump lại toạ độ chính xác của sheet bằng uiautomator, phát hiện lần bấm trước đó rơi vào vùng "Scrim" (nằm ngoài sheet, tự đóng sheet không chọn gì) — không phải bug code, do bấm sai toạ độ khi test. Bấm lại đúng toạ độ: xác nhận tin nhắn ảnh xuất hiện đúng trong `Chat nội bộ` kèm caption "🔧 Phiếu sửa - HUY - IPHONE 8 - 0 đ", ảnh tải và hiển thị đầy đủ.
+
+**Files:** `lib/widgets/share_receipt_sheet.dart` (mới), `lib/widgets/correct_supplier_payment_dialog.dart` (mới), `lib/views/sale_invoice_preview_view.dart`, `lib/views/repair_invoice_preview_view.dart`, `lib/views/import_order_detail_view.dart`, `lib/views/inventory_view.dart`, `lib/data/db_helper.dart`, `lib/services/stock_entry_service.dart`.
+
+---
+
 ## [2026-08-23d] - feat(kho,ncc): cho phép sửa NCC/phương thức thanh toán sau khi nhập kho, khớp cả công nợ + sổ quỹ
 
 **Bối cảnh:** Nhân viên đôi khi chọn nhầm NCC hoặc nhầm hình thức thanh toán (TIỀN MẶT/CHUYỂN KHOẢN/CÔNG NỢ) khi xác nhận phiếu nhập kho, và trước đây không có cách sửa lại. Đã khảo sát kỹ trước khi code: xác nhận công nợ NCC + sổ quỹ được tính từ đúng 2 bảng local `debts`/`expenses` (qua `cash_closing_view.dart`), không phải từ `Product` hay `supplier_debts` (Firestore, ghi lúc confirm nhưng không nơi nào đọc lại — an toàn bỏ qua). Vì vậy việc sửa phải thao tác ở cấp **phiếu nhập kho** (không phải từng sản phẩm) mới khớp đúng số liệu tài chính — đã hỏi lại user xác nhận hướng này trước khi code.

@@ -54,6 +54,7 @@ import 'missing_info_products_view.dart';
 import '../theme/popup_theme.dart';
 import '../services/financial_activity_service.dart';
 import '../widgets/supplier_picker_sheet.dart';
+import '../widgets/correct_supplier_payment_dialog.dart';
 import '../widgets/app_popup.dart';
 import '../widgets/ai_order_input_sheet.dart';
 import '../models/supplier_model.dart';
@@ -4256,7 +4257,9 @@ class _InventoryViewState extends State<InventoryView>
 
     String type = p.type;
     String? supplier = p.supplier;
+    String? paymentMethod = p.paymentMethod;
     bool isSaving = false;
+    bool isCorrectingSupplier = false;
     String? editLocalImagePath = p.localImagePath;
     StorageLocation? editSelectedLocation =
         (p.locationCode?.isNotEmpty ?? false)
@@ -4324,6 +4327,7 @@ class _InventoryViewState extends State<InventoryView>
                     p.quantity, // SL không thay đổi qua edit — dùng "Nhập thêm"
                 type: type,
                 supplier: supplier,
+                paymentMethod: paymentMethod,
                 updatedAt: ts,
                 isSynced: false,
                 // Tự động chuyển kho tạm → kho chính nếu có giá vốn
@@ -5171,6 +5175,115 @@ class _InventoryViewState extends State<InventoryView>
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 8),
+                      // Phương thức thanh toán (khóa — sửa qua nút bên dưới,
+                      // đúng nơi duy nhất khớp lại được công nợ NCC/sổ quỹ)
+                      InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: 'Phương thức thanh toán',
+                          labelStyle: const TextStyle(
+                            color: PopupTheme.textMuted,
+                            fontSize: 13,
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.lock,
+                            size: 16,
+                            color: PopupTheme.textMuted,
+                          ),
+                          filled: true,
+                          fillColor: PopupTheme.cardDark,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              PopupTheme.radiusField,
+                            ),
+                            borderSide: const BorderSide(
+                              color: PopupTheme.borderDark,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              PopupTheme.radiusField,
+                            ),
+                            borderSide: const BorderSide(
+                              color: PopupTheme.borderDark,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          paymentMethodLabel(paymentMethod),
+                          style: const TextStyle(
+                            color: PopupTheme.textMuted,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Nút sửa NCC/thanh toán — cùng 1 chỗ, tự khớp lại công
+                      // nợ NCC/sổ quỹ qua đúng phiếu nhập kho gốc (tìm qua
+                      // IMEI). Không có IMEI thì không tự tìm được phiếu gốc.
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: isCorrectingSupplier
+                              ? null
+                              : () async {
+                                  final imei = (p.imei ?? '').trim();
+                                  if (imei.isEmpty) {
+                                    NotificationService.showSnackBar(
+                                      'Sản phẩm không có IMEI nên không tự tìm được phiếu nhập kho gốc để sửa. Vào Kho > Lịch sử nhập kho để tìm phiếu tương ứng nếu có.',
+                                      color: Colors.orange,
+                                    );
+                                    return;
+                                  }
+                                  setS(() => isCorrectingSupplier = true);
+                                  final entryId =
+                                      await DBHelper().getStockEntryIdForImei(imei);
+                                  if (entryId == null) {
+                                    setS(() => isCorrectingSupplier = false);
+                                    NotificationService.showSnackBar(
+                                      'Không tìm thấy phiếu nhập kho gốc của sản phẩm này (dữ liệu cũ). Vào Kho > Lịch sử nhập kho để tìm sửa thủ công.',
+                                      color: Colors.orange,
+                                    );
+                                    return;
+                                  }
+                                  final result = await showCorrectSupplierPaymentDialog(
+                                    context: ctx,
+                                    entryId: entryId,
+                                    currentSupplierId: null,
+                                    currentSupplierName: supplier ?? '',
+                                    currentPaymentMethod: paymentMethod ?? '',
+                                  );
+                                  setS(() {
+                                    isCorrectingSupplier = false;
+                                    if (result != null) {
+                                      supplier = result['supplierName'] as String?;
+                                      paymentMethod = result['paymentMethod'] as String?;
+                                    }
+                                  });
+                                },
+                          icon: isCorrectingSupplier
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.edit_outlined, size: 16),
+                          label: const Text(
+                            'Sửa NCC / thanh toán',
+                            style: TextStyle(fontSize: 13),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.indigo,
+                            side: const BorderSide(color: Colors.indigo),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 8),
                       // Nút nhập thêm hàng — dòng riêng, full width

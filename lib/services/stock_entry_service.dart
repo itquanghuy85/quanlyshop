@@ -1113,8 +1113,16 @@ class StockEntryService {
         return false;
       }
 
-      final oldSupplierName = entry.supplierName ?? 'NCC';
-      final oldPaymentMethod = entry.paymentMethod ?? '';
+      // ImportOrder phản ánh trạng thái HIỆN TẠI (đã có thể bị sửa từ trước),
+      // khác với `entry` (StockEntry) luôn là bản ghi gốc bất biến lúc tạo.
+      // Phải xác định wasDebt/oldSupplierName từ đây — nếu lấy từ `entry` thì
+      // lần sửa THỨ HAI trở đi sẽ luôn đọc nhầm về trạng thái gốc ban đầu,
+      // không tìm đúng công nợ/phiếu chi đang thực sự tồn tại.
+      final importOrderRow = await db.getImportOrderByStockEntryId(entryId);
+      final oldSupplierName =
+          (importOrderRow?['supplierName'] as String?) ?? entry.supplierName ?? 'NCC';
+      final oldPaymentMethod =
+          (importOrderRow?['paymentMethod'] as String?) ?? entry.paymentMethod ?? '';
       final wasDebt = oldPaymentMethod == 'CÔNG NỢ';
       final willBeDebt = newPaymentMethod == 'CÔNG NỢ';
       final normalizedNewSupplierName = newSupplierName.toUpperCase().trim();
@@ -1295,7 +1303,6 @@ class StockEntryService {
       // `ImportOrder` bên dưới mới là nơi phản ánh thông tin hiện tại.
 
       // Cập nhật phiếu nhập kho hiển thị (Import Order), nếu có
-      final importOrderRow = await db.getImportOrderByStockEntryId(entryId);
       if (importOrderRow != null) {
         final orderFirestoreId = importOrderRow['firestoreId'] as String?;
         final newPaymentStatus = willBeDebt ? 'DEBT' : 'PAID';

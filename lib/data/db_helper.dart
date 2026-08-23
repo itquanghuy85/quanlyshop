@@ -9446,6 +9446,27 @@ class DBHelper {
     );
   }
 
+  /// Tìm entryId (StockEntry) đã tạo ra 1 sản phẩm cụ thể, qua IMEI — dùng để
+  /// mở đúng phiếu nhập kho gốc từ màn Sửa sản phẩm (sản phẩm không lưu trực
+  /// tiếp liên kết ngược, chỉ supplier_import_history mới có referenceId).
+  /// Trả về null nếu không có IMEI hoặc không tìm thấy (dữ liệu cũ/phụ kiện
+  /// gộp số lượng không có bản ghi riêng theo IMEI).
+  Future<String?> getStockEntryIdForImei(String imei) async {
+    if (imei.trim().isEmpty) return null;
+    final db = await database;
+    final rows = await db.query(
+      'supplier_import_history',
+      columns: ['referenceId'],
+      where: 'imei = ? AND referenceId IS NOT NULL',
+      whereArgs: [imei.trim()],
+      orderBy: 'importDate DESC',
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    final refId = rows.first['referenceId'] as String?;
+    return (refId != null && refId.trim().isNotEmpty) ? refId : null;
+  }
+
   /// Lấy tất cả lịch sử nhập hàng để hiển thị trong chốt quỹ
   Future<List<Map<String, dynamic>>> getAllSupplierImportHistory() async {
     final db = await database;
