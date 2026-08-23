@@ -17,6 +17,7 @@ import '../services/bluetooth_printer_service.dart';
 import '../services/unified_printer_service.dart';
 import '../services/notification_service.dart';
 import '../widgets/printer_selection_dialog.dart';
+import '../widgets/receipt_paper_view.dart';
 import '../constants/product_constants.dart';
 
 class SaleInvoicePreviewView extends StatefulWidget {
@@ -271,45 +272,34 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16),
+          : Container(
+              color: const Color(0xFFE7E9EC),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (!_useTemplate)
-                    const Text(
-                      'Mẫu đang tắt, bản xem trước dùng template mặc định.',
-                      style: TextStyle(color: Colors.orange),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: Text(
+                        'Mẫu đang tắt, bản xem trước dùng template mặc định.',
+                        style: TextStyle(color: Colors.orange.shade800),
+                      ),
                     ),
-                  const SizedBox(height: 8),
                   Expanded(
                     child: SingleChildScrollView(
-                      child: Screenshot(
-                        controller: _screenshotController,
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          color: Colors.white,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                padding: const EdgeInsets.all(16),
-                                width: double.infinity,
-                                child: Text(
-                                  _previewText,
-                                  style: const TextStyle(fontFamily: 'monospace'),
-                                ),
-                              ),
-                              if (_remainingDebt > 0 && _hasBankInfo) ...[
-                                const SizedBox(height: 12),
-                                _buildPaymentQrBlock(),
-                              ],
-                            ],
+                      padding: const EdgeInsets.all(20),
+                      child: Center(
+                        child: Screenshot(
+                          controller: _screenshotController,
+                          child: Container(
+                            color: const Color(0xFFE7E9EC),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: ReceiptPaperView(
+                              text: _previewText,
+                              footer: (_remainingDebt > 0 && _hasBankInfo)
+                                  ? _buildPaymentQrContent()
+                                  : null,
+                            ),
                           ),
                         ),
                       ),
@@ -321,7 +311,7 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
     );
   }
 
-  Widget _buildPaymentQrBlock() {
+  Widget _buildPaymentQrContent() {
     final code = widget.saleData['firestoreId']?.toString() ?? '';
     final shortCode = code.length > 12 ? code.substring(code.length - 6) : code;
     final message = VietnameseUtils.removeDiacritics('CK don $shortCode').toUpperCase();
@@ -332,43 +322,35 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
       message: message,
     );
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          const Text(
-            'QUÉT MÃ ĐỂ CHUYỂN KHOẢN',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-          ),
-          const SizedBox(height: 10),
-          QrImageView(data: payload, size: 180, backgroundColor: Colors.white),
-          const SizedBox(height: 10),
-          Text(
-            '$_bankName${_bankHolder.isNotEmpty ? ' • $_bankHolder' : ''}',
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-          ),
-          Text(
-            _bankAccount,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 14, letterSpacing: 1),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Số tiền: ${MoneyUtils.formatVND(_remainingDebt)} đ',
-            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
-          ),
-          Text(
-            'Nội dung: $message',
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
-          ),
-        ],
-      ),
+    return Column(
+      children: [
+        const Text(
+          'QUÉT MÃ ĐỂ CHUYỂN KHOẢN',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.5),
+        ),
+        const SizedBox(height: 12),
+        QrImageView(data: payload, size: 180, backgroundColor: Colors.white),
+        const SizedBox(height: 12),
+        Text(
+          '$_bankName${_bankHolder.isNotEmpty ? ' • $_bankHolder' : ''}',
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+        ),
+        Text(
+          _bankAccount,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 14, letterSpacing: 1),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Số tiền: ${MoneyUtils.formatVND(_remainingDebt)} đ',
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+        ),
+        Text(
+          'Nội dung: $message',
+          style: const TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+      ],
     );
   }
 }

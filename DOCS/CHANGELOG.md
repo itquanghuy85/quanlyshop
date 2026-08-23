@@ -4,6 +4,20 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-23c] - polish(sale,repair): thiết kế lại ảnh biên nhận/phiếu sửa giống tờ giấy in thật, chuyên nghiệp hơn
+
+**Bối cảnh:** User phản hồi ảnh chia sẻ ở `[2026-08-23a/b]` chỉ là khối chữ monospace thô trong khung viền vuông — chưa "đẹp, chuyên nghiệp" như biên nhận thật. Yêu cầu rõ: ảnh chia sẻ phải nhìn giống hệt tờ giấy khi in ra, nhưng trình bày gọn gàng dễ nhìn hơn. Đã hỏi lại user chọn giữa 2 hướng (dạng thẻ hiện đại kiểu KiotViet, hoặc dải giấy hẹp giống hệt biên nhận in) — **user chọn giữ dải giấy giống biên nhận in thật**, chỉ làm sạch/đẹp hơn.
+
+**`lib/widgets/receipt_paper_view.dart` (mới, dùng chung cho cả 2 màn xem trước):** widget nhận đúng chuỗi text đã build từ template (không đổi nội dung, tôn trọng mẫu shop tự tùy biến, đúng 100% những gì máy in nhiệt in ra) và trình bày lại: dòng toàn dấu `-` → 1 đường kẻ mảnh xám (`Divider`) thay vì ký tự gạch ngang thô hay bị ngắt dòng xấu; dòng bọc trong `===...===` → tiêu đề in đậm căn giữa, cỡ chữ lớn hơn, bỏ ký tự `=`; các dòng còn lại giữ nguyên monospace canh trái đúng như giấy in, chỉ tăng khoảng cách dòng cho dễ đọc. Khối "tờ giấy" bo góc nhẹ, nền trắng ngà, đổ bóng — đặt nổi trên nền xám nhạt (thay vì nền trắng đồng màu như trước) để trông như tờ biên nhận thật đặt trên mặt bàn.
+
+**`sale_invoice_preview_view.dart` + `repair_invoice_preview_view.dart`:** thay hoàn toàn `Container` viền vuông + `Text` thô bằng `ReceiptPaperView`. Khối QR chuyển khoản (`_buildPaymentQrBlock` → đổi tên `_buildPaymentQrContent`, bỏ khung viền + bo góc riêng) giờ nằm **trong cùng 1 tờ giấy** với nội dung biên nhận, ngăn cách bằng 1 đường kẻ — đọc liền mạch như 1 tờ biên nhận duy nhất thay vì 2 khối tách rời như trước. Không đổi bất kỳ dữ liệu/công thức nào (số tiền, QR payload, logic hiện/ẩn) — thuần chỉnh trình bày.
+
+**Verify (test trên Oppo CPH2203):** `flutter analyze` sạch (0 lỗi). Build debug + cài lại. Mở lại đúng đơn bán ABC (còn nợ 12tr, đã cấu hình QR) đã test ở `[2026-08-23b]`: xác nhận tiêu đề "HÓA ĐƠN BÁN HÀNG" hiện đậm giữa trang, các đường kẻ ngang sạch đẹp thay dấu gạch ngang thô, khối QR liền mạch trong cùng tờ giấy, nền xám làm tờ giấy nổi bật rõ. Bấm "Chia sẻ ảnh": xác nhận qua logcat `ChooserActivity` mở đúng — ảnh chụp vẫn hoạt động bình thường với layout mới. Mở phiếu sửa HUY (IPHONE 8): xác nhận cùng thiết kế áp dụng nhất quán, tiêu đề "PHIẾU SỬA CHỮA" hiện đúng. **Chưa test:** phiếu sửa nhánh có QR (đơn test giá 0đ) — cùng widget dùng chung với bên bán đã test kỹ nên tự tin dùng lại.
+
+**Files:** `lib/widgets/receipt_paper_view.dart` (mới), `lib/views/sale_invoice_preview_view.dart`, `lib/views/repair_invoice_preview_view.dart`.
+
+---
+
 ## [2026-08-23b] - feat(sale,repair): nút chia sẻ ảnh+QR ngay sau khi tạo đơn bán; đơn sửa dùng chung cơ chế ảnh+QR thay vì chỉ text
 
 **Bối cảnh:** Nối tiếp `[2026-08-23a]` (đã build xong ảnh biên nhận + QR VietQR cho màn Xem trước đơn bán). User yêu cầu thêm 2 việc: (1) thêm lối vào nhanh để chia sẻ ngay sau khi tạo đơn bán xong (trước đó phải tự vào lại đơn → mở Xem trước mới thấy nút Chia sẻ); (2) đơn sửa hiện `_shareToZalo()` chỉ gửi text thuần (`Share.share(content)`), không có ảnh/QR như đơn bán — cần đồng bộ hoá.
