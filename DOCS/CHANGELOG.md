@@ -4,6 +4,20 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-24d] - fix(kho): tab "Lịch sử nhập" của NCC — bấm vào sản phẩm không vào chi tiết + phiếu trống không hiện gì
+
+**Bối cảnh:** User phát hiện khi bấm vào NCC (vd. "KHO TỔNG") → tab "Lịch sử nhập", mở rộng 1 phiếu thấy: (1) có phiếu hiện đúng sản phẩm bên trong, có phiếu không hiện gì cả — nhìn như lỗi hiển thị không đồng nhất; (2) bấm vào dòng sản phẩm không mở được trang chi tiết sản phẩm đó.
+
+**Điều tra:** Kéo DB thật từ máy test (Oppo CPH2203) ra kiểm tra trực tiếp — xác nhận (1) KHÔNG phải lỗi hiển thị: các phiếu "trống" (NK-0080, NK-0081, NK-0082, NK-0083) có `totalAmount = 0` và bảng `import_order_items` thật sự **không có dòng nào** — tức các phiếu này được xác nhận với 0 sản phẩm bên trong (dữ liệu cũ, không phải phát sinh trong phiên làm việc này). Giao diện cũ chỉ im lặng không hiện gì khi danh sách sản phẩm rỗng, gây hiểu lầm là lỗi.
+
+**1. `lib/views/supplier_detail_view.dart` (`_buildImportTab`):** thêm dòng chữ xám "Phiếu này chưa ghi nhận sản phẩm cụ thể nào." khi phiếu không có sản phẩm nào, thay vì im lặng không hiện gì. Thêm `onTap` cho dòng sản phẩm — tra theo IMEI trong danh sách `_products` đã tải sẵn của màn hình, mở đúng `InventoryDetailView` của sản phẩm đó nếu tìm thấy (dòng không có IMEI khớp giữ nguyên không bấm được, vì không đủ căn cứ xác định đúng sản phẩm).
+
+**Verify (test trên Oppo CPH2203):** `flutter analyze` sạch. Build debug + cài lại. Mở NCC "KHO TỔNG" > Lịch sử nhập > mở rộng NK-0039 (có sản phẩm) → bấm vào sản phẩm "IPHONE 128GB ĐEN 99" → xác nhận vào đúng "Chi tiết sản phẩm". Mở rộng NK-0083 (phiếu trống) → xác nhận hiện đúng dòng "Phiếu này chưa ghi nhận sản phẩm cụ thể nào." thay vì trống trơn.
+
+**Files:** `lib/views/supplier_detail_view.dart`.
+
+---
+
 ## [2026-08-24c] - fix(sale,repair): sửa bug share sheet không hiện + thêm nút chia sẻ nhanh ngoài đơn bán + đổi dialog NCC/thanh toán sang dropdown
 
 **Bối cảnh:** User phản hồi tiếp 3 điểm sau `[2026-08-24b]`: (1) dialog "Sửa NCC / thanh toán" (AlertDialog + Lưu/Huỷ) quá nhiều bước — "sao ko dùng dropdown mà lại hiện popup nhiều thao tác quá"; (2) không thấy chỗ chia sẻ nhanh trong màn Chi tiết đơn bán — phải vào menu "⋮" tràn (9 mục) → chọn "Xem trước" → mới thấy nút chia sẻ; (3) bug thật: bấm "Gửi cho khách" trong sheet chọn (từ `[2026-08-24a]`) chỉ thấy icon xoay rồi tắt, KHÔNG thấy share sheet hệ thống (Zalo/Messenger...) hiện ra.

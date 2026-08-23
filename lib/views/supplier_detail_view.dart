@@ -514,11 +514,22 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
                         style: AppTextStyles.caption.copyWith(color: Colors.red.shade700, fontWeight: FontWeight.bold)),
                   ]),
                 ),
+              if (items2.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text(
+                    'Phiếu này chưa ghi nhận sản phẩm cụ thể nào.',
+                    style: AppTextStyles.caption.copyWith(color: Colors.grey),
+                  ),
+                ),
               ...items2.map((item) {
                 final name = item['productName'] as String? ?? '';
                 final imei = item['imei'] as String? ?? '';
                 final qty = item['quantity'] as int? ?? 1;
                 final cost = item['costPrice'] as int? ?? 0;
+                final matches = imei.isEmpty
+                    ? const <Product>[]
+                    : _products.where((p) => p.imei == imei).toList();
                 return ListTile(
                   dense: true,
                   leading: const Icon(Icons.phone_android_rounded, size: 18, color: Colors.blueGrey),
@@ -529,6 +540,16 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
                     'x$qty · ${MoneyUtils.formatCompactCurrency(cost)}đ',
                     style: AppTextStyles.caption.copyWith(color: Colors.indigo.shade700),
                   ),
+                  onTap: matches.isEmpty
+                      ? null
+                      : () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => InventoryDetailView(product: matches.first),
+                            ),
+                          );
+                        },
                 );
               }),
             ],
