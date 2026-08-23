@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 import '../utils/money_utils.dart';
 import '../widgets/currency_text_field.dart';
 import '../utils/repair_status_validator.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
@@ -6591,18 +6590,24 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     );
   }
 
+  // Chia sẻ ảnh phiếu sửa (kèm QR chuyển khoản nếu còn nợ + đã cấu hình NH)
+  // thay vì chỉ gửi text thuần như trước — mở màn xem trước rồi tự kích
+  // hoạt chia sẻ ngay, người dùng vẫn có thể bấm lại nút Chia sẻ ảnh ở đó.
   Future<void> _shareToZalo() async {
-    final sharePrice = _displayedChargePrice(r);
-    final String content = loc.shareRepairReceipt(
-      _shopName,
-      r.model.toUpperCase(),
-      r.customerName,
-      r.phone,
-      r.issue,
-      r.warranty,
-      '${MoneyUtils.formatCurrency(sharePrice)} đ',
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RepairInvoicePreviewView(
+          repair: r,
+          shopInfo: {
+            'shopName': _shopName,
+            'shopAddr': _shopAddr,
+            'shopPhone': _shopPhone,
+          },
+          autoShare: true,
+        ),
+      ),
     );
-    await Share.share(content);
   }
 
   Future<void> _printReceipt() async {

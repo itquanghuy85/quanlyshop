@@ -4,6 +4,31 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-23b] - feat(sale,repair): nút chia sẻ ảnh+QR ngay sau khi tạo đơn bán; đơn sửa dùng chung cơ chế ảnh+QR thay vì chỉ text
+
+**Bối cảnh:** Nối tiếp `[2026-08-23a]` (đã build xong ảnh biên nhận + QR VietQR cho màn Xem trước đơn bán). User yêu cầu thêm 2 việc: (1) thêm lối vào nhanh để chia sẻ ngay sau khi tạo đơn bán xong (trước đó phải tự vào lại đơn → mở Xem trước mới thấy nút Chia sẻ); (2) đơn sửa hiện `_shareToZalo()` chỉ gửi text thuần (`Share.share(content)`), không có ảnh/QR như đơn bán — cần đồng bộ hoá.
+
+**1. `lib/widgets/payment_result_sheet.dart` (mở rộng, không đổi hành vi mặc định):** thêm param tuỳ chọn `onShareReceipt` — chỉ khi caller truyền vào mới hiện thêm nút "Chia sẻ ảnh biên nhận" (OutlinedButton, phía trên nút Xong/Đóng). Widget này dùng chung cho cả tạo đơn bán VÀ thu công nợ (`debt_payment_sheet.dart`) — mặc định `null` nên 2 nơi gọi khác không hề đổi giao diện.
+
+**2. `lib/views/sale_detail_view.dart`:** thêm `autoOpenPreview` (mặc định `false`) — khi `true`, `initState()` chờ ĐỦ cả 2 nguồn dữ liệu (`_loadShopInfo()` + `_loadCustomerDebt()`) qua `Future.wait(...)` trước khi tự mở `SaleInvoicePreviewView`, tránh race condition mở sớm lúc state còn rỗng dẫn tới QR/biên nhận hiện sai số tiền (đã cân nhắc kỹ vì đây là dữ liệu tiền — không dùng `addPostFrameCallback` đơn thuần vì không đợi được async load).
+
+**3. `lib/views/create_sale_view.dart`:** sau khi lưu đơn thành công, truyền `onShareReceipt` vào `PaymentResultSheet.show()` — nếu người dùng bấm nút mới, thay vì `Navigator.pop()` như cũ thì `pushReplacement` sang `SaleDetailView(sale: sale, autoOpenPreview: true)`, tận dụng lại đúng luồng/nút Chia sẻ ảnh đã build+test ở `[2026-08-23a]`, không tạo pipeline mới.
+
+**4. `lib/services/debt_summary_service.dart`:** thêm `remainingDebtFromLinkedDebt(Map? linkedDebt)` — hàm thuần tách từ công thức có sẵn trong `getOrderRemainingDebt`, dùng được cho MỌI loại đơn (đơn sửa cũng ghi nợ vào chung bảng `debts` qua `linkedId`, đã xác nhận qua code `repair_detail_view.dart` dùng `linkedId: r.firestoreId` giống hệt đơn bán) — không sửa hàm cũ, chỉ thêm hàm mới cạnh nó.
+
+**5. `lib/views/repair_invoice_preview_view.dart`:** nâng cấp giống hệt kiến trúc `sale_invoice_preview_view.dart` (`[2026-08-23a]`) — bọc `Screenshot`, thêm nút chia sẻ ảnh trên AppBar, lọc dòng `[QR]repair_check:...` khỏi nội dung hiển thị (đúng bug tương tự đã gặp bên đơn bán), thêm khối QR chuyển khoản có điều kiện (chỉ khi còn nợ + đã cấu hình NH), số tiền QR tính qua `getCustomerActiveDebts(r.phone)` + `remainingDebtFromLinkedDebt()` mới thêm ở mục 4. Thêm cờ `autoShare` (mặc định `false`) — khi `true`, tự kích hoạt chia sẻ ảnh ngay sau khi layout xong (`addPostFrameCallback`, không cần đợi async như bên đơn bán vì không phụ thuộc dữ liệu công nợ động phức tạp bằng).
+
+**6. `lib/views/repair_detail_view.dart`:** viết lại `_shareToZalo()` — thay vì `Share.share(text)`, giờ mở `RepairInvoicePreviewView(..., autoShare: true)`, giữ nguyên tên hàm nên KHÔNG cần sửa 2 nơi gọi (icon share trên AppBar + nút "ZALO"). Xoá import `share_plus` không còn dùng.
+
+**Verify (test trên Oppo CPH2203, `m@m.com`/shop "M"):** `flutter analyze` sạch (0 lỗi) trên toàn bộ file sửa + toàn project. Build debug + cài lại.
+- **Đơn bán:** tạo đơn CÔNG NỢ mới (khách ABC, 12.000.000đ) → bấm "HOÀN TẤT ĐƠN HÀNG" → sheet kết quả hiện đúng nút "Chia sẻ ảnh biên nhận" mới → bấm vào → tự động chuyển sang `SaleDetailView` rồi tự mở `SaleInvoicePreviewView` → xác nhận dữ liệu đúng NGAY LẬP TỨC (không bị stale do race): Mã HD đúng, Khách ABC, Tổng 12.000.000, "Còn nợ đơn: 12.000.000 đ", "Công nợ khách hiện tại: 12.000.000 đ", khối QR hiện đúng ngân hàng/số TK/số tiền/nội dung.
+- **Đơn sửa:** mở đơn sửa có sẵn (HUY, IPHONE 8) → bấm icon Chia sẻ trên AppBar → tự mở `RepairInvoicePreviewView` → icon share hiện spinner (đang tự động chụp+chia sẻ) → nội dung phiếu hiện đúng, không còn dòng `[QR]repair_check:...` thô → xác nhận qua logcat: `ChooserActivity` (share sheet Android) được mở thành công, tự đóng do môi trường test không có thao tác người dùng thật chọn app đích (đúng dự kiến, không phải lỗi).
+- **Chưa test:** nhánh đơn sửa CÓ nợ thực tế để QR hiện ra (đơn HUY test giá 0đ nên không có QR) — logic tính giống hệt bên bán đã test kỹ, tự tin dùng lại. Bước chọn app đích thật (Zalo) trong share sheet ở cả 2 luồng — không tự động hoá được từ môi trường adb.
+
+**Files:** `lib/widgets/payment_result_sheet.dart`, `lib/views/sale_detail_view.dart`, `lib/views/create_sale_view.dart`, `lib/services/debt_summary_service.dart`, `lib/views/repair_invoice_preview_view.dart`, `lib/views/repair_detail_view.dart`.
+
+---
+
 ## [2026-08-23a] - feat(sale,kho): ảnh biên nhận + QR chuyển khoản VietQR qua Zalo; gợi ý giá vốn/giá bán khi nhập kho
 
 **Bối cảnh:** 2 tính năng độc lập, yêu cầu ngay sau khi test xong module công nợ `[2026-08-22a]`. (1) Biên nhận đơn bán trước đây chỉ xem/in dạng text, không có ảnh để gửi Zalo, không có QR chuyển khoản thật (token `{qrData}`/`[QR]sale_check:...` chỉ là mã tra cứu nội bộ khi quét lại tại shop). (2) Nhập kho không có gợi ý giá vốn/giá bán tham khảo như đơn sửa đã có (`PricingEngineService`).

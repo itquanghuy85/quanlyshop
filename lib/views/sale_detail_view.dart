@@ -53,7 +53,12 @@ import 'staff_public_profile_view.dart';
 
 class SaleDetailView extends StatefulWidget {
   final SaleOrder sale;
-  const SaleDetailView({super.key, required this.sale});
+  final bool autoOpenPreview;
+  const SaleDetailView({
+    super.key,
+    required this.sale,
+    this.autoOpenPreview = false,
+  });
 
   @override
   State<SaleDetailView> createState() => _SaleDetailViewState();
@@ -151,10 +156,24 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     s = _normalizeSaleForDisplay(widget.sale);
     _linkedProducts = _buildLinkedProducts();
     _enrichLinkedProducts();
-    _loadShopInfo();
+    final shopInfoFuture = _loadShopInfo();
     _loadReturnInfo();
     _loadCostPermission();
-    _loadCustomerDebt();
+    final customerDebtFuture = _loadCustomerDebt();
+    if (widget.autoOpenPreview) {
+      // Chờ đủ cả 2 nguồn dữ liệu (thông tin shop + công nợ khách real-time)
+      // trước khi mở xem trước — tránh mở sớm khi state còn rỗng/loading,
+      // dẫn tới biên nhận/QR hiện sai số tiền lúc mới tạo đơn.
+      Future.wait([shopInfoFuture, customerDebtFuture]).then((_) {
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SaleInvoicePreviewView(saleData: _buildSalePrintData()),
+          ),
+        );
+      });
+    }
   }
 
   // Công nợ khách hàng gộp nhiều đơn: toàn bộ đơn CUSTOMER_OWES còn dư của

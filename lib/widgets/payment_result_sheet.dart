@@ -12,6 +12,7 @@ class PaymentResultSheet extends StatelessWidget {
   final String? errorMessage;
   final VoidCallback? onRetry;
   final bool isCollecting;
+  final VoidCallback? onShareReceipt;
 
   const PaymentResultSheet({
     super.key,
@@ -22,6 +23,7 @@ class PaymentResultSheet extends StatelessWidget {
     this.errorMessage,
     this.onRetry,
     this.isCollecting = true,
+    this.onShareReceipt,
   });
 
   static Future<void> show({
@@ -33,6 +35,7 @@ class PaymentResultSheet extends StatelessWidget {
     String? errorMessage,
     VoidCallback? onRetry,
     bool isCollecting = true,
+    VoidCallback? onShareReceipt,
   }) {
     return showModalBottomSheet(
       context: context,
@@ -45,6 +48,7 @@ class PaymentResultSheet extends StatelessWidget {
         errorMessage: errorMessage,
         onRetry: onRetry,
         isCollecting: isCollecting,
+        onShareReceipt: onShareReceipt,
       ),
     );
   }
@@ -143,6 +147,30 @@ class PaymentResultSheet extends StatelessWidget {
             ),
 
           const SizedBox(height: 24),
+
+          // Chia sẻ ảnh biên nhận (chỉ hiện khi caller truyền callback, vd.
+          // ngay sau khi tạo đơn bán — không ảnh hưởng các nơi gọi khác như
+          // thu công nợ vì mặc định null).
+          if (onShareReceipt != null && state != PaymentResultState.failure) ...[
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  onShareReceipt!();
+                },
+                icon: const Icon(Icons.ios_share_rounded, size: 18),
+                label: const Text('Chia sẻ ảnh biên nhận'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: cfg.iconColor,
+                  side: BorderSide(color: cfg.iconColor),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
 
           // Actions
           Row(

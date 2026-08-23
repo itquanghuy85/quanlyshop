@@ -18,6 +18,7 @@ import '../services/firestore_service.dart';
 import '../services/customer_service.dart';
 import '../widgets/customer_autocomplete_field.dart';
 import 'customer_history_view.dart';
+import 'sale_detail_view.dart';
 import '../services/sync_service.dart';
 import '../services/sync_orchestrator.dart';
 import '../services/user_service.dart';
@@ -1929,6 +1930,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         },
       );
 
+      bool wantsShareReceipt = false;
       if (mounted) {
         await PaymentResultSheet.show(
           context: context,
@@ -1937,9 +1939,24 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           paymentMethod: _paymentMethod,
           personName: sale.customerName,
           isCollecting: false,
+          onShareReceipt: () => wantsShareReceipt = true,
         );
       }
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) {
+        if (wantsShareReceipt) {
+          // Thay pop bằng chuyển thẳng sang chi tiết đơn + tự mở xem trước
+          // biên nhận (đã có sẵn nút Chia sẻ ảnh + QR chuyển khoản) — back
+          // từ đó vẫn về đúng nơi create_sale_view sẽ pop tới bình thường.
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SaleDetailView(sale: sale, autoOpenPreview: true),
+            ),
+          );
+        } else {
+          Navigator.pop(context, true);
+        }
+      }
     } catch (e) {
       setState(() => _isSaving = false);
       NotificationService.showSnackBar(

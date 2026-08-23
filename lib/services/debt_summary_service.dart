@@ -363,4 +363,16 @@ class DebtSummaryService {
     }
     return s.remainingDebt;
   }
+
+  /// Số tiền còn nợ từ 1 dòng `debts` đã tìm sẵn theo `linkedId` — dùng cho
+  /// đơn KHÔNG phải `SaleOrder` (vd. đơn sửa `Repair`), vốn cũng ghi nợ vào
+  /// chung bảng `debts` qua `linkedId` nhưng không có field `remainingDebt`
+  /// riêng để fallback như `SaleOrder`. Hàm thuần, không tự query DB.
+  int remainingDebtFromLinkedDebt(Map<String, dynamic>? linkedDebt) {
+    if (linkedDebt == null) return 0;
+    final total = (linkedDebt['totalAmount'] as num?)?.toInt() ?? 0;
+    final paid = (linkedDebt['paidAmount'] as num?)?.toInt() ?? 0;
+    final remain = total - paid;
+    return remain > 0 ? remain : 0;
+  }
 }
