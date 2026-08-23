@@ -1,13 +1,21 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../widgets/custom_app_bar.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../models/printer_types.dart';
 import '../utils/money_utils.dart';
+import '../utils/vietnamese_utils.dart';
+import '../utils/vietqr_builder.dart';
 import '../services/bluetooth_printer_service.dart';
 import '../services/unified_printer_service.dart';
+import '../services/notification_service.dart';
 import '../widgets/printer_selection_dialog.dart';
 import '../constants/product_constants.dart';
 
@@ -29,6 +37,18 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
   bool _isLoading = true;
   bool _useTemplate = false;
   String _previewText = '';
+  bool _sharing = false;
+
+  final _screenshotController = ScreenshotController();
+
+  // Thông tin QR chuyển khoản (VietQR) — cấu hình ở Cài đặt > QR chuyển khoản.
+  String _bankBin = '';
+  String _bankName = '';
+  String _bankAccount = '';
+  String _bankHolder = '';
+  int _remainingDebt = 0;
+
+  bool get _hasBankInfo => _bankBin.isNotEmpty && _bankAccount.isNotEmpty;
 
   @override
   void initState() {
@@ -87,6 +107,10 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
         ? totalPrice.toInt()
         : int.tryParse(totalPrice?.toString() ?? '0') ?? 0;
 
+    final remainingDebtValue = widget.saleData['remainingDebt'] is num
+        ? (widget.saleData['remainingDebt'] as num).toInt()
+        : int.tryParse(widget.saleData['remainingDebt']?.toString() ?? '0') ?? 0;
+
     final data = <String, String>{
       'shopName': widget.saleData['shopName']?.toString() ?? 'SHOP NEW',
       'shopAddr': widget.saleData['shopAddr']?.toString() ?? '',
@@ -139,12 +163,7 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
       'installmentTerm': widget.saleData['installmentTerm']?.toString() ?? '',
       'bankName': widget.saleData['bankName']?.toString() ?? '',
       'bankName2': widget.saleData['bankName2']?.toString() ?? '',
-      'remainingDebt': MoneyUtils.formatVND(
-        widget.saleData['remainingDebt'] is num
-            ? (widget.saleData['remainingDebt'] as num).toInt()
-            : int.tryParse(widget.saleData['remainingDebt']?.toString() ?? '0') ??
-                0,
-      ),
+      'remainingDebt': MoneyUtils.formatVND(remainingDebtValue),
       'customerTotalDebt': MoneyUtils.formatVND(
         widget.saleData['customerTotalDebt'] is num
             ? (widget.saleData['customerTotalDebt'] as num).toInt()
@@ -160,12 +179,54 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
     };
 
     final templateText = [header, body, footer].where((s) => s.trim().isNotEmpty).join('\n');
+    final fullText = _applyTemplate(templateText, data);
+    // Bỏ dòng [QR]... khỏi bản hiển thị/ảnh chia sẻ — đó là mã tra cứu nội
+    // bộ (in giấy dùng để quét lại đơn tại shop), không phải QR chuyển
+    // khoản, hiện ra sẽ chỉ là chuỗi kỹ thuật khó hiểu với khách. Không đụng
+    // luồng in giấy — UnifiedPrinterService tự build text riêng, không dùng
+    // biến này.
+    final displayText = fullText
+        .split('\n')
+        .where((line) => !line.trimLeft().startsWith('[QR]'))
+        .join('\n');
+
+    final bankBin = prefs.getString('bank_qr_bin') ?? '';
+    final bankName = prefs.getString('bank_qr_name') ?? '';
+    final bankAccount = prefs.getString('bank_qr_account') ?? '';
+    final bankHolder = prefs.getString('bank_qr_holder') ?? '';
 
     setState(() {
       _useTemplate = useTemplate;
-      _previewText = _applyTemplate(templateText, data);
+      _previewText = displayText;
+      _remainingDebt = remainingDebtValue;
+      _bankBin = bankBin;
+      _bankName = bankName;
+      _bankAccount = bankAccount;
+      _bankHolder = bankHolder;
       _isLoading = false;
     });
+  }
+
+  Future<void> _shareImage() async {
+    if (_sharing) return;
+    setState(() => _sharing = true);
+    try {
+      final bytes = await _screenshotController.capture(pixelRatio: 2.5);
+      if (bytes == null) throw Exception('Không chụp được ảnh biên nhận');
+
+      final dir = await getTemporaryDirectory();
+      final code = widget.saleData['firestoreId']?.toString() ?? 'don_ban';
+      final file = File('${dir.path}/bien_nhan_$code.png');
+      await file.writeAsBytes(bytes);
+
+      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
+    } catch (e) {
+      if (mounted) {
+        NotificationService.showSnackBar('Không tạo được ảnh: $e', color: Colors.red);
+      }
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
   }
 
   Future<void> _print() async {
@@ -192,6 +253,17 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
         title: 'XEM TRƯỚC HÓA ĐƠN BÁN',
         actions: [
           IconButton(
+            icon: _sharing
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.ios_share_rounded),
+            tooltip: 'Chia sẻ ảnh',
+            onPressed: (_isLoading || _sharing) ? null : _shareImage,
+          ),
+          IconButton(
             icon: const Icon(Icons.print),
             onPressed: _print,
           ),
@@ -212,16 +284,33 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
                   const SizedBox(height: 8),
                   Expanded(
                     child: SingleChildScrollView(
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          _previewText,
-                          style: const TextStyle(fontFamily: 'monospace'),
+                      child: Screenshot(
+                        controller: _screenshotController,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          color: Colors.white,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                padding: const EdgeInsets.all(16),
+                                width: double.infinity,
+                                child: Text(
+                                  _previewText,
+                                  style: const TextStyle(fontFamily: 'monospace'),
+                                ),
+                              ),
+                              if (_remainingDebt > 0 && _hasBankInfo) ...[
+                                const SizedBox(height: 12),
+                                _buildPaymentQrBlock(),
+                              ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -229,6 +318,57 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildPaymentQrBlock() {
+    final code = widget.saleData['firestoreId']?.toString() ?? '';
+    final shortCode = code.length > 12 ? code.substring(code.length - 6) : code;
+    final message = VietnameseUtils.removeDiacritics('CK don $shortCode').toUpperCase();
+    final payload = buildVietQrPayload(
+      bankBin: _bankBin,
+      accountNumber: _bankAccount,
+      amountVnd: _remainingDebt,
+      message: message,
+    );
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          const Text(
+            'QUÉT MÃ ĐỂ CHUYỂN KHOẢN',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          ),
+          const SizedBox(height: 10),
+          QrImageView(data: payload, size: 180, backgroundColor: Colors.white),
+          const SizedBox(height: 10),
+          Text(
+            '$_bankName${_bankHolder.isNotEmpty ? ' • $_bankHolder' : ''}',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          ),
+          Text(
+            _bankAccount,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 14, letterSpacing: 1),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Số tiền: ${MoneyUtils.formatVND(_remainingDebt)} đ',
+            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+          ),
+          Text(
+            'Nội dung: $message',
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+        ],
+      ),
     );
   }
 }

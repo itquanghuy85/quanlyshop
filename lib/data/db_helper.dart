@@ -4981,6 +4981,34 @@ class DBHelper {
     return List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
   }
 
+  /// Sản phẩm còn hiệu lực (chưa xóa) dùng cho gợi ý giá vốn/giá bán khi
+  /// nhập kho (tương tự getRepairsForPricing bên trên) — chỉ đọc local
+  /// SQLite. Không lọc theo model trong SQL (cần chuẩn hóa bỏ dấu ở tầng
+  /// service, giống PricingEngineService bên đơn sửa) — cap 5000 dòng gần
+  /// nhất theo createdAt để tránh quét không giới hạn trên shop dữ liệu lớn.
+  Future<List<Product>> getProductsForPricing({int limit = 5000}) async {
+    final shopId = await _getScopedShopId('getProductsForPricing');
+    final db = await database;
+    final List<Map<String, dynamic>> maps;
+    if (shopId != null && shopId.isNotEmpty) {
+      maps = await db.query(
+        'products',
+        where: '(shopId = ? OR shopId IS NULL) AND (deleted = 0 OR deleted IS NULL)',
+        whereArgs: [shopId],
+        orderBy: 'createdAt DESC',
+        limit: limit,
+      );
+    } else {
+      maps = await db.query(
+        'products',
+        where: '(deleted = 0 OR deleted IS NULL)',
+        orderBy: 'createdAt DESC',
+        limit: limit,
+      );
+    }
+    return List.generate(maps.length, (i) => Product.fromMap(maps[i]));
+  }
+
   /// Get total count of non-deleted repairs for this shop.
   Future<int> getRepairsCount() async {
     final shopId = await _getScopedShopId('getRepairsCount');

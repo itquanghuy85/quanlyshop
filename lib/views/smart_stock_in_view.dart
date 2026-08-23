@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../constants/product_constants.dart';
+import '../services/product_pricing_service.dart';
+import '../utils/money_utils.dart';
 import '../models/stock_entry_model.dart';
 import '../models/supplier_model.dart';
 import '../models/quick_input_code_model.dart';
@@ -112,6 +115,12 @@ class _SmartStockInViewState extends State<SmartStockInView> {
   // Data
   List<Map<String, dynamic>> _suppliers = [];
 
+  // Gợi ý giá vốn/giá bán theo lịch sử nhập kho cùng model — xem
+  // product_pricing_service.dart.
+  ProductPricingSuggestion? _pricingSuggestion;
+  bool _pricingChecked = false;
+  Timer? _pricingDebounce;
+
   // Options - sử dụng constants để đồng bộ
   // ĐỒNG BỘ: Dùng conditionsShort giống fast_stock_in_view để thống nhất dữ liệu
   List<String> get _brands => ProductConstants.brands;
@@ -143,6 +152,125 @@ class _SmartStockInViewState extends State<SmartStockInView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _showFirstTimeGuide();
     });
+    _modelCtrl.addListener(_schedulePricingLookup);
+  }
+
+  void _schedulePricingLookup() {
+    _pricingDebounce?.cancel();
+    _pricingDebounce = Timer(const Duration(milliseconds: 700), _runPricingLookup);
+  }
+
+  Future<void> _runPricingLookup() async {
+    final model = _modelCtrl.text.trim();
+    if (model.isEmpty) {
+      if (mounted && (_pricingChecked || _pricingSuggestion != null)) {
+        setState(() {
+          _pricingSuggestion = null;
+          _pricingChecked = false;
+        });
+      }
+      return;
+    }
+    ProductPricingSuggestion? suggestion;
+    try {
+      suggestion = await ProductPricingService.getSuggestion(model: model);
+    } catch (e) {
+      debugPrint('⚠️ ProductPricingService lookup lỗi: $e');
+      return;
+    }
+    if (!mounted) return;
+    if (_modelCtrl.text.trim() != model) return;
+    setState(() {
+      _pricingSuggestion = suggestion;
+      _pricingChecked = true;
+    });
+  }
+
+  Widget _buildPricingSuggestionCard() {
+    if (!_pricingChecked) return const SizedBox.shrink();
+    final s = _pricingSuggestion;
+    if (s == null) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        child: Text(
+          'Chưa đủ dữ liệu lịch sử để đề xuất giá.',
+          style: AppTextStyles.caption.copyWith(color: Colors.grey.shade600),
+        ),
+      );
+    }
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 8, bottom: 4),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.amber.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text('💡', style: TextStyle(fontSize: 14)),
+              const SizedBox(width: 6),
+              Text(
+                'GIÁ THAM KHẢO',
+                style: AppTextStyles.caption.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.amber.shade900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          if (_canViewCostPrice)
+            Text('Vốn: ${MoneyUtils.formatCurrency(s.medianCost)}đ', style: AppTextStyles.body2),
+          Text('Bán: ${MoneyUtils.formatCurrency(s.medianSalePrice)}đ', style: AppTextStyles.body2),
+          if (_canViewCostPrice)
+            Text('Lợi nhuận: ${MoneyUtils.formatCurrency(s.medianProfit)}đ', style: AppTextStyles.body2),
+          const SizedBox(height: 2),
+          Text(
+            '${s.sampleCount} sản phẩm tương tự · Khoảng giá thường gặp: '
+            '${MoneyUtils.formatCurrency(s.minPrice)}đ - ${MoneyUtils.formatCurrency(s.maxPrice)}đ\n'
+            'Độ tin cậy: ${s.confidence.label}',
+            style: AppTextStyles.caption.copyWith(color: Colors.grey.shade700),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              if (_canViewCostPrice) ...[
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => setState(
+                      () => _costCtrl.text = MoneyUtils.formatCurrency(s.medianCost),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.amber.shade900,
+                      side: BorderSide(color: Colors.amber.shade400),
+                    ),
+                    child: const Text('DÙNG GIÁ VỐN', style: TextStyle(fontSize: 12)),
+                  ),
+                ),
+                const SizedBox(width: 6),
+              ],
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => setState(
+                    () => _priceCtrl.text = MoneyUtils.formatCurrency(s.medianSalePrice),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.amber.shade900,
+                    side: BorderSide(color: Colors.amber.shade400),
+                  ),
+                  child: const Text('DÙNG GIÁ BÁN', style: TextStyle(fontSize: 12)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   /// Hiển thị hướng dẫn lần đầu
@@ -546,6 +674,8 @@ class _SmartStockInViewState extends State<SmartStockInView> {
 
   @override
   void dispose() {
+    _modelCtrl.removeListener(_schedulePricingLookup);
+    _pricingDebounce?.cancel();
     _nameCtrl.dispose();
     _quantityCtrl.dispose();
     _costCtrl.dispose();
@@ -1278,6 +1408,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                 ),
               ],
             ),
+            _buildPricingSuggestionCard(),
             const SizedBox(height: 12),
 
             // Dung lượng + Màu

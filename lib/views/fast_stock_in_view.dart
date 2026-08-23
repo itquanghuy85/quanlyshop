@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../widgets/responsive_wrapper.dart';
@@ -21,6 +22,8 @@ import '../services/stock_entry_service.dart';
 import '../services/financial_activity_service.dart';
 import '../services/category_service.dart';
 import '../services/business_type_helper.dart';
+import '../services/product_pricing_service.dart';
+import '../utils/money_utils.dart';
 import '../models/shop_settings_model.dart';
 import '../utils/sku_generator.dart';
 import '../utils/imei_extractor.dart';
@@ -119,6 +122,13 @@ class _FastStockInViewState extends State<FastStockInView> {
 
   List<Map<String, dynamic>> suppliers = [];
 
+  // Gợi ý giá vốn/giá bán theo lịch sử nhập kho cùng model — xem
+  // product_pricing_service.dart (cùng thuật toán với PricingEngineService
+  // bên đơn sửa, khớp đơn giản theo model).
+  ProductPricingSuggestion? _pricingSuggestion;
+  bool _pricingChecked = false;
+  Timer? _pricingDebounce;
+
   // Options - sử dụng constants để đồng bộ
   List<String> get brands => ProductConstants.brands;
   List<String> get capacities => ProductConstants.capacities;
@@ -136,7 +146,126 @@ class _FastStockInViewState extends State<FastStockInView> {
     _initData();
     imeiCtrl.addListener(_updateConfirmButton);
     modelCtrl.addListener(_updateConfirmButton);
+    modelCtrl.addListener(_schedulePricingLookup);
     // CurrencyTextField handles formatting automatically - no need for listeners
+  }
+
+  void _schedulePricingLookup() {
+    _pricingDebounce?.cancel();
+    _pricingDebounce = Timer(const Duration(milliseconds: 700), _runPricingLookup);
+  }
+
+  Future<void> _runPricingLookup() async {
+    final model = modelCtrl.text.trim();
+    if (model.isEmpty) {
+      if (mounted && (_pricingChecked || _pricingSuggestion != null)) {
+        setState(() {
+          _pricingSuggestion = null;
+          _pricingChecked = false;
+        });
+      }
+      return;
+    }
+    ProductPricingSuggestion? suggestion;
+    try {
+      suggestion = await ProductPricingService.getSuggestion(model: model);
+    } catch (e) {
+      debugPrint('⚠️ ProductPricingService lookup lỗi: $e');
+      return;
+    }
+    if (!mounted) return;
+    if (modelCtrl.text.trim() != model) return;
+    setState(() {
+      _pricingSuggestion = suggestion;
+      _pricingChecked = true;
+    });
+  }
+
+  Widget _buildPricingSuggestionCard() {
+    if (!_pricingChecked) return const SizedBox.shrink();
+    final s = _pricingSuggestion;
+    if (s == null) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        child: Text(
+          'Chưa đủ dữ liệu lịch sử để đề xuất giá.',
+          style: AppTextStyles.caption.copyWith(color: Colors.grey.shade600),
+        ),
+      );
+    }
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 8, bottom: 4),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.amber.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text('💡', style: TextStyle(fontSize: 14)),
+              const SizedBox(width: 6),
+              Text(
+                'GIÁ THAM KHẢO',
+                style: AppTextStyles.caption.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.amber.shade900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          if (_canViewCostPrice)
+            Text('Vốn: ${MoneyUtils.formatCurrency(s.medianCost)}đ', style: AppTextStyles.body2),
+          Text('Bán: ${MoneyUtils.formatCurrency(s.medianSalePrice)}đ', style: AppTextStyles.body2),
+          if (_canViewCostPrice)
+            Text('Lợi nhuận: ${MoneyUtils.formatCurrency(s.medianProfit)}đ', style: AppTextStyles.body2),
+          const SizedBox(height: 2),
+          Text(
+            '${s.sampleCount} sản phẩm tương tự · Khoảng giá thường gặp: '
+            '${MoneyUtils.formatCurrency(s.minPrice)}đ - ${MoneyUtils.formatCurrency(s.maxPrice)}đ\n'
+            'Độ tin cậy: ${s.confidence.label}',
+            style: AppTextStyles.caption.copyWith(color: Colors.grey.shade700),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              if (_canViewCostPrice) ...[
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => setState(
+                      () => costCtrl.text = MoneyUtils.formatCurrency(s.medianCost),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.amber.shade900,
+                      side: BorderSide(color: Colors.amber.shade400),
+                    ),
+                    child: const Text('DÙNG GIÁ VỐN', style: TextStyle(fontSize: 12)),
+                  ),
+                ),
+                const SizedBox(width: 6),
+              ],
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => setState(
+                    () => priceCtrl.text = MoneyUtils.formatCurrency(s.medianSalePrice),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.amber.shade900,
+                    side: BorderSide(color: Colors.amber.shade400),
+                  ),
+                  child: const Text('DÙNG GIÁ BÁN', style: TextStyle(fontSize: 12)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   int _parseMoneyWithK(String text) {
@@ -273,6 +402,8 @@ class _FastStockInViewState extends State<FastStockInView> {
   void dispose() {
     imeiCtrl.removeListener(_updateConfirmButton);
     modelCtrl.removeListener(_updateConfirmButton);
+    modelCtrl.removeListener(_schedulePricingLookup);
+    _pricingDebounce?.cancel();
     // CurrencyTextField handles formatting - no format listeners to remove
     modelCtrl.dispose();
     imeiCtrl.dispose();
@@ -1454,6 +1585,7 @@ class _FastStockInViewState extends State<FastStockInView> {
                 .toList(),
           ),
         ],
+        _buildPricingSuggestionCard(),
         const SizedBox(height: 8),
       ],
     );

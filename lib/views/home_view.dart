@@ -29,6 +29,7 @@ import 'expense_view.dart';
 import 'debt_view.dart';
 import 'warranty_view.dart';
 import 'shop_settings_view.dart';
+import 'bank_qr_settings_view.dart';
 import 'advanced_chat_view.dart';
 import 'printer_settings_view.dart';
 import 'super_admin_console_view.dart' as admin_view;
@@ -6209,6 +6210,15 @@ class _HomeViewState extends State<HomeView>
               icon: Icons.store_rounded,
               color: Colors.blue,
               onTap: () => _fadePush(context, const ShopSettingsView()),
+            ),
+          if (hasFullAccess)
+            _SettingsItem(
+              group: 'shop',
+              title: 'QR chuyển khoản',
+              subtitle: 'Tài khoản NH hiện trên biên nhận đơn bán',
+              icon: Icons.qr_code_2_rounded,
+              color: Colors.green,
+              onTap: () => _fadePush(context, const BankQrSettingsView()),
             ),
           _SettingsItem(
             group: 'shop',
