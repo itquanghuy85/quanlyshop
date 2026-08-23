@@ -4,6 +4,18 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-24e] - 🔴 fix khẩn: thiếu file `receipt_paper_view.dart` khiến nhánh master không build được
+
+**Bối cảnh:** User báo build iOS trên Mac lỗi. Kiểm tra lại phát hiện: `lib/widgets/receipt_paper_view.dart` (đổi API từ `[2026-08-23c]` — thêm tham số `children` + các hàm `receiptTitle/receiptCenter/receiptLeft/receiptSmall/receiptGap`) từng bị sót, chưa từng commit trong các phiên trước, dù `sale_invoice_preview_view.dart`/`repair_invoice_preview_view.dart` (đã commit + push từ lâu) đã gọi thẳng các hàm đó. Hậu quả: bất kỳ máy nào `git pull` nhánh `master` (kể cả build Android) đều thiếu symbol này — build iOS trên Mac chỉ là nơi phát hiện ra trước.
+
+**Đã sửa:** commit + push bổ sung đúng file `lib/widgets/receipt_paper_view.dart`. Xác nhận `flutter analyze` sạch cùng lúc trên cả 3 file liên quan (`receipt_paper_view.dart`, `sale_invoice_preview_view.dart`, `repair_invoice_preview_view.dart`).
+
+**Bài học:** khi sửa 1 file dùng chung (widget/service) cho nhiều màn hình, phải soát kỹ `git status`/`git diff --stat` toàn bộ trước khi commit — không chỉ commit các file "chính" mà bỏ sót file phụ thuộc dùng chung.
+
+**Files:** `lib/widgets/receipt_paper_view.dart`.
+
+---
+
 ## [2026-08-24d] - fix(kho): tab "Lịch sử nhập" của NCC — bấm vào sản phẩm không vào chi tiết + phiếu trống không hiện gì
 
 **Bối cảnh:** User phát hiện khi bấm vào NCC (vd. "KHO TỔNG") → tab "Lịch sử nhập", mở rộng 1 phiếu thấy: (1) có phiếu hiện đúng sản phẩm bên trong, có phiếu không hiện gì cả — nhìn như lỗi hiển thị không đồng nhất; (2) bấm vào dòng sản phẩm không mở được trang chi tiết sản phẩm đó.
