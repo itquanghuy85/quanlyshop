@@ -4276,6 +4276,41 @@ class _InventoryViewState extends State<InventoryView>
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
+          Future<void> openCorrectSupplierPaymentDialog() async {
+            final imei = (p.imei ?? '').trim();
+            if (imei.isEmpty) {
+              NotificationService.showSnackBar(
+                'Sản phẩm không có IMEI nên không tự tìm được phiếu nhập kho gốc để sửa. Vào Kho > Lịch sử nhập kho để tìm phiếu tương ứng nếu có.',
+                color: Colors.orange,
+              );
+              return;
+            }
+            setS(() => isCorrectingSupplier = true);
+            final entryId = await DBHelper().getStockEntryIdForImei(imei);
+            if (entryId == null) {
+              setS(() => isCorrectingSupplier = false);
+              NotificationService.showSnackBar(
+                'Không tìm thấy phiếu nhập kho gốc của sản phẩm này (dữ liệu cũ). Vào Kho > Lịch sử nhập kho để tìm sửa thủ công.',
+                color: Colors.orange,
+              );
+              return;
+            }
+            final result = await showCorrectSupplierPaymentDialog(
+              context: ctx,
+              entryId: entryId,
+              currentSupplierId: null,
+              currentSupplierName: supplier ?? '',
+              currentPaymentMethod: paymentMethod ?? '',
+            );
+            setS(() {
+              isCorrectingSupplier = false;
+              if (result != null) {
+                supplier = result['supplierName'] as String?;
+                paymentMethod = result['paymentMethod'] as String?;
+              }
+            });
+          }
+
           Future<void> saveProcess() async {
             final capEditLoc = editSelectedLocation;
             final capEditImg = editLocalImagePath;
@@ -5125,163 +5160,118 @@ class _InventoryViewState extends State<InventoryView>
                             ),
                           ),
                           const SizedBox(width: 8),
-                          // Nhà cung cấp (KHÓA - không cho thay đổi)
+                          // Nhà cung cấp — bấm vào để sửa (tự tìm đúng phiếu
+                          // nhập kho gốc qua IMEI, khớp lại cả công nợ/sổ quỹ,
+                          // không phải sửa nhãn suông).
                           Expanded(
                             flex: 2,
-                            child: InputDecorator(
-                              decoration: InputDecoration(
-                                labelText: l10n.inventorySupplierLockedField,
-                                labelStyle: const TextStyle(
-                                  color: PopupTheme.textMuted,
-                                  fontSize: 13,
-                                ),
-                                prefixIcon: const Icon(
-                                  Icons.lock,
-                                  size: 16,
-                                  color: PopupTheme.textMuted,
-                                ),
-                                filled: true,
-                                fillColor: PopupTheme.cardDark,
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    PopupTheme.radiusField,
+                            child: InkWell(
+                              onTap: isCorrectingSupplier
+                                  ? null
+                                  : openCorrectSupplierPaymentDialog,
+                              borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                              child: InputDecorator(
+                                decoration: InputDecoration(
+                                  labelText: 'Nhà cung cấp',
+                                  labelStyle: const TextStyle(
+                                    color: Colors.indigo,
+                                    fontSize: 13,
                                   ),
-                                  borderSide: const BorderSide(
-                                    color: PopupTheme.borderDark,
+                                  prefixIcon: const Icon(
+                                    Icons.store_outlined,
+                                    size: 16,
+                                    color: Colors.indigo,
+                                  ),
+                                  suffixIcon: isCorrectingSupplier
+                                      ? const Padding(
+                                          padding: EdgeInsets.all(12),
+                                          child: SizedBox(
+                                            width: 14,
+                                            height: 14,
+                                            child: CircularProgressIndicator(strokeWidth: 2),
+                                          ),
+                                        )
+                                      : const Icon(Icons.edit_outlined, size: 16, color: Colors.indigo),
+                                  filled: true,
+                                  fillColor: PopupTheme.blue.withValues(alpha: 0.06),
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      PopupTheme.radiusField,
+                                    ),
+                                    borderSide: const BorderSide(color: Colors.indigo),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      PopupTheme.radiusField,
+                                    ),
+                                    borderSide: const BorderSide(color: Colors.indigo),
                                   ),
                                 ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    PopupTheme.radiusField,
+                                child: Text(
+                                  supplier ?? l10n.inventoryNoSupplier,
+                                  style: const TextStyle(
+                                    color: Colors.indigo,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                  borderSide: const BorderSide(
-                                    color: PopupTheme.borderDark,
-                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                              child: Text(
-                                supplier ?? l10n.inventoryNoSupplier,
-                                style: const TextStyle(
-                                  color: PopupTheme.textMuted,
-                                  fontSize: 14,
-                                ),
-                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      // Phương thức thanh toán (khóa — sửa qua nút bên dưới,
-                      // đúng nơi duy nhất khớp lại được công nợ NCC/sổ quỹ)
-                      InputDecorator(
-                        decoration: InputDecoration(
-                          labelText: 'Phương thức thanh toán',
-                          labelStyle: const TextStyle(
-                            color: PopupTheme.textMuted,
-                            fontSize: 13,
-                          ),
-                          prefixIcon: const Icon(
-                            Icons.lock,
-                            size: 16,
-                            color: PopupTheme.textMuted,
-                          ),
-                          filled: true,
-                          fillColor: PopupTheme.cardDark,
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(
-                              PopupTheme.radiusField,
+                      // Phương thức thanh toán — bấm vào để sửa, cùng dialog
+                      // với Nhà cung cấp ở trên (đổi cả 2 cùng lúc nếu cần).
+                      InkWell(
+                        onTap: isCorrectingSupplier ? null : openCorrectSupplierPaymentDialog,
+                        borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: 'Phương thức thanh toán',
+                            labelStyle: const TextStyle(
+                              color: Colors.indigo,
+                              fontSize: 13,
                             ),
-                            borderSide: const BorderSide(
-                              color: PopupTheme.borderDark,
+                            prefixIcon: const Icon(
+                              Icons.payments_outlined,
+                              size: 16,
+                              color: Colors.indigo,
+                            ),
+                            suffixIcon: const Icon(Icons.edit_outlined, size: 16, color: Colors.indigo),
+                            filled: true,
+                            fillColor: PopupTheme.blue.withValues(alpha: 0.06),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                PopupTheme.radiusField,
+                              ),
+                              borderSide: const BorderSide(color: Colors.indigo),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                PopupTheme.radiusField,
+                              ),
+                              borderSide: const BorderSide(color: Colors.indigo),
                             ),
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(
-                              PopupTheme.radiusField,
+                          child: Text(
+                            paymentMethodLabel(paymentMethod),
+                            style: const TextStyle(
+                              color: Colors.indigo,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
                             ),
-                            borderSide: const BorderSide(
-                              color: PopupTheme.borderDark,
-                            ),
-                          ),
-                        ),
-                        child: Text(
-                          paymentMethodLabel(paymentMethod),
-                          style: const TextStyle(
-                            color: PopupTheme.textMuted,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      // Nút sửa NCC/thanh toán — cùng 1 chỗ, tự khớp lại công
-                      // nợ NCC/sổ quỹ qua đúng phiếu nhập kho gốc (tìm qua
-                      // IMEI). Không có IMEI thì không tự tìm được phiếu gốc.
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: isCorrectingSupplier
-                              ? null
-                              : () async {
-                                  final imei = (p.imei ?? '').trim();
-                                  if (imei.isEmpty) {
-                                    NotificationService.showSnackBar(
-                                      'Sản phẩm không có IMEI nên không tự tìm được phiếu nhập kho gốc để sửa. Vào Kho > Lịch sử nhập kho để tìm phiếu tương ứng nếu có.',
-                                      color: Colors.orange,
-                                    );
-                                    return;
-                                  }
-                                  setS(() => isCorrectingSupplier = true);
-                                  final entryId =
-                                      await DBHelper().getStockEntryIdForImei(imei);
-                                  if (entryId == null) {
-                                    setS(() => isCorrectingSupplier = false);
-                                    NotificationService.showSnackBar(
-                                      'Không tìm thấy phiếu nhập kho gốc của sản phẩm này (dữ liệu cũ). Vào Kho > Lịch sử nhập kho để tìm sửa thủ công.',
-                                      color: Colors.orange,
-                                    );
-                                    return;
-                                  }
-                                  final result = await showCorrectSupplierPaymentDialog(
-                                    context: ctx,
-                                    entryId: entryId,
-                                    currentSupplierId: null,
-                                    currentSupplierName: supplier ?? '',
-                                    currentPaymentMethod: paymentMethod ?? '',
-                                  );
-                                  setS(() {
-                                    isCorrectingSupplier = false;
-                                    if (result != null) {
-                                      supplier = result['supplierName'] as String?;
-                                      paymentMethod = result['paymentMethod'] as String?;
-                                    }
-                                  });
-                                },
-                          icon: isCorrectingSupplier
-                              ? const SizedBox(
-                                  width: 14,
-                                  height: 14,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Icon(Icons.edit_outlined, size: 16),
-                          label: const Text(
-                            'Sửa NCC / thanh toán',
-                            style: TextStyle(fontSize: 13),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.indigo,
-                            side: const BorderSide(color: Colors.indigo),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
                           ),
                         ),
                       ),

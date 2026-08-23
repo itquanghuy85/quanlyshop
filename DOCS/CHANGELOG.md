@@ -4,6 +4,18 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-24b] - polish(kho): bấm thẳng vào ô NCC/thanh toán để sửa — bỏ kiểu hiển thị "khoá"
+
+**Bối cảnh:** User phản hồi lại `[2026-08-24a]`: sau khi thêm nút "Sửa NCC / thanh toán", 2 ô NCC/Thanh toán ở màn Sửa sản phẩm vẫn hiện icon ổ khoá + màu xám như trước — nhìn vẫn giống bị khoá/ẩn không sửa được, dù thực ra bấm nút bên dưới đã sửa được. Đây là phản hồi UX hợp lý: có nút sửa riêng bên dưới 2 ô trông như chỉ để xem là thiết kế rối, không trực quan.
+
+**`lib/views/inventory_view.dart`:** bỏ hẳn icon ổ khoá + nền xám ở 2 ô "Nhà cung cấp" và "Phương thức thanh toán" — đổi sang icon bút sửa (`edit_outlined`) + viền/chữ màu indigo, biến chính 2 ô này thành `InkWell` bấm thẳng vào là mở dialog sửa (dùng lại đúng logic ở `[2026-08-24a]`, tách thành hàm `openCorrectSupplierPaymentDialog` dùng chung cho cả 2 ô). Xoá nút "Sửa NCC / thanh toán" đứng riêng (không cần nữa, thừa). Ô "SL tồn kho" giữ nguyên kiểu khoá cũ (đúng chủ ý — số lượng sửa qua "Nhập thêm hàng", không liên quan phản hồi này).
+
+**Verify (test trên Oppo CPH2203):** `flutter analyze` sạch. Build debug + cài lại. Mở Sửa sản phẩm (IMEI thật): xác nhận 2 ô NCC/Thanh toán hiện rõ màu indigo + icon bút (không còn ổ khoá xám), không còn nút thừa bên dưới. Bấm thẳng vào ô "Nhà cung cấp" → dialog sửa mở đúng. Bấm thẳng vào ô "Phương thức thanh toán" → dialog sửa mở đúng (cùng dialog, đổi được cả 2 field).
+
+**Files:** `lib/views/inventory_view.dart`.
+
+---
+
 ## [2026-08-24a] - feat(sale,repair,kho): chia sẻ ảnh gửi khách/nội bộ + đồng nhất sửa NCC/thanh toán ở màn Sửa sản phẩm + fix bug sửa lần 2
 
 **Bối cảnh:** Nối tiếp `[2026-08-23d]`. (1) User yêu cầu làm gọn nút "Chia sẻ ảnh" của đơn bán/phiếu sửa sao cho chuyên nghiệp — trước đây chỉ có 1 hành vi (share sheet hệ thống), không phân biệt gửi khách hay báo nội bộ. (2) User phát hiện đúng 1 điểm KHÔNG đồng nhất còn sót lại từ `[2026-08-23d]`: màn "Sửa sản phẩm" (khác với màn Chi tiết phiếu nhập kho) có ô "Nhà cung cấp" bị khoá cứng (không sửa được) và hoàn toàn KHÔNG có ô "Phương thức thanh toán" — trong khi đây chính là 2 thứ vừa làm được ở phiếu nhập kho.
