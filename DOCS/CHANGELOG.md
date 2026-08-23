@@ -4,6 +4,26 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-24c] - fix(sale,repair): sửa bug share sheet không hiện + thêm nút chia sẻ nhanh ngoài đơn bán + đổi dialog NCC/thanh toán sang dropdown
+
+**Bối cảnh:** User phản hồi tiếp 3 điểm sau `[2026-08-24b]`: (1) dialog "Sửa NCC / thanh toán" (AlertDialog + Lưu/Huỷ) quá nhiều bước — "sao ko dùng dropdown mà lại hiện popup nhiều thao tác quá"; (2) không thấy chỗ chia sẻ nhanh trong màn Chi tiết đơn bán — phải vào menu "⋮" tràn (9 mục) → chọn "Xem trước" → mới thấy nút chia sẻ; (3) bug thật: bấm "Gửi cho khách" trong sheet chọn (từ `[2026-08-24a]`) chỉ thấy icon xoay rồi tắt, KHÔNG thấy share sheet hệ thống (Zalo/Messenger...) hiện ra.
+
+**Nguyên nhân bug (2):** sheet chọn "Gửi cho khách"/"Gửi nội bộ" (`share_receipt_sheet.dart`) là 1 lớp overlay hệ thống (`showModalBottomSheet`), đóng lại NGAY trước khi gọi tiếp `SharePlus.instance.share()` — lớp overlay thứ 2 (share sheet hệ thống) mở quá sát lúc lớp 1 vừa đóng, gây xung đột focus/window trên Android → share sheet không hiện, `Future` treo im lặng. Xác nhận qua `dumpsys window` (mFocusedApp không phải `ChooserActivity`) trước khi sửa.
+
+**1. `lib/widgets/share_receipt_sheet.dart`:** XOÁ hẳn (không còn nơi nào import). Bỏ luôn bước "chọn Gửi khách/Gửi nội bộ" qua sheet trung gian — tách lại thành 2 icon riêng biệt bấm thẳng (đúng pattern `repair_detail_view.dart` đã dùng ổn định từ trước): icon "Chia sẻ" (`share_rounded`) → share sheet hệ thống ngay, không qua bước chọn nào; icon "Chat" (`forum_rounded`) → gửi ảnh vào chat nội bộ ngay. Áp dụng cho cả `sale_invoice_preview_view.dart` và `repair_invoice_preview_view.dart` — mỗi màn có 2 state loading riêng (`_sharing`/`_sharingInternal`) nên bấm nhầm 1 icon không làm icon kia bị khoá theo.
+
+**2. `lib/views/sale_invoice_preview_view.dart`:** thêm tham số `autoShare` (bản sao đúng pattern đã có sẵn ở `repair_invoice_preview_view.dart`) — cho phép mở màn xem trước rồi tự bấm "Chia sẻ" ngay khi tải xong, không cần thao tác thêm.
+
+**3. `lib/views/sale_detail_view.dart`:** thêm thẳng 2 icon vào AppBar (trước menu "⋮"): "Chia sẻ nhanh cho khách" (`share_rounded`, `autoShare: true` — 1 bấm ra thẳng share sheet hệ thống) và "Xem trước biên nhận" (`preview_rounded`, mở màn xem trước bình thường). Bỏ mục "Xem trước" khỏi menu "⋮" (còn 8 mục, đỡ rối) vì đã có icon riêng ngoài AppBar thay thế.
+
+**4. `lib/widgets/correct_supplier_payment_dialog.dart`:** viết lại từ AlertDialog 1 bước (chọn NCC + thanh toán + nút Lưu/Huỷ) thành 2 tương tác trực tiếp không qua dialog trung gian: sửa NCC → mở thẳng bộ chọn NCC (`supplier_picker_sheet.dart`), chọn xong lưu luôn; sửa thanh toán → `PopupMenuButton` (dropdown thật, neo đúng vị trí ô đang bấm) 3 lựa chọn, chọn xong lưu luôn. `lib/views/import_order_detail_view.dart` và `lib/views/inventory_view.dart` (màn Sửa sản phẩm) cùng đổi sang gọi 2 hàm mới này thay dialog cũ.
+
+**Verify (test trên Oppo CPH2203, `m@m.com`/shop "M"):** `flutter analyze` sạch trên toàn bộ file sửa. Build debug + cài lại. Xác nhận bug (2) đã hết: bấm icon "Chia sẻ nhanh cho khách" ở cả đơn bán và đơn sửa → `dumpsys window` xác nhận `mFocusedApp` chuyển đúng sang `ChooserActivity` (share sheet hệ thống thật sự hiện ra) → đóng lại → icon trở về trạng thái bình thường (không bị kẹt xoay). Xác nhận icon "Chia sẻ nhanh cho khách"/"Xem trước biên nhận" hiện rõ ngay trên AppBar màn Chi tiết đơn bán, không cần mở menu "⋮".
+
+**Files:** `lib/widgets/share_receipt_sheet.dart` (xoá), `lib/widgets/correct_supplier_payment_dialog.dart`, `lib/views/sale_invoice_preview_view.dart`, `lib/views/repair_invoice_preview_view.dart`, `lib/views/sale_detail_view.dart`, `lib/views/import_order_detail_view.dart`, `lib/views/inventory_view.dart`.
+
+---
+
 ## [2026-08-24b] - polish(kho): bấm thẳng vào ô NCC/thanh toán để sửa — bỏ kiểu hiển thị "khoá"
 
 **Bối cảnh:** User phản hồi lại `[2026-08-24a]`: sau khi thêm nút "Sửa NCC / thanh toán", 2 ô NCC/Thanh toán ở màn Sửa sản phẩm vẫn hiện icon ổ khoá + màu xám như trước — nhìn vẫn giống bị khoá/ẩn không sửa được, dù thực ra bấm nút bên dưới đã sửa được. Đây là phản hồi UX hợp lý: có nút sửa riêng bên dưới 2 ô trông như chỉ để xem là thiết kế rối, không trực quan.

@@ -4276,39 +4276,19 @@ class _InventoryViewState extends State<InventoryView>
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
-          Future<void> openCorrectSupplierPaymentDialog() async {
+          Future<String?> resolveEntryIdForProduct() async {
             final imei = (p.imei ?? '').trim();
-            if (imei.isEmpty) {
-              NotificationService.showSnackBar(
-                'Sản phẩm không có IMEI nên không tự tìm được phiếu nhập kho gốc để sửa. Vào Kho > Lịch sử nhập kho để tìm phiếu tương ứng nếu có.',
-                color: Colors.orange,
-              );
-              return;
-            }
-            setS(() => isCorrectingSupplier = true);
-            final entryId = await DBHelper().getStockEntryIdForImei(imei);
-            if (entryId == null) {
-              setS(() => isCorrectingSupplier = false);
-              NotificationService.showSnackBar(
-                'Không tìm thấy phiếu nhập kho gốc của sản phẩm này (dữ liệu cũ). Vào Kho > Lịch sử nhập kho để tìm sửa thủ công.',
-                color: Colors.orange,
-              );
-              return;
-            }
-            final result = await showCorrectSupplierPaymentDialog(
-              context: ctx,
-              entryId: entryId,
-              currentSupplierId: null,
-              currentSupplierName: supplier ?? '',
-              currentPaymentMethod: paymentMethod ?? '',
+            if (imei.isEmpty) return null;
+            return DBHelper().getStockEntryIdForImei(imei);
+          }
+
+          void onEntryNotFoundForProduct() {
+            NotificationService.showSnackBar(
+              (p.imei ?? '').trim().isEmpty
+                  ? 'Sản phẩm không có IMEI nên không tự tìm được phiếu nhập kho gốc để sửa. Vào Kho > Lịch sử nhập kho để tìm phiếu tương ứng nếu có.'
+                  : 'Không tìm thấy phiếu nhập kho gốc của sản phẩm này (dữ liệu cũ). Vào Kho > Lịch sử nhập kho để tìm sửa thủ công.',
+              color: Colors.orange,
             );
-            setS(() {
-              isCorrectingSupplier = false;
-              if (result != null) {
-                supplier = result['supplierName'] as String?;
-                paymentMethod = result['paymentMethod'] as String?;
-              }
-            });
           }
 
           Future<void> saveProcess() async {
@@ -5168,7 +5148,22 @@ class _InventoryViewState extends State<InventoryView>
                             child: InkWell(
                               onTap: isCorrectingSupplier
                                   ? null
-                                  : openCorrectSupplierPaymentDialog,
+                                  : () async {
+                                      setS(() => isCorrectingSupplier = true);
+                                      final result = await pickAndApplySupplierCorrection(
+                                        context: ctx,
+                                        resolveEntryId: resolveEntryIdForProduct,
+                                        currentPaymentMethod: paymentMethod ?? '',
+                                        onEntryNotFound: onEntryNotFoundForProduct,
+                                      );
+                                      setS(() {
+                                        isCorrectingSupplier = false;
+                                        if (result != null) {
+                                          supplier = result['supplierName'] as String?;
+                                          paymentMethod = result['paymentMethod'] as String?;
+                                        }
+                                      });
+                                    },
                               borderRadius: BorderRadius.circular(PopupTheme.radiusField),
                               child: InputDecorator(
                                 decoration: InputDecoration(
@@ -5227,11 +5222,19 @@ class _InventoryViewState extends State<InventoryView>
                         ],
                       ),
                       const SizedBox(height: 8),
-                      // Phương thức thanh toán — bấm vào để sửa, cùng dialog
-                      // với Nhà cung cấp ở trên (đổi cả 2 cùng lúc nếu cần).
-                      InkWell(
-                        onTap: isCorrectingSupplier ? null : openCorrectSupplierPaymentDialog,
-                        borderRadius: BorderRadius.circular(PopupTheme.radiusField),
+                      // Phương thức thanh toán — bấm vào hiện dropdown 3 lựa
+                      // chọn ngay tại chỗ, chọn xong là lưu luôn.
+                      PaymentMethodPickerMenu(
+                        resolveEntryId: resolveEntryIdForProduct,
+                        currentSupplierName: supplier ?? '',
+                        currentPaymentMethod: paymentMethod ?? '',
+                        onEntryNotFound: onEntryNotFoundForProduct,
+                        onApplied: (result) {
+                          setS(() {
+                            supplier = result['supplierName'] as String?;
+                            paymentMethod = result['paymentMethod'] as String?;
+                          });
+                        },
                         child: InputDecorator(
                           decoration: InputDecoration(
                             labelText: 'Phương thức thanh toán',

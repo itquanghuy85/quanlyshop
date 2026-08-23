@@ -1760,6 +1760,37 @@ class _SaleDetailViewState extends State<SaleDetailView> {
           end: Alignment.bottomRight,
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.share_rounded, color: Colors.white),
+            tooltip: 'Chia sẻ nhanh cho khách',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SaleInvoicePreviewView(
+                    saleData: _buildSalePrintData(),
+                    paper: PaperSize.mm58,
+                    autoShare: true,
+                  ),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.preview_rounded, color: Colors.white),
+            tooltip: 'Xem trước biên nhận',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SaleInvoicePreviewView(
+                    saleData: _buildSalePrintData(),
+                    paper: PaperSize.mm58,
+                  ),
+                ),
+              );
+            },
+          ),
           if (_checkingManager)
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
@@ -1789,17 +1820,6 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                         _sendToChat();
                       case 'print':
                         _printWifi();
-                      case 'preview':
-                        if (!mounted) return;
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => SaleInvoicePreviewView(
-                              saleData: _buildSalePrintData(),
-                              paper: PaperSize.mm58,
-                            ),
-                          ),
-                        );
                       case 'template':
                         if (!mounted) return;
                         Navigator.push(
@@ -1836,11 +1856,6 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                       'print',
                       Icons.print_rounded,
                       l10n.printInvoiceLabel,
-                    ),
-                    _menuItem(
-                      'preview',
-                      Icons.preview_rounded,
-                      l10n.previewInvoiceLabel,
                     ),
                     _menuItem(
                       'template',

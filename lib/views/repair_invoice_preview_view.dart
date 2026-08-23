@@ -22,7 +22,6 @@ import '../services/audit_service.dart';
 import '../widgets/printer_selection_dialog.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/receipt_paper_view.dart';
-import '../widgets/share_receipt_sheet.dart';
 
 class RepairInvoicePreviewView extends StatefulWidget {
   final Repair repair;
@@ -49,6 +48,7 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
   String _previewText = '';
   List<Widget> _defaultChildren = [];
   bool _sharing = false;
+  bool _sharingInternal = false;
 
   final _screenshotController = ScreenshotController();
   final _debtSummary = DebtSummaryService();
@@ -132,7 +132,7 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
         _isLoading = false;
       });
       if (widget.autoShare && mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => _shareImage());
+        WidgetsBinding.instance.addPostFrameCallback((_) => _shareToCustomer());
       }
       return;
     }
@@ -195,7 +195,7 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
     });
 
     if (widget.autoShare && mounted) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _shareImage());
+      WidgetsBinding.instance.addPostFrameCallback((_) => _shareToCustomer());
     }
   }
 
@@ -240,40 +240,34 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
     ];
   }
 
-  Future<void> _shareImage() async {
-    if (_sharing) return;
-    final target = await showShareReceiptTargetSheet(context);
-    if (target == null || !mounted) return;
+Future<File?> _captureReceiptFile() async {
+    final bytes = await _screenshotController.capture(pixelRatio: 2.5);
+    if (bytes == null) throw Exception('Không chụp được ảnh phiếu sửa');
+    final dir = await getTemporaryDirectory();
+    final code = widget.repair.firestoreId?.toString() ?? 'don_sua';
+    final file = File('${dir.path}/phieu_sua_$code.png');
+    await file.writeAsBytes(bytes);
+    return file;
+  }
 
+  /// Gửi cho khách — chia sẻ trực tiếp qua share sheet hệ thống (Zalo,
+  /// Messenger, lưu ảnh...), giữ đúng hành vi gốc: 1 chạm là ra ngay share
+  /// sheet, không qua bước chọn đích trung gian (từng gây lỗi share sheet
+  /// không hiện ra trên 1 số máy — có thể do độ trễ khi mở liền 2 lớp
+  /// overlay hệ thống).
+  Future<void> _shareToCustomer() async {
+    if (_sharing) return;
     setState(() => _sharing = true);
     try {
-      final bytes = await _screenshotController.capture(pixelRatio: 2.5);
-      if (bytes == null) throw Exception('Không chụp được ảnh phiếu sửa');
-
-      final dir = await getTemporaryDirectory();
+      final file = await _captureReceiptFile();
+      if (file == null) return;
+      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
       final code = widget.repair.firestoreId?.toString() ?? 'don_sua';
-      final file = File('${dir.path}/phieu_sua_$code.png');
-      await file.writeAsBytes(bytes);
-
-      if (target == ReceiptShareTarget.customer) {
-        await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
-      } else {
-        final caption =
-            '🔧 Phiếu sửa - ${widget.repair.customerName} - ${widget.repair.model} - ${MoneyUtils.formatVND(widget.repair.price)} đ';
-        final sentId = await ChatService.sendImageMessage(images: [file], caption: caption);
-        if (sentId == null) throw Exception('Không gửi được vào chat nội bộ');
-        if (mounted) {
-          NotificationService.showSnackBar('Đã gửi ảnh vào chat nội bộ', color: Colors.green);
-        }
-      }
-
       unawaited(AuditService.logAction(
-        action: target == ReceiptShareTarget.customer ? 'SHARE_RECEIPT_CUSTOMER' : 'SHARE_RECEIPT_INTERNAL',
+        action: 'SHARE_RECEIPT_CUSTOMER',
         entityType: 'REPAIR',
         entityId: code,
-        summary: target == ReceiptShareTarget.customer
-            ? 'Chia sẻ ảnh phiếu sửa cho khách'
-            : 'Gửi ảnh phiếu sửa vào chat nội bộ',
+        summary: 'Chia sẻ ảnh phiếu sửa cho khách',
       ));
     } catch (e) {
       if (mounted) {
@@ -281,6 +275,37 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
       }
     } finally {
       if (mounted) setState(() => _sharing = false);
+    }
+  }
+
+  /// Gửi nội bộ — đăng thẳng ảnh vào chat nội bộ shop, tách riêng khỏi nút
+  /// chia sẻ cho khách (không còn gộp chung 1 nút + sheet chọn đích).
+  Future<void> _shareToInternal() async {
+    if (_sharingInternal) return;
+    setState(() => _sharingInternal = true);
+    try {
+      final file = await _captureReceiptFile();
+      if (file == null) return;
+      final caption =
+          '🔧 Phiếu sửa - ${widget.repair.customerName} - ${widget.repair.model} - ${MoneyUtils.formatVND(widget.repair.price)} đ';
+      final sentId = await ChatService.sendImageMessage(images: [file], caption: caption);
+      if (sentId == null) throw Exception('Không gửi được vào chat nội bộ');
+      if (mounted) {
+        NotificationService.showSnackBar('Đã gửi ảnh vào chat nội bộ', color: Colors.green);
+      }
+      final code = widget.repair.firestoreId?.toString() ?? 'don_sua';
+      unawaited(AuditService.logAction(
+        action: 'SHARE_RECEIPT_INTERNAL',
+        entityType: 'REPAIR',
+        entityId: code,
+        summary: 'Gửi ảnh phiếu sửa vào chat nội bộ',
+      ));
+    } catch (e) {
+      if (mounted) {
+        NotificationService.showSnackBar('Không tạo được ảnh: $e', color: Colors.red);
+      }
+    } finally {
+      if (mounted) setState(() => _sharingInternal = false);
     }
   }
 
@@ -315,8 +340,19 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
                     child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                   )
                 : const Icon(Icons.ios_share_rounded),
-            tooltip: 'Chia sẻ ảnh',
-            onPressed: (_isLoading || _sharing) ? null : _shareImage,
+            tooltip: 'Chia sẻ ảnh cho khách',
+            onPressed: (_isLoading || _sharing) ? null : _shareToCustomer,
+          ),
+          IconButton(
+            icon: _sharingInternal
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.forum_rounded),
+            tooltip: 'Gửi nội bộ',
+            onPressed: (_isLoading || _sharingInternal) ? null : _shareToInternal,
           ),
           IconButton(
             icon: const Icon(Icons.print),

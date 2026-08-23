@@ -58,13 +58,11 @@ class _ImportOrderDetailViewState extends State<ImportOrderDetailView> {
     }
 
     setState(() => _saving = true);
-    final result = await showCorrectSupplierPaymentDialog(
+    final result = await showCorrectSupplierPaymentSheet(
       context: context,
       entryId: stockEntryId,
-      currentSupplierId: _order.supplierId,
       currentSupplierName: _order.supplierName ?? '',
       currentPaymentMethod: _order.paymentMethod ?? '',
-      importDateMs: _order.importDate,
     );
     if (!mounted) return;
     setState(() {

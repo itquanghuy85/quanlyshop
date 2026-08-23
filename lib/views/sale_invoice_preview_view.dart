@@ -21,17 +21,18 @@ import '../services/chat_service.dart';
 import '../services/audit_service.dart';
 import '../widgets/printer_selection_dialog.dart';
 import '../widgets/receipt_paper_view.dart';
-import '../widgets/share_receipt_sheet.dart';
 import '../constants/product_constants.dart';
 
 class SaleInvoicePreviewView extends StatefulWidget {
   final Map<String, dynamic> saleData;
   final PaperSize paper;
+  final bool autoShare;
 
   const SaleInvoicePreviewView({
     super.key,
     required this.saleData,
     this.paper = PaperSize.mm58,
+    this.autoShare = false,
   });
 
   @override
@@ -48,6 +49,7 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
   String _previewText = '';
   List<Widget> _defaultChildren = [];
   bool _sharing = false;
+  bool _sharingInternal = false;
 
   final _screenshotController = ScreenshotController();
 
@@ -115,6 +117,9 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
         _bankHolder = bankHolder;
         _isLoading = false;
       });
+      if (widget.autoShare && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _shareToCustomer());
+      }
       return;
     }
 
@@ -244,6 +249,10 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
       _bankHolder = bankHolder;
       _isLoading = false;
     });
+
+    if (widget.autoShare && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _shareToCustomer());
+    }
   }
 
   /// Dựng lại ĐÚNG layout ESC/POS mặc định của
@@ -325,42 +334,32 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
     ];
   }
 
-  Future<void> _shareImage() async {
-    if (_sharing) return;
-    final target = await showShareReceiptTargetSheet(context);
-    if (target == null || !mounted) return;
+  Future<File?> _captureReceiptFile() async {
+    final bytes = await _screenshotController.capture(pixelRatio: 2.5);
+    if (bytes == null) throw Exception('Không chụp được ảnh biên nhận');
+    final dir = await getTemporaryDirectory();
+    final code = widget.saleData['firestoreId']?.toString() ?? 'don_ban';
+    final file = File('${dir.path}/bien_nhan_$code.png');
+    await file.writeAsBytes(bytes);
+    return file;
+  }
 
+  /// Gửi cho khách — chia sẻ trực tiếp qua share sheet hệ thống, giữ đúng
+  /// hành vi gốc: 1 chạm là ra ngay share sheet, không qua bước chọn đích
+  /// trung gian (từng gây lỗi share sheet không hiện ra trên 1 số máy).
+  Future<void> _shareToCustomer() async {
+    if (_sharing) return;
     setState(() => _sharing = true);
     try {
-      final bytes = await _screenshotController.capture(pixelRatio: 2.5);
-      if (bytes == null) throw Exception('Không chụp được ảnh biên nhận');
-
-      final dir = await getTemporaryDirectory();
+      final file = await _captureReceiptFile();
+      if (file == null) return;
+      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
       final code = widget.saleData['firestoreId']?.toString() ?? 'don_ban';
-      final file = File('${dir.path}/bien_nhan_$code.png');
-      await file.writeAsBytes(bytes);
-
-      if (target == ReceiptShareTarget.customer) {
-        await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
-      } else {
-        final customerName = widget.saleData['customerName']?.toString() ?? 'Khách lẻ';
-        final totalAmount = widget.saleData['finalTotal'] ?? widget.saleData['totalPrice'];
-        final caption =
-            '🛒 Biên nhận đơn bán - $customerName - ${MoneyUtils.formatVND(totalAmount is num ? totalAmount.toInt() : int.tryParse(totalAmount?.toString() ?? '0') ?? 0)} đ';
-        final sentId = await ChatService.sendImageMessage(images: [file], caption: caption);
-        if (sentId == null) throw Exception('Không gửi được vào chat nội bộ');
-        if (mounted) {
-          NotificationService.showSnackBar('Đã gửi ảnh vào chat nội bộ', color: Colors.green);
-        }
-      }
-
       unawaited(AuditService.logAction(
-        action: target == ReceiptShareTarget.customer ? 'SHARE_RECEIPT_CUSTOMER' : 'SHARE_RECEIPT_INTERNAL',
+        action: 'SHARE_RECEIPT_CUSTOMER',
         entityType: 'SALE',
         entityId: code,
-        summary: target == ReceiptShareTarget.customer
-            ? 'Chia sẻ ảnh biên nhận cho khách'
-            : 'Gửi ảnh biên nhận vào chat nội bộ',
+        summary: 'Chia sẻ ảnh biên nhận cho khách',
       ));
     } catch (e) {
       if (mounted) {
@@ -368,6 +367,39 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
       }
     } finally {
       if (mounted) setState(() => _sharing = false);
+    }
+  }
+
+  /// Gửi nội bộ — đăng thẳng ảnh vào chat nội bộ shop, tách riêng khỏi nút
+  /// chia sẻ cho khách.
+  Future<void> _shareToInternal() async {
+    if (_sharingInternal) return;
+    setState(() => _sharingInternal = true);
+    try {
+      final file = await _captureReceiptFile();
+      if (file == null) return;
+      final customerName = widget.saleData['customerName']?.toString() ?? 'Khách lẻ';
+      final totalAmount = widget.saleData['finalTotal'] ?? widget.saleData['totalPrice'];
+      final caption =
+          '🛒 Biên nhận đơn bán - $customerName - ${MoneyUtils.formatVND(totalAmount is num ? totalAmount.toInt() : int.tryParse(totalAmount?.toString() ?? '0') ?? 0)} đ';
+      final sentId = await ChatService.sendImageMessage(images: [file], caption: caption);
+      if (sentId == null) throw Exception('Không gửi được vào chat nội bộ');
+      if (mounted) {
+        NotificationService.showSnackBar('Đã gửi ảnh vào chat nội bộ', color: Colors.green);
+      }
+      final code = widget.saleData['firestoreId']?.toString() ?? 'don_ban';
+      unawaited(AuditService.logAction(
+        action: 'SHARE_RECEIPT_INTERNAL',
+        entityType: 'SALE',
+        entityId: code,
+        summary: 'Gửi ảnh biên nhận vào chat nội bộ',
+      ));
+    } catch (e) {
+      if (mounted) {
+        NotificationService.showSnackBar('Không tạo được ảnh: $e', color: Colors.red);
+      }
+    } finally {
+      if (mounted) setState(() => _sharingInternal = false);
     }
   }
 
@@ -402,8 +434,19 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
                     child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                   )
                 : const Icon(Icons.ios_share_rounded),
-            tooltip: 'Chia sẻ ảnh',
-            onPressed: (_isLoading || _sharing) ? null : _shareImage,
+            tooltip: 'Chia sẻ ảnh cho khách',
+            onPressed: (_isLoading || _sharing) ? null : _shareToCustomer,
+          ),
+          IconButton(
+            icon: _sharingInternal
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.forum_rounded),
+            tooltip: 'Gửi nội bộ',
+            onPressed: (_isLoading || _sharingInternal) ? null : _shareToInternal,
           ),
           IconButton(
             icon: const Icon(Icons.print),

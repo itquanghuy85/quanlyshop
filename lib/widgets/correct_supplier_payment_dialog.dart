@@ -19,28 +19,218 @@ String paymentMethodLabel(String? method) {
   }
 }
 
-/// Mở dialog sửa NCC/phương thức thanh toán của 1 phiếu nhập kho đã xác nhận
-/// (gọi `StockEntryService.correctSupplierAndPayment` — tự khớp lại công nợ
-/// NCC/sổ quỹ, xem chi tiết ở service đó). Dùng chung cho cả màn Chi tiết
-/// phiếu nhập kho và màn Sửa sản phẩm (khi tìm được đúng phiếu gốc qua IMEI).
-///
-/// Trả về Map `{supplierId, supplierName, paymentMethod, paymentStatus}` nếu
-/// lưu thành công để caller tự cập nhật UI, hoặc `null` nếu người dùng huỷ
-/// hoặc lưu thất bại (đã tự hiện snackbar lỗi từ service).
-Future<Map<String, dynamic>?> showCorrectSupplierPaymentDialog({
+/// Sửa NCC của 1 phiếu nhập kho — mở thẳng bộ chọn NCC (không qua dialog
+/// trung gian), rồi áp dụng ngay khi chọn xong. `resolveEntryId` cho phép
+/// tra cứu entryId có độ trễ (vd. tìm qua IMEI) — chỉ chạy SAU khi người
+/// dùng đã chọn xong NCC, tránh tra cứu thừa nếu họ huỷ giữa chừng.
+/// Trả về Map kết quả nếu lưu thành công (caller tự cập nhật UI), `null`
+/// nếu huỷ/không tìm thấy phiếu gốc/lưu thất bại.
+Future<Map<String, dynamic>?> pickAndApplySupplierCorrection({
+  required BuildContext context,
+  required Future<String?> Function() resolveEntryId,
+  required String currentPaymentMethod,
+  void Function()? onEntryNotFound,
+}) async {
+  final picked = await showSupplierPickerSheet(context);
+  if (picked == null || !context.mounted) return null;
+  final newSupplierName = (picked['name'] as String?)?.trim() ?? '';
+  if (newSupplierName.isEmpty) return null;
+
+  final entryId = await resolveEntryId();
+  if (entryId == null) {
+    onEntryNotFound?.call();
+    return null;
+  }
+  if (!context.mounted) return null;
+
+  return _applyCorrection(
+    context: context,
+    entryId: entryId,
+    newSupplierId: picked['id']?.toString(),
+    newSupplierName: newSupplierName,
+    newPaymentMethod: currentPaymentMethod,
+  );
+}
+
+/// Sửa phương thức thanh toán — hiện dropdown 3 lựa chọn ngay tại vị trí đã
+/// bấm (dùng `PopupMenuButton`, không qua dialog trung gian). Bọc widget
+/// hiện tại (vd. ô hiển thị phương thức) làm `child` để trở thành nút bấm.
+class PaymentMethodPickerMenu extends StatelessWidget {
+  final Future<String?> Function() resolveEntryId;
+  final String currentSupplierName;
+  final String currentPaymentMethod;
+  final Widget child;
+  final void Function(Map<String, dynamic> result) onApplied;
+  final void Function()? onEntryNotFound;
+
+  const PaymentMethodPickerMenu({
+    super.key,
+    required this.resolveEntryId,
+    required this.currentSupplierName,
+    required this.currentPaymentMethod,
+    required this.child,
+    required this.onApplied,
+    this.onEntryNotFound,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      itemBuilder: (ctx) => kPaymentMethods
+          .map((m) => PopupMenuItem(value: m, child: Text(paymentMethodLabel(m))))
+          .toList(),
+      onSelected: (selected) async {
+        if (selected == currentPaymentMethod) return;
+        final entryId = await resolveEntryId();
+        if (entryId == null) {
+          onEntryNotFound?.call();
+          return;
+        }
+        if (!context.mounted) return;
+        final result = await _applyCorrection(
+          context: context,
+          entryId: entryId,
+          newSupplierId: null,
+          newSupplierName: currentSupplierName,
+          newPaymentMethod: selected,
+        );
+        if (result != null) onApplied(result);
+      },
+      child: child,
+    );
+  }
+}
+
+/// Bottom sheet gọn 2 dòng "Nhà cung cấp"/"Phương thức thanh toán" — bấm
+/// dòng nào sửa ngay dòng đó (không có bước Lưu/Huỷ riêng, chọn xong là lưu
+/// luôn). Dùng cho nơi không có sẵn 1 field cụ thể để bọc trực tiếp (vd. mở
+/// từ icon sửa trên AppBar). Trả về Map kết quả của lần sửa cuối cùng nếu có
+/// ít nhất 1 lần sửa thành công, `null` nếu đóng sheet mà không đổi gì.
+Future<Map<String, dynamic>?> showCorrectSupplierPaymentSheet({
   required BuildContext context,
   required String entryId,
-  String? currentSupplierId,
   required String currentSupplierName,
   required String currentPaymentMethod,
-  int? importDateMs,
 }) async {
-  // Cảnh báo nếu ngày nhập kho đã chốt quỹ — số đã chốt sẽ không tự đổi theo
-  if (importDateMs != null) {
-    final dateKey =
-        DateFormat('yyyy-MM-dd').format(DateTime.fromMillisecondsSinceEpoch(importDateMs));
+  Map<String, dynamic>? lastResult;
+  Future<String?> resolveEntryId() async => entryId;
+
+  await showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (sheetCtx) {
+      return StatefulBuilder(
+        builder: (sheetCtx, setSheetState) {
+          final supplierName = (lastResult?['supplierName'] as String?) ?? currentSupplierName;
+          final paymentMethod = (lastResult?['paymentMethod'] as String?) ?? currentPaymentMethod;
+          return SafeArea(
+            child: Container(
+              margin: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Sửa NCC / thanh toán',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 12),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () async {
+                      final result = await pickAndApplySupplierCorrection(
+                        context: sheetCtx,
+                        resolveEntryId: resolveEntryId,
+                        currentPaymentMethod: paymentMethod,
+                      );
+                      if (result != null) {
+                        lastResult = result;
+                        setSheetState(() {});
+                      }
+                    },
+                    child: sheetPickerRow(Icons.store_outlined, 'Nhà cung cấp', supplierName),
+                  ),
+                  const SizedBox(height: 8),
+                  PaymentMethodPickerMenu(
+                    resolveEntryId: resolveEntryId,
+                    currentSupplierName: supplierName,
+                    currentPaymentMethod: paymentMethod,
+                    onApplied: (result) {
+                      lastResult = result;
+                      setSheetState(() {});
+                    },
+                    child: sheetPickerRow(
+                      Icons.payments_outlined,
+                      'Phương thức thanh toán',
+                      paymentMethodLabel(paymentMethod),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+  return lastResult;
+}
+
+/// Ô hiển thị dạng "tappable" màu indigo dùng chung cho NCC/thanh toán —
+/// export để `inventory_view.dart` dùng lại đúng kiểu dáng.
+Widget sheetPickerRow(IconData icon, String label, String value) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    decoration: BoxDecoration(
+      color: Colors.indigo.withValues(alpha: 0.06),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: Colors.indigo.withValues(alpha: 0.3)),
+    ),
+    child: Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.indigo),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: TextStyle(fontSize: 11, color: Colors.indigo.shade300)),
+              Text(
+                value,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.indigo),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+        const Icon(Icons.edit_outlined, size: 16, color: Colors.indigo),
+      ],
+    ),
+  );
+}
+
+/// Cảnh báo nếu ngày phiếu đã chốt quỹ, rồi gọi
+/// `StockEntryService.correctSupplierAndPayment`. Dùng chung cho cả 2 kiểu
+/// sửa (NCC riêng / phương thức thanh toán riêng) ở trên.
+Future<Map<String, dynamic>?> _applyCorrection({
+  required BuildContext context,
+  required String entryId,
+  String? newSupplierId,
+  required String newSupplierName,
+  required String newPaymentMethod,
+}) async {
+  final entry = await StockEntryService().getEntry(entryId);
+  final confirmedAt = entry?.confirmedAt;
+  if (confirmedAt != null) {
+    final dateKey = DateFormat('yyyy-MM-dd').format(confirmedAt);
     final closing = await DBHelper().getClosingByDateKey(dateKey);
-    if (closing != null && context.mounted) {
+    if (closing != null) {
+      if (!context.mounted) return null;
       final proceed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -59,80 +249,18 @@ Future<Map<String, dynamic>?> showCorrectSupplierPaymentDialog({
   }
   if (!context.mounted) return null;
 
-  String? pickedSupplierId = currentSupplierId;
-  String pickedSupplierName = currentSupplierName;
-  String pickedPaymentMethod =
-      kPaymentMethods.contains(currentPaymentMethod) ? currentPaymentMethod : kPaymentMethods.first;
-
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => StatefulBuilder(
-      builder: (ctx, setDialogState) => AlertDialog(
-        title: const Text('Sửa NCC / thanh toán'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Nhà cung cấp', style: TextStyle(fontSize: 12, color: Colors.grey)),
-            const SizedBox(height: 4),
-            OutlinedButton.icon(
-              onPressed: () async {
-                final picked = await showSupplierPickerSheet(ctx);
-                if (picked == null) return;
-                setDialogState(() {
-                  pickedSupplierId = picked['id']?.toString();
-                  pickedSupplierName = picked['name'] as String? ?? pickedSupplierName;
-                });
-              },
-              icon: const Icon(Icons.store, size: 18),
-              label: Text(
-                pickedSupplierName.isEmpty ? 'Chọn nhà cung cấp' : pickedSupplierName,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text('Phương thức thanh toán', style: TextStyle(fontSize: 12, color: Colors.grey)),
-            const SizedBox(height: 4),
-            DropdownButton<String>(
-              value: pickedPaymentMethod,
-              isExpanded: true,
-              items: kPaymentMethods
-                  .map((m) => DropdownMenuItem(value: m, child: Text(paymentMethodLabel(m))))
-                  .toList(),
-              onChanged: (v) {
-                if (v != null) setDialogState(() => pickedPaymentMethod = v);
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Huỷ')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Lưu')),
-        ],
-      ),
-    ),
-  );
-
-  if (confirmed != true || !context.mounted) return null;
-  if (pickedSupplierName.trim().isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Vui lòng chọn nhà cung cấp')),
-    );
-    return null;
-  }
-
   final ok = await StockEntryService().correctSupplierAndPayment(
     entryId: entryId,
-    newSupplierId: pickedSupplierId,
-    newSupplierName: pickedSupplierName.trim(),
-    newPaymentMethod: pickedPaymentMethod,
+    newSupplierId: newSupplierId,
+    newSupplierName: newSupplierName,
+    newPaymentMethod: newPaymentMethod,
   );
   if (!ok) return null;
 
   return {
-    'supplierId': pickedSupplierId,
-    'supplierName': pickedSupplierName.trim(),
-    'paymentMethod': pickedPaymentMethod,
-    'paymentStatus': pickedPaymentMethod == 'CÔNG NỢ' ? 'DEBT' : 'PAID',
+    'supplierId': newSupplierId,
+    'supplierName': newSupplierName,
+    'paymentMethod': newPaymentMethod,
+    'paymentStatus': newPaymentMethod == 'CÔNG NỢ' ? 'DEBT' : 'PAID',
   };
 }
