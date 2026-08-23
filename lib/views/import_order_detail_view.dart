@@ -4,8 +4,10 @@ import '../data/db_helper.dart';
 import '../models/import_order_model.dart';
 import '../models/supplier_model.dart';
 import '../services/import_order_service.dart';
+import '../services/stock_entry_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/custom_app_bar.dart';
+import '../widgets/supplier_picker_sheet.dart';
 import '../utils/money_utils.dart';
 import 'supplier_detail_view.dart';
 
@@ -18,23 +20,28 @@ class ImportOrderDetailView extends StatefulWidget {
 }
 
 class _ImportOrderDetailViewState extends State<ImportOrderDetailView> {
+  static const _paymentMethods = ['TIỀN MẶT', 'CHUYỂN KHOẢN', 'CÔNG NỢ'];
+
+  late ImportOrder _order;
   List<ImportOrderItem> _items = [];
   bool _isLoading = true;
+  bool _saving = false;
 
   @override
   void initState() {
     super.initState();
+    _order = widget.order;
     _loadItems();
   }
 
   Future<void> _loadItems() async {
-    if (widget.order.firestoreId == null) {
+    if (_order.firestoreId == null) {
       setState(() => _isLoading = false);
       return;
     }
     try {
       final items = await ImportOrderService.getImportOrderItems(
-        widget.order.firestoreId!,
+        _order.firestoreId!,
       );
       if (mounted) setState(() => _items = items);
     } catch (e) {
@@ -44,9 +51,126 @@ class _ImportOrderDetailViewState extends State<ImportOrderDetailView> {
     }
   }
 
+  Future<void> _editSupplierAndPayment() async {
+    final stockEntryId = _order.stockEntryId;
+    if (stockEntryId == null || stockEntryId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Phiếu này thiếu liên kết phiếu nhập kho gốc, không thể sửa')),
+      );
+      return;
+    }
+
+    // Cảnh báo nếu ngày nhập kho đã chốt quỹ — số đã chốt sẽ không tự đổi theo
+    if (_order.importDate != null) {
+      final dateKey = DateFormat('yyyy-MM-dd')
+          .format(DateTime.fromMillisecondsSinceEpoch(_order.importDate!));
+      final closing = await DBHelper().getClosingByDateKey(dateKey);
+      if (closing != null && mounted) {
+        final proceed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Ngày này đã chốt quỹ'),
+            content: const Text(
+              'Ngày nhập kho của phiếu này đã được chốt quỹ. Số liệu đã chốt sẽ KHÔNG tự thay đổi theo — chỉ công nợ/sổ quỹ hiện tại được cập nhật. Vẫn muốn tiếp tục sửa?',
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Huỷ')),
+              ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Tiếp tục')),
+            ],
+          ),
+        );
+        if (proceed != true) return;
+      }
+    }
+    if (!mounted) return;
+
+    String? pickedSupplierId = _order.supplierId;
+    String pickedSupplierName = _order.supplierName ?? '';
+    String pickedPaymentMethod = _paymentMethods.contains(_order.paymentMethod)
+        ? _order.paymentMethod!
+        : _paymentMethods.first;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Sửa NCC / thanh toán'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Nhà cung cấp', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 4),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final picked = await showSupplierPickerSheet(ctx);
+                  if (picked == null) return;
+                  setDialogState(() {
+                    pickedSupplierId = picked['id']?.toString();
+                    pickedSupplierName = picked['name'] as String? ?? pickedSupplierName;
+                  });
+                },
+                icon: const Icon(Icons.store, size: 18),
+                label: Text(
+                  pickedSupplierName.isEmpty ? 'Chọn nhà cung cấp' : pickedSupplierName,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text('Phương thức thanh toán', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 4),
+              DropdownButton<String>(
+                value: pickedPaymentMethod,
+                isExpanded: true,
+                items: _paymentMethods
+                    .map((m) => DropdownMenuItem(value: m, child: Text(_paymentMethodLabel(m))))
+                    .toList(),
+                onChanged: (v) {
+                  if (v != null) setDialogState(() => pickedPaymentMethod = v);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Huỷ')),
+            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Lưu')),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+    if (pickedSupplierName.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng chọn nhà cung cấp')),
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
+    final ok = await StockEntryService().correctSupplierAndPayment(
+      entryId: stockEntryId,
+      newSupplierId: pickedSupplierId,
+      newSupplierName: pickedSupplierName.trim(),
+      newPaymentMethod: pickedPaymentMethod,
+    );
+    if (!mounted) return;
+    setState(() {
+      _saving = false;
+      if (ok) {
+        _order = _order.copyWith(
+          supplierId: pickedSupplierId,
+          supplierName: pickedSupplierName.trim(),
+          paymentMethod: pickedPaymentMethod,
+          paymentStatus: pickedPaymentMethod == 'CÔNG NỢ' ? 'DEBT' : 'PAID',
+        );
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final order = widget.order;
+    final order = _order;
     final date = order.importDate != null
         ? DateTime.fromMillisecondsSinceEpoch(order.importDate!)
         : null;
@@ -55,6 +179,20 @@ class _ImportOrderDetailViewState extends State<ImportOrderDetailView> {
     return Scaffold(
       appBar: CustomAppBar.build(
         title: order.orderCode,
+        actions: [
+          if (order.status == 'CONFIRMED')
+            IconButton(
+              icon: _saving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.edit_outlined),
+              tooltip: 'Sửa NCC / thanh toán',
+              onPressed: _saving ? null : _editSupplierAndPayment,
+            ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

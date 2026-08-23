@@ -319,6 +319,8 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
                   _divider(),
                   _supplierRow(product.supplier ?? ''),
                   _divider(),
+                  _row('Thanh toán', _paymentMethodLabel(product.paymentMethod)),
+                  _divider(),
                   _importDateRow(product),
                 ],
               ),
@@ -486,6 +488,19 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
   }
 
   Widget _divider() => const Divider(height: 1, indent: 16, endIndent: 16);
+
+  String _paymentMethodLabel(String? method) {
+    switch (method) {
+      case 'CÔNG NỢ':
+        return 'Công nợ';
+      case 'CHUYỂN KHOẢN':
+        return 'Chuyển khoản';
+      case 'TIỀN MẶT':
+        return 'Tiền mặt';
+      default:
+        return '--';
+    }
+  }
 
   // Ngày giờ sản phẩm được nhập vào kho (product.createdAt).
   // Với hàng gộp số lượng qua nhiều lần nhập (phụ kiện/linh kiện không IMEI),

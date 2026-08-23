@@ -5,6 +5,7 @@ import 'firestore_write_helper.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../models/stock_entry_model.dart';
+import '../models/expense_model.dart';
 import '../services/user_service.dart';
 import '../services/notification_service.dart';
 import '../services/event_bus.dart';
@@ -1084,6 +1085,300 @@ class StockEntryService {
     } catch (e) {
       debugPrint('❌ confirmEntry ERROR: $e');
       _showError('Lỗi xác nhận: $e');
+      return false;
+    }
+  }
+
+  /// Sửa lại NCC / phương thức thanh toán của 1 phiếu nhập kho ĐÃ XÁC NHẬN,
+  /// đồng thời cập nhật đúng công nợ NCC (`debts`) hoặc phiếu chi (`expenses`)
+  /// tương ứng — đây là 2 bảng thực sự được cash_closing_view.dart dùng để
+  /// tính công nợ/sổ quỹ, nên phải sửa ở đây thì số liệu mới khớp.
+  /// Không sửa lại các bản ghi nhật ký cũ (financial_activity, supplier_import_history)
+  /// — chỉ ghi thêm 1 dòng "đã điều chỉnh" mới, giữ nguyên lịch sử đã xảy ra.
+  Future<bool> correctSupplierAndPayment({
+    required String entryId,
+    String? newSupplierId,
+    required String newSupplierName,
+    required String newPaymentMethod, // TIỀN MẶT / CHUYỂN KHOẢN / CÔNG NỢ
+  }) async {
+    final db = DBHelper();
+    try {
+      final entry = await getEntry(entryId);
+      if (entry == null) {
+        _showError('Không tìm thấy phiếu nhập kho');
+        return false;
+      }
+      if (!entry.isConfirmed) {
+        _showError('Chỉ sửa được phiếu đã xác nhận');
+        return false;
+      }
+
+      final oldSupplierName = entry.supplierName ?? 'NCC';
+      final oldPaymentMethod = entry.paymentMethod ?? '';
+      final wasDebt = oldPaymentMethod == 'CÔNG NỢ';
+      final willBeDebt = newPaymentMethod == 'CÔNG NỢ';
+      final normalizedNewSupplierName = newSupplierName.toUpperCase().trim();
+      final userName =
+          _auth.currentUser?.email?.split('@').first.toUpperCase() ?? 'NV';
+      final now = DateTime.now().millisecondsSinceEpoch;
+
+      if (wasDebt) {
+        final debts = await db.getDebtsByLinkedId(entryId);
+        final debt = debts.isNotEmpty ? debts.first : null;
+        if (debt == null) {
+          _showError('Không tìm thấy công nợ gốc của phiếu này');
+          return false;
+        }
+        final debtId = debt['id'] as int;
+        final debtFirestoreId = debt['firestoreId'] as String?;
+        final totalAmount = (debt['totalAmount'] as num?)?.toInt() ?? 0;
+        final paidAmount = (debt['paidAmount'] as num?)?.toInt() ?? 0;
+
+        if (willBeDebt) {
+          // Vẫn công nợ — chỉ đổi tên NCC, không đụng số tiền đã trả
+          final newNote =
+              '${debt['note'] ?? ''}\nĐiều chỉnh NCC: $oldSupplierName → $newSupplierName';
+          await db.updateDebt({
+            'id': debtId,
+            'personName': normalizedNewSupplierName,
+            'note': newNote,
+            'updatedAt': now,
+            'isSynced': 0,
+          });
+          if (debtFirestoreId != null) {
+            // Ghi Firestore NGAY (không chỉ queue) để tránh bị listener đồng bộ
+            // real-time ghi đè ngược lại bản cũ trước khi hàng đợi kịp đẩy lên
+            // (đúng pattern đã dùng khi xoá expense ở expense_view.dart).
+            try {
+              await _firestore.collection('debts').doc(debtFirestoreId).update({
+                'personName': normalizedNewSupplierName,
+                'note': newNote,
+                'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
+              });
+            } catch (e) {
+              await SyncOrchestrator().enqueueDebt(debtId, firestoreId: debtFirestoreId);
+            }
+          }
+        } else {
+          // Chuyển CÔNG NỢ → TIỀN MẶT/CHUYỂN KHOẢN
+          if (paidAmount > 0) {
+            _showError(
+              'Công nợ này đã được thanh toán một phần, không thể đổi hình thức thanh toán. Vui lòng xử lý công nợ trước.',
+            );
+            return false;
+          }
+          final cancelNote =
+              'Đã điều chỉnh: chuyển từ CÔNG NỢ sang $newPaymentMethod (NCC: $newSupplierName)';
+          await db.softDeleteDebt(debtId, reason: cancelNote);
+          if (debtFirestoreId != null) {
+            // Ghi Firestore NGAY — lý do tương tự nhánh đổi tên NCC ở trên.
+            try {
+              await _firestore.collection('debts').doc(debtFirestoreId).update({
+                ...FirestoreWriteHelper.softDeletePayload(),
+                'note': '${debt['note'] ?? ''}\n$cancelNote',
+              });
+            } catch (e) {
+              await SyncOrchestrator().enqueueDebt(debtId, firestoreId: debtFirestoreId);
+            }
+          }
+
+          final expFirestoreId = 'exp_stock_${entryId}_$now';
+          final expId = await db.insertExpense({
+            'firestoreId': expFirestoreId,
+            'category': 'NHẬP HÀNG',
+            'title': 'Nhập kho từ $newSupplierName',
+            'amount': totalAmount,
+            'paymentMethod': newPaymentMethod,
+            'note': 'Điều chỉnh từ công nợ (NCC cũ: $oldSupplierName)',
+            'date': now,
+            'createdBy': userName,
+            'shopId': entry.shopId,
+            'isSynced': 0,
+          });
+          await SyncOrchestrator().enqueueExpense(
+            expId,
+            firestoreId: expFirestoreId,
+            operation: SyncOperation.create,
+          );
+        }
+      } else {
+        final expense = await db.getExpenseByStockEntryId(entryId);
+        if (expense == null) {
+          _showError('Không tìm thấy phiếu chi gốc của phiếu này');
+          return false;
+        }
+        final expId = expense['id'] as int;
+        final expFirestoreId = expense['firestoreId'] as String?;
+        final amount = (expense['amount'] as num?)?.toInt() ?? 0;
+
+        if (!willBeDebt) {
+          // Vẫn TIỀN MẶT/CHUYỂN KHOẢN — đổi tên NCC và/hoặc đổi tiền mặt<->chuyển khoản
+          final newTitle = 'Nhập kho từ $newSupplierName';
+          final newNote =
+              '${expense['note'] ?? ''}\nĐiều chỉnh NCC/thanh toán: $oldSupplierName/$oldPaymentMethod → $newSupplierName/$newPaymentMethod';
+          await db.updateExpense(Expense(
+            id: expId,
+            firestoreId: expFirestoreId,
+            title: newTitle,
+            amount: amount,
+            category: expense['category'] as String? ?? 'NHẬP HÀNG',
+            date: expense['date'] as int? ?? now,
+            note: newNote,
+            paymentMethod: newPaymentMethod,
+            isSynced: false,
+          ));
+          if (expFirestoreId != null) {
+            // Ghi Firestore NGAY — tránh bị listener real-time ghi đè ngược.
+            try {
+              await _firestore.collection('expenses').doc(expFirestoreId).update({
+                'title': newTitle,
+                'note': newNote,
+                'paymentMethod': newPaymentMethod,
+                'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
+              });
+            } catch (e) {
+              await SyncOrchestrator().enqueueExpense(expId, firestoreId: expFirestoreId);
+            }
+          }
+        } else {
+          // Chuyển TIỀN MẶT/CHUYỂN KHOẢN → CÔNG NỢ
+          if (expFirestoreId != null && expFirestoreId.isNotEmpty) {
+            await db.deleteExpenseByFirestoreId(expFirestoreId);
+            try {
+              await _firestore
+                  .collection('expenses')
+                  .doc(expFirestoreId)
+                  .update(FirestoreWriteHelper.softDeletePayload());
+            } catch (e) {
+              await SyncOrchestrator().enqueue(
+                entityType: SyncEntityType.expense,
+                entityId: expId,
+                firestoreId: expFirestoreId,
+                operation: SyncOperation.delete,
+                data: null,
+              );
+            }
+          } else {
+            await db.deleteExpense(expId);
+          }
+
+          final debtFirestoreId = 'debt_stock_${entryId}_$now';
+          final debtId = await db.insertDebt({
+            'firestoreId': debtFirestoreId,
+            'type': 'SHOP_OWES',
+            'debtType': 'SHOP_OWES',
+            'personName': normalizedNewSupplierName,
+            'phone': '',
+            'totalAmount': amount,
+            'paidAmount': 0,
+            'status': 'ACTIVE',
+            'note': 'Điều chỉnh từ phiếu chi (thanh toán cũ: $oldPaymentMethod, NCC cũ: $oldSupplierName)',
+            'linkedId': entryId,
+            'linkedType': 'stock_entry',
+            'createdAt': now,
+            'updatedAt': now,
+            'shopId': entry.shopId,
+            'deleted': 0,
+            'isSynced': 0,
+          });
+          await SyncOrchestrator().enqueueDebt(
+            debtId,
+            firestoreId: debtFirestoreId,
+            operation: SyncOperation.create,
+          );
+        }
+      }
+
+      // KHÔNG sửa lại doc `stock_entries` gốc — Firestore rules chỉ cho phép
+      // update khi status còn 'draft' (đã confirmed thì chỉ super-admin mới
+      // sửa được), đúng chủ ý giữ nguyên bản ghi gốc làm lịch sử bất biến.
+      // `ImportOrder` bên dưới mới là nơi phản ánh thông tin hiện tại.
+
+      // Cập nhật phiếu nhập kho hiển thị (Import Order), nếu có
+      final importOrderRow = await db.getImportOrderByStockEntryId(entryId);
+      if (importOrderRow != null) {
+        final orderFirestoreId = importOrderRow['firestoreId'] as String?;
+        final newPaymentStatus = willBeDebt ? 'DEBT' : 'PAID';
+        // paidAmount phải khớp paymentStatus — nếu không, các màn tổng hợp
+        // công nợ NCC (vd. SupplierDetailView khi fallback sang tính từ
+        // import_orders lúc không còn debt thủ công) sẽ tính sai "còn lại".
+        final orderTotalAmount = (importOrderRow['totalAmount'] as num?)?.toInt() ?? 0;
+        final newPaidAmount = newPaymentStatus == 'PAID' ? orderTotalAmount : 0;
+        if (orderFirestoreId != null) {
+          try {
+            await _firestore.collection('import_orders').doc(orderFirestoreId).update({
+              'supplierId': newSupplierId,
+              'supplierName': newSupplierName,
+              'paymentMethod': newPaymentMethod,
+              'paymentStatus': newPaymentStatus,
+              'paidAmount': newPaidAmount,
+              'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
+            });
+          } catch (e) {
+            debugPrint('⚠️ correctSupplierAndPayment: Failed to update import_order on Firestore: $e');
+          }
+          await db.upsertImportOrder({
+            'firestoreId': orderFirestoreId,
+            'supplierId': newSupplierId,
+            'supplierName': newSupplierName,
+            'paymentMethod': newPaymentMethod,
+            'paymentStatus': newPaymentStatus,
+            'paidAmount': newPaidAmount,
+            'updatedAt': now,
+          });
+        }
+      }
+
+      // Đồng bộ nhãn NCC/thanh toán trên sản phẩm có IMEI (khớp chính xác) —
+      // sản phẩm không IMEI bỏ qua vì không đủ tin cậy để khớp đúng sản phẩm.
+      var touchedProducts = false;
+      for (final item in entry.items) {
+        final imei = item.imei;
+        if (imei == null || imei.trim().isEmpty) continue;
+        final product = await db.getProductByImei(imei.trim());
+        if (product == null) continue;
+        product.supplier = newSupplierName;
+        product.paymentMethod = newPaymentMethod;
+        product.isSynced = false;
+        await db.updateProduct(product);
+        if (product.id != null) {
+          await SyncOrchestrator().enqueueProduct(
+            product.id!,
+            firestoreId: product.firestoreId,
+          );
+        }
+        touchedProducts = true;
+      }
+
+      // Ghi 1 dòng nhật ký điều chỉnh mới — không sửa log cũ
+      try {
+        await FinancialActivityService.logCustomActivity(
+          activityType: 'STOCK_IN_CORRECTION',
+          amount: 0,
+          direction: 'OUT',
+          paymentMethod: newPaymentMethod,
+          title: 'Điều chỉnh phiếu nhập kho',
+          description:
+              'NCC: $oldSupplierName → $newSupplierName | Thanh toán: $oldPaymentMethod → $newPaymentMethod',
+          referenceType: 'stock_entry',
+          referenceId: entryId,
+          createdBy: userName,
+        );
+      } catch (e) {
+        debugPrint('⚠️ correctSupplierAndPayment: Failed to log activity: $e');
+      }
+
+      EventBus().emit('debts_changed');
+      EventBus().emit('expenses_changed');
+      EventBus().emit('financial_changed');
+      EventBus().emit('stock_entries_changed');
+      if (touchedProducts) EventBus().emit('products_changed');
+
+      _showSuccess('Đã cập nhật NCC / phương thức thanh toán');
+      return true;
+    } catch (e) {
+      debugPrint('❌ correctSupplierAndPayment ERROR: $e');
+      _showError('Lỗi khi sửa: $e');
       return false;
     }
   }

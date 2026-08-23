@@ -4,6 +4,33 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-23d] - feat(kho,ncc): cho phép sửa NCC/phương thức thanh toán sau khi nhập kho, khớp cả công nợ + sổ quỹ
+
+**Bối cảnh:** Nhân viên đôi khi chọn nhầm NCC hoặc nhầm hình thức thanh toán (TIỀN MẶT/CHUYỂN KHOẢN/CÔNG NỢ) khi xác nhận phiếu nhập kho, và trước đây không có cách sửa lại. Đã khảo sát kỹ trước khi code: xác nhận công nợ NCC + sổ quỹ được tính từ đúng 2 bảng local `debts`/`expenses` (qua `cash_closing_view.dart`), không phải từ `Product` hay `supplier_debts` (Firestore, ghi lúc confirm nhưng không nơi nào đọc lại — an toàn bỏ qua). Vì vậy việc sửa phải thao tác ở cấp **phiếu nhập kho** (không phải từng sản phẩm) mới khớp đúng số liệu tài chính — đã hỏi lại user xác nhận hướng này trước khi code.
+
+**1. `lib/services/stock_entry_service.dart` — `correctSupplierAndPayment()` (mới):** sửa NCC/thanh toán của 1 phiếu nhập kho ĐÃ XÁC NHẬN. Cùng loại thanh toán → chỉ đổi tên NCC tại chỗ (`debts`/`expenses`). Đổi loại (NCC↔CÔNG NỢ chéo TIỀN MẶT/CHUYỂN KHOẢN) → soft-delete bản ghi cũ + tạo bản ghi mới đúng loại, giữ nguyên số tiền gốc. **Chặn cứng** nếu công nợ đã được trả một phần (`paidAmount > 0`) — không cho đổi loại thanh toán trong trường hợp này, tránh làm sai lịch sử đã thanh toán. Không sửa lại `financial_activity`/`supplier_import_history` cũ (giữ nguyên lịch sử đã xảy ra) — chỉ ghi thêm 1 dòng nhật ký "đã điều chỉnh" mới qua `FinancialActivityService.logCustomActivity`. Đồng bộ nhãn NCC/thanh toán cho `Product` khớp IMEI (chỉ áp dụng sản phẩm có IMEI — không đủ tin cậy để khớp đúng sản phẩm không có IMEI).
+
+**2. `lib/data/db_helper.dart`:** thêm `getExpenseByStockEntryId()` — tìm phiếu chi tạo lúc confirm qua tiền tố mã hoá trong `firestoreId` (`exp_stock_{entryId}_...`, không có cột tham chiếu riêng).
+
+**3. `lib/views/import_order_detail_view.dart`:** thêm nút "Sửa" (AppBar, chỉ hiện khi phiếu đã CONFIRMED) mở dialog chọn lại NCC (tái dùng `supplier_picker_sheet.dart`) + phương thức thanh toán. Cảnh báo trước khi lưu nếu ngày nhập kho đó **đã chốt quỹ** (`cash_closings`) — số đã chốt không tự đổi theo, chỉ công nợ/sổ quỹ hiện tại được cập nhật.
+
+**4. `lib/views/inventory_detail_view.dart`:** thêm dòng hiển thị "Thanh toán" (read-only) — trước đây model `Product.paymentMethod` đã có sẵn dữ liệu nhưng màn này chưa hiển thị (màn preview sản phẩm khác trong `inventory_view.dart` đã có sẵn dòng này từ trước).
+
+**Bug tìm thấy + sửa NGAY trong lúc test trên máy thật (quan trọng):**
+- **Permission-denied khi lưu:** code ban đầu cố `.update()` thẳng doc `stock_entries` đã confirmed — `firestore.rules` chỉ cho update khi status còn `draft` (đã confirmed thì chỉ super-admin sửa được, đúng chủ ý giữ bản ghi gốc bất biến). Đã bỏ hẳn việc sửa `stock_entries`, chỉ sửa `import_orders` (rule không giới hạn status, đây là bản ghi "hiện tại").
+- **Sync-race âm thầm ghi đè ngược:** ban đầu chỉ `db.update()` (local) + `enqueue...()` (hàng đợi async) cho `debts`/`expenses` — xác nhận thật trên máy: 1 debt đã soft-delete xong bị "hồi phục" lại active sau đó (nghi do listener real-time kéo bản Firestore cũ đè ngược trước khi hàng đợi kịp đẩy lên). Đã sửa theo đúng pattern có sẵn ở `expense_view.dart` (xoá expense): ghi Firestore NGAY LẬP TỨC (try/catch, fallback enqueue nếu fail) thay vì chỉ dựa vào hàng đợi.
+- **`ImportOrder.paidAmount` không khớp `paymentStatus`:** chỉ đổi `paymentStatus` mà quên set lại `paidAmount` (=totalAmount khi PAID, =0 khi DEBT) làm `SupplierDetailView` (tab Công nợ, nhánh fallback tính từ `import_orders` khi NCC hết debt thủ công) hiện sai số "còn lại". Đã sửa set cả 2 field cùng lúc.
+
+**Verify (test trên Oppo CPH2203, `m@m.com`/shop "M"):** `flutter analyze` sạch (0 lỗi) sau từng bước sửa + toàn project. Build debug + cài lại 4 lần (mỗi lần fix xong 1 bug tìm thấy).
+- Tạo phiếu CÔNG NỢ (NCC TÉT A, 500.000đ, IMEI thật) → xác nhận → sửa NCC (giữ nguyên) + đổi CÔNG NỢ→CHUYỂN KHOẢN → **thành công đầy đủ**: badge đổi CÔNG NỢ (cam)→ĐÃ THANH TOÁN (xanh) ngay tại chỗ, công nợ NCC biến mất, có khoản chi mới đúng NCC/số tiền trong Sổ quỹ (xác nhận qua feed "Hoạt động hôm nay"), `import_orders`/tab Công nợ NCC cập nhật đúng sau khi thêm fix `paidAmount`.
+- Tạo phiếu CÔNG NỢ khác, đổi NCC + đổi CÔNG NỢ→TIỀN MẶT cùng lúc → xác nhận đổi cả 2 field đúng.
+- Thử sửa lại 1 phiếu mà công nợ gốc đã bị xoá từ lần test trước (dữ liệu test tự tạo ra do bug đã fix) → xác nhận báo lỗi rõ ràng "Không tìm thấy công nợ gốc của phiếu này", không crash.
+- **Chưa test trên máy:** chặn đổi loại thanh toán khi công nợ đã trả một phần (`paidAmount > 0`) — chỉ verify qua code review (logic thuần, không phụ thuộc async/Firestore rules nên rủi ro thấp hơn 3 bug đã tìm thấy ở trên). Vai trò STAFF (không phải Owner/Manager) thử sửa phiếu có đụng `expenses` — rule Firestore yêu cầu `isManager()` cho collection này (giống hệt luồng nhập kho TIỀN MẶT/CHUYỂN KHOẢN gốc), tài khoản test là Chủ shop nên chưa tự thấy lỗi quyền hạn này, nhưng đây là hành vi ĐÚNG theo thiết kế bảo mật sẵn có, không phải bug mới.
+
+**Files:** `lib/services/stock_entry_service.dart`, `lib/data/db_helper.dart`, `lib/views/import_order_detail_view.dart`, `lib/views/inventory_detail_view.dart`.
+
+---
+
 ## [2026-08-23c] - polish(sale,repair): thiết kế lại ảnh biên nhận/phiếu sửa giống tờ giấy in thật, chuyên nghiệp hơn
 
 **Bối cảnh:** User phản hồi ảnh chia sẻ ở `[2026-08-23a/b]` chỉ là khối chữ monospace thô trong khung viền vuông — chưa "đẹp, chuyên nghiệp" như biên nhận thật. Yêu cầu rõ: ảnh chia sẻ phải nhìn giống hệt tờ giấy khi in ra, nhưng trình bày gọn gàng dễ nhìn hơn. Đã hỏi lại user chọn giữa 2 hướng (dạng thẻ hiện đại kiểu KiotViet, hoặc dải giấy hẹp giống hệt biên nhận in) — **user chọn giữ dải giấy giống biên nhận in thật**, chỉ làm sạch/đẹp hơn.

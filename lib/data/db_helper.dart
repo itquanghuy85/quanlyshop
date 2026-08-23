@@ -5685,6 +5685,21 @@ class DBHelper {
     );
   }
 
+  /// Tìm phiếu chi được tạo lúc xác nhận 1 phiếu nhập kho — firestoreId được
+  /// mã hoá dạng exp_stock_{entryId}_{timestamp} lúc tạo (stock_entry_service.dart),
+  /// không có cột tham chiếu riêng nên phải LIKE theo tiền tố.
+  Future<Map<String, dynamic>?> getExpenseByStockEntryId(String entryId) async {
+    if (entryId.isEmpty) return null;
+    final db = await database;
+    final rows = await db.query(
+      'expenses',
+      where: 'firestoreId LIKE ?',
+      whereArgs: ['exp_stock_${entryId}_%'],
+      limit: 1,
+    );
+    return rows.isNotEmpty ? rows.first : null;
+  }
+
   /// Lấy chi phí liên quan đến sản phẩm (theo relatedPartId hoặc title/note chứa productId/imei)
   Future<List<Map<String, dynamic>>> getExpensesByProductId(
     String productId, {
