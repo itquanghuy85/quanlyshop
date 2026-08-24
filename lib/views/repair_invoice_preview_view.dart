@@ -119,6 +119,8 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
     final bankAccount = prefs.getString('bank_qr_account') ?? '';
     final bankHolder = prefs.getString('bank_qr_holder') ?? '';
 
+    await _precacheReceiveImages();
+
     if (!useCustomTemplate) {
       final children = _buildDefaultChildren();
       setState(() {
@@ -196,6 +198,20 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
 
     if (widget.autoShare && mounted) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _shareToCustomer());
+    }
+  }
+
+  /// Precache ảnh máy nhận (nếu là URL cloud) — đảm bảo đã tải xong trước
+  /// khi chụp ảnh biên nhận/tự động chia sẻ ngay lúc màn vừa mở, tránh ảnh
+  /// bị thiếu do `Image.network` chưa kịp tải xong lúc chụp.
+  Future<void> _precacheReceiveImages() async {
+    for (final path in widget.repair.receiveImages) {
+      if (!mounted) break;
+      if (path.startsWith('http://') || path.startsWith('https://')) {
+        try {
+          await precacheImage(NetworkImage(path), context);
+        } catch (_) {}
+      }
     }
   }
 
@@ -402,14 +418,10 @@ Future<File?> _captureReceiptFile() async {
                             child: _useCustomTemplate
                                 ? ReceiptPaperView(
                                     text: _previewText,
-                                    footer: (_remainingDebt > 0 && _hasBankInfo)
-                                        ? _buildPaymentQrContent()
-                                        : null,
+                                    footer: _buildReceiptExtras(),
                                   )
                                 : ReceiptPaperView(
-                                    footer: (_remainingDebt > 0 && _hasBankInfo)
-                                        ? _buildPaymentQrContent()
-                                        : null,
+                                    footer: _buildReceiptExtras(),
                                     children: _defaultChildren,
                                   ),
                           ),
@@ -420,6 +432,82 @@ Future<File?> _captureReceiptFile() async {
                 ],
               ),
             ),
+    );
+  }
+
+  /// Gộp mọi khối phụ kèm theo ảnh biên nhận: ảnh máy nhận (nếu có) → QR
+  /// tra cứu đơn (luôn có) → QR chuyển khoản (nếu còn nợ + đã cấu hình NH).
+  Widget? _buildReceiptExtras() {
+    final images = widget.repair.receiveImages;
+    final sections = <Widget>[
+      if (images.isNotEmpty) _buildDeviceImagesSection(images),
+      _buildLookupQrSection(),
+      if (_remainingDebt > 0 && _hasBankInfo) _buildPaymentQrContent(),
+    ];
+    return Column(
+      children: [
+        for (int i = 0; i < sections.length; i++) ...[
+          if (i > 0) ...[const SizedBox(height: 10), receiptDivider()],
+          sections[i],
+        ],
+      ],
+    );
+  }
+
+  Widget _buildDeviceImagesSection(List<String> images) {
+    return Column(
+      children: [
+        const Text(
+          'ẢNH MÁY NHẬN',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 0.5),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          alignment: WrapAlignment.center,
+          children: images.map((path) {
+            final isRemote = path.startsWith('http://') || path.startsWith('https://');
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: isRemote
+                  ? Image.network(
+                      path,
+                      width: 90,
+                      height: 90,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    )
+                  : Image.file(
+                      File(path),
+                      width: 90,
+                      height: 90,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLookupQrSection() {
+    final code = widget.repair.firestoreId?.toString() ?? widget.repair.createdAt.toString();
+    return Column(
+      children: [
+        Text(
+          'QUÉT MÃ TRA CỨU ĐƠN',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 11,
+            letterSpacing: 0.5,
+            color: Colors.grey.shade600,
+          ),
+        ),
+        const SizedBox(height: 10),
+        QrImageView(data: 'repair_check:$code', size: 110, backgroundColor: Colors.white),
+      ],
     );
   }
 

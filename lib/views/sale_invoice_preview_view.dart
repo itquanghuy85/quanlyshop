@@ -10,6 +10,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../data/db_helper.dart';
 import '../models/printer_types.dart';
 import '../utils/money_utils.dart';
 import '../utils/vietnamese_utils.dart';
@@ -60,6 +61,10 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
   String _bankHolder = '';
   int _remainingDebt = 0;
 
+  // Ảnh sản phẩm (theo IMEI, chỉ điện thoại — phụ kiện không có định danh
+  // riêng để khớp đúng đơn vị đã bán) — kèm vào ảnh biên nhận nếu có.
+  List<String> _productPhotoPaths = [];
+
   bool get _hasBankInfo => _bankBin.isNotEmpty && _bankAccount.isNotEmpty;
 
   @override
@@ -102,6 +107,8 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
         ? (widget.saleData['remainingDebt'] as num).toInt()
         : int.tryParse(widget.saleData['remainingDebt']?.toString() ?? '0') ?? 0;
 
+    final photoPaths = await _loadProductPhotoPaths();
+
     if (!useCustomTemplate) {
       final children = _buildDefaultChildren(
         prefs.getString('warranty_policy') ?? '',
@@ -115,6 +122,7 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
         _bankName = bankName;
         _bankAccount = bankAccount;
         _bankHolder = bankHolder;
+        _productPhotoPaths = photoPaths;
         _isLoading = false;
       });
       if (widget.autoShare && mounted) {
@@ -247,12 +255,55 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
       _bankName = bankName;
       _bankAccount = bankAccount;
       _bankHolder = bankHolder;
+      _productPhotoPaths = photoPaths;
       _isLoading = false;
     });
 
     if (widget.autoShare && mounted) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _shareToCustomer());
     }
+  }
+
+  /// Tra ảnh sản phẩm theo IMEI (chỉ điện thoại — phụ kiện không có định
+  /// danh riêng để khớp đúng đơn vị đã bán). Ưu tiên ảnh local (vừa chọn,
+  /// chưa/lỗi upload cloud) giống cách các màn khác trong app đã làm. Ảnh
+  /// cloud được precache trước để đảm bảo đã sẵn sàng khi chụp ảnh biên
+  /// nhận/tự động chia sẻ ngay khi màn vừa mở.
+  Future<List<String>> _loadProductPhotoPaths() async {
+    final rawImeis = widget.saleData['productImeis'];
+    final imeis = rawImeis is List
+        ? rawImeis.map((e) => e?.toString() ?? '').toList()
+        : (rawImeis?.toString() ?? '')
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+
+    final paths = <String>[];
+    for (final imei in imeis) {
+      if (imei.isEmpty) continue;
+      try {
+        final product = await DBHelper().getProductByImei(imei);
+        if (product == null) continue;
+        final local = (product.localImagePath ?? '').trim();
+        final cloud = (product.images ?? '')
+            .split(',')
+            .map((e) => e.trim())
+            .firstWhere((e) => e.isNotEmpty, orElse: () => '');
+        final chosen = local.isNotEmpty ? local : cloud;
+        if (chosen.isNotEmpty && !paths.contains(chosen)) paths.add(chosen);
+      } catch (_) {}
+    }
+
+    for (final path in paths) {
+      if (!mounted) break;
+      if (path.startsWith('http://') || path.startsWith('https://')) {
+        try {
+          await precacheImage(NetworkImage(path), context);
+        } catch (_) {}
+      }
+    }
+    return paths;
   }
 
   /// Dựng lại ĐÚNG layout ESC/POS mặc định của
@@ -496,14 +547,10 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
                             child: _useCustomTemplate
                                 ? ReceiptPaperView(
                                     text: _previewText,
-                                    footer: (_remainingDebt > 0 && _hasBankInfo)
-                                        ? _buildPaymentQrContent()
-                                        : null,
+                                    footer: _buildReceiptExtras(),
                                   )
                                 : ReceiptPaperView(
-                                    footer: (_remainingDebt > 0 && _hasBankInfo)
-                                        ? _buildPaymentQrContent()
-                                        : null,
+                                    footer: _buildReceiptExtras(),
                                     children: _defaultChildren,
                                   ),
                           ),
@@ -514,6 +561,81 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
                 ],
               ),
             ),
+    );
+  }
+
+  /// Gộp mọi khối phụ kèm theo ảnh biên nhận: ảnh sản phẩm (nếu có) → QR
+  /// tra cứu đơn (luôn có) → QR chuyển khoản (nếu còn nợ + đã cấu hình NH).
+  Widget? _buildReceiptExtras() {
+    final sections = <Widget>[
+      if (_productPhotoPaths.isNotEmpty) _buildProductPhotosSection(),
+      _buildLookupQrSection(),
+      if (_remainingDebt > 0 && _hasBankInfo) _buildPaymentQrContent(),
+    ];
+    return Column(
+      children: [
+        for (int i = 0; i < sections.length; i++) ...[
+          if (i > 0) ...[const SizedBox(height: 10), receiptDivider()],
+          sections[i],
+        ],
+      ],
+    );
+  }
+
+  Widget _buildProductPhotosSection() {
+    return Column(
+      children: [
+        const Text(
+          'ẢNH SẢN PHẨM',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 0.5),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          alignment: WrapAlignment.center,
+          children: _productPhotoPaths.map((path) {
+            final isRemote = path.startsWith('http://') || path.startsWith('https://');
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: isRemote
+                  ? Image.network(
+                      path,
+                      width: 90,
+                      height: 90,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    )
+                  : Image.file(
+                      File(path),
+                      width: 90,
+                      height: 90,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLookupQrSection() {
+    final code = widget.saleData['firestoreId']?.toString() ?? 'N/A';
+    return Column(
+      children: [
+        Text(
+          'QUÉT MÃ TRA CỨU ĐƠN',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 11,
+            letterSpacing: 0.5,
+            color: Colors.grey.shade600,
+          ),
+        ),
+        const SizedBox(height: 10),
+        QrImageView(data: 'sale_check:$code', size: 110, backgroundColor: Colors.white),
+      ],
     );
   }
 

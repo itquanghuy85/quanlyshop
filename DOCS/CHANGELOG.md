@@ -4,6 +4,27 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-24l] - feat(sale,repair,kho): ảnh + QR tra cứu kèm biên nhận + gợi ý giá khi sửa sản phẩm
+
+**Bối cảnh:** User yêu cầu 2 việc: (1) ảnh biên nhận đơn bán/phiếu sửa (khi in hoặc chia sẻ) kèm thêm ảnh sản phẩm/máy + QR tra cứu đơn + QR chuyển khoản (đã có sẵn) nếu có; (2) gợi ý giá vốn/giá bán tham khảo không chỉ khi nhập kho (đã có từ `[2026-08-23a]`) mà cả khi sửa sản phẩm.
+
+**1. Ảnh + QR tra cứu trong ảnh biên nhận (`sale_invoice_preview_view.dart`, `repair_invoice_preview_view.dart`):**
+- Đơn bán: tra ảnh từng sản phẩm theo IMEI (chỉ điện thoại — phụ kiện không có định danh riêng để khớp đúng đơn vị đã bán), ưu tiên ảnh local giống các màn khác đã làm trong app.
+- Phiếu sửa: dùng thẳng `Repair.receiveImages` (ảnh máy lúc tiếp nhận, đã có sẵn trong model, không cần tra cứu thêm).
+- Cả 2: thêm khối "QUÉT MÃ TRA CỨU ĐƠN" — render `QrImageView` thật từ đúng `qrData` đã tính sẵn (`sale_check:ID`/`repair_check:ID`) nhưng trước đây chỉ tồn tại dạng text bị ẩn đi, chưa từng hiện thành mã QR quét được. Xác nhận `qr_router.dart` đã có sẵn cơ chế nhận diện 2 tiền tố này để mở thẳng đúng đơn khi quét — QR này thực sự dùng được, không phải trang trí.
+- Ảnh cloud được `precacheImage` trước khi chụp/tự động chia sẻ, tránh trường hợp `Image.network` chưa tải kịp lúc chụp ảnh biên nhận.
+- Gộp 3 khối (ảnh, QR tra cứu, QR chuyển khoản) vào 1 hàm `_buildReceiptExtras()` dùng chung, có gạch ngang phân cách giữa các khối đang hiện.
+
+**2. Gợi ý giá vốn/giá bán khi sửa sản phẩm (`lib/views/inventory_view.dart`):** tái dùng nguyên `ProductPricingService` đã xây cho màn Nhập kho — gõ vào ô Model (chỉ áp dụng điện thoại) sẽ tự tính gợi ý (median giá vốn/giá bán/lợi nhuận từ các sản phẩm cùng model, debounce 700ms), hiện đúng thẻ "GIÁ THAM KHẢO" + 2 nút "DÙNG GIÁ VỐN"/"DÙNG GIÁ BÁN" giống hệt màn Nhập kho.
+
+**Verify (test trên Oppo CPH2203):** `flutter analyze` sạch trên cả 3 file. Build debug + cài lại.
+- Mở lại đơn bán đã có (IMEI 9999, không có ảnh) → xác nhận khối "QUÉT MÃ TRA CỨU ĐƠN" hiện đúng, quét được (ảnh sản phẩm không hiện đúng như dự kiến vì sản phẩm này chưa có ảnh).
+- Sửa sản phẩm "IPHONE 12 32GB VÀNG MỚI" (model "12", có 1 sản phẩm khác cùng model) → gõ lại ô Model → thẻ "GIÁ THAM KHẢO" hiện đúng median (Vốn 9.000.000đ từ 2 mẫu 8tr/10tr) → bấm "DÙNG GIÁ VỐN" → ô Giá vốn cập nhật đúng 9.000.000 → Hủy để không lưu thay đổi test.
+
+**Files:** `lib/views/sale_invoice_preview_view.dart`, `lib/views/repair_invoice_preview_view.dart`, `lib/views/inventory_view.dart`.
+
+---
+
 ## [2026-08-24k] - fix(kho,ncc): trả nợ NCC không đồng bộ ngược vào phiếu nhập kho — sửa tận gốc
 
 **Bối cảnh:** Nối tiếp `[2026-08-24j]`. User chọn "sửa chuẩn logic" thay vì chỉ vá số liệu — chấp nhận đụng vào lõi xử lý thanh toán chung (`PaymentIntentService`) để tránh lặp lại vấn đề.

@@ -27,6 +27,7 @@ import '../services/supplier_service.dart';
 import '../services/firestore_service.dart';
 import '../services/first_time_guide_service.dart';
 import '../services/variant_service.dart';
+import '../services/product_pricing_service.dart';
 import '../widgets/printer_selection_dialog.dart';
 import '../widgets/variant_selector.dart';
 import '../models/printer_types.dart';
@@ -4195,6 +4196,101 @@ class _InventoryViewState extends State<InventoryView>
     );
   }
 
+  /// Thẻ gợi ý giá vốn/giá bán theo lịch sử nhập kho cùng model — cùng kiểu
+  /// hiển thị đã dùng ở màn Nhập kho (fast_stock_in_view.dart), tái dùng cho
+  /// màn Sửa sản phẩm để đồng nhất trải nghiệm.
+  Widget _pricingSuggestionCard({
+    required ProductPricingSuggestion? suggestion,
+    required TextEditingController costCtrl,
+    required TextEditingController priceCtrl,
+    required bool canViewCost,
+    required void Function(VoidCallback) applyState,
+  }) {
+    if (suggestion == null) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        child: Text(
+          'Chưa đủ dữ liệu lịch sử để đề xuất giá.',
+          style: AppTextStyles.caption.copyWith(color: Colors.grey.shade600),
+        ),
+      );
+    }
+    final s = suggestion;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 8, bottom: 4),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.amber.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text('💡', style: TextStyle(fontSize: 14)),
+              const SizedBox(width: 6),
+              Text(
+                'GIÁ THAM KHẢO',
+                style: AppTextStyles.caption.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.amber.shade900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          if (canViewCost)
+            Text('Vốn: ${MoneyUtils.formatCurrency(s.medianCost)}đ', style: AppTextStyles.body2),
+          Text('Bán: ${MoneyUtils.formatCurrency(s.medianSalePrice)}đ', style: AppTextStyles.body2),
+          if (canViewCost)
+            Text('Lợi nhuận: ${MoneyUtils.formatCurrency(s.medianProfit)}đ', style: AppTextStyles.body2),
+          const SizedBox(height: 2),
+          Text(
+            '${s.sampleCount} sản phẩm tương tự · Khoảng giá thường gặp: '
+            '${MoneyUtils.formatCurrency(s.minPrice)}đ - ${MoneyUtils.formatCurrency(s.maxPrice)}đ\n'
+            'Độ tin cậy: ${s.confidence.label}',
+            style: AppTextStyles.caption.copyWith(color: Colors.grey.shade700),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              if (canViewCost) ...[
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => applyState(
+                      () => costCtrl.text = CurrencyTextField.formatDisplay(s.medianCost),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.amber.shade900,
+                      side: BorderSide(color: Colors.amber.shade400),
+                    ),
+                    child: const Text('DÙNG GIÁ VỐN', style: TextStyle(fontSize: 12)),
+                  ),
+                ),
+                const SizedBox(width: 6),
+              ],
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => applyState(
+                    () => priceCtrl.text = CurrencyTextField.formatDisplay(s.medianSalePrice),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.amber.shade900,
+                    side: BorderSide(color: Colors.amber.shade400),
+                  ),
+                  child: const Text('DÙNG GIÁ BÁN', style: TextStyle(fontSize: 12)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   void _editProduct(Product p) {
     final l10n = AppLocalizations.of(context)!;
     // Tên máy = chỉ model (VD: "15 PRO MAX")
@@ -4271,6 +4367,14 @@ class _InventoryViewState extends State<InventoryView>
     bool isSaving = false;
     bool isCorrectingSupplier = false;
     String? editLocalImagePath = p.localImagePath;
+
+    // Gợi ý giá vốn/giá bán theo lịch sử nhập kho cùng model — cùng dịch vụ
+    // đã dùng ở màn Nhập kho (product_pricing_service.dart), chỉ áp dụng
+    // cho điện thoại (accessory không có khái niệm "model" để so khớp).
+    ProductPricingSuggestion? pricingSuggestion;
+    bool pricingChecked = false;
+    Timer? pricingDebounce;
+    bool pricingListenerAttached = false;
     StorageLocation? editSelectedLocation =
         (p.locationCode?.isNotEmpty ?? false)
         ? StorageLocation(
@@ -4299,6 +4403,41 @@ class _InventoryViewState extends State<InventoryView>
                   : 'Không tìm thấy phiếu nhập kho gốc của sản phẩm này (dữ liệu cũ). Vào Kho > Lịch sử nhập kho để tìm sửa thủ công.',
               color: Colors.orange,
             );
+          }
+
+          Future<void> runPricingLookup() async {
+            if (type != 'DIEN_THOAI') return;
+            final model = nameC.text.trim();
+            if (model.isEmpty) {
+              if (!ctx.mounted) return;
+              if (pricingChecked || pricingSuggestion != null) {
+                setS(() {
+                  pricingSuggestion = null;
+                  pricingChecked = false;
+                });
+              }
+              return;
+            }
+            ProductPricingSuggestion? suggestion;
+            try {
+              suggestion = await ProductPricingService.getSuggestion(model: model);
+            } catch (e) {
+              debugPrint('⚠️ ProductPricingService lookup lỗi: $e');
+              return;
+            }
+            if (!ctx.mounted || nameC.text.trim() != model) return;
+            setS(() {
+              pricingSuggestion = suggestion;
+              pricingChecked = true;
+            });
+          }
+
+          if (!pricingListenerAttached) {
+            pricingListenerAttached = true;
+            nameC.addListener(() {
+              pricingDebounce?.cancel();
+              pricingDebounce = Timer(const Duration(milliseconds: 700), runPricingLookup);
+            });
           }
 
           Future<void> saveProcess() async {
@@ -4961,6 +5100,18 @@ class _InventoryViewState extends State<InventoryView>
                         type: TextInputType.number,
                         suffix: "k",
                       ),
+
+                      // Giá vốn/giá bán tham khảo theo lịch sử nhập kho
+                      // cùng model (chỉ điện thoại) — chỉ mang tính gợi ý,
+                      // không tự động ghi.
+                      if (type == 'DIEN_THOAI' && pricingChecked)
+                        _pricingSuggestionCard(
+                          suggestion: pricingSuggestion,
+                          costCtrl: costC,
+                          priceCtrl: priceC,
+                          canViewCost: _canViewCostPrice,
+                          applyState: setS,
+                        ),
 
                       // Phase 2: Food module - Expiry & Batch fields
                       if (_enableExpiry || _enableBatch) ...[
