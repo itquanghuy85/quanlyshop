@@ -14,6 +14,7 @@ import '../utils/money_utils.dart';
 import '../widgets/app_cached_image.dart';
 import '../widgets/currency_text_field.dart';
 import '../widgets/custom_app_bar.dart';
+import '../widgets/image_picker_widget.dart';
 import 'supplier_detail_view.dart';
 
 class InventoryDetailView extends StatefulWidget {
@@ -136,6 +137,9 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
     final isSold = product.status == 0 || product.quantity <= 0;
     final isOutOfStock = product.status != 0 && product.quantity <= 0;
     final hasImage = imagePath.isNotEmpty;
+    final isRemoteImage = imagePath.startsWith('http://') ||
+        imagePath.startsWith('https://') ||
+        imagePath.startsWith('gs://');
     final hasLocation = (product.locationCode ?? '').isNotEmpty;
 
     return Scaffold(
@@ -148,12 +152,34 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: SizedBox(
-                width: double.infinity,
-                height: hasImage ? 200 : 110,
-                child: _buildImage(imagePath, hasImage),
+            GestureDetector(
+              onTap: hasImage
+                  ? () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => FullScreenImageViewer(
+                          imageUrl: isRemoteImage ? imagePath : null,
+                          localPath: isRemoteImage ? null : imagePath,
+                        ),
+                      ),
+                    )
+                  : null,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                // Ảnh vuông (1:1) khi có ảnh thật — tránh tỷ lệ banner dẹt
+                // ngang cắt xén thô ảnh chụp dọc (phần lớn ảnh sản phẩm chụp
+                // bằng điện thoại là ảnh dọc). Không ảnh thì giữ khối thấp
+                // gọn như cũ, không cần chiếm chỗ bằng khối vuông trống.
+                child: hasImage
+                    ? AspectRatio(
+                        aspectRatio: 1,
+                        child: _buildImage(imagePath, hasImage),
+                      )
+                    : SizedBox(
+                        width: double.infinity,
+                        height: 110,
+                        child: _buildImage(imagePath, hasImage),
+                      ),
               ),
             ),
             const SizedBox(height: 14),

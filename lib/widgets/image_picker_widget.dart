@@ -235,7 +235,7 @@ class ImagePickerWidget extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => _FullScreenImageViewer(
+        builder: (_) => FullScreenImageViewer(
           imageUrl: imageUrl,
           localPath: localPath,
         ),
@@ -316,11 +316,11 @@ class ImagePickerWidget extends StatelessWidget {
   static Future<String?> compressImage(String sourcePath) => _compress(sourcePath);
 }
 
-class _FullScreenImageViewer extends StatelessWidget {
+class FullScreenImageViewer extends StatelessWidget {
   final String? imageUrl;
   final String? localPath;
 
-  const _FullScreenImageViewer({this.imageUrl, this.localPath});
+  const FullScreenImageViewer({super.key, this.imageUrl, this.localPath});
 
   @override
   Widget build(BuildContext context) {

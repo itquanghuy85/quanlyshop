@@ -4,6 +4,22 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-24h] - polish(kho): ảnh Chi tiết sản phẩm — tỷ lệ vuông + bấm xem ảnh to
+
+**Bối cảnh:** Nối tiếp `[2026-08-24g]`. User phản hồi ảnh header ở trang Chi tiết sản phẩm nhìn "hơi thô" (banner dẹt ngang cắt xén ảnh chụp dọc), muốn có cơ chế giảm dung lượng ảnh, và bấm vào ảnh phải xem được ảnh to.
+
+**Đã kiểm tra cơ chế giảm dung lượng ảnh:** đã có sẵn và áp dụng đồng nhất ở cả 3 nơi thêm ảnh sản phẩm (Sửa sản phẩm, Nhập mới, Nhập nhanh) — `ImagePickerWidget` nén ảnh ngay khi chọn (tối đa 1600px, JPEG q78, nén lại lần 2 ở q60 nếu vẫn >300KB). Không cần thêm gì ở bước này.
+
+**`lib/views/inventory_detail_view.dart`:** đổi khối ảnh header từ banner cố định 200px cắt `BoxFit.cover` theo chiều ngang (méo/cắt thô ảnh dọc) sang khung vuông 1:1 — khớp tỷ lệ ảnh sản phẩm chụp dọc tốt hơn nhiều, đỡ cắt xén. Bọc thêm `GestureDetector` — bấm vào ảnh (khi có ảnh thật) mở trang xem ảnh toàn màn hình, phóng to/thu nhỏ bằng 2 ngón (tái dùng `FullScreenImageViewer`, dùng `PhotoView`).
+
+**`lib/widgets/image_picker_widget.dart`:** đổi `_FullScreenImageViewer` (private, chỉ dùng nội bộ khi bấm vào ảnh trong bộ chọn ảnh) thành `FullScreenImageViewer` (public) để dùng lại được từ `inventory_detail_view.dart`, không cần viết lại logic xem ảnh toàn màn hình.
+
+**Verify (test trên Oppo CPH2203):** `flutter analyze` sạch. Build debug + cài lại. Mở Chi tiết sản phẩm có ảnh thật → xác nhận ảnh hiện đúng khung vuông, không còn kéo dẹt/cắt thô. Bấm vào ảnh → mở đúng trang "Xem ảnh" toàn màn hình, phóng to/thu nhỏ được bằng 2 ngón.
+
+**Files:** `lib/views/inventory_detail_view.dart`, `lib/widgets/image_picker_widget.dart`.
+
+---
+
 ## [2026-08-24g] - fix(kho): sửa phụ kiện đè mất tên gốc + ảnh không hiện + thu nhỏ avatar + audit lại Chi tiết sản phẩm
 
 **Bối cảnh:** User báo 4 việc: (1) sửa phụ kiện "ốp" (thêm ảnh) xong tên tự đổi thành "KHÁC MỚI"; (2) avatar ảnh trong danh sách sản phẩm quá to, nhìn thô; (3) vào chi tiết sản phẩm có ảnh nhưng không thấy hiện; (4) audit lại màn Chi tiết sản phẩm cho chuyên nghiệp hơn.
