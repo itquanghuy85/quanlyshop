@@ -3471,36 +3471,42 @@ class _InventoryViewState extends State<InventoryView>
                   ),
                 ),
               ),
-              // Ảnh sản phẩm (thumbnail nhỏ)
+              // Ảnh sản phẩm (thumbnail nhỏ) — bọc `Align` để không bị Row
+              // (crossAxisAlignment.stretch, dùng để kéo dài thanh accent
+              // trái theo chiều cao thẻ) ép giãn ảnh theo chiều cao thẻ,
+              // khiến kích thước width/height đặt cho ảnh vô tác dụng.
               if ((p.images != null && p.images!.isNotEmpty) ||
                   (p.localImagePath != null && p.localImagePath!.isNotEmpty))
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 8,
-                    horizontal: 6,
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child:
-                        (p.localImagePath != null &&
-                            p.localImagePath!.isNotEmpty)
-                        ? Image.file(
-                            File(p.localImagePath!),
-                            width: 40,
-                            height: 40,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                const SizedBox.shrink(),
-                          )
-                        : AppCachedImage(
-                            imageUrl: p.images!,
-                            width: 40,
-                            height: 40,
-                            fit: BoxFit.cover,
-                            borderRadius: BorderRadius.circular(8),
-                            memCacheWidth: 100,
-                            memCacheHeight: 100,
-                          ),
+                Align(
+                  alignment: Alignment.center,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 8,
+                      horizontal: 6,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(7),
+                      child:
+                          (p.localImagePath != null &&
+                              p.localImagePath!.isNotEmpty)
+                          ? Image.file(
+                              File(p.localImagePath!),
+                              width: 30,
+                              height: 30,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                                  const SizedBox.shrink(),
+                            )
+                          : AppCachedImage(
+                              imageUrl: p.images!,
+                              width: 30,
+                              height: 30,
+                              fit: BoxFit.cover,
+                              borderRadius: BorderRadius.circular(7),
+                              memCacheWidth: 80,
+                              memCacheHeight: 80,
+                            ),
+                    ),
                   ),
                 ),
               // Nội dung chính

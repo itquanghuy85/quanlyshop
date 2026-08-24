@@ -4,6 +4,20 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-24i] - fix(kho): avatar danh sách sản phẩm — sửa đúng nguyên nhân bị kéo giãn to
+
+**Bối cảnh:** User báo lại avatar trong danh sách sản phẩm vẫn to dù `[2026-08-24g]` đã đổi kích thước 52→40px — vì thực chất thay đổi đó KHÔNG có tác dụng gì trên máy thật.
+
+**Nguyên nhân thật:** `Row` chứa thanh accent trái + ảnh + nội dung dùng `crossAxisAlignment: CrossAxisAlignment.stretch` (để thanh accent trái kéo dài đúng theo chiều cao thẻ) — hệ quả phụ: MỌI child trực tiếp của Row, kể cả khối ảnh, đều bị ép giãn theo chiều cao thẻ (khá cao vì nội dung nhiều dòng), khiến `width`/`height` đặt riêng cho ảnh hoàn toàn vô tác dụng — máy in ảnh vẫn kéo giãn lấp đầy khối bị ép. Đây là lý do đổi 52→40px ở lần trước không thấy hiệu quả gì trên máy.
+
+**Đã sửa:** bọc khối ảnh trong `Align(alignment: Alignment.center)` trước khi áp `Padding`/kích thước — `Align` tự nhận phần không gian bị ép giãn từ Row nhưng KHÔNG ép tiếp xuống con của nó, nên ảnh bên trong giữ đúng kích thước đã khai báo (30x30), canh giữa theo chiều dọc thẻ thay vì kéo giãn lấp đầy.
+
+**Verify (test trên Oppo CPH2203):** `flutter analyze` sạch. Build debug + cài lại. Xác nhận qua ảnh chụp màn hình: avatar giờ đúng là 1 ô nhỏ vuông canh giữa, không còn kéo dài lấp đầy chiều cao thẻ.
+
+**Files:** `lib/views/inventory_view.dart`.
+
+---
+
 ## [2026-08-24h] - polish(kho): ảnh Chi tiết sản phẩm — tỷ lệ vuông + bấm xem ảnh to
 
 **Bối cảnh:** Nối tiếp `[2026-08-24g]`. User phản hồi ảnh header ở trang Chi tiết sản phẩm nhìn "hơi thô" (banner dẹt ngang cắt xén ảnh chụp dọc), muốn có cơ chế giảm dung lượng ảnh, và bấm vào ảnh phải xem được ảnh to.
