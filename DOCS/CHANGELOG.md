@@ -4,6 +4,24 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-24m] - fix(kho,sale): audit luồng Nhập kho/Sản phẩm/Bán hàng — sửa 3 điểm ma sát cho người mới
+
+**Bối cảnh:** User yêu cầu audit toàn bộ luồng Nhập kho, Sản phẩm, Bán hàng với vai trò người dùng thật, tối ưu trải nghiệm cho người mới dùng. Đã đi thực tế qua device + đọc code, phát hiện 3 vấn đề cụ thể và được yêu cầu sửa cả 3.
+
+**1. Tên điện thoại bị ghi đè âm thầm khi nhập kho (`lib/views/smart_stock_in_view.dart`):** Ở "NHẬP KHO MỚI", nếu đã chọn Hãng hoặc gõ Model, `_buildItem()` luôn dùng tên tự sinh từ Hãng/Model/Dung lượng/Màu/Tình trạng, bỏ qua hoàn toàn nội dung người dùng gõ tay trong ô "Tên điện thoại *" — không có cảnh báo nào, y hệt lỗi phụ kiện đã sửa trước đó nhưng ở luồng khác. Sửa: thêm getter `_phoneNameIsAuto` + `_syncPhoneNamePreview()`, gọi lại mỗi khi Hãng/Model/Dung lượng/Màu/Tình trạng đổi để ô Tên luôn hiện đúng tên sẽ lưu, đồng thời khóa ô này (`readOnly`, nền xám) kèm helper text "Tự ghép từ Hãng/Model/Dung lượng/Màu/Tình trạng — muốn đổi thì sửa các mục bên dưới" khi đang ở chế độ tự ghép.
+
+**2. Không cảnh báo sản phẩm chưa định giá khi bán (`lib/views/create_sale_view.dart`):** `smart_stock_in_view` không bắt buộc giá bán lúc nhập kho, nên sản phẩm có thể vào kho với giá 0đ rồi chỉ hiện "Giá: 0" mờ nhạt trong danh sách chọn khi bán — dễ bị bỏ sót, bán nhầm giá 0đ. Sửa: cả 2 danh sách chọn sản phẩm (tìm kiếm + "Sản phẩm gần đây") hiện "⚠ Chưa định giá" màu đỏ đậm thay vì "Giá: 0" khi `p.price <= 0`.
+
+**3. Khu vực chọn sản phẩm ghi nhãn "ĐIỆN THOẠI" dù trộn cả phụ kiện (`lib/views/create_sale_view.dart`):** `_terms.productLabel` hardcode "Điện thoại" (business type duy nhất được hỗ trợ — `business_type_helper.dart`), nhưng danh sách/tìm kiếm sản phẩm khi bán thực tế trộn cả điện thoại lẫn phụ kiện. Đổi các nhãn dùng `_terms.productLabel` trong khu vực chọn sản phẩm sang "SẢN PHẨM"/"sản phẩm" trung tính: tiêu đề khu vực, subtitle AppBar ("x sản phẩm đã chọn"), placeholder tìm kiếm, snackbar thiếu sản phẩm/hết hàng, nút xác nhận, bước hướng dẫn first-time-guide. Giữ nguyên các chỗ đã đúng ngữ cảnh điện thoại thật (vd cảnh báo thiếu IMEI, guard `p.type == 'DIEN_THOAI'`).
+
+**Verify (test trên Oppo CPH2203, tài khoản test):** `flutter analyze` sạch trên cả 2 file (chỉ còn info-level lint có sẵn từ trước, không liên quan). Build debug + cài lại, xác nhận trên máy thật:
+- NHẬP KHO MỚI: chọn Hãng "IPHONE" → ô Tên tự đổi thành "IPHONE", khóa sửa tay (nền xám), hiện đúng helper text.
+- TẠO ĐƠN BÁN HÀNG: tiêu đề khu vực đổi thành "SẢN PHẨM", subtitle "0 sản phẩm đã chọn"; 2 sản phẩm test có giá 0đ hiện đúng "⚠ Chưa định giá" màu đỏ thay vì "Giá: 0".
+
+**Files:** `lib/views/smart_stock_in_view.dart`, `lib/views/create_sale_view.dart`.
+
+---
+
 ## [2026-08-24l] - feat(sale,repair,kho): ảnh + QR tra cứu kèm biên nhận + gợi ý giá khi sửa sản phẩm
 
 **Bối cảnh:** User yêu cầu 2 việc: (1) ảnh biên nhận đơn bán/phiếu sửa (khi in hoặc chia sẻ) kèm thêm ảnh sản phẩm/máy + QR tra cứu đơn + QR chuyển khoản (đã có sẵn) nếu có; (2) gợi ý giá vốn/giá bán tham khảo không chỉ khi nhập kho (đã có từ `[2026-08-23a]`) mà cả khi sửa sản phẩm.

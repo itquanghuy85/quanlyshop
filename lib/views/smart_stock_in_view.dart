@@ -693,6 +693,30 @@ class _SmartStockInViewState extends State<SmartStockInView> {
 
   bool get _isPhone => _productType == 'DIEN_THOAI';
 
+  /// Tên điện thoại được tự ghép từ Hãng/Model/Dung lượng/Màu/Tình trạng
+  /// ngay khi đã chọn Hãng hoặc gõ Model — khớp đúng điều kiện dùng tên tự
+  /// sinh ở `_buildItem()`. Field tên phải readOnly trong trường hợp này,
+  /// nếu không người dùng gõ tay sẽ bị ghi đè âm thầm lúc lưu.
+  bool get _phoneNameIsAuto =>
+      _isPhone &&
+      (_selectedBrand != null || _modelCtrl.text.trim().isNotEmpty);
+
+  /// Đồng bộ ô Tên theo đúng tên sẽ được lưu, để không còn lệch giữa
+  /// những gì hiển thị và những gì thực sự ghi vào sản phẩm.
+  void _syncPhoneNamePreview() {
+    if (!_phoneNameIsAuto) return;
+    final preview = ProductConstants.generateProductName(
+      brand: _selectedBrand,
+      model: _modelCtrl.text.trim(),
+      capacity: _selectedCapacity,
+      color: _selectedColor,
+      condition: _selectedCondition,
+    );
+    if (preview.isNotEmpty) {
+      _nameCtrl.text = preview;
+    }
+  }
+
   /// Kiểm tra nếu là sản phẩm thời trang (quần áo, giày dép, phụ kiện thời trang)
   bool get _isFashionProduct =>
       _productType == 'QUAN_AO' ||
@@ -1246,19 +1270,27 @@ class _SmartStockInViewState extends State<SmartStockInView> {
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
-            // Tên sản phẩm (động theo ngành)
+            // Tên sản phẩm (động theo ngành) — tự ghép & khóa sửa tay khi
+            // đã chọn Hãng/Model, để không còn lệch với tên thực lưu.
             TextFormField(
               controller: _nameCtrl,
+              readOnly: _phoneNameIsAuto,
               textCapitalization: TextCapitalization.characters,
               decoration: InputDecoration(
                 labelText: 'Tên ${_terms.productLabel.toLowerCase()} *',
                 hintText: 'VD: IPHONE 15 PRO MAX',
+                helperText: _phoneNameIsAuto
+                    ? 'Tự ghép từ Hãng/Model/Dung lượng/Màu/Tình trạng — muốn đổi thì sửa các mục bên dưới'
+                    : null,
+                helperMaxLines: 2,
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.phone_android, size: 20),
                 contentPadding: EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 8,
                 ),
+                filled: _phoneNameIsAuto,
+                fillColor: Colors.grey.shade200,
               ),
               style: TextStyle(fontSize: AppTextStyles.headline5.fontSize),
               onChanged: (_) => setState(() {}),
@@ -1380,7 +1412,10 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                           ),
                         )
                         .toList(),
-                    onChanged: (v) => setState(() => _selectedBrand = v),
+                    onChanged: (v) => setState(() {
+                      _selectedBrand = v;
+                      _syncPhoneNamePreview();
+                    }),
                     style: TextStyle(
                       fontSize: AppTextStyles.subtitle1.fontSize,
                       color: Colors.black87,
@@ -1404,6 +1439,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                     style: TextStyle(
                       fontSize: AppTextStyles.headline5.fontSize,
                     ),
+                    onChanged: (_) => setState(_syncPhoneNamePreview),
                   ),
                 ),
               ],
@@ -1441,7 +1477,10 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                           ),
                         )
                         .toList(),
-                    onChanged: (v) => setState(() => _selectedCapacity = v),
+                    onChanged: (v) => setState(() {
+                      _selectedCapacity = v;
+                      _syncPhoneNamePreview();
+                    }),
                     style: TextStyle(
                       fontSize: AppTextStyles.subtitle1.fontSize,
                       color: Colors.black87,
@@ -1476,7 +1515,10 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                           ),
                         )
                         .toList(),
-                    onChanged: (v) => setState(() => _selectedColor = v),
+                    onChanged: (v) => setState(() {
+                      _selectedColor = v;
+                      _syncPhoneNamePreview();
+                    }),
                     style: TextStyle(
                       fontSize: AppTextStyles.subtitle1.fontSize,
                       color: Colors.black87,
@@ -1517,7 +1559,10 @@ class _SmartStockInViewState extends State<SmartStockInView> {
                           ),
                         )
                         .toList(),
-                    onChanged: (v) => setState(() => _selectedCondition = v),
+                    onChanged: (v) => setState(() {
+                      _selectedCondition = v;
+                      _syncPhoneNamePreview();
+                    }),
                     style: TextStyle(
                       fontSize: AppTextStyles.subtitle1.fontSize,
                       color: Colors.black87,

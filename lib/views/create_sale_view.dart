@@ -207,10 +207,10 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           icon: Icons.person,
           iconColor: Colors.blue,
         ),
-        GuideStep(
-          title: '📦 Chọn ${_terms.productLabel.toLowerCase()}',
+        const GuideStep(
+          title: '📦 Chọn sản phẩm',
           description:
-              'Tìm kiếm và chọn ${_terms.productLabel.toLowerCase()} trong kho. Có thể bán nhiều ${_terms.productLabel.toLowerCase()} trong 1 đơn.',
+              'Tìm kiếm và chọn sản phẩm trong kho (điện thoại, phụ kiện, linh kiện). Có thể bán nhiều sản phẩm trong 1 đơn.',
           icon: Icons.inventory_2,
           iconColor: Colors.orange,
         ),
@@ -1159,7 +1159,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     if (_selectedItems.isEmpty) {
       debugPrint('🛒 _processSale: No items selected');
       NotificationService.showSnackBar(
-        "VUI LÒNG CHỌN ${_terms.productLabel.toUpperCase()}",
+        "VUI LÒNG CHỌN SẢN PHẨM",
         color: Colors.red,
       );
       return;
@@ -2042,7 +2042,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       backgroundColor: AppColors.background,
       appBar: CustomAppBar.build(
         title: widget.editSale != null ? 'SỬA ĐƠN BÁN HÀNG' : 'TẠO ĐƠN BÁN HÀNG',
-        subtitle: '${_selectedItems.length} ${_terms.productLabel.toLowerCase()} đã chọn',
+        subtitle: '${_selectedItems.length} sản phẩm đã chọn',
         gradient: const LinearGradient(
           colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
           begin: Alignment.topLeft,
@@ -2096,7 +2096,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  _terms.productLabel.toUpperCase(),
+                                  'SẢN PHẨM',
                                   style: AppTextStyles.caption.copyWith(
                                     fontWeight: FontWeight.bold,
                                     color: Colors.blue.shade700,
@@ -2116,7 +2116,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                             DebouncedSearchField(
                               controller: searchProdCtrl,
                               hint:
-                                  "Tìm ${_terms.productLabel.toLowerCase()} hoặc ${_terms.specialField1Label}...",
+                                  "Tìm sản phẩm hoặc ${_terms.specialField1Label}...",
                               onSearch: (v) => setState(
                                 () => _filteredInStock = _allInStock
                                     .where(
@@ -2332,7 +2332,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                               )
                             : Text(
                                 _selectedItems.isEmpty
-                                    ? "CHƯA CHỌN ${_terms.productLabel.toUpperCase()}"
+                                    ? "CHƯA CHỌN SẢN PHẨM"
                                     : "HOÀN TẤT ĐƠN HÀNG",
                                 style: AppTextStyles.button.copyWith(
                                   color: AppColors.onSuccess,
@@ -2911,9 +2911,17 @@ class _CreateSaleViewState extends State<CreateSaleView> {
               p.name,
               style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold),
             ),
-            subtitle: Text(
-              "${_terms.specialField1Label}: ${p.imei ?? 'PK'} - Giá: ${MoneyUtils.formatCurrency(p.price)}",
-            ),
+            subtitle: p.price <= 0
+                ? Text(
+                    "${_terms.specialField1Label}: ${p.imei ?? 'PK'} - ⚠ Chưa định giá",
+                    style: const TextStyle(
+                      color: AppColors.error,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  )
+                : Text(
+                    "${_terms.specialField1Label}: ${p.imei ?? 'PK'} - Giá: ${MoneyUtils.formatCurrency(p.price)}",
+                  ),
             // HIỂN THỊ SỐ LƯỢNG TỒN TRONG LIST CHỌN
             trailing: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -2934,7 +2942,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             onTap: () {
               if (p.quantity == 0) {
                 NotificationService.showSnackBar(
-                  "${_terms.productLabel} '${p.name}' chưa có trong kho!\nVui lòng tạo nhà cung cấp và nhập kho trước khi bán.",
+                  "Sản phẩm '${p.name}' chưa có trong kho!\nVui lòng tạo nhà cung cấp và nhập kho trước khi bán.",
                   color: AppColors.error,
                 );
                 return;
@@ -3062,8 +3070,15 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                     ),
                   ),
                   subtitle: Text(
-                    '${_terms.specialField1Label}: ${p.imei ?? 'PK'} - Giá: ${MoneyUtils.formatCurrency(p.price)}',
-                    style: AppTextStyles.caption,
+                    p.price <= 0
+                        ? '${_terms.specialField1Label}: ${p.imei ?? 'PK'} - ⚠ Chưa định giá'
+                        : '${_terms.specialField1Label}: ${p.imei ?? 'PK'} - Giá: ${MoneyUtils.formatCurrency(p.price)}',
+                    style: p.price <= 0
+                        ? AppTextStyles.caption.copyWith(
+                            color: AppColors.error,
+                            fontWeight: FontWeight.bold,
+                          )
+                        : AppTextStyles.caption,
                   ),
                   trailing: Text(
                     'Tồn ${p.quantity}',
