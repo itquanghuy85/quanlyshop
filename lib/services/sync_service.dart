@@ -16,6 +16,7 @@ import '../models/leave_request_model.dart';
 import '../models/quick_input_code_model.dart';
 import 'storage_service.dart';
 import 'product_image_service.dart';
+import 'payment_intent_service.dart';
 import 'user_service.dart';
 import 'encryption_service.dart';
 import 'sync_orchestrator.dart';
@@ -3650,6 +3651,17 @@ class SyncService {
           await ProductImageService.retryPendingProductImages(shopId);
         } catch (e) {
           debugPrint("Lỗi retry ảnh sản phẩm còn kẹt ở local: $e");
+        }
+
+        // Sửa lại các phiếu nhập kho bị lệch: đã trả nợ xong (bảng debts)
+        // nhưng phiếu vẫn hiện "còn nợ" do trước đây trả nợ NCC không
+        // đồng bộ ngược lại import_orders (đã sửa ở PaymentIntentService,
+        // nhưng chỉ áp dụng cho lần trả nợ MỚI — cần quét lại cho dữ liệu
+        // cũ đã lệch sẵn).
+        try {
+          await PaymentIntentService.reconcileStaleImportOrderDebts();
+        } catch (e) {
+          debugPrint("Lỗi reconcile phiếu nhập kho lệch nợ NCC: $e");
         }
 
         // Sync DELETED products → push deleted:true lên Firestore

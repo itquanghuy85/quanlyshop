@@ -4,6 +4,24 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-24k] - fix(kho,ncc): trả nợ NCC không đồng bộ ngược vào phiếu nhập kho — sửa tận gốc
+
+**Bối cảnh:** Nối tiếp `[2026-08-24j]`. User chọn "sửa chuẩn logic" thay vì chỉ vá số liệu — chấp nhận đụng vào lõi xử lý thanh toán chung (`PaymentIntentService`) để tránh lặp lại vấn đề.
+
+**Nguyên nhân gốc:** `PaymentIntentService._updateRelatedEntities` (nơi DUY NHẤT xử lý mọi khoản trả/thu nợ trong app) chỉ cập nhật bảng `debts` + `debt_payments` khi trả nợ — hoàn toàn không biết đến việc 1 khoản nợ NCC có thể được tạo ra TỪ 1 phiếu nhập kho cụ thể (`debts.linkedId` = `stockEntryId`) và phiếu đó có số liệu `paidAmount`/`paymentStatus` RIÊNG cần cập nhật theo. Kết quả: trả nợ xong (bảng `debts` đúng), nhưng phiếu nhập kho gốc (`import_orders`, nguồn số liệu cho tab Thống kê NCC) mãi mãi đứng yên ở trạng thái lúc tạo, không bao giờ nhận biết đã được trả.
+
+**Đã sửa (`lib/services/payment_intent_service.dart`):**
+- Thêm `_syncImportOrderPaymentIfLinked(stockEntryId, paidDelta)` — sau mỗi lần trả nợ (trừ thu nợ khách hàng), tra `linkedId` trong metadata xem có khớp `stockEntryId` của 1 `import_orders` nào không; nếu có, cộng dồn đúng số tiền vừa trả vào `paidAmount`/cập nhật `paymentStatus` của phiếu đó (ghi cả Firestore lẫn local, cùng pattern đã dùng ở `correctSupplierAndPayment`). An toàn tuyệt đối cho nợ khách hàng — `linkedId` của họ (nếu có) không bao giờ trùng `stockEntryId` thật nên hàm tự thoát sớm.
+- Thêm `reconcileStaleImportOrderDebts()` — quét lại TOÀN BỘ phiếu nhập kho đang bị lệch do vấn đề này xảy ra TRƯỚC khi có bản sửa (nợ đã trả xong từ lâu nhưng phiếu vẫn hiện "còn nợ"), tự sửa lại 1 lần. Gọi trong chu kỳ `syncAllToCloud` (`lib/services/sync_service.dart`) — không cần thao tác gì thêm từ người dùng.
+
+**Verify (test trên Oppo CPH2203, tài khoản test):**
+- Reconcile: log xác nhận tự sửa đúng phiếu NK-0075 (đã lệch từ trước) — sau khi sửa, tab Thống kê KHO TỔNG hiện đúng "Còn nợ: 0" khớp tab Công nợ, "Đã thanh toán đủ 11 / Chưa thanh toán 7" (11+7=18 đúng tổng).
+- Đồng bộ khi trả nợ MỚI: dùng "Thanh toán nhanh" trả 100.000đ cho NCC TÉT A (khoản nợ 12 triệu, liên kết phiếu NK-0040) → xác nhận qua DB thật: `debts.paidAmount=100000` VÀ `import_orders(NK-0040).paidAmount=100000` cùng cập nhật khớp nhau ngay lập tức — xác nhận cơ chế đồng bộ hoạt động đúng cho lần trả nợ thật.
+
+**Files:** `lib/services/payment_intent_service.dart`, `lib/services/sync_service.dart`.
+
+---
+
 ## [2026-08-24j] - fix(kho): tab Thống kê NCC đếm sai "Chưa thanh toán" luôn ra 0
 
 **Bối cảnh:** User gửi 5 ảnh chụp đủ 4 tab của màn Chi tiết NCC "KHO TỔNG" để rà soát toàn bộ số liệu. Phát hiện: tab "Thống kê" ghi "18 phiếu" nhưng "Đã thanh toán đủ" (10) + "Chưa thanh toán" (0) chỉ cộng ra 10 — thiếu mất 8 phiếu.

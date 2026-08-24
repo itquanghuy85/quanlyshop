@@ -17,6 +17,7 @@
 
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/payment_intent_model.dart';
 import '../models/expense_model.dart';
 import '../data/db_helper.dart';
@@ -716,7 +717,7 @@ class PaymentIntentService {
             if (paymentGroupId != null) 'paymentGroupId': paymentGroupId,
             'isSynced': 0,
           });
-          
+
           // Update debt paidAmount
           int? localDebtId;
           if (debtId is int) {
@@ -732,6 +733,16 @@ class PaymentIntentService {
           if (localDebtId != null) {
             await _db.updateDebtPaid(localDebtId, intent.amount);
           }
+
+          // Nợ NCC phát sinh lúc nhập kho (linkedId = stockEntryId) — trả
+          // nợ qua đây phải đồng bộ ngược paidAmount/paymentStatus vào
+          // đúng phiếu nhập kho, nếu không tab Thống kê NCC (tính riêng từ
+          // import_orders) sẽ mãi hiện "còn nợ" dù bảng debts đã ghi nhận
+          // trả đủ từ lâu — phát hiện qua đối chiếu dữ liệu thật, 1 phiếu
+          // bị lệch chính vì thiếu bước này. An toàn cho nợ khách hàng vì
+          // linkedId của nợ khách sẽ không khớp bất kỳ stockEntryId nào.
+          final linkedId = intent.metadata!['linkedId'] as String?;
+          await _syncImportOrderPaymentIfLinked(linkedId, intent.amount);
         }
         break;
 
@@ -880,6 +891,114 @@ class PaymentIntentService {
       default:
         // For other types, the ledger entry is sufficient
         break;
+    }
+  }
+
+  /// Nếu `linkedId` khớp `stockEntryId` của 1 `import_orders` — cộng dồn
+  /// khoản vừa trả vào `paidAmount`/`paymentStatus` của phiếu đó. An toàn
+  /// khi gọi cho mọi loại nợ: nợ khách hàng có `linkedId` (nếu có) sẽ
+  /// không bao giờ khớp `stockEntryId` thật nên hàm tự thoát sớm, không
+  /// ảnh hưởng gì.
+  static Future<void> _syncImportOrderPaymentIfLinked(
+    String? stockEntryId,
+    int paidDelta,
+  ) async {
+    if (stockEntryId == null || stockEntryId.isEmpty) return;
+    try {
+      final order = await _db.getImportOrderByStockEntryId(stockEntryId);
+      if (order == null) return;
+      final firestoreId = order['firestoreId'] as String?;
+      if (firestoreId == null || firestoreId.isEmpty) return;
+
+      final total = (order['totalAmount'] as num?)?.toInt() ?? 0;
+      final currentPaid = (order['paidAmount'] as num?)?.toInt() ?? 0;
+      final newPaid = (currentPaid + paidDelta).clamp(0, total);
+      final newStatus = newPaid >= total ? 'PAID' : 'DEBT';
+      final now = DateTime.now().millisecondsSinceEpoch;
+
+      try {
+        await FirebaseFirestore.instance
+            .collection('import_orders')
+            .doc(firestoreId)
+            .update({
+          'paidAmount': newPaid,
+          'paymentStatus': newStatus,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        debugPrint('⚠️ Không cập nhật được import_orders trên Firestore: $e');
+      }
+      await _db.upsertImportOrder({
+        'firestoreId': firestoreId,
+        'paidAmount': newPaid,
+        'paymentStatus': newStatus,
+        'updatedAt': now,
+      });
+    } catch (e) {
+      debugPrint('⚠️ Lỗi đồng bộ import_orders khi trả nợ NCC: $e');
+    }
+  }
+
+  /// Quét lại các phiếu nhập kho đang bị tính "còn nợ" nhưng khoản nợ liên
+  /// kết trong bảng debts đã được đánh dấu trả đủ TỪ TRƯỚC khi có bản sửa
+  /// đồng bộ ở trên (`_syncImportOrderPaymentIfLinked` chỉ áp dụng cho các
+  /// lần trả nợ MỚI, không tự sửa lại dữ liệu cũ đã lệch sẵn) — gọi định
+  /// kỳ trong chu kỳ sync để tự chữa các bản ghi cũ, không cần thao tác gì
+  /// thêm từ người dùng.
+  static Future<void> reconcileStaleImportOrderDebts() async {
+    try {
+      final db = await _db.database;
+      final staleOrders = await db.query(
+        'import_orders',
+        where: "paymentStatus != 'PAID' AND (deleted IS NULL OR deleted != 1)",
+      );
+      for (final order in staleOrders) {
+        final stockEntryId = order['stockEntryId'] as String?;
+        final firestoreId = order['firestoreId'] as String?;
+        final total = (order['totalAmount'] as num?)?.toInt() ?? 0;
+        if (stockEntryId == null ||
+            stockEntryId.isEmpty ||
+            firestoreId == null ||
+            firestoreId.isEmpty ||
+            total <= 0) {
+          continue;
+        }
+
+        final linkedDebts = await _db.getDebtsByLinkedId(stockEntryId);
+        Map<String, dynamic>? paidDebt;
+        for (final d in linkedDebts) {
+          final dTotal = (d['totalAmount'] as num?)?.toInt() ?? 0;
+          final dPaid = (d['paidAmount'] as num?)?.toInt() ?? 0;
+          if (dTotal > 0 && dPaid >= dTotal) {
+            paidDebt = d;
+            break;
+          }
+        }
+        if (paidDebt == null) continue;
+
+        final now = DateTime.now().millisecondsSinceEpoch;
+        try {
+          await FirebaseFirestore.instance
+              .collection('import_orders')
+              .doc(firestoreId)
+              .update({
+            'paidAmount': total,
+            'paymentStatus': 'PAID',
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        } catch (e) {
+          debugPrint('⚠️ Không cập nhật được import_orders (reconcile) trên Firestore: $e');
+        }
+        await _db.upsertImportOrder({
+          'firestoreId': firestoreId,
+          'paidAmount': total,
+          'paymentStatus': 'PAID',
+          'updatedAt': now,
+        });
+        debugPrint('✅ Đã sửa lại phiếu nhập kho $firestoreId — nợ liên kết đã trả đủ từ trước');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Lỗi reconcile import_orders lệch nợ NCC: $e');
     }
   }
 
