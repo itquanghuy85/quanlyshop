@@ -203,20 +203,56 @@ class _CashClosingViewState extends State<CashClosingView>
 
       final firestore = FirebaseFirestore.instance;
 
+      // Lần chốt quỹ gần nhất TRƯỚC ngày đang xem — cần biết TRƯỚC khi tải
+      // sales/expenses để tính đúng mốc bắt đầu khi có khoảng ngày chưa chốt
+      // quỹ (xem `_computeAnalysisStart`).
+      final todayKey = DateFormat('yyyy-MM-dd').format(_selectedDate);
+      final previousClosing = await db.getLatestClosingBefore(todayKey);
+      final effectiveStart = _txEndDate != null
+          ? _selectedDate
+          : _computeAnalysisStart(
+              _selectedDate,
+              previousClosing?['dateKey'] as String?,
+            );
+      final rangeEndDate = _txEndDate ?? _selectedDate;
+      final rangeStartMs = DateTime(
+        effectiveStart.year,
+        effectiveStart.month,
+        effectiveStart.day,
+      ).millisecondsSinceEpoch;
+      final rangeEndMs = DateTime(
+        rangeEndDate.year,
+        rangeEndDate.month,
+        rangeEndDate.day,
+        23,
+        59,
+        59,
+        999,
+      ).millisecondsSinceEpoch;
+
       // FIX BUG-CC-001: Tất cả collections đều là ROOT collections với shopId filter
       // Đồng nhất với cách FirestoreService và SyncService lưu dữ liệu
+      //
+      // TỐI ƯU ĐỌC: sales/expenses/sales_returns bound theo đúng khoảng ngày
+      // đang xem (đã gộp cả khoảng chưa chốt quỹ nếu có) thay vì tải lại
+      // TOÀN BỘ lịch sử mỗi lần mở màn hình — trước đây riêng `sales` đã
+      // chiếm ~6.4K/8.3K lượt đọc ước tính trong 1 phiên (audit thực tế).
+      // repairs/debt_payments/supplier_payments/repair_partner_payments/debts
+      // CỐ TÌNH giữ nguyên không bound: repairs lọc theo nhiều mốc thời gian
+      // khác nhau (ngày tạo/ngày giao/ngày ghi nhận giá vốn) nên bound sai
+      // sẽ làm mất đơn; debts cần tra cứu debtType bất kể tạo lúc nào.
       final results = await Future.wait([
-        // sales - ROOT collection
-        firestore.collection('sales').where('shopId', isEqualTo: shopId).get(),
-        // repairs - ROOT collection
+        // repairs - ROOT collection (không bound, xem giải thích trên)
         firestore
             .collection('repairs')
             .where('shopId', isEqualTo: shopId)
             .get(),
-        // expenses - ROOT collection
+        // expenses - bound theo khoảng ngày
         firestore
             .collection('expenses')
             .where('shopId', isEqualTo: shopId)
+            .where('date', isGreaterThanOrEqualTo: rangeStartMs)
+            .where('date', isLessThanOrEqualTo: rangeEndMs)
             .get(),
         // debt_payments - ROOT collection
         firestore
@@ -235,21 +271,48 @@ class _CashClosingViewState extends State<CashClosingView>
             .get(),
         // FIX: debts - để lookup debtType cho debt_payments
         firestore.collection('debts').where('shopId', isEqualTo: shopId).get(),
-        // sales_returns - trả hàng
+        // sales_returns - bound theo khoảng ngày
         firestore
             .collection('sales_returns')
             .where('shopId', isEqualTo: shopId)
+            .where('returnDate', isGreaterThanOrEqualTo: rangeStartMs)
+            .where('returnDate', isLessThanOrEqualTo: rangeEndMs)
             .get(),
       ]).timeout(const Duration(seconds: 10));
 
-      // Audit instrumentation — log each unbounded collection read
+      // sales: 2 truy vấn gộp — 1 bound theo ngày bán (`soldAt`, đa số đơn),
+      // 1 KHÔNG bound cho riêng đơn trả góp (`isInstallment`) vì tiền tất
+      // toán ngân hàng của đơn trả góp có thể về sau ngày bán rất lâu, bound
+      // theo `soldAt` một mình sẽ làm mất khoản tất toán đó khỏi Sổ quỹ.
+      final salesResults = await Future.wait([
+        firestore
+            .collection('sales')
+            .where('shopId', isEqualTo: shopId)
+            .where('soldAt', isGreaterThanOrEqualTo: rangeStartMs)
+            .where('soldAt', isLessThanOrEqualTo: rangeEndMs)
+            .get(),
+        firestore
+            .collection('sales')
+            .where('shopId', isEqualTo: shopId)
+            .where('isInstallment', isEqualTo: true)
+            .get(),
+      ]).timeout(const Duration(seconds: 10));
+      final salesDocsById = <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
+      for (final snap in salesResults) {
+        for (final doc in snap.docs) {
+          salesDocsById[doc.id] = doc;
+        }
+      }
+
+      // Audit instrumentation
       FirestoreAuditModule.logRead(
         collection: 'sales',
         operation: AuditOperation.get,
         callerService: 'CashClosingView',
         callerMethod: '_loadAllDataFromFirestore',
         callerScreen: 'CashClosingView',
-        documentCount: results[0].docs.length,
+        documentCount:
+            salesResults[0].docs.length + salesResults[1].docs.length,
       );
       FirestoreAuditModule.logRead(
         collection: 'repairs',
@@ -257,7 +320,7 @@ class _CashClosingViewState extends State<CashClosingView>
         callerService: 'CashClosingView',
         callerMethod: '_loadAllDataFromFirestore',
         callerScreen: 'CashClosingView',
-        documentCount: results[1].docs.length,
+        documentCount: results[0].docs.length,
       );
       FirestoreAuditModule.logRead(
         collection: 'expenses',
@@ -265,7 +328,7 @@ class _CashClosingViewState extends State<CashClosingView>
         callerService: 'CashClosingView',
         callerMethod: '_loadAllDataFromFirestore',
         callerScreen: 'CashClosingView',
-        documentCount: results[2].docs.length,
+        documentCount: results[1].docs.length,
       );
       FirestoreAuditModule.logRead(
         collection: 'debt_payments',
@@ -273,7 +336,7 @@ class _CashClosingViewState extends State<CashClosingView>
         callerService: 'CashClosingView',
         callerMethod: '_loadAllDataFromFirestore',
         callerScreen: 'CashClosingView',
-        documentCount: results[3].docs.length,
+        documentCount: results[2].docs.length,
       );
       FirestoreAuditModule.logRead(
         collection: 'supplier_payments',
@@ -281,7 +344,7 @@ class _CashClosingViewState extends State<CashClosingView>
         callerService: 'CashClosingView',
         callerMethod: '_loadAllDataFromFirestore',
         callerScreen: 'CashClosingView',
-        documentCount: results[4].docs.length,
+        documentCount: results[3].docs.length,
       );
       FirestoreAuditModule.logRead(
         collection: 'repair_partner_payments',
@@ -289,7 +352,7 @@ class _CashClosingViewState extends State<CashClosingView>
         callerService: 'CashClosingView',
         callerMethod: '_loadAllDataFromFirestore',
         callerScreen: 'CashClosingView',
-        documentCount: results[5].docs.length,
+        documentCount: results[4].docs.length,
       );
       FirestoreAuditModule.logRead(
         collection: 'debts',
@@ -297,7 +360,7 @@ class _CashClosingViewState extends State<CashClosingView>
         callerService: 'CashClosingView',
         callerMethod: '_loadAllDataFromFirestore',
         callerScreen: 'CashClosingView',
-        documentCount: results[6].docs.length,
+        documentCount: results[5].docs.length,
       );
       FirestoreAuditModule.logRead(
         collection: 'sales_returns',
@@ -305,11 +368,11 @@ class _CashClosingViewState extends State<CashClosingView>
         callerService: 'CashClosingView',
         callerMethod: '_loadAllDataFromFirestore',
         callerScreen: 'CashClosingView',
-        documentCount: results[7].docs.length,
+        documentCount: results[6].docs.length,
       );
 
       // Parse sales - filter deleted
-      final sales = results[0].docs
+      final sales = salesDocsById.values
           .where((doc) => doc.data()['deleted'] != true)
           .map((doc) {
             final data = doc.data();
@@ -320,7 +383,7 @@ class _CashClosingViewState extends State<CashClosingView>
           .toList();
 
       // Parse repairs - filter deleted
-      final repairs = results[1].docs
+      final repairs = results[0].docs
           .where((doc) => doc.data()['deleted'] != true)
           .map((doc) {
             final data = doc.data();
@@ -331,7 +394,7 @@ class _CashClosingViewState extends State<CashClosingView>
           .toList();
 
       // Parse expenses - filter deleted
-      final expenses = results[2].docs
+      final expenses = results[1].docs
           .where((doc) => doc.data()['deleted'] != true)
           .map((doc) {
             final data = doc.data();
@@ -342,7 +405,7 @@ class _CashClosingViewState extends State<CashClosingView>
           .toList();
 
       // Parse debt_payments - filter deleted
-      final debtPayments = results[3].docs
+      final debtPayments = results[2].docs
           .where((doc) => doc.data()['deleted'] != true)
           .map((doc) {
             final data = doc.data();
@@ -353,7 +416,7 @@ class _CashClosingViewState extends State<CashClosingView>
           .toList();
 
       // Parse supplier_payments - filter deleted
-      final supplierPayments = results[4].docs
+      final supplierPayments = results[3].docs
           .where((doc) => doc.data()['deleted'] != true)
           .map((doc) {
             final data = doc.data();
@@ -365,7 +428,7 @@ class _CashClosingViewState extends State<CashClosingView>
 
       // FIX: Parse repair_partner_payments - thanh toán đối tác sửa chữa
       // Filter deleted: accept deleted == null, 0, false, but reject true or 1
-      final repairPartnerPayments = results[5].docs
+      final repairPartnerPayments = results[4].docs
           .where((doc) {
             final deleted = doc.data()['deleted'];
             return deleted != true && deleted != 1;
@@ -389,7 +452,7 @@ class _CashClosingViewState extends State<CashClosingView>
 
       // FIX: Parse debts để tạo lookup map cho debtType
       final debtTypeMap = <String, String>{};
-      for (var doc in results[6].docs) {
+      for (var doc in results[5].docs) {
         final data = doc.data();
         final firestoreId = doc.id;
         final debtType =
@@ -404,7 +467,7 @@ class _CashClosingViewState extends State<CashClosingView>
       debugPrint('=== DEBT TYPE MAP BUILT: ${debtTypeMap.length} entries ===');
 
       // Parse sales_returns
-      final salesReturns = results[7].docs
+      final salesReturns = results[6].docs
           .where((doc) => doc.data()['deleted'] != true)
           .map((doc) {
             final data = doc.data();
@@ -432,8 +495,7 @@ class _CashClosingViewState extends State<CashClosingView>
           .toList();
 
       // Load closings - FIX BUG-CC-001: cash_closings cũng là ROOT collection
-      final todayKey = DateFormat('yyyy-MM-dd').format(_selectedDate);
-
+      // (todayKey đã tính ở đầu hàm để bound khoảng ngày sales/expenses)
       final todayDoc = await firestore
           .collection('cash_closings')
           .doc('closing_${shopId}_$todayKey')
@@ -458,11 +520,9 @@ class _CashClosingViewState extends State<CashClosingView>
         );
       }
 
-      // Lần chốt quỹ gần nhất TRƯỚC ngày đang xem — không chỉ đúng "hôm qua",
-      // để số dư đầu kỳ vẫn đúng khi có ngày trước đó chưa từng chốt quỹ.
-      // `cash_closings` đã được đồng bộ real-time về local DB (sync_service.dart)
-      // nên tra local là đủ tin cậy, không cần query Firestore riêng ở đây.
-      final previousClosing = await db.getLatestClosingBefore(todayKey);
+      // previousClosing đã tính ở đầu hàm (cần biết trước khi bound khoảng
+      // ngày sales/expenses) — `cash_closings` đã đồng bộ real-time về local
+      // DB (sync_service.dart) nên tra local là đủ tin cậy.
       debugPrint(
         '📖 [LOAD] Lần chốt quỹ gần nhất trước $todayKey: ${previousClosing != null ? 'FOUND dateKey=${previousClosing['dateKey']} cashEnd=${previousClosing['cashEnd']}' : 'NOT FOUND'}',
       );

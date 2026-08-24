@@ -4,6 +4,22 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-24o] - fix(sổ quỹ): giới hạn đọc Firestore theo khoảng ngày, giảm mạnh lượt đọc
+
+**Bối cảnh:** User hỏi qua ảnh chụp Firestore Audit Monitor thấy `CashClosingView` chiếm 7.9K/8.3K lượt đọc ước tính chỉ trong 1 phiên ngắn, muốn biết có phải do đọc nhiều và có phương án tối ưu không.
+
+**Nguyên nhân gốc:** Mỗi lần mở Sổ quỹ hoặc đổi ngày xem, `_loadAllDataFromFirestore` tải **TOÀN BỘ lịch sử** `sales`/`repairs`/`expenses`/`debt_payments`/... của shop (chỉ lọc `shopId`, không giới hạn ngày) rồi mới lọc lại trong bộ nhớ theo ngày đang xem. Riêng `sales` chiếm ~6.4K/8.3K lượt đọc — chi phí này tăng dần theo thời gian shop hoạt động, không liên quan gì đến việc gộp số liệu chưa chốt quỹ vừa sửa ở `[2026-08-24n]`.
+
+**Đã sửa (`lib/views/cash_closing_view.dart`):** giới hạn truy vấn Firestore theo đúng khoảng ngày cần dùng (đã gộp cả khoảng chưa chốt quỹ nếu có) cho `sales`, `expenses`, `sales_returns` — tận dụng đúng các composite index đã có sẵn (`sales(shopId,soldAt)`, `expenses(shopId,date)`, `sales_returns(shopId,returnDate)`), không cần deploy index mới.
+- `sales`: tách làm 2 truy vấn gộp — 1 bound theo `soldAt` (đa số đơn), 1 KHÔNG bound riêng cho đơn trả góp (`isInstallment`) vì tiền tất toán ngân hàng có thể về sau ngày bán rất lâu, bound theo `soldAt` một mình sẽ làm mất khoản tất toán đó.
+- **CỐ TÌNH giữ nguyên không bound:** `repairs` (lọc theo nhiều mốc thời gian khác nhau — ngày tạo/ngày giao/ngày ghi nhận giá vốn — bound sai sẽ làm mất đơn, cần thêm 1 helper `getRepairsByDeliveredAtRange` mới làm đúng, chưa làm trong lần này), `debt_payments`/`supplier_payments`/`repair_partner_payments`/`debts` (số lượng đọc nhỏ hơn nhiều theo audit thực tế, `debts` còn cần tra cứu debtType bất kể tạo lúc nào).
+
+**Verify (test trên Oppo CPH2203, tài khoản test):** `flutter analyze` sạch. Build debug + cài lại, dựng lại đúng kịch bản gộp 3 ngày chưa chốt quỹ ở `[2026-08-24n]` (chèn tạm 1 chốt quỹ giả lập ngày 21/08) để xác nhận việc giới hạn theo ngày KHÔNG làm mất dữ liệu: tab Tổng quan/Thu/Chi sau khi Firestore tải xong hiện **giống hệt số liệu trước khi tối ưu** (15.45 Tr tiền mặt, 12.2 Tr ngân hàng, Thu +28.55 Tr/7 giao dịch, Chi -1.6 Tr/3 giao dịch) — xác nhận bound đúng, không mất giao dịch nào trong khoảng đang xem. Đã dọn dữ liệu test sau khi xác nhận.
+
+**Files:** `lib/views/cash_closing_view.dart`.
+
+---
+
 ## [2026-08-24n] - fix(sổ quỹ): gộp số liệu khi có ngày chưa chốt quỹ, tránh mất dấu tiền
 
 **Bối cảnh:** User phản ánh khó theo dõi tiền khi chưa chốt quỹ: qua ngày mới, màn Sổ quỹ không hiện lại dữ liệu ngày hôm trước nếu ngày đó chưa chốt.
