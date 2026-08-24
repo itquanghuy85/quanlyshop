@@ -756,8 +756,12 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
             _statRow('Đã thanh toán đủ',
                 '${_importOrders.where((o) => (o['paymentStatus'] ?? '') == 'PAID').length} phiếu',
                 valueColor: AppColors.success),
+            // Chưa thanh toán = mọi trạng thái khác "PAID" — không chỉ khớp
+            // đúng chuỗi "UNPAID" (chuỗi này chỉ dùng ở luồng import Excel
+            // KiotViet; luồng tạo phiếu từ StockEntryService lại dùng "DEBT"
+            // cho cùng ý nghĩa, trước đây bị bỏ sót nên luôn đếm ra 0).
             _statRow('Chưa thanh toán',
-                '${_importOrders.where((o) => (o['paymentStatus'] ?? '') == 'UNPAID').length} phiếu',
+                '${_importOrders.where((o) => (o['paymentStatus'] ?? '') != 'PAID').length} phiếu',
                 valueColor: kvUnpaid > 0 ? AppColors.error : Colors.grey),
           ] else if (debtCount > 0) ...[
             Row(children: [

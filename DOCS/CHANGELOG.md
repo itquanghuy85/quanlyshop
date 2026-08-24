@@ -4,6 +4,22 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-24j] - fix(kho): tab Thống kê NCC đếm sai "Chưa thanh toán" luôn ra 0
+
+**Bối cảnh:** User gửi 5 ảnh chụp đủ 4 tab của màn Chi tiết NCC "KHO TỔNG" để rà soát toàn bộ số liệu. Phát hiện: tab "Thống kê" ghi "18 phiếu" nhưng "Đã thanh toán đủ" (10) + "Chưa thanh toán" (0) chỉ cộng ra 10 — thiếu mất 8 phiếu.
+
+**Nguyên nhân:** `_buildStatsTab()` lọc "Chưa thanh toán" bằng so khớp đúng chuỗi `paymentStatus == 'UNPAID'`. Nhưng `paymentStatus` có 2 luồng ghi khác nhau tuỳ nguồn tạo phiếu: phiếu tạo từ `StockEntryService` (luồng "Nhập kho" chính trong app) ghi `'DEBT'` cho công nợ chưa trả; phiếu import từ file Excel KiotViet mới ghi đúng chuỗi `'UNPAID'`. Do đó mọi phiếu `'DEBT'` (đa số dữ liệu thật) không bao giờ khớp điều kiện, luôn đếm ra 0 dù thực tế có 8 phiếu chưa trả.
+
+**Đã sửa:** đổi điều kiện đếm sang "khác `'PAID'`" (`!= 'PAID'`) thay vì so khớp đúng 1 chuỗi cụ thể — bắt đúng mọi trạng thái chưa-trả-đủ bất kể luồng tạo phiếu nào (`'DEBT'`, `'UNPAID'`, hay giá trị khác).
+
+**Phát hiện thêm (chưa sửa, cần user quyết định):** đối chiếu số liệu phát hiện phiếu **NK-0075** (10.000.000đ, xác nhận qua DB) đang bị lệch 2 nơi — tab "Thống kê" tính nó là CHƯA TRẢ (góp phần vào "Còn nợ: 10.000.000"), nhưng khoản nợ liên kết với đúng phiếu này trong bảng `debts` (ghi chú "Nợ nhập IPHONE 9 32GB ĐEN MỚI x1 - 10.000.000đ") đã được đánh dấu **đã trả đủ** từ trước — nên tab "Công nợ" hiện đúng "Còn lại: 0". Gốc rễ: `PaymentIntentService` (nơi xử lý trả nợ NCC) chỉ cập nhật bảng `debts`, không đồng bộ ngược lại `import_orders.paidAmount/paymentStatus` khi khoản nợ đó có liên kết tới 1 phiếu nhập kho cụ thể (`linkedType: 'stock_entry'`). Đây là bug thật nhưng nằm ở lõi xử lý thanh toán dùng chung cho mọi loại công nợ — cần xác nhận hướng sửa (đồng bộ ngược khi trả nợ, hay chỉ sửa lại đúng bản ghi NK-0075 hiện tại) trước khi động vào, tránh ảnh hưởng luồng công nợ khách hàng đang chạy ổn định.
+
+**Verify (test trên Oppo CPH2203):** `flutter analyze` sạch. Build debug + cài lại. Xác nhận tab Thống kê giờ hiện đúng "Chưa thanh toán: 8 phiếu" (10+8=18, khớp tổng số phiếu).
+
+**Files:** `lib/views/supplier_detail_view.dart`.
+
+---
+
 ## [2026-08-24i] - fix(kho): avatar danh sách sản phẩm — sửa đúng nguyên nhân bị kéo giãn to
 
 **Bối cảnh:** User báo lại avatar trong danh sách sản phẩm vẫn to dù `[2026-08-24g]` đã đổi kích thước 52→40px — vì thực chất thay đổi đó KHÔNG có tác dụng gì trên máy thật.
