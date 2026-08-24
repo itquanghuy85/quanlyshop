@@ -4,6 +4,24 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-24p] - feat(home): nhắc "chưa chốt quỹ" + "đơn sửa thiếu giá vốn" ở khung CẦN XỬ LÝ
+
+**Bối cảnh:** User lo ngại nhiều người dùng không biết tính năng chốt quỹ nên để quá lâu không chốt, và muốn nhắc thêm đơn sửa đã giao nhưng quên nhập giá vốn (dễ tính sai lợi nhuận).
+
+**Đã thêm (`lib/widgets/dashboard_cards.dart`, `lib/views/home_view.dart`, `lib/views/order_list_view.dart`):**
+- 2 mục mới trong khung "CẦN XỬ LÝ" ở Trang chủ, tái dùng đúng pattern có sẵn (query đếm qua `Future.wait`, thêm `_ActionItem`):
+  - **"Đã N ngày chưa chốt quỹ"** — tính từ lần chốt quỹ gần nhất (`MAX(dateKey)` trong `cash_closings`); nếu chưa từng chốt quỹ lần nào, tính từ ngày bán hàng đầu tiên của shop làm mốc (để cảnh báo ngay cả shop mới chưa từng dùng tính năng này). Hiện khi ≥ 2 ngày. Bấm vào mở thẳng Sổ quỹ.
+  - **"N đơn sửa đã giao chưa có giá vốn"** — đếm đơn `status = 4` (đã giao) có `cost IS NULL OR cost = 0`. Bấm vào mở "Danh sách điện thoại" đã lọc sẵn (thêm tham số mới `filterMissingCost` cho `OrderListView`).
+- Thêm badge cảnh báo đỏ "⚠ Vốn 0đ — chưa có giá vốn, cần bổ sung" ngay trên từng thẻ đơn sửa trong danh sách (chỉ hiện với người có quyền xem giá vốn `canShowCost`, khớp đúng cách ẩn giá vốn hiện có) — giúp thấy ngay cả khi không dùng bộ lọc, không cần nhớ vào đúng chỗ mới thấy.
+
+**Verify (test trên Oppo CPH2203, tài khoản test):** `flutter analyze` sạch trên cả 3 file. Build debug + cài lại:
+- Xác nhận "Đã 5 ngày chưa chốt quỹ" hiện đúng trên Trang chủ (shop test chưa từng chốt quỹ lần nào), bấm vào mở đúng Sổ quỹ.
+- Chỉnh tạm 1 đơn sửa đã giao về giá vốn 0đ để test — xác nhận mục "1 đơn sửa đã giao chưa có giá vốn" xuất hiện đúng, bấm vào lọc đúng còn 1 đơn, badge đỏ hiện đúng trên thẻ đơn. Đã khôi phục lại giá vốn gốc (3.000đ) sau khi xác nhận.
+
+**Files:** `lib/widgets/dashboard_cards.dart`, `lib/views/home_view.dart`, `lib/views/order_list_view.dart`.
+
+---
+
 ## [2026-08-24o] - fix(sổ quỹ): giới hạn đọc Firestore theo khoảng ngày, giảm mạnh lượt đọc
 
 **Bối cảnh:** User hỏi qua ảnh chụp Firestore Audit Monitor thấy `CashClosingView` chiếm 7.9K/8.3K lượt đọc ước tính chỉ trong 1 phiên ngắn, muốn biết có phải do đọc nhiều và có phương án tối ưu không.

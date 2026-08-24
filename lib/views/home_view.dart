@@ -3489,6 +3489,22 @@ class _HomeViewState extends State<HomeView>
                   builder: (_) => const BankInstallmentReportView(),
                 ),
               ),
+              onUnclosedCashTap: () => _pushRoute(
+                context,
+                MaterialPageRoute(builder: (_) => const CashClosingView()),
+              ),
+              onMissingCostRepairsTap: canRepair
+                  ? () => _pushRoute(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => OrderListView(
+                          role: widget.role,
+                          statusFilter: const [4],
+                          filterMissingCost: true,
+                        ),
+                      ),
+                    )
+                  : null,
             ),
           );
           break;

@@ -45,12 +45,15 @@ class OrderListView extends StatefulWidget {
   final bool todayOnly;
   final List<int>? statusFilter;
   final String role;
+  /// Chỉ hiện đơn đã giao (status 4) nhưng chưa ghi nhận giá vốn (cost = 0).
+  final bool filterMissingCost;
   const OrderListView({
     super.key,
     this.initialStatus,
     this.todayOnly = false,
     this.statusFilter,
     this.role = 'user',
+    this.filterMissingCost = false,
   });
 
   @override
@@ -806,6 +809,10 @@ class OrderListViewState extends State<OrderListView> {
       // Widget-level status filter (from constructor)
       if (widget.statusFilter != null &&
           !widget.statusFilter!.contains(r.status)) {
+        return false;
+      }
+      if (widget.filterMissingCost &&
+          (r.status != 4 || r.totalCost > 0)) {
         return false;
       }
       // Lọc đơn chờ duyệt giao
@@ -2541,6 +2548,14 @@ class OrderListViewState extends State<OrderListView> {
                         '🏷 Vốn ${MoneyUtils.formatCompactCurrency(displayCost)}đ',
                         Colors.blue.shade50,
                         textColor: Colors.blue.shade700,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    // Đã giao nhưng chưa ghi nhận giá vốn — nhắc bổ sung
+                    if (canShowCost && r.status == 4 && displayCost == 0)
+                      _repairInfoChip(
+                        '⚠ Vốn 0đ — chưa có giá vốn, cần bổ sung',
+                        Colors.red.shade50,
+                        textColor: Colors.red.shade700,
                         fontWeight: FontWeight.w600,
                       ),
                     if (canShowProfit && displayPrice > 0 && displayCost > 0)

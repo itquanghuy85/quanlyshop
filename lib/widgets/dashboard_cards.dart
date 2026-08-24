@@ -18,6 +18,8 @@ class ActionRequiredCard extends StatefulWidget {
   final VoidCallback? onReminderTap;
   final VoidCallback? onOverdueDebtsTap;
   final VoidCallback? onPendingInstallmentTap;
+  final VoidCallback? onUnclosedCashTap;
+  final VoidCallback? onMissingCostRepairsTap;
 
   const ActionRequiredCard({
     super.key,
@@ -32,6 +34,8 @@ class ActionRequiredCard extends StatefulWidget {
     this.onReminderTap,
     this.onOverdueDebtsTap,
     this.onPendingInstallmentTap,
+    this.onUnclosedCashTap,
+    this.onMissingCostRepairsTap,
   });
 
   @override
@@ -45,6 +49,8 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
   int _expiringProducts = 0;
   int _overdueDebts = 0;
   int _pendingInstallments = 0;
+  int _daysSinceClosing = 0;
+  int _missingCostRepairs = 0;
   bool _loaded = false;
 
   @override
@@ -82,6 +88,19 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
           'AND settlementReceivedAt IS NULL '
           'AND (deleted IS NULL OR deleted != 1)',
         ),
+        // Lần chốt quỹ gần nhất (để tính số ngày chưa chốt)
+        db.rawQuery('SELECT MAX(dateKey) as lastKey FROM cash_closings'),
+        // Nếu chưa từng chốt quỹ lần nào, lấy ngày bán hàng sớm nhất làm mốc
+        db.rawQuery(
+          'SELECT MIN(soldAt) as firstSale FROM sales '
+          'WHERE (deleted IS NULL OR deleted != 1)',
+        ),
+        // Đơn sửa đã giao nhưng chưa ghi nhận giá vốn (cost = 0/null)
+        db.rawQuery(
+          "SELECT COUNT(*) FROM repairs WHERE status = 4 "
+          "AND (cost IS NULL OR cost = 0) "
+          "AND (deleted IS NULL OR deleted != 1)",
+        ),
       ]);
 
       final pendingR = (results[0].first.values.first as num?)?.toInt() ?? 0;
@@ -90,6 +109,25 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
           (results[3].first.values.first as num?)?.toInt() ?? 0;
       final pendingInstallments =
           (results[4].first.values.first as num?)?.toInt() ?? 0;
+      final missingCostRepairs =
+          (results[7].first.values.first as num?)?.toInt() ?? 0;
+
+      // Số ngày chưa chốt quỹ: tính từ lần chốt gần nhất, hoặc từ ngày bán
+      // hàng đầu tiên nếu chưa từng chốt quỹ lần nào.
+      int daysSinceClosing = 0;
+      final lastClosingKey = results[5].first['lastKey'] as String?;
+      if (lastClosingKey != null && lastClosingKey.isNotEmpty) {
+        try {
+          final lastDate = DateFormat('yyyy-MM-dd').parse(lastClosingKey);
+          daysSinceClosing = DateTime.now().difference(lastDate).inDays;
+        } catch (_) {}
+      } else {
+        final firstSaleMs = (results[6].first['firstSale'] as num?)?.toInt();
+        if (firstSaleMs != null) {
+          final firstDate = DateTime.fromMillisecondsSinceEpoch(firstSaleMs);
+          daysSinceClosing = DateTime.now().difference(firstDate).inDays;
+        }
+      }
 
       // Calculate expiring warranties
       int expW = 0;
@@ -113,6 +151,8 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
           _expiringWarranty = expW;
           _overdueDebts = overdueDebts;
           _pendingInstallments = pendingInstallments;
+          _daysSinceClosing = daysSinceClosing;
+          _missingCostRepairs = missingCostRepairs;
           _loaded = true;
         });
       }
@@ -166,6 +206,26 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
           label: '$_expiringProducts sản phẩm sắp hết HSD',
           color: Colors.red,
           onTap: widget.onExpiryTap,
+        ),
+      );
+    }
+    if (_daysSinceClosing >= 2) {
+      items.add(
+        _ActionItem(
+          icon: Icons.point_of_sale,
+          label: 'Đã $_daysSinceClosing ngày chưa chốt quỹ',
+          color: Colors.deepOrange,
+          onTap: widget.onUnclosedCashTap,
+        ),
+      );
+    }
+    if (widget.enableRepair && _missingCostRepairs > 0) {
+      items.add(
+        _ActionItem(
+          icon: Icons.money_off,
+          label: '$_missingCostRepairs đơn sửa đã giao chưa có giá vốn',
+          color: Colors.purple.shade700,
+          onTap: widget.onMissingCostRepairsTap,
         ),
       );
     }
