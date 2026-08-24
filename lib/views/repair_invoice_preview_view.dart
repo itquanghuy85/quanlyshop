@@ -261,7 +261,10 @@ Future<File?> _captureReceiptFile() async {
     try {
       final file = await _captureReceiptFile();
       if (file == null) return;
-      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
+      final result = await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
+      if (mounted && result.status == ShareResultStatus.success) {
+        NotificationService.showSnackBar('Đã chia sẻ ảnh phiếu sửa', color: Colors.green);
+      }
       final code = widget.repair.firestoreId?.toString() ?? 'don_sua';
       unawaited(AuditService.logAction(
         action: 'SHARE_RECEIPT_CUSTOMER',
@@ -317,13 +320,25 @@ Future<File?> _captureReceiptFile() async {
     final bluetoothPrinter = printerConfig['bluetoothPrinter'] as BluetoothPrinterConfig?;
     final wifiIp = printerConfig['wifiIp'] as String?;
 
-    await UnifiedPrinterService.printRepairReceiptFromRepair(
-      widget.repair,
-      widget.shopInfo,
-      printerType: printerType,
-      bluetoothPrinter: bluetoothPrinter,
-      wifiIp: wifiIp,
-    );
+    try {
+      final success = await UnifiedPrinterService.printRepairReceiptFromRepair(
+        widget.repair,
+        widget.shopInfo,
+        printerType: printerType,
+        bluetoothPrinter: bluetoothPrinter,
+        wifiIp: wifiIp,
+      );
+      if (mounted) {
+        NotificationService.showSnackBar(
+          success ? 'Đã gửi lệnh in' : 'In thất bại, vui lòng thử lại',
+          color: success ? Colors.green : Colors.red,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        NotificationService.showSnackBar('Lỗi khi in: $e', color: Colors.red);
+      }
+    }
   }
 
   @override

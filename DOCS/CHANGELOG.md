@@ -4,6 +4,22 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-24f] - fix(sale,repair): in/chia sẻ biên nhận không báo kết quả thành công hay thất bại
+
+**Bối cảnh:** User phản hồi: bấm in hoặc chia sẻ ảnh biên nhận ở màn xem trước, không thấy báo gì (thành công hay lỗi) — chỉ có icon spinner quay rồi tắt, không biết thao tác có thực sự thành công không.
+
+**Nguyên nhân:** `_print()` gọi thẳng `UnifiedPrinterService.printSaleReceipt/printRepairReceiptFromRepair(...)` (trả về `bool`) nhưng không đọc kết quả, không try/catch — dù in thành công hay thất bại đều im lặng như nhau. `_shareToCustomer()` gọi `SharePlus.instance.share(...)` nhưng bỏ qua kết quả trả về — chỉ báo khi lỗi ném exception, còn thành công thì im lặng.
+
+**Đã sửa (`sale_invoice_preview_view.dart`, `repair_invoice_preview_view.dart`):**
+- `_print()`: bọc try/catch, đọc `bool` trả về — báo xanh "Đã gửi lệnh in" hoặc đỏ "In thất bại, vui lòng thử lại" / "Lỗi khi in: ..." (theo đúng pattern đã dùng ở `sale_detail_view.dart._printWifi`).
+- `_shareToCustomer()`: đọc `ShareResult.status` — chỉ báo xanh "Đã chia sẻ ảnh biên nhận/phiếu sửa" khi `ShareResultStatus.success` (người dùng thực sự chọn 1 ứng dụng để chia sẻ); khi người dùng tự đóng share sheet (`dismissed`) thì không báo gì thêm (không phải lỗi, không cần làm phiền).
+
+**Verify (test trên Oppo CPH2203):** `flutter analyze` sạch. Build debug + cài lại. Bấm in hoá đơn bán (máy in WiFi đã lưu sẵn) → xác nhận hiện đúng banner xanh "Đã gửi lệnh in". Bấm chia sẻ cho khách → xác nhận: máy test hiện đang bị khoá FRP tầng hệ điều hành (xem thêm ghi chú ở `HANDOVER.md`) nên share sheet hệ thống không mở được — đã xác nhận code KHÔNG báo nhầm "thành công" trong tình huống này (im lặng đúng, không nói dối), hành vi đúng như thiết kế.
+
+**Files:** `lib/views/sale_invoice_preview_view.dart`, `lib/views/repair_invoice_preview_view.dart`.
+
+---
+
 ## [2026-08-24e] - 🔴 fix khẩn: thiếu file `receipt_paper_view.dart` khiến nhánh master không build được
 
 **Bối cảnh:** User báo build iOS trên Mac lỗi. Kiểm tra lại phát hiện: `lib/widgets/receipt_paper_view.dart` (đổi API từ `[2026-08-23c]` — thêm tham số `children` + các hàm `receiptTitle/receiptCenter/receiptLeft/receiptSmall/receiptGap`) từng bị sót, chưa từng commit trong các phiên trước, dù `sale_invoice_preview_view.dart`/`repair_invoice_preview_view.dart` (đã commit + push từ lâu) đã gọi thẳng các hàm đó. Hậu quả: bất kỳ máy nào `git pull` nhánh `master` (kể cả build Android) đều thiếu symbol này — build iOS trên Mac chỉ là nơi phát hiện ra trước.
