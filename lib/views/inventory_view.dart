@@ -16,6 +16,7 @@ import '../models/product_model.dart';
 import '../models/inventory_check_model.dart';
 import 'create_sale_view.dart';
 import '../services/sync_orchestrator.dart';
+import '../services/payment_intent_service.dart';
 import '../services/sync_service.dart';
 import '../services/unified_printer_service.dart';
 import '../services/notification_service.dart';
@@ -1749,30 +1750,22 @@ class _InventoryViewState extends State<InventoryView>
           'Nhập giá vốn: ${p.name} - ${MoneyUtils.formatCurrency(newCost)}đ';
 
       if (payment == 'CÔNG NỢ') {
-        // Tạo công nợ NCC
-        await db.insertDebt({
-          'firestoreId': 'debt_cost_${p.firestoreId ?? p.id}_$now',
-          'type': 'SHOP_OWES',
-          'debtType': 'SHOP_OWES',
-          'personName': supplierLabel.toUpperCase().trim(),
-          'phone': '',
-          'totalAmount': newCost,
-          'paidAmount': 0,
-          'status': 'ACTIVE',
-          'note': noteText,
-          'linkedId': p.firestoreId ?? '',
-          'linkedType': 'product_cost',
-          'createdAt': now,
-          'updatedAt': now,
-          'shopId': shopId,
-          'deleted': 0,
-          'isSynced': 0,
-        });
-        EventBus().emit('debts_changed');
+        await PaymentIntentService.createDebtRecord(
+          debtType: 'SHOP_OWES',
+          amount: newCost,
+          personName: supplierLabel.toUpperCase().trim(),
+          note: noteText,
+          linkedId: p.firestoreId ?? '',
+          linkedType: 'product_cost',
+          debtFirestoreId: 'debt_cost_${p.firestoreId ?? p.id}_$now',
+        );
       } else {
         // Ghi chi phí TIỀN MẶT / CHUYỂN KHOẢN
-        await db.insertExpense({
-          'firestoreId': 'exp_cost_${p.firestoreId ?? p.id}_$now',
+        // FIX: trước đây thiếu bước xếp hàng đồng bộ Firestore — bản ghi chi
+        // phí này chỉ tồn tại cục bộ, không bao giờ lên cloud/thiết bị khác.
+        final expFId = 'exp_cost_${p.firestoreId ?? p.id}_$now';
+        final expenseId = await db.insertExpense({
+          'firestoreId': expFId,
           'category': 'NHẬP HÀNG',
           'title': 'Giá vốn: ${p.name}',
           'amount': newCost,
@@ -1782,6 +1775,14 @@ class _InventoryViewState extends State<InventoryView>
           'shopId': shopId,
           'isSynced': 0,
         });
+        if (expenseId > 0) {
+          await SyncOrchestrator().enqueue(
+            entityType: SyncEntityType.expense,
+            entityId: expenseId,
+            firestoreId: expFId,
+            operation: SyncOperation.create,
+          );
+        }
       }
 
       // Ghi nhật ký tài chính

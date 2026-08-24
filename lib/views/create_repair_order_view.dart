@@ -84,6 +84,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   final passCtrl = TextEditingController();
   final priceCtrl = TextEditingController();
   final notesCtrl = TextEditingController(); // Ghi chú đơn sửa
+  final loanerDeviceCtrl = TextEditingController(); // Máy cho khách mượn
 
   final phoneF = FocusNode();
   final nameF = FocusNode();
@@ -666,6 +667,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             "NV",
         services: _services,
         notes: notesCtrl.text.trim().isNotEmpty ? notesCtrl.text.trim() : null,
+        loanerDevice: loanerDeviceCtrl.text.trim().isNotEmpty
+            ? loanerDeviceCtrl.text.trim().toUpperCase()
+            : null,
         storageLocationId: _selectedLocation?.firestoreId,
         storageLocationCode: _selectedLocation?.code,
         storageLocationName: _selectedLocation?.name,
@@ -823,8 +827,6 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
 
         // === XỬ LÝ PAYMENT METHOD CHO DỊCH VỤ ĐỐI TÁC ===
         if (s.paymentMethod != null) {
-          final shopId = await UserService.getCurrentShopId() ?? '';
-          final nowTs = DateTime.now().millisecondsSinceEpoch;
           final trackingNote = RepairPartnerService.buildPartnerTrackingNote(
             repairOrderId: repairOrderId,
             serviceFirestoreId: serviceFirestoreId,
@@ -843,39 +845,19 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 partnerId: s.partnerId!,
                 partnerCost: s.cost,
               );
-              final debtData = {
-                'firestoreId': debtFId,
-                'type': 'SHOP_OWES', // Shop nợ đối tác
-                'debtType': 'SHOP_OWES',
-                'personName': s.partnerName ?? loc.repairPartner,
-                'phone': '',
-                'totalAmount': s.cost,
-                'paidAmount': 0,
-                'note': trackingNote,
-                'status': 'ACTIVE',
-                'createdAt': nowTs,
-                'shopId': shopId,
-                'linkedId': repairOrderId,
-                'relatedPartId': s.partnerId?.toString() ?? '',
-                'deleted': 0,
-                'isSynced': 0,
-              };
-              final debtId = await db.insertDebt(debtData);
-
-              // Sync debt to cloud
-              if (debtId > 0) {
-                await SyncOrchestrator().enqueue(
-                  entityType: SyncEntityType.debt,
-                  entityId: debtId,
-                  firestoreId: debtFId,
-                  operation: SyncOperation.create,
-                  data: debtData,
-                );
-              }
+              final debtId = await PaymentIntentService.createDebtRecord(
+                debtType: 'SHOP_OWES',
+                amount: s.cost,
+                personName: s.partnerName ?? loc.repairPartner,
+                note: trackingNote,
+                linkedId: repairOrderId,
+                relatedPartId: s.partnerId?.toString() ?? '',
+                debtFirestoreId: debtFId,
+              );
 
               // Công nợ đã ghi nhận ở bảng debts - không cần PaymentIntent
               debugPrint(
-                '✅ Partner debt recorded: $debtFId for ${s.partnerName}',
+                '✅ Partner debt recorded: $debtFId for ${s.partnerName} (id=$debtId)',
               );
             } catch (e) {
               debugPrint('⚠️ Failed to create partner debt: $e');
@@ -2125,6 +2107,20 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
               ),
             ),
             const SizedBox(height: 8),
+            TextFormField(
+              controller: loanerDeviceCtrl,
+              style: AppTextStyles.body1,
+              textCapitalization: TextCapitalization.characters,
+              decoration: InputDecoration(
+                labelText: 'Máy cho khách mượn (nếu có)',
+                hintText: 'VD: IPHONE 7 ĐEN, IMEI ...',
+                isDense: true,
+                contentPadding: DesignTokens.formContentPadding,
+                border: OutlineInputBorder(borderRadius: DesignTokens.brSm),
+                prefixIcon: const Icon(Icons.phone_iphone_outlined),
+              ),
+            ),
+            const SizedBox(height: 8),
             _imageRow(),
           ],
         ),
@@ -2361,6 +2357,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     passCtrl.dispose();
     priceCtrl.dispose();
     notesCtrl.dispose();
+    loanerDeviceCtrl.dispose();
     phoneF.dispose();
     nameF.dispose();
     modelF.dispose();

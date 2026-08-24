@@ -8,7 +8,6 @@ import '../constants/product_constants.dart';
 import '../data/db_helper.dart';
 import '../theme/app_text_styles.dart';
 import '../models/product_model.dart';
-import '../models/debt_model.dart';
 import '../models/quick_input_code_model.dart';
 import '../models/supplier_model.dart';
 import '../models/stock_entry_model.dart';
@@ -16,6 +15,7 @@ import '../services/notification_service.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
 import '../services/sync_orchestrator.dart';
+import '../services/payment_intent_service.dart';
 import '../services/event_bus.dart';
 import '../services/supplier_service.dart';
 import '../services/stock_entry_service.dart';
@@ -1043,30 +1043,15 @@ class _FastStockInViewState extends State<FastStockInView> {
         final shopId = await UserService.getCurrentShopId();
 
         if (selectedPaymentMethod == 'CÔNG NỢ') {
-          // Tạo công nợ shop phải trả cho nhà cung cấp
-          final debtFirestoreId =
-              'debt_${DateTime.now().millisecondsSinceEpoch}_${product.imei}';
-          final debtData = Debt(
-            firestoreId: debtFirestoreId,
+          await PaymentIntentService.createDebtRecord(
+            debtType: 'SHOP_OWES',
+            amount: totalCost,
             personName: selectedSupplier ?? 'NCC không xác định',
-            phone: '',
-            totalAmount: totalCost,
-            paidAmount: 0,
-            type: 'SHOP_OWES',
-            status: 'ACTIVE',
-            createdAt: DateTime.now().millisecondsSinceEpoch,
             note: 'Nhập nhanh: ${product.name} (${product.imei}) x$quantity',
             linkedId: product.imei,
+            debtFirestoreId:
+                'debt_${DateTime.now().millisecondsSinceEpoch}_${product.imei}',
           );
-          final debtId = await db.insertDebt(debtData.toMap());
-          if (debtId > 0) {
-            await SyncOrchestrator().enqueueDebt(
-              debtId,
-              firestoreId: debtFirestoreId,
-              operation: SyncOperation.create,
-            );
-          }
-          EventBus().emit('debts_changed');
           debugPrint('FastStockIn: Created debt for CÔNG NỢ: $totalCost');
         } else {
           // TIỀN MẶT hoặc CHUYỂN KHOẢN - Tạo expense record trực tiếp

@@ -6,11 +6,9 @@ import '../core/utils/money_utils.dart';
 import '../theme/app_text_styles.dart';
 import '../data/db_helper.dart';
 import '../models/purchase_order_model.dart';
-import '../models/debt_model.dart';
 import '../models/shop_settings_model.dart';
 import '../services/user_service.dart';
 import '../services/notification_service.dart';
-import '../services/event_bus.dart';
 import '../services/sync_orchestrator.dart';
 import '../services/payment_intent_service.dart';
 import '../services/category_service.dart';
@@ -210,42 +208,16 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
 
       // If payment method is debt, create a debt record - ĐƠN GIẢN
       if (_paymentMethod == 'CÔNG NỢ') {
-        final debt = Debt(
+        await PaymentIntentService.createDebtRecord(
+          debtType: 'SHOP_OWES',
+          amount: order.totalCost,
           personName: supplierNameCtrl.text.trim(),
-          phone: supplierPhoneCtrl.text.trim(),
-          totalAmount: order.totalCost,
-          paidAmount: 0,
-          type: "SHOP_OWES",
-          status: "ACTIVE",
-          createdAt: DateTime.now().millisecondsSinceEpoch,
+          personPhone: supplierPhoneCtrl.text.trim(),
           note: 'Đơn nhập hàng ${order.orderCode}',
           linkedId: order.orderCode,
+          debtFirestoreId:
+              "debt_${DateTime.now().millisecondsSinceEpoch}_${supplierPhoneCtrl.text.trim()}",
         );
-
-        // Set firestoreId to prevent duplicates
-        debt.firestoreId = "debt_${debt.createdAt}_${supplierPhoneCtrl.text.trim()}";
-
-        debugPrint('Creating purchase order debt: $debt');
-        await db.upsertDebt(debt);
-        debugPrint('Purchase order debt created successfully');
-
-        // Queue sync to Firestore via SyncOrchestrator
-        final debtId = await db.getDebtIdByFirestoreId(debt.firestoreId!);
-        if (debtId != null) {
-          await SyncOrchestrator().enqueue(
-            entityType: SyncEntityType.debt,
-            entityId: debtId,
-            firestoreId: debt.firestoreId,
-            operation: SyncOperation.create,
-            data: debt.toMap(),
-          );
-        }
-
-        // Công nợ đã ghi nhận ở bảng debts - không cần PaymentIntent
-        debugPrint('✅ Purchase debt recorded: ${debt.firestoreId}');
-
-        // Notify UI update
-        EventBus().emit('debts_changed');
       } else {
         // Thanh toán tiền mặt/chuyển khoản → Ghi nhận trực tiếp
         final user = FirebaseAuth.instance.currentUser;

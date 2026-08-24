@@ -1135,33 +1135,16 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         // FIX: Tạo firestoreId TRƯỚC khi insert để tránh duplicate khi sync
         final debtFId =
             "debt_${DateTime.now().millisecondsSinceEpoch}_${r.phone.hashCode}";
-        final shopId = await UserService.getCurrentShopId() ?? '';
-        final debtData = {
-          'personName': r.customerName,
-          'phone': r.phone,
-          'totalAmount': r.price,
-          'paidAmount': 0,
-          'type': "CUSTOMER_OWES",
-          'status': "ACTIVE",
-          'createdAt': DateTime.now().millisecondsSinceEpoch,
-          'note': loc.debtNoteForRepair(r.model),
-          'linkedId': r.firestoreId,
-          'firestoreId': debtFId, // Set firestoreId ngay từ đầu
-          'shopId': shopId,
-          'deleted': 0,
-          'isSynced': 0,
-        };
-        final debtId = await db.insertDebt(debtData);
-
-        // Queue sync debt to cloud via SyncOrchestrator
-        await SyncOrchestrator().enqueue(
-          entityType: SyncEntityType.debt,
-          entityId: debtId,
-          firestoreId: debtFId,
-          operation: SyncOperation.create,
-          data: debtData,
+        final debtId = await PaymentIntentService.createDebtRecord(
+          debtType: "CUSTOMER_OWES",
+          amount: r.price,
+          personName: r.customerName,
+          personPhone: r.phone,
+          note: loc.debtNoteForRepair(r.model),
+          linkedId: r.firestoreId,
+          debtFirestoreId: debtFId,
         );
-        
+
         // Tạo PaymentIntent cho việc thu nợ sau này (CHỜ THU)
         final intent = PaymentIntent(
           id: 'pi_repair_debt_${DateTime.now().millisecondsSinceEpoch}_${r.id}',
@@ -1980,29 +1963,14 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       if (r.paymentMethod == "CÔNG NỢ") {
         final debtFId =
             "debt_${DateTime.now().millisecondsSinceEpoch}_${r.phone.hashCode}";
-        final shopId = await UserService.getCurrentShopId() ?? '';
-        final debtData = {
-          'personName': r.customerName,
-          'phone': r.phone,
-          'totalAmount': r.price,
-          'paidAmount': 0,
-          'type': "CUSTOMER_OWES",
-          'status': "ACTIVE",
-          'createdAt': DateTime.now().millisecondsSinceEpoch,
-          'note': loc.debtNoteRepair(r.model),
-          'linkedId': r.firestoreId,
-          'firestoreId': debtFId,
-          'shopId': shopId,
-          'deleted': 0,
-          'isSynced': 0,
-        };
-        final debtId = await db.insertDebt(debtData);
-        await SyncOrchestrator().enqueue(
-          entityType: SyncEntityType.debt,
-          entityId: debtId,
-          firestoreId: debtFId,
-          operation: SyncOperation.create,
-          data: debtData,
+        final debtId = await PaymentIntentService.createDebtRecord(
+          debtType: "CUSTOMER_OWES",
+          amount: r.price,
+          personName: r.customerName,
+          personPhone: r.phone,
+          note: loc.debtNoteRepair(r.model),
+          linkedId: r.firestoreId,
+          debtFirestoreId: debtFId,
         );
 
         // Tạo PaymentIntent để debt xuất hiện trong danh sách "Chờ thu"
@@ -2719,7 +2687,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
       // === XỬ LÝ THANH TOÁN ===
       final now = DateTime.now().millisecondsSinceEpoch;
-      final shopId = await UserService.getCurrentShopId() ?? '';
 
       if (paymentMethod == 'CÔNG NỢ') {
         // Tạo debt record - Shop nợ nhà cung cấp
@@ -2731,39 +2698,18 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     '${p['name']} x${p['qty']} (${MoneyUtils.formatCurrency(p['cost'] as int? ?? 0)}đ/cái)',
               )
               .join(', ');
-          final debtData = {
-            'firestoreId': debtFId,
-            'type': 'SHOP_OWES',
-            'debtType': 'SHOP_OWES',
-            'personName': supplierName,
-            'phone': '',
-            'totalAmount': totalCost,
-            'paidAmount': 0,
-            'note':
+          final debtId = await PaymentIntentService.createDebtRecord(
+            debtType: 'SHOP_OWES',
+            amount: totalCost,
+            personName: supplierName,
+            note:
                 'Nợ phụ tùng: $partNamesDetailed = ${MoneyUtils.formatCurrency(totalCost)}đ - Đơn sửa ${r.model} (${r.customerName})',
-            'status': 'ACTIVE',
-            'createdAt': now,
-            'shopId': shopId,
-            'linkedId': r.firestoreId ?? '',
-            'relatedPartId': '',
-            'deleted': 0,
-            'isSynced': 0,
-          };
-          final debtId = await db.insertDebt(debtData);
-
-          if (debtId > 0) {
-            await SyncOrchestrator().enqueue(
-              entityType: SyncEntityType.debt,
-              entityId: debtId,
-              firestoreId: debtFId,
-              operation: SyncOperation.create,
-              data: debtData,
-            );
-          }
+            linkedId: r.firestoreId ?? '',
+            debtFirestoreId: debtFId,
+          );
 
           // Công nợ đã ghi nhận ở bảng debts - không cần PaymentIntent
-          debugPrint('✅ Parts debt recorded: $debtFId');
-          EventBus().emit('debts_changed');
+          debugPrint('✅ Parts debt recorded: $debtFId (id=$debtId)');
           EventBus().emit(EventBus.financialChanged);
         } catch (e) {
           debugPrint('❌ Error creating parts debt: $e');
@@ -3681,30 +3627,23 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         r.costRecordedAmount = costAmount;
       });
       // Tạo bản ghi công nợ NCC
+      // FIX: trước đây tự tay insertDebt với status='UNPAID' (sai — chuẩn
+      // chung cả app là 'ACTIVE', 'UNPAID' làm khoản nợ này biến mất khỏi
+      // các thống kê lọc theo 'ACTIVE') và KHÔNG xếp hàng đồng bộ Firestore
+      // (nợ chỉ tồn tại cục bộ, không lên cloud/thiết bị khác).
       try {
-        final shopId = await UserService.getCurrentShopId();
-        if (shopId != null) {
-          final now = DateTime.now().millisecondsSinceEpoch;
-          await db.insertDebt({
-            'firestoreId': 'debt_repair_${r.firestoreId ?? r.id}_$now',
-            'shopId': shopId,
-            'personName': supplierName ?? 'NCC không rõ',
-            'phone': supplierPhone,
-            'totalAmount': costAmount,
-            'paidAmount': 0,
-            'type': 'SHOP_OWES',
-            'status': 'UNPAID',
-            'note':
-                'Vốn linh kiện: ${r.customerName} (${r.model})'
-                '${(r.partsUsed ?? '').isNotEmpty ? " — ${r.partsUsed}" : ""}',
-            'linkedId': r.firestoreId ?? r.id?.toString() ?? '',
-            'isSynced': 0,
-            'deleted': 0,
-            'createdAt': now,
-            'updatedAt': now,
-          });
-          EventBus().emit('debts_changed');
-        }
+        await PaymentIntentService.createDebtRecord(
+          debtType: 'SHOP_OWES',
+          amount: costAmount,
+          personName: supplierName ?? 'NCC không rõ',
+          personPhone: supplierPhone,
+          note:
+              'Vốn linh kiện: ${r.customerName} (${r.model})'
+              '${(r.partsUsed ?? '').isNotEmpty ? " — ${r.partsUsed}" : ""}',
+          linkedId: r.firestoreId ?? r.id?.toString() ?? '',
+          debtFirestoreId:
+              'debt_repair_${r.firestoreId ?? r.id}_${DateTime.now().millisecondsSinceEpoch}',
+        );
       } catch (e) {
         debugPrint('Tạo công nợ NCC thất bại: $e');
       }
@@ -3895,6 +3834,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     final warrantyC = TextEditingController(text: r.warranty);
     final addressC = TextEditingController(text: r.address);
     final notesC = TextEditingController(text: r.notes ?? '');
+    final loanerDeviceC = TextEditingController(text: r.loanerDevice ?? '');
     final searchC = TextEditingController();
     String? pickupScheduleLocal = r.pickupSchedule;
     List<Map<String, dynamic>> customerSearchResults = [];
@@ -4190,6 +4130,15 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                               ),
                               maxLines: 2,
                             ),
+                            const SizedBox(height: 10),
+                            TextFormField(
+                              controller: loanerDeviceC,
+                              decoration: const InputDecoration(
+                                labelText: 'Máy cho khách mượn (nếu có)',
+                                hintText: 'VD: IPHONE 7 ĐEN, IMEI ...',
+                              ),
+                              textCapitalization: TextCapitalization.characters,
+                            ),
                             const SizedBox(height: 20),
                             // Buttons live inside the scrollable area (not a
                             // fixed footer) so they stay reachable by
@@ -4274,6 +4223,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       warranty: warrantyC.text.trim(),
       address: addressC.text.trim(),
       notes: notesC.text.trim(),
+      loanerDevice: loanerDeviceC.text.trim(),
       pickupSchedule: pickupScheduleLocal,
     );
     Future.delayed(Duration.zero, () {
@@ -4285,6 +4235,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       warrantyC.dispose();
       addressC.dispose();
       notesC.dispose();
+      loanerDeviceC.dispose();
       searchC.dispose();
     });
     if (confirmed == true) {
@@ -4297,6 +4248,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         r.warranty = vals.warranty.toUpperCase();
         r.address = vals.address.toUpperCase();
         r.notes = vals.notes.isNotEmpty ? vals.notes : null;
+        r.loanerDevice = vals.loanerDevice.isNotEmpty
+            ? vals.loanerDevice.toUpperCase()
+            : null;
         r.pickupSchedule = vals.pickupSchedule;
       });
       await _saveData();
@@ -4940,6 +4894,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                         _compactInfoRow('Hẹn giao', r.pickupScheduleLabel!),
                       if (r.notes != null && r.notes!.isNotEmpty)
                         _compactInfoRow(loc.note, r.notes!),
+                      if (r.loanerDevice != null &&
+                          r.loanerDevice!.isNotEmpty)
+                        _buildLoanerDeviceRow(),
 
                       // Hình ảnh
                       if (_displayableImages(r.receiveImages).isNotEmpty ||
@@ -5376,6 +5333,72 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           Expanded(child: Text(value, style: AppTextStyles.caption)),
         ],
       ),
+    );
+  }
+
+  Widget _buildLoanerDeviceRow() {
+    final returned = r.loanerDeviceReturned;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 55,
+            child: Text(
+              "Máy mượn:",
+              style: AppTextStyles.caption.copyWith(
+                color: AppColors.onSurface.withOpacity(0.6),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(r.loanerDevice!, style: AppTextStyles.caption),
+          ),
+          GestureDetector(
+            onTap: _toggleLoanerReturned,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: returned
+                    ? Colors.green.withAlpha(25)
+                    : Colors.orange.withAlpha(25),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: returned ? Colors.green.shade300 : Colors.orange.shade300,
+                ),
+              ),
+              child: Text(
+                returned ? 'Đã trả' : 'Chưa trả',
+                style: AppTextStyles.overline.copyWith(
+                  color: returned ? Colors.green.shade700 : Colors.orange.shade700,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _toggleLoanerReturned() async {
+    if (!_canEditRepairBasicInfo) {
+      NotificationService.showSnackBar(
+        'Bạn không có quyền sửa thông tin đơn sửa chữa.',
+        color: Colors.orange,
+      );
+      return;
+    }
+    setState(() {
+      r.loanerDeviceReturned = !r.loanerDeviceReturned;
+    });
+    await _saveData();
+    NotificationService.showSnackBar(
+      r.loanerDeviceReturned
+          ? 'Đã đánh dấu khách trả lại máy mượn'
+          : 'Đã bỏ đánh dấu trả máy mượn',
+      color: Colors.green,
     );
   }
 
@@ -6097,8 +6120,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     }
 
     try {
-      final shopId = await UserService.getCurrentShopId() ?? '';
-      final now = DateTime.now().millisecondsSinceEpoch;
       final debtFId = RepairPartnerService.buildPartnerDebtFirestoreId(
         repairOrderId: repairOrderId,
         serviceFirestoreId: serviceFirestoreId,
@@ -6111,34 +6132,15 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         debugPrint('ℹ️ Partner debt đã tồn tại, bỏ qua tạo trùng: $debtFId');
         return;
       }
-      final debtData = {
-        'firestoreId': debtFId,
-        'type': 'SHOP_OWES',
-        'debtType': 'SHOP_OWES',
-        'personName': service.partnerName ?? 'Đối tác sửa chữa',
-        'phone': '',
-        'totalAmount': service.cost,
-        'paidAmount': 0,
-        'note': trackingNote,
-        'status': 'ACTIVE',
-        'createdAt': now,
-        'shopId': shopId,
-        'linkedId': repairOrderId,
-        'relatedPartId': service.partnerId?.toString() ?? '',
-        'deleted': 0,
-        'isSynced': 0,
-      };
-      final debtId = await db.insertDebt(debtData);
-      if (debtId > 0) {
-        await SyncOrchestrator().enqueue(
-          entityType: SyncEntityType.debt,
-          entityId: debtId,
-          firestoreId: debtFId,
-          operation: SyncOperation.create,
-          data: debtData,
-        );
-      }
-      EventBus().emit('debts_changed');
+      await PaymentIntentService.createDebtRecord(
+        debtType: 'SHOP_OWES',
+        amount: service.cost,
+        personName: service.partnerName ?? 'Đối tác sửa chữa',
+        note: trackingNote,
+        linkedId: repairOrderId,
+        relatedPartId: service.partnerId?.toString() ?? '',
+        debtFirestoreId: debtFId,
+      );
       EventBus().emit(EventBus.financialChanged);
     } catch (e) {
       debugPrint('❌ Error creating partner debt: $e');

@@ -10,6 +10,7 @@ import '../services/user_service.dart';
 import '../services/notification_service.dart';
 import '../services/event_bus.dart';
 import '../services/sync_orchestrator.dart';
+import '../services/payment_intent_service.dart';
 import '../services/financial_activity_service.dart';
 import '../services/import_order_service.dart';
 import '../services/sync_service.dart';
@@ -798,7 +799,6 @@ class StockEntryService {
 
           if (entry.paymentMethod == 'CÔNG NỢ') {
             // === TẠO DEBT TRONG LOCAL DB ===
-            final debtFirestoreId = 'debt_stock_${entryId}_$now';
             // Normalize supplierName để đảm bảo match khi query
             final normalizedSupplierName = (entry.supplierName ?? 'NCC')
                 .toUpperCase()
@@ -808,43 +808,20 @@ class StockEntryService {
               '🔔 confirmEntry: Creating debt for supplier: $normalizedSupplierName, amount: $totalCost',
             );
 
-            final debtData = {
-              'firestoreId': debtFirestoreId,
-              'type': 'SHOP_OWES', // Shop nợ NCC
-              'debtType': 'SHOP_OWES', // Thêm debtType để consistency
-              'personName': normalizedSupplierName,
-              'phone': '',
-              'totalAmount': totalCost,
-              'paidAmount': 0,
-              'status': 'ACTIVE', // Sử dụng ACTIVE để match với các debt khác
-              'note': itemSummary.isNotEmpty
+            final debtId = await PaymentIntentService.createDebtRecord(
+              debtType: 'SHOP_OWES',
+              amount: totalCost,
+              personName: normalizedSupplierName,
+              note: itemSummary.isNotEmpty
                   ? 'Nợ nhập $itemSummary - ${MoneyUtils.formatCurrency(totalCost)}đ'
                   : 'Nợ nhập ${entry.totalQuantity} sản phẩm - ${MoneyUtils.formatCurrency(totalCost)}đ',
-              'linkedId': entryId,
-              'linkedType': 'stock_entry',
-              'createdAt': now,
-              'updatedAt': now,
-              'shopId': entry.shopId,
-              'deleted': 0, // Thêm deleted field
-              'isSynced': 0, // Đặt thành 0 để sync lên Firestore
-            };
-
-            final debtId = await db.insertDebt(debtData);
+              linkedId: entryId,
+              linkedType: 'stock_entry',
+              debtFirestoreId: 'debt_stock_${entryId}_$now',
+            );
             debugPrint(
               '✅ confirmEntry: Created local DEBT id=$debtId for CÔNG NỢ: $totalCost, supplier: $normalizedSupplierName',
             );
-
-            // Sync debt lên Firestore
-            if (debtId > 0) {
-              await SyncOrchestrator().enqueueDebt(
-                debtId,
-                firestoreId: debtFirestoreId,
-                operation: SyncOperation.create,
-              );
-            }
-
-            // Notify các view khác để refresh
-            EventBus().emit('debts_changed');
 
             // KHÔNG tạo PaymentIntent cho CÔNG NỢ vì:
             // 1. Debt record đã được tạo (đây là financial record chính)

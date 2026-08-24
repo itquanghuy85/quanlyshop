@@ -4,6 +4,26 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-24q] - refactor(công nợ): gộp 14 chỗ tự tay tạo công nợ về 1 hàm dùng chung
+
+**Bối cảnh:** User hỏi rà soát các chỗ xử lý thanh toán công nợ xem có cần đồng nhất/tối ưu không. Rà thấy phần TRẢ/THU nợ đã có đã thống nhất tốt (4 nơi đều gọi `DebtPaymentSheet` → `PaymentIntentService.executePaymentDirect`). Riêng phần TẠO nợ mới (khi bán/sửa/nhập hàng chọn CÔNG NỢ) bị lặp lại tay khoảng 14 chỗ ở 7 file khác nhau, mỗi chỗ tự build map + `insertDebt` + xếp hàng đồng bộ — phát hiện luôn 2 lỗi thật do lặp code này gây ra.
+
+**Đã thêm (`lib/services/payment_intent_service.dart`):** hàm `PaymentIntentService.createDebtRecord(...)` — chuẩn hoá build debt map (status luôn `'ACTIVE'`), `insertDebt`, xếp hàng `SyncOrchestrator().enqueueDebt(...)`, emit `debts_changed`. Chỉ xử lý TẠO nợ mới — không đụng phần trả/thu nợ đã có.
+
+**Đã migrate 14 chỗ sang dùng hàm chung, sửa luôn 2 lỗi phát hiện được:**
+- `lib/views/parts_inventory_view.dart` (4 chỗ — kho phụ tùng/linh kiện).
+- `lib/views/repair_detail_view.dart` (5 chỗ — giao máy CÔNG NỢ x2 gần như trùng nhau, chi phí linh kiện x2, đối tác sửa chữa). **Sửa lỗi:** 1 chỗ (xác nhận vốn linh kiện) dùng sai `status: 'UNPAID'` (chuẩn chung là `'ACTIVE'`, khiến khoản nợ này biến mất khỏi thống kê lọc theo ACTIVE) và **thiếu hẳn bước xếp hàng đồng bộ Firestore** (nợ chỉ tồn tại cục bộ, không lên cloud/thiết bị khác).
+- `lib/views/inventory_view.dart` (1 chỗ — nhập giá vốn sản phẩm nhanh). **Sửa lỗi:** nhánh TIỀN MẶT/CHUYỂN KHOẢN cũng thiếu xếp hàng đồng bộ Firestore — đã bổ sung.
+- `lib/views/create_repair_order_view.dart`, `lib/views/create_purchase_order_view.dart`, `lib/views/fast_stock_in_view.dart`, `lib/services/stock_entry_service.dart` (mỗi nơi 1 chỗ).
+
+**CỐ TÌNH không đụng:** `create_sale_view.dart` (tạo nợ nằm trong 1 Firestore transaction nguyên khối cùng cập nhật sản phẩm — gộp vào sẽ phá vỡ tính nguyên tử của transaction), `sale_detail_view.dart` và `stock_entry_service.dart`'s `correctSupplierAndPayment` (2 luồng SỬA/điều chỉnh nợ đã có, khác bản chất với TẠO nợ mới, rủi ro cao hơn nếu gộp vội).
+
+**Verify:** `flutter analyze` sạch trên cả 8 file (0 lỗi, chỉ info-level lint có sẵn từ trước). Build debug thành công, cài lại trên Oppo CPH2203 — mở lại được các dialog liên quan (Nhập giá vốn sản phẩm, danh sách sản phẩm) không crash, xác nhận code chạy được. **CHƯA test được trọn vẹn thao tác lưu cuối cùng trên máy thật** (bàn phím ảo trên máy test bị vướng thao tác tự động nhiều lần liên tiếp, đã dừng theo yêu cầu tiết kiệm token) — logic bên trong `createDebtRecord` đã được đối chiếu tay từng field với đúng 14 chỗ gốc trước khi migrate nên rủi ro thấp, nhưng **nên tự tay thử tạo 1 khoản nợ CÔNG NỢ qua 1 trong các luồng trên và kiểm tra debt_view.dart hiện đúng + đã đồng bộ lên Firestore** trước khi yên tâm hoàn toàn.
+
+**Files:** `lib/services/payment_intent_service.dart`, `lib/views/parts_inventory_view.dart`, `lib/views/repair_detail_view.dart`, `lib/views/inventory_view.dart`, `lib/views/create_repair_order_view.dart`, `lib/views/create_purchase_order_view.dart`, `lib/views/fast_stock_in_view.dart`, `lib/services/stock_entry_service.dart`.
+
+---
+
 ## [2026-08-24p] - feat(home): nhắc "chưa chốt quỹ" + "đơn sửa thiếu giá vốn" ở khung CẦN XỬ LÝ
 
 **Bối cảnh:** User lo ngại nhiều người dùng không biết tính năng chốt quỹ nên để quá lâu không chốt, và muốn nhắc thêm đơn sửa đã giao nhưng quên nhập giá vốn (dễ tính sai lợi nhuận).

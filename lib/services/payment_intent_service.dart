@@ -26,6 +26,7 @@ import 'money_transaction_service.dart';
 import '../constants/financial_constants.dart';
 import 'user_service.dart';
 import 'sync_service.dart';
+import 'sync_orchestrator.dart';
 import 'event_bus.dart';
 
 /// Result of a payment execution
@@ -403,6 +404,66 @@ class PaymentIntentService {
         debugPrint('⚠️ Background sync after payment failed: $e');
       }
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // TẠO CÔNG NỢ MỚI (khi bán/sửa/nhập hàng chọn CÔNG NỢ)
+  // ---------------------------------------------------------------------------
+
+  /// Ghi 1 khoản công nợ mới vào bảng `debts` + xếp hàng đồng bộ Firestore.
+  ///
+  /// Trước đây khoảng 12+ nơi (nhập kho, sửa chữa, kho linh kiện...) tự tay
+  /// lặp lại đúng khuôn này (build map → insertDebt → enqueue sync → emit
+  /// event) — vài chỗ bị thiếu bước enqueue (nợ không bao giờ lên cloud) hoặc
+  /// dùng sai `status` ('UNPAID' thay vì 'ACTIVE' chuẩn của cả app). Gộp về
+  /// đây để chỉ sửa 1 chỗ, đảm bảo mọi khoản nợ mới đều đủ bước và đúng field.
+  ///
+  /// CHỈ xử lý việc TẠO nợ mới — KHÔNG đụng tới việc trả/thu nợ đã có (xem
+  /// [executePaymentDirect] cho việc đó, và `DebtPaymentSheet` cho UI trả nợ).
+  static Future<int> createDebtRecord({
+    required String debtType, // 'SHOP_OWES' | 'CUSTOMER_OWES' | ...
+    required int amount,
+    required String personName,
+    String personPhone = '',
+    required String note,
+    String? linkedId,
+    String? linkedType,
+    String? relatedPartId,
+    String? debtFirestoreId,
+  }) async {
+    final shopId = await UserService.getCurrentShopId() ?? '';
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final firestoreId =
+        debtFirestoreId ?? 'debt_${now}_${personName.hashCode}';
+    final debtData = {
+      'firestoreId': firestoreId,
+      'type': debtType,
+      'debtType': debtType,
+      'personName': personName,
+      'phone': personPhone,
+      'totalAmount': amount,
+      'paidAmount': 0,
+      'status': 'ACTIVE',
+      'note': note,
+      'createdAt': now,
+      'updatedAt': now,
+      'shopId': shopId,
+      if (linkedId != null) 'linkedId': linkedId,
+      if (linkedType != null) 'linkedType': linkedType,
+      if (relatedPartId != null) 'relatedPartId': relatedPartId,
+      'deleted': 0,
+      'isSynced': 0,
+    };
+    final debtId = await _db.insertDebt(debtData);
+    if (debtId > 0) {
+      await SyncOrchestrator().enqueueDebt(
+        debtId,
+        firestoreId: firestoreId,
+        operation: SyncOperation.create,
+      );
+    }
+    EventBus().emit('debts_changed');
+    return debtId;
   }
 
   // ---------------------------------------------------------------------------

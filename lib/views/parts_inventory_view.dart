@@ -10,6 +10,7 @@ import 'dart:async';
 import '../services/event_bus.dart';
 import '../services/audit_service.dart';
 import '../services/sync_orchestrator.dart';
+import '../services/payment_intent_service.dart';
 import '../services/financial_activity_service.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/currency_text_field.dart';
@@ -1470,34 +1471,14 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
 
       // Ghi nhận tài chính và công nợ theo phương thức thanh toán
       if (paymentMethod == 'CÔNG NỢ') {
-        final debtFId = 'debt_quick_part_${now}_${supplierId ?? 0}';
-        final debtData = {
-          'firestoreId': debtFId,
-          'personName': supplierName,
-          'phone': '',
-          'totalAmount': totalCost,
-          'paidAmount': 0,
-          'type': 'SHOP_OWES',
-          'debtType': 'SHOP_OWES',
-          'status': 'ACTIVE',
-          'createdAt': now,
-          'note': 'Nhập thêm ${_terms.category3}: $partName x$addQty',
-          'linkedId': null,
-          'relatedPartId': firestoreId,
-          'isSynced': 0,
-          'shopId': shopId,
-        };
-        final debtId = await db.insertDebt(debtData);
-        if (debtId > 0) {
-          await SyncOrchestrator().enqueue(
-            entityType: SyncEntityType.debt,
-            entityId: debtId,
-            firestoreId: debtFId,
-            operation: SyncOperation.create,
-            data: debtData,
-          );
-        }
-        EventBus().emit('debts_changed');
+        await PaymentIntentService.createDebtRecord(
+          debtType: 'SHOP_OWES',
+          amount: totalCost,
+          personName: supplierName,
+          note: 'Nhập thêm ${_terms.category3}: $partName x$addQty',
+          relatedPartId: firestoreId,
+          debtFirestoreId: 'debt_quick_part_${now}_${supplierId ?? 0}',
+        );
       } else {
         final expenseFirestoreId = 'exp_quick_part_${partId}_$now';
         final expenseData = {
@@ -2493,33 +2474,14 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                     final totalCost = cost * qty;
                     if (totalCost > 0) {
                       if (paymentMethod == 'CÔNG NỢ') {
-                        final debtFId =
-                            'debt_part_${now}_${selectedSupplierId ?? 0}';
-                        final debtData = {
-                          'firestoreId': debtFId,
-                          'personName': supplierName,
-                          'phone': '',
-                          'totalAmount': totalCost,
-                          'paidAmount': 0,
-                          'type': 'SHOP_OWES',
-                          'status': 'ACTIVE',
-                          'createdAt': now,
-                          'note': 'Nhập ${_terms.category3}: $partName x$qty',
-                          'linkedId': null,
-                          'isSynced': 0,
-                          'shopId': shopId,
-                        };
-                        final debtId = await db.insertDebt(debtData);
-                        if (debtId > 0) {
-                          await SyncOrchestrator().enqueue(
-                            entityType: SyncEntityType.debt,
-                            entityId: debtId,
-                            firestoreId: debtFId,
-                            operation: SyncOperation.create,
-                            data: debtData,
-                          );
-                        }
-                        EventBus().emit('debts_changed');
+                        await PaymentIntentService.createDebtRecord(
+                          debtType: 'SHOP_OWES',
+                          amount: totalCost,
+                          personName: supplierName,
+                          note: 'Nhập ${_terms.category3}: $partName x$qty',
+                          debtFirestoreId:
+                              'debt_part_${now}_${selectedSupplierId ?? 0}',
+                        );
                       } else {
                         final expFId = 'exp_part_${now}_$partName';
                         final expenseData = {
@@ -3413,40 +3375,14 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                       final totalCost = cost * qty;
                       if (totalCost > 0) {
                         if (paymentMethod == 'CÔNG NỢ') {
-                          // Công nợ NCC → Tạo debt record + PaymentIntent (CHỜ CHI)
-                          final debtFId =
-                              'debt_part_${DateTime.now().millisecondsSinceEpoch}_${selectedSupplierId ?? 0}';
-                          final debtData = {
-                            'firestoreId': debtFId,
-                            'personName': supplierName,
-                            'phone': '',
-                            'totalAmount': totalCost,
-                            'paidAmount': 0,
-                            'type': 'SHOP_OWES',
-                            'status': 'ACTIVE',
-                            'createdAt': DateTime.now().millisecondsSinceEpoch,
-                            'note': 'Nhập ${_terms.category3}: $partName x$qty',
-                            'linkedId': null,
-                            'isSynced': 0,
-                            'shopId': shopId,
-                          };
-                          final debtId = await db.insertDebt(debtData);
-
-                          if (debtId > 0) {
-                            await SyncOrchestrator().enqueue(
-                              entityType: SyncEntityType.debt,
-                              entityId: debtId,
-                              firestoreId: debtFId,
-                              operation: SyncOperation.create,
-                              data: debtData,
-                            );
-                          }
-
-                          // Công nợ đã ghi nhận ở bảng debts - không cần PaymentIntent
-                          debugPrint(
-                            '✅ Part debt recorded (no PaymentIntent needed)',
+                          await PaymentIntentService.createDebtRecord(
+                            debtType: 'SHOP_OWES',
+                            amount: totalCost,
+                            personName: supplierName,
+                            note: 'Nhập ${_terms.category3}: $partName x$qty',
+                            debtFirestoreId:
+                                'debt_part_${DateTime.now().millisecondsSinceEpoch}_${selectedSupplierId ?? 0}',
                           );
-                          EventBus().emit('debts_changed');
                         } else {
                           // TIỀN MẶT/CHUYỂN KHOẢN → Tạo expense record TRỰC TIẾP
                           final expenseFirestoreId =
@@ -3958,42 +3894,16 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                     // 4. Tài chính — tạo BẢN GHI MỚI ngày hôm nay
                     if (totalCost > 0) {
                       if (paymentMethod == 'CÔNG NỢ') {
-                        // Công nợ NCC
-                        final debtFId =
-                            'debt_part_${now}_${effectiveSupplierId ?? 0}';
-                        final debtData = {
-                          'firestoreId': debtFId,
-                          'personName': effectiveSupplierName,
-                          'phone': '',
-                          'totalAmount': totalCost,
-                          'paidAmount': 0,
-                          'type': 'SHOP_OWES',
-                          'debtType': 'SHOP_OWES',
-                          'status': 'ACTIVE',
-                          'createdAt': now,
-                          'note':
+                        await PaymentIntentService.createDebtRecord(
+                          debtType: 'SHOP_OWES',
+                          amount: totalCost,
+                          personName: effectiveSupplierName,
+                          note:
                               'Nhập thêm ${_terms.category3}: $partName x$addQty',
-                          'linkedId': null,
-                          'relatedPartId': partFirestoreId,
-                          'isSynced': 0,
-                          'shopId': shopId,
-                        };
-                        final debtId = await db.insertDebt(debtData);
-                        if (debtId > 0) {
-                          await SyncOrchestrator().enqueue(
-                            entityType: SyncEntityType.debt,
-                            entityId: debtId,
-                            firestoreId: debtFId,
-                            operation: SyncOperation.create,
-                            data: debtData,
-                          );
-                        }
-
-                        // Công nợ đã ghi nhận ở bảng debts - không cần PaymentIntent
-                        debugPrint(
-                          '✅ Add-stock debt recorded (no PaymentIntent needed)',
+                          relatedPartId: partFirestoreId,
+                          debtFirestoreId:
+                              'debt_part_${now}_${effectiveSupplierId ?? 0}',
                         );
-                        EventBus().emit('debts_changed');
                       } else {
                         // TIỀN MẶT / CHUYỂN KHOẢN → expense
                         final expFId = 'exp_part_${now}_$partName';
