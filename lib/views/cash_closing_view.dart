@@ -432,54 +432,40 @@ class _CashClosingViewState extends State<CashClosingView>
           .toList();
 
       // Load closings - FIX BUG-CC-001: cash_closings cũng là ROOT collection
-      final yesterday = _selectedDate.subtract(const Duration(days: 1));
-      final yesterdayKey = DateFormat('yyyy-MM-dd').format(yesterday);
       final todayKey = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
-      final closingResults = await Future.wait([
-        firestore
-            .collection('cash_closings')
-            .doc('closing_${shopId}_$yesterdayKey')
-            .get(),
-        firestore
-            .collection('cash_closings')
-            .doc('closing_${shopId}_$todayKey')
-            .get(),
-      ]);
+      final todayDoc = await firestore
+          .collection('cash_closings')
+          .doc('closing_${shopId}_$todayKey')
+          .get();
 
       // FIX: Fallback to local DB if Firestore closing records don't exist
       // This ensures data saved locally (offline) is still reflected
-      var previousClosing = closingResults[0].exists
-          ? closingResults[0].data()
-          : null;
-      var todayClosing = closingResults[1].exists
-          ? closingResults[1].data()
-          : null;
+      var todayClosing = todayDoc.exists ? todayDoc.data() : null;
 
-      debugPrint(
-        '📖 [LOAD] Firestore closing for $yesterdayKey: ${previousClosing != null ? 'FOUND cashEnd=${previousClosing['cashEnd']}' : 'NOT FOUND'}',
-      );
       debugPrint(
         '📖 [LOAD] Firestore closing for $todayKey: ${todayClosing != null ? 'FOUND' : 'NOT FOUND'}',
       );
 
       // FIX: Convert Timestamp fields in closing data from Firestore
-      if (previousClosing != null) _convertTimestampFields(previousClosing);
       if (todayClosing != null) _convertTimestampFields(todayClosing);
 
       // Fallback to local DB for closing records not yet synced to Firestore
-      if (previousClosing == null) {
-        previousClosing = await db.getClosingByDateKey(yesterdayKey);
-        debugPrint(
-          '📖 [LOAD] Local DB fallback for $yesterdayKey: ${previousClosing != null ? 'FOUND cashEnd=${previousClosing['cashEnd']}, bankEnd=${previousClosing['bankEnd']}' : 'NOT FOUND'}',
-        );
-      }
       if (todayClosing == null) {
         todayClosing = await db.getClosingByDateKey(todayKey);
         debugPrint(
           '📖 [LOAD] Local DB fallback for $todayKey: ${todayClosing != null ? 'FOUND' : 'NOT FOUND'}',
         );
       }
+
+      // Lần chốt quỹ gần nhất TRƯỚC ngày đang xem — không chỉ đúng "hôm qua",
+      // để số dư đầu kỳ vẫn đúng khi có ngày trước đó chưa từng chốt quỹ.
+      // `cash_closings` đã được đồng bộ real-time về local DB (sync_service.dart)
+      // nên tra local là đủ tin cậy, không cần query Firestore riêng ở đây.
+      final previousClosing = await db.getLatestClosingBefore(todayKey);
+      debugPrint(
+        '📖 [LOAD] Lần chốt quỹ gần nhất trước $todayKey: ${previousClosing != null ? 'FOUND dateKey=${previousClosing['dateKey']} cashEnd=${previousClosing['cashEnd']}' : 'NOT FOUND'}',
+      );
 
       // ═══════════════════════════════════════════════════════════════════
       // MERGE LOCAL DB: Gộp dữ liệu chưa sync từ Local DB vào Firestore
@@ -644,10 +630,26 @@ class _CashClosingViewState extends State<CashClosingView>
 
   /// Fallback: Load từ local DB khi offline — chỉ lấy dữ liệu trong ngày/khoảng được chọn
   Future<void> _loadAllDataFromLocalDB() async {
+    final todayKey = DateFormat('yyyy-MM-dd').format(_selectedDate);
+    // Lần chốt quỹ gần nhất TRƯỚC ngày đang xem — không chỉ đúng "hôm qua",
+    // để số dư đầu kỳ vẫn đúng khi có ngày trước đó chưa từng chốt quỹ.
+    final previousClosing = await db.getLatestClosingBefore(todayKey);
+    final todayClosing = await db.getClosingByDateKey(todayKey);
+
+    // Nếu không tự chọn khoảng ngày, mốc tải dữ liệu phải lùi về ngay sau
+    // lần chốt quỹ gần nhất (nếu có khoảng chưa chốt) — nếu không, sales và
+    // expenses của (các) ngày đó sẽ không được tải vào bộ nhớ để gộp.
+    final effectiveStart = _txEndDate != null
+        ? _selectedDate
+        : _computeAnalysisStart(
+            _selectedDate,
+            previousClosing?['dateKey'] as String?,
+          );
+
     final startMs = DateTime(
-      _selectedDate.year,
-      _selectedDate.month,
-      _selectedDate.day,
+      effectiveStart.year,
+      effectiveStart.month,
+      effectiveStart.day,
     ).millisecondsSinceEpoch;
     final endDate = _txEndDate ?? _selectedDate;
     final endMs = DateTime(
@@ -674,13 +676,8 @@ class _CashClosingViewState extends State<CashClosingView>
     // FIX: Load repair_partner_payments từ local DB (trước đây bỏ sót → _repairPartnerPayments luôn rỗng khi offline)
     final repairPartnerPayments = await db.getRepairPartnerPaymentsForSync();
     final salesReturns = await db.getSalesReturns();
-    final yesterday = _selectedDate.subtract(const Duration(days: 1));
-    final yesterdayKey = DateFormat('yyyy-MM-dd').format(yesterday);
-    final previousClosing = await db.getClosingByDateKey(yesterdayKey);
-    final todayKey = DateFormat('yyyy-MM-dd').format(_selectedDate);
-    final todayClosing = await db.getClosingByDateKey(todayKey);
     debugPrint(
-      '📖 [LOCAL-LOAD] yesterdayKey=$yesterdayKey previousClosing=${previousClosing != null ? 'FOUND cashEnd=${previousClosing['cashEnd']}' : 'NULL'}',
+      '📖 [LOCAL-LOAD] previousClosing=${previousClosing != null ? 'FOUND dateKey=${previousClosing['dateKey']} cashEnd=${previousClosing['cashEnd']}' : 'NULL'}',
     );
     debugPrint('📖 [LOCAL-LOAD] shopIdSync=${UserService.getShopIdSync()}');
 
@@ -729,6 +726,59 @@ class _CashClosingViewState extends State<CashClosingView>
         d.day == target.day;
   }
 
+  bool _isInDateRange(int timestamp, DateTime start, DateTime end) {
+    final d = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    final day = DateTime(d.year, d.month, d.day);
+    final s = DateTime(start.year, start.month, start.day);
+    final e = DateTime(end.year, end.month, end.day);
+    return !day.isBefore(s) && !day.isAfter(e);
+  }
+
+  /// Ngày của lần chốt quỹ gần nhất trước ngày đang xem (null nếu chưa từng
+  /// chốt quỹ lần nào).
+  DateTime? get _lastClosingDate {
+    final dateKey = _previousDayClosing?['dateKey'] as String?;
+    if (dateKey == null || dateKey.isEmpty) return null;
+    try {
+      return DateFormat('yyyy-MM-dd').parse(dateKey);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Điểm bắt đầu THỰC SỰ để tính số liệu ngày đang xem: ngay sau lần chốt
+  /// quỹ gần nhất, để gộp luôn (các) ngày trước đó lỡ chưa chốt quỹ vào cùng
+  /// 1 lần tính — tránh mất dấu tiền khi có khoảng trống chưa chốt.
+  DateTime get _analysisStartDate =>
+      _computeAnalysisStart(_selectedDate, _previousDayClosing?['dateKey'] as String?);
+
+  /// Tách riêng (static, không phụ thuộc state) để `_loadAllDataFromLocalDB`
+  /// cũng tính được mốc này TRƯỚC khi `_previousDayClosing` được set vào
+  /// state — nếu không, dữ liệu sales/expenses tải từ local DB sẽ bị giới
+  /// hạn đúng 1 ngày, thiếu mất (các) ngày trong khoảng chưa chốt quỹ.
+  static DateTime _computeAnalysisStart(
+    DateTime selectedDate,
+    String? lastClosingDateKey,
+  ) {
+    if (lastClosingDateKey == null || lastClosingDateKey.isEmpty) {
+      return selectedDate;
+    }
+    try {
+      final last = DateFormat('yyyy-MM-dd').parse(lastClosingDateKey);
+      final gapStart = DateTime(last.year, last.month, last.day + 1);
+      return gapStart.isBefore(selectedDate) ? gapStart : selectedDate;
+    } catch (_) {
+      return selectedDate;
+    }
+  }
+
+  /// true nếu đang gộp thêm (các) ngày trước đó chưa chốt quỹ vào ngày đang
+  /// xem (khác ngày thường, khi hôm qua đã chốt quỹ thì luôn false).
+  bool get _hasUnclosedGap =>
+      _analysisStartDate.year != _selectedDate.year ||
+      _analysisStartDate.month != _selectedDate.month ||
+      _analysisStartDate.day != _selectedDate.day;
+
   @override
   Widget build(BuildContext context) {
     if (!_hasPermission) {
@@ -754,6 +804,8 @@ class _CashClosingViewState extends State<CashClosingView>
           title: 'LỊCH SỬ TÀI CHÍNH',
           subtitle: _txEndDate != null
               ? '${DateFormat('dd/MM').format(_selectedDate)} - ${DateFormat('dd/MM/yyyy').format(_txEndDate!)}'
+              : _hasUnclosedGap
+              ? '${DateFormat('dd/MM').format(_analysisStartDate)} - ${DateFormat('dd/MM/yyyy').format(_selectedDate)} (chưa chốt quỹ)'
               : DateFormat('dd/MM/yyyy').format(_selectedDate),
           accentColor: Colors.indigo,
           actions: [
@@ -1058,7 +1110,7 @@ class _CashClosingViewState extends State<CashClosingView>
   }
 
   Widget _buildOverviewTab() {
-    final analysis = _analyzeTransactions(_selectedDate);
+    final analysis = _analyzeTransactions(_analysisStartDate, _selectedDate);
     final openingCash = _previousDayClosing?['cashEnd'] as int? ?? 0;
     final openingBank = _previousDayClosing?['bankEnd'] as int? ?? 0;
     debugPrint(
@@ -1383,6 +1435,37 @@ class _CashClosingViewState extends State<CashClosingView>
                 ),
             ],
           ),
+          if (_hasUnclosedGap)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.orange.shade700,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "Từ ${DateFormat('dd/MM').format(_analysisStartDate)} đến nay chưa chốt quỹ ngày nào — số liệu đã gộp chung từ lần chốt gần nhất (${DateFormat('dd/MM/yyyy').format(_lastClosingDate!)}).",
+                        style: TextStyle(
+                          fontSize: AppTextStyles.body1.fontSize,
+                          color: Colors.orange.shade700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           const SizedBox(height: 16),
           _infoRow("Tiền mặt", MoneyUtils.formatCompactCurrency(openingCash)),
           _infoRow("Ngân hàng", MoneyUtils.formatCompactCurrency(openingBank)),
@@ -1775,7 +1858,16 @@ class _CashClosingViewState extends State<CashClosingView>
   }
 
   Widget _buildIncomeTab() {
-    final incomeList = _getIncomeTransactions(_selectedDate);
+    // Gộp thêm (các) ngày trước chưa chốt quỹ để khớp đúng số liệu đã hiện
+    // ở tab Tổng quan (_analyzeTransactions dùng cùng khoảng ngày này).
+    final incomeList = <Map<String, dynamic>>[];
+    for (
+      var d = _analysisStartDate;
+      !d.isAfter(_selectedDate);
+      d = d.add(const Duration(days: 1))
+    ) {
+      incomeList.addAll(_getIncomeTransactions(d));
+    }
     final totalIncome = incomeList.fold<int>(
       0,
       (sum, t) => sum + (t['amount'] as int),
@@ -1908,7 +2000,15 @@ class _CashClosingViewState extends State<CashClosingView>
   }
 
   Widget _buildExpenseTab() {
-    final expenseList = _getExpenseTransactions(_selectedDate);
+    // Gộp thêm (các) ngày trước chưa chốt quỹ — xem `_buildIncomeTab`.
+    final expenseList = <Map<String, dynamic>>[];
+    for (
+      var d = _analysisStartDate;
+      !d.isAfter(_selectedDate);
+      d = d.add(const Duration(days: 1))
+    ) {
+      expenseList.addAll(_getExpenseTransactions(d));
+    }
     final totalExpense = expenseList.fold<int>(
       0,
       (sum, t) => sum + (t['amount'] as int),
@@ -2591,8 +2691,12 @@ class _CashClosingViewState extends State<CashClosingView>
     final incomeList = <Map<String, dynamic>>[];
     final expenseList = <Map<String, dynamic>>[];
     final end = _txEndDate ?? _selectedDate;
+    // Nếu người dùng không tự chọn khoảng ngày (_txEndDate == null), tự gộp
+    // thêm (các) ngày trước đó chưa chốt quỹ vào danh sách — để không mất
+    // dấu giao dịch khi có khoảng trống chưa chốt.
+    final start = _txEndDate != null ? _selectedDate : _analysisStartDate;
     for (
-      var d = _selectedDate;
+      var d = start;
       !d.isAfter(end);
       d = d.add(const Duration(days: 1))
     ) {
@@ -2932,7 +3036,9 @@ class _CashClosingViewState extends State<CashClosingView>
                     ),
                   ),
                   Text(
-                    DateFormat('dd/MM/yyyy').format(_selectedDate),
+                    _hasUnclosedGap
+                        ? 'Gộp từ ${DateFormat('dd/MM').format(_analysisStartDate)} đến ${DateFormat('dd/MM/yyyy').format(_selectedDate)} (chưa chốt quỹ)'
+                        : DateFormat('dd/MM/yyyy').format(_selectedDate),
                     style: const TextStyle(color: Colors.grey),
                   ),
                   const SizedBox(height: 24),
@@ -3149,7 +3255,7 @@ class _CashClosingViewState extends State<CashClosingView>
         return;
       }
 
-      final analysis = _analyzeTransactions(_selectedDate);
+      final analysis = _analyzeTransactions(_analysisStartDate, _selectedDate);
       final openingCash = _previousDayClosing?['cashEnd'] as int? ?? 0;
       final openingBank = _previousDayClosing?['bankEnd'] as int? ?? 0;
       final expectedCash = openingCash + analysis.cashIn - analysis.cashOut;
@@ -3605,9 +3711,13 @@ class _CashClosingViewState extends State<CashClosingView>
     return list;
   }
 
-  DailyFinancialAnalysis _analyzeTransactions(DateTime now) {
+  /// Tính số liệu tài chính cho 1 ngày (`end == null`) hoặc gộp nhiều ngày
+  /// liên tiếp từ `start` đến `end` (dùng khi có khoảng ngày chưa chốt quỹ
+  /// cần gộp chung vào ngày đang xem — xem `_analysisStartDate`).
+  DailyFinancialAnalysis _analyzeTransactions(DateTime start, [DateTime? end]) {
+    final rangeEnd = end ?? start;
     final sales = _sales
-        .where((sale) => _isSameDay(sale.soldAt, now))
+        .where((sale) => _isInDateRange(sale.soldAt, start, rangeEnd))
         .map(
           (sale) => {
             'paymentMethod': sale.paymentMethod,
@@ -3626,7 +3736,7 @@ class _CashClosingViewState extends State<CashClosingView>
           (sale) =>
               sale.isInstallment &&
               sale.settlementReceivedAt != null &&
-              _isSameDay(sale.settlementReceivedAt!, now),
+              _isInDateRange(sale.settlementReceivedAt!, start, rangeEnd),
         )
         .map(
           (sale) => {
@@ -3646,7 +3756,7 @@ class _CashClosingViewState extends State<CashClosingView>
           (repair) =>
               repair.status == 4 &&
               repair.deliveredAt != null &&
-              _isSameDay(repair.deliveredAt!, now),
+              _isInDateRange(repair.deliveredAt!, start, rangeEnd),
         )
         .map(
           (repair) => {
@@ -3659,31 +3769,39 @@ class _CashClosingViewState extends State<CashClosingView>
 
     final expenses = _expenses.where((expense) {
       final expenseDate = (expense['date'] ?? expense['createdAt']) as int?;
-      return expenseDate != null && _isSameDay(expenseDate, now);
+      return expenseDate != null &&
+          _isInDateRange(expenseDate, start, rangeEnd);
     }).toList();
 
     final supplierImports = _supplierImports
         .where(
-          (item) => _isSameDay(
+          (item) => _isInDateRange(
             (item['importDate'] ?? item['createdAt'] ?? 0) as int,
-            now,
+            start,
+            rangeEnd,
           ),
         )
         .toList();
 
     final supplierPayments = _supplierPayments
-        .where((item) => _isSameDay((item['paidAt'] ?? 0) as int, now))
+        .where(
+          (item) =>
+              _isInDateRange((item['paidAt'] ?? 0) as int, start, rangeEnd),
+        )
         .toList();
 
     final repairPartnerPayments = _repairPartnerPayments
-        .where((item) => _isSameDay((item['paidAt'] ?? 0) as int, now))
+        .where(
+          (item) =>
+              _isInDateRange((item['paidAt'] ?? 0) as int, start, rangeEnd),
+        )
         .toList();
 
     final debtPayments = _debtPayments
         .where(
           (payment) =>
               payment['paidAt'] != null &&
-              _isSameDay(payment['paidAt'] as int, now),
+              _isInDateRange(payment['paidAt'] as int, start, rangeEnd),
         )
         .map((payment) {
           var debtType = payment['debtType'] as String?;
@@ -3700,7 +3818,7 @@ class _CashClosingViewState extends State<CashClosingView>
         .where(
           (repair) =>
               repair.costRecordedAt != null &&
-              _isSameDay(repair.costRecordedAt!, now),
+              _isInDateRange(repair.costRecordedAt!, start, rangeEnd),
         )
         .map(
           (repair) => {
@@ -3714,7 +3832,7 @@ class _CashClosingViewState extends State<CashClosingView>
     final salesReturns = _salesReturns.where((item) {
       final returnDate =
           item['returnDate'] as int? ?? item['createdAt'] as int? ?? 0;
-      return _isSameDay(returnDate, now);
+      return _isInDateRange(returnDate, start, rangeEnd);
     }).toList();
 
     return DailyFinancialAnalysisService.analyze(
@@ -3730,7 +3848,9 @@ class _CashClosingViewState extends State<CashClosingView>
       salesReturns: salesReturns,
       enableRepair: _enableRepair,
       logDebug: true,
-      debugLabel: DateFormat('yyyy-MM-dd').format(now),
+      debugLabel: start == rangeEnd
+          ? DateFormat('yyyy-MM-dd').format(start)
+          : '${DateFormat('yyyy-MM-dd').format(start)}..${DateFormat('yyyy-MM-dd').format(rangeEnd)}',
     );
   }
 }

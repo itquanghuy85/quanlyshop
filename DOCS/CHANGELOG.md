@@ -4,6 +4,32 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-24n] - fix(sổ quỹ): gộp số liệu khi có ngày chưa chốt quỹ, tránh mất dấu tiền
+
+**Bối cảnh:** User phản ánh khó theo dõi tiền khi chưa chốt quỹ: qua ngày mới, màn Sổ quỹ không hiện lại dữ liệu ngày hôm trước nếu ngày đó chưa chốt.
+
+**Nguyên nhân gốc:** `CashClosingView` xác định "số dư đầu ngày" bằng cách tìm chốt quỹ đúng "hôm qua" (`_selectedDate - 1 ngày`) — nếu hôm qua chưa chốt, số dư đầu ngày lập tức về 0, mất hết dấu vết các ngày trước đó dù chúng có phát sinh giao dịch thật. Toàn bộ số liệu hiển thị (Tổng quan/Thu/Chi) và cả khi bấm "Chốt quỹ" cũng chỉ tính đúng 1 ngày `_selectedDate`, không hề biết đến khoảng ngày chưa chốt.
+
+**Đã sửa:**
+- `lib/data/db_helper.dart`: thêm `getLatestClosingBefore(dateKey)` — tìm đúng lần chốt quỹ GẦN NHẤT trước 1 ngày bất kỳ (khác `getPreviousDayClosing` sẵn có, cái đó chỉ tính bản đã "khóa sổ" `isLocked=1`, một cờ riêng cho nghiệp vụ khác không liên quan tới chốt quỹ hàng ngày).
+- `lib/views/cash_closing_view.dart`:
+  - Thay lookup "đúng hôm qua" bằng `getLatestClosingBefore` ở cả 2 đường tải dữ liệu (Firestore và local DB offline).
+  - Thêm `_analysisStartDate`/`_hasUnclosedGap`: nếu có khoảng ngày chưa chốt, tự gộp toàn bộ giao dịch từ ngay sau lần chốt gần nhất đến ngày đang xem vào 1 lần tính (`_analyzeTransactions` đổi từ tính đúng 1 ngày sang tính theo khoảng ngày) — áp dụng đồng bộ cho tab Tổng quan, Thu, Chi, và chính lúc xác nhận Chốt quỹ, để không nơi nào bị lệch số với nơi khác.
+  - `_loadAllDataFromLocalDB` cũng phải nới khoảng tải sales/expenses về đúng mốc gộp này (không chỉ tải đúng 1 ngày) — nếu không, dữ liệu offline vẫn thiếu (các) ngày chưa chốt dù phần tính toán đã sửa đúng.
+  - Thêm cảnh báo cam rõ ràng ở thẻ "SỐ DƯ ĐẦU NGÀY" và ở sheet "XÁC NHẬN CHỐT QUỸ": "Từ [ngày] đến nay chưa chốt quỹ ngày nào — số liệu đã gộp chung từ lần chốt gần nhất ([ngày])."
+  - Ngày ĐÃ chốt quỹ rồi thì xem lại vẫn đúng y hệt như cũ (không đổi hành vi) — chỉ áp dụng gộp khi ngày đang xem thực sự chưa chốt.
+
+**Verify (test trên Oppo CPH2203, tài khoản test):** chèn 1 bản ghi chốt quỹ giả lập ngày 21/08 (500.000đ tiền mặt, 200.000đ ngân hàng) thẳng vào DB thật của máy để mô phỏng "3 ngày chưa chốt quỹ" (22-24/08, có sẵn dữ liệu bán hàng/thu nợ/chi phí thật từ trước). Xác nhận trên máy:
+- Tab Tổng quan: hiện đúng cảnh báo "Từ 22/08 đến nay chưa chốt quỹ ngày nào — số liệu đã gộp chung từ lần chốt gần nhất (21/08/2026)", số dư đầu ngày đúng 500.000/200.000 (không về 0).
+- Tab Thu: gộp đúng cả giao dịch ngày 23 lẫn 24 (7 giao dịch, +28.55 Tr).
+- Tab Chi: lúc đầu THIẾU 2 khoản chi ngày 23 (chỉ hiện đúng 1 giao dịch của hôm nay) — phát hiện thêm 1 lỗi liên quan (data loading từ local DB vẫn giới hạn đúng 1 ngày dù phần tính đã sửa) → sửa `_loadAllDataFromLocalDB`, sau đó Chi hiện đúng cả 3 giao dịch (-1.6 Tr, gồm 2 khoản nhập hàng ngày 23 + 1 khoản trả NCC hôm nay).
+- Sheet "Xác nhận chốt quỹ": hiện đúng "Gộp từ 22/08 đến 24/08/2026 (chưa chốt quỹ)", số dự kiến khớp 100% với tab Tổng quan (15.45 Tr tiền mặt, 12.2 Tr ngân hàng) — bấm Hủy, không xác nhận thật để tránh tạo phiếu chốt quỹ từ dữ liệu giả lập.
+- Dọn dẹp: đã xóa bản ghi test khỏi DB máy thật, khôi phục lại trạng thái ban đầu (không còn phiếu chốt quỹ nào).
+
+**Files:** `lib/data/db_helper.dart`, `lib/views/cash_closing_view.dart`.
+
+---
+
 ## [2026-08-24m] - fix(kho,sale): audit luồng Nhập kho/Sản phẩm/Bán hàng — sửa 3 điểm ma sát cho người mới
 
 **Bối cảnh:** User yêu cầu audit toàn bộ luồng Nhập kho, Sản phẩm, Bán hàng với vai trò người dùng thật, tối ưu trải nghiệm cho người mới dùng. Đã đi thực tế qua device + đọc code, phát hiện 3 vấn đề cụ thể và được yêu cầu sửa cả 3.

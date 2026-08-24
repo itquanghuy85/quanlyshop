@@ -7454,6 +7454,35 @@ class DBHelper {
     return res.isNotEmpty ? res.first : null;
   }
 
+  /// Lấy lần chốt quỹ GẦN NHẤT trước 1 ngày, bất kể đã "khóa sổ" (isLocked) hay
+  /// chưa — khác `getPreviousDayClosing` (chỉ tính bản đã khóa, dùng cho
+  /// adjustment_service). Dùng để lấy đúng số dư đầu kỳ khi 1 hoặc nhiều ngày
+  /// liền trước chưa từng chốt quỹ, thay vì chỉ nhìn đúng "hôm qua".
+  Future<Map<String, dynamic>?> getLatestClosingBefore(
+    String beforeDateKey,
+  ) async {
+    final shopId = UserService.getShopIdSync();
+    final db = await database;
+    if (shopId != null && shopId.isNotEmpty) {
+      final res = await db.query(
+        'cash_closings',
+        where: 'dateKey < ? AND (shopId = ? OR shopId IS NULL)',
+        whereArgs: [beforeDateKey, shopId],
+        orderBy: 'dateKey DESC',
+        limit: 1,
+      );
+      return res.isNotEmpty ? res.first : null;
+    }
+    final res = await db.query(
+      'cash_closings',
+      where: 'dateKey < ?',
+      whereArgs: [beforeDateKey],
+      orderBy: 'dateKey DESC',
+      limit: 1,
+    );
+    return res.isNotEmpty ? res.first : null;
+  }
+
   /// Lấy chốt quỹ theo dateKey
   Future<Map<String, dynamic>?> getClosingByDateKey(String dateKey) async {
     final shopId = UserService.getShopIdSync();
