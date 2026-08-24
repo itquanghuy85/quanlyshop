@@ -123,10 +123,16 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
   @override
   Widget build(BuildContext context) {
     final product = _product;
-    final imagePath = (product.images ?? '')
-        .split(',')
-        .map((e) => e.trim())
-        .firstWhere((e) => e.isNotEmpty, orElse: () => '');
+    // Ưu tiên ảnh local (vừa chọn, chưa/lỗi upload lên cloud) giống hệt cách
+    // list sản phẩm hiển thị — trước đây màn này chỉ đọc `images` (URL cloud)
+    // nên ảnh mới chọn không hiện cho tới khi upload nền xong.
+    final localImagePath = (product.localImagePath ?? '').trim();
+    final imagePath = localImagePath.isNotEmpty
+        ? localImagePath
+        : (product.images ?? '')
+            .split(',')
+            .map((e) => e.trim())
+            .firstWhere((e) => e.isNotEmpty, orElse: () => '');
     final isSold = product.status == 0 || product.quantity <= 0;
     final isOutOfStock = product.status != 0 && product.quantity <= 0;
     final hasImage = imagePath.isNotEmpty;
@@ -236,98 +242,138 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
               ),
               const SizedBox(height: 14),
             ],
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  _row('IMEI/Serial', (product.imei ?? '').trim().isEmpty ? '--' : product.imei!),
-                  _divider(),
-                  _row('SKU', (product.sku ?? '').trim().isEmpty ? '--' : product.sku!),
-                  _divider(),
-                  _row('Thương hiệu', product.brand.trim().isEmpty ? '--' : product.brand),
-                  _divider(),
-                  _row('Model', (product.model ?? '').trim().isEmpty ? '--' : product.model!),
-                  _divider(),
-                  _row('Tồn kho', product.quantity.toString()),
-                  if (widget.soldQty != null) ...[
+            _sectionTitle('THÔNG TIN SẢN PHẨM', Icons.info_outline_rounded),
+            _sectionCard([
+              _row('IMEI/Serial', (product.imei ?? '').trim().isEmpty ? '--' : product.imei!),
+              _divider(),
+              _row('SKU', (product.sku ?? '').trim().isEmpty ? '--' : product.sku!),
+              _divider(),
+              _row('Thương hiệu', product.brand.trim().isEmpty ? '--' : product.brand),
+              _divider(),
+              _row('Model', (product.model ?? '').trim().isEmpty ? '--' : product.model!),
+              _divider(),
+              _row('Tồn kho', product.quantity.toString()),
+            ]),
+            const SizedBox(height: 16),
+            _sectionTitle('GIÁ & LỢI NHUẬN', Icons.payments_outlined),
+            _sectionCard([
+              if (widget.soldQty != null) ...[
+                _row(
+                  'Bán trong đơn này',
+                  '${widget.soldQty} cái',
+                  valueColor: Colors.blue.shade700,
+                ),
+                _divider(),
+              ],
+              if (widget.soldImei != null && widget.soldImei!.isNotEmpty) ...[
+                _row(
+                  'IMEI đã bán',
+                  widget.soldImei!,
+                  valueColor: Colors.deepPurple.shade600,
+                ),
+                _divider(),
+              ],
+              Builder(builder: (ctx) {
+                final basePrice = widget.salePrice ?? product.price;
+                final sp = widget.soldPrice;
+                final hasDiscount = sp != null && sp > 0 && basePrice > sp;
+                final discount = hasDiscount ? basePrice - sp : 0;
+                // Giá thực nhận về khi tính lợi nhuận: giá đã bán trong đơn
+                // (nếu có) — không thì lấy giá bán niêm yết hiện tại (lợi
+                // nhuận dự kiến, chưa chắc chắn cho tới khi bán thật).
+                final realizedPrice = (sp != null && sp > 0) ? sp : basePrice;
+                final profit = realizedPrice - product.cost;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _row(
+                      hasDiscount ? 'Giá bán gốc' : 'Giá bán',
+                      MoneyUtils.formatCompactCurrency(basePrice),
+                      valueColor: Colors.green.shade700,
+                    ),
+                    if (hasDiscount) ...[
+                      _divider(),
+                      _row(
+                        'Đã giảm',
+                        '-${MoneyUtils.formatCompactCurrency(discount)}',
+                        valueColor: Colors.orange.shade700,
+                      ),
+                      _divider(),
+                      _row(
+                        'Giá bán trong đơn',
+                        MoneyUtils.formatCompactCurrency(sp),
+                        valueColor: Colors.indigo.shade600,
+                      ),
+                    ] else if (sp != null && sp > 0 && sp != product.price) ...[
+                      _divider(),
+                      _row(
+                        'Giá bán trong đơn',
+                        MoneyUtils.formatCompactCurrency(sp),
+                        valueColor: Colors.indigo.shade600,
+                      ),
+                    ],
+                    _divider(),
+                    _costRow(product.cost),
                     _divider(),
                     _row(
-                      'Bán trong đơn này',
-                      '${widget.soldQty} cái',
-                      valueColor: Colors.blue.shade700,
+                      widget.soldPrice != null ? 'Lợi nhuận' : 'Lợi nhuận dự kiến',
+                      '${profit >= 0 ? '+' : ''}${MoneyUtils.formatCompactCurrency(profit)}',
+                      valueColor: profit >= 0 ? Colors.green.shade700 : Colors.red.shade700,
                     ),
                   ],
-                  if (widget.soldImei != null && widget.soldImei!.isNotEmpty) ...[
-                    _divider(),
-                    _row(
-                      'IMEI đã bán',
-                      widget.soldImei!,
-                      valueColor: Colors.deepPurple.shade600,
-                    ),
-                  ],
-                  _divider(),
-                  Builder(builder: (ctx) {
-                    final basePrice = widget.salePrice ?? product.price;
-                    final sp = widget.soldPrice;
-                    final hasDiscount = sp != null && sp > 0 && basePrice > sp;
-                    final discount = hasDiscount ? basePrice - sp : 0;
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _row(
-                          hasDiscount ? 'Giá bán gốc' : 'Giá bán',
-                          MoneyUtils.formatCompactCurrency(basePrice),
-                          valueColor: Colors.green.shade700,
-                        ),
-                        if (hasDiscount) ...[
-                          _divider(),
-                          _row(
-                            'Đã giảm',
-                            '-${MoneyUtils.formatCompactCurrency(discount)}',
-                            valueColor: Colors.orange.shade700,
-                          ),
-                          _divider(),
-                          _row(
-                            'Giá bán trong đơn',
-                            MoneyUtils.formatCompactCurrency(sp),
-                            valueColor: Colors.indigo.shade600,
-                          ),
-                        ] else if (sp != null && sp > 0 && sp != product.price) ...[
-                          _divider(),
-                          _row(
-                            'Giá bán trong đơn',
-                            MoneyUtils.formatCompactCurrency(sp),
-                            valueColor: Colors.indigo.shade600,
-                          ),
-                        ],
-                      ],
-                    );
-                  }),
-                  _divider(),
-                  _costRow(product.cost),
-                  _divider(),
-                  _supplierRow(product.supplier ?? ''),
-                  _divider(),
-                  _row('Thanh toán', _paymentMethodLabel(product.paymentMethod)),
-                  _divider(),
-                  _importDateRow(product),
-                ],
-              ),
-            ),
+                );
+              }),
+            ]),
+            const SizedBox(height: 16),
+            _sectionTitle('NHẬP HÀNG', Icons.local_shipping_outlined),
+            _sectionCard([
+              _supplierRow(product.supplier ?? ''),
+              _divider(),
+              _row('Thanh toán', _paymentMethodLabel(product.paymentMethod)),
+              _divider(),
+              _importDateRow(product),
+            ]),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _sectionTitle(String text, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: AppColors.primary),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: AppTextStyles.caption.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
+              letterSpacing: 0.6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionCard(List<Widget> children) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(children: children),
     );
   }
 

@@ -4,6 +4,28 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-24g] - fix(kho): sửa phụ kiện đè mất tên gốc + ảnh không hiện + thu nhỏ avatar + audit lại Chi tiết sản phẩm
+
+**Bối cảnh:** User báo 4 việc: (1) sửa phụ kiện "ốp" (thêm ảnh) xong tên tự đổi thành "KHÁC MỚI"; (2) avatar ảnh trong danh sách sản phẩm quá to, nhìn thô; (3) vào chi tiết sản phẩm có ảnh nhưng không thấy hiện; (4) audit lại màn Chi tiết sản phẩm cho chuyên nghiệp hơn.
+
+**1. Bug tên bị đè (`lib/views/inventory_view.dart._editProduct`):** màn Sửa sản phẩm luôn ghép tên mới từ brand+model+dung lượng+màu+tình trạng (`ProductConstants.generateProductName`) cho MỌI loại sản phẩm, kể cả phụ kiện/linh kiện — vốn dùng tên tự nhập trực tiếp, không có "model" thật sự. Phụ kiện không có brand (mặc định về "KHÁC") + không có model (rỗng) + tình trạng "MỚI" → lưu lại là tên bị ghép thành "KHÁC MỚI", đè mất tên gốc dù người dùng chỉ định thêm ảnh. Đã sửa: chỉ ghép tên kiểu này cho `type == 'DIEN_THOAI'`; phụ kiện/linh kiện dùng đúng text đã nhập trong ô tên (giữ nguyên nếu không sửa gì).
+
+**2. Ảnh không hiện dù đã chọn (`inventory_view.dart._showProductDetail`, `inventory_detail_view.dart`, `widgets/app_popup.dart.PopupProductImage`):** cả màn xem nhanh (bottom sheet bấm vào sản phẩm) lẫn trang Chi tiết sản phẩm đầy đủ chỉ đọc field `images` (URL cloud) để hiện ảnh, bỏ qua hẳn `localImagePath` (ảnh vừa chọn, lưu tạm trên máy chờ upload nền) — trong khi danh sách sản phẩm đã làm đúng (ưu tiên `localImagePath`). Nếu lần upload nền đầu tiên thất bại, ảnh vĩnh viễn không hiện ở 2 nơi này dù ảnh vẫn còn trên máy. Đã sửa cả 3 nơi ưu tiên hiện `localImagePath` trước, khớp đúng cách danh sách đã làm.
+
+**Nguyên nhân gốc tìm được (qua log thật trên máy test):** `Firebase Storage: putFile failed ... code=unauthorized` khi upload lên đường dẫn `uploads/products/{shopId}/{productId}/main.jpg` — rules Storage hiện tại (không có trong repo, chỉ tồn tại trên Firebase) đang CHẶN đúng đường dẫn ảnh sản phẩm mới. **Cần user tự kiểm tra Firebase Console > Storage > Rules** — ngoài khả năng sửa được từ môi trường này (không có file `storage.rules` trong repo, không có quyền deploy).
+
+**3. Tự động thử lại upload ảnh kẹt (`lib/services/sync_service.dart`):** phát hiện thêm `ProductImageService.retryPendingProductImages()` đã viết sẵn từ trước nhưng chưa từng được gọi ở đâu — ảnh lỗi upload lần đầu (vd. mất mạng đúng lúc) không có cơ chế tự thử lại, kẹt vĩnh viễn ở `/cache/` (thư mục có thể bị hệ điều hành tự xoá bất cứ lúc nào). Đã gọi hàm này trong mỗi lần `syncAllToCloud` chạy (cùng lúc sync products) — ảnh kẹt do lỗi mạng tạm thời giờ tự upload lại ở lần sync kế tiếp; ảnh kẹt do lỗi Storage rules (mục trên) sẽ tiếp tục thử lại tới khi rules được sửa.
+
+**4. Thu nhỏ avatar danh sách (`inventory_view.dart`):** ảnh thumbnail trong danh sách sản phẩm 52x52 → 40x40.
+
+**5. Audit lại trang Chi tiết sản phẩm (`inventory_detail_view.dart`):** trước đây toàn bộ thông tin (IMEI, SKU, brand, giá, NCC, thanh toán...) dồn chung 1 khối dài không phân nhóm. Đã tách thành 3 khối có tiêu đề + icon riêng: "THÔNG TIN SẢN PHẨM" (IMEI/SKU/brand/model/tồn kho), "GIÁ & LỢI NHUẬN" (giá bán/giá vốn + thêm dòng **Lợi nhuận** mới tính tự động — trước đây không có), "NHẬP HÀNG" (NCC/thanh toán/ngày nhập).
+
+**Verify (test trên Oppo CPH2203):** `flutter analyze` sạch trên toàn bộ file sửa. Build debug + cài lại. Xác nhận qua DB thật kéo từ máy: sản phẩm "KHÁC MỚI" (vốn là "ỐP" bị đổi tên bởi bug #1) có `localImagePath` hợp lệ nhưng `images` rỗng — đúng giả thuyết. Sau khi sửa: ảnh hiện đúng ở cả bottom sheet xem nhanh lẫn trang Chi tiết sản phẩm đầy đủ; trang Chi tiết sản phẩm hiện đúng 3 khối mới + dòng Lợi nhuận tính đúng (âm khi giá bán < giá vốn, hiện màu đỏ).
+
+**Files:** `lib/views/inventory_view.dart`, `lib/views/inventory_detail_view.dart`, `lib/widgets/app_popup.dart`, `lib/services/sync_service.dart`.
+
+---
+
 ## [2026-08-24f] - fix(sale,repair): in/chia sẻ biên nhận không báo kết quả thành công hay thất bại
 
 **Bối cảnh:** User phản hồi: bấm in hoặc chia sẻ ảnh biên nhận ở màn xem trước, không thấy báo gì (thành công hay lỗi) — chỉ có icon spinner quay rồi tắt, không biết thao tác có thực sự thành công không.

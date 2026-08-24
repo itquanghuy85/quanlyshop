@@ -15,6 +15,7 @@ import '../models/attendance_model.dart';
 import '../models/leave_request_model.dart';
 import '../models/quick_input_code_model.dart';
 import 'storage_service.dart';
+import 'product_image_service.dart';
 import 'user_service.dart';
 import 'encryption_service.dart';
 import 'sync_orchestrator.dart';
@@ -3639,6 +3640,17 @@ class SyncService {
         }
         await commitProductsBatch();
         debugPrint("✅ Synced $totalProductsSynced products to cloud");
+
+        // Retry ảnh sản phẩm còn kẹt ở local (chọn ảnh qua màn Sửa sản
+        // phẩm nhưng lần upload nền đầu tiên lỗi/không có mạng, không có
+        // cơ chế tự thử lại nào khác) — ảnh nằm ở thư mục cache của app
+        // nên có thể bị hệ điều hành xoá bất cứ lúc nào nếu không upload
+        // kịp lên cloud, mất ảnh vĩnh viễn.
+        try {
+          await ProductImageService.retryPendingProductImages(shopId);
+        } catch (e) {
+          debugPrint("Lỗi retry ảnh sản phẩm còn kẹt ở local: $e");
+        }
 
         // Sync DELETED products → push deleted:true lên Firestore
         final deletedProducts = await dbHelper.getDeletedUnsyncedProducts();

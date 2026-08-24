@@ -476,7 +476,11 @@ class _InventoryViewState extends State<InventoryView>
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    PopupProductImage(imageUrl: imagePath, size: 72),
+                    PopupProductImage(
+                      imageUrl: imagePath,
+                      localPath: displayProduct.localImagePath,
+                      size: 72,
+                    ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
@@ -3482,20 +3486,20 @@ class _InventoryViewState extends State<InventoryView>
                             p.localImagePath!.isNotEmpty)
                         ? Image.file(
                             File(p.localImagePath!),
-                            width: 52,
-                            height: 52,
+                            width: 40,
+                            height: 40,
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) =>
                                 const SizedBox.shrink(),
                           )
                         : AppCachedImage(
                             imageUrl: p.images!,
-                            width: 52,
-                            height: 52,
+                            width: 40,
+                            height: 40,
                             fit: BoxFit.cover,
                             borderRadius: BorderRadius.circular(8),
-                            memCacheWidth: 120,
-                            memCacheHeight: 120,
+                            memCacheWidth: 100,
+                            memCacheHeight: 100,
                           ),
                   ),
                 ),
@@ -4314,15 +4318,23 @@ class _InventoryViewState extends State<InventoryView>
               // → Chuyển sang kho chính (isPending = false)
               final shouldTransferToMainInventory = p.isPending && newCost > 0;
 
-              // Tạo tên sản phẩm chuẩn từ các field
-              // nameC = model, selectedBrand = brand
-              final generatedName = ProductConstants.generateProductName(
-                brand: selectedBrand,
-                model: nameC.text.trim(), // nameC chứa model
-                capacity: selectedCapacity,
-                color: selectedColor,
-                condition: selectedCondition,
-              );
+              // Tạo tên sản phẩm chuẩn từ các field — CHỈ áp dụng cho điện
+              // thoại (nameC lúc đó thật sự là "model", ghép với brand/dung
+              // lượng/màu/tình trạng mới có ý nghĩa). Phụ kiện/linh kiện dùng
+              // tên tự nhập trực tiếp — không ghép thêm brand (mặc định
+              // "KHÁC" khi rỗng) hay tình trạng, tránh đè mất tên gốc (vd.
+              // sản phẩm không có model từng bị đổi thành "KHÁC MỚI" khi lưu
+              // lại mà không sửa gì ở ô tên).
+              final typedName = nameC.text.trim();
+              final generatedName = p.type == 'DIEN_THOAI'
+                  ? ProductConstants.generateProductName(
+                      brand: selectedBrand,
+                      model: typedName, // nameC chứa model
+                      capacity: selectedCapacity,
+                      color: selectedColor,
+                      condition: selectedCondition,
+                    )
+                  : (typedName.isNotEmpty ? typedName : p.name);
 
               final updatedP = p.copyWith(
                 name: generatedName,

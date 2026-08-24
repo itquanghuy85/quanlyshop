@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../theme/popup_theme.dart';
@@ -470,14 +472,46 @@ class PopupBadge extends StatelessWidget {
 
 class PopupProductImage extends StatelessWidget {
   final String? imageUrl;
+  // Ảnh local vừa chọn nhưng chưa (hoặc lỗi) upload lên cloud — ưu tiên hiện
+  // ảnh này nếu có, tránh trắng ảnh trong lúc chờ upload nền xong.
+  final String? localPath;
   final double size;
 
-  const PopupProductImage({super.key, this.imageUrl, this.size = 68});
+  const PopupProductImage({
+    super.key,
+    this.imageUrl,
+    this.localPath,
+    this.size = 68,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final local = (localPath ?? '').trim();
     final url = (imageUrl ?? '').trim();
-    final hasImage = url.isNotEmpty;
+
+    Widget image;
+    if (local.isNotEmpty) {
+      image = Image.file(
+        File(local),
+        fit: BoxFit.cover,
+        width: size,
+        height: size,
+        errorBuilder: (_, __, ___) => _placeholder(),
+      );
+    } else if (url.isNotEmpty) {
+      image = CachedNetworkImage(
+        imageUrl: url,
+        fit: BoxFit.cover,
+        width: size,
+        height: size,
+        memCacheWidth: (size * 2).toInt(),
+        memCacheHeight: (size * 2).toInt(),
+        placeholder: (_, __) => _placeholder(),
+        errorWidget: (_, __, ___) => _placeholder(),
+      );
+    } else {
+      image = _placeholder();
+    }
 
     return Container(
       width: size,
@@ -488,18 +522,7 @@ class PopupProductImage extends StatelessWidget {
         border: Border.all(color: PopupTheme.borderDark),
       ),
       clipBehavior: Clip.antiAlias,
-      child: hasImage
-          ? CachedNetworkImage(
-              imageUrl: url,
-              fit: BoxFit.cover,
-              width: size,
-              height: size,
-              memCacheWidth: (size * 2).toInt(),
-              memCacheHeight: (size * 2).toInt(),
-              placeholder: (_, __) => _placeholder(),
-              errorWidget: (_, __, ___) => _placeholder(),
-            )
-          : _placeholder(),
+      child: image,
     );
   }
 
