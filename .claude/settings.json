@@ -4,7 +4,11 @@
       "Bash(adb -s NJR8W86LKRVW7DHQ install -r d:/FlutterProjects/quanlyshop/build/app/outputs/flutter-apk/app-debug.apk)",
       "Bash(git commit -m ' *)",
       "Bash(ls \"d:\\\\FlutterProjects\\\\\")",
-      "Read(//d//**)"
+      "Read(//d//**)",
+      "WebSearch",
+      "Bash(flutter analyze *)",
+      "Bash(echo \"EXIT:$?\")",
+      "Read(//tmp/**)"
     ]
   }
 }

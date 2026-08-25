@@ -223,6 +223,10 @@ class Repair {
   // Hẹn giao máy: 'now' (lấy ngay), 'same_day' (trong ngày), 'later' (báo sau)
   String? pickupSchedule;
 
+  // Máy cho khách mượn tạm trong lúc chờ sửa máy của họ
+  String? loanerDevice;
+  bool loanerDeviceReturned;
+
   // Getter for receive images
   List<String> get receiveImages {
     if (imagePath == null || imagePath!.trim().isEmpty) return [];
@@ -329,6 +333,8 @@ class Repair {
     this.storageLocationCode,
     this.storageLocationName,
     this.pickupSchedule,
+    this.loanerDevice,
+    this.loanerDeviceReturned = false,
   });
 
   static const Map<String, String> pickupScheduleLabels = {
@@ -417,6 +423,8 @@ class Repair {
       'storageLocationCode': storageLocationCode,
       'storageLocationName': storageLocationName,
       'pickupSchedule': pickupSchedule,
+      'loanerDevice': loanerDevice,
+      'loanerDeviceReturned': loanerDeviceReturned ? 1 : 0,
     };
   }
 
@@ -500,6 +508,8 @@ class Repair {
       storageLocationCode: map['storageLocationCode'],
       storageLocationName: map['storageLocationName'],
       pickupSchedule: map['pickupSchedule'],
+      loanerDevice: map['loanerDevice'],
+      loanerDeviceReturned: _parseBoolSafe(map['loanerDeviceReturned']),
     );
   }
 
@@ -553,6 +563,8 @@ class Repair {
     String? storageLocationCode,
     String? storageLocationName,
     String? pickupSchedule,
+    String? loanerDevice,
+    bool? loanerDeviceReturned,
   }) {
     return Repair(
       id: id ?? this.id,
@@ -606,6 +618,8 @@ class Repair {
       storageLocationCode: storageLocationCode ?? this.storageLocationCode,
       storageLocationName: storageLocationName ?? this.storageLocationName,
       pickupSchedule: pickupSchedule ?? this.pickupSchedule,
+      loanerDevice: loanerDevice ?? this.loanerDevice,
+      loanerDeviceReturned: loanerDeviceReturned ?? this.loanerDeviceReturned,
     );
   }
 }

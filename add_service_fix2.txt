@@ -1,0 +1,36 @@
+Analyzing 2 items...                                            
+
+   info - Statements in an if should be enclosed in a block - lib\views\create_repair_order_view.dart:227:9 - curly_braces_in_flow_control_structures
+  error - The named parameter 'shopId' is required, but there's no corresponding argument - lib\views\create_repair_order_view.dart:1003:68 - missing_required_argument
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\views\create_repair_order_view.dart:1145:33 - deprecated_member_use
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\views\create_repair_order_view.dart:1178:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\create_repair_order_view.dart:2073:47 - deprecated_member_use
+   info - Statements in an if should be enclosed in a block - lib\views\repair_detail_view.dart:97:7 - curly_braces_in_flow_control_structures
+   info - Use the '??' operator rather than '?:' when testing for 'null' - lib\views\repair_detail_view.dart:281:31 - prefer_if_null_operators
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\repair_detail_view.dart:1468:62 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\repair_detail_view.dart:1491:68 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\repair_detail_view.dart:1828:62 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps - lib\views\repair_detail_view.dart:2391:7 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\views\repair_detail_view.dart:2516:9 - use_build_context_synchronously
+   info - Unnecessary braces in a string interpolation - lib\views\repair_detail_view.dart:2673:36 - unnecessary_brace_in_string_interps
+   info - Don't use 'BuildContext's across async gaps - lib\views\repair_detail_view.dart:2809:7 - use_build_context_synchronously
+   info - Statements in an if should be enclosed in a block - lib\views\repair_detail_view.dart:3306:11 - curly_braces_in_flow_control_structures
+warning - Dead code - lib\views\repair_detail_view.dart:3523:33 - dead_code
+warning - The left operand can't be null, so the right operand is never executed - lib\views\repair_detail_view.dart:3523:36 - dead_null_aware_expression
+   info - Statements in an if should be enclosed in a block - lib\views\repair_detail_view.dart:3920:35 - curly_braces_in_flow_control_structures
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\repair_detail_view.dart:4140:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\repair_detail_view.dart:4426:46 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\repair_detail_view.dart:4613:56 - deprecated_member_use
+   info - The parameter name 'sum' matches a visible type name - lib\views\repair_detail_view.dart:4635:84 - avoid_types_as_parameter_names
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\repair_detail_view.dart:5038:22 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\repair_detail_view.dart:5072:43 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\repair_detail_view.dart:5152:44 - deprecated_member_use
+   info - 'dialogBackgroundColor' is deprecated and shouldn't be used. Use DialogThemeData.backgroundColor instead. This feature was deprecated after v3.27.0-0.1.pre - lib\views\repair_detail_view.dart:5330:40 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps - lib\views\repair_detail_view.dart:6045:7 - use_build_context_synchronously
+   info - 'Share' is deprecated and shouldn't be used. Use SharePlus instead - lib\views\repair_detail_view.dart:6362:11 - deprecated_member_use
+   info - 'share' is deprecated and shouldn't be used. Use SharePlus.instance.share() instead - lib\views\repair_detail_view.dart:6362:17 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\repair_detail_view.dart:6578:59 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\repair_detail_view.dart:6579:59 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\repair_detail_view.dart:6956:37 - deprecated_member_use
+
+32 issues found. (ran in 3.9s)

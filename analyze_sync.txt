@@ -1,0 +1,7 @@
+Analyzing 3 items...                                            
+
+   info - Statements in an if should be enclosed in a block - lib\services\sync_service.dart:2843:15 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\services\sync_service.dart:2880:15 - curly_braces_in_flow_control_structures
+   info - The type of the right operand ('int') isn't a subtype or a supertype of the left operand ('bool') - lib\services\sync_service.dart:2945:38 - unrelated_type_equality_checks
+
+3 issues found. (ran in 1.9s)
