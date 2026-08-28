@@ -240,7 +240,7 @@ class _CollectCustomerDebtViewState extends State<CollectCustomerDebtView> {
             _infoCard(
               title: 'Công nợ hiện tại',
               value: '${MoneyUtils.formatCurrency(_totalOutstanding)}đ',
-              color: const Color(0xFFB91C1C),
+              color: const Color(0xFFA23B3B),
             ),
             const SizedBox(height: 16),
             CurrencyTextField(
@@ -636,7 +636,7 @@ class _CollectCustomerDebtViewState extends State<CollectCustomerDebtView> {
           Text(
             value,
             style: TextStyle(
-              fontSize: 22,
+              fontSize: 18,
               fontWeight: FontWeight.w800,
               color: color,
             ),

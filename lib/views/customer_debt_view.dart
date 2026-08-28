@@ -154,7 +154,7 @@ class _CustomerDebtViewState extends State<CustomerDebtView> {
         title: 'Công nợ khách hàng',
         subtitle: widget.customerName,
         gradient: const LinearGradient(
-          colors: [Color(0xFFB91C1C), Color(0xFFEF4444)],
+          colors: [Color(0xFFA23B3B), Color(0xFFBE6A63)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -304,14 +304,14 @@ class _CustomerDebtViewState extends State<CustomerDebtView> {
   Widget _buildHeaderCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFFB91C1C), Color(0xFFEF4444)],
+          colors: [Color(0xFFA23B3B), Color(0xFFBE6A63)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -320,34 +320,34 @@ class _CustomerDebtViewState extends State<CustomerDebtView> {
             'CÔNG NỢ HIỆN TẠI',
             style: TextStyle(
               color: Colors.white70,
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.bold,
               letterSpacing: 0.5,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             '${MoneyUtils.formatCurrency(_totalDebt)}đ',
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 30,
+              fontSize: 22,
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _debts.isEmpty ? null : _openCollect,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
-                foregroundColor: const Color(0xFFB91C1C),
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                foregroundColor: const Color(0xFFA23B3B),
+                padding: const EdgeInsets.symmetric(vertical: 11),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              icon: const Icon(Icons.payments_outlined),
+              icon: const Icon(Icons.payments_outlined, size: 18),
               label: const Text(
                 'THU TIỀN',
                 style: TextStyle(fontWeight: FontWeight.bold),

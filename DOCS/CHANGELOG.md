@@ -4,6 +4,21 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-29a] - polish(repair,debt-ui): hiện sẵn "Thêm chi tiết" khi tạo đơn sửa + giảm đỏ chói màn Công nợ khách hàng
+
+**Bối cảnh:** User yêu cầu 2 chỉnh nhỏ về UI (trong loạt 4 việc; 2 việc còn lại — thêm nợ cũ/tổng nợ/QR vào phiếu gửi khách, và thống kê "tiền NH chưa tất toán" ở Home/Tài chính — đang chờ user xác nhận phương án; và 1 việc điều tra lỗi layout top-inset toàn cục, chờ user duyệt nguyên nhân).
+
+**Đã sửa:**
+- `lib/views/create_repair_order_view.dart`: `_showAdvancedFields` mặc định `false` → `true`. Phần "Thêm chi tiết (bảo mật, ngoại quan, phụ kiện)" khi tạo đơn sửa mới giờ **hiện sẵn**, không phải bấm mũi tên mở. Nút thu gọn vẫn còn (bấm lại để ẩn). Không đổi logic lưu.
+- `lib/views/customer_debt_view.dart`: màn "Công nợ khách hàng" — gradient đỏ chói `#B91C1C→#EF4444` (ở AppBar + thẻ header "CÔNG NỢ HIỆN TẠI") đổi sang đỏ trầm dịu hơn `#A23B3B→#BE6A63`; thẻ header thu nhỏ (padding 20→14, cỡ số tiền 30→22, các khoảng cách/nút gọn lại).
+- `lib/views/collect_customer_debt_view.dart`: màn "Thu tiền công nợ" — thẻ "Công nợ hiện tại" đồng bộ màu đỏ trầm `#A23B3B`, cỡ số tiền trong `_infoCard` 22→18.
+
+**Verify:** `flutter analyze` sạch trên cả 3 file (chỉ còn info-lint có sẵn từ trước ở `create_repair_order_view.dart`, không phải do thay đổi này). Thay đổi chỉ là cờ mặc định + màu/kích thước, không đụng luồng dữ liệu → chưa build lại máy thật (theo mặc định tiết kiệm token; sẵn sàng build nếu user muốn xem trực quan).
+
+**Files:** `lib/views/create_repair_order_view.dart`, `lib/views/customer_debt_view.dart`, `lib/views/collect_customer_debt_view.dart`.
+
+---
+
 ## [2026-08-24q] - refactor(công nợ): gộp 14 chỗ tự tay tạo công nợ về 1 hàm dùng chung
 
 **Bối cảnh:** User hỏi rà soát các chỗ xử lý thanh toán công nợ xem có cần đồng nhất/tối ưu không. Rà thấy phần TRẢ/THU nợ đã có đã thống nhất tốt (4 nơi đều gọi `DebtPaymentSheet` → `PaymentIntentService.executePaymentDirect`). Riêng phần TẠO nợ mới (khi bán/sửa/nhập hàng chọn CÔNG NỢ) bị lặp lại tay khoảng 14 chỗ ở 7 file khác nhau, mỗi chỗ tự build map + `insertDebt` + xếp hàng đồng bộ — phát hiện luôn 2 lỗi thật do lặp code này gây ra.

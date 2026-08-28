@@ -101,7 +101,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   bool _isWalkIn = false;
   bool _canViewCostPrice = false;
   bool _showAdvancedFields =
-      false; // quick intake mode — collapse secondary fields
+      true; // hiện sẵn phần "Thêm chi tiết" (bảo mật, ngoại quan, phụ kiện);
+  // vẫn bấm thu gọn được qua nút bên dưới
 
   // Customer quick card state
   Map<String, dynamic>? _lastRepair; // most recent repair row for this phone
