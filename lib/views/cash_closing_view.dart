@@ -1755,8 +1755,20 @@ class _CashClosingViewState extends State<CashClosingView>
       final now = DateTime.now().millisecondsSinceEpoch;
       final closedBy = FirebaseAuth.instance.currentUser?.email ?? 'unknown';
       final shopId = await UserService.getCurrentShopId();
+      if (shopId == null || shopId.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('❌ Chưa xác định được cửa hàng — không thể lưu số dư đầu kỳ.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
 
-      // Data cho local DB - bao gồm shopId + closedAt/closedBy
+      // Identity cố định ngay từ đầu (xem _saveClosing) — không sinh dòng ma.
+      final closingFid = 'closing_${shopId}_$dateKey';
       final localData = {
         'dateKey': dateKey,
         'cashStart': 0,
@@ -1769,48 +1781,38 @@ class _CashClosingViewState extends State<CashClosingView>
         'createdAt': now,
         'closedAt': now,
         'closedBy': closedBy,
-        if (shopId != null) 'shopId': shopId,
+        'shopId': shopId,
+        'firestoreId': closingFid,
       };
 
       debugPrint(
-        '💾 [OPENING] Saving to local DB: dateKey=$dateKey, cashEnd=$cashEnd, bankEnd=$bankEnd, shopId=$shopId',
+        '💾 [OPENING] Saving to local DB: dateKey=$dateKey, cashEnd=$cashEnd, bankEnd=$bankEnd, shopId=$shopId, fid=$closingFid',
       );
       await db.upsertCashClosing(localData);
 
-      // Verify local save
       final verify = await db.getClosingByDateKey(dateKey);
       debugPrint(
         '💾 [OPENING] Verify local save: ${verify != null ? 'cashEnd=${verify['cashEnd']}, bankEnd=${verify['bankEnd']}, shopId=${verify['shopId']}' : 'NULL - SAVE FAILED!'}',
       );
 
-      // Sync to Firestore (best effort - local already saved)
-      debugPrint('💾 [OPENING] Shop ID: $shopId');
-      if (shopId != null) {
+      // Sync to Firestore (best effort - local already saved with identity)
+      {
         try {
-          debugPrint('💾 [OPENING] Saving to Firestore...');
           final firestoreDoc = {
             ...localData,
-            'shopId': shopId,
             'date': dateKey, // FIX: Firestore rules require 'date' field
-            'firestoreId': 'closing_${shopId}_$dateKey',
             'isManualOpening': true,
             'isSynced': true,
             'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
           };
           await FirebaseFirestore.instance
               .collection('cash_closings')
-              .doc('closing_${shopId}_$dateKey')
+              .doc(closingFid)
               .set(firestoreDoc, SetOptions(merge: true));
           debugPrint('💾 [OPENING] ✅ Saved to Firestore successfully');
 
-          // Mark local as synced
-          await db.upsertCashClosing({
-            ...localData,
-            'firestoreId': 'closing_${shopId}_$dateKey',
-            'isSynced': 1,
-          });
+          await db.upsertCashClosing({...localData, 'isSynced': 1});
         } catch (e) {
-          // Firestore sync failed but local is saved - don't show error
           debugPrint('💾 [OPENING] ⚠️ Firestore sync failed (local saved): $e');
         }
       }
@@ -3341,8 +3343,27 @@ class _CashClosingViewState extends State<CashClosingView>
       final now = DateTime.now().millisecondsSinceEpoch;
       final closedBy = FirebaseAuth.instance.currentUser?.email ?? 'unknown';
 
-      // FIX: Include shopId in local data for proper data isolation
+      // Chốt quỹ BẮT BUỘC có shopId — một dòng cash_closings không có identity
+      // (shopId/firestoreId NULL) là "chốt quỹ ma": không sync được, không xóa
+      // được bằng firestoreId, hồi sinh sau khi xóa trên cloud.
       final shopId = await UserService.getCurrentShopId();
+      if (shopId == null || shopId.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                '❌ Chưa xác định được cửa hàng — không thể chốt quỹ. Vui lòng thử lại sau khi có mạng.',
+              ),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Identity cố định NGAY TỪ ĐẦU (kể cả khi lưu offline): mọi dòng local đều
+      // có firestoreId + shopId → xóa/sửa/sync đều bám đúng 1 định danh.
+      final closingFid = 'closing_${shopId}_$dateKey';
       final localData = {
         'dateKey': dateKey,
         'cashEnd': actualCash,
@@ -3351,39 +3372,33 @@ class _CashClosingViewState extends State<CashClosingView>
         'createdAt': now,
         'closedAt': now,
         'closedBy': closedBy,
-        if (shopId != null) 'shopId': shopId,
+        'shopId': shopId,
+        'firestoreId': closingFid,
       };
 
       debugPrint(
-        '💾 [CLOSING] Saving to local: dateKey=$dateKey, cashEnd=${localData['cashEnd']}, bankEnd=${localData['bankEnd']}, shopId=$shopId',
+        '💾 [CLOSING] Saving to local: dateKey=$dateKey, cashEnd=${localData['cashEnd']}, bankEnd=${localData['bankEnd']}, shopId=$shopId, fid=$closingFid',
       );
-      // Lưu local trước
+      // Lưu local trước (đã có identity → không sinh dòng ma)
       await db.upsertCashClosing(localData);
 
       // Sync to Firestore (best effort)
-      if (shopId != null) {
+      {
         try {
           final firestoreData = {
             ...localData,
-            'shopId': shopId,
             'date': dateKey, // FIX: Firestore rules require 'date' field
-            'firestoreId': 'closing_${shopId}_$dateKey',
             'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
           };
           await FirebaseFirestore.instance
               .collection('cash_closings')
-              .doc('closing_${shopId}_$dateKey')
+              .doc(closingFid)
               .set(firestoreData, SetOptions(merge: true));
           debugPrint('💾 [CLOSING] ✅ Saved to Firestore');
 
-          // Mark local as synced with firestoreId
-          await db.upsertCashClosing({
-            ...localData,
-            'firestoreId': 'closing_${shopId}_$dateKey',
-            'isSynced': 1,
-          });
+          await db.upsertCashClosing({...localData, 'isSynced': 1});
         } catch (e) {
-          // Firestore sync failed but local is saved - log but don't show error
+          // Firestore sync failed but local is saved (with identity) — sync sau.
           debugPrint('💾 [CLOSING] ⚠️ Firestore sync failed (local saved): $e');
         }
       }
@@ -3393,7 +3408,7 @@ class _CashClosingViewState extends State<CashClosingView>
         await AuditService.logAction(
           action: 'CHỐT QUỸ',
           entityType: 'CASH_CLOSING',
-          entityId: 'closing_${shopId ?? 'local'}_$dateKey',
+          entityId: closingFid,
           summary:
               'Chốt quỹ ngày $dateKey - Tồn quỹ: ${MoneyUtils.formatCurrency(actualCash)}đ',
           payload: {

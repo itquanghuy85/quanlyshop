@@ -230,6 +230,9 @@ class DailyFinancialAnalysisService {
       // Ghi nhận các expense là "bản sao" của thanh toán đối tác sửa chữa để
       // vòng `repairPartnerPayments` bên dưới bỏ qua, tránh đếm 2 lần.
       final expenseFid = _asString(expense['firestoreId']);
+      final isPartnerMirror = expenseFid.startsWith('exp_partner_') ||
+          category.contains('ĐỐI TÁC') ||
+          category.contains('PARTNER');
       if (expenseFid.startsWith('exp_partner_')) {
         partnerExpenseFids.add(expenseFid);
       }
@@ -258,7 +261,13 @@ class DailyFinancialAnalysisService {
         bankOut += amount;
       }
 
-      if (!isImport) {
+      // `expenseOut` = chi phí VẬN HÀNH thuần (trừ vào lợi nhuận accrual). KHÔNG
+      // gồm: (1) nhập hàng — là tài sản, thành giá vốn lúc bán; (2) trả đối tác
+      // sửa chữa (`exp_partner_*` / category "ĐỐI TÁC SỬA CHỮA") — giá vốn dịch
+      // vụ đối tác ĐÃ nằm trong `repairCost` lúc giao máy, cộng thêm ở đây là
+      // đếm 2 lần cùng 1 chi phí qua 2 kỳ. Nhất quán với FinanceV2:
+      // `operatingExpenseOut = expenseOut - debtRepayOut - importExpenseOut - partnerPaymentOut`.
+      if (!isImport && !isPartnerMirror) {
         expenseOut += amount;
       }
     }
@@ -373,6 +382,14 @@ class DailyFinancialAnalysisService {
         repairCostRow['costPaymentMethod'] ?? repairCostRow['paymentMethod'],
         fallback: 'TIỀN MẶT',
       );
+
+      // Linh kiện ghi sổ quỹ với phương thức CÔNG NỢ = CHƯA chi tiền (còn nợ
+      // NCC) → không phát sinh dòng tiền ra. Trước đây nhánh `else` vẫn cộng
+      // `bankOut` cho CÔNG NỢ → tiền ra ảo. Khớp cách xử lý ở vòng
+      // `supplierImports` (bỏ qua CÔNG NỢ).
+      if (method == 'CÔNG NỢ') {
+        continue;
+      }
 
       repairPartsCostFund += cost;
       if (method == 'TIỀN MẶT') {

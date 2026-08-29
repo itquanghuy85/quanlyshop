@@ -750,6 +750,12 @@ class SyncService {
   static void convertTimestampFieldsPublic(Map<String, dynamic> data) =>
       _convertTimestampFields(data);
 
+  /// Tách `yyyy-MM-dd` từ docId chốt quỹ dạng `closing_<shopId>_<yyyy-MM-dd>`.
+  static String? _dateKeyFromClosingDocId(String docId) {
+    final m = RegExp(r'(\d{4}-\d{2}-\d{2})$').firstMatch(docId);
+    return m?.group(1);
+  }
+
   /// Helper: So sánh updatedAt để quyết định có ghi đè local hay không
   /// Returns: true nếu cloud data mới hơn hoặc bằng, false nếu local mới hơn
   static Future<bool> _shouldAcceptCloudData({
@@ -2082,6 +2088,13 @@ class SyncService {
             final db = DBHelper();
             if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteCashClosingByFirestoreId(docId);
+              // Dọn luôn dòng local `firestoreId=NULL` cùng ngày (nếu có) —
+              // docId dạng `closing_<shopId>_<yyyy-MM-dd>`.
+              final dateKey = _dateKeyFromClosingDocId(docId) ??
+                  (data['dateKey'] ?? data['date'])?.toString();
+              if (dateKey != null && dateKey.isNotEmpty) {
+                await db.deleteCashClosingByDateKey(dateKey);
+              }
             } else {
               data['firestoreId'] = docId;
               data['isSynced'] = 1;
@@ -2779,6 +2792,11 @@ class SyncService {
           break;
         case 'import_order_items':
           await db.deleteImportOrderItemByFirestoreId(firestoreId);
+          break;
+        case 'cash_closings':
+          await db.deleteCashClosingByFirestoreId(firestoreId);
+          final dk = _dateKeyFromClosingDocId(firestoreId);
+          if (dk != null) await db.deleteCashClosingByDateKey(dk);
           break;
       }
       debugPrint(

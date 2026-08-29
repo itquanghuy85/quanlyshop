@@ -629,7 +629,7 @@ class DBHelper {
 
     final db = await openDatabase(
       path,
-      version: 107,
+      version: 108,
       onConfigure: (db) async {
         try {
           await db.execute('PRAGMA foreign_keys = ON');
@@ -2353,6 +2353,22 @@ class DBHelper {
             );
           } catch (e) {
             debugPrint('DB upgrade error (repairs loanerDeviceReturned): $e');
+          }
+        }
+        if (oldV < 108) {
+          // Dọn "chốt quỹ ma": dòng cash_closings không có định danh nào
+          // (firestoreId NULL VÀ shopId NULL/rỗng) — không thể sync, không thể
+          // xóa theo firestoreId, hồi sinh sau khi xóa trên cloud. Chỉ xóa dòng
+          // KHÔNG có bất kỳ định danh nào (an toàn tuyệt đối — không thể quy về
+          // shop/kỳ nào). Nguyên nhân đã vá ở cash_closing_view (identity ngay
+          // từ đầu) + sync_service (xóa theo dateKey).
+          try {
+            final n = await db.rawDelete(
+              "DELETE FROM cash_closings WHERE (firestoreId IS NULL OR firestoreId = '') AND (shopId IS NULL OR shopId = '')",
+            );
+            debugPrint('DB upgrade v108: removed $n identity-less cash_closings (chốt quỹ ma)');
+          } catch (e) {
+            debugPrint('DB upgrade error (v108 phantom cash_closings): $e');
           }
         }
         if (oldV < 26) {
@@ -7680,6 +7696,24 @@ class DBHelper {
       where: 'firestoreId = ?',
       whereArgs: [firestoreId],
     );
+  }
+
+  /// Xóa MỌI dòng chốt quỹ local của 1 ngày (kể cả dòng `firestoreId=NULL` do
+  /// `upsertCashClosing` tạo lúc lưu offline / lúc `_saveClosing` chạy 2 bước).
+  /// `deleteCashClosingByFirestoreId` chỉ khớp theo `firestoreId` nên không dọn
+  /// được dòng NULL → sinh "chốt quỹ ma" hồi sinh sau khi xóa trên cloud.
+  Future<int> deleteCashClosingByDateKey(String dateKey, {String? shopId}) async {
+    if (dateKey.isEmpty) return 0;
+    final db = await database;
+    final sid = shopId ?? UserService.getShopIdSync();
+    if (sid != null && sid.isNotEmpty) {
+      return db.delete(
+        'cash_closings',
+        where: 'dateKey = ? AND (shopId = ? OR shopId IS NULL OR shopId = ?)',
+        whereArgs: [dateKey, sid, ''],
+      );
+    }
+    return db.delete('cash_closings', where: 'dateKey = ?', whereArgs: [dateKey]);
   }
 
   // --- ADJUSTMENT ENTRIES (Bút toán điều chỉnh) ---

@@ -505,9 +505,10 @@ void main() {
         },
       ];
       final r = runAnalysis(inputs, enableRepair: true);
-      // Expense đã cộng 12tr vào cashOut + expenseOut; rpp phải bị bỏ qua.
+      // Expense đối tác cộng vào cashOut (dòng tiền thật), KHÔNG cộng expenseOut
+      // (giá vốn dịch vụ đối tác đã nằm trong repairCost lúc giao máy); rpp bị bỏ qua.
       expect(r.cashOut, 12000000);
-      expect(r.expenseOut, 12000000);
+      expect(r.expenseOut, 0);
       expect(r.partnerPaid, 0);
     });
 
@@ -552,9 +553,10 @@ void main() {
         },
       ];
       final r = runAnalysis(inputs, enableRepair: true);
-      // 300k (expense) + 500k (rpp) đều được tính, không khử nhầm.
+      // 300k (expense đối tác) + 500k (rpp) đều vào cashOut, không khử nhầm.
+      // expenseOut = 0: expense đối tác không tính vào chi phí vận hành.
       expect(r.cashOut, 800000);
-      expect(r.expenseOut, 300000);
+      expect(r.expenseOut, 0);
       expect(r.partnerPaid, 500000);
     });
 
@@ -584,9 +586,10 @@ void main() {
           },
         ];
         final r = runAnalysis(inputs, enableRepair: true);
-        // exp A (500k) + rpp B (500k) = 1.000.000; rpp A bị bỏ qua.
+        // exp A (500k) + rpp B (500k) = 1.000.000 vào cashOut; rpp A bị bỏ qua.
+        // expenseOut = 0: expense đối tác không tính vào chi phí vận hành.
         expect(r.cashOut, 1000000);
-        expect(r.expenseOut, 500000);
+        expect(r.expenseOut, 0);
         expect(r.partnerPaid, 500000);
       },
     );
@@ -639,6 +642,66 @@ void main() {
       final r = runAnalysis(inputs);
       expect(r.repairPartsCostFund, 300000);
       expect(r.cashOut, 300000);
+    });
+
+    test('CÔNG NỢ parts cost fund: no phantom cash out (L-2)', () {
+      final inputs = emptyInputs();
+      inputs['repairPartsCostFundRows'] = [
+        {
+          'costRecordedAmount': 300000,
+          'totalCost': 200000,
+          'costPaymentMethod': 'CÔNG NỢ',
+        },
+      ];
+      final r = runAnalysis(inputs);
+      // Linh kiện CÔNG NỢ chưa trả tiền → không dòng tiền ra, không vào fund.
+      expect(r.cashOut, 0);
+      expect(r.bankOut, 0);
+      expect(r.repairPartsCostFund, 0);
+    });
+  });
+
+  group('DailyFinancialAnalysisService - partner mirror expense not operating (L-1)', () {
+    test('exp_partner_ expense: cash out yes, expenseOut/netProfit no', () {
+      final inputs = emptyInputs();
+      inputs['sales'] = [
+        {
+          'totalPrice': 10000000,
+          'discount': 0,
+          'totalCost': 6000000,
+          'paymentMethod': 'TIỀN MẶT',
+          'isInstallment': false,
+        },
+      ];
+      inputs['expenses'] = [
+        {
+          'firestoreId': 'exp_partner_pi_direct_xyz',
+          'category': 'ĐỐI TÁC SỬA CHỮA',
+          'type': 'CHI',
+          'amount': 3000000,
+          'paymentMethod': 'TIỀN MẶT',
+        },
+      ];
+      final r = runAnalysis(inputs, enableRepair: true);
+      expect(r.cashOut, 3000000, reason: 'partner payment is a real cash outflow');
+      expect(r.expenseOut, 0, reason: 'partner payment is NOT an operating expense');
+      // netProfit = saleIncome(10M) - saleCost(6M) - expenseOut(0) = 4,000,000
+      expect(r.netProfit, 4000000);
+    });
+
+    test('category "PARTNER" also excluded from expenseOut', () {
+      final inputs = emptyInputs();
+      inputs['expenses'] = [
+        {
+          'category': 'REPAIR PARTNER FEE',
+          'type': 'CHI',
+          'amount': 500000,
+          'paymentMethod': 'CHUYỂN KHOẢN',
+        },
+      ];
+      final r = runAnalysis(inputs, enableRepair: true);
+      expect(r.bankOut, 500000);
+      expect(r.expenseOut, 0);
     });
   });
 
