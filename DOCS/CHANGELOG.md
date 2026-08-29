@@ -4,6 +4,29 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-29k] - fix(finance) PHASE 3.2: Báo cáo ngày — "Doanh thu/Giá vốn/Lợi nhuận" lấy từ accrual, tách rõ khỏi "Dòng tiền"
+
+**Mapping PHASE 2 (user đã chốt):** DÒNG TIỀN = cash basis (FinanceV2 `totalIn/totalOut/netCashflow`, `cash_closing`), KẾT QUẢ KINH DOANH = accrual (`DailyFinancialAnalysisService`: `saleIncome + settlementIncome + repairIncome` / `saleCost + repairCost` / `netProfit`). Mỗi khái niệm 1 nguồn chuẩn.
+
+**Bối cảnh:** `finance_v2_daily_report_view` (tab "Báo cáo" trong Tài chính) là màn trộn khái niệm NẶNG nhất — `total_revenue/total_cost/total_profit` (màn hình + Excel `BaoCaoNgay_Audit`) và các dòng "Vốn bán hàng / Lãi gộp / Lợi nhuận thực" đều lấy từ `FinanceV2` (cash) nhưng gán nhãn accrual. Đơn CÔNG NỢ 200k chưa thu → "Doanh thu 0", "Lợi nhuận 0".
+
+**Đã sửa (`lib/finance_v2/finance_v2_daily_report_view.dart` — CHỈ các số gán nhãn Doanh thu/Vốn/Lợi nhuận):**
+- Thêm state `DailyFinancialAnalysis? _analysis`; `_loadReport()` gọi thêm `_buildAuditAnalysis(start, end)` (hàm đã có sẵn, đang dùng ở 3 export).
+- `build()` `realProfit`: `s.grossProfitTotal − s.operatingExpenseOut` → `_analysis.netProfit`.
+- `_buildAllAppOverview`: tách 2 nhóm có tiêu đề **"KẾT QUẢ KINH DOANH (accrual)"** (Doanh thu bán/sửa = `saleIncome+settlementIncome`/`repairIncome`, Giá vốn = `saleCost+repairCost`, Chi phí = `expenseOut`, Lợi nhuận = `netProfit`) và **"DÒNG TIỀN (cash)"** (Tổng thu/chi/ròng từ `_snapshot`).
+- `_buildCapitalAndGrossProfit` ("Vốn & lãi gộp"): `s.cogsFromSales/grossProfitFromSales/...` → `_analysis.saleCost/saleProfit/repairCost/repairProfit`. Tiêu đề → "Vốn & lãi gộp (kết quả kinh doanh)".
+- `_buildStatCard` "Lợi nhuận thực" → "Lợi nhuận (kết quả KD)", footer "Doanh thu − giá vốn − chi phí (accrual)".
+- Excel `_buildAuditExcelRows`: `total_revenue/total_cost/total_profit` → `analysis.*` accrual + đổi mô tả cột.
+- **KHÔNG đụng:** khối dòng tiền (`_snapshot.totalIn/totalOut/netCashflow`, `analysis.cashIn/cashOut`), cột "Lãi" từng giao dịch (`tx.grossProfit` = lãi phần đã thu / GD), các hàm print-text export (ngoài phạm vi 3.2).
+
+**Verify:**
+- `dart analyze` (file): 0 error/warning. `flutter test`: **+410 −11** (không hồi quy).
+- Máy thật (Oppo CPH2203, tài khoản test mới): đơn CÔNG NỢ 200k / vốn 100k / chưa thu — tab "Báo cáo": khối **"KẾT QUẢ KINH DOANH"** hiện Doanh thu bán hàng **200.000**, Giá vốn **100.000**, Lợi nhuận **100.000**; khối **"DÒNG TIỀN"** hiện Tổng thu **0**, Tổng chi **100.000** (chi nhập kho), Dòng tiền ròng **−100.000**. "Vốn & lãi gộp (kết quả kinh doanh)": Vốn bán hàng 100.000, Lãi gộp bán hàng 100.000. Đúng mô hình user.
+
+**Files:** `lib/finance_v2/finance_v2_daily_report_view.dart`.
+
+---
+
 ## [2026-08-29j] - fix(finance) PHASE 3.1: FinanceV2 bỏ chặn "giá vốn ≤ tiền đã thu" (hết giấu lỗ) + sửa nhãn nói sai "accrual"
 
 **Bối cảnh (đợt AUDIT — LỖI #3):** tab Tài chính (FinanceV2) tính vốn bán hàng theo tỉ lệ tiền đã thu rồi CHẶN `recognizedCost ≤ actualPaid` → đơn bán dưới giá vốn (vd `sale_1787538502668`: giá 50.000, vốn 100.000) hiển thị **lãi gộp = 0** thay vì **lỗ −50.000**. Đồng thời chữ trợ giúp 2 chỗ trên UI ghi *"theo giao dịch (accrual)… có thể chưa thu tiền ngay nếu là đơn công nợ"* trong khi số bên dưới là **tiền mặt** (đơn CÔNG NỢ góp 0đ).

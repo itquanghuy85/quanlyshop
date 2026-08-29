@@ -42,6 +42,9 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
   DateTime _selectedDate = DateTime.now();
   DateTimeRange? _customRange;
   FinanceV2Snapshot? _snapshot;
+  // Kết quả kinh doanh (accrual) — nguồn chuẩn cho Doanh thu / Giá vốn / Lợi
+  // nhuận. `_snapshot` (FinanceV2) chỉ dùng cho DÒNG TIỀN + Công nợ.
+  DailyFinancialAnalysis? _analysis;
   bool _loading = true;
   _ReportRangeMode _rangeMode = _ReportRangeMode.day;
   final DBHelper _db = DBHelper();
@@ -92,10 +95,12 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     
     try {
       final data = await _service.loadSnapshot(start: start, end: end);
+      final analysis = await _buildAuditAnalysis(start, end);
       final attendance = await _loadAttendanceSummary(start: start, end: end);
       if (mounted) {
         setState(() {
           _snapshot = data;
+          _analysis = analysis;
           _attendanceByUser = attendance;
           _loading = false;
         });
@@ -581,18 +586,25 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
       preloadedSalvage: preSalvage,
     );
 
-    final totalRevenue = s.incomeFromSales + s.incomeFromRepairs + s.incomeOther;
-    final totalCost = s.cogsFromSales + s.cogsFromRepairs + s.operatingExpenseOut;
-    final totalProfit = totalRevenue - totalCost;
+    // Kết quả kinh doanh = ACCRUAL (từ analyze()): ghi đủ doanh thu + đủ giá
+    // vốn ngay khi bán, kể cả đơn công nợ chưa thu. KHÔNG lấy từ FinanceV2
+    // (cash basis) cho các dòng này.
+    final totalRevenue = analysis.saleIncome +
+        analysis.settlementIncome +
+        analysis.repairIncome +
+        analysis.miscIncome;
+    final totalCost =
+        analysis.saleCost + analysis.repairCost + analysis.expenseOut;
+    final totalProfit = analysis.netProfit;
 
     final summaryRows = <List<dynamic>>[
       ['generated_at', generatedAt, 'Thời điểm xuất file'],
       ['shop_name', shopInfo.shopName.isNotEmpty ? shopInfo.shopName : 'N/A', 'Tên cửa hàng'],
       ['shop_id', (shopId == null || shopId.isEmpty) ? 'N/A' : shopId, 'Mã cửa hàng'],
       ['period_label', _rangeLabel, 'Kỳ báo cáo'],
-      ['total_revenue', totalRevenue, 'Doanh thu thuần = bán hàng + sửa chữa + thu khác'],
-      ['total_cost', totalCost, 'Tổng giá vốn + chi phí vận hành'],
-      ['total_profit', totalProfit, 'Lợi nhuận = total_revenue - total_cost'],
+      ['total_revenue', totalRevenue, 'Doanh thu (accrual) = bán + sửa + tất toán + thu khác — không phụ thuộc đã thu tiền'],
+      ['total_cost', totalCost, 'Giá vốn (accrual) + chi phí vận hành'],
+      ['total_profit', totalProfit, 'Lợi nhuận (accrual) = doanh thu − giá vốn − chi phí, cho phép âm'],
       ['cash_in', analysis.cashIn, 'Tiền mặt vào'],
       ['cash_out', analysis.cashOut, 'Tiền mặt ra'],
       ['net_cash', analysis.cashIn - analysis.cashOut, 'Dòng tiền mặt ròng'],
@@ -1569,9 +1581,8 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
   @override
   Widget build(BuildContext context) {
     final netCashflow = _snapshot?.netCashflow ?? 0;
-    final realProfit = _snapshot == null
-        ? 0
-        : (_snapshot!.grossProfitTotal - _snapshot!.operatingExpenseOut);
+    // Lợi nhuận = accrual (Doanh thu − Giá vốn − Chi phí), cho phép âm.
+    final realProfit = _analysis?.netProfit ?? 0;
     final range = _resolveRange();
     final appendedChildren =
       widget.appendedChildrenBuilder?.call(range.$1, range.$2) ??
@@ -1843,21 +1854,40 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     );
   }
 
+  Widget _groupHeader(BuildContext context, String text) => Padding(
+        padding: const EdgeInsets.only(top: 10, bottom: 2),
+        child: Text(
+          text,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: AppColors.textSecondary,
+                letterSpacing: 0.3,
+              ),
+        ),
+      );
+
   Widget _buildAllAppOverview(BuildContext context) {
+    final a = _analysis;
     return _panel(
       child: ExpansionTile(
         initiallyExpanded: true,
         title: Text('Tổng hợp toàn app theo $_periodSuffix'),
         childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         children: [
-          _metricRow(context, 'Doanh thu bán hàng', _snapshot!.incomeFromSales, AppColors.success),
-          _metricRow(context, 'Doanh thu sửa chữa', _snapshot!.incomeFromRepairs, AppColors.info),
-          _metricRow(context, 'Thu khác', _snapshot!.incomeOther, AppColors.primary),
-          _metricRow(context, 'Tổng thu', _snapshot!.totalIn, Colors.indigo),
-          _metricRow(context, 'Tổng chi', _snapshot!.totalOut, AppColors.error),
-          _metricRow(context, 'Dòng tiền ròng (sổ quỹ)', _snapshot!.netCashflow, _snapshot!.netCashflow >= 0 ? AppColors.success : AppColors.warning),
-          _metricRow(context, 'Lợi nhuận thực (lãi gộp - chi vận hành)', _snapshot!.grossProfitTotal - _snapshot!.operatingExpenseOut, (_snapshot!.grossProfitTotal - _snapshot!.operatingExpenseOut) >= 0 ? AppColors.success : AppColors.error),
-          _metricRow(context, 'Doanh thu/GD vào (TB)', _snapshot!.avgIncomePerTransaction, Colors.deepPurple),
+          _groupHeader(context, 'KẾT QUẢ KINH DOANH (accrual)'),
+          if (a != null) ...[
+            _metricRow(context, 'Doanh thu bán hàng', a.saleIncome + a.settlementIncome, AppColors.success),
+            _metricRow(context, 'Doanh thu sửa chữa', a.repairIncome, AppColors.info),
+            _metricRow(context, 'Thu khác', a.miscIncome, AppColors.primary),
+            _metricRow(context, 'Giá vốn', a.saleCost + a.repairCost, Colors.deepOrange),
+            _metricRow(context, 'Chi phí vận hành', a.expenseOut, AppColors.error),
+            _metricRow(context, 'Lợi nhuận', a.netProfit, a.netProfit >= 0 ? AppColors.success : AppColors.error),
+          ],
+          _groupHeader(context, 'DÒNG TIỀN (cash)'),
+          _metricRow(context, 'Tổng thu (dòng tiền)', _snapshot!.totalIn, Colors.indigo),
+          _metricRow(context, 'Tổng chi (dòng tiền)', _snapshot!.totalOut, AppColors.error),
+          _metricRow(context, 'Dòng tiền ròng', _snapshot!.netCashflow, _snapshot!.netCashflow >= 0 ? AppColors.success : AppColors.warning),
+          _metricRow(context, 'Tiền vào/GD (TB)', _snapshot!.avgIncomePerTransaction, Colors.deepPurple),
         ],
       ),
     );
@@ -1988,10 +2018,10 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
           const SizedBox(width: 12),
           _buildStatCard(
             context: context,
-            label: 'Lợi nhuận thực',
+            label: 'Lợi nhuận (kết quả KD)',
             value: MoneyUtils.formatCompactCurrency(realProfit),
             color: realProfit >= 0 ? AppColors.success : AppColors.error,
-            footerText: 'Lãi gộp - chi vận hành',
+            footerText: 'Doanh thu − giá vốn − chi phí (accrual)',
             footerColor: AppColors.textSecondary,
           ),
           const SizedBox(width: 12),
@@ -2208,19 +2238,24 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
   }
 
   Widget _buildCapitalAndGrossProfit(BuildContext context) {
-    final s = _snapshot!;
+    final a = _analysis;
+    if (a == null) return const SizedBox.shrink();
+    // Kết quả kinh doanh (accrual): ghi đủ giá bán + đủ giá vốn ngay khi bán,
+    // kể cả đơn công nợ chưa thu tiền. Lỗ được phép âm.
+    final saleProfit = a.saleProfit;
+    final repairProfit = a.repairProfit;
     return _panel(
       child: ExpansionTile(
         initiallyExpanded: true,
-        title: const Text('Vốn và lãi gộp bán/sửa'),
+        title: const Text('Vốn & lãi gộp (kết quả kinh doanh)'),
         childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         children: [
-          _metricRow(context, 'Vốn bán hàng', s.cogsFromSales, Colors.deepOrange),
-          _metricRow(context, 'Vốn sửa chữa', s.cogsFromRepairs, AppColors.warning),
-          _metricRow(context, 'Lãi gộp bán hàng', s.grossProfitFromSales, s.grossProfitFromSales >= 0 ? AppColors.success : AppColors.error),
-          _metricRow(context, 'Lãi gộp sửa chữa', s.grossProfitFromRepairs, s.grossProfitFromRepairs >= 0 ? AppColors.success : AppColors.error),
+          _metricRow(context, 'Vốn bán hàng', a.saleCost, Colors.deepOrange),
+          _metricRow(context, 'Vốn sửa chữa', a.repairCost, AppColors.warning),
+          _metricRow(context, 'Lãi gộp bán hàng', saleProfit, saleProfit >= 0 ? AppColors.success : AppColors.error),
+          _metricRow(context, 'Lãi gộp sửa chữa', repairProfit, repairProfit >= 0 ? AppColors.success : AppColors.error),
           const Divider(height: 18),
-          _metricRow(context, 'Tổng lãi gộp', s.grossProfitTotal, s.grossProfitTotal >= 0 ? AppColors.success : AppColors.error),
+          _metricRow(context, 'Tổng lãi gộp', saleProfit + repairProfit, (saleProfit + repairProfit) >= 0 ? AppColors.success : AppColors.error),
         ],
       ),
     );
