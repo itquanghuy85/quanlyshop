@@ -268,24 +268,19 @@ class CategoryService {
       await _ensureShopSettingsAllowPendingCostColumn(db);
       final map = settings.toMap();
 
-      // Check if exists
-      final existing = await db.query(
+      // Upsert idempotent theo `firestoreId` (cột UNIQUE, cũng là "identity"
+      // thật của bản ghi settings). Trước đây check tồn tại theo `shopId` rồi
+      // insert/update — khi bản ghi có sẵn nhưng `shopId` lệch (sync cũ ghi
+      // rỗng, đổi shop, hoặc race lúc getCurrentShopId chưa sẵn) thì rơi vào
+      // nhánh INSERT và đụng UNIQUE constraint trên `firestoreId`, khiến
+      // CategoryService clear cache + retry lặp, giữ DB locked ~10s lúc
+      // cold-start. INSERT OR REPLACE không bao giờ đụng UNIQUE, chạy nhiều
+      // lần vẫn cho cùng 1 bản ghi (cache cục bộ = settings của shop hiện tại).
+      await db.insert(
         'shop_settings',
-        where: 'shopId = ?',
-        whereArgs: [settings.shopId],
-        limit: 1,
+        map,
+        conflictAlgorithm: ConflictAlgorithm.replace,
       );
-
-      if (existing.isEmpty) {
-        await db.insert('shop_settings', map);
-      } else {
-        await db.update(
-          'shop_settings',
-          map,
-          where: 'shopId = ?',
-          whereArgs: [settings.shopId],
-        );
-      }
       return true;
     } catch (e) {
       debugPrint('Error saving shop settings locally: $e');

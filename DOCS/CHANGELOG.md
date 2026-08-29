@@ -4,6 +4,23 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-29d] - fix(shop_settings): lưu cài đặt shop bằng UPSERT idempotent — hết lặp UNIQUE constraint làm cold-start ~45s
+
+**Bối cảnh:** Sau khi cài mới / đổi tài khoản, cold-start mất ~45s mới vào Home. Logcat lặp: `CategoryService: Not found in local DB` → fetch Firestore → `Error saving shop settings locally: DatabaseException(UNIQUE constraint failed: shop_settings.firestoreId)` → clear cache → retry, giữ DB locked ~10s nhiều lần → AuthGate chờ.
+
+**Nguyên nhân gốc:** `CategoryService._saveSettingsLocally` check tồn tại theo `shopId` rồi mới `INSERT`/`UPDATE`. Bảng `shop_settings` trên máy test có sẵn 2 bản ghi cũ từ các lần đăng nhập trước (`firestoreId='shop_settings'` shopId shop A; `firestoreId='settings_<shopB>'` shopB) — không bản nào khớp `shopId` shop hiện tại. → query theo `shopId` rỗng → rơi vào nhánh `INSERT` với `firestoreId='shop_settings'` → **đụng UNIQUE** (bản ghi shop A đã chiếm firestoreId đó). Lặp vô hạn giữa `getShopSettings` ↔ `_saveSettingsLocally`.
+
+**Đã sửa (`lib/services/category_service.dart` — CHỈ hàm `_saveSettingsLocally`):** bỏ check-then-insert/update, thay bằng 1 lệnh `db.insert('shop_settings', map, conflictAlgorithm: ConflictAlgorithm.replace)` (INSERT OR REPLACE keyed trên `firestoreId` UNIQUE = identity thật của bản ghi). Idempotent — chạy N lần cho cùng 1 bản ghi (cache cục bộ = settings shop hiện tại), không bao giờ đụng UNIQUE. Không đổi schema, không đụng logic CategoryService khác, không sửa AuthGate, không tăng delay/retry.
+
+**Verify (Oppo CPH2203):** `flutter analyze` sạch.
+- Cold-start sau cài mới: **~45s → ~6s**. Force-stop + mở lại ×5: đều **~5-6s**, ổn định.
+- Logcat 0 lần `UNIQUE constraint failed: shop_settings`, 0 lần `Not found in local DB` (loop), 0 `database has been locked`, chỉ 1 `Cache cleared` (init bình thường), 1 `getShopSettings` → `Found in local DB`.
+- DB sau fix: bản ghi `firestoreId='shop_settings'` được REPLACE về đúng shopId hiện tại (`geqXPHQJ…`); bản ghi cũ `settings_<shopB>` (firestoreId khác) giữ nguyên, vô hại. Không mất dữ liệu.
+
+**Files:** `lib/services/category_service.dart`.
+
+---
+
 ## [2026-08-29c] - fix(ui): AppBar có TabBar bị cắt/che phần top (nút Back chui sau status bar) trên Android edge-to-edge
 
 **Bối cảnh:** User báo nhiều màn hình bị che phần trên — nút Back góc trái + header nằm sau vùng status bar. Rõ nhất ở `FastInventoryInputView` ("NHẬP KHO SIÊU TỐC"): nút `‹` bị cắt nửa, title + tab dính status bar.
