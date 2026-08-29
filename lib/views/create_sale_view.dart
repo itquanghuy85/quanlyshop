@@ -2082,7 +2082,13 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           ? const Center(child: CircularProgressIndicator())
           : ResponsiveCenter(
               maxWidth: 800,
-              child: SingleChildScrollView(
+              // SafeArea(bottom) so the last item (nút HOÀN TẤT) never rests
+              // behind the system navigation bar — trước đây nút nằm ngay mép
+              // dưới window, vùng chạm của nav bar nuốt tap nên gần như bấm
+              // không được trên máy 3 nút điều hướng.
+              child: SafeArea(
+                top: false,
+                child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 8,
@@ -2376,6 +2382,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                     const SizedBox(height: 4),
                   ],
                 ),
+              ),
               ),
             ),
     );
