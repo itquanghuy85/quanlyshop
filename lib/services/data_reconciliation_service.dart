@@ -713,33 +713,67 @@ class DataReconciliationService {
   }
 
   /// D-3b — bút toán SALE_VOID/REPAIR_VOID ghi SAI biên độ: entry OUT có số
-  /// tiền KHÁC tổng phần đã thu (SALE IN + DEBT_COLLECT IN) của cùng giao dịch
-  /// → sổ đối soát lệch. Chỉ lấy entry mà giao dịch gốc KHÔNG còn (đã VOID hẳn).
-  /// Trả về kèm cột phụ `receivedIn` (tổng IN) và `diff` (void - received).
+  /// tiền KHÁC phần TIỀN THỰC ĐÃ THU của cùng giao dịch → sổ đối soát lệch.
+  ///
+  /// Ghép theo SỐ GIAO DỊCH (chuỗi >=10 chữ số đầu tiên trong referenceId) — ổn
+  /// định bất kể tiền tố `sale_/rep_/debt_`. "Đã thu" = tổng các dòng IN loại
+  /// SALE / REPAIR_SERVICE / REPAIR_PRICE_ADJUST / CUSTOMER_DEBT_COLLECT /
+  /// SETTLEMENT / REPAIR của cùng số giao dịch. Trừ tiếp các VOID_AMOUNT_ADJUST
+  /// đã ghi trước đó nên chạy lại KHÔNG cộng dồn.
+  /// Trả về kèm `receivedIn` và `diff` = (voidOUT − adjNet) − receivedIn.
+  static final RegExp _txnNumRe = RegExp(r'\d{10,}');
+  static String? _txnNum(String? ref) => _txnNumRe.firstMatch(ref ?? '')?.group(0);
+
+  static const List<String> misbookedVoidInTypes = [
+    'SALE',
+    'REPAIR_SERVICE',
+    'REPAIR_PRICE_ADJUST',
+    'CUSTOMER_DEBT_COLLECT',
+    'SETTLEMENT',
+    'REPAIR',
+  ];
+
+  /// Pure core of [findMisbookedVoids] — unit-testable, no DB.
+  static List<Map<String, dynamic>> computeMisbookedVoids(
+    List<Map<String, dynamic>> falRows,
+  ) {
+    final receivedByTxn = <String, int>{};
+    final adjNetByTxn = <String, int>{};
+    for (final r in falRows) {
+      final n = _txnNum(r['referenceId'] as String?);
+      if (n == null) continue;
+      final amt = (r['amount'] as num?)?.toInt() ?? 0;
+      final type = (r['activityType'] as String?) ?? '';
+      final dir = (r['direction'] as String?) ?? '';
+      if (dir == 'IN' && misbookedVoidInTypes.contains(type)) {
+        receivedByTxn[n] = (receivedByTxn[n] ?? 0) + amt;
+      } else if (type == 'VOID_AMOUNT_ADJUST') {
+        adjNetByTxn[n] = (adjNetByTxn[n] ?? 0) + (dir == 'IN' ? amt : -amt);
+      }
+    }
+    final out = <Map<String, dynamic>>[];
+    for (final v in falRows) {
+      final type = (v['activityType'] as String?) ?? '';
+      if (type != 'SALE_VOID' && type != 'REPAIR_VOID') continue;
+      if ((v['direction'] as String?) != 'OUT') continue;
+      final n = _txnNum(v['referenceId'] as String?);
+      if (n == null) continue;
+      final voidAmt = (v['amount'] as num?)?.toInt() ?? 0;
+      final received = receivedByTxn[n] ?? 0;
+      final adjNet = adjNetByTxn[n] ?? 0;
+      final diff = (voidAmt - adjNet) - received;
+      if (diff == 0) continue;
+      out.add({...v, 'receivedIn': received, 'diff': diff});
+    }
+    return out;
+  }
+
   static Future<List<Map<String, dynamic>>> findMisbookedVoids() async {
     final db = await _db.database;
-    return db.rawQuery('''
-      SELECT v.*,
-        COALESCE((
-          SELECT SUM(i.amount) FROM financial_activity_log i
-          WHERE i.direction = 'IN'
-            AND i.activityType IN ('SALE','CUSTOMER_DEBT_COLLECT','REPAIR','SETTLEMENT')
-            AND (i.referenceId = v.referenceId
-                 OR i.referenceId LIKE '%' || REPLACE(v.referenceId,'sale_','') || '%'
-                 OR REPLACE(i.referenceId,'debt_','') LIKE '%' || REPLACE(v.referenceId,'sale_','') || '%')
-        ), 0) AS receivedIn
-      FROM financial_activity_log v
-      WHERE v.activityType IN ('SALE_VOID','REPAIR_VOID')
-        AND v.direction = 'OUT'
-        AND v.referenceId IS NOT NULL AND v.referenceId != ''
-    ''').then((rows) => rows
-        .map((r) => {
-              ...r,
-              'diff': ((r['amount'] as num?)?.toInt() ?? 0) -
-                  ((r['receivedIn'] as num?)?.toInt() ?? 0),
-            })
-        .where((r) => (r['diff'] as int) != 0)
-        .toList());
+    final all = await db.rawQuery(
+      "SELECT * FROM financial_activity_log WHERE referenceId IS NOT NULL AND referenceId != ''",
+    );
+    return computeMisbookedVoids(all);
   }
 
   /// Ghi 1 dòng bù để đưa net của giao dịch VOID sai biên độ về 0. KHÔNG xóa
@@ -793,19 +827,28 @@ class DataReconciliationService {
   /// lấy intent trỏ tới giao dịch VOID *tường minh* — không đụng intent cũ hợp lệ.
   static Future<List<Map<String, dynamic>>> findVoidedTxnPaymentIntents() async {
     final db = await _db.database;
-    return db.rawQuery('''
-      SELECT pi.* FROM payment_intents pi
-      WHERE pi.status IN ('COMPLETED','PENDING')
-        AND pi.referenceId IS NOT NULL AND pi.referenceId != ''
-        AND EXISTS (
-          SELECT 1 FROM financial_activity_log f
-          WHERE f.activityType IN ('SALE_VOID','REPAIR_VOID')
-            AND (f.referenceId = pi.referenceId
-                 OR pi.referenceId LIKE '%' || f.referenceId || '%'
-                 OR f.referenceId LIKE '%' || pi.referenceId || '%')
-        )
-      ORDER BY pi.createdAt DESC
-    ''');
+    final voids = await db.rawQuery(
+      "SELECT referenceId FROM financial_activity_log "
+      "WHERE activityType IN ('SALE_VOID','REPAIR_VOID') "
+      "AND referenceId IS NOT NULL AND referenceId != ''",
+    );
+    final voidNums = <String>{};
+    for (final r in voids) {
+      final n = _txnNum(r['referenceId'] as String?);
+      if (n != null) voidNums.add(n);
+    }
+    if (voidNums.isEmpty) return const [];
+    final pis = await db.rawQuery(
+      "SELECT * FROM payment_intents "
+      "WHERE status IN ('COMPLETED','PENDING') "
+      "AND referenceId IS NOT NULL AND referenceId != '' "
+      "ORDER BY createdAt DESC",
+    );
+    // Match on the shared transaction number — stable across sale_/rep_/debt_
+    // prefixes, no fragile substring LIKE.
+    return pis
+        .where((p) => voidNums.contains(_txnNum(p['referenceId'] as String?)))
+        .toList();
   }
 
   /// Hủy 1 payment_intent của giao dịch đã VOID (chỉ đổi status → CANCELLED,
