@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'keyboard_aware_padding.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../l10n/app_localizations.dart';
 import '../utils/money_utils.dart';
@@ -87,15 +88,7 @@ class DebtPaymentSheet {
       // trên máy có màn hình thấp (đã xác nhận qua test thực tế).
       showDragHandle: false,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setS) => Padding(
-          // Cộng thêm viewPadding.bottom (vùng an toàn hệ thống/nav bar) —
-          // chỉ cộng viewInsets (bàn phím) là chưa đủ trên máy có vùng điều
-          // hướng lớn ở đáy, khiến nút Hủy/Xác nhận bị đẩy ra ngoài vùng
-          // chạm được.
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.viewInsetsOf(context).bottom +
-                MediaQuery.paddingOf(context).bottom,
-          ),
+        builder: (ctx, setS) => KeyboardAwarePadding(
           child: Container(
             decoration: const BoxDecoration(
               color: PopupTheme.bgDark,

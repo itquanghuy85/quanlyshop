@@ -14,6 +14,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import 'staff_public_profile_view.dart';
 import '../widgets/custom_app_bar.dart';
+import '../widgets/keyboard_aware_padding.dart';
 import '../widgets/entity_avatar.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../widgets/safe_stream_builder.dart';
@@ -156,16 +157,7 @@ class _CommunityViewState extends State<CommunityView> {
       context: context,
       isScrollControlled: true,
       builder: (ctx) {
-        return AnimatedPadding(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOut,
-          // Đọc từ `context` ngoài (không phải `ctx`) để tránh crash
-          // _dependents.isEmpty khi pop.
-          padding: EdgeInsets.only(
-            bottom:
-                MediaQuery.of(context).viewInsets.bottom +
-                MediaQuery.paddingOf(context).bottom,
-          ),
+        return KeyboardAwarePadding(
           child: FractionallySizedBox(
             heightFactor: 0.8,
             child: StatefulBuilder(

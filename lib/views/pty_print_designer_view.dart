@@ -7,6 +7,7 @@ import 'dart:ui' as ui;
 import 'package:barcode/barcode.dart' as bc;
 import 'package:barcode_image/barcode_image.dart';
 import 'package:flutter/material.dart';
+import '../widgets/keyboard_aware_padding.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -2735,11 +2736,6 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
 
   Future<void> _openInventorySelector() async {
     final colorScheme = Theme.of(context).colorScheme;
-    // Captured before the nested StatefulBuilder shadows `context` with its
-    // own — must read MediaQuery from this outer one, not the shadowed
-    // inner `context`/`ctx`, to avoid a _dependents.isEmpty crash on pop.
-    final outerContext = context;
-
     await showAppBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -2888,13 +2884,10 @@ class _PtyPrintDesignerViewState extends State<PtyPrintDesignerView>
                       ),
                       // Footer
                       SafeArea(
-                        child: Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            16,
-                            16,
-                            16,
-                            16 + MediaQuery.viewInsetsOf(outerContext).bottom,
-                          ),
+                        child: KeyboardAwarePadding(
+                          includeNavBar: false,
+                          minBottom: 16,
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                           child: FilledButton(
                             onPressed: () => Navigator.pop(context),
                             style: FilledButton.styleFrom(

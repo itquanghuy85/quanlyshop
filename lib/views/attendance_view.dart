@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../widgets/keyboard_aware_padding.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -1120,12 +1121,7 @@ class _AttendanceViewState extends State<AttendanceView>
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom:
-                  MediaQuery.viewInsetsOf(context).bottom +
-                  MediaQuery.paddingOf(context).bottom,
-            ),
+          return KeyboardAwarePadding(
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
@@ -1372,12 +1368,7 @@ class _AttendanceViewState extends State<AttendanceView>
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) {
           final days = endDate.difference(startDate).inDays + 1;
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom:
-                  MediaQuery.viewInsetsOf(context).bottom +
-                  MediaQuery.paddingOf(context).bottom,
-            ),
+          return KeyboardAwarePadding(
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
@@ -1632,14 +1623,7 @@ class _AttendanceViewState extends State<AttendanceView>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Padding(
-        // Đọc từ `context` ngoài (không phải `ctx`) để tránh crash
-        // _dependents.isEmpty khi pop.
-        padding: EdgeInsets.only(
-          bottom:
-              MediaQuery.viewInsetsOf(context).bottom +
-              MediaQuery.paddingOf(context).bottom,
-        ),
+      builder: (ctx) => KeyboardAwarePadding(
         child: Container(
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.8,

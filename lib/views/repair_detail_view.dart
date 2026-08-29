@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../utils/money_utils.dart';
 import '../widgets/currency_text_field.dart';
+import '../widgets/keyboard_aware_padding.dart';
 import '../utils/repair_status_validator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:photo_view/photo_view.dart';
@@ -3696,22 +3697,12 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         final sheetLoc = AppLocalizations.of(ctx)!;
-        // Read MediaQuery from the outer `context` (State's own), not a
-        // context inside this sheet's builder tree — reading from a
-        // route-scoped context (even via a nested Builder) can trip a
-        // _dependents.isEmpty assertion when Navigator.pop(ctx) runs; same
-        // root cause and fix as _editBasicInfo above.
-        //
-        // Use `padding` (not `viewPadding`) for the safe-area term: `padding`
-        // already subtracts the keyboard inset where it overlaps the nav-bar
-        // region, so it reads as ~0 while the keyboard is up and as the full
-        // nav-bar height once it's dismissed — no manual double-count needed.
-        final safeAreaBottom = MediaQuery.paddingOf(context).bottom;
-        final bottomSafe = safeAreaBottom > 16.0 ? safeAreaBottom : 16.0;
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.viewInsetsOf(context).bottom + bottomSafe,
-          ),
+        // KeyboardAwarePadding tracks the keyboard via the platform FlutterView
+        // (no InheritedWidget dependency) — keeps the TextField above the
+        // keyboard without the _dependents.isEmpty crash that reading
+        // MediaQuery.viewInsetsOf(ctx) here used to cause on Navigator.pop.
+        return KeyboardAwarePadding(
+          minBottom: 16,
           child: Container(
             decoration: const BoxDecoration(
               color: PopupTheme.bgDark,
@@ -3869,30 +3860,14 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             );
           }
 
-          // Extra bottom inset: some OEM Android skins (e.g. ColorOS gesture
-          // nav) intercept touches in the bottom edge strip for system
-          // back/home gestures even though Flutter still paints content
-          // there — MediaQuery's own safe-area padding doesn't always
-          // account for it, so the Save/Cancel row could render in that
-          // dead zone and never receive taps. Add a minimum margin on top
-          // of the reported safe-area/keyboard inset.
-          //
-          // Read from the outer `context` (State's own), not the inner
-          // `ctx` (this sheet route's builder context): reading from `ctx`
-          // makes this Padding a dependent of the route-scoped MediaQuery,
-          // which can deactivate before the dependency unregisters when
-          // Navigator.pop(ctx) runs, tripping a `_dependents.isEmpty`
-          // assertion — intermittent because it's a frame-timing race. Same
-          // root cause and fix as the 2026-06-05 pass across 11 other
-          // files: always read MediaQuery from the outer context inside a
-          // bottom-sheet builder. (Wrapping with an explicit SafeArea
-          // widget instead was tried and hit the same assertion.)
-          final safeAreaBottom = MediaQuery.paddingOf(context).bottom;
-          final bottomSafe = safeAreaBottom > 16.0 ? safeAreaBottom : 16.0;
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.viewInsetsOf(context).bottom + bottomSafe,
-            ),
+          // KeyboardAwarePadding reads the keyboard height from the platform
+          // FlutterView (no InheritedWidget dependency), so it tracks the
+          // keyboard live without the _dependents.isEmpty crash that reading
+          // MediaQuery.viewInsetsOf(ctx) here used to cause on Navigator.pop.
+          // minBottom keeps the Save/Cancel row out of the OEM gesture strip
+          // when the keyboard is closed.
+          return KeyboardAwarePadding(
+            minBottom: 16,
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
@@ -5561,19 +5536,12 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         return StatefulBuilder(
           builder: (ctx, setS) {
             final maxSheetHeight = MediaQuery.sizeOf(ctx).height * 0.85;
-            return AnimatedPadding(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOut,
-              // Đọc từ `context` ngoài (không phải `ctx`) để tránh crash
-              // _dependents.isEmpty khi pop.
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.viewInsetsOf(context).bottom,
-              ),
-              // showModalBottomSheet's useSafeArea chỉ áp dụng
-              // SafeArea(bottom: false) — sheet luôn được canh chạm đáy
-              // màn hình vật lý. Bọc thêm SafeArea(top: false) ở đây để
-              // tự tránh thanh điều hướng hệ thống, nếu không hàng nút
-              // Hủy/Thêm ở cuối sheet bị khuất dưới thanh điều hướng.
+            // KeyboardAwarePadding reads the keyboard from the platform
+            // FlutterView (no InheritedWidget dependency) so it tracks live
+            // without the _dependents.isEmpty crash. includeNavBar: false —
+            // the inner SafeArea(top: false) already handles the nav bar.
+            return KeyboardAwarePadding(
+              includeNavBar: false,
               child: SafeArea(
                 top: false,
                 child: Container(

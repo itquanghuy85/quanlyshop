@@ -21,6 +21,7 @@ import 'customer_history_view.dart';
 import '../utils/money_utils.dart';
 import '../utils/vietnamese_utils.dart';
 import '../widgets/currency_text_field.dart';
+import '../widgets/keyboard_aware_padding.dart';
 import '../models/repair_partner_model.dart';
 import '../models/repair_service_model.dart';
 import '../services/repair_partner_service.dart';
@@ -1157,16 +1158,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
 
           final maxSheetHeight = MediaQuery.sizeOf(ctx).height * 0.85;
 
-          return AnimatedPadding(
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeOut,
-            // Đọc từ `context` ngoài (không phải `ctx`) để tránh crash
-            // _dependents.isEmpty khi pop.
-            padding: EdgeInsets.only(
-              bottom:
-                  MediaQuery.viewInsetsOf(context).bottom +
-                  MediaQuery.paddingOf(context).bottom,
-            ),
+          return KeyboardAwarePadding(
             child: Container(
               constraints: BoxConstraints(maxHeight: maxSheetHeight),
               decoration: const BoxDecoration(

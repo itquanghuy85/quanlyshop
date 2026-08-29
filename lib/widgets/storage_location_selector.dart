@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/db_helper.dart';
+import 'keyboard_aware_padding.dart';
 import '../models/storage_location_model.dart';
 import '../services/sync_service.dart';
 import '../services/user_service.dart';
@@ -210,9 +211,6 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
       // — cùng anti-pattern đã tốn công fix ở repair_detail_view.dart
       // (_dependents.isEmpty khi pop).
       builder: (_, controller) {
-        final bottomInset =
-            MediaQuery.viewInsetsOf(context).bottom +
-            MediaQuery.paddingOf(context).bottom;
         return Column(
           children: [
             // Handle bar
@@ -283,10 +281,11 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                         ),
                       ),
                     )
-                  : ListView.builder(
+                  : KeyboardAwarePadding(
+                      minBottom: 8,
+                      child: ListView.builder(
                       controller: controller,
-                      // Đệm dưới để không bị bàn phím che khi search
-                      padding: EdgeInsets.only(bottom: bottomInset),
+                      padding: EdgeInsets.zero,
                       itemCount: filtered.length,
                       itemBuilder: (_, i) {
                         final loc = filtered[i];
@@ -341,6 +340,7 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                           onTap: () => widget.onSelected(loc),
                         );
                       },
+                    ),
                     ),
             ),
           ],

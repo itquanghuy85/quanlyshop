@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../widgets/responsive_wrapper.dart';
+import '../widgets/keyboard_aware_padding.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firestore_write_helper.dart';
@@ -1598,19 +1599,12 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
         minChildSize: 0.4,
         maxChildSize: 0.9,
         expand: false,
-        builder: (_, scrollController) => SingleChildScrollView(
-          controller: scrollController,
-          // Đọc từ `context` ngoài (không phải `ctx`/`_`) để tránh crash
-          // _dependents.isEmpty khi pop.
-          padding: EdgeInsets.fromLTRB(
-            12,
-            12,
-            12,
-            12 +
-                MediaQuery.viewInsetsOf(context).bottom +
-                MediaQuery.paddingOf(context).bottom,
-          ),
-          child: Column(
+        builder: (_, scrollController) => KeyboardAwarePadding(
+          minBottom: 12,
+          child: SingleChildScrollView(
+            controller: scrollController,
+            padding: const EdgeInsets.all(12),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Handle
@@ -1810,6 +1804,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                 ),
               ),
             ],
+          ),
           ),
         ),
       ),

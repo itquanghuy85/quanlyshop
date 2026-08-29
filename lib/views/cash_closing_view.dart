@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../widgets/responsive_wrapper.dart';
+import '../widgets/keyboard_aware_padding.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -1590,12 +1591,8 @@ class _CashClosingViewState extends State<CashClosingView>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: EdgeInsets.only(
-          bottom:
-              MediaQuery.of(context).viewInsets.bottom +
-              MediaQuery.paddingOf(context).bottom,
-        ),
+      builder: (ctx) => KeyboardAwarePadding(
+        child: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -1743,6 +1740,7 @@ class _CashClosingViewState extends State<CashClosingView>
               ),
             ],
           ),
+        ),
         ),
       ),
     );

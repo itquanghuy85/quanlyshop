@@ -14,6 +14,7 @@ import '../theme/app_text_styles.dart';
 import '../utils/money_utils.dart';
 import '../models/sale_order_model.dart';
 import '../widgets/currency_text_field.dart';
+import '../widgets/keyboard_aware_padding.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/supplier_picker_sheet.dart';
 import 'inventory_detail_view.dart';
@@ -231,13 +232,10 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
       // _dependents.isEmpty khi pop.
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
-          final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
           final bottomInset = MediaQuery.paddingOf(context).bottom;
 
-          return AnimatedPadding(
-            duration: const Duration(milliseconds: 120),
-            curve: Curves.easeOut,
-            padding: EdgeInsets.only(bottom: keyboardInset),
+          return KeyboardAwarePadding(
+            includeNavBar: false,
             child: SafeArea(
               top: false,
               child: Container(

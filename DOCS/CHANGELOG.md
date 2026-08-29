@@ -4,6 +4,32 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-29r] - fix(ui) BOTTOM SHEET: bàn phím che ô nhập — dùng KeyboardAwarePadding phản ứng bàn phím mà KHÔNG crash
+
+**Triệu chứng (user báo, kèm ảnh):** một số bottom sheet có ô nhập (vd "GHI CHÚ KỸ THUẬT VIÊN" trong Chi tiết đơn sửa) — bấm vào ô, bàn phím hiện lên che luôn ô + chữ vừa gõ, phải tự kéo sheet lên mới thấy.
+
+**Nguyên nhân:** lịch sử đã flip-flop 2 lần giữa 2 lỗi:
+- `MediaQuery.viewInsetsOf(ctx)` (context BÊN TRONG builder sheet) → sheet co giãn theo bàn phím ĐÚNG, nhưng crash `_dependents.isEmpty` khi pop (đã revert `[cc9e9590` 15/08]).
+- `MediaQuery.viewInsetsOf(context)` (context NGOÀI — State/`this.context`/`outerContext`) → hết crash, NHƯNG `Padding` không rebuild khi bàn phím mở trong sheet → `bottom` kẹt ở 0 → bàn phím che ô nhập. Đây là trạng thái hiện tại của ~25 sheet.
+
+**Giải pháp — widget mới `lib/widgets/keyboard_aware_padding.dart` (`KeyboardAwarePadding`):**
+- Đọc chiều cao bàn phím TRỰC TIẾP từ `WidgetsBinding.instance.platformDispatcher.views.first.viewInsets` + `WidgetsBindingObserver.didChangeMetrics` → `setState`.
+- **Zero InheritedWidget dependency** → không bao giờ dính assert `_dependents.isEmpty` (cùng kỹ thuật `QuickActionBubble` đã dùng ổn định).
+- Vẫn reactive đầy đủ với bàn phím (didChangeMetrics fire mỗi frame animation).
+- `bottom = max(keyboardHeight, [navBar,] minBottom)`. `includeNavBar: false` cho sheet đã có `SafeArea(top:false)` riêng.
+- Drop-in thay `Padding(padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom + ...))`.
+
+**Đã áp dụng cho các bottom sheet có ô nhập (17 file, ~26 sheet):**
+`repair_detail_view` (Ghi chú KTV, Sửa thông tin đơn, Thêm dịch vụ) · `debt_view` (4) · `expense_view` (2) · `sale_detail_view` (1) · `create_repair_order_view` (chọn đối tác) · `attendance_view` (3) · `attendance_management_view` (6) · `inventory_view` (2) · `parts_inventory_view` (1) · `cash_closing_view` (nhập số dư đầu kỳ) · `category_management_view` (1) · `community_view` (1) · `missing_info_products_view` (1) · `salvage_phone_view` (1) · `hr_salary_settings_view` (1) · `fashion/variant_management_view` (1) · `pty_print_designer_view` (footer nút) · `widgets/debt_payment_sheet` (1) · `widgets/storage_location_selector` (1).
+
+**KHÔNG đụng (không phải lỗi này):** sheet là StatefulWidget riêng đọc `viewInsets` từ context CỦA CHÍNH NÓ (đã reactive: `create_sale` ưu đãi, `staff_list` gán ca, `pending_payments` `_PaymentMethodSheet`, `parts_inventory` search 0.55, `payment_request_chat` thêm KH, `cash_closing` XÁC NHẬN CHỐT — `context` bị StatefulBuilder shadow) · sheet picker/filter KHÔNG có ô nhập (`order_list` filter, `home` chọn shop, `help_center`) · `showDialog`/`AlertDialog` (cơ chế khác — crash `_dependents.isEmpty` ở `sale_detail._unlockManager` vẫn là task riêng).
+
+**Verify:** `flutter analyze` 0 error / 0 warning mới (17 file); `flutter test` **+410 −11**. Máy thật: sheet "GHI CHÚ KỸ THUẬT VIÊN" — gõ chữ thấy ngay trên bàn phím, đóng bằng nút Lưu/Hủy + nút Back hệ thống đều KHÔNG crash.
+
+**Files:** `lib/widgets/keyboard_aware_padding.dart` (mới) + 17 file view/widget nêu trên + `docs/CHANGELOG.md` + `docs/HANDOVER.md`.
+
+---
+
 ## [2026-08-29q] - fix(finance) TRẢ GÓP + CHỐT QUỸ: ghi nhận tất toán NH đúng kỳ ở Sổ quỹ offline + Báo cáo ngày
 
 **Hoàn tất reconciliation nhóm 11 (trả góp) + 12 (chốt quỹ)** — trước đây NOT VERIFIED / BLOCKED do thiếu dữ liệu test. Rà kỹ code + test máy thật với đơn trả góp giả lập → phát hiện + sửa 1 lỗi accrual thật.

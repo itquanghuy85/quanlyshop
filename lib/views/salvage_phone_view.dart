@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/keyboard_aware_padding.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -512,7 +513,9 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        return DraggableScrollableSheet(
+        return KeyboardAwarePadding(
+          minBottom: 16,
+          child: DraggableScrollableSheet(
           initialChildSize: 0.7,
           maxChildSize: 0.95,
           minChildSize: 0.4,
@@ -524,16 +527,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
               ),
               child: ListView(
                 controller: scrollC,
-                // Đọc từ `context` ngoài (không phải `ctx`/`_`) để tránh
-                // crash _dependents.isEmpty khi pop.
-                padding: EdgeInsets.fromLTRB(
-                  16,
-                  16,
-                  16,
-                  16 +
-                      MediaQuery.viewInsetsOf(context).bottom +
-                      MediaQuery.paddingOf(context).bottom,
-                ),
+                padding: const EdgeInsets.all(16),
                 children: [
                   // Handle bar
                   Center(
@@ -694,6 +688,7 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
               ),
             );
           },
+          ),
         );
       },
     );

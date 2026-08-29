@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/custom_app_bar.dart';
+import '../widgets/keyboard_aware_padding.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../models/product_category_model.dart';
 import '../models/shop_settings_model.dart';
@@ -233,12 +234,7 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom:
-                  MediaQuery.viewInsetsOf(context).bottom +
-                  MediaQuery.paddingOf(context).bottom,
-            ),
+          return KeyboardAwarePadding(
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,

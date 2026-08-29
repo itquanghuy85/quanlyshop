@@ -21,6 +21,7 @@ import '../services/sync_service.dart';
 import '../services/unified_printer_service.dart';
 import '../services/notification_service.dart';
 import '../widgets/empty_state_widget.dart';
+import '../widgets/keyboard_aware_padding.dart';
 import '../widgets/skeleton_list.dart';
 import '../services/user_service.dart';
 import '../services/event_bus.dart';
@@ -1130,12 +1131,7 @@ class _InventoryViewState extends State<InventoryView>
       // Đọc từ `context` ngoài (không phải `outerCtx`/`ctx` — cả hai đều là
       // context bên trong route) để tránh crash _dependents.isEmpty khi pop.
       builder: (outerCtx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Padding(
-          padding: EdgeInsets.only(
-            bottom:
-                MediaQuery.of(context).viewInsets.bottom +
-                MediaQuery.paddingOf(context).bottom,
-          ),
+        builder: (ctx, setSheetState) => KeyboardAwarePadding(
           child: Container(
             decoration: const BoxDecoration(
               color: PopupTheme.bgDark,
@@ -1515,13 +1511,10 @@ class _InventoryViewState extends State<InventoryView>
       // _dependents.isEmpty khi pop.
       builder: (outerCtx) => StatefulBuilder(
         builder: (ctx, setS) {
-          final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
           final bottomInset = MediaQuery.paddingOf(context).bottom;
 
-          return AnimatedPadding(
-            duration: const Duration(milliseconds: 120),
-            curve: Curves.easeOut,
-            padding: EdgeInsets.only(bottom: keyboardInset),
+          return KeyboardAwarePadding(
+            includeNavBar: false,
             child: SafeArea(
               top: false,
               child: Container(

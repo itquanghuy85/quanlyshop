@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/keyboard_aware_padding.dart';
 import '../../widgets/responsive_wrapper.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../models/product_model.dart';
@@ -877,10 +878,6 @@ class _ProductSelectorSheetState extends State<_ProductSelectorSheet> {
 
   @override
   Widget build(BuildContext context) {
-    // Captured before the DraggableScrollableSheet builder shadows
-    // `context` with its own — read MediaQuery from this one to avoid a
-    // _dependents.isEmpty crash on pop.
-    final outerContext = context;
     return DraggableScrollableSheet(
       initialChildSize: 0.7,
       minChildSize: 0.5,
@@ -914,23 +911,21 @@ class _ProductSelectorSheetState extends State<_ProductSelectorSheet> {
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : ListView.builder(
-                      controller: scrollController,
-                      padding: EdgeInsets.only(
-                        bottom:
-                            MediaQuery.viewInsetsOf(outerContext).bottom +
-                            MediaQuery.paddingOf(outerContext).bottom,
+                  : KeyboardAwarePadding(
+                      child: ListView.builder(
+                        controller: scrollController,
+                        padding: EdgeInsets.zero,
+                        itemCount: _filteredProducts.length,
+                        itemBuilder: (context, index) {
+                          final product = _filteredProducts[index];
+                          return ListTile(
+                            leading: const Icon(Icons.inventory_2),
+                            title: Text(product.name),
+                            subtitle: Text(product.brand),
+                            onTap: () => Navigator.pop(context, product),
+                          );
+                        },
                       ),
-                      itemCount: _filteredProducts.length,
-                      itemBuilder: (context, index) {
-                        final product = _filteredProducts[index];
-                        return ListTile(
-                          leading: const Icon(Icons.inventory_2),
-                          title: Text(product.name),
-                          subtitle: Text(product.brand),
-                          onTap: () => Navigator.pop(context, product),
-                        );
-                      },
                     ),
             ),
           ],

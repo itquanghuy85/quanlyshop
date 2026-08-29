@@ -10,6 +10,7 @@ import '../services/firestore_write_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../utils/money_utils.dart';
 import '../widgets/currency_text_field.dart';
+import '../widgets/keyboard_aware_padding.dart';
 import '../models/sale_order_model.dart';
 import '../models/product_model.dart';
 import '../data/db_helper.dart';
@@ -684,12 +685,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          bottom:
-              MediaQuery.viewInsetsOf(context).bottom +
-              MediaQuery.paddingOf(context).bottom,
-        ),
+      builder: (ctx) => KeyboardAwarePadding(
         child: Container(
           decoration: const BoxDecoration(
             color: PopupTheme.bgDark,

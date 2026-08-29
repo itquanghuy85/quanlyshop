@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../widgets/responsive_wrapper.dart';
+import '../widgets/keyboard_aware_padding.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../models/employee_salary_model.dart';
@@ -786,9 +787,6 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
   }
 
   void _showEmployeeSettingsDialog(Map<String, dynamic> staff) {
-    // Captured before the nested builders shadow `context` with their own
-    // — dùng biến này để đọc MediaQuery, tránh crash _dependents.isEmpty.
-    final outerContext = context;
     final staffId = staff['uid'] ?? staff['id'] ?? '';
     final staffName = staff['name'] ?? staff['displayName'] ?? 'Chưa có tên';
     final shopId = staff['shopId'] ?? '';
@@ -822,10 +820,8 @@ class _HRSalarySettingsViewState extends State<HRSalarySettingsView>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(outerContext).bottom,
-        ),
+      builder: (context) => KeyboardAwarePadding(
+        includeNavBar: false,
         child: DraggableScrollableSheet(
           initialChildSize: 0.9,
           minChildSize: 0.5,

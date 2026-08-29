@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../widgets/keyboard_aware_padding.dart';
 import 'package:intl/intl.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../widgets/custom_app_bar.dart';
@@ -1547,12 +1548,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom:
-                  MediaQuery.viewInsetsOf(context).bottom +
-                  MediaQuery.paddingOf(context).bottom,
-            ),
+          return KeyboardAwarePadding(
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
@@ -1809,12 +1805,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
                         (otStart!.hour * 60 + otStart!.minute))
                     .clamp(0, 480)
               : 0;
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom:
-                  MediaQuery.viewInsetsOf(context).bottom +
-                  MediaQuery.paddingOf(context).bottom,
-            ),
+          return KeyboardAwarePadding(
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
@@ -2387,12 +2378,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) {
           final days = endDate.difference(startDate).inDays + 1;
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom:
-                  MediaQuery.viewInsetsOf(context).bottom +
-                  MediaQuery.paddingOf(context).bottom,
-            ),
+          return KeyboardAwarePadding(
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
@@ -2700,14 +2686,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Padding(
-        // Đọc từ `context` ngoài (không phải `ctx`) để tránh crash
-        // _dependents.isEmpty khi pop.
-        padding: EdgeInsets.only(
-          bottom:
-              MediaQuery.viewInsetsOf(context).bottom +
-              MediaQuery.paddingOf(context).bottom,
-        ),
+      builder: (ctx) => KeyboardAwarePadding(
         child: Container(
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.75,
@@ -2954,12 +2933,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom:
-                  MediaQuery.viewInsetsOf(context).bottom +
-                  MediaQuery.paddingOf(context).bottom,
-            ),
+          return KeyboardAwarePadding(
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
@@ -3740,12 +3714,7 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          bottom:
-              MediaQuery.viewInsetsOf(context).bottom +
-              MediaQuery.paddingOf(context).bottom,
-        ),
+      builder: (ctx) => KeyboardAwarePadding(
         child: Container(
           decoration: const BoxDecoration(
             color: PopupTheme.bgDark,

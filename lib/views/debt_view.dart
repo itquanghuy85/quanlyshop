@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/keyboard_aware_padding.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -279,14 +280,7 @@ class _DebtViewState extends State<DebtView>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
-      builder: (ctx) => Padding(
-        // Đọc từ `context` ngoài (không phải `ctx`) để tránh crash
-        // _dependents.isEmpty khi pop — xem repair_detail_view.dart.
-        padding: EdgeInsets.only(
-          bottom:
-              MediaQuery.viewInsetsOf(context).bottom +
-              MediaQuery.paddingOf(context).bottom,
-        ),
+      builder: (ctx) => KeyboardAwarePadding(
         child: Container(
           padding: const EdgeInsets.all(12),
           constraints: BoxConstraints(
@@ -1757,16 +1751,7 @@ class _DebtViewState extends State<DebtView>
       showDragHandle: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
-          return Padding(
-            // Cộng thêm viewPadding.bottom (vùng an toàn hệ thống/nav bar) —
-            // chỉ cộng viewInsets (bàn phím) là chưa đủ trên máy có vùng điều
-            // hướng lớn ở đáy, khiến nút Hủy/Xác nhận bị đẩy ra ngoài vùng
-            // chạm được.
-            padding: EdgeInsets.only(
-              bottom:
-                  MediaQuery.viewInsetsOf(context).bottom +
-                  MediaQuery.paddingOf(context).bottom,
-            ),
+          return KeyboardAwarePadding(
             child: Container(
               decoration: const BoxDecoration(
                 color: PopupTheme.bgDark,
@@ -2156,15 +2141,7 @@ class _DebtViewState extends State<DebtView>
       // nhau ăn mất không gian, đẩy nút Hủy/Xác nhận ra ngoài vùng hiển thị
       // trên máy có màn hình thấp (đã xác nhận qua test thực tế).
       showDragHandle: false,
-      builder: (ctx) => Padding(
-        // Cộng thêm viewPadding.bottom (vùng an toàn hệ thống/nav bar) — chỉ
-        // cộng viewInsets (bàn phím) là chưa đủ trên máy có vùng điều hướng
-        // lớn ở đáy, khiến nút Hủy/Xác nhận bị đẩy ra ngoài vùng chạm được.
-        padding: EdgeInsets.only(
-          bottom:
-              MediaQuery.viewInsetsOf(context).bottom +
-              MediaQuery.paddingOf(context).bottom,
-        ),
+      builder: (ctx) => KeyboardAwarePadding(
         child: Container(
           decoration: const BoxDecoration(
             color: PopupTheme.bgDark,
@@ -2422,15 +2399,7 @@ class _DebtViewState extends State<DebtView>
       // nhau ăn mất không gian, đẩy nút Hủy/Xác nhận ra ngoài vùng hiển thị
       // trên máy có màn hình thấp (đã xác nhận qua test thực tế).
       showDragHandle: false,
-      builder: (ctx) => Padding(
-        // Cộng thêm viewPadding.bottom (vùng an toàn hệ thống/nav bar) — chỉ
-        // cộng viewInsets (bàn phím) là chưa đủ trên máy có vùng điều hướng
-        // lớn ở đáy, khiến nút Hủy/Xác nhận bị đẩy ra ngoài vùng chạm được.
-        padding: EdgeInsets.only(
-          bottom:
-              MediaQuery.viewInsetsOf(context).bottom +
-              MediaQuery.paddingOf(context).bottom,
-        ),
+      builder: (ctx) => KeyboardAwarePadding(
         child: Container(
           decoration: const BoxDecoration(
             color: PopupTheme.bgDark,
