@@ -1259,6 +1259,18 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         setState(() => _isSaving = false);
         return;
       }
+      // Đơn CÔNG NỢ phải có thành tiền > 0 — nếu không, bảng `debts` sẽ có
+      // `totalAmount = 0` và khoản khách nợ trở nên "tàng hình" ở Nợ phải thu
+      // (vẫn vào doanh thu dồn tích). `totalPrice > 0` chưa đủ vì giảm giá có
+      // thể bằng/lớn hơn tổng tiền.
+      if (_paymentMethod == "CÔNG NỢ" && finalPrice <= 0) {
+        NotificationService.showSnackBar(
+          "ĐƠN CÔNG NỢ PHẢI CÓ THÀNH TIỀN LỚN HƠN 0 (KIỂM TRA LẠI GIẢM GIÁ)",
+          color: Colors.red,
+        );
+        setState(() => _isSaving = false);
+        return;
+      }
       if (totalCost < 0) {
         NotificationService.showSnackBar(
           "TỔNG GIÁ VỐN KHÔNG ĐƯỢC ÂM",

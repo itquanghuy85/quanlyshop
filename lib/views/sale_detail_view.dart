@@ -1101,6 +1101,34 @@ class _SaleDetailViewState extends State<SaleDetailView> {
         ? CurrencyTextField.parseValue(totalCostCtrl.text)
         : s.totalCost;
 
+    // Đơn CÔNG NỢ phải có thành tiền > 0 — nếu không, công nợ liên kết sẽ bị
+    // ghi `totalAmount = 0` và khoản khách nợ "tàng hình" ở Nợ phải thu.
+    final newFinalPrice = (newTotalPrice - newDiscount) > 0
+        ? (newTotalPrice - newDiscount)
+        : 0;
+    if (payment == 'CÔNG NỢ' && newFinalPrice <= 0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Đơn công nợ phải có thành tiền lớn hơn 0 (kiểm tra lại giảm giá)',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      name.dispose();
+      phone.dispose();
+      address.dispose();
+      products.dispose();
+      imeis.dispose();
+      notes.dispose();
+      totalPriceCtrl.dispose();
+      discountCtrl.dispose();
+      totalCostCtrl.dispose();
+      return;
+    }
+
     // Cập nhật unitCost trong snapshots nếu giá vốn thay đổi
     if (newTotalCost != s.totalCost) _applyNewCostToSnapshots(newTotalCost);
 
@@ -1154,14 +1182,19 @@ class _SaleDetailViewState extends State<SaleDetailView> {
         s.firestoreId ?? '',
       )).firstOrNull;
       if (linkedDebt != null) {
-        // Update existing debt
-        linkedDebt['totalAmount'] = debtAmount;
+        // Update existing debt.
+        // Chỉ ghi đè totalAmount khi > 0 — không bao giờ hạ 1 công nợ thật về 0
+        // (self-heal: mở/lưu lại đơn CÔNG NỢ cũ sẽ tự khớp totalAmount về
+        // finalPrice hiện tại, kể cả khi khóa sửa tiền qua ngày).
+        if (debtAmount > 0) {
+          linkedDebt['totalAmount'] = debtAmount;
+          linkedDebt['status'] =
+              (debtAmount - ((linkedDebt['paidAmount'] as int?) ?? 0)) > 0
+              ? 'UNPAID'
+              : 'PAID';
+        }
         linkedDebt['personName'] = s.customerName; // Cập nhật tên khách
         linkedDebt['phone'] = s.phone; // Cập nhật SĐT
-        linkedDebt['status'] =
-            (debtAmount - (linkedDebt['paidAmount'] ?? 0)) > 0
-            ? 'UNPAID'
-            : 'PAID';
         linkedDebt['isSynced'] = 0;
         await db.updateDebt(linkedDebt);
 

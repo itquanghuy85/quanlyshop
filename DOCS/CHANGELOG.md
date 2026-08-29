@@ -4,6 +4,25 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-29g] - fix(finance) PHASE 1.3: chặn đơn CÔNG NỢ có thành tiền ≤ 0 + không hạ công nợ thật về 0
+
+**Bối cảnh (đợt AUDIT):** DB test có 1 đơn bán CÔNG NỢ 10.000.000đ (`sale_1787034406889`) mà công nợ liên kết (`debt_1787034406889`) có `totalAmount = 0` → 10tr khách nợ "tàng hình" ở tab Nợ phải thu (danh sách đơn bán còn hiển thị "ĐÃ THU"), trong khi vẫn vào doanh thu dồn tích của `analyze()`. Không tái hiện được chính xác bước gây ra (data cũ), nhưng khoanh được 2 điểm ghi `debt.totalAmount = finalPrice`: `create_sale_view` (lúc tạo) và `sale_detail_view._openEditSaleDialog` (lúc sửa) — không nơi nào chặn `finalPrice ≤ 0`, và `create_sale_view` chỉ chặn `totalPrice ≤ 0` (chưa đủ: giảm giá có thể bằng/vượt tổng tiền).
+
+**Đã sửa (phòng thủ nhiều lớp):**
+- `lib/views/create_sale_view.dart` — sau bước kiểm `totalPrice ≤ 0`: thêm chặn `_paymentMethod == "CÔNG NỢ" && finalPrice ≤ 0` → báo đỏ "ĐƠN CÔNG NỢ PHẢI CÓ THÀNH TIỀN LỚN HƠN 0 (KIỂM TRA LẠI GIẢM GIÁ)", không lưu.
+- `lib/views/sale_detail_view.dart` `_openEditSaleDialog`:
+  - Trước khi lưu: nếu phương thức kết quả là CÔNG NỢ và `newFinalPrice ≤ 0` → báo lỗi, dispose controllers, return (không lưu).
+  - Khi cập nhật công nợ liên kết: chỉ ghi đè `totalAmount` (và `status`) khi `debtAmount > 0` — **không bao giờ hạ 1 công nợ thật về 0**. Đây cũng là cơ chế **self-heal**: mở + lưu lại 1 đơn CÔNG NỢ cũ (kể cả qua ngày, khóa sửa tiền) sẽ tự khớp `totalAmount` về `finalPrice` hiện tại.
+
+**Verify:**
+- `flutter analyze` (2 file đổi): 0 error / 0 warning.
+- `flutter test`: **+410 −11** (không hồi quy).
+- Máy thật (Oppo CPH2203): build + cài + chạy OK. **Chưa nghiệm thu được 2 guard qua ADB** — ô "Giá bán"/"Giảm giá" trên form bán hàng không lộ trong accessibility dump; dialog "Sửa thông tin đơn" bị khóa sau "XÁC THỰC QUẢN LÝ" (PIN). Logic là guard phòng thủ đơn giản + đã review. Bản ghi `debt_1787034406889` cũ: sẽ tự khớp khi chủ shop mở+lưu lại đơn đó (có PIN), hoặc xử lý ở PHASE 1.5.
+
+**Files:** `lib/views/create_sale_view.dart`, `lib/views/sale_detail_view.dart`.
+
+---
+
 ## [2026-08-29f] - fix(finance) PHASE 1.2: VOID đơn bán/sửa dọn luôn `debt_payments` — hết phiếu thu nợ mồ côi tạo "tiền vào" ảo
 
 **Bối cảnh (đợt AUDIT):** Khi VOID/xóa 1 đơn CÔNG NỢ, code xóa bảng `debts` + `payment_intents` nhưng KHÔNG đụng `debt_payments`. Các phiếu thu nợ đã ghi trước đó nằm lại với `deleted=0`, `debtFirestoreId` trỏ vào công nợ không còn tồn tại → `analyze()` và FinanceV2 tiếp tục cộng chúng vào "tiền vào" vĩnh viễn. DB test có 3 phiếu mồ côi (12.500.000 + 100.000 + 200.000 = 12.800.000) khớp đúng 3 `SALE_VOID` ngày 17/08. Dialog xác nhận xóa còn hứa "Xóa phiếu thanh toán" nhưng thực tế chỉ xóa `payment_intents`.
