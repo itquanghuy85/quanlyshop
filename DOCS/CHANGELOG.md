@@ -4,6 +4,49 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-29s] - fix(tài chính) LÀM DỨT ĐIỂM AUDIT: L-1..L-4 + D-1..D-4 + đối chiếu 16 nhóm = 0
+
+**Chốt toàn bộ các phát hiện D/L của đợt audit** — sửa nguồn + dọn dữ liệu tồn trên máy thật (Oppo CPH2203, shop test "M" = `geqXPHQJ…`), đối chiếu 16 nhóm độc lập bằng Python → **DIFFERENCE = 0 cả 16**.
+
+### Sửa NGUỒN (code)
+
+| Mã | Nguyên nhân gốc | Sửa |
+|----|-----------------|-----|
+| **L-1** | `analyze()` cộng expense mirror đối tác (`exp_partner_*` / category ĐỐI TÁC/PARTNER) vào `expenseOut` — trong khi `repairCost` đã gánh giá vốn dịch vụ đối tác → lợi nhuận accrual bị trừ 2 lần | Loại expense mirror khỏi `expenseOut` (vẫn tính dòng tiền `cashOut/bankOut`). Excel/Báo cáo ngày/tháng/Home dùng chung `analyze()` nên tự thừa hưởng. |
+| **L-2** | `repairPartsCostFundRows` phương thức **CÔNG NỢ** vẫn cộng `bankOut` → tiền ra ảo | `continue` khi method == 'CÔNG NỢ' (khớp cách xử lý `supplierImports`). |
+| **L-3** | `repair_partner_payments` + `repairs.services[]` JSON chỉ lưu `partnerId` local (đổi khi đối tác bị xoá+tạo lại / cài lại máy) + `partnerName` (dễ trùng) → đổi tên đối tác có thể mất/nhận nhầm lịch sử | Thêm khoá ổn định `partnerFirestoreId`: cột mới `repair_partner_payments` (v108) + field mới `RepairService` + ghi ở 2 chỗ tạo service + metadata payment intent + `relatedPartId` công nợ đối tác. `getPartnerRepairStats` & `_countRepairsForPartner`: dòng CÓ khoá chỉ khớp theo khoá (hết trùng tên), dòng cũ fallback id/tên. **Backfill THẬN TRỌNG** (v108): chỉ set khi id HOẶC tên khớp CHÍNH XÁC 1 đối tác. |
+| **L-4** | `payment_intents` của giao dịch đã VOID vẫn `COMPLETED` | Công cụ dọn: `findVoidedTxnPaymentIntents` (ghép theo SỐ GIAO DỊCH) + `cancelVoidedTxnPaymentIntent` (status → CANCELLED, KHÔNG đụng tiền — engine không SUM payment_intents). |
+| **D-1** | "Chốt quỹ ma": (a) `cash_closing_view` lưu 2 bước (local no-fid rồi update fid) — đã vá `[db526b30]`; (b) **`CashClosingNotifier._syncToLocalDb` `dbRaw.insert` thẳng KHÔNG shopId/firestoreId** → mỗi lần poll Firestore lại đẻ 1 dòng vô định danh (v108 xoá xong lại mọc) | (b): đi qua `upsertCashClosing` + mang `firestoreId=docId` + `shopId` + `isSynced=1` → dòng ma cũ được "chữa" tại chỗ, poll lặp không đẻ mới. v108 xoá 1 lần dòng `firestoreId IS NULL AND shopId IS NULL`. |
+| **D-2** | Sync xoá `sales_returns` cha nhưng không cascade `sales_return_items` con (schema thiếu cột `deleted` → `_filterToTableColumns` cắt mất soft-delete từ cloud) | v108 thêm cột `deleted`; sync `sales_returns`/`sales_return_items` xử lý `deleted:true` → cascade xoá con; `processReturn` guard header id ≤ 0; Công cụ dọn: `findOrphanSalesReturnItems` (soft-delete + sync) & `findForeignShopSalesReturnItems` (hard-delete local, KHÔNG sync sang shop khác). |
+| **D-3** | `executePayment` ghi `financial_activity_log` ở bước 4, `insertExpense` ở bước 6 — bước 6 lỗi → intent FAILED nhưng bút toán OUT nằm lại → FinanceV2 (tính theo log) đếm chi không có thật (bản ghi AUDITTESTCHI) | Bước 6 lỗi mà bút toán đã ghi → append `<TYPE>_REVERSAL` ngược chiều (append-only). `_insertExpenseOnce` — kiểm tra tồn tại theo firestoreId tất định trước khi insert (idempotent). Công cụ dọn: `findOrphanExpenseActivity` (+guard bỏ qua nếu đã có `EXPENSE_REVERSAL`) & `reverseOrphanExpenseActivity`. |
+| **D-3b** | VOID đơn bán luôn ghi `SALE_VOID OUT = finalPrice`. Đơn CÔNG NỢ thu 1 phần (vd 200k, đã thu 50k) → sổ đối soát dư OUT ảo | `FinancialActivityService.saleCashReceived(SaleOrder)` = phần tiền THỰC đã vào (CÔNG NỢ = tổng debt_payments; trả góp = down+settlement; KẾT HỢP = cash+transfer; còn lại = finalPrice). VOID amount = saleReceived; chưa thu đồng nào → không ghi bút toán. Công cụ dọn: `findMisbookedVoids` (ghép theo SỐ GIAO DỊCH, nhận đủ 6 loại IN, trừ `VOID_AMOUNT_ADJUST` đã ghi → hội tụ) & `fixMisbookedVoid`. |
+| **D-4** | SKU 2226 "IPHONE 12 32GB VÀNG MỚI" IMEI 5656: `status=0` mà `quantity=3` (điện thoại serial hoá không thể có 3 cái). Do các lượt trả hàng test cũ (nay `sales_returns` rỗng) tăng tồn mà không có phiếu cha | KHÔNG tự đổi số lượng (không xác định được chính xác 0 hay 1 — cần kiểm kho thực tế). `findStockStatusMismatch` chỉ liệt kê. **Báo cáo VỐN TỒN KHO đã lọc `status=0`** nên KHÔNG tính sai SKU này (đối chiếu nhóm 12 DIFF=0). |
+
+### Dọn DỮ LIỆU TỒN (máy thật, qua Công cụ điều chỉnh dữ liệu → tab TÀI CHÍNH, có cổng mật khẩu + audit log)
+
+- v108 (tự động khi mở app): xoá 1 `cash_closings` vô định danh; thêm cột `sales_return_items.deleted` + `repair_partner_payments.partnerFirestoreId`; backfill `partnerFirestoreId` cho `rpp` id 17 = `partner_1786245140527` (khớp tên duy nhất).
+- `CashClosingNotifier` chữa dòng `cash_closings` id 23 → `firestoreId=closing_geqXPHQJ…_2026-08-29`, `shopId`, `isSynced=1`.
+- **Bù 3 VOID sai biên độ**: `rep_1781237441355` (+6.000.000 IN), `rep_1781234587303` (−60.000 OUT), `sale_1787995317501` (+150.000 IN) → net khớp phần thực thu.
+- **Đảo AUDITTESTCHI** 13.579đ (EXPENSE_REVERSAL IN) → net 0.
+- **Xoá 4 item trả hàng mồ côi** shop hiện tại (soft-delete + sync) + **2 item shop khác** (hard-delete local).
+- **Hủy 14 payment_intent** của giao dịch đã VOID → CANCELLED.
+
+### Đối chiếu 16 nhóm (Python độc lập, `pre.db` → `post4.db`)
+
+`Tiền mặt −46.740.006 · Ngân hàng 12.000.000 · Doanh thu 51.150.000 · Giá vốn 30.353.000 · Chi phí VH 0 · Lợi nhuận 20.797.000 · Nợ KH 21.990.000 · Nợ NCC 15.300.000 · Nợ đối tác 1.240.000 · Thanh toán 23.910.000 · VOID 27.769.500 · Tồn kho 34.660.000 · Chốt quỹ 0 ma · Payment intents 0 rác · Financial activity 0 mồ côi · Sync 0` — **EXPECTED == ACTUAL, DIFFERENCE = 0 cả 16 nhóm.**
+
+### Test
+
+- `flutter analyze`: 0 error / 0 warning mới (10 file).
+- `flutter test`: **+429 −8** — thêm 13 test mới (`repair_partner_identity_test` ×5, `misbooked_void_test` ×6, L-2 ×2), sửa 3 test đỏ SẴN CÓ (`enableRepair=false` hợp nhất từ `[e2d37fcf`; `finance_v2_reconciliation` import CÔNG NỢ qua DEBT_CREATE ×2). 8 lỗi còn lại là môi trường (Firebase chưa init trong unit test, thiếu file xlsx ngoài, widget render) — có TRƯỚC phiên này, không liên quan.
+- Máy thật: v108 migration + `CashClosingNotifier` heal + 3 detector số liệu khớp `recon16.py` từng đồng.
+
+**Files:** `daily_financial_analysis_service.dart`, `db_helper.dart`, `sync_service.dart`, `cash_closing_view.dart`, `cash_closing_notifier.dart`, `payment_intent_service.dart`, `financial_activity_service.dart`, `data_reconciliation_service.dart`, `data_reconciliation_view.dart`, `sale_detail_view.dart`, `sales_return_service.dart`, `repair_partner_service.dart`, `repair_service_model.dart`, `create_repair_order_view.dart`, `repair_detail_view.dart` + test: `daily_financial_analysis_service_test.dart`, `finance_v2/finance_v2_reconciliation_test.dart`, `repair_partner_identity_test.dart` (mới), `misbooked_void_test.dart` (mới) + docs.
+
+**Đóng gói:** `pubspec` `3.5.0+548` → **`3.5.0+549`**.
+
+---
+
 ## [2026-08-29r] - fix(ui) BOTTOM SHEET: bàn phím che ô nhập — dùng KeyboardAwarePadding phản ứng bàn phím mà KHÔNG crash
 
 **Triệu chứng (user báo, kèm ảnh):** một số bottom sheet có ô nhập (vd "GHI CHÚ KỸ THUẬT VIÊN" trong Chi tiết đơn sửa) — bấm vào ô, bàn phím hiện lên che luôn ô + chữ vừa gõ, phải tự kéo sheet lên mới thấy.
