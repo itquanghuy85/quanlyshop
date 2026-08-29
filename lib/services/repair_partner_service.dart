@@ -323,16 +323,31 @@ class RepairPartnerService {
       shopId: shopId,
       partnerFirestoreId: partnerFirestoreId,
     );
-    // Also get total paid from payments table
-    // Use OR to match by partnerId OR partnerName (in case local ID changed after reinstall/sync)
+    // Total paid from payments table.
+    // L-3: prefer the stable partnerFirestoreId. Rows that carry a stable key
+    // are matched ONLY by that key (no name-collision risk). Legacy rows with
+    // no key still fall back to volatile partnerId / partnerName.
     final dbInstance = await db.database;
-    String paymentWhere = 'shopId = ? AND deleted = 0 AND (partnerId = ?';
-    List<dynamic> paymentArgs = [shopId, partnerId];
+    final hasStableKey =
+        partnerFirestoreId != null && partnerFirestoreId.isNotEmpty;
+    final legacyOr = <String>['partnerId = ?'];
+    final legacyArgs = <dynamic>[partnerId];
     if (partnerName != null && partnerName.isNotEmpty) {
-      paymentWhere += ' OR UPPER(partnerName) = ?';
-      paymentArgs.add(partnerName.toUpperCase());
+      legacyOr.add('UPPER(partnerName) = ?');
+      legacyArgs.add(partnerName.toUpperCase());
     }
-    paymentWhere += ')';
+    final legacyClause = legacyOr.join(' OR ');
+    String paymentWhere;
+    List<dynamic> paymentArgs;
+    if (hasStableKey) {
+      paymentWhere =
+          "shopId = ? AND deleted = 0 AND (partnerFirestoreId = ? OR "
+          "((partnerFirestoreId IS NULL OR partnerFirestoreId = '') AND ($legacyClause)))";
+      paymentArgs = [shopId, partnerFirestoreId, ...legacyArgs];
+    } else {
+      paymentWhere = 'shopId = ? AND deleted = 0 AND ($legacyClause)';
+      paymentArgs = [shopId, ...legacyArgs];
+    }
     final payments = await dbInstance.rawQuery(
       'SELECT COALESCE(SUM(amount), 0) as totalPaid FROM repair_partner_payments WHERE $paymentWhere',
       paymentArgs,
@@ -358,7 +373,12 @@ class RepairPartnerService {
 
     // Also count repairs directly from repairs table where services reference this partner
     // This catches cases where partner_repair_history was not created
-    final repairStats = await _countRepairsForPartner(partnerId, partnerName, shopId);
+    final repairStats = await _countRepairsForPartner(
+      partnerId,
+      partnerName,
+      shopId,
+      partnerFirestoreId: partnerFirestoreId,
+    );
     final historyOrders = (dbStats?['totalRepairs'] ?? 0) as int;
     final repairOrders = repairStats['count'] as int;
     final repairCost = repairStats['totalCost'] as int;
@@ -380,9 +400,15 @@ class RepairPartnerService {
   }
 
   /// Count repairs from repairs table that have services referencing this partner
-  Future<Map<String, dynamic>> _countRepairsForPartner(int partnerId, String? partnerName, String? shopId) async {
+  Future<Map<String, dynamic>> _countRepairsForPartner(
+    int partnerId,
+    String? partnerName,
+    String? shopId, {
+    String? partnerFirestoreId,
+  }) async {
     final dbInstance = await db.database;
     final nameUpper = (partnerName ?? '').toUpperCase().trim();
+    final fsId = (partnerFirestoreId ?? '').trim();
     // repairs table has no shopId column — all local repairs belong to current shop
     const where = "(deleted IS NULL OR deleted = 0)";
     final rows = await dbInstance.query('repairs', where: where, columns: ['services', 'createdAt']);
@@ -396,9 +422,15 @@ class RepairPartnerService {
         final services = jsonDecode(servicesJson.toString()) as List;
         for (final s in services) {
           if (s is! Map) continue;
+          final sPartnerFsId = (s['partnerFirestoreId'] ?? '').toString().trim();
           final sPartnerId = s['partnerId'];
           final sPartnerName = (s['partnerName'] ?? '').toString().toUpperCase().trim();
-          if (sPartnerId == partnerId || (nameUpper.isNotEmpty && sPartnerName == nameUpper)) {
+          // L-3: a service that carries a stable key is matched ONLY by that key.
+          final bool matched = sPartnerFsId.isNotEmpty
+              ? (fsId.isNotEmpty && sPartnerFsId == fsId)
+              : (sPartnerId == partnerId ||
+                  (nameUpper.isNotEmpty && sPartnerName == nameUpper));
+          if (matched) {
             count++;
             totalCost += (s['cost'] as num?)?.toInt() ?? 0;
             final createdAt = row['createdAt'] as int?;

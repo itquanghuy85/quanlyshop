@@ -254,7 +254,11 @@ void main() {
       expect(r.bankIn, 0);
     });
 
-    test('enableRepair=false: income but no cash flow', () {
+    test('enableRepair=false: repair still contributes income AND cash flow', () {
+      // Since e2d37fcf (2026-06-02) the enableRepair=false branch was unified
+      // with the true branch: a paid repair always books cashIn/bankIn. The
+      // flag now only gates the repair-parts-cost-fund section below, not the
+      // main repair income cash flow. (Old test asserted cashIn==0 — stale.)
       final inputs = emptyInputs();
       inputs['repairs'] = [
         {
@@ -266,8 +270,8 @@ void main() {
       final r = runAnalysis(inputs, enableRepair: false);
       expect(r.repairIncome, 500000);
       expect(r.repairCost, 150000);
-      // When enableRepair=false, no cashIn from repairs
-      expect(r.cashIn, 0);
+      expect(r.cashIn, 500000);
+      expect(r.bankIn, 0);
     });
   });
 
@@ -658,6 +662,36 @@ void main() {
       expect(r.cashOut, 0);
       expect(r.bankOut, 0);
       expect(r.repairPartsCostFund, 0);
+    });
+
+    test('TIỀN MẶT parts cost fund → cashOut only (L-2)', () {
+      final inputs = emptyInputs();
+      inputs['repairPartsCostFundRows'] = [
+        {
+          'costRecordedAmount': 250000,
+          'totalCost': 250000,
+          'costPaymentMethod': 'TIỀN MẶT',
+        },
+      ];
+      final r = runAnalysis(inputs);
+      expect(r.cashOut, 250000);
+      expect(r.bankOut, 0);
+      expect(r.repairPartsCostFund, 250000);
+    });
+
+    test('CHUYỂN KHOẢN parts cost fund → bankOut only (L-2)', () {
+      final inputs = emptyInputs();
+      inputs['repairPartsCostFundRows'] = [
+        {
+          'costRecordedAmount': 400000,
+          'totalCost': 400000,
+          'costPaymentMethod': 'CHUYỂN KHOẢN',
+        },
+      ];
+      final r = runAnalysis(inputs);
+      expect(r.cashOut, 0);
+      expect(r.bankOut, 400000);
+      expect(r.repairPartsCostFund, 400000);
     });
   });
 

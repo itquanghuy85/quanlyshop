@@ -28,9 +28,12 @@ Map<String, dynamic> _entry({
 void main() {
   group('FinanceV2 reconciliation', () {
     test('PASS import kho co/no debt', () {
+      // A CÔNG NỢ import books its supplier debt on the debts-table side via a
+      // DEBT_CREATE entry; the IMPORT entry itself carries no debtSupplierChange
+      // (the engine excludes IMPORT debt to avoid double counting).
       final entries = <Map<String, dynamic>>[
         _entry(action: 'IMPORT', cashOut: 300),
-        _entry(action: 'IMPORT', debtSupplierChange: 500),
+        _entry(action: 'DEBT_CREATE', debtSupplierChange: 500),
       ];
 
       final result = FinanceV2ReconciliationEngine.compute(
@@ -151,7 +154,8 @@ void main() {
       final entries = <Map<String, dynamic>>[
         _entry(action: 'SALE', debtCustomerChange: 300),
         _entry(action: 'DEBT_COLLECT', cashIn: 120, debtCustomerChange: -120),
-        _entry(action: 'IMPORT', debtSupplierChange: 500),
+        // CÔNG NỢ import → supplier debt lands via DEBT_CREATE, not the IMPORT row.
+        _entry(action: 'DEBT_CREATE', debtSupplierChange: 500),
         _entry(action: 'DEBT_PAY', cashOut: 200, debtSupplierChange: -200),
       ];
 

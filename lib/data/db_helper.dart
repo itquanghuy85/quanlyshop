@@ -695,7 +695,7 @@ class DBHelper {
           'CREATE TABLE IF NOT EXISTS supplier_payments(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, supplierId INTEGER, amount INTEGER, paidAt INTEGER, paymentMethod TEXT, note TEXT, shopId TEXT, isSynced INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0)',
         );
         await db.execute(
-          'CREATE TABLE IF NOT EXISTS repair_partner_payments(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, partnerId INTEGER, partnerName TEXT, amount INTEGER, paidAt INTEGER, paymentMethod TEXT, note TEXT, shopId TEXT, isSynced INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0, updatedAt INTEGER)',
+          'CREATE TABLE IF NOT EXISTS repair_partner_payments(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, partnerId INTEGER, partnerFirestoreId TEXT, partnerName TEXT, amount INTEGER, paidAt INTEGER, paymentMethod TEXT, note TEXT, shopId TEXT, isSynced INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0, updatedAt INTEGER)',
         );
         await db.execute(
           'CREATE TABLE IF NOT EXISTS cash_closings(id INTEGER PRIMARY KEY AUTOINCREMENT, dateKey TEXT UNIQUE, cashStart INTEGER DEFAULT 0, bankStart INTEGER DEFAULT 0, cashEnd INTEGER DEFAULT 0, bankEnd INTEGER DEFAULT 0, expectedCashDelta INTEGER DEFAULT 0, expectedBankDelta INTEGER DEFAULT 0, note TEXT, createdAt INTEGER)',
@@ -2386,6 +2386,63 @@ class DBHelper {
           } catch (e) {
             debugPrint('DB upgrade error (v108 sales_return_items.deleted): $e');
           }
+          // (c) L-3: repair_partner_payments chỉ có partnerId (local, dễ lệch sau
+          // khi đối tác bị xóa+tạo lại hoặc cài lại máy) + partnerName (dễ trùng).
+          // Thêm cột partnerFirestoreId (định danh ổn định) và BACKFILL THẬN TRỌNG:
+          // chỉ set khi partnerId HOẶC tên khớp CHÍNH XÁC 1 đối tác. 0 hoặc >1 →
+          // để NULL (không đoán, tránh gán nhầm khi trùng tên).
+          try {
+            final cols =
+                await db.rawQuery('PRAGMA table_info(repair_partner_payments)');
+            final hasPfid =
+                cols.any((c) => (c['name'] as String?) == 'partnerFirestoreId');
+            if (!hasPfid) {
+              await db.execute(
+                'ALTER TABLE repair_partner_payments ADD COLUMN partnerFirestoreId TEXT',
+              );
+              debugPrint(
+                  'DB upgrade v108: added partnerFirestoreId to repair_partner_payments');
+            }
+            final pays = await db.rawQuery(
+              "SELECT id, partnerId, partnerName FROM repair_partner_payments "
+              "WHERE (partnerFirestoreId IS NULL OR partnerFirestoreId = '') "
+              "AND (deleted IS NULL OR deleted = 0)",
+            );
+            int backfilled = 0;
+            for (final p in pays) {
+              final pid = p['partnerId'];
+              final pname = (p['partnerName'] ?? '').toString().trim();
+              List<Map<String, Object?>> match = const [];
+              if (pid != null) {
+                match = await db.rawQuery(
+                  "SELECT firestoreId FROM repair_partners WHERE id = ? "
+                  "AND (deleted IS NULL OR deleted = 0) "
+                  "AND firestoreId IS NOT NULL AND firestoreId != ''",
+                  [pid],
+                );
+              }
+              if (match.isEmpty && pname.isNotEmpty) {
+                match = await db.rawQuery(
+                  "SELECT firestoreId FROM repair_partners "
+                  "WHERE UPPER(TRIM(name)) = ? AND (deleted IS NULL OR deleted = 0) "
+                  "AND firestoreId IS NOT NULL AND firestoreId != ''",
+                  [pname.toUpperCase()],
+                );
+              }
+              if (match.length == 1) {
+                await db.rawUpdate(
+                  'UPDATE repair_partner_payments SET partnerFirestoreId = ? WHERE id = ?',
+                  [match.first['firestoreId'], p['id']],
+                );
+                backfilled++;
+              }
+            }
+            debugPrint(
+                'DB upgrade v108: backfilled partnerFirestoreId for $backfilled/${pays.length} repair_partner_payments');
+          } catch (e) {
+            debugPrint(
+                'DB upgrade error (v108 repair_partner_payments.partnerFirestoreId): $e');
+          }
         }
         if (oldV < 26) {
           // Migration to remove kpkPrice and pkPrice columns from products and quick_input_codes tables
@@ -2574,7 +2631,7 @@ class DBHelper {
           }
           try {
             await db.execute(
-              'CREATE TABLE IF NOT EXISTS repair_partner_payments(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, partnerId INTEGER, partnerName TEXT, amount INTEGER, paidAt INTEGER, paymentMethod TEXT, note TEXT, shopId TEXT, isSynced INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0, updatedAt INTEGER)',
+              'CREATE TABLE IF NOT EXISTS repair_partner_payments(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, partnerId INTEGER, partnerFirestoreId TEXT, partnerName TEXT, amount INTEGER, paidAt INTEGER, paymentMethod TEXT, note TEXT, shopId TEXT, isSynced INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0, updatedAt INTEGER)',
             );
           } catch (e) {
             debugPrint('DB upgrade error (repair_partner_payments): $e');
@@ -10743,6 +10800,9 @@ class DBHelper {
   Future<int> insertRepairPartnerPayment(Map<String, dynamic> payment) async {
     final db = await database;
     final cleanData = _sanitizeForSqlite(Map<String, dynamic>.from(payment));
+    // Drop keys the table does not have (e.g. partnerFirestoreId on a DB that
+    // predates the v108 migration) so the insert never throws.
+    await _filterToTableColumns('repair_partner_payments', cleanData);
     return await db.insert('repair_partner_payments', cleanData);
   }
 

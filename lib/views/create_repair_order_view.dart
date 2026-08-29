@@ -853,7 +853,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 personName: s.partnerName ?? loc.repairPartner,
                 note: trackingNote,
                 linkedId: repairOrderId,
-                relatedPartId: s.partnerId?.toString() ?? '',
+                // Stable partner identity first; fall back to volatile local id.
+                relatedPartId:
+                    s.partnerFirestoreId ?? s.partnerId?.toString() ?? '',
                 debtFirestoreId: debtFId,
               );
 
@@ -882,6 +884,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                   'repairId': rWithCloudId.id,
                   'repairFirestoreId': repairOrderId,
                   'partnerId': s.partnerId,
+                  'partnerFirestoreId': s.partnerFirestoreId,
                   'partnerName': s.partnerName,
                   'serviceName': s.serviceName,
                   'paymentMethod': s.paymentMethod,
@@ -1349,6 +1352,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                                         .toUpperCase(),
                                     cost: cost,
                                     partnerId: selectedPartner?.id,
+                                    partnerFirestoreId:
+                                        selectedPartner?.firestoreId,
                                     partnerName: selectedPartner?.name,
                                     paymentMethod: selectedPartner != null
                                         ? selectedPaymentMethod

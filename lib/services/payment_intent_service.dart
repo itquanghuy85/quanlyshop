@@ -894,9 +894,17 @@ class PaymentIntentService {
         // Partner debt payment
         if (intent.metadata != null && intent.metadata!['partnerId'] != null) {
           final partnerId = intent.metadata!['partnerId'];
+          final partnerFsId =
+              (intent.metadata!['partnerFirestoreId'] as String?)?.trim();
           await _db.insertRepairPartnerPayment({
             'firestoreId': 'rpp_${intent.id}',
             'partnerId': partnerId,
+            // Stable partner identity so payment stays linked after rename /
+            // reinstall / local id remap. Null for legacy callers.
+            'partnerFirestoreId':
+                (partnerFsId != null && partnerFsId.isNotEmpty)
+                    ? partnerFsId
+                    : null,
             'partnerName': intent.personName,
             'amount': intent.amount,
             'paymentMethod': paymentMethod.code,

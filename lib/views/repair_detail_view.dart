@@ -5763,6 +5763,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                                       .toUpperCase(),
                                   cost: cost,
                                   partnerId: selectedPartner?.id,
+                                  partnerFirestoreId: selectedPartner?.firestoreId,
                                   partnerName: selectedPartner?.name,
                                   paymentMethod: selectedPaymentMethod,
                                 );
@@ -6068,6 +6069,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           'repairId': r.id,
           'repairFirestoreId': repairOrderId,
           'partnerId': service.partnerId,
+          'partnerFirestoreId': service.partnerFirestoreId,
           'partnerName': service.partnerName,
           'serviceName': service.serviceName,
           'paymentMethod': service.paymentMethod,
@@ -6106,7 +6108,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         personName: service.partnerName ?? 'Đối tác sửa chữa',
         note: trackingNote,
         linkedId: repairOrderId,
-        relatedPartId: service.partnerId?.toString() ?? '',
+        // Stable partner identity first; fall back to volatile local id.
+        relatedPartId:
+            service.partnerFirestoreId ?? service.partnerId?.toString() ?? '',
         debtFirestoreId: debtFId,
       );
       EventBus().emit(EventBus.financialChanged);
