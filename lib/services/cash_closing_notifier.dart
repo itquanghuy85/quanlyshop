@@ -145,7 +145,7 @@ class CashClosingNotifier {
         _lockedAt = lockedAt;
 
         // Sync to local DB
-        await _syncToLocalDb(dateKey ?? '', data);
+        await _syncToLocalDb(dateKey ?? '', data, change.doc.id);
 
         // Notify nếu trạng thái thay đổi
         if (wasLocked != isLocked) {
@@ -157,26 +157,34 @@ class CashClosingNotifier {
           change.type == DocumentChangeType.modified) {
         // Sync các ngày khác vào local DB
         if (dateKey != null) {
-          await _syncToLocalDb(dateKey, data);
+          await _syncToLocalDb(dateKey, data, change.doc.id);
         }
       }
     }
   }
 
-  /// Sync dữ liệu từ cloud vào local DB
-  Future<void> _syncToLocalDb(String dateKey, Map<String, dynamic> data) async {
+  /// Sync dữ liệu từ cloud vào local DB.
+  ///
+  /// D-1: PHẢI đi qua [DBHelper.upsertCashClosing] và mang theo `shopId` +
+  /// `firestoreId` (= doc id). Trước đây hàm này `dbRaw.insert` thẳng, bỏ cả
+  /// shopId lẫn firestoreId → mỗi lần poll Firestore lại đẻ 1 dòng
+  /// `cash_closings` không định danh ("chốt quỹ ma") — v108 dọn xong lại mọc.
+  Future<void> _syncToLocalDb(
+    String dateKey,
+    Map<String, dynamic> data,
+    String docId,
+  ) async {
     try {
-      final dbRaw = await _localDb.database;
-
-      // Check if exists
-      final existing = await dbRaw.query(
-        'cash_closings',
-        where: 'dateKey = ?',
-        whereArgs: [dateKey],
-      );
-
-      final updateData = {
+      final shopId =
+          (data['shopId'] as String?) ?? UserService.getShopIdSync();
+      final updateData = <String, dynamic>{
         'dateKey': dateKey,
+        'firestoreId': docId,
+        if (shopId != null && shopId.isNotEmpty) 'shopId': shopId,
+        'isSynced': 1,
+        'createdAt': data['createdAt'] is Timestamp
+            ? (data['createdAt'] as Timestamp).millisecondsSinceEpoch
+            : (data['createdAt'] ?? DateTime.now().millisecondsSinceEpoch),
         'isLocked': data['isLocked'] == true || data['isLocked'] == 1 ? 1 : 0,
         'lockedBy': data['lockedBy'],
         'lockedAt': data['lockedAt'] is Timestamp
@@ -194,18 +202,7 @@ class CashClosingNotifier {
         'expectedBankDelta': data['expectedBankDelta'] ?? 0,
         'note': data['note'],
       };
-
-      if (existing.isEmpty) {
-        updateData['createdAt'] = DateTime.now().millisecondsSinceEpoch;
-        await dbRaw.insert('cash_closings', updateData);
-      } else {
-        await dbRaw.update(
-          'cash_closings',
-          updateData,
-          where: 'dateKey = ?',
-          whereArgs: [dateKey],
-        );
-      }
+      await _localDb.upsertCashClosing(updateData);
     } catch (e) {
       debugPrint('CashClosingNotifier sync error: $e');
     }
