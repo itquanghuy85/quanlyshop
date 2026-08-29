@@ -4,6 +4,42 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-29q] - fix(finance) TRẢ GÓP + CHỐT QUỸ: ghi nhận tất toán NH đúng kỳ ở Sổ quỹ offline + Báo cáo ngày
+
+**Hoàn tất reconciliation nhóm 11 (trả góp) + 12 (chốt quỹ)** — trước đây NOT VERIFIED / BLOCKED do thiếu dữ liệu test. Rà kỹ code + test máy thật với đơn trả góp giả lập → phát hiện + sửa 1 lỗi accrual thật.
+
+**Lỗi:** đơn trả góp **tất toán ngân hàng ở ngày ≠ ngày bán** không được ghi nhận doanh thu/giá vốn phần tất toán ở 2 màn:
+- `CashClosingView._loadAllDataFromLocalDB` (Sổ quỹ khi **offline** / lúc load nhanh từ local) — dùng `getSalesByDateRange` bound theo `soldAt` → đơn bán kỳ trước, tất toán kỳ này → mất khỏi `settlementSales` → thiếu `settlementIncome` + giá vốn phần còn lại → Sổ quỹ/Chốt quỹ thiếu tiền vào NH, `expectedBank` sai.
+- `FinanceV2DailyReportView._buildAuditAnalysis` (Báo cáo ngày, mục "KẾT QUẢ KINH DOANH") — cùng nguyên nhân.
+- **KHÔNG** ảnh hưởng: `HomeView`, `MonthlyProfitReportView` (đã có truy vấn `settlementSales` riêng theo `settlementReceivedAt`), Sổ quỹ **online** (merge `getUnsyncedSales()` + query Firestore `isInstallment==true` không bound).
+
+**Sửa (KHÔNG đổi schema, KHÔNG đổi cách ghi nhận trả góp):**
+- `db_helper.dart` + 2 truy vấn:
+  - `getSalesByDateRangeForCashFlow(start,end)` = `soldAt` trong khoảng **HOẶC** `isInstallment=1 AND settlementReceivedAt` trong khoảng (trùng khớp truy vấn Firestore của CashClosingView).
+  - `getInstallmentSalesSettledBetween(start,end)` = chỉ đơn trả góp tất toán trong khoảng (không lọc `soldAt`).
+- `cash_closing_view.dart` `_loadAllDataFromLocalDB`: `getSalesByDateRange` → `getSalesByDateRangeForCashFlow`. `_analyzeTransactions` vốn đã tự tách (`sales` theo `soldAt`-in-range, `settlementSales` theo `settlementReceivedAt`-in-range) → an toàn, không đếm đôi.
+- `finance_v2_daily_report_view.dart` `_buildAuditAnalysis`: gộp thêm `getInstallmentSalesSettledBetween` vào `settlementSales`, khử trùng theo key `fid:`/`id:` (đơn vừa bán vừa tất toán trong kỳ chỉ tính 1 lần). Tham số `sales:` giữ nguyên (chỉ `soldAt`-in-range) → không đếm đôi phần cọc.
+
+**Cơ chế bù trừ (không double-count, xác nhận qua code + máy thật):**
+`analyze()` nhánh `sales` (đơn trả góp bán-trong-kỳ): `saleIncome += downPayment`, `saleCost += totalCost × (downPayment/finalPrice)`.
+`analyze()` nhánh `settlementSales` (đơn tất toán-trong-kỳ): `settlementIncome += settlementAmount`, `saleCost += totalCost × (1 − downPayment/finalPrice)`.
+Tổng vòng đời: doanh thu = `downPayment + settlementAmount ≈ finalPrice`; giá vốn = `totalCost`.
+
+**Test máy thật (Oppo CPH2203, shop "M", debug APK, `analyze()` logDebug):** chèn 2 đơn trả góp giả lập + 1 chốt quỹ giả lập 28/08 (mở cọc 1tr/2tr) →
+- Đơn A (bán hôm nay, cọc 3tr/vốn 7tr, chưa tất toán): `saleIncome=3.000.000`, `saleCost += 2.100.000` (7tr×0,3). ✓
+- Đơn B (bán 26/08, cọc 5tr/vốn 15tr, **tất toán hôm nay 15tr**): `settlementIncome=15.000.000`, `bankIn += 15.000.000`, `saleCost += 11.250.000` (15tr×0,75). ✓ ← **phần fix**
+- `analyze()` Sổ quỹ: `cashIn=3.010.000` (3tr cọc TM + 10k thu nợ), `bankIn=15.000.000`, `saleCost=13.350.000`, `netProfit=4.650.000`. ✓
+- **Chốt quỹ (nhóm 12):** màn hình + row `cash_closings` đã lưu: `cashEnd=4.010.000` = `openingCash 1.000.000 + cashIn 3.010.000 − cashOut 0`; `bankEnd=17.000.000` = `openingBank 2.000.000 + bankIn 15.000.000 − bankOut 0`. Công thức `expected = opening + in − out` khớp tuyệt đối. ✓
+- Dọn sạch: 2 đơn + 2 chốt quỹ giả lập đã soft-delete qua SyncOrchestrator (`deleted:true` Firestore) + hard-delete local; DB shop "M" về đúng baseline (6 đơn bán, 0 chốt quỹ, sync_queue rỗng).
+
+**Verify:** `flutter analyze` 0 error/0 warning (3 file); `flutter test` **+410 −11** (0 lỗi mới).
+
+**Files:** `lib/data/db_helper.dart`, `lib/views/cash_closing_view.dart`, `lib/finance_v2/finance_v2_daily_report_view.dart`, `docs/CHANGELOG.md`, `docs/HANDOVER.md`.
+
+**Còn lại (ngoài phạm vi, đã ghi):** FinanceV2 cash snapshot (`loadSnapshot`) có thể cũng thiếu khoản tất toán của đơn trả góp bán-kỳ-trước ở màn TÀI CHÍNH chính (không thuộc reconciliation `analyze()`); `upsertCashClosing` tạo được row `firestoreId=NULL` mà `deleteCashClosingByFirestoreId` không dọn (quirk có sẵn); crash `_dependents.isEmpty`.
+
+---
+
 ## [2026-08-29p] - chore(release) 3.5.0+546: đóng gói bản vá HỆ THỐNG TÀI CHÍNH lên store
 
 **Gói phát hành** cho toàn bộ đợt sửa hệ thống tài chính (`[2026-08-29e]`→`[2026-08-29o]`, 11 commit code + 1 commit docs).

@@ -743,10 +743,35 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     final salesReturns = preloadedSalesReturns ?? await returnsF!;
     final costFundRaw = preloadedCostFundRows ?? await costFundF!;
 
-    final settlementSales = sales
-        .where((s) => s.isInstallment && s.settlementReceivedAt != null && s.settlementReceivedAt! >= startMs && s.settlementReceivedAt! <= endMs)
-        .map((s) => s.toMap())
-        .toList();
+    // Đơn trả góp tất toán trong kỳ có thể đã bán từ kỳ trước → không nằm trong
+    // `sales` (bound theo soldAt). Nạp riêng rồi gộp, khử trùng theo firestoreId
+    // (đơn vừa bán vừa tất toán trong kỳ đã có sẵn trong `sales`). Nhánh `sales`
+    // của analyze() chỉ ghi cọc cho đơn bán-trong-kỳ; nhánh `settlementSales`
+    // ghi phần tất toán → hai nhánh bù trừ, không đếm đôi.
+    final settledInstallments =
+        await _db.getInstallmentSalesSettledBetween(startMs, endMs);
+    final settlementByKey = <String, Map<String, dynamic>>{};
+    void addSettlement(SaleOrder s) {
+      if (!s.isInstallment ||
+          s.settlementReceivedAt == null ||
+          s.settlementReceivedAt! < startMs ||
+          s.settlementReceivedAt! > endMs) {
+        return;
+      }
+      final fid = s.firestoreId;
+      final key = (fid != null && fid.isNotEmpty)
+          ? 'fid:$fid'
+          : (s.id != null ? 'id:${s.id}' : 'obj:${identityHashCode(s)}');
+      settlementByKey[key] = s.toMap();
+    }
+
+    for (final s in sales) {
+      addSettlement(s);
+    }
+    for (final s in settledInstallments) {
+      addSettlement(s);
+    }
+    final settlementSales = settlementByKey.values.toList();
     // Use dedicated cost-fund query (by costRecordedAt) so repairs delivered on a
     // different day are still included when the cost was recorded in this period.
     final repairPartsCostFundRows = costFundRaw

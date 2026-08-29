@@ -5505,6 +5505,72 @@ class DBHelper {
     return List.generate(maps.length, (i) => SaleOrder.fromMap(maps[i]));
   }
 
+  /// Như [getSalesByDateRange] nhưng CÓ THÊM các đơn trả góp được tất toán
+  /// (`settlementReceivedAt`) trong khoảng — kể cả khi đã bán từ trước khoảng.
+  /// Dùng cho dòng tiền / Sổ quỹ / Báo cáo ngày: khoản tất toán ngân hàng của
+  /// đơn trả góp thường về sau ngày bán rất lâu, bound theo `soldAt` một mình
+  /// sẽ làm mất khoản đó khỏi kỳ. Trùng khớp truy vấn Firestore của
+  /// `CashClosingView` (nhánh `isInstallment == true` không bound theo ngày).
+  ///
+  /// Người gọi TỰ TÁCH để `analyze()` không đếm đôi:
+  /// - đơn có `soldAt` trong khoảng  → danh sách `sales` (ghi cọc + giá vốn theo tỉ lệ cọc)
+  /// - đơn có `settlementReceivedAt` trong khoảng → danh sách `settlementSales`
+  ///   (ghi phần tất toán + giá vốn phần còn lại) — hai nhánh bù trừ nhau.
+  Future<List<SaleOrder>> getSalesByDateRangeForCashFlow(
+    int startMs,
+    int endMs,
+  ) async {
+    final shopId = UserService.getShopIdSync();
+    final db = await database;
+    final hasShop = shopId != null && shopId.isNotEmpty;
+    final where = StringBuffer();
+    final args = <Object?>[];
+    if (hasShop) {
+      where.write('(shopId = ? OR shopId IS NULL) AND ');
+      args.add(shopId);
+    }
+    where.write('(deleted = 0 OR deleted IS NULL) AND (');
+    where.write('(soldAt >= ? AND soldAt <= ?)');
+    args.addAll([startMs, endMs]);
+    where.write(
+      ' OR (isInstallment = 1 AND settlementReceivedAt IS NOT NULL '
+      'AND settlementReceivedAt >= ? AND settlementReceivedAt <= ?)',
+    );
+    args.addAll([startMs, endMs]);
+    where.write(')');
+    final maps = await db.query(
+      'sales',
+      where: where.toString(),
+      whereArgs: args,
+      orderBy: 'soldAt DESC',
+    );
+    return List.generate(maps.length, (i) => SaleOrder.fromMap(maps[i]));
+  }
+
+  /// Đơn trả góp có `settlementReceivedAt` (ngày nhận tiền tất toán từ ngân
+  /// hàng) nằm trong khoảng — KHÔNG lọc theo `soldAt`, vì đơn thường bán từ
+  /// trước rất lâu. Dùng để bổ sung danh sách `settlementSales` cho `analyze()`
+  /// khi danh sách `sales` chỉ bound theo `soldAt`.
+  Future<List<SaleOrder>> getInstallmentSalesSettledBetween(
+    int startMs,
+    int endMs,
+  ) async {
+    final shopId = UserService.getShopIdSync();
+    final db = await database;
+    final hasShop = shopId != null && shopId.isNotEmpty;
+    final maps = await db.query(
+      'sales',
+      where:
+          '${hasShop ? '(shopId = ? OR shopId IS NULL) AND ' : ''}'
+          '(deleted = 0 OR deleted IS NULL) AND isInstallment = 1 '
+          'AND settlementReceivedAt IS NOT NULL '
+          'AND settlementReceivedAt >= ? AND settlementReceivedAt <= ?',
+      whereArgs: hasShop ? [shopId, startMs, endMs] : [startMs, endMs],
+      orderBy: 'settlementReceivedAt DESC',
+    );
+    return List.generate(maps.length, (i) => SaleOrder.fromMap(maps[i]));
+  }
+
   Future<SaleOrder?> getSaleByFirestoreId(String firestoreId) async {
     final res = await (await database).query(
       'sales',

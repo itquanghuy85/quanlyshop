@@ -720,7 +720,11 @@ class _CashClosingViewState extends State<CashClosingView>
       59,
       59,
     ).millisecondsSinceEpoch;
-    final sales = await db.getSalesByDateRange(startMs, endMs);
+    // Bao gồm cả đơn trả góp tất toán trong khoảng (bán từ trước) — nếu không,
+    // khoản tiền tất toán ngân hàng sẽ mất khỏi Sổ quỹ/Chốt quỹ khi offline.
+    // `_analyzeTransactions` tự tách: soldAt-in-range → nhánh bán;
+    // settlementReceivedAt-in-range → nhánh tất toán (không đếm đôi).
+    final sales = await db.getSalesByDateRangeForCashFlow(startMs, endMs);
     final repairs = await db.getRepairsByCreatedAtRange(startMs, endMs);
     // Load separately by costRecordedAt to catch repairs created on other days
     // but with cost paid/recorded in this period.
