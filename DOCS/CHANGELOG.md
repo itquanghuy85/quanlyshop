@@ -4,6 +4,30 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-29h] - fix(finance) PHASE 1.4: `updateDebtPaid` định vị công nợ theo firestoreId + tính lại paidAmount từ tổng phiếu + status HOA
+
+**Bối cảnh (đợt AUDIT — phát hiện M1):** `db.updateDebtPaid(int id, int pay)` có 3 vấn đề: (a) `WHERE id = ?` dùng id local — `debt_payments.debtId` / `debts.id` không ổn định sau khi dựng lại DB từ cloud, đã thấy trỏ sai công nợ; (b) `paidAmount = paidAmount + pay` không idempotent — gọi lại do retry/echo sync là cộng đôi; (c) ghi `status` chữ thường `'paid'/'unpaid'` trong khi toàn app dùng `'PAID'/'ACTIVE'/'UNPAID'`.
+
+**Đã sửa:**
+- `lib/data/db_helper.dart` — `updateDebtPaid` đổi chữ ký `(int? id, {String? firestoreId})`:
+  - Định vị công nợ theo `firestoreId` trước (khoá ổn định), fallback `id` local.
+  - `paidAmount` = **TỔNG các phiếu `debt_payments` chưa xóa** của đúng công nợ đó (tính lại, không `+= pay`) → idempotent (retry không cộng đôi) + tự khớp lại nếu trước đó lệch (vd. sau khi soft-delete phiếu mồ côi ở PHASE 1.2). KHÔNG cap bằng `MIN(total)` — nếu thu vượt gốc thì để số thật lộ ra (`remain` vẫn clamp ≥ 0 ở tầng hiển thị, xem `bug_fixes_test.dart` BUG-002) + ghi cảnh báo logcat.
+  - `status` ghi HOA `'PAID'`/`'UNPAID'`.
+  - Yêu cầu: phiếu `debt_payments` đã `insertDebtPayment` TRƯỚC khi gọi (2 caller hiện tại đều đúng thứ tự).
+- `lib/services/payment_intent_service.dart` — 2 call site (`customerDebtCollection`/`supplierDebt`/… và `repairService`): truyền `firestoreId: debtFid`, gọi khi có `localDebtId` HOẶC `debtFid`.
+
+**Verify:**
+- `flutter analyze` (2 file): 0 error / 0 warning. `flutter test`: **+410 −11** (không hồi quy).
+- Máy thật (Oppo CPH2203) — thu 10.000đ công nợ ABC (`debt_1787452233379`, gốc 12tr, chưa trả) qua nút THU TIỀN → FIFO → XÁC NHẬN:
+  - UI: "Còn 11.990.000đ"; sale detail "CÒN NỢ 11.99 Tr / đã thu 10.000"; Finance Công nợ "Phải thu 11.99 Tr".
+  - SQLite (đọc kèm `-wal`): `debts.paidAmount = 10000` (= đúng tổng phiếu), `status = 'UNPAID'` (HOA — logic mới), `debt_payments` 1 dòng 10000 `deleted=0`.
+  - `financial_activity_log` id 82 `CUSTOMER_DEBT_COLLECT` IN 10000. logcat: không có cảnh báo "VƯỢT totalAmount" (10k << 12M — đúng).
+  - **Lưu ý:** để lại 1 phiếu thu test 10.000đ trên công nợ ABC (tài khoản test, vô hại).
+
+**Files:** `lib/data/db_helper.dart`, `lib/services/payment_intent_service.dart`.
+
+---
+
 ## [2026-08-29g] - fix(finance) PHASE 1.3: chặn đơn CÔNG NỢ có thành tiền ≤ 0 + không hạ công nợ thật về 0
 
 **Bối cảnh (đợt AUDIT):** DB test có 1 đơn bán CÔNG NỢ 10.000.000đ (`sale_1787034406889`) mà công nợ liên kết (`debt_1787034406889`) có `totalAmount = 0` → 10tr khách nợ "tàng hình" ở tab Nợ phải thu (danh sách đơn bán còn hiển thị "ĐÃ THU"), trong khi vẫn vào doanh thu dồn tích của `analyze()`. Không tái hiện được chính xác bước gây ra (data cũ), nhưng khoanh được 2 điểm ghi `debt.totalAmount = finalPrice`: `create_sale_view` (lúc tạo) và `sale_detail_view._openEditSaleDialog` (lúc sửa) — không nơi nào chặn `finalPrice ≤ 0`, và `create_sale_view` chỉ chặn `totalPrice ≤ 0` (chưa đủ: giảm giá có thể bằng/vượt tổng tiền).

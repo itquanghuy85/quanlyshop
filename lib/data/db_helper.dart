@@ -7346,11 +7346,73 @@ class DBHelper {
         whereArgs: ['CÔNG NỢ', 'PENDING'],
         orderBy: 'createdAt DESC',
       );
-  Future<int> updateDebtPaid(int id, int pay) async {
+  /// Cập nhật `paidAmount`/`status` của 1 công nợ sau khi ghi phiếu thu/trả.
+  ///
+  /// Khác bản cũ (`paidAmount = paidAmount + pay` với `WHERE id = ?`):
+  /// - Định vị công nợ theo `firestoreId` (khoá ổn định) trước, chỉ fallback
+  ///   `id` local khi không có firestoreId — id local có thể lệch sau khi dựng
+  ///   lại DB từ cloud (đã thấy `debt_payments.debtId` trỏ sai công nợ).
+  /// - `paidAmount` = TỔNG các phiếu chưa xóa của đúng công nợ đó (tính lại từ
+  ///   `debt_payments`), nên idempotent — gọi lại do retry/echo sync không cộng
+  ///   đôi; và tự khớp lại nếu trước đó bị lệch (vd. sau khi soft-delete phiếu
+  ///   mồ côi lúc VOID đơn). KHÔNG cap bằng MIN(total): nếu thu vượt gốc thì để
+  ///   số thật lộ ra (`remain` vẫn được clamp ≥ 0 ở tầng hiển thị) + ghi cảnh
+  ///   báo logcat.
+  /// - `status` ghi HOA `'PAID'`/`'UNPAID'` cho khớp phần còn lại của app
+  ///   (`updateDebt`, `create_sale_view` dùng `'PAID'`/`'ACTIVE'`).
+  ///
+  /// Yêu cầu: phiếu `debt_payments` tương ứng đã được `insertDebtPayment` TRƯỚC
+  /// khi gọi hàm này (các caller hiện tại đều theo thứ tự đó).
+  Future<int> updateDebtPaid(int? id, {String? firestoreId}) async {
     final now = DateTime.now().millisecondsSinceEpoch;
-    return await (await database).rawUpdate(
-      'UPDATE debts SET paidAmount = paidAmount + ?, status = CASE WHEN (paidAmount + ?) >= totalAmount THEN ? ELSE ? END, updatedAt = ?, isSynced = 0 WHERE id = ?',
-      [pay, pay, 'paid', 'unpaid', now, id],
+    final db = await database;
+
+    final useFid = firestoreId != null && firestoreId.isNotEmpty;
+    final rows = await db.query(
+      'debts',
+      columns: ['id', 'firestoreId', 'totalAmount'],
+      where: useFid ? 'firestoreId = ?' : 'id = ?',
+      whereArgs: [useFid ? firestoreId : id],
+      limit: 1,
+    );
+    if (rows.isEmpty) {
+      debugPrint(
+        '⚠️ updateDebtPaid: không tìm thấy công nợ (fid=$firestoreId id=$id)',
+      );
+      return 0;
+    }
+    final debtRow = rows.first;
+    final debtLocalId = debtRow['id'] as int?;
+    final debtFid = debtRow['firestoreId'] as String?;
+    final total = (debtRow['totalAmount'] as int?) ?? 0;
+    if (debtLocalId == null) return 0;
+
+    final sumRows = await db.rawQuery(
+      '''
+      SELECT COALESCE(SUM(amount), 0) AS s
+      FROM debt_payments
+      WHERE COALESCE(deleted, 0) != 1
+        AND (
+          (debtFirestoreId IS NOT NULL AND debtFirestoreId != '' AND debtFirestoreId = ?)
+          OR ((debtFirestoreId IS NULL OR debtFirestoreId = '') AND debtId = ?)
+        )
+      ''',
+      [debtFid ?? '', debtLocalId],
+    );
+    final newPaid = (sumRows.first['s'] as int?) ?? 0;
+
+    if (total > 0 && newPaid > total) {
+      debugPrint(
+        '⚠️ updateDebtPaid: paidAmount ($newPaid) VƯỢT totalAmount ($total) '
+        'của công nợ $debtFid — giữ số thật, không cap.',
+      );
+    }
+
+    return await db.rawUpdate(
+      'UPDATE debts SET paidAmount = ?, '
+      'status = CASE WHEN ? >= totalAmount THEN ? ELSE ? END, '
+      'updatedAt = ?, isSynced = 0 WHERE id = ?',
+      [newPaid, newPaid, 'PAID', 'UNPAID', now, debtLocalId],
     );
   }
 

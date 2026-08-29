@@ -779,7 +779,7 @@ class PaymentIntentService {
             'isSynced': 0,
           });
 
-          // Update debt paidAmount
+          // Update debt paidAmount — ưu tiên định vị theo firestoreId.
           int? localDebtId;
           if (debtId is int) {
             localDebtId = debtId;
@@ -788,11 +788,11 @@ class PaymentIntentService {
           } else if (debtId is String) {
             localDebtId = int.tryParse(debtId);
           }
-          if (localDebtId == null && debtFirestoreId is String && debtFirestoreId.isNotEmpty) {
-            localDebtId = await _db.getDebtIdByFirestoreId(debtFirestoreId);
-          }
-          if (localDebtId != null) {
-            await _db.updateDebtPaid(localDebtId, intent.amount);
+          final debtFid = debtFirestoreId is String && debtFirestoreId.isNotEmpty
+              ? debtFirestoreId
+              : null;
+          if (localDebtId != null || debtFid != null) {
+            await _db.updateDebtPaid(localDebtId, firestoreId: debtFid);
           }
 
           // Nợ NCC phát sinh lúc nhập kho (linkedId = stockEntryId) — trả
@@ -872,7 +872,7 @@ class PaymentIntentService {
             'isSynced': 0,
           });
           
-          // Update debt paidAmount
+          // Update debt paidAmount — ưu tiên định vị theo firestoreId.
           int? localDebtId;
           if (debtId is int) {
             localDebtId = debtId;
@@ -881,15 +881,15 @@ class PaymentIntentService {
           } else if (debtId is String) {
             localDebtId = int.tryParse(debtId);
           }
-          if (localDebtId == null && debtFirestoreId is String && debtFirestoreId.isNotEmpty) {
-            localDebtId = await _db.getDebtIdByFirestoreId(debtFirestoreId);
-          }
-          if (localDebtId != null) {
-            await _db.updateDebtPaid(localDebtId, intent.amount);
+          final debtFid = debtFirestoreId is String && debtFirestoreId.isNotEmpty
+              ? debtFirestoreId
+              : null;
+          if (localDebtId != null || debtFid != null) {
+            await _db.updateDebtPaid(localDebtId, firestoreId: debtFid);
           }
         }
         break;
-        
+
       case PaymentIntentType.repairPartnerDebt:
         // Partner debt payment
         if (intent.metadata != null && intent.metadata!['partnerId'] != null) {
