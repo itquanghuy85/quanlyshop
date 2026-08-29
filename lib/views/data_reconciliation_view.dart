@@ -1088,6 +1088,7 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
   List<Map<String, dynamic>> _orphanExpFal = [];
   List<Map<String, dynamic>> _stockMismatch = [];
   List<Map<String, dynamic>> _voidedIntents = [];
+  List<Map<String, dynamic>> _misbookedVoids = [];
   bool _loading = true;
 
   @override
@@ -1107,6 +1108,7 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
     final stockMis = await DataReconciliationService.findStockStatusMismatch();
     final voided =
         await DataReconciliationService.findVoidedTxnPaymentIntents();
+    final misVoids = await DataReconciliationService.findMisbookedVoids();
     if (!mounted) return;
     setState(() {
       _orphans = orphans;
@@ -1116,8 +1118,35 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
       _orphanExpFal = orphanExp;
       _stockMismatch = stockMis;
       _voidedIntents = voided;
+      _misbookedVoids = misVoids;
       _loading = false;
     });
+  }
+
+  Future<void> _fixMisVoid(Map<String, dynamic> v) async {
+    final diff = (v['diff'] as num?)?.toInt() ?? 0;
+    final proceed = await _confirmSummary(
+      context,
+      title: 'Điều chỉnh biên độ VOID',
+      lines: [
+        '${v['title'] ?? ''} • ${v['referenceId'] ?? ''}',
+        'VOID ghi ${MoneyUtils.formatCurrency(_mi(v, 'amount'))}đ nhưng thực thu '
+            '${MoneyUtils.formatCurrency(_mi(v, 'receivedIn'))}đ → lệch '
+            '${MoneyUtils.formatCurrency(diff)}đ.',
+        'Ghi 1 dòng bù (${diff > 0 ? 'THU' : 'CHI'} ${MoneyUtils.formatCurrency(diff.abs())}đ) '
+            'để net = 0. KHÔNG xóa dòng gốc.',
+      ],
+      withReversal: false,
+    );
+    if (proceed != true || !mounted || !await _confirmPassword(context)) return;
+    await DataReconciliationService.fixMisbookedVoid(
+      v,
+      reason: 'Công cụ dọn dữ liệu tài chính (AUDIT D-3b)',
+    );
+    if (!mounted) return;
+    NotificationService.showSnackBar('✅ Đã điều chỉnh biên độ VOID',
+        color: Colors.green);
+    _load();
   }
 
   int _mi(Map m, String k) => (m[k] as num?)?.toInt() ?? 0;
@@ -1270,7 +1299,8 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
         _foreignRetItems.isEmpty &&
         _orphanExpFal.isEmpty &&
         _stockMismatch.isEmpty &&
-        _voidedIntents.isEmpty;
+        _voidedIntents.isEmpty &&
+        _misbookedVoids.isEmpty;
     if (nothing) {
       return _emptyState('Không phát hiện dữ liệu tài chính cần dọn 👍');
     }
@@ -1337,6 +1367,32 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
               trailing: TextButton(
                 onPressed: () => _reverseExpFal(f),
                 child: const Text('Đảo'),
+              ),
+            ),
+          ),
+        ],
+        if (_misbookedVoids.isNotEmpty) ...[
+          _sectionHeader(
+            'Bút toán VOID sai biên độ (${_misbookedVoids.length})',
+            'SALE_VOID/REPAIR_VOID ghi số tiền khác phần thực thu → sổ đối soát lệch.',
+          ),
+          ..._misbookedVoids.map(
+            (v) => ListTile(
+              dense: true,
+              leading: const Icon(Icons.rule, color: Colors.red, size: 20),
+              title: Text(
+                '${v['title'] ?? ''} • lệch ${MoneyUtils.formatCurrency(_mi(v, 'diff'))}đ',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              subtitle: Text(
+                'VOID ${MoneyUtils.formatCurrency(_mi(v, 'amount'))}đ • thực thu '
+                '${MoneyUtils.formatCurrency(_mi(v, 'receivedIn'))}đ\n${v['referenceId'] ?? ''}',
+                style: const TextStyle(fontSize: 11),
+              ),
+              isThreeLine: true,
+              trailing: TextButton(
+                onPressed: () => _fixMisVoid(v),
+                child: const Text('Bù'),
               ),
             ),
           ),

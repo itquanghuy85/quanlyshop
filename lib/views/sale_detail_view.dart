@@ -1539,6 +1539,12 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       int debtDeleted = 0;
       int intentDeleted = 0;
 
+      // D-3b: phần tiền THỰC SỰ đã thu — tính TRƯỚC khi soft-delete
+      // debt_payments ở bước 2B. SALE_VOID phải đảo đúng phần này, không phải
+      // finalPrice (đơn CÔNG NỢ thu 1 phần → nếu ghi cả finalPrice, sổ đối
+      // soát dư một khoản OUT ảo).
+      final saleReceived = await FinancialActivityService.saleCashReceived(s);
+
       // 2A: Khôi phục inventory
       final imeis = s.productImeis.split(RegExp(r'\s*,\s*'));
       final names = s.productNames.split(RegExp(r'\s*,\s*'));
@@ -1695,24 +1701,29 @@ class _SaleDetailViewState extends State<SaleDetailView> {
         debugPrint('⚠️ Failed to revert customer stats: $e');
       }
 
-      // 2E: Log financial reversal
-      try {
-        await FinancialActivityService.logCustomActivity(
-          activityType: 'SALE_VOID',
-          amount: finalPrice,
-          direction: 'OUT',
-          paymentMethod: s.paymentMethod,
-          title: 'HỦY ĐƠN BÁN',
-          description:
-              'Hủy đơn: ${s.productNamesDisplay}. KH: ${s.customerName}',
-          customerName: s.customerName,
-          phone: s.walkInPhone ?? s.phone,
-          productInfo: s.productNamesDisplay,
-          referenceType: 'sale',
-          referenceId: s.firestoreId,
-        );
-      } catch (e) {
-        debugPrint('⚠️ Failed to log financial reversal: $e');
+      // 2E: Log financial reversal — SỐ TIỀN = phần đã thu thật (D-3b), không
+      // phải finalPrice. Đơn chưa thu đồng nào → không ghi bút toán (tránh OUT ảo).
+      if (saleReceived > 0) {
+        try {
+          await FinancialActivityService.logCustomActivity(
+            activityType: 'SALE_VOID',
+            amount: saleReceived,
+            direction: 'OUT',
+            paymentMethod: s.paymentMethod,
+            title: 'HỦY ĐƠN BÁN',
+            description:
+                'Hủy đơn: ${s.productNamesDisplay}. KH: ${s.customerName}. '
+                'Đã thu $saleReceived đ'
+                '${saleReceived != finalPrice ? ' / giá đơn $finalPrice đ' : ''}.',
+            customerName: s.customerName,
+            phone: s.walkInPhone ?? s.phone,
+            productInfo: s.productNamesDisplay,
+            referenceType: 'sale',
+            referenceId: s.firestoreId,
+          );
+        } catch (e) {
+          debugPrint('⚠️ Failed to log financial reversal: $e');
+        }
       }
 
       // 2F: Soft-delete trên cloud TRƯỚC (tránh real-time sync tải lại sale)

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../data/db_helper.dart';
 import '../models/financial_activity_model.dart';
+import '../models/sale_order_model.dart';
 import 'user_service.dart';
 import 'event_bus.dart';
 
@@ -8,6 +9,41 @@ import 'event_bus.dart';
 /// Tự động gọi khi có các thay đổi tài chính: bán hàng, chi phí, thu nợ, tất toán...
 class FinancialActivityService {
   static final DBHelper _db = DBHelper();
+
+  /// Số tiền THỰC SỰ đã thu về từ 1 đơn bán (dùng để ghi bút toán đảo khi VOID —
+  /// SALE_VOID phải bằng đúng phần tiền đã vào, KHÔNG phải `finalPrice`, nếu
+  /// không sổ đối soát lệch với đơn CÔNG NỢ mới thu 1 phần).
+  /// - CÔNG NỢ: tổng `debt_payments` chưa xóa của công nợ liên kết.
+  /// - Trả góp: downPayment + settlementAmount.
+  /// - KẾT HỢP: cashAmount + transferAmount.
+  /// - Còn lại (TIỀN MẶT / CHUYỂN KHOẢN trực tiếp): finalPrice.
+  ///
+  /// PHẢI gọi TRƯỚC khi soft-delete debt_payments trong luồng VOID.
+  static Future<int> saleCashReceived(SaleOrder s) async {
+    final pm = s.paymentMethod.toUpperCase();
+    if (pm == 'CÔNG NỢ') {
+      final fid = s.firestoreId;
+      if (fid == null || fid.isEmpty) return 0;
+      final debts = await _db.getDebtsByLinkedId(fid);
+      int sum = 0;
+      for (final d in debts) {
+        final dfid = d['firestoreId'] as String?;
+        if (dfid == null || dfid.isEmpty) continue;
+        final pays = await _db.getDebtPaymentsByDebtFirestoreId(dfid);
+        for (final p in pays) {
+          sum += (p['amount'] as num?)?.toInt() ?? 0;
+        }
+      }
+      return sum;
+    }
+    if (s.isInstallment) {
+      return (s.downPayment) + (s.settlementAmount);
+    }
+    if (pm == 'KẾT HỢP' && (s.cashAmount + s.transferAmount) > 0) {
+      return s.cashAmount + s.transferAmount;
+    }
+    return s.finalPrice;
+  }
 
   /// Ghi log bán hàng
   static Future<void> logSale({

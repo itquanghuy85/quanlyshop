@@ -239,6 +239,10 @@ class DataReconciliationService {
   ) async {
     final saleRef = s.firestoreId ?? 'sale_${s.soldAt}';
     final finalPrice = s.finalPrice;
+    // D-3b: phần tiền THỰC SỰ đã thu về — tính TRƯỚC khi soft-delete
+    // debt_payments ở bước 2. SALE_VOID phải đảo đúng phần này, không phải
+    // finalPrice (đơn CÔNG NỢ thu 1 phần).
+    final saleReceived = await FinancialActivityService.saleCashReceived(s);
     int restoredCount = 0;
     int debtDeleted = 0;
     int debtAmount = 0;
@@ -360,23 +364,29 @@ class DataReconciliationService {
       debugPrint('⚠️ DataReconciliation: revert customer stats failed: $e');
     }
 
-    // 5. Ghi bút toán bù trừ
-    try {
-      await FinancialActivityService.logCustomActivity(
-        activityType: 'SALE_VOID',
-        amount: finalPrice,
-        direction: 'OUT',
-        paymentMethod: s.paymentMethod,
-        title: 'HỦY ĐƠN BÁN (điều chỉnh dữ liệu)',
-        description: 'Xóa đơn: ${s.productNamesDisplay}. KH: ${s.customerName}',
-        customerName: s.customerName,
-        phone: s.walkInPhone ?? s.phone,
-        productInfo: s.productNamesDisplay,
-        referenceType: 'sale',
-        referenceId: s.firestoreId,
-      );
-    } catch (e) {
-      debugPrint('⚠️ DataReconciliation: log SALE_VOID failed: $e');
+    // 5. Ghi bút toán bù trừ — SỐ TIỀN = phần đã thu thật (D-3b), không phải
+    // finalPrice. Đơn chưa thu đồng nào → không ghi bút toán (tránh OUT ảo).
+    if (saleReceived > 0) {
+      try {
+        await FinancialActivityService.logCustomActivity(
+          activityType: 'SALE_VOID',
+          amount: saleReceived,
+          direction: 'OUT',
+          paymentMethod: s.paymentMethod,
+          title: 'HỦY ĐƠN BÁN (điều chỉnh dữ liệu)',
+          description:
+              'Xóa đơn: ${s.productNamesDisplay}. KH: ${s.customerName}. '
+              'Đã thu $saleReceived đ'
+              '${saleReceived != finalPrice ? ' / giá đơn $finalPrice đ' : ''}.',
+          customerName: s.customerName,
+          phone: s.walkInPhone ?? s.phone,
+          productInfo: s.productNamesDisplay,
+          referenceType: 'sale',
+          referenceId: s.firestoreId,
+        );
+      } catch (e) {
+        debugPrint('⚠️ DataReconciliation: log SALE_VOID failed: $e');
+      }
     }
 
     await _deleteSaleRecord(s);
@@ -697,8 +707,68 @@ class DataReconciliationService {
       action: 'RECONCILE_REVERSE_ORPHAN_EXPENSE',
       entityType: 'financial_activity_log',
       entityId: (fal['firestoreId'] as String?) ?? 'fal_${fal['id']}',
-      summary: 'Đảo khoản chi ma ${amount}đ (${fal['title']}) — $reason',
+      summary: 'Đảo khoản chi ma $amount đ (${fal['title']}) — $reason',
       payload: {'amount': amount, 'referenceId': refId, 'reason': reason},
+    );
+  }
+
+  /// D-3b — bút toán SALE_VOID/REPAIR_VOID ghi SAI biên độ: entry OUT có số
+  /// tiền KHÁC tổng phần đã thu (SALE IN + DEBT_COLLECT IN) của cùng giao dịch
+  /// → sổ đối soát lệch. Chỉ lấy entry mà giao dịch gốc KHÔNG còn (đã VOID hẳn).
+  /// Trả về kèm cột phụ `receivedIn` (tổng IN) và `diff` (void - received).
+  static Future<List<Map<String, dynamic>>> findMisbookedVoids() async {
+    final db = await _db.database;
+    return db.rawQuery('''
+      SELECT v.*,
+        COALESCE((
+          SELECT SUM(i.amount) FROM financial_activity_log i
+          WHERE i.direction = 'IN'
+            AND i.activityType IN ('SALE','CUSTOMER_DEBT_COLLECT','REPAIR','SETTLEMENT')
+            AND (i.referenceId = v.referenceId
+                 OR i.referenceId LIKE '%' || REPLACE(v.referenceId,'sale_','') || '%'
+                 OR REPLACE(i.referenceId,'debt_','') LIKE '%' || REPLACE(v.referenceId,'sale_','') || '%')
+        ), 0) AS receivedIn
+      FROM financial_activity_log v
+      WHERE v.activityType IN ('SALE_VOID','REPAIR_VOID')
+        AND v.direction = 'OUT'
+        AND v.referenceId IS NOT NULL AND v.referenceId != ''
+    ''').then((rows) => rows
+        .map((r) => {
+              ...r,
+              'diff': ((r['amount'] as num?)?.toInt() ?? 0) -
+                  ((r['receivedIn'] as num?)?.toInt() ?? 0),
+            })
+        .where((r) => (r['diff'] as int) != 0)
+        .toList());
+  }
+
+  /// Ghi 1 dòng bù để đưa net của giao dịch VOID sai biên độ về 0. KHÔNG xóa
+  /// dòng gốc (append-only). diff>0 → void ghi thừa → bù 1 dòng IN |diff|.
+  /// diff<0 → void ghi thiếu → bù 1 dòng OUT |diff|.
+  static Future<void> fixMisbookedVoid(
+    Map<String, dynamic> v, {
+    required String reason,
+  }) async {
+    final diff = (v['diff'] as num?)?.toInt() ?? 0;
+    if (diff == 0) return;
+    await FinancialActivityService.logCustomActivity(
+      activityType: 'VOID_AMOUNT_ADJUST',
+      amount: diff.abs(),
+      direction: diff > 0 ? 'IN' : 'OUT',
+      paymentMethod: (v['paymentMethod'] as String?) ?? 'TIỀN MẶT',
+      title: 'Điều chỉnh biên độ VOID: ${v['title'] ?? ''}',
+      description: reason,
+      referenceType: 'reconcile_reversal',
+      referenceId: v['referenceId'] as String?,
+    );
+    await AuditService.logAction(
+      action: 'RECONCILE_FIX_MISBOOKED_VOID',
+      entityType: 'financial_activity_log',
+      entityId: (v['firestoreId'] as String?) ?? 'fal_${v['id']}',
+      summary:
+          'Bù ${diff.abs()} đ (${diff > 0 ? 'THU' : 'CHI'}) cho VOID sai biên độ '
+          '${v['referenceId']} — $reason',
+      payload: {'diff': diff, 'referenceId': v['referenceId'], 'reason': reason},
     );
   }
 
