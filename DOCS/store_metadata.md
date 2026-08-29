@@ -62,6 +62,7 @@ Quản lý tiệm sửa điện thoại, bán hàng, kho, tài chính toàn di�
 - Công nợ khách hiển thị sai "số đã trả" và trạng thái còn nợ → đã fix
 - Đơn công nợ có thể tạo với thành tiền = 0 do nhập nhầm giảm giá → đã chặn
 - Đơn bán dưới giá vốn không hiển thị lỗ → nay hiện đúng lỗ âm
+- Trả góp: khoản tất toán NH nhận khác ngày bán bị sót khỏi Sổ quỹ / Báo cáo ngày → đã fix
 
 ### Cải tiến
 - Phân biệt rõ "Dòng tiền" (tiền thực thu/chi) và "Kết quả kinh doanh"

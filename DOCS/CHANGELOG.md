@@ -34,7 +34,9 @@ Tổng vòng đời: doanh thu = `downPayment + settlementAmount ≈ finalPrice`
 
 **Verify:** `flutter analyze` 0 error/0 warning (3 file); `flutter test` **+410 −11** (0 lỗi mới).
 
-**Files:** `lib/data/db_helper.dart`, `lib/views/cash_closing_view.dart`, `lib/finance_v2/finance_v2_daily_report_view.dart`, `docs/CHANGELOG.md`, `docs/HANDOVER.md`.
+**Đóng gói:** `pubspec` `3.5.0+546` → **`3.5.0+547`**, build lại AAB (`flutter build appbundle --release --obfuscate --split-debug-info=build/debug-info`) để gồm fix này. Build `+546` trước đó chưa upload store → bỏ, dùng `+547`.
+
+**Files:** `pubspec.yaml`, `lib/data/db_helper.dart`, `lib/views/cash_closing_view.dart`, `lib/finance_v2/finance_v2_daily_report_view.dart`, `docs/CHANGELOG.md`, `docs/HANDOVER.md`, `docs/store_metadata.md`, `docs/release_notes_2026-08-29.md`.
 
 **Còn lại (ngoài phạm vi, đã ghi):** FinanceV2 cash snapshot (`loadSnapshot`) có thể cũng thiếu khoản tất toán của đơn trả góp bán-kỳ-trước ở màn TÀI CHÍNH chính (không thuộc reconciliation `analyze()`); `upsertCashClosing` tạo được row `firestoreId=NULL` mà `deleteCashClosingByFirestoreId` không dọn (quirk có sẵn); crash `_dependents.isEmpty`.
 

@@ -1,6 +1,6 @@
 # Ghi chú cập nhật — Quản Lý Shop (29/08/2026)
 
-**Phiên bản:** 3.5.0 (build 546)
+**Phiên bản:** 3.5.0 (build 547)
 
 Dành để đăng lên Google Play (Play Console) và App Store (App Store Connect), mục "Thông tin mới trong phiên bản này". Viết cho người dùng thường, không có thuật ngữ kỹ thuật.
 
@@ -15,6 +15,7 @@ Dành để đăng lên Google Play (Play Console) và App Store (App Store Conn
 - Sửa lỗi công nợ khách hiển thị sai "số đã trả" — giờ luôn bằng đúng tổng các phiếu thu, trạng thái "còn nợ / đã trả" cũng cập nhật chính xác theo.
 - Chặn tạo đơn công nợ có thành tiền bằng 0 (do nhập nhầm giảm giá), và không để công nợ thật bị đưa về 0 khi sửa đơn.
 - Đơn bán dưới giá vốn giờ hiển thị đúng là **lỗ** (trước đây bị làm tròn về 0).
+- Sửa lỗi đơn **trả góp**: khoản tất toán ngân hàng nhận ở ngày khác ngày bán không được tính vào doanh thu/dòng tiền của Sổ quỹ và Báo cáo ngày (khi mở nhanh từ máy / lúc mất mạng).
 
 **✨ Cải tiến**
 
