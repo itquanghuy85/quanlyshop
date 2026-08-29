@@ -28,6 +28,8 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 **Files:** `lib/widgets/keyboard_aware_padding.dart` (mới) + 17 file view/widget nêu trên + `docs/CHANGELOG.md` + `docs/HANDOVER.md`.
 
+**Đóng gói:** `pubspec` `3.5.0+547` → **`3.5.0+548`**, build lại AAB gồm fix này. Các build `+546`/`+547` chưa upload store → bỏ.
+
 ---
 
 ## [2026-08-29q] - fix(finance) TRẢ GÓP + CHỐT QUỸ: ghi nhận tất toán NH đúng kỳ ở Sổ quỹ offline + Báo cáo ngày

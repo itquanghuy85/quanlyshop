@@ -63,6 +63,7 @@ Quản lý tiệm sửa điện thoại, bán hàng, kho, tài chính toàn di�
 - Đơn công nợ có thể tạo với thành tiền = 0 do nhập nhầm giảm giá → đã chặn
 - Đơn bán dưới giá vốn không hiển thị lỗ → nay hiện đúng lỗ âm
 - Trả góp: khoản tất toán NH nhận khác ngày bán bị sót khỏi Sổ quỹ / Báo cáo ngày → đã fix
+- Bàn phím che ô nhập ở nhiều bảng trượt (ghi chú KTV, thu/trả nợ, ghi chi, chấm công…) → đã fix
 
 ### Cải tiến
 - Phân biệt rõ "Dòng tiền" (tiền thực thu/chi) và "Kết quả kinh doanh"

@@ -1,6 +1,6 @@
 # Ghi chú cập nhật — Quản Lý Shop (29/08/2026)
 
-**Phiên bản:** 3.5.0 (build 547)
+**Phiên bản:** 3.5.0 (build 548)
 
 Dành để đăng lên Google Play (Play Console) và App Store (App Store Connect), mục "Thông tin mới trong phiên bản này". Viết cho người dùng thường, không có thuật ngữ kỹ thuật.
 
@@ -21,6 +21,7 @@ Dành để đăng lên Google Play (Play Console) và App Store (App Store Conn
 
 - Phân biệt rõ ràng **"Dòng tiền"** (tiền thực sự thu/chi) và **"Kết quả kinh doanh"** (doanh thu − giá vốn − chi phí) trên các màn hình Báo cáo ngày, Báo cáo lợi nhuận tháng, Trang chủ và file Excel xuất ra — không còn gọi lẫn "tiền mặt" thành "doanh thu / lợi nhuận".
 - Thêm mục **"Tài chính"** trong Công cụ điều chỉnh dữ liệu (Cài đặt → Dữ liệu & Hệ thống) — tự phát hiện và giúp dọn phiếu thu nợ mồ côi, công nợ lỗi số tiền (có xác nhận mật khẩu, không tự động chạy).
+- **Sửa lỗi bàn phím che ô nhập** ở nhiều ô nhập liệu dạng bảng trượt (ghi chú kỹ thuật viên, thu/trả công nợ, ghi chi phí, sửa thông tin đơn, chấm công, nhập kho…) — trước đây phải kéo bảng lên mới thấy chữ đang gõ, giờ tự động đẩy lên trên bàn phím.
 - Toàn bộ số liệu tài chính đồng bộ, ổn định và chính xác hơn.
 
 ---
@@ -33,6 +34,8 @@ Dành để đăng lên Google Play (Play Console) và App Store (App Store Conn
 • Thanh toán đối tác sửa chữa bị trừ 2 lần khi chốt quỹ
 • Công nợ khách hiển thị sai "số đã trả" và trạng thái còn nợ
 • Đơn bán dưới giá vốn không hiện lỗ
+
+• Bàn phím che ô nhập ở các bảng trượt (ghi chú, thu nợ, ghi chi…)
 
 ✨ Cải tiến:
 • Phân biệt rõ "Dòng tiền" và "Kết quả kinh doanh" ở Báo cáo
