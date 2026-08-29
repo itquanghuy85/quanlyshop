@@ -4,6 +4,39 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-29o] - chore(finance) PHASE 1 DỮ LIỆU CŨ: dọn 4 bản ghi hỏng shop "M" + reconciliation E2E + regression
+
+**Không đổi code** — dùng công cụ đã build (`[2026-08-29i]` tab TÀI CHÍNH) + xác minh toàn hệ.
+
+**Đăng nhập lại `m@m.com` (shop "M") → Cài đặt → Công cụ điều chỉnh dữ liệu → tab TÀI CHÍNH:**
+- Xóa 3 phiếu `debt_payments` mồ côi (id 69/70/71 = 12.500.000 + 100.000 + 200.000 = **12.800.000đ**) — từ 3 đơn CÔNG NỢ bị VOID 17/08 trước bản vá PHASE 1.2. Mỗi lần: dialog tóm tắt → mật khẩu → `RECONCILE_CLEAN_ORPHAN_DEBT_PAYMENT`.
+- Sửa 1 công nợ `totalAmount=0` (debt #139 HUY, `sale_1787034406889` finalPrice 10tr) → đặt về **10.000.000đ**, `status=ACTIVE`. `RECONCILE_FIX_ZERO_DEBT`.
+- Sau xử lý tab hiện "Không phát hiện dữ liệu tài chính cần dọn 👍".
+
+**Verify (DB kèm `-wal`, đối chiếu EXPECTED/ACTUAL):**
+| Kiểm tra | EXPECTED | ACTUAL |
+|---|---|---|
+| orphan 69/70/71 | `deleted=1, isSynced=1` | ✅ cả 3 |
+| debt #139 `totalAmount` | 10.000.000 | ✅ 10.000.000, ACTIVE, isSynced=1 |
+| orphan re-count | 0 | ✅ 0 |
+| Nợ phải thu | 21.990.000 | ✅ 21.990.000 (UI Finance Công nợ: "21.99 Tr") |
+| Nợ phải trả | 16.540.000 (không đổi) | ✅ 16.540.000 |
+| Cash-in "thu nợ KH" 15/08 | 100.000 (chỉ TétKhach) | ✅ Sổ quỹ 15/08 tab Thu: "1 giao dịch +100.000" (trước: 3 GD +12.7 Tr) |
+| Cash-in "thu nợ KH" 17/08 | 0 | ✅ 0 |
+| sync_queue pending | 0 | ✅ 0 (tất cả isSynced=1) |
+| audit_logs | 3×CLEAN_ORPHAN + 1×FIX_ZERO_DEBT | ✅ |
+
+**→ 12.800.000đ "tiền vào ảo" bị loại khỏi Sổ quỹ/Tài chính; 10.000.000đ nợ HUY hiện đúng ở Nợ phải thu.**
+
+**Reconciliation E2E (`reconF.py`, shop M sau dọn):** 13 nhóm —
+1 tiền mặt ✅ · 2 chuyển khoản ✅ (CK thu nợ 12tr→bankIn; 0 sale CK) · 3 công nợ KH ✅ (accrual 35,5tr saleIncome, 0 cash) · 4 thu nợ ✅ (13,610,000) · 5 công nợ NCC ✅ (16,540,000) · 6 trả NCC ✅ (10,300,000) · **7 partner payment ✅ (đếm 1 lần = 12tr qua exp_partner_, rpp deduped, partnerPaid=0, KHÔNG 24tr)** · 8 VOID ✅ (0 orphan) · 9 giá vốn ✅ (accrual full 30,350,000; FV không cap — đơn 50k/vốn 100k cho grossProfit **−50.000**) · 10 lợi nhuận ✅ (netProfit accrual 8,797,000, cho phép âm) · **11 trả góp: NOT VERIFIED** (0 đơn trả góp trong data; code review: KHÔNG double-count — `saleCost×downRatio + saleCost×(1−downRatio) = saleCost`, complementary) · **12 chốt quỹ: BLOCKED** (`cash_closings`=0, chưa từng chốt; công thức `opening + cashIn − cashOut` đúng cấu trúc, input đã đúng sau PHASE 1.1) · 13 sync ✅.
+
+**Regression (vùng ảnh hưởng):** cold-start shop M 18s không exception; Sổ quỹ 09/08 −12 Tr (PHASE 1.1 giữ, logcat `cashOut=12000000 partnerPaid=0`), 08/08 −10 Tr không đổi; Finance Công nợ 21.99 Tr; `flutter analyze` 0 error/warning (12 file đụng); `flutter test` **+410 −11** (11 lỗi CÓ SẴN, 0 lỗi mới — đã đối chiếu `git stash`).
+
+**Files:** không có (chỉ docs). Commit trước đó của đợt: `fb9ff402`→`05604977` (11 commit).
+
+---
+
 ## [2026-08-29n] - fix(finance) PHASE 3.5: Home dashboard — nhãn "DÒNG TIỀN HÔM NAY" thay vì mập mờ "profit"
 
 **Mapping PHASE 2:** thẻ tổng quan Home (`_buildDashboardOverview`, bấm vào mở Sổ quỹ) là DÒNG TIỀN hôm nay (cash, từ `FinanceV2.totalIn/totalOut`). Nhưng biến local tên `netProfit`, comment `// Profit header`, donut item "Bán hàng"/"Sửa chữa" → dễ hiểu nhầm là doanh thu/lợi nhuận.
