@@ -458,6 +458,127 @@ class DataReconciliationService {
     );
   }
 
+  // ─────────────────── DỌN DỮ LIỆU TÀI CHÍNH (AUDIT) ──────────────────
+
+  /// Phiếu thu/trả nợ MỒ CÔI: còn `deleted=0` nhưng `debtFirestoreId` lẫn
+  /// `debtId` đều không khớp công nợ nào (thường do VOID đơn TRƯỚC bản vá
+  /// PHASE 1.2 — công nợ bị xóa, phiếu ở lại, vẫn được `analyze()`/FinanceV2
+  /// tính là "tiền vào"). Trả về danh sách map thô của `debt_payments`.
+  static Future<List<Map<String, dynamic>>> findOrphanDebtPayments() async {
+    final db = await _db.database;
+    return db.rawQuery('''
+      SELECT p.*
+      FROM debt_payments p
+      WHERE COALESCE(p.deleted, 0) != 1
+        AND NOT EXISTS (
+          SELECT 1 FROM debts d
+          WHERE (d.firestoreId IS NOT NULL AND d.firestoreId != ''
+                 AND d.firestoreId = p.debtFirestoreId)
+             OR (p.debtId IS NOT NULL AND p.debtId != 0 AND d.id = p.debtId)
+        )
+      ORDER BY p.paidAt DESC
+    ''');
+  }
+
+  /// Soft-delete 1 phiếu mồ côi + xếp hàng đồng bộ xóa.
+  static Future<void> cleanOrphanDebtPayment(
+    Map<String, dynamic> payment, {
+    required String reason,
+  }) async {
+    final id = payment['id'] as int?;
+    if (id == null) return;
+    final db = await _db.database;
+    await db.update(
+      'debt_payments',
+      {
+        'deleted': 1,
+        'isSynced': 0,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    await SyncOrchestrator().enqueue(
+      entityType: SyncEntityType.debtPayment,
+      entityId: id,
+      firestoreId: payment['firestoreId'] as String?,
+      operation: SyncOperation.delete,
+      data: {...payment, 'deleted': true},
+    );
+    await AuditService.logAction(
+      action: 'RECONCILE_CLEAN_ORPHAN_DEBT_PAYMENT',
+      entityType: 'debt_payment',
+      entityId: (payment['firestoreId'] as String?) ?? 'dp_$id',
+      summary:
+          'Xóa phiếu mồ côi ${(payment['amount'] as int?) ?? 0}đ (debt ${payment['debtFirestoreId']}) — $reason',
+      payload: {
+        'amount': payment['amount'],
+        'debtFirestoreId': payment['debtFirestoreId'],
+        'reason': reason,
+      },
+    );
+  }
+
+  /// Công nợ KHÁCH có `totalAmount <= 0` nhưng đơn bán liên kết có
+  /// `finalPrice > 0` → khoản khách nợ "tàng hình" ở tab Nợ phải thu.
+  /// Trả về map công nợ kèm cột phụ `saleFinalPrice`.
+  static Future<List<Map<String, dynamic>>>
+  findZeroAmountCustomerDebts() async {
+    final db = await _db.database;
+    return db.rawQuery('''
+      SELECT d.*,
+        (COALESCE(s.totalPrice, 0) - COALESCE(s.discount, 0)) AS saleFinalPrice
+      FROM debts d
+      JOIN sales s ON s.firestoreId = d.linkedId
+      WHERE COALESCE(d.deleted, 0) != 1
+        AND (d.type = 'CUSTOMER_OWES' OR d.debtType = 'CUSTOMER_OWES')
+        AND COALESCE(d.totalAmount, 0) <= 0
+        AND (COALESCE(s.totalPrice, 0) - COALESCE(s.discount, 0)) > 0
+        AND (s.deleted IS NULL OR s.deleted != 1)
+      ORDER BY d.createdAt DESC
+    ''');
+  }
+
+  /// Đặt lại `totalAmount` của công nợ về `finalPrice` của đơn bán + xếp hàng
+  /// đồng bộ. `paidAmount` KHÔNG đụng (đã tính lại ở luồng thu tiền, PHASE 1.4).
+  static Future<void> fixZeroAmountDebt(
+    Map<String, dynamic> debt,
+    int newAmount, {
+    required String reason,
+  }) async {
+    final id = debt['id'] as int?;
+    if (id == null || newAmount <= 0) return;
+    final paid = (debt['paidAmount'] as int?) ?? 0;
+    final newStatus = paid >= newAmount ? 'PAID' : 'ACTIVE';
+    final db = await _db.database;
+    await db.update(
+      'debts',
+      {
+        'totalAmount': newAmount,
+        'status': newStatus,
+        'isSynced': 0,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    await SyncOrchestrator().enqueue(
+      entityType: SyncEntityType.debt,
+      entityId: id,
+      firestoreId: debt['firestoreId'] as String?,
+      operation: SyncOperation.update,
+      data: {...debt, 'totalAmount': newAmount, 'status': newStatus},
+    );
+    await AuditService.logAction(
+      action: 'RECONCILE_FIX_ZERO_DEBT',
+      entityType: 'debt',
+      entityId: (debt['firestoreId'] as String?) ?? 'debt_$id',
+      summary:
+          '${debt['personName']}: totalAmount 0 → $newAmountđ — $reason',
+      payload: {'newAmount': newAmount, 'reason': reason},
+    );
+  }
+
   // ─────────────────────────── KHO & SẢN PHẨM ──────────────────────────
 
   static Future<void> adjustPartQuantity(

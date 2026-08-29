@@ -33,7 +33,7 @@ class _DataReconciliationViewState extends State<DataReconciliationView>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -60,6 +60,7 @@ class _DataReconciliationViewState extends State<DataReconciliationView>
             Tab(text: 'ĐƠN BÁN'),
             Tab(text: 'CÔNG NỢ'),
             Tab(text: 'KHO & SP'),
+            Tab(text: 'TÀI CHÍNH'),
           ],
         ),
       ),
@@ -94,6 +95,7 @@ class _DataReconciliationViewState extends State<DataReconciliationView>
                 _SaleTab(db: _db),
                 _DebtTab(db: _db),
                 _InventoryTab(db: _db),
+                const _FinanceCleanupTab(),
               ],
             ),
           ),
@@ -1062,5 +1064,186 @@ class _ActionBar extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// ═══════════════════════════ TAB: DỌN DỮ LIỆU TÀI CHÍNH ═══════════════════════════
+
+/// Phát hiện + sửa (có xác nhận) 2 loại dữ liệu hỏng đã xác định trong đợt
+/// AUDIT: (1) phiếu `debt_payments` mồ côi (công nợ đã xóa, phiếu ở lại → vẫn
+/// tính "tiền vào"); (2) công nợ KHÁCH `totalAmount = 0` trong khi đơn bán có
+/// giá > 0 (khoản khách nợ "tàng hình"). KHÔNG tự chạy — từng dòng phải bấm.
+class _FinanceCleanupTab extends StatefulWidget {
+  const _FinanceCleanupTab();
+
+  @override
+  State<_FinanceCleanupTab> createState() => _FinanceCleanupTabState();
+}
+
+class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
+  List<Map<String, dynamic>> _orphans = [];
+  List<Map<String, dynamic>> _zeroDebts = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    final orphans = await DataReconciliationService.findOrphanDebtPayments();
+    final zeros = await DataReconciliationService.findZeroAmountCustomerDebts();
+    if (!mounted) return;
+    setState(() {
+      _orphans = orphans;
+      _zeroDebts = zeros;
+      _loading = false;
+    });
+  }
+
+  Future<void> _cleanOrphan(Map<String, dynamic> p) async {
+    final amount = (p['amount'] as int?) ?? 0;
+    final proceed = await _confirmSummary(
+      context,
+      title: 'Xóa phiếu thu/trả nợ mồ côi',
+      lines: [
+        'Số tiền: ${MoneyUtils.formatCurrency(amount)}đ',
+        'Công nợ liên kết: ${p['debtFirestoreId'] ?? '(trống)'} — KHÔNG còn tồn tại',
+        'Sẽ đánh dấu xóa phiếu này (soft-delete) + đồng bộ. Sổ quỹ / Tài chính '
+            'sẽ hết cộng khoản này vào "tiền vào".',
+      ],
+      withReversal: false,
+    );
+    if (proceed != true) return;
+    if (!mounted || !await _confirmPassword(context)) return;
+    await DataReconciliationService.cleanOrphanDebtPayment(
+      p,
+      reason: 'Công cụ dọn dữ liệu tài chính (AUDIT)',
+    );
+    if (!mounted) return;
+    NotificationService.showSnackBar('✅ Đã xóa phiếu mồ côi', color: Colors.green);
+    _load();
+  }
+
+  Future<void> _fixZeroDebt(Map<String, dynamic> d) async {
+    final suggested = (d['saleFinalPrice'] as int?) ?? 0;
+    if (suggested <= 0) return;
+    final proceed = await _confirmSummary(
+      context,
+      title: 'Đặt lại số tiền công nợ',
+      lines: [
+        'Khách: ${d['personName'] ?? ''}',
+        'Hiện tại: totalAmount = 0 (khoản nợ tàng hình ở Nợ phải thu)',
+        'Đặt về: ${MoneyUtils.formatCurrency(suggested)}đ (theo giá đơn bán liên kết)',
+        'paidAmount giữ nguyên (${MoneyUtils.formatCurrency((d['paidAmount'] as int?) ?? 0)}đ).',
+      ],
+      withReversal: false,
+    );
+    if (proceed != true) return;
+    if (!mounted || !await _confirmPassword(context)) return;
+    await DataReconciliationService.fixZeroAmountDebt(
+      d,
+      suggested,
+      reason: 'Công cụ dọn dữ liệu tài chính (AUDIT)',
+    );
+    if (!mounted) return;
+    NotificationService.showSnackBar(
+      '✅ Đã đặt lại công nợ ${d['personName']}',
+      color: Colors.green,
+    );
+    _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_orphans.isEmpty && _zeroDebts.isEmpty) {
+      return _emptyState('Không phát hiện dữ liệu tài chính cần dọn 👍');
+    }
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: [
+        if (_orphans.isNotEmpty) ...[
+          _sectionHeader(
+            'Phiếu thu/trả nợ mồ côi (${_orphans.length})',
+            'Công nợ đã xóa nhưng phiếu còn — vẫn bị tính là tiền vào.',
+          ),
+          ..._orphans.map(
+            (p) => ListTile(
+              dense: true,
+              leading: const Icon(Icons.link_off, color: Colors.red, size: 20),
+              title: Text(
+                '${MoneyUtils.formatCurrency((p['amount'] as int?) ?? 0)}đ • ${p['paymentMethod'] ?? ''}',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              subtitle: Text(
+                '${p['debtFirestoreId'] ?? '(trống)'}\n${_fmtTs(p['paidAt'])}',
+                style: const TextStyle(fontSize: 11),
+              ),
+              isThreeLine: true,
+              trailing: TextButton(
+                onPressed: () => _cleanOrphan(p),
+                child: const Text('Xóa'),
+              ),
+            ),
+          ),
+        ],
+        if (_zeroDebts.isNotEmpty) ...[
+          _sectionHeader(
+            'Công nợ khách totalAmount = 0 (${_zeroDebts.length})',
+            'Đơn bán có giá > 0 nhưng công nợ = 0 → tàng hình ở Nợ phải thu.',
+          ),
+          ..._zeroDebts.map(
+            (d) => ListTile(
+              dense: true,
+              leading: const Icon(
+                Icons.visibility_off,
+                color: Colors.orange,
+                size: 20,
+              ),
+              title: Text(
+                '${d['personName'] ?? ''} — đặt về ${MoneyUtils.formatCurrency((d['saleFinalPrice'] as int?) ?? 0)}đ',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              subtitle: Text(
+                '${d['linkedId'] ?? ''}',
+                style: const TextStyle(fontSize: 11),
+              ),
+              trailing: TextButton(
+                onPressed: () => _fixZeroDebt(d),
+                child: const Text('Sửa'),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _sectionHeader(String title, String subtitle) => Padding(
+    padding: const EdgeInsets.fromLTRB(14, 14, 14, 6),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+        ),
+        Text(
+          subtitle,
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+        ),
+      ],
+    ),
+  );
+
+  String _fmtTs(dynamic ts) {
+    final ms = ts is int ? ts : int.tryParse('$ts') ?? 0;
+    if (ms == 0) return '';
+    return DateFormat(
+      'dd/MM/yyyy HH:mm',
+    ).format(DateTime.fromMillisecondsSinceEpoch(ms));
   }
 }

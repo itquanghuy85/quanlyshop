@@ -4,6 +4,26 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-29i] - feat(reconcile) PHASE 1.5: tab "TÀI CHÍNH" trong Công cụ điều chỉnh dữ liệu — dọn phiếu nợ mồ côi + công nợ totalAmount=0 (có xác nhận)
+
+**Bối cảnh (đợt AUDIT):** dữ liệu hỏng đã xác định — (1) 3 phiếu `debt_payments` MỒ CÔI (`debt_1786417116867` 12.5tr, `debt_1786783688165` 100k, `debt_1786805963466` 200k = 12.800.000đ) từ các đơn VOID ngày 17/08 TRƯỚC bản vá PHASE 1.2, vẫn `deleted=0` → `analyze()`/FinanceV2 tính là "tiền vào"; (2) 1 công nợ khách `debt_1787034406889` có `totalAmount=0` trong khi đơn bán liên kết = 10.000.000đ → khoản nợ tàng hình ở Nợ phải thu. Theo nguyên tắc "không tự ý xóa/sửa dữ liệu" → làm công cụ có xác nhận, KHÔNG auto-chạy.
+
+**Đã thêm:**
+- `lib/services/data_reconciliation_service.dart` — 4 hàm:
+  - `findOrphanDebtPayments()` — `debt_payments` (deleted=0) mà `debtFirestoreId` lẫn `debtId` đều không khớp công nợ nào.
+  - `cleanOrphanDebtPayment(payment, reason)` — soft-delete phiếu + enqueue sync + `AuditService` log `RECONCILE_CLEAN_ORPHAN_DEBT_PAYMENT`.
+  - `findZeroAmountCustomerDebts()` — công nợ KHÁCH `deleted!=1`, `totalAmount<=0`, JOIN `sales` theo `linkedId`, đơn còn sống + `finalPrice>0`; trả kèm `saleFinalPrice`.
+  - `fixZeroAmountDebt(debt, newAmount, reason)` — set `totalAmount = finalPrice` + `status` (`PAID`/`ACTIVE` theo `paidAmount`) + enqueue sync + log `RECONCILE_FIX_ZERO_DEBT`. KHÔNG đụng `paidAmount`.
+- `lib/views/data_reconciliation_view.dart` — tab thứ 5 "TÀI CHÍNH" (`_FinanceCleanupTab`): liệt kê 2 nhóm, mỗi dòng bấm "Xóa"/"Sửa" → `_confirmSummary` (nêu rõ số tiền + hệ quả) → `_confirmPassword` (nhập lại mật khẩu đăng nhập) → thực thi → reload.
+
+**Verify:**
+- `flutter analyze` (2 file): 0 error / 0 warning. `flutter test`: **+410 −11** (không hồi quy).
+- Máy thật (Oppo CPH2203): build + cài + mở tab → **phát hiện đúng**: "Phiếu thu/trả nợ mồ côi (3)" liệt kê đủ 3 phiếu 200k/100k/12.5tr với đúng `debtFirestoreId` + ngày; "Công nợ khách totalAmount = 0 (1)" = "HUY — đặt về 10.000.000đ / sale_1787034406889". **Chưa thực thi fix trên máy** — nút "Xóa"/"Sửa" yêu cầu mật khẩu đăng nhập (`reauthenticateWithCredential`) không có sẵn; chủ shop tự chạy 1 màn. Đã xác nhận DB không đổi khi chỉ xem tab.
+
+**Files:** `lib/services/data_reconciliation_service.dart`, `lib/views/data_reconciliation_view.dart`.
+
+---
+
 ## [2026-08-29h] - fix(finance) PHASE 1.4: `updateDebtPaid` định vị công nợ theo firestoreId + tính lại paidAmount từ tổng phiếu + status HOA
 
 **Bối cảnh (đợt AUDIT — phát hiện M1):** `db.updateDebtPaid(int id, int pay)` có 3 vấn đề: (a) `WHERE id = ?` dùng id local — `debt_payments.debtId` / `debts.id` không ổn định sau khi dựng lại DB từ cloud, đã thấy trỏ sai công nợ; (b) `paidAmount = paidAmount + pay` không idempotent — gọi lại do retry/echo sync là cộng đôi; (c) ghi `status` chữ thường `'paid'/'unpaid'` trong khi toàn app dùng `'PAID'/'ACTIVE'/'UNPAID'`.
