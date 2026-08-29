@@ -1,4 +1,4 @@
-# Quản Lý Shop — Store Metadata v3.1.0
+# Quản Lý Shop — Store Metadata v3.5.0
 
 ## App Name
 **Quản Lý Shop**
@@ -54,26 +54,22 @@ Quản lý tiệm sửa điện thoại, bán hàng, kho, tài chính toàn di�
 
 ---
 
-## What's New — v3.1.0
+## What's New — v3.5.0
 
-### Cải tiến hiệu suất
-- Thêm 9 database index mới → truy vấn nhanh hơn đáng kể
-- Vị trí lưu kho đồng bộ ngay (không còn chờ 3 giây)
-- Tối ưu màn hình bảo hành, nhân viên, khách hàng — không còn load toàn bộ dữ liệu
+### Sửa lỗi tài chính quan trọng
+- Sổ quỹ / báo cáo cộng nhầm "tiền vào" từ đơn công nợ đã hủy → đã fix
+- Thanh toán đối tác sửa chữa bị trừ 2 lần khi chốt quỹ → đã fix
+- Công nợ khách hiển thị sai "số đã trả" và trạng thái còn nợ → đã fix
+- Đơn công nợ có thể tạo với thành tiền = 0 do nhập nhầm giảm giá → đã chặn
+- Đơn bán dưới giá vốn không hiển thị lỗ → nay hiện đúng lỗ âm
 
-### Sửa lỗi quan trọng
-- Đơn sửa đổi trạng thái đôi khi không sync → đã fix hoàn toàn
-- Nhân viên yêu cầu duyệt giao nhưng đơn tự giao → đã fix
-- Tìm kiếm IMEI trong đơn bán → hoạt động đúng
-- Vị trí lưu kho: picker trống, thống kê = 0 → đã fix
-- Supplier KiotViet hiện đúng thông tin nợ và lịch sử nhập
-
-### Tính năng mới
-- Nhân viên có thể sửa thông tin đơn sửa chữa
-- Sửa giá bán + giá vốn đơn bán/sửa trong ngày (chỉ trong ngày, qua ngày khóa)
-- Sửa giá vốn nhanh trong chi tiết sản phẩm kho
-- Tìm kiếm toàn app tìm được IMEI trong đơn bán
-- Danh sách bán hàng giao diện gọn hơn, thông tin rõ hơn
+### Cải tiến
+- Phân biệt rõ "Dòng tiền" (tiền thực thu/chi) và "Kết quả kinh doanh"
+  (doanh thu − giá vốn − chi phí) ở Báo cáo ngày, Báo cáo lợi nhuận tháng,
+  Trang chủ và file Excel xuất ra
+- Thêm mục "Tài chính" trong Công cụ điều chỉnh dữ liệu — tự phát hiện và
+  giúp dọn phiếu thu nợ mồ côi, công nợ lỗi số tiền (có xác nhận mật khẩu)
+- Toàn bộ số liệu tài chính đồng bộ, ổn định, chính xác hơn
 
 ---
 

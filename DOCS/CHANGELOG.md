@@ -4,6 +4,36 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-29p] - chore(release) 3.5.0+546: đóng gói bản vá HỆ THỐNG TÀI CHÍNH lên store
+
+**Gói phát hành** cho toàn bộ đợt sửa hệ thống tài chính (`[2026-08-29e]`→`[2026-08-29o]`, 11 commit code + 1 commit docs).
+
+**Thay đổi trong bản này (so với 3.4.0+545 đang live):**
+- PHASE 1.1–1.5: khử trùng thanh toán đối tác trong `analyze()`; VOID đơn dọn `debt_payments`; chặn đơn CÔNG NỢ thành tiền ≤ 0 + self-heal `totalAmount`; `updateDebtPaid` định vị theo `firestoreId` + `paidAmount` = tổng phiếu (idempotent, status HOA); tab "TÀI CHÍNH" trong Công cụ điều chỉnh dữ liệu.
+- PHASE 3.1–3.5: FinanceV2 bỏ cap `cost > paid` (đơn dưới vốn hiện lỗ âm); nhãn phân biệt "Dòng tiền" (cash) vs "Kết quả kinh doanh" (accrual) ở Báo cáo ngày, Báo cáo LN tháng, Home, Excel.
+
+**Version:** `pubspec.yaml` `3.4.0+545` → **`3.5.0+546`** (versionCode 546 > 545, đơn điệu tăng — OK cho Play Store).
+
+**Build:** `scripts/build_release.ps1` — `flutter clean` + `pub get` + `flutter build appbundle --release --obfuscate --split-debug-info=build/debug-info` + split-per-abi APK. Ký bằng `key.properties` (upload-keystore.jks). Log: `build_release_2026-08-29.log`.
+- Output AAB: `build/app/outputs/bundle/release/app-release.aab` → upload Play Console.
+- Symbol de-obfuscate: giữ `build/debug-info/` cho Crashlytics.
+
+**Verify trước đóng gói:**
+- `flutter analyze`: **0 error** (warning/info còn lại đều CÓ SẴN, không thuộc 12 file tài chính đã sửa).
+- `flutter test`: **+410 −11** (11 lỗi CÓ SẴN — `sqflite_common_ffi` thiếu Firebase init + finance_v2_reconciliation ×2 + daily_financial_analysis enableRepair=false; 0 lỗi mới, giống mọi commit trong đợt).
+- Reconciliation E2E 13 nhóm (`reconF.py`, shop M): 1-10 + 13 PASS; 11 trả góp NOT VERIFIED (0 dữ liệu); 12 chốt quỹ BLOCKED (`cash_closings`=0).
+- Máy thật (Oppo CPH2203, đợt `[2026-08-29e..o]`): 5 fix logic PASS end-to-end; mapping 3.2/3.4 PASS; 3.3 Excel PASS; 3.5 code-only.
+
+**Store metadata / release notes:** `docs/store_metadata.md` (What's New → v3.5.0), `docs/release_notes_2026-08-29.md` (bản đầy đủ + rút gọn cho Play Console).
+
+**Sau khi lên store:** Super Admin có thể set `app_config/version_gate.minAndroidBuild = 546` để buộc người dùng cũ cập nhật (fail-open, tùy chọn).
+
+**Known issues mang sang bản sau:** crash `_dependents.isEmpty` khi đóng dialog "XÁC THỰC QUẢN LÝ" ở `sale_detail_view` (task riêng, bug CÓ SẴN); nhánh trả góp trong `analyze()` chưa accrual thuần (cần đơn trả góp thật).
+
+**Files:** `pubspec.yaml`, `docs/store_metadata.md`, `docs/release_notes_2026-08-29.md`, `docs/CHANGELOG.md`, `docs/HANDOVER.md`.
+
+---
+
 ## [2026-08-29o] - chore(finance) PHASE 1 DỮ LIỆU CŨ: dọn 4 bản ghi hỏng shop "M" + reconciliation E2E + regression
 
 **Không đổi code** — dùng công cụ đã build (`[2026-08-29i]` tab TÀI CHÍNH) + xác minh toàn hệ.

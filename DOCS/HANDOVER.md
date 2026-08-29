@@ -6,8 +6,9 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ## ⚡ Trạng thái hiện tại
 
-**Version:** 3.4.0+545 (develop) → Production live  
+**Version:** 3.5.0+546 (đóng gói lên store — bản vá HỆ THỐNG TÀI CHÍNH `[2026-08-29e..p]`; 3.4.0+545 đang live)  
 **Last Updated:** 2026-08-29  
+**Release:** AAB `flutter build appbundle --release --obfuscate` (script `scripts/build_release.ps1`), ký upload-keystore → `build/app/outputs/bundle/release/app-release.aab`. Release notes: `docs/release_notes_2026-08-29.md`. Store metadata What's New → v3.5.0. Xem `[2026-08-29p]`.  
 **Build Status:** ✅ `flutter build apk --debug` OK, đã cài + test trên Oppo CPH2203 (`m@m.com`/shop "M") — xem `[2026-08-29o]`, `[2026-08-29n]`, `[2026-08-29m]`, `[2026-08-29l]`, `[2026-08-29k]`, `[2026-08-29j]`, `[2026-08-29i]`, `[2026-08-29h]`, `[2026-08-29g]`, `[2026-08-29f]`, `[2026-08-29e]`, `[2026-08-29d]`, `[2026-08-29c]`, `[2026-08-29b]`, `[2026-08-29a]`, `[2026-08-24q]`, `[2026-08-24p]`, `[2026-08-24o]`, `[2026-08-24n]`, `[2026-08-24m]`, `[2026-08-24l]`, `[2026-08-24k]`, `[2026-08-24j]`, `[2026-08-24i]`, `[2026-08-24h]`, `[2026-08-24g]`, `[2026-08-24f]`, `[2026-08-24e]`, `[2026-08-24d]`, `[2026-08-24c]`, `[2026-08-24b]`, `[2026-08-24a]`, `[2026-08-23d]`, `[2026-08-23c]`, `[2026-08-23b]`, `[2026-08-23a]`, `[2026-08-22a]`  
 **Analyze Status:** ✅ 0 compile error (chỉ info/warning có sẵn từ trước)  
 **Database Version:** SQLite v106 (v105 → v106: thêm cột `debt_payments.paymentGroupId`, xem `[2026-08-22a]`)  
