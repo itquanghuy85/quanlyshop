@@ -1705,6 +1705,41 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           );
           await PaymentIntentService.createIntent(intent);
           debugPrint('✅ Created PaymentIntent for sale CÔNG NỢ: ${intent.id}');
+
+          // Đơn CÔNG NỢ có TRẢ TRƯỚC 1 phần ("SỐ TIỀN"): trước đây số này chỉ
+          // được nhét vào debts.paidAmount mà KHÔNG tạo phiếu thu, KHÔNG ghi
+          // ledger, KHÔNG cộng tiền mặt/NH → sổ quỹ + chốt quỹ thiếu đúng khoản
+          // đã cầm về, và debts.paidAmount lệch với tổng debt_payments. Ghi nhận
+          // như 1 lần thu nợ khách để book tiền + tạo phiếu + đồng bộ paidAmount.
+          final debtFid =
+              debtDataForTransaction?['firestoreId'] as String?;
+          if (downPaymentAmount > 0 &&
+              debtFid != null &&
+              debtFid.isNotEmpty) {
+            try {
+              await PaymentIntentService.executePaymentDirect(
+                type: PaymentIntentType.customerDebtCollection,
+                amount: downPaymentAmount,
+                paymentMethod: PaymentMethod.fromCode(_downPaymentMethod),
+                description: 'Trả trước đơn công nợ: $payerName',
+                executedBy:
+                    FirebaseAuth.instance.currentUser?.uid ?? 'unknown',
+                referenceId: saleRef,
+                referenceType: 'sale',
+                personName: payerName,
+                personPhone: payerPhone,
+                metadata: {
+                  'debtFirestoreId': debtFid,
+                  'debtType': 'CUSTOMER_OWES',
+                },
+              );
+              debugPrint(
+                '✅ Booked CÔNG NỢ partial payment: $downPaymentAmount ($_downPaymentMethod)',
+              );
+            } catch (e) {
+              debugPrint('⚠️ Failed to book CÔNG NỢ partial payment: $e');
+            }
+          }
         } else if (_isInstallment) {
           // Trả góp - ghi nhận tiền trả trước nếu có
           if (downPaymentAmount > 0) {
