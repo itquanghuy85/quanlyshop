@@ -9033,7 +9033,8 @@ class DBHelper {
         LEFT JOIN debts d
           ON (p.debtId IS NOT NULL AND p.debtId = d.id)
           OR (p.debtFirestoreId IS NOT NULL AND p.debtFirestoreId != '' AND p.debtFirestoreId = d.firestoreId)
-        WHERE p.shopId = ? OR p.shopId IS NULL
+        WHERE (p.shopId = ? OR p.shopId IS NULL)
+          AND COALESCE(p.deleted, 0) != 1
         ORDER BY p.paidAt DESC
       ''',
         [shopId],
@@ -9047,6 +9048,7 @@ class DBHelper {
       LEFT JOIN debts d
         ON (p.debtId IS NOT NULL AND p.debtId = d.id)
         OR (p.debtFirestoreId IS NOT NULL AND p.debtFirestoreId != '' AND p.debtFirestoreId = d.firestoreId)
+      WHERE COALESCE(p.deleted, 0) != 1
       ORDER BY p.paidAt DESC
     ''');
   }
@@ -9172,6 +9174,43 @@ class DBHelper {
       'debt_payments',
       where: 'firestoreId = ?',
       whereArgs: [firestoreId],
+    );
+  }
+
+  /// Lấy các phiếu thu/trả nợ (chưa xóa) gắn với 1 công nợ theo firestoreId của
+  /// công nợ đó. Dùng khi VOID đơn để lấy danh sách phiếu cần soft-delete + xếp
+  /// hàng đồng bộ. Khớp theo `debtFirestoreId` (khoá ổn định) chứ không theo cột
+  /// `debtId` (id local, có thể lệch sau khi dựng lại DB từ cloud).
+  Future<List<Map<String, dynamic>>> getDebtPaymentsByDebtFirestoreId(
+    String debtFirestoreId,
+  ) async {
+    if (debtFirestoreId.isEmpty) return [];
+    final db = await database;
+    return await db.query(
+      'debt_payments',
+      where: 'debtFirestoreId = ? AND COALESCE(deleted, 0) != 1',
+      whereArgs: [debtFirestoreId],
+    );
+  }
+
+  /// Soft-delete tất cả phiếu thu/trả nợ gắn với 1 công nợ (theo `debtFirestoreId`).
+  /// Dùng khi VOID đơn bán/sửa: công nợ bị xóa nhưng các phiếu đã ghi trước đó
+  /// vẫn nằm lại bảng `debt_payments` với `deleted=0` → `analyze()` và FinanceV2
+  /// tiếp tục cộng chúng vào "tiền vào" vĩnh viễn (mồ côi). Trả về số dòng đổi.
+  Future<int> softDeleteDebtPaymentsByDebtFirestoreId(
+    String debtFirestoreId,
+  ) async {
+    if (debtFirestoreId.isEmpty) return 0;
+    final db = await database;
+    return await db.update(
+      'debt_payments',
+      {
+        'deleted': 1,
+        'isSynced': 0,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      },
+      where: 'debtFirestoreId = ? AND COALESCE(deleted, 0) != 1',
+      whereArgs: [debtFirestoreId],
     );
   }
 

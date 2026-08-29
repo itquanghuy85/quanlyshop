@@ -59,7 +59,7 @@ class DataReconciliationService {
       restoredCount = await _restorePartsToInventory(r.partsUsed);
     }
 
-    // 2. Xóa công nợ liên quan
+    // 2. Xóa công nợ liên quan + các phiếu thu/trả nợ đã ghi cho công nợ đó
     if (r.firestoreId != null && r.firestoreId!.isNotEmpty) {
       final linkedDebts = await _db.getDebtsByLinkedId(r.firestoreId!);
       for (final debt in linkedDebts) {
@@ -68,6 +68,7 @@ class DataReconciliationService {
         final total = (debt['totalAmount'] as int?) ?? 0;
         final paid = (debt['paidAmount'] as int?) ?? 0;
         debtAmount += (total - paid).clamp(0, total);
+        await _softDeleteDebtPaymentsForDebt(debt);
         await _db.softDeleteDebt(
           debtId,
           reason: 'Xóa kèm hoàn tài chính từ Công cụ điều chỉnh dữ liệu',
@@ -156,6 +157,30 @@ class DataReconciliationService {
     return ReconciliationResult(
       note: 'Đã xóa đơn, giữ nguyên công nợ/tài chính liên quan',
     );
+  }
+
+  /// Soft-delete các phiếu thu/trả nợ (`debt_payments`) gắn với 1 công nợ sắp
+  /// bị xóa/miễn, và xếp hàng đồng bộ xóa từng phiếu. Nếu bỏ sót, phiếu mồ côi
+  /// vẫn được `analyze()`/FinanceV2 tính là "tiền vào" vĩnh viễn.
+  static Future<void> _softDeleteDebtPaymentsForDebt(
+    Map<String, dynamic> debt,
+  ) async {
+    final debtFId = debt['firestoreId'] as String?;
+    if (debtFId == null || debtFId.isEmpty) return;
+    final linkedPayments = await _db.getDebtPaymentsByDebtFirestoreId(debtFId);
+    if (linkedPayments.isEmpty) return;
+    await _db.softDeleteDebtPaymentsByDebtFirestoreId(debtFId);
+    for (final p in linkedPayments) {
+      final pId = p['id'] as int?;
+      if (pId == null) continue;
+      await SyncOrchestrator().enqueue(
+        entityType: SyncEntityType.debtPayment,
+        entityId: pId,
+        firestoreId: p['firestoreId'] as String?,
+        operation: SyncOperation.delete,
+        data: {...p, 'deleted': true},
+      );
+    }
   }
 
   static Future<void> _deleteRepairRecord(Repair r) async {
@@ -285,7 +310,7 @@ class DataReconciliationService {
       }
     }
 
-    // 2. Xóa công nợ liên quan
+    // 2. Xóa công nợ liên quan + các phiếu thu/trả nợ đã ghi cho công nợ đó
     if (s.firestoreId != null) {
       final linkedDebts = await _db.getDebtsByLinkedId(s.firestoreId ?? '');
       for (final debt in linkedDebts) {
@@ -294,6 +319,7 @@ class DataReconciliationService {
         final paid = (debt['paidAmount'] as int?) ?? 0;
         debtAmount += (total - paid).clamp(0, total);
         if (debtFId != null) {
+          await _softDeleteDebtPaymentsForDebt(debt);
           await _db.deleteDebtByFirestoreId(debtFId);
           await SyncOrchestrator().enqueue(
             entityType: SyncEntityType.debt,

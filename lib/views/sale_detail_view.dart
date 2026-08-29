@@ -1596,12 +1596,32 @@ class _SaleDetailViewState extends State<SaleDetailView> {
         }
       }
 
-      // 2B: Xóa công nợ liên quan
+      // 2B: Xóa công nợ liên quan + các phiếu thu/trả nợ đã ghi cho công nợ đó
       if (s.firestoreId != null) {
         final linkedDebts = await db.getDebtsByLinkedId(s.firestoreId ?? '');
         for (final debt in linkedDebts) {
           final debtFId = debt['firestoreId'] as String?;
           if (debtFId != null) {
+            // Soft-delete các debt_payments TRƯỚC khi xóa debt — nếu bỏ sót,
+            // phiếu thu nợ mồ côi vẫn được analyze()/FinanceV2 tính là "tiền
+            // vào" vĩnh viễn (dialog đã hứa "Xóa phiếu thanh toán").
+            final linkedPayments =
+                await db.getDebtPaymentsByDebtFirestoreId(debtFId);
+            await db.softDeleteDebtPaymentsByDebtFirestoreId(debtFId);
+            for (final p in linkedPayments) {
+              final pId = p['id'] as int?;
+              final pFid = p['firestoreId'] as String?;
+              if (pId != null) {
+                await SyncOrchestrator().enqueue(
+                  entityType: SyncEntityType.debtPayment,
+                  entityId: pId,
+                  firestoreId: pFid,
+                  operation: SyncOperation.delete,
+                  data: {...p, 'deleted': true},
+                );
+              }
+            }
+
             await db.deleteDebtByFirestoreId(debtFId);
             await SyncOrchestrator().enqueue(
               entityType: SyncEntityType.debt,

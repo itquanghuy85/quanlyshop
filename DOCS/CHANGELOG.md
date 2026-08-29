@@ -4,6 +4,28 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-29f] - fix(finance) PHASE 1.2: VOID đơn bán/sửa dọn luôn `debt_payments` — hết phiếu thu nợ mồ côi tạo "tiền vào" ảo
+
+**Bối cảnh (đợt AUDIT):** Khi VOID/xóa 1 đơn CÔNG NỢ, code xóa bảng `debts` + `payment_intents` nhưng KHÔNG đụng `debt_payments`. Các phiếu thu nợ đã ghi trước đó nằm lại với `deleted=0`, `debtFirestoreId` trỏ vào công nợ không còn tồn tại → `analyze()` và FinanceV2 tiếp tục cộng chúng vào "tiền vào" vĩnh viễn. DB test có 3 phiếu mồ côi (12.500.000 + 100.000 + 200.000 = 12.800.000) khớp đúng 3 `SALE_VOID` ngày 17/08. Dialog xác nhận xóa còn hứa "Xóa phiếu thanh toán" nhưng thực tế chỉ xóa `payment_intents`.
+
+**Đã sửa:**
+- `lib/data/db_helper.dart`:
+  - `getDebtPaymentsByDebtFirestoreId(fid)` — lấy phiếu (chưa xóa) theo `debtFirestoreId` (khoá ổn định, KHÔNG dùng cột `debtId` local vì lệch sau resync).
+  - `softDeleteDebtPaymentsByDebtFirestoreId(fid)` — set `deleted=1, isSynced=0, updatedAt` cho mọi phiếu của công nợ đó.
+  - `getAllDebtPaymentsWithDetails()` — thêm `AND COALESCE(p.deleted,0) != 1` (2 nhánh). Đây là nguồn `_debtPayments` của `cash_closing_view` (Sổ quỹ Tổng quan/Thu/Chi) — trước đây KHÔNG lọc `deleted`, nên soft-delete phiếu sẽ không có tác dụng ở Sổ quỹ.
+- `lib/views/sale_detail_view.dart` `_deleteSale` bước 2B — trước khi xóa mỗi công nợ: soft-delete `debt_payments` của nó + xếp hàng `SyncOrchestrator` xóa từng phiếu (`SyncEntityType.debtPayment` / `SyncOperation.delete` → soft-delete trên Firestore, cùng cơ chế đã dùng cho `debts`).
+- `lib/services/data_reconciliation_service.dart` — thêm helper `_softDeleteDebtPaymentsForDebt(debt)`, gọi trong `deleteSaleWithReversal` + `deleteRepairWithReversal` (KHÔNG đụng các biến thể `*KeepBooks` — chúng cố ý giữ sổ sách).
+- KHÔNG đổi schema (`debt_payments.deleted` đã có sẵn từ v88). KHÔNG chuyển hard-delete `sales`/`debts` sang soft-delete (giữ blast radius nhỏ — task riêng). KHÔNG đụng `repair_partner_payments` (thiếu FK repair↔payment đáng tin, để PHASE sau).
+
+**Verify:**
+- `flutter analyze` (3 file đổi): 0 error / 0 warning.
+- `flutter test`: **+410 −11** (không đổi so với PHASE 1.1 — không hồi quy).
+- Máy thật (Oppo CPH2203): build + cài + chạy OK. Regression Sổ quỹ: 15/08 giữ nguyên **+11.7 Tr** (3 phiếu thu nợ 12.5tr+100k+100k vẫn hiện — đúng, vì chưa phiếu nào bị soft-delete), 08/08 giữ nguyên −10 Tr, 09/08 giữ nguyên −12 Tr (PHASE 1.1). **Luồng VOID→dọn `debt_payments` trên thiết bị: CHƯA test end-to-end** — tạo đơn CÔNG NỢ mới qua ADB không tin cậy (ô "Giá bán" trên thẻ sản phẩm đã chọn không lộ trong accessibility dump), KHÔNG xóa đơn thật để test. Logic đã review + tái dùng đúng cơ chế sync-delete đã chạy production cho `debts`. **3 phiếu mồ côi hiện có xử lý ở PHASE 1.5** (routine dọn có xác nhận).
+
+**Files:** `lib/data/db_helper.dart`, `lib/views/sale_detail_view.dart`, `lib/services/data_reconciliation_service.dart`.
+
+---
+
 ## [2026-08-29e] - fix(finance) PHASE 1.1: analyze() khử trùng thanh toán đối tác sửa chữa — hết double-count Sổ quỹ / Chốt quỹ / Báo cáo lợi nhuận tháng
 
 **Bối cảnh (từ đợt AUDIT hệ thống tài chính):** Sổ quỹ ngày 09/08/2026 hiển thị "Số dư dự kiến cuối ngày = −24 Tr" trong khi thực chi chỉ 12.000.000đ. Tab "Chi" của cùng màn hình lại đúng (1 giao dịch −12 Tr), tab Tài chính (Finance V2) cũng đúng (−12 Tr). Lệch đúng bằng 1 khoản thanh toán đối tác sửa chữa (12.000.000đ) trên mọi kỳ có chứa ngày đó.
