@@ -12,6 +12,7 @@ import 'firestore_service.dart';
 import 'firestore_write_helper.dart';
 import 'payment_intent_service.dart';
 import 'sync_orchestrator.dart';
+import 'user_service.dart';
 
 /// Kết quả tóm tắt sau khi thực hiện 1 thao tác xóa/điều chỉnh — dùng để
 /// hiện cho user xác nhận/biết đã ảnh hưởng những gì.
@@ -576,6 +577,190 @@ class DataReconciliationService {
       summary:
           '${debt['personName']}: totalAmount 0 → $newAmountđ — $reason',
       payload: {'newAmount': newAmount, 'reason': reason},
+    );
+  }
+
+  // ══════════════════ AUDIT 2026-08-29: D-2 / D-3 / D-4 / L-4 ══════════════════
+
+  /// D-2 — item trả hàng MỒ CÔI của shop hiện tại (không có phiếu cha).
+  static Future<List<Map<String, dynamic>>> findOrphanSalesReturnItems() =>
+      _db.findOrphanSalesReturnItems();
+
+  /// D-2 — item trả hàng thuộc SHOP KHÁC còn sót trong local DB.
+  static Future<List<Map<String, dynamic>>>
+      findForeignShopSalesReturnItems() => _db.findForeignShopSalesReturnItems();
+
+  /// Soft-delete 1 item trả hàng mồ côi + enqueue sync + audit. KHÔNG đụng tồn
+  /// kho / tài chính: item mồ côi (không phiếu cha) đã không được `analyze()`
+  /// tính (nó đọc bảng `sales_returns`) nên chỉ là rác dữ liệu.
+  static Future<void> cleanOrphanSalesReturnItem(
+    Map<String, dynamic> item, {
+    required String reason,
+  }) async {
+    final id = item['id'] as int?;
+    if (id == null) return;
+    await _db.softDeleteSalesReturnItemById(id);
+    await SyncOrchestrator().enqueue(
+      entityType: SyncEntityType.salesReturnItem,
+      entityId: id,
+      firestoreId: item['firestoreId'] as String?,
+      operation: SyncOperation.delete,
+      data: {...item, 'deleted': true},
+    );
+    await AuditService.logAction(
+      action: 'RECONCILE_CLEAN_ORPHAN_RETURN_ITEM',
+      entityType: 'sales_return_item',
+      entityId: (item['firestoreId'] as String?) ?? 'sri_$id',
+      summary:
+          'Xóa item trả hàng mồ côi ${(item['amount'] as int?) ?? 0}đ '
+          '(${item['productName']}, phiếu ${item['salesReturnFirestoreId']}) — $reason',
+      payload: {'amount': item['amount'], 'reason': reason},
+    );
+  }
+
+  /// Xóa CỨNG item trả hàng của shop khác lọt vào local DB (rác account-switch).
+  /// Hard-delete an toàn: bản ghi có shopId của shop khác → không phải dữ liệu
+  /// của shop hiện tại, không sync đi đâu.
+  static Future<int> removeForeignShopSalesReturnItems() async {
+    final rows = await _db.findForeignShopSalesReturnItems();
+    if (rows.isEmpty) return 0;
+    final db = await _db.database;
+    int n = 0;
+    for (final r in rows) {
+      final id = r['id'] as int?;
+      if (id == null) continue;
+      n += await db.delete('sales_return_items', where: 'id = ?', whereArgs: [id]);
+    }
+    await AuditService.logAction(
+      action: 'RECONCILE_REMOVE_FOREIGN_RETURN_ITEMS',
+      entityType: 'sales_return_item',
+      entityId: 'batch',
+      summary: 'Xóa $n item trả hàng của shop khác lọt vào local DB',
+      payload: {'count': n},
+    );
+    return n;
+  }
+
+  /// D-3 — dòng `financial_activity_log` ghi CHI PHÍ nhưng KHÔNG có `expenses`
+  /// tương ứng (chi phí bị xóa cứng / insert thất bại) → sổ đối soát dư 1
+  /// khoản chi ma.
+  static Future<List<Map<String, dynamic>>> findOrphanExpenseActivity() async {
+    final db = await _db.database;
+    return db.rawQuery('''
+      SELECT f.* FROM financial_activity_log f
+      WHERE f.activityType IN ('OPERATING_EXPENSE','UTILITY_EXPENSE','OTHER_EXPENSE','SALARY_PAYMENT')
+        AND f.direction = 'OUT'
+        AND NOT EXISTS (
+          SELECT 1 FROM expenses e
+          WHERE (e.deleted IS NULL OR e.deleted != 1)
+            AND (
+              e.firestoreId = 'exp_' || REPLACE(f.referenceId, 'expense_', 'pi_direct_operating_expense_expense_')
+              OR e.firestoreId LIKE '%' || f.referenceId || '%'
+              OR (e.amount = f.amount AND ABS(COALESCE(e.date, e.createdAt) - f.createdAt) < 86400000)
+            )
+        )
+      ORDER BY f.createdAt DESC
+    ''');
+  }
+
+  /// Đảo ngược 1 khoản chi ma: KHÔNG xóa dòng `financial_activity_log` (append-
+  /// only) — thay vào đó ghi 1 dòng bù (IN cùng số tiền, type
+  /// `EXPENSE_REVERSAL`) để net = 0, và hủy `payment_intents` liên quan.
+  static Future<void> reverseOrphanExpenseActivity(
+    Map<String, dynamic> fal, {
+    required String reason,
+  }) async {
+    final amount = (fal['amount'] as num?)?.toInt() ?? 0;
+    if (amount <= 0) return;
+    final refId = fal['referenceId'] as String?;
+    await FinancialActivityService.logCustomActivity(
+      activityType: 'EXPENSE_REVERSAL',
+      amount: amount,
+      direction: 'IN',
+      paymentMethod: (fal['paymentMethod'] as String?) ?? 'TIỀN MẶT',
+      title: 'Đảo khoản chi ma: ${fal['title'] ?? ''}',
+      description: reason,
+      referenceType: 'reconcile_reversal',
+      referenceId: refId,
+    );
+    // Hủy payment_intent COMPLETED/PENDING trỏ tới cùng referenceId.
+    if (refId != null && refId.isNotEmpty) {
+      final db = await _db.database;
+      await db.update(
+        'payment_intents',
+        {'status': 'CANCELLED', 'isSynced': 0, 'updatedAt': DateTime.now().millisecondsSinceEpoch},
+        where: "referenceId = ? AND status != 'CANCELLED'",
+        whereArgs: [refId],
+      );
+    }
+    await AuditService.logAction(
+      action: 'RECONCILE_REVERSE_ORPHAN_EXPENSE',
+      entityType: 'financial_activity_log',
+      entityId: (fal['firestoreId'] as String?) ?? 'fal_${fal['id']}',
+      summary: 'Đảo khoản chi ma ${amount}đ (${fal['title']}) — $reason',
+      payload: {'amount': amount, 'referenceId': refId, 'reason': reason},
+    );
+  }
+
+  /// D-4 — sản phẩm có `status` mâu thuẫn `quantity`: status=0 (đã bán/ẩn) mà
+  /// quantity>0 (còn hàng). KHÔNG tự sửa số lượng — chỉ liệt kê để user kiểm kho
+  /// thực tế. Báo cáo VỐN TỒN KHO của app vốn đã lọc `status` nên không tính
+  /// nhầm các SKU này.
+  static Future<List<Map<String, dynamic>>> findStockStatusMismatch() async {
+    final db = await _db.database;
+    final shopId = UserService.getShopIdSync();
+    return db.rawQuery('''
+      SELECT * FROM products
+      WHERE (deleted IS NULL OR deleted != 1)
+        AND (shopId IS NULL OR shopId = '' OR shopId = ?)
+        AND status = 0 AND COALESCE(quantity, 0) > 0
+      ORDER BY COALESCE(quantity,0) * COALESCE(cost,0) DESC
+    ''', [shopId ?? '']);
+  }
+
+  /// L-4 — payment_intent còn "sống" (COMPLETED/PENDING) của 1 giao dịch đã
+  /// VOID (có `SALE_VOID`/`REPAIR_VOID` trong `financial_activity_log`). Chỉ
+  /// lấy intent trỏ tới giao dịch VOID *tường minh* — không đụng intent cũ hợp lệ.
+  static Future<List<Map<String, dynamic>>> findVoidedTxnPaymentIntents() async {
+    final db = await _db.database;
+    return db.rawQuery('''
+      SELECT pi.* FROM payment_intents pi
+      WHERE pi.status IN ('COMPLETED','PENDING')
+        AND pi.referenceId IS NOT NULL AND pi.referenceId != ''
+        AND EXISTS (
+          SELECT 1 FROM financial_activity_log f
+          WHERE f.activityType IN ('SALE_VOID','REPAIR_VOID')
+            AND (f.referenceId = pi.referenceId
+                 OR pi.referenceId LIKE '%' || f.referenceId || '%'
+                 OR f.referenceId LIKE '%' || pi.referenceId || '%')
+        )
+      ORDER BY pi.createdAt DESC
+    ''');
+  }
+
+  /// Hủy 1 payment_intent của giao dịch đã VOID (chỉ đổi status → CANCELLED,
+  /// KHÔNG đụng tiền: engine không SUM payment_intents; đây chỉ là dọn lifecycle).
+  static Future<void> cancelVoidedTxnPaymentIntent(
+    Map<String, dynamic> pi, {
+    required String reason,
+  }) async {
+    final id = pi['id'] as int?;
+    if (id == null) return;
+    final db = await _db.database;
+    await db.update(
+      'payment_intents',
+      {'status': 'CANCELLED', 'isSynced': 0, 'updatedAt': DateTime.now().millisecondsSinceEpoch},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    await AuditService.logAction(
+      action: 'RECONCILE_CANCEL_VOIDED_INTENT',
+      entityType: 'payment_intent',
+      entityId: (pi['firestoreId'] as String?) ?? (pi['intentId'] as String?) ?? 'pi_$id',
+      summary:
+          'Hủy payment_intent ${(pi['amount'] as num?)?.toInt() ?? 0} đ '
+          'của giao dịch đã VOID (${pi['referenceId']}) — $reason',
+      payload: {'amount': pi['amount'], 'referenceId': pi['referenceId'], 'reason': reason},
     );
   }
 

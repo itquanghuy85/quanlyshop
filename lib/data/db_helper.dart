@@ -2356,7 +2356,7 @@ class DBHelper {
           }
         }
         if (oldV < 108) {
-          // Dọn "chốt quỹ ma": dòng cash_closings không có định danh nào
+          // (a) Dọn "chốt quỹ ma": dòng cash_closings không có định danh nào
           // (firestoreId NULL VÀ shopId NULL/rỗng) — không thể sync, không thể
           // xóa theo firestoreId, hồi sinh sau khi xóa trên cloud. Chỉ xóa dòng
           // KHÔNG có bất kỳ định danh nào (an toàn tuyệt đối — không thể quy về
@@ -2369,6 +2369,22 @@ class DBHelper {
             debugPrint('DB upgrade v108: removed $n identity-less cash_closings (chốt quỹ ma)');
           } catch (e) {
             debugPrint('DB upgrade error (v108 phantom cash_closings): $e');
+          }
+          // (b) sales_return_items thiếu cột `deleted` → sync soft-delete từ cloud
+          // bị `_filterToTableColumns` cắt mất → item mồ côi vĩnh viễn khi phiếu
+          // trả hàng cha bị xóa. Thêm cột để soft-delete được.
+          try {
+            final cols = await db.rawQuery('PRAGMA table_info(sales_return_items)');
+            final hasDeleted =
+                cols.any((c) => (c['name'] as String?) == 'deleted');
+            if (!hasDeleted) {
+              await db.execute(
+                'ALTER TABLE sales_return_items ADD COLUMN deleted INTEGER DEFAULT 0',
+              );
+              debugPrint('DB upgrade v108: added deleted column to sales_return_items');
+            }
+          } catch (e) {
+            debugPrint('DB upgrade error (v108 sales_return_items.deleted): $e');
           }
         }
         if (oldV < 26) {
@@ -11344,6 +11360,80 @@ class DBHelper {
       );
       await txn.delete('sales_returns', where: 'id = ?', whereArgs: [id]);
     });
+  }
+
+  /// Xóa phiếu trả hàng local theo firestoreId (dùng khi cloud soft-delete).
+  Future<int> deleteSalesReturnByFirestoreId(String firestoreId) async {
+    final db = await database;
+    return db.delete(
+      'sales_returns',
+      where: 'firestoreId = ?',
+      whereArgs: [firestoreId],
+    );
+  }
+
+  /// Xóa CASCADE mọi item của 1 phiếu trả hàng theo firestoreId của phiếu cha
+  /// (item là collection Firestore riêng, listener riêng → không tự dọn khi
+  /// phiếu cha bị xóa → sinh item mồ côi).
+  Future<int> deleteSalesReturnItemsByReturnFirestoreId(
+    String returnFirestoreId,
+  ) async {
+    final db = await database;
+    return db.delete(
+      'sales_return_items',
+      where: 'salesReturnFirestoreId = ?',
+      whereArgs: [returnFirestoreId],
+    );
+  }
+
+  /// Xóa 1 item trả hàng local theo firestoreId (dùng khi cloud soft-delete item).
+  Future<int> deleteSalesReturnItemByFirestoreId(String firestoreId) async {
+    final db = await database;
+    return db.delete(
+      'sales_return_items',
+      where: 'firestoreId = ?',
+      whereArgs: [firestoreId],
+    );
+  }
+
+  /// Các item trả hàng MỒ CÔI của shop hiện tại: không có phiếu `sales_returns`
+  /// cha (nối qua `salesReturnFirestoreId`). KHÔNG tính item của shop khác
+  /// (shopId khác shop hiện tại) — đó là rác account-switch, xử lý riêng.
+  Future<List<Map<String, dynamic>>> findOrphanSalesReturnItems() async {
+    final db = await database;
+    final shopId = UserService.getShopIdSync();
+    final rows = await db.rawQuery('''
+      SELECT sri.* FROM sales_return_items sri
+      WHERE COALESCE(sri.deleted, 0) != 1
+        AND (sri.shopId IS NULL OR sri.shopId = '' OR sri.shopId = ?)
+        AND NOT EXISTS (
+          SELECT 1 FROM sales_returns sr
+          WHERE sr.firestoreId = sri.salesReturnFirestoreId
+        )
+    ''', [shopId ?? '']);
+    return rows;
+  }
+
+  /// Item trả hàng thuộc SHOP KHÁC còn sót trong local DB (rác account-switch).
+  Future<List<Map<String, dynamic>>> findForeignShopSalesReturnItems() async {
+    final db = await database;
+    final shopId = UserService.getShopIdSync();
+    if (shopId == null || shopId.isEmpty) return [];
+    return db.rawQuery(
+      "SELECT * FROM sales_return_items WHERE shopId IS NOT NULL AND shopId != '' AND shopId != ?",
+      [shopId],
+    );
+  }
+
+  /// Soft-delete 1 item trả hàng mồ côi (có cột `deleted` từ v108) + enqueue sync.
+  Future<int> softDeleteSalesReturnItemById(int id) async {
+    final db = await database;
+    return db.update(
+      'sales_return_items',
+      {'deleted': 1, 'isSynced': 0},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   /// Get all returned quantities for a sale order, grouped by product IMEI/name.

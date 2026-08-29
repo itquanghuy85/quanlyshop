@@ -152,6 +152,15 @@ class SalesReturnService {
       final returnId = await _db.insertSalesReturn(returnHeader.toMap());
       debugPrint('✅ SalesReturn header created: id=$returnId, firestoreId=$returnFirestoreId');
 
+      // Guard: header PHẢI được tạo trước khi ghi item. Nếu id không hợp lệ,
+      // dừng ngay — không ghi item mồ côi (item không có phiếu cha).
+      if (returnId <= 0) {
+        return {
+          'success': false,
+          'error': 'Không tạo được phiếu trả hàng (header id=$returnId).',
+        };
+      }
+
       // 2. Create return items + restore stock
       for (var i = 0; i < normalizedItems.length; i++) {
         final item = normalizedItems[i];

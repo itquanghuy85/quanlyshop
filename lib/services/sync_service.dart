@@ -2484,10 +2484,17 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            data['firestoreId'] = docId;
-            data['isSynced'] = 1;
-            _convertTimestampFields(data);
-            await db.upsertSalesReturn(data);
+            if (data['deleted'] == true || data['deleted'] == 1) {
+              // Phiếu trả hàng bị xóa trên cloud → xóa header + cascade item
+              // (item là collection riêng, listener riêng — không tự dọn).
+              await db.deleteSalesReturnByFirestoreId(docId);
+              await db.deleteSalesReturnItemsByReturnFirestoreId(docId);
+            } else {
+              data['firestoreId'] = docId;
+              data['isSynced'] = 1;
+              _convertTimestampFields(data);
+              await db.upsertSalesReturn(data);
+            }
           } catch (e) {
             debugPrint("Lỗi sync sales_return $docId: $e");
           }
@@ -2514,9 +2521,13 @@ class SyncService {
         onChanged: (data, docId) async {
           try {
             final db = DBHelper();
-            data['firestoreId'] = docId;
-            data['isSynced'] = 1;
-            await db.upsertSalesReturnItem(data);
+            if (data['deleted'] == true || data['deleted'] == 1) {
+              await db.deleteSalesReturnItemByFirestoreId(docId);
+            } else {
+              data['firestoreId'] = docId;
+              data['isSynced'] = 1;
+              await db.upsertSalesReturnItem(data);
+            }
           } catch (e) {
             debugPrint("Lỗi sync sales_return_item $docId: $e");
           }

@@ -1083,6 +1083,11 @@ class _FinanceCleanupTab extends StatefulWidget {
 class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
   List<Map<String, dynamic>> _orphans = [];
   List<Map<String, dynamic>> _zeroDebts = [];
+  List<Map<String, dynamic>> _orphanRetItems = [];
+  List<Map<String, dynamic>> _foreignRetItems = [];
+  List<Map<String, dynamic>> _orphanExpFal = [];
+  List<Map<String, dynamic>> _stockMismatch = [];
+  List<Map<String, dynamic>> _voidedIntents = [];
   bool _loading = true;
 
   @override
@@ -1095,12 +1100,112 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
     setState(() => _loading = true);
     final orphans = await DataReconciliationService.findOrphanDebtPayments();
     final zeros = await DataReconciliationService.findZeroAmountCustomerDebts();
+    final orphanRet = await DataReconciliationService.findOrphanSalesReturnItems();
+    final foreignRet =
+        await DataReconciliationService.findForeignShopSalesReturnItems();
+    final orphanExp = await DataReconciliationService.findOrphanExpenseActivity();
+    final stockMis = await DataReconciliationService.findStockStatusMismatch();
+    final voided =
+        await DataReconciliationService.findVoidedTxnPaymentIntents();
     if (!mounted) return;
     setState(() {
       _orphans = orphans;
       _zeroDebts = zeros;
+      _orphanRetItems = orphanRet;
+      _foreignRetItems = foreignRet;
+      _orphanExpFal = orphanExp;
+      _stockMismatch = stockMis;
+      _voidedIntents = voided;
       _loading = false;
     });
+  }
+
+  int _mi(Map m, String k) => (m[k] as num?)?.toInt() ?? 0;
+
+  Future<void> _cleanRetItem(Map<String, dynamic> it) async {
+    final proceed = await _confirmSummary(
+      context,
+      title: 'Xóa item trả hàng mồ côi',
+      lines: [
+        '${it['productName'] ?? ''} • ${MoneyUtils.formatCurrency(_mi(it, 'amount'))}đ',
+        'Phiếu trả hàng cha: ${it['salesReturnFirestoreId'] ?? '(trống)'} — KHÔNG còn tồn tại',
+        'Soft-delete + đồng bộ. KHÔNG đụng tồn kho / tài chính (item mồ côi vốn '
+            'đã không được tính vào báo cáo).',
+      ],
+      withReversal: false,
+    );
+    if (proceed != true || !mounted || !await _confirmPassword(context)) return;
+    await DataReconciliationService.cleanOrphanSalesReturnItem(
+      it,
+      reason: 'Công cụ dọn dữ liệu tài chính (AUDIT D-2)',
+    );
+    if (!mounted) return;
+    NotificationService.showSnackBar('✅ Đã xóa item mồ côi', color: Colors.green);
+    _load();
+  }
+
+  Future<void> _removeForeign() async {
+    final proceed = await _confirmSummary(
+      context,
+      title: 'Xóa item trả hàng của shop khác',
+      lines: [
+        'Có ${_foreignRetItems.length} item mang shopId của cửa hàng KHÁC lọt vào '
+            'DB máy này (rác lúc đổi tài khoản).',
+        'Xóa cứng khỏi máy này. KHÔNG ảnh hưởng cửa hàng kia (dữ liệu của họ vẫn '
+            'trên cloud).',
+      ],
+      withReversal: false,
+    );
+    if (proceed != true || !mounted || !await _confirmPassword(context)) return;
+    final n = await DataReconciliationService.removeForeignShopSalesReturnItems();
+    if (!mounted) return;
+    NotificationService.showSnackBar('✅ Đã xóa $n item của shop khác',
+        color: Colors.green);
+    _load();
+  }
+
+  Future<void> _reverseExpFal(Map<String, dynamic> f) async {
+    final proceed = await _confirmSummary(
+      context,
+      title: 'Đảo khoản chi ma',
+      lines: [
+        '${f['title'] ?? ''} • ${MoneyUtils.formatCurrency(_mi(f, 'amount'))}đ',
+        'Nhật ký tài chính có ghi CHI nhưng KHÔNG có phiếu chi tương ứng.',
+        'Ghi 1 dòng bù (THU cùng số tiền) để net = 0 + hủy payment_intent liên '
+            'quan. KHÔNG xóa dòng nhật ký gốc (append-only).',
+      ],
+      withReversal: false,
+    );
+    if (proceed != true || !mounted || !await _confirmPassword(context)) return;
+    await DataReconciliationService.reverseOrphanExpenseActivity(
+      f,
+      reason: 'Công cụ dọn dữ liệu tài chính (AUDIT D-3)',
+    );
+    if (!mounted) return;
+    NotificationService.showSnackBar('✅ Đã đảo khoản chi ma', color: Colors.green);
+    _load();
+  }
+
+  Future<void> _cancelVoidedIntent(Map<String, dynamic> pi) async {
+    final proceed = await _confirmSummary(
+      context,
+      title: 'Hủy payment_intent của giao dịch đã VOID',
+      lines: [
+        '${MoneyUtils.formatCurrency(_mi(pi, 'amount'))}đ • ${pi['type'] ?? ''}',
+        'Giao dịch gốc (${pi['referenceId'] ?? ''}) đã bị VOID.',
+        'Đổi status → CANCELLED. KHÔNG đụng tiền (engine không cộng '
+            'payment_intents).',
+      ],
+      withReversal: false,
+    );
+    if (proceed != true || !mounted || !await _confirmPassword(context)) return;
+    await DataReconciliationService.cancelVoidedTxnPaymentIntent(
+      pi,
+      reason: 'Công cụ dọn dữ liệu tài chính (AUDIT L-4)',
+    );
+    if (!mounted) return;
+    NotificationService.showSnackBar('✅ Đã hủy intent', color: Colors.green);
+    _load();
   }
 
   Future<void> _cleanOrphan(Map<String, dynamic> p) async {
@@ -1159,12 +1264,131 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
-    if (_orphans.isEmpty && _zeroDebts.isEmpty) {
+    final nothing = _orphans.isEmpty &&
+        _zeroDebts.isEmpty &&
+        _orphanRetItems.isEmpty &&
+        _foreignRetItems.isEmpty &&
+        _orphanExpFal.isEmpty &&
+        _stockMismatch.isEmpty &&
+        _voidedIntents.isEmpty;
+    if (nothing) {
       return _emptyState('Không phát hiện dữ liệu tài chính cần dọn 👍');
     }
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
+        if (_orphanRetItems.isNotEmpty) ...[
+          _sectionHeader(
+            'Item trả hàng mồ côi (${_orphanRetItems.length})',
+            'Item không có phiếu trả hàng cha — rác dữ liệu (không tính vào báo cáo).',
+          ),
+          ..._orphanRetItems.map(
+            (it) => ListTile(
+              dense: true,
+              leading: const Icon(Icons.link_off, color: Colors.red, size: 20),
+              title: Text(
+                '${it['productName'] ?? ''} • ${MoneyUtils.formatCurrency(_mi(it, 'amount'))}đ',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              subtitle: Text(
+                'Phiếu cha: ${it['salesReturnFirestoreId'] ?? '(trống)'}',
+                style: const TextStyle(fontSize: 11),
+              ),
+              trailing: TextButton(
+                onPressed: () => _cleanRetItem(it),
+                child: const Text('Xóa'),
+              ),
+            ),
+          ),
+        ],
+        if (_foreignRetItems.isNotEmpty) ...[
+          _sectionHeader(
+            'Item trả hàng của SHOP KHÁC (${_foreignRetItems.length})',
+            'Bản ghi mang shopId cửa hàng khác lọt vào máy này (rác đổi tài khoản).',
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.delete_sweep, size: 18),
+              label: Text('Xóa tất cả ${_foreignRetItems.length} item của shop khác'),
+              onPressed: _removeForeign,
+            ),
+          ),
+        ],
+        if (_orphanExpFal.isNotEmpty) ...[
+          _sectionHeader(
+            'Khoản chi ma trong Nhật ký (${_orphanExpFal.length})',
+            'Nhật ký tài chính ghi CHI nhưng không có phiếu chi tương ứng.',
+          ),
+          ..._orphanExpFal.map(
+            (f) => ListTile(
+              dense: true,
+              leading: const Icon(Icons.report_gmailerrorred,
+                  color: Colors.red, size: 20),
+              title: Text(
+                '${f['title'] ?? ''} • ${MoneyUtils.formatCurrency(_mi(f, 'amount'))}đ',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              subtitle: Text(
+                '${f['referenceId'] ?? ''}\n${_fmtTs(f['createdAt'])}',
+                style: const TextStyle(fontSize: 11),
+              ),
+              isThreeLine: true,
+              trailing: TextButton(
+                onPressed: () => _reverseExpFal(f),
+                child: const Text('Đảo'),
+              ),
+            ),
+          ),
+        ],
+        if (_voidedIntents.isNotEmpty) ...[
+          _sectionHeader(
+            'payment_intent của giao dịch đã VOID (${_voidedIntents.length})',
+            'Intent còn COMPLETED/PENDING cho đơn/phiếu đã bị VOID.',
+          ),
+          ..._voidedIntents.map(
+            (pi) => ListTile(
+              dense: true,
+              leading: const Icon(Icons.cancel_schedule_send,
+                  color: Colors.orange, size: 20),
+              title: Text(
+                '${MoneyUtils.formatCurrency(_mi(pi, 'amount'))}đ • ${pi['type'] ?? ''}',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              subtitle: Text(
+                '${pi['referenceId'] ?? ''} • ${pi['status'] ?? ''}',
+                style: const TextStyle(fontSize: 11),
+              ),
+              trailing: TextButton(
+                onPressed: () => _cancelVoidedIntent(pi),
+                child: const Text('Hủy'),
+              ),
+            ),
+          ),
+        ],
+        if (_stockMismatch.isNotEmpty) ...[
+          _sectionHeader(
+            'SKU cần kiểm kho thực tế (${_stockMismatch.length})',
+            'status=0 (đã bán/ẩn) nhưng số lượng > 0. KHÔNG tự đổi số lượng — '
+                'báo cáo VỐN TỒN KHO đã bỏ qua các SKU này.',
+          ),
+          ..._stockMismatch.map(
+            (p) => ListTile(
+              dense: true,
+              leading: const Icon(Icons.inventory_2_outlined,
+                  color: Colors.blueGrey, size: 20),
+              title: Text(
+                '${p['name'] ?? ''} • SL ${_mi(p, 'quantity')} • '
+                '${MoneyUtils.formatCurrency(_mi(p, 'quantity') * _mi(p, 'cost'))}đ',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              subtitle: Text(
+                'IMEI ${p['imei'] ?? '(không)'} • status=${p['status']} — cần kiểm kho',
+                style: const TextStyle(fontSize: 11),
+              ),
+            ),
+          ),
+        ],
         if (_orphans.isNotEmpty) ...[
           _sectionHeader(
             'Phiếu thu/trả nợ mồ côi (${_orphans.length})',
