@@ -801,8 +801,14 @@ class PaymentIntentService {
       case PaymentIntentType.otherDebt:
       case PaymentIntentType.inventoryPurchase: // Thêm: nhập kho có công nợ
       case PaymentIntentType.partsStockIn: // Thêm: nhập linh kiện có công nợ
-        // Update debt payment
-        if (intent.metadata != null && intent.metadata!['debtId'] != null) {
+        // Update debt payment. Chấp nhận định vị nợ qua debtId (local int) HOẶC
+        // debtFirestoreId — luồng trả trước đơn CÔNG NỢ chỉ có firestoreId (nợ
+        // vừa tạo, chưa biết local id) nên nếu chỉ guard theo debtId thì phiếu
+        // thu + updateDebtPaid bị bỏ qua → debts.paidAmount lệch debt_payments.
+        if (intent.metadata != null &&
+            (intent.metadata!['debtId'] != null ||
+                (intent.metadata!['debtFirestoreId'] as String?)?.isNotEmpty ==
+                    true)) {
           final debtId = intent.metadata!['debtId'];
           final debtFirestoreId = intent.metadata!['debtFirestoreId'];
           final debtType = intent.metadata!['debtType'] as String? ?? 'SHOP_OWES';
