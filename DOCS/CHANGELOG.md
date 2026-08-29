@@ -4,6 +4,24 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-29l] - fix(finance) PHASE 3.3: Excel tab Tài chính — đổi nhãn "Doanh thu/Lợi nhuận" → "phần đã thu tiền" (FinanceV2 = cash)
+
+**Mapping PHASE 2:** FinanceV2 = DÒNG TIỀN (cash basis). Các file Excel xuất từ tab Tài chính (`_exOverview`, `_exDailyReportPhone`) đang gọi `s.incomeFromSales/cogsFromSales/grossProfitTotal` là "Doanh thu / Vốn bán hàng / Lợi nhuận thực" — sai khái niệm (số là tiền đã thu, đơn CÔNG NỢ = 0).
+
+**Đã sửa (`lib/finance_v2/finance_v2_view.dart` — CHỈ ĐỔI NHÃN chuỗi, KHÔNG đổi số/nguồn):**
+- Sheet "Tổng quan" (`_exOverview`): "Doanh thu bán hàng/sửa chữa" → "Tiền bán hàng/sửa chữa đã thu"; "Vốn bán hàng/sửa chữa" → "Vốn (phần đã thu) - bán/sửa"; "Lãi gộp bán hàng/sửa chữa" → "Lãi gộp (đã thu) - bán/sửa"; "Tổng lãi gộp" → "Tổng lãi gộp (phần đã thu)".
+- `_exDailyReportPhone`: "Lợi nhuận thực" → "Lãi gộp (phần đã thu)"; "CƠ CẤU DOANH THU" → "CƠ CẤU TIỀN THU"; Section 10 "Tổng doanh thu / Vốn bán hàng / Lãi gộp / Lãi thực" → "Tổng tiền bán đã thu / Vốn (phần đã thu) / Lãi gộp (đã thu) / Lãi gộp sau chi phí (phần đã thu)".
+- **KHÔNG đụng `_reportInputFromSnapshot`** (`:4085`) — feed `FinanceV2ReconciliationReportInput` để đối chiếu với `financial_activity_log` (cả 2 đều cash) → đổi sẽ làm reconciliation FAIL. Giữ nguyên là cash, đúng ngữ cảnh.
+- **KHÔNG đụng** print-text ESC/POS (`_buildPrintLinesForTab` ~:794, `_buildDetailedDailyPrintLines` ~:920) — ngoài phạm vi 3.3 (ghi HANDOVER để làm sau nếu cần).
+
+**Verify:**
+- `dart analyze` (file): 0 error/warning. `flutter test`: **+410 −11** (không hồi quy).
+- Máy thật (Oppo CPH2203): tab Tài chính → Thao tác → Xuất Excel → "Xuất file thành công", kéo `tong_quan_29082026.xlsx` về đọc: các cột đúng nhãn mới ("Tiền bán hàng đã thu", "Vốn (phần đã thu) - bán", "Tổng lãi gộp (phần đã thu)", ...), không còn chữ "Doanh thu".
+
+**Files:** `lib/finance_v2/finance_v2_view.dart`.
+
+---
+
 ## [2026-08-29k] - fix(finance) PHASE 3.2: Báo cáo ngày — "Doanh thu/Giá vốn/Lợi nhuận" lấy từ accrual, tách rõ khỏi "Dòng tiền"
 
 **Mapping PHASE 2 (user đã chốt):** DÒNG TIỀN = cash basis (FinanceV2 `totalIn/totalOut/netCashflow`, `cash_closing`), KẾT QUẢ KINH DOANH = accrual (`DailyFinancialAnalysisService`: `saleIncome + settlementIncome + repairIncome` / `saleCost + repairCost` / `netProfit`). Mỗi khái niệm 1 nguồn chuẩn.
