@@ -4,6 +4,24 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-29m] - fix(finance) PHASE 3.4: Báo cáo lợi nhuận tháng — nhãn phân biệt accrual vs dòng tiền
+
+**Mapping PHASE 2:** màn "Báo cáo lợi nhuận" là màn KẾT QUẢ KINH DOANH (accrual, từ `analyze()`). "Doanh thu"/"Lợi nhuận" đã đúng accrual, nhưng ô tổng kết năm còn có "Tổng thu"/"Tổng chi" (= `analysis.totalIn/totalOut`, dòng tiền) đặt cạnh nhau **không phân biệt** → người xem tưởng cùng loại.
+
+**Đã sửa (`lib/views/monthly_profit_report_view.dart` — CHỈ 4 nhãn chuỗi, không đổi số):**
+- "Doanh thu" → "Doanh thu (accrual)"
+- "Lợi nhuận" → "Lợi nhuận (accrual)"
+- "Tổng thu" → "Tổng thu (dòng tiền)"
+- "Tổng chi" → "Tổng chi (dòng tiền)"
+
+**Verify:**
+- `dart analyze` (file): 0 error/warning. `flutter test`: **+410 −11** (không hồi quy).
+- Máy thật (Oppo CPH2203, tài khoản test): đơn CÔNG NỢ 200k / vốn 100k / chưa thu → "TỔNG KẾT NĂM 2026": Doanh thu (accrual) **200.000**, Lợi nhuận (accrual) **100.000**, Tổng thu (dòng tiền) **0**, Tổng chi (dòng tiền) **100.000**. Đúng mô hình.
+
+**Files:** `lib/views/monthly_profit_report_view.dart`.
+
+---
+
 ## [2026-08-29l] - fix(finance) PHASE 3.3: Excel tab Tài chính — đổi nhãn "Doanh thu/Lợi nhuận" → "phần đã thu tiền" (FinanceV2 = cash)
 
 **Mapping PHASE 2:** FinanceV2 = DÒNG TIỀN (cash basis). Các file Excel xuất từ tab Tài chính (`_exOverview`, `_exDailyReportPhone`) đang gọi `s.incomeFromSales/cogsFromSales/grossProfitTotal` là "Doanh thu / Vốn bán hàng / Lợi nhuận thực" — sai khái niệm (số là tiền đã thu, đơn CÔNG NỢ = 0).

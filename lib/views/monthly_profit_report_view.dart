@@ -362,11 +362,11 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
           Row(
             children: [
               Expanded(
-                child: _summaryItem('Doanh thu', _yearRevenue, Colors.white),
+                child: _summaryItem('Doanh thu (accrual)', _yearRevenue, Colors.white),
               ),
               Expanded(
                 child: _summaryItem(
-                  'Lợi nhuận',
+                  'Lợi nhuận (accrual)',
                   _yearProfit,
                   _yearProfit >= 0 ? Colors.greenAccent : Colors.redAccent,
                 ),
@@ -377,10 +377,10 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
           Row(
             children: [
               Expanded(
-                child: _summaryItem('Tổng thu', _yearTotalIn, Colors.white70),
+                child: _summaryItem('Tổng thu (dòng tiền)', _yearTotalIn, Colors.white70),
               ),
               Expanded(
-                child: _summaryItem('Tổng chi', _yearTotalOut, Colors.white70),
+                child: _summaryItem('Tổng chi (dòng tiền)', _yearTotalOut, Colors.white70),
               ),
             ],
           ),
