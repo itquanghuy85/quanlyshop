@@ -4,6 +4,27 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-29c] - fix(ui): AppBar có TabBar bị cắt/che phần top (nút Back chui sau status bar) trên Android edge-to-edge
+
+**Bối cảnh:** User báo nhiều màn hình bị che phần trên — nút Back góc trái + header nằm sau vùng status bar. Rõ nhất ở `FastInventoryInputView` ("NHẬP KHO SIÊU TỐC"): nút `‹` bị cắt nửa, title + tab dính status bar.
+
+**Nguyên nhân gốc (đã xác định chính xác, KHÔNG phải "MediaQuery.padding.top = 0" như suy đoán ban đầu):** `CustomTabBar.buildGradient/buildOnSub/build` khai báo `PreferredSize(preferredSize: Size.fromHeight(kTabBarHeight = 44))` **cứng**, trong khi `TabBar` thật có tab **icon + text** cao ~72px (`_kTextAndIconTabHeight`), tab chỉ text ~46px. Khi khai thiếu, `AppBar._PreferredAppBarSize = toolbarHeight(44) + 44` → `Scaffold` chỉ chừa đủ chiều cao cho `44 + 44 + topPadding`, nhưng nội dung thật cần `44 + 72 + topPadding` → phần `Flexible` bọc toolbar (chứa nút Back) bị **ép co xuống còn ~16px**, đẩy nút Back chui lên sát/sau status bar. Màn tab **chỉ text** lệch ~2px (gần như không thấy); màn tab **icon+text** lệch ~28px (thấy rõ). AppBar **không có** `bottom:` không bị ảnh hưởng.
+
+**Đã sửa (`lib/widgets/custom_app_bar.dart` — CHỈ 3 hàm factory TabBar):** `CustomTabBar.build`, `buildGradient`, `buildOnSub` — dựng `TabBar` 1 lần rồi lấy `tabBar.preferredSize` **thật** cho `PreferredSize` bọc ngoài (46 cho text / ~72 cho icon+text) thay vì hằng số 44. Không đụng `main.dart`, không `WidgetsBindingObserver`, không `setState` cấp app, không ép rebuild toàn app, không padding thủ công từng màn. Màn không có TabBar: **không đổi 1 pixel**.
+
+**Verify (Oppo CPH2203, cold start OK ~15s, không kẹt AuthGate):** `flutter analyze` sạch.
+- `FastInventoryInputView` (tab icon+text): nút Back **y=131 → y=176** (đúng, dưới status bar 110px), title + tab đều đủ chỗ, không clip. Ảnh chụp xác nhận.
+- `InventoryView` (không TabBar): back **y=176 giữ nguyên** — không regression.
+- `DebtView` (`buildWithTabs`, tab text): back y=170 → y=176 (nhích ~6px cho khớp chuẩn, không thấy khác).
+- `PartnerManagementView` (`build` + `buildGradient`, tab text): back y=176 đúng, tab pill không clip.
+- Chuyển qua lại các tab (cả text lẫn icon) + back — không crash, không RenderFlex overflow trong logcat.
+
+**Trước đó đã thử + REVERT (không commit):** fix ở `main.dart` (`WidgetsBindingObserver` + `didChangeMetrics→setState` + `math.max` inset) — build OK nhưng cài máy thật app **treo ở màn "Đang kiểm tra phiên đăng nhập"**. Đã cô lập xác nhận đúng do fix đó, revert sạch. Nguyên nhân thật (co toolbar do TabBar khai thiếu chiều cao) không liên quan `padding.top`.
+
+**Files:** `lib/widgets/custom_app_bar.dart`.
+
+---
+
 ## [2026-08-29b] - feat(receipt,home): phiếu gửi khách hiện "Nợ cũ / Lần này / Tổng nợ" + QR theo tổng nợ; Home nhắc "Tiền NH chưa tất toán"
 
 **Bối cảnh:** User yêu cầu (1) phiếu biên nhận/phiếu sửa gửi khách (Zalo/ảnh) phải ghi rõ nợ cũ + tổng nợ + QR thanh toán đủ số đang nợ; (2) thêm thống kê tiền ngân hàng chưa tất toán vào khung CẦN XỬ LÝ ở Home.

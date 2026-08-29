@@ -688,32 +688,33 @@ class CustomTabBar {
   }) {
     final accent = accentColor ?? CustomAppBar.kPrimaryColor;
 
-    return PreferredSize(
-      preferredSize: const Size.fromHeight(CustomAppBar.kTabBarHeight),
-      child: Container(
-        color: CustomAppBar.kSurfaceWhite,
-        child: TabBar(
-          controller: controller,
-          isScrollable: isScrollable,
-          labelColor: accent,
-          unselectedLabelColor: CustomAppBar.kTextSecondary,
-          labelStyle: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: AppTextStyles.subtitle1.fontSize,
-          ),
-          unselectedLabelStyle: TextStyle(
-            fontWeight: FontWeight.w400,
-            fontSize: AppTextStyles.subtitle1.fontSize,
-          ),
-          indicatorSize: TabBarIndicatorSize.label,
-          indicatorWeight: 2,
-          indicatorColor: accent,
-          dividerColor: Colors.transparent,
-          padding: padding ?? const EdgeInsets.symmetric(horizontal: 4),
-          labelPadding: const EdgeInsets.symmetric(horizontal: 12),
-          tabs: tabs,
-        ),
+    final tabBar = TabBar(
+      controller: controller,
+      isScrollable: isScrollable,
+      labelColor: accent,
+      unselectedLabelColor: CustomAppBar.kTextSecondary,
+      labelStyle: TextStyle(
+        fontWeight: FontWeight.w600,
+        fontSize: AppTextStyles.subtitle1.fontSize,
       ),
+      unselectedLabelStyle: TextStyle(
+        fontWeight: FontWeight.w400,
+        fontSize: AppTextStyles.subtitle1.fontSize,
+      ),
+      indicatorSize: TabBarIndicatorSize.label,
+      indicatorWeight: 2,
+      indicatorColor: accent,
+      dividerColor: Colors.transparent,
+      padding: padding ?? const EdgeInsets.symmetric(horizontal: 4),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+      tabs: tabs,
+    );
+    return PreferredSize(
+      // Dùng đúng chiều cao thật của TabBar (tab có icon+text = ~72, chỉ text
+      // = ~46) thay vì hằng số 44 — nếu khai báo thiếu, AppBar bị ép co phần
+      // toolbar (nút Back) chui lên sau status bar trên Android edge-to-edge.
+      preferredSize: tabBar.preferredSize,
+      child: Container(color: CustomAppBar.kSurfaceWhite, child: tabBar),
     );
   }
 
@@ -724,42 +725,43 @@ class CustomTabBar {
     bool isScrollable = false,
     EdgeInsetsGeometry? padding,
   }) {
-    return PreferredSize(
-      preferredSize: const Size.fromHeight(CustomAppBar.kTabBarHeight),
-      child: Material(
-        color: Colors.transparent,
-        child: TabBar(
-        controller: controller,
-        isScrollable: isScrollable,
-        labelColor: const Color(0xFF143E82),
-        unselectedLabelColor: Colors.white.withValues(alpha: 0.82),
-        labelStyle: TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: AppTextStyles.subtitle1.fontSize,
-        ),
-        unselectedLabelStyle: TextStyle(
-          fontWeight: FontWeight.w400,
-          fontSize: AppTextStyles.subtitle1.fontSize,
-        ),
-        indicatorSize: TabBarIndicatorSize.tab,
-        indicator: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.12),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        indicatorPadding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-        dividerColor: Colors.transparent,
-        padding: padding ?? const EdgeInsets.symmetric(horizontal: 4),
-        labelPadding: const EdgeInsets.symmetric(horizontal: 12),
-        tabs: tabs,
-        ),
+    final tabBar = TabBar(
+      controller: controller,
+      isScrollable: isScrollable,
+      labelColor: const Color(0xFF143E82),
+      unselectedLabelColor: Colors.white.withValues(alpha: 0.82),
+      labelStyle: TextStyle(
+        fontWeight: FontWeight.w600,
+        fontSize: AppTextStyles.subtitle1.fontSize,
       ),
+      unselectedLabelStyle: TextStyle(
+        fontWeight: FontWeight.w400,
+        fontSize: AppTextStyles.subtitle1.fontSize,
+      ),
+      indicatorSize: TabBarIndicatorSize.tab,
+      indicator: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      indicatorPadding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+      dividerColor: Colors.transparent,
+      padding: padding ?? const EdgeInsets.symmetric(horizontal: 4),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+      tabs: tabs,
+    );
+    return PreferredSize(
+      // Chiều cao thật của TabBar (icon+text ≈ 72, chỉ text ≈ 46) thay vì
+      // hằng số 44 — khai thiếu thì AppBar co toolbar, nút Back chui sau
+      // status bar trên Android edge-to-edge.
+      preferredSize: tabBar.preferredSize,
+      child: Material(color: Colors.transparent, child: tabBar),
     );
   }
 
@@ -770,29 +772,32 @@ class CustomTabBar {
     bool isScrollable = false,
     EdgeInsetsGeometry? padding,
   }) {
-    return PreferredSize(
-      preferredSize: const Size.fromHeight(CustomAppBar.kTabBarHeight),
-      child: TabBar(
-        controller: controller,
-        isScrollable: isScrollable,
-        labelColor: Colors.white,
-        unselectedLabelColor: Colors.white.withValues(alpha: 0.65),
-        labelStyle: TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: AppTextStyles.subtitle1.fontSize,
-        ),
-        unselectedLabelStyle: TextStyle(
-          fontWeight: FontWeight.w400,
-          fontSize: AppTextStyles.subtitle1.fontSize,
-        ),
-        indicatorSize: TabBarIndicatorSize.label,
-        indicatorWeight: 2,
-        indicatorColor: Colors.white,
-        dividerColor: Colors.white.withValues(alpha: 0.15),
-        padding: padding ?? const EdgeInsets.symmetric(horizontal: 4),
-        labelPadding: const EdgeInsets.symmetric(horizontal: 12),
-        tabs: tabs,
+    final tabBar = TabBar(
+      controller: controller,
+      isScrollable: isScrollable,
+      labelColor: Colors.white,
+      unselectedLabelColor: Colors.white.withValues(alpha: 0.65),
+      labelStyle: TextStyle(
+        fontWeight: FontWeight.w600,
+        fontSize: AppTextStyles.subtitle1.fontSize,
       ),
+      unselectedLabelStyle: TextStyle(
+        fontWeight: FontWeight.w400,
+        fontSize: AppTextStyles.subtitle1.fontSize,
+      ),
+      indicatorSize: TabBarIndicatorSize.label,
+      indicatorWeight: 2,
+      indicatorColor: Colors.white,
+      dividerColor: Colors.white.withValues(alpha: 0.15),
+      padding: padding ?? const EdgeInsets.symmetric(horizontal: 4),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+      tabs: tabs,
+    );
+    return PreferredSize(
+      // Chiều cao thật của TabBar thay vì hằng số 44 — xem giải thích ở
+      // buildGradient().
+      preferredSize: tabBar.preferredSize,
+      child: tabBar,
     );
   }
 
