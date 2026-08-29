@@ -93,6 +93,16 @@ class DailyFinancialAnalysisService {
     int refundOut = 0;
     int returnCostTotal = 0;
 
+    // Khử trùng thanh toán đối tác sửa chữa: mỗi khoản trả đối tác thường được
+    // ghi song song thành 1 expense mirror `exp_partner_<X>` (X = firestoreId của
+    // repair_partner_payments bỏ tiền tố `rpp_`). Nếu không loại một trong hai,
+    // vòng `expenses` và vòng `repairPartnerPayments` cộng cùng số tiền 2 lần
+    // vào cashOut/bankOut. FinanceV2 và danh sách chi tiết Sổ quỹ đều đã khử —
+    // đây là chỗ `analyze()` bị thiếu. Thu thập ngay trong vòng `expenses` bên
+    // dưới rồi dùng lại ở vòng `repairPartnerPayments`.
+    final partnerExpenseFids = <String>{};
+    final partnerExpenseAmounts = <int>{};
+
     for (final sale in sales) {
       final paymentMethod = _asString(sale['paymentMethod']);
       final totalPrice = _asInt(sale['totalPrice']);
@@ -217,6 +227,16 @@ class DailyFinancialAnalysisService {
         fallback: 'TIỀN MẶT',
       );
 
+      // Ghi nhận các expense là "bản sao" của thanh toán đối tác sửa chữa để
+      // vòng `repairPartnerPayments` bên dưới bỏ qua, tránh đếm 2 lần.
+      final expenseFid = _asString(expense['firestoreId']);
+      if (expenseFid.startsWith('exp_partner_')) {
+        partnerExpenseFids.add(expenseFid);
+      }
+      if (category.contains('ĐỐI TÁC') || category.contains('PARTNER')) {
+        partnerExpenseAmounts.add(amount);
+      }
+
       if (type == 'THU') {
         miscIncome += amount;
         if (method == 'TIỀN MẶT') {
@@ -294,6 +314,22 @@ class DailyFinancialAnalysisService {
           payment['paymentMethod'],
           fallback: 'TIỀN MẶT',
         );
+
+        // Bỏ qua nếu khoản này đã được cộng ở vòng `expenses` dưới dạng expense
+        // mirror `exp_partner_*` (khớp chính theo firestoreId, giống FinanceV2).
+        // Dự phòng khớp theo số tiền + category "ĐỐI TÁC"/"PARTNER" chỉ khi
+        // payment không có firestoreId để so (dữ liệu cũ / caller lược cột).
+        final paymentFid = _asString(payment['firestoreId']);
+        final mirrorFid = paymentFid.startsWith('rpp_')
+            ? 'exp_partner_${paymentFid.substring(4)}'
+            : 'exp_partner_$paymentFid';
+        final alreadyCounted = paymentFid.isNotEmpty
+            ? partnerExpenseFids.contains(mirrorFid)
+            : partnerExpenseAmounts.contains(amount);
+        if (alreadyCounted) {
+          continue;
+        }
+
         partnerPaid += amount;
 
         if (method == 'TIỀN MẶT') {

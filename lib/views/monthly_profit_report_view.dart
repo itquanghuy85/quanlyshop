@@ -121,7 +121,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
         // [3] expenses
         dbConn.query(
           'expenses',
-          columns: ['amount', 'category', 'type', 'paymentMethod'],
+          columns: ['amount', 'category', 'type', 'paymentMethod', 'firestoreId'],
           where: shopId != null && shopId.isNotEmpty
               ? '(date >= ? AND date < ?) AND (shopId = ? OR shopId IS NULL)'
               : 'date >= ? AND date < ?',
@@ -142,7 +142,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
         // [6] repairPartnerPayments
         dbConn.query(
           'repair_partner_payments',
-          columns: ['amount', 'paidAt', 'paymentMethod'],
+          columns: ['amount', 'paidAt', 'paymentMethod', 'firestoreId'],
           where:
               'paidAt IS NOT NULL AND paidAt >= ? AND paidAt < ? AND (deleted IS NULL OR deleted != 1)',
           whereArgs: [startMs, endMs],

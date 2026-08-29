@@ -4,6 +4,28 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-29e] - fix(finance) PHASE 1.1: analyze() khử trùng thanh toán đối tác sửa chữa — hết double-count Sổ quỹ / Chốt quỹ / Báo cáo lợi nhuận tháng
+
+**Bối cảnh (từ đợt AUDIT hệ thống tài chính):** Sổ quỹ ngày 09/08/2026 hiển thị "Số dư dự kiến cuối ngày = −24 Tr" trong khi thực chi chỉ 12.000.000đ. Tab "Chi" của cùng màn hình lại đúng (1 giao dịch −12 Tr), tab Tài chính (Finance V2) cũng đúng (−12 Tr). Lệch đúng bằng 1 khoản thanh toán đối tác sửa chữa (12.000.000đ) trên mọi kỳ có chứa ngày đó.
+
+**Nguyên nhân gốc (`lib/services/daily_financial_analysis_service.dart` → `analyze()`):** 1 khoản trả đối tác được ghi song song ở 2 nơi — bảng `repair_partner_payments` (`rpp_<X>`) và 1 expense "bản sao" `exp_partner_<X>` (category "ĐỐI TÁC SỬA CHỮA"). Vòng `expenses` cộng khoản expense vào `cashOut`/`expenseOut`; vòng `repairPartnerPayments` cộng LẠI cùng số tiền vào `cashOut`/`partnerPaid`. Không có bước khử trùng. `FinanceV2DataService` và `cash_closing_view._getExpenseTransactions` đều đã khử (khớp theo `firestoreId`: `exp_partner_ = 'exp_partner_' + rpp_fid.substring(4)`) — chỉ `analyze()` bị thiếu.
+
+**Đã sửa:**
+- `lib/services/daily_financial_analysis_service.dart` — trong `analyze()`: thu thập `partnerExpenseFids` (expense có firestoreId bắt đầu `exp_partner_`) + `partnerExpenseAmounts` (expense category chứa "ĐỐI TÁC"/"PARTNER") ngay trong vòng `expenses`; ở vòng `repairPartnerPayments` bỏ qua (`continue`) khoản đã được cộng — khớp chính theo firestoreId (giống FinanceV2), dự phòng khớp số tiền + category chỉ khi payment không có firestoreId.
+- `lib/views/monthly_profit_report_view.dart` + `lib/views/home_view.dart` — thêm cột `firestoreId` vào query `expenses` (và `repair_partner_payments` ở monthly) để nhánh khớp-firestoreId hoạt động chính xác ở mọi caller.
+- KHÔNG đụng `FinanceV2DataService`, KHÔNG đụng `_getExpenseTransactions`, KHÔNG workaround ở UI.
+
+**Callers tự động đúng lại:** `cash_closing_view` (Sổ quỹ + Chốt quỹ + prefill dialog chốt), `monthly_profit_report_view`, `finance_v2_daily_report_view`, `home_view`.
+
+**Verify:**
+- `flutter analyze` (3 file đổi): 0 error / 0 warning.
+- `flutter test`: **+410 −11** (baseline +406 −11) — thêm 4 test dedup mới đều xanh, 0 hồi quy. 1 test đỏ `daily_financial_analysis_service_test.dart:270` (`enableRepair=false` không zero hoá dòng tiền sửa) là lỗi CÓ SẴN, không liên quan.
+- Máy thật (Oppo CPH2203, debug build): Sổ quỹ 09/08 "Tổng quan" **−24 Tr → −12 Tr**, khớp tab "Chi" (1 giao dịch −12 Tr) và tab Tài chính (−12 Tr). logcat `analyze()`: `cashOut 24.000.000 → 12.000.000`, `partnerPaid 12.000.000 → 0` (đã khử). Regression: Sổ quỹ 08/08 giữ nguyên −10 Tr (trả nợ NCC, không liên quan).
+
+**Files:** `lib/services/daily_financial_analysis_service.dart`, `lib/views/monthly_profit_report_view.dart`, `lib/views/home_view.dart`, `test/daily_financial_analysis_service_test.dart`.
+
+---
+
 ## [2026-08-29d] - fix(shop_settings): lưu cài đặt shop bằng UPSERT idempotent — hết lặp UNIQUE constraint làm cold-start ~45s
 
 **Bối cảnh:** Sau khi cài mới / đổi tài khoản, cold-start mất ~45s mới vào Home. Logcat lặp: `CategoryService: Not found in local DB` → fetch Firestore → `Error saving shop settings locally: DatabaseException(UNIQUE constraint failed: shop_settings.firestoreId)` → clear cache → retry, giữ DB locked ~10s nhiều lần → AuthGate chờ.

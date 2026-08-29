@@ -485,6 +485,113 @@ void main() {
     });
   });
 
+  group('DailyFinancialAnalysisService - repair partner payment dedup', () {
+    test('mirror expense + rpp with matching firestoreId: counted once', () {
+      final inputs = emptyInputs();
+      inputs['expenses'] = [
+        {
+          'firestoreId': 'exp_partner_pi_direct_abc123',
+          'category': 'ĐỐI TÁC SỬA CHỮA',
+          'type': 'CHI',
+          'amount': 12000000,
+          'paymentMethod': 'TIỀN MẶT',
+        },
+      ];
+      inputs['repairPartnerPayments'] = [
+        {
+          'firestoreId': 'rpp_pi_direct_abc123',
+          'amount': 12000000,
+          'paymentMethod': 'TIỀN MẶT',
+        },
+      ];
+      final r = runAnalysis(inputs, enableRepair: true);
+      // Expense đã cộng 12tr vào cashOut + expenseOut; rpp phải bị bỏ qua.
+      expect(r.cashOut, 12000000);
+      expect(r.expenseOut, 12000000);
+      expect(r.partnerPaid, 0);
+    });
+
+    test('rpp without firestoreId: falls back to amount + partner category', () {
+      final inputs = emptyInputs();
+      inputs['expenses'] = [
+        {
+          'category': 'ĐỐI TÁC SỬA CHỮA',
+          'type': 'CHI',
+          'amount': 12000000,
+          'paymentMethod': 'TIỀN MẶT',
+        },
+      ];
+      inputs['repairPartnerPayments'] = [
+        {
+          'amount': 12000000,
+          'paymentMethod': 'TIỀN MẶT',
+        },
+      ];
+      final r = runAnalysis(inputs, enableRepair: true);
+      expect(r.cashOut, 12000000);
+      expect(r.partnerPaid, 0);
+    });
+
+    test('rpp with firestoreId but no mirror expense: still counted', () {
+      final inputs = emptyInputs();
+      // Expense đối tác khác số tiền -> không phải mirror của rpp này.
+      inputs['expenses'] = [
+        {
+          'firestoreId': 'exp_partner_pi_direct_other',
+          'category': 'ĐỐI TÁC SỬA CHỮA',
+          'type': 'CHI',
+          'amount': 300000,
+          'paymentMethod': 'TIỀN MẶT',
+        },
+      ];
+      inputs['repairPartnerPayments'] = [
+        {
+          'firestoreId': 'rpp_pi_direct_abc123',
+          'amount': 500000,
+          'paymentMethod': 'TIỀN MẶT',
+        },
+      ];
+      final r = runAnalysis(inputs, enableRepair: true);
+      // 300k (expense) + 500k (rpp) đều được tính, không khử nhầm.
+      expect(r.cashOut, 800000);
+      expect(r.expenseOut, 300000);
+      expect(r.partnerPaid, 500000);
+    });
+
+    test(
+      'two distinct rpp with same amount, one mirrored: only the mirrored one skipped',
+      () {
+        final inputs = emptyInputs();
+        inputs['expenses'] = [
+          {
+            'firestoreId': 'exp_partner_pi_direct_A',
+            'category': 'ĐỐI TÁC SỬA CHỮA',
+            'type': 'CHI',
+            'amount': 500000,
+            'paymentMethod': 'TIỀN MẶT',
+          },
+        ];
+        inputs['repairPartnerPayments'] = [
+          {
+            'firestoreId': 'rpp_pi_direct_A',
+            'amount': 500000,
+            'paymentMethod': 'TIỀN MẶT',
+          },
+          {
+            'firestoreId': 'rpp_pi_direct_B',
+            'amount': 500000,
+            'paymentMethod': 'TIỀN MẶT',
+          },
+        ];
+        final r = runAnalysis(inputs, enableRepair: true);
+        // exp A (500k) + rpp B (500k) = 1.000.000; rpp A bị bỏ qua.
+        expect(r.cashOut, 1000000);
+        expect(r.expenseOut, 500000);
+        expect(r.partnerPaid, 500000);
+      },
+    );
+  });
+
   group('DailyFinancialAnalysisService - sales returns', () {
     test('cash refund reduces income and adds to cashOut', () {
       final inputs = emptyInputs();

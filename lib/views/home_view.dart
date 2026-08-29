@@ -2524,6 +2524,7 @@ class _HomeViewState extends State<HomeView>
             'date',
             'type',
             'paymentMethod',
+            'firestoreId',
           ],
           where: scope.where('date >= ? AND date < ?'),
           whereArgs: scope.args([startMs, endMs]),
