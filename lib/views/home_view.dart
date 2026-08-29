@@ -7397,13 +7397,15 @@ class _HomeViewState extends State<HomeView>
   }
 
   Widget _buildDashboardOverview() {
+    // Thẻ này là DÒNG TIỀN hôm nay (cash) — không phải doanh thu/lợi nhuận
+    // kế toán. Bấm vào mở Sổ quỹ.
     final totalIncome = _todayTotalIn;
     final totalExpense = _todayTotalOut;
-    final netProfit = totalIncome - totalExpense;
+    final netCashToday = totalIncome - totalExpense;
 
-    // Income breakdown for donut
+    // Income breakdown for donut — các mục dưới là TIỀN ĐÃ THU trong ngày.
     final incomeItems = <_HomeDashItem>[
-      _HomeDashItem('Bán hàng', _todaySaleIncome, const Color(0xFF43A047)),
+      _HomeDashItem('Tiền bán', _todaySaleIncome, const Color(0xFF43A047)),
       if (_todaySettlementIncome > 0)
         _HomeDashItem(
           'Tất toán NH',
@@ -7411,7 +7413,7 @@ class _HomeViewState extends State<HomeView>
           const Color(0xFF00897B),
         ),
       if (_enableRepair && _todayRepairIncome > 0)
-        _HomeDashItem('Sửa chữa', _todayRepairIncome, const Color(0xFF1E88E5)),
+        _HomeDashItem('Tiền sửa', _todayRepairIncome, const Color(0xFF1E88E5)),
       if (_todayDebtCollected > 0)
         _HomeDashItem(
           'Thu nợ KH',
@@ -7452,8 +7454,8 @@ class _HomeViewState extends State<HomeView>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Profit header ──
-            _dashProfitHeader(netProfit, totalIncome, totalExpense),
+            // ── Net cash-flow header ──
+            _dashProfitHeader(netCashToday, totalIncome, totalExpense),
 
             const SizedBox(height: 12),
 
@@ -7723,8 +7725,8 @@ class _HomeViewState extends State<HomeView>
 
   // ── Dashboard chart helpers ──
 
-  Widget _dashProfitHeader(int net, int income, int expense) {
-    final isPositive = net >= 0;
+  Widget _dashProfitHeader(int netCash, int income, int expense) {
+    final isPositive = netCash >= 0;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
@@ -7740,7 +7742,7 @@ class _HomeViewState extends State<HomeView>
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
-              'HÔM NAY',
+              'DÒNG TIỀN HÔM NAY',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
@@ -7759,7 +7761,7 @@ class _HomeViewState extends State<HomeView>
           const SizedBox(width: 4),
           Expanded(
             child: Text(
-              '${isPositive ? "+" : "-"}${MoneyUtils.formatCompact(net.abs())}',
+              '${isPositive ? "+" : "-"}${MoneyUtils.formatCompact(netCash.abs())}',
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w800,

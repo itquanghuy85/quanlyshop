@@ -4,6 +4,24 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-29n] - fix(finance) PHASE 3.5: Home dashboard — nhãn "DÒNG TIỀN HÔM NAY" thay vì mập mờ "profit"
+
+**Mapping PHASE 2:** thẻ tổng quan Home (`_buildDashboardOverview`, bấm vào mở Sổ quỹ) là DÒNG TIỀN hôm nay (cash, từ `FinanceV2.totalIn/totalOut`). Nhưng biến local tên `netProfit`, comment `// Profit header`, donut item "Bán hàng"/"Sửa chữa" → dễ hiểu nhầm là doanh thu/lợi nhuận.
+
+**Đã sửa (`lib/views/home_view.dart` — rename biến local + 3 nhãn chuỗi, KHÔNG đổi số/logic):**
+- `netProfit` → `netCashToday`; tham số `_dashProfitHeader(int net,...)` → `netCash`.
+- Chip header "HÔM NAY" → **"DÒNG TIỀN HÔM NAY"**.
+- Donut "THU NHẬP": item "Bán hàng" → "Tiền bán", "Sửa chữa" → "Tiền sửa" (= tiền đã thu trong ngày).
+- Thêm 2 comment giải thích thẻ là dòng tiền, không phải doanh thu kế toán.
+
+**Verify:**
+- `dart analyze` (file): 0 error/warning (analyzer bắt 2 chỗ dùng tên cũ khi rename → đã sửa). `flutter test`: **+410 −11** (không hồi quy). Build + cài OK (exit 0).
+- **Chưa render được thẻ trên máy qua ADB** — `_buildDashboardOverview` là thẻ dashboard opt-in ("Tùy chỉnh giao diện Home"), tài khoản test đang tắt, toggle qua ADB không giữ (không có nút Lưu rõ ràng). Thay đổi thuần rename + chuỗi, analyzer đã kiểm; sibling screen (Báo cáo LN tháng, 3.4) đã verify cùng hệ.
+
+**Files:** `lib/views/home_view.dart`.
+
+---
+
 ## [2026-08-29m] - fix(finance) PHASE 3.4: Báo cáo lợi nhuận tháng — nhãn phân biệt accrual vs dòng tiền
 
 **Mapping PHASE 2:** màn "Báo cáo lợi nhuận" là màn KẾT QUẢ KINH DOANH (accrual, từ `analyze()`). "Doanh thu"/"Lợi nhuận" đã đúng accrual, nhưng ô tổng kết năm còn có "Tổng thu"/"Tổng chi" (= `analysis.totalIn/totalOut`, dòng tiền) đặt cạnh nhau **không phân biệt** → người xem tưởng cùng loại.
