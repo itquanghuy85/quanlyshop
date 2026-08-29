@@ -1614,8 +1614,8 @@ class _FinanceV2ViewState extends State<FinanceV2View>
             ],
             const Divider(height: 20, thickness: 0.5),
             _sectionTitle(
-              'Lợi nhuận (profit)',
-              'So sánh vốn và lãi theo giao dịch (accrual), có thể khác dòng tiền.',
+              'Lãi gộp (phần đã thu)',
+              'So sánh vốn & lãi trên phần tiền đã thu — có thể khác lợi nhuận kế toán.',
             ),
             const SizedBox(height: 8),
             Row(
@@ -1720,12 +1720,12 @@ class _FinanceV2ViewState extends State<FinanceV2View>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _sectionTitle(
-              '2) Lợi nhuận (profit)',
-              'Lợi nhuận = lời từ giao dịch, có thể chưa thu tiền ngay nếu là đơn công nợ.',
+              '2) Lãi gộp (phần đã thu)',
+              'Vốn & lãi tính trên phần tiền ĐÃ THU trong kỳ — đơn công nợ chưa thu chưa được tính.',
             ),
             const SizedBox(height: 4),
             Text(
-              'Lợi nhuận theo giao dịch (accrual), không đồng nghĩa với tiền đang có trong quỹ.',
+              'Đây là lãi theo dòng tiền thực thu, không phải lợi nhuận kế toán đầy đủ (xem Báo cáo lợi nhuận).',
               style: FinanceV2Theme.micro,
             ),
             const SizedBox(height: 10),

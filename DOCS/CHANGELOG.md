@@ -4,6 +4,23 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-29j] - fix(finance) PHASE 3.1: FinanceV2 bỏ chặn "giá vốn ≤ tiền đã thu" (hết giấu lỗ) + sửa nhãn nói sai "accrual"
+
+**Bối cảnh (đợt AUDIT — LỖI #3):** tab Tài chính (FinanceV2) tính vốn bán hàng theo tỉ lệ tiền đã thu rồi CHẶN `recognizedCost ≤ actualPaid` → đơn bán dưới giá vốn (vd `sale_1787538502668`: giá 50.000, vốn 100.000) hiển thị **lãi gộp = 0** thay vì **lỗ −50.000**. Đồng thời chữ trợ giúp 2 chỗ trên UI ghi *"theo giao dịch (accrual)… có thể chưa thu tiền ngay nếu là đơn công nợ"* trong khi số bên dưới là **tiền mặt** (đơn CÔNG NỢ góp 0đ).
+
+**Quyết định (user uỷ quyền "làm sao hợp lý nhất"):** giữ FinanceV2 = cơ sở TIỀN MẶT (đúng vai trò "dòng tiền"), chỉ:
+1. **Bỏ 2 dòng cap** `if (recognizedCost > actualPaid) recognizedCost = actualPaid` (kỳ hiện tại + kỳ so sánh) trong `finance_v2_data_service.dart` → giữ pro-rating theo tỉ lệ đã thu (matching), nhưng đơn dưới giá vốn cho ra `grossProfit` ÂM đúng.
+2. **Sửa nhãn** `finance_v2_view.dart` (2 chỗ): "Lợi nhuận (profit) / theo giao dịch (accrual)…" → **"Lãi gộp (phần đã thu)"** + *"Đây là lãi theo dòng tiền thực thu, không phải lợi nhuận kế toán đầy đủ (xem Báo cáo lợi nhuận)."*
+- **KHÔNG đụng** `DailyFinancialAnalysisService.analyze()` (Sổ quỹ / Báo cáo lợi nhuận tháng — đang đúng dồn tích cho CÔNG NỢ). Nhánh trả góp trong `analyze()` để lại (không có dữ liệu trả góp để test, không phải bug ai báo). `financial_activity_log.balanceAfter*` giữ NULL (audit-log).
+
+**Verify:**
+- `flutter analyze` (2 file): 0 error / 0 warning. `flutter test`: **+410 −11** (identical với/không có thay đổi — 2 test đỏ `finance_v2_reconciliation_test` là CÓ SẴN, không do thay đổi này).
+- Máy thật (Oppo CPH2203), tab Tài chính 30 ngày: section đổi tên đúng **"2) Lãi gộp (phần đã thu)"** + text mới; **Lãi BH 3.000.000 → 2.950.000** (−50.000 = đúng lỗ của đơn giá 50k/vốn 100k, trước bị cap về 0); Vốn BH 12.05tr → 12.1tr (+50k). Dòng tiền / Nợ phải thu-trả không đổi.
+
+**Files:** `lib/finance_v2/finance_v2_data_service.dart`, `lib/finance_v2/finance_v2_view.dart`.
+
+---
+
 ## [2026-08-29i] - feat(reconcile) PHASE 1.5: tab "TÀI CHÍNH" trong Công cụ điều chỉnh dữ liệu — dọn phiếu nợ mồ côi + công nợ totalAmount=0 (có xác nhận)
 
 **Bối cảnh (đợt AUDIT):** dữ liệu hỏng đã xác định — (1) 3 phiếu `debt_payments` MỒ CÔI (`debt_1786417116867` 12.5tr, `debt_1786783688165` 100k, `debt_1786805963466` 200k = 12.800.000đ) từ các đơn VOID ngày 17/08 TRƯỚC bản vá PHASE 1.2, vẫn `deleted=0` → `analyze()`/FinanceV2 tính là "tiền vào"; (2) 1 công nợ khách `debt_1787034406889` có `totalAmount=0` trong khi đơn bán liên kết = 10.000.000đ → khoản nợ tàng hình ở Nợ phải thu. Theo nguyên tắc "không tự ý xóa/sửa dữ liệu" → làm công cụ có xác nhận, KHÔNG auto-chạy.

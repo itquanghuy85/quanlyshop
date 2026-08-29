@@ -398,6 +398,8 @@ class FinanceV2DataService {
       if (actualPaid > 0) {
         // Vốn bán hàng theo cash basis: tỉ lệ actualPaid/costDenominator.
         // KẾT HỢP dùng actualPaid làm mẫu số → ratio=1 → ghi nhận 100% vốn.
+        // KHÔNG chặn recognizedCost ≤ actualPaid: đơn bán dưới giá vốn phải
+        // hiện lỗ (lãi gộp âm), không được kéo về 0.
         int recognizedCost = 0;
         if (sale.totalCost > 0) {
           final costDenominator =
@@ -411,7 +413,6 @@ class FinanceV2DataService {
             recognizedCost = sale.totalCost;
           }
           if (recognizedCost < 0) recognizedCost = 0;
-          if (recognizedCost > actualPaid) recognizedCost = actualPaid;
         }
         saleCogs += recognizedCost;
         saleIn += actualPaid;
@@ -745,7 +746,7 @@ class FinanceV2DataService {
             prevRecognizedCost = sale.totalCost;
           }
           if (prevRecognizedCost < 0) prevRecognizedCost = 0;
-          if (prevRecognizedCost > actualPaid) prevRecognizedCost = actualPaid;
+          // Nhất quán current period: không chặn ≤ actualPaid (lỗ hiện đúng).
         }
         previousSaleCogs += prevRecognizedCost;
         previousSaleIn += actualPaid;
