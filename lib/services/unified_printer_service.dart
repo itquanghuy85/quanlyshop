@@ -2194,6 +2194,14 @@ class UnifiedPrinterService {
           ? totalPrice.toInt()
           : int.tryParse(totalPrice?.toString() ?? '0') ?? 0;
 
+      int intOf(dynamic v) => v is num
+          ? v.toInt()
+          : int.tryParse(v?.toString() ?? '0') ?? 0;
+      final customerTotalDebtInt = intOf(saleData['customerTotalDebt']);
+      final remainingDebtInt = intOf(saleData['remainingDebt']);
+      final oldDebtInt =
+          (customerTotalDebtInt - remainingDebtInt).clamp(0, customerTotalDebtInt);
+
       final data = <String, String>{
         'shopName': saleData['shopName']?.toString() ?? 'SHOP NEW',
         'shopAddr': saleData['shopAddr']?.toString() ?? '',
@@ -2247,6 +2255,10 @@ class UnifiedPrinterService {
               ? (saleData['remainingDebt'] as num).toInt()
               : int.tryParse(saleData['remainingDebt']?.toString() ?? '0') ?? 0,
         ),
+        // Công nợ khách cho mẫu in tùy biến: {customerTotalDebt} tổng nợ sau
+        // đơn này, {oldDebt} nợ cũ trước đơn này (= tổng − nợ đơn này).
+        'customerTotalDebt': MoneyUtils.formatVND(customerTotalDebtInt),
+        'oldDebt': MoneyUtils.formatVND(oldDebtInt),
         'qrData': 'sale_check:${saleData['firestoreId']?.toString() ?? 'N/A'}',
       };
 

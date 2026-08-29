@@ -58,9 +58,14 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
   String _bankName = '';
   String _bankAccount = '';
   String _bankHolder = '';
-  int _remainingDebt = 0;
+  int _remainingDebt = 0; // nợ phát sinh từ đơn này (còn lại) — "Lần này"
+  int _customerTotalDebt = 0; // tổng dư nợ của khách theo SĐT — "Tổng nợ"
 
   bool get _hasBankInfo => _bankBin.isNotEmpty && _bankAccount.isNotEmpty;
+  // Số tiền đặt lên QR chuyển khoản: ưu tiên "Tổng nợ"; nếu chưa tính được
+  // thì lùi về nợ đơn này.
+  int get _qrAmount =>
+      _customerTotalDebt > 0 ? _customerTotalDebt : _remainingDebt;
 
   @override
   void initState() {
@@ -106,8 +111,12 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
     final useCustomTemplate = useTemplate && hasTemplate;
 
     int remainingDebt = 0;
+    int customerTotalDebt = 0;
     try {
       final activeDebts = await _debtSummary.getCustomerActiveDebts(widget.repair.phone);
+      for (final d in activeDebts) {
+        customerTotalDebt += _debtSummary.remainingDebtFromLinkedDebt(d);
+      }
       final linkedDebt = activeDebts
           .where((d) => d['linkedId'] == widget.repair.firestoreId)
           .firstOrNull;
@@ -122,11 +131,12 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
     await _precacheReceiveImages();
 
     if (!useCustomTemplate) {
-      final children = _buildDefaultChildren();
+      final children = _buildDefaultChildren(customerTotalDebt, remainingDebt);
       setState(() {
         _useCustomTemplate = false;
         _defaultChildren = children;
         _remainingDebt = remainingDebt;
+        _customerTotalDebt = customerTotalDebt;
         _bankBin = bankBin;
         _bankName = bankName;
         _bankAccount = bankAccount;
@@ -169,6 +179,13 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
       'price': MoneyUtils.formatVND(widget.repair.price),
       'paymentMethod': widget.repair.paymentMethod,
       'status': _statusText(widget.repair.status),
+      // Công nợ khách (cho mẫu in tùy biến): {remainingDebt} nợ đơn này,
+      // {customerTotalDebt} tổng nợ, {oldDebt} nợ cũ trước đơn này.
+      'remainingDebt': MoneyUtils.formatVND(remainingDebt),
+      'customerTotalDebt': MoneyUtils.formatVND(customerTotalDebt),
+      'oldDebt': MoneyUtils.formatVND(
+        (customerTotalDebt - remainingDebt).clamp(0, customerTotalDebt),
+      ),
       'qrData': 'repair_check:${widget.repair.firestoreId ?? widget.repair.createdAt}',
       'warrantyPolicy': prefs.getString('warranty_policy') ?? '',
       'returnPolicy': prefs.getString('return_policy') ?? '',
@@ -189,6 +206,7 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
       _useCustomTemplate = true;
       _previewText = displayText;
       _remainingDebt = remainingDebt;
+      _customerTotalDebt = customerTotalDebt;
       _bankBin = bankBin;
       _bankName = bankName;
       _bankAccount = bankAccount;
@@ -221,8 +239,13 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
   /// dung/thứ tự/phân cấp như giấy in thật. Bỏ hàng ký tên "Khách hàng |
   /// Nhân viên" — chỉ có ý nghĩa trên giấy thật để ký tay, không áp dụng
   /// cho ảnh số.
-  List<Widget> _buildDefaultChildren() {
+  List<Widget> _buildDefaultChildren([
+    int customerTotalDebt = 0,
+    int remainingDebt = 0,
+  ]) {
     final r = widget.repair;
+    final oldDebt =
+        (customerTotalDebt - remainingDebt).clamp(0, customerTotalDebt);
     final createdAt = DateTime.fromMillisecondsSinceEpoch(r.createdAt);
     String subInfo = '';
     if (r.color != null && r.color!.isNotEmpty) subInfo += 'Màu: ${r.color} | ';
@@ -249,6 +272,17 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
       receiptLeft('Giá dự kiến: ${MoneyUtils.formatVND(r.price)} đ', bold: true, fontSize: 17),
       receiptLeft('Hình thức: ${r.paymentMethod}'),
       receiptGap(),
+      // Công nợ khách — chỉ hiện khi thực sự còn nợ.
+      if (customerTotalDebt > 0) ...[
+        receiptDivider(),
+        receiptLeft('Nợ cũ: ${MoneyUtils.formatVND(oldDebt)} đ'),
+        receiptLeft('Lần này: ${MoneyUtils.formatVND(remainingDebt)} đ'),
+        receiptLeft(
+          'Tổng nợ: ${MoneyUtils.formatVND(customerTotalDebt)} đ',
+          bold: true,
+        ),
+        receiptGap(),
+      ],
       receiptSmall('- Quý khách vui lòng giữ phiếu để nhận máy.'),
       receiptSmall('- Shop không chịu trách nhiệm về dữ liệu trong máy.'),
       receiptGap(),
@@ -442,7 +476,7 @@ Future<File?> _captureReceiptFile() async {
     final sections = <Widget>[
       if (images.isNotEmpty) _buildDeviceImagesSection(images),
       _buildLookupQrSection(),
-      if (_remainingDebt > 0 && _hasBankInfo) _buildPaymentQrContent(),
+      if (_qrAmount > 0 && _hasBankInfo) _buildPaymentQrContent(),
     ];
     return Column(
       children: [
@@ -518,7 +552,7 @@ Future<File?> _captureReceiptFile() async {
     final payload = buildVietQrPayload(
       bankBin: _bankBin,
       accountNumber: _bankAccount,
-      amountVnd: _remainingDebt,
+      amountVnd: _qrAmount,
       message: message,
     );
 
@@ -543,7 +577,7 @@ Future<File?> _captureReceiptFile() async {
         ),
         const SizedBox(height: 6),
         Text(
-          'Số tiền: ${MoneyUtils.formatVND(_remainingDebt)} đ',
+          'Số tiền: ${MoneyUtils.formatVND(_qrAmount)} đ',
           style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
         ),
         Text(

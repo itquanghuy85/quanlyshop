@@ -49,6 +49,7 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
   int _expiringProducts = 0;
   int _overdueDebts = 0;
   int _pendingInstallments = 0;
+  int _pendingInstallmentAmount = 0; // Σ loanAmount+loanAmount2 đơn chưa tất toán
   int _daysSinceClosing = 0;
   int _missingCostRepairs = 0;
   bool _loaded = false;
@@ -101,6 +102,12 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
           "AND (cost IS NULL OR cost = 0) "
           "AND (deleted IS NULL OR deleted != 1)",
         ),
+        // Tổng tiền NH chưa tất toán (cùng điều kiện với đếm đơn ở trên)
+        db.rawQuery(
+          'SELECT COALESCE(SUM(loanAmount + loanAmount2), 0) AS total FROM sales '
+          'WHERE isInstallment = 1 AND settlementReceivedAt IS NULL '
+          'AND (deleted IS NULL OR deleted != 1)',
+        ),
       ]);
 
       final pendingR = (results[0].first.values.first as num?)?.toInt() ?? 0;
@@ -111,6 +118,8 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
           (results[4].first.values.first as num?)?.toInt() ?? 0;
       final missingCostRepairs =
           (results[7].first.values.first as num?)?.toInt() ?? 0;
+      final pendingInstallmentAmount =
+          (results[8].first['total'] as num?)?.toInt() ?? 0;
 
       // Số ngày chưa chốt quỹ: tính từ lần chốt gần nhất, hoặc từ ngày bán
       // hàng đầu tiên nếu chưa từng chốt quỹ lần nào.
@@ -151,6 +160,7 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
           _expiringWarranty = expW;
           _overdueDebts = overdueDebts;
           _pendingInstallments = pendingInstallments;
+          _pendingInstallmentAmount = pendingInstallmentAmount;
           _daysSinceClosing = daysSinceClosing;
           _missingCostRepairs = missingCostRepairs;
           _loaded = true;
@@ -243,7 +253,9 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
       items.add(
         _ActionItem(
           icon: Icons.account_balance,
-          label: '$_pendingInstallments đơn trả góp chờ NH tất toán',
+          label: _pendingInstallmentAmount > 0
+              ? 'Tiền NH chưa tất toán: ${MoneyUtils.formatVND(_pendingInstallmentAmount)} đ · $_pendingInstallments đơn'
+              : '$_pendingInstallments đơn trả góp chờ NH tất toán',
           color: Colors.indigo,
           onTap: widget.onPendingInstallmentTap,
         ),

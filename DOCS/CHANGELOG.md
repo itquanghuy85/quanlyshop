@@ -4,6 +4,34 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-29b] - feat(receipt,home): phiếu gửi khách hiện "Nợ cũ / Lần này / Tổng nợ" + QR theo tổng nợ; Home nhắc "Tiền NH chưa tất toán"
+
+**Bối cảnh:** User yêu cầu (1) phiếu biên nhận/phiếu sửa gửi khách (Zalo/ảnh) phải ghi rõ nợ cũ + tổng nợ + QR thanh toán đủ số đang nợ; (2) thêm thống kê tiền ngân hàng chưa tất toán vào khung CẦN XỬ LÝ ở Home.
+
+**Đã sửa — biên nhận đơn bán + phiếu sửa (bản xem trước / ảnh chia sẻ):**
+- `lib/views/sale_invoice_preview_view.dart`, `lib/views/repair_invoice_preview_view.dart`: thêm khối 3 dòng **ngay dưới TỔNG TIỀN / GIÁ**, ngay trên phần QR:
+  - `Nợ cũ: …` = tổng dư nợ của khách theo SĐT **trước** đơn hiện tại
+  - `Lần này: …` = nợ phát sinh (còn lại) từ đơn hiện tại
+  - `Tổng nợ: …` (đậm) = Nợ cũ + Lần này = dư nợ sau đơn
+  - Chỉ hiện khi khách **thực sự còn nợ** (tổng > 0); chỉ tính khoản chưa thanh toán.
+  - Sale: lấy sẵn `remainingDebt` + `customerTotalDebt` từ `_buildSalePrintData()` (`sale_detail_view` đã tính `_otherOrdersDebt + _orderRemainingDebt`). Repair: cộng `remainingDebtFromLinkedDebt` trên toàn bộ `getCustomerActiveDebts(phone)` cho "tổng", nợ đơn này là "lần này".
+- **QR chuyển khoản (VietQR):** số tiền trên QR đổi từ "nợ đơn này" → **"tổng nợ"** (`_qrAmount`), kèm dòng "Số tiền: …" khớp theo. VietQR (`buildVietQrPayload`) đã hỗ trợ sẵn amount động nên không đụng kiến trúc QR. QR hiện khi `tổng nợ > 0` + đã cấu hình NH.
+- `lib/services/unified_printer_service.dart`: thêm biến `{customerTotalDebt}` + `{oldDebt}` cho **mẫu in tùy biến** đơn bán (shop tự bật mẫu riêng có thể chèn 2 dòng này). Repair có `{remainingDebt}` `{customerTotalDebt}` `{oldDebt}` trong data mẫu.
+- **Chưa đụng** layout ESC/POS mặc định của máy in nhiệt (data nợ chưa được truyền vào `printSaleReceipt`/`printRepairReceiptFromRepair` ở nhánh mặc định — cần plumbing riêng, ngoài phạm vi). Bản xem trước/ảnh chia sẻ (đường khách hay dùng nhất) đã đủ.
+
+**Đã thêm — Home / khung CẦN XỬ LÝ (`lib/widgets/dashboard_cards.dart`):**
+- Query mới `SELECT COALESCE(SUM(loanAmount + loanAmount2),0) FROM sales WHERE isInstallment = 1 AND settlementReceivedAt IS NULL AND (deleted...)` — **cùng điều kiện** với query đếm đơn trả góp chờ tất toán đã có (chỉ khác `SUM` thay `COUNT`).
+- Mục "trả góp NH" trong khung CẦN XỬ LÝ đổi nhãn: khi có tiền → **"Tiền NH chưa tất toán: {tổng} đ · {N} đơn"**; khi không đọc được số tiền vẫn lùi về nhãn cũ. Bấm vào mở `BankInstallmentReportView` như trước.
+
+**Verify (Oppo CPH2203, build debug):** `flutter analyze` sạch trên cả 4 file (chỉ info-lint `avoid_print` có sẵn ở printer service). Test ADB:
+- Đơn bán CÒN NỢ của khách "ABC" (nợ 12tr, không có nợ cũ) → bản xem trước hiện đúng `Nợ cũ: 0 đ / Lần này: 12.000.000 đ / Tổng nợ: 12.000.000 đ` ngay dưới TỔNG TIỀN; khối QR hiện "Số tiền: 12.000.000 đ" (= tổng nợ) + đúng NH Vietcombank/0071000123456.
+- Phiếu sửa của khách "HUY" thanh toán TIỀN MẶT (không nợ) → khối nợ **không hiện** (đúng — không có công nợ khách).
+- **Chưa test trực quan** mục "Tiền NH chưa tất toán" ở Home: shop test "M" có 0 đơn trả góp NH → mục không xuất hiện (đúng logic). Query đã đối chiếu tay là bản sao query đếm đã chạy production; đổi nhãn là chuỗi thuần → rủi ro thấp. **Nên xác nhận lại khi có đơn trả góp thật.**
+
+**Files:** `lib/views/sale_invoice_preview_view.dart`, `lib/views/repair_invoice_preview_view.dart`, `lib/services/unified_printer_service.dart`, `lib/widgets/dashboard_cards.dart`.
+
+---
+
 ## [2026-08-29a] - polish(repair,debt-ui): hiện sẵn "Thêm chi tiết" khi tạo đơn sửa + giảm đỏ chói màn Công nợ khách hàng
 
 **Bối cảnh:** User yêu cầu 2 chỉnh nhỏ về UI (trong loạt 4 việc; 2 việc còn lại — thêm nợ cũ/tổng nợ/QR vào phiếu gửi khách, và thống kê "tiền NH chưa tất toán" ở Home/Tài chính — đang chờ user xác nhận phương án; và 1 việc điều tra lỗi layout top-inset toàn cục, chờ user duyệt nguyên nhân).

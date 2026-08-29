@@ -59,7 +59,12 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
   String _bankName = '';
   String _bankAccount = '';
   String _bankHolder = '';
-  int _remainingDebt = 0;
+  int _remainingDebt = 0; // nợ phát sinh từ đơn này (còn lại) — "Lần này"
+  int _customerTotalDebt = 0; // tổng dư nợ của khách sau đơn này — "Tổng nợ"
+
+  // Số tiền đặt lên QR chuyển khoản: ưu tiên "Tổng nợ" để khách quét trả hết
+  // 1 lần; nếu chưa tính được tổng thì lùi về nợ đơn này.
+  int get _qrAmount => _customerTotalDebt > 0 ? _customerTotalDebt : _remainingDebt;
 
   // Ảnh sản phẩm (theo IMEI, chỉ điện thoại — phụ kiện không có định danh
   // riêng để khớp đúng đơn vị đã bán) — kèm vào ảnh biên nhận nếu có.
@@ -106,6 +111,12 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
     final remainingDebtValue = widget.saleData['remainingDebt'] is num
         ? (widget.saleData['remainingDebt'] as num).toInt()
         : int.tryParse(widget.saleData['remainingDebt']?.toString() ?? '0') ?? 0;
+    final customerTotalDebtValue = widget.saleData['customerTotalDebt'] is num
+        ? (widget.saleData['customerTotalDebt'] as num).toInt()
+        : int.tryParse(
+              widget.saleData['customerTotalDebt']?.toString() ?? '0',
+            ) ??
+            0;
 
     final photoPaths = await _loadProductPhotoPaths();
 
@@ -118,6 +129,7 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
         _useCustomTemplate = false;
         _defaultChildren = children;
         _remainingDebt = remainingDebtValue;
+        _customerTotalDebt = customerTotalDebtValue;
         _bankBin = bankBin;
         _bankName = bankName;
         _bankAccount = bankAccount;
@@ -221,13 +233,11 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
       'bankName': widget.saleData['bankName']?.toString() ?? '',
       'bankName2': widget.saleData['bankName2']?.toString() ?? '',
       'remainingDebt': MoneyUtils.formatVND(remainingDebtValue),
-      'customerTotalDebt': MoneyUtils.formatVND(
-        widget.saleData['customerTotalDebt'] is num
-            ? (widget.saleData['customerTotalDebt'] as num).toInt()
-            : int.tryParse(
-                    widget.saleData['customerTotalDebt']?.toString() ?? '0',
-                  ) ??
-                0,
+      'customerTotalDebt': MoneyUtils.formatVND(customerTotalDebtValue),
+      // Nợ cũ = tổng nợ sau đơn này − nợ đơn này (cho mẫu in tùy biến dùng {oldDebt}).
+      'oldDebt': MoneyUtils.formatVND(
+        (customerTotalDebtValue - remainingDebtValue)
+            .clamp(0, customerTotalDebtValue),
       ),
       'qrData':
           'sale_check:${widget.saleData['firestoreId']?.toString() ?? 'N/A'}',
@@ -251,6 +261,7 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
       _useCustomTemplate = true;
       _previewText = displayText;
       _remainingDebt = remainingDebtValue;
+      _customerTotalDebt = customerTotalDebtValue;
       _bankBin = bankBin;
       _bankName = bankName;
       _bankAccount = bankAccount;
@@ -374,6 +385,19 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
       ],
       receiptCenter('TỔNG TIỀN: ${fmt(finalTotal)} đ', bold: true, fontSize: 17),
       receiptGap(),
+      // Công nợ khách sau đơn này — chỉ hiện khi thực sự còn nợ.
+      if (asInt(widget.saleData['customerTotalDebt']) > 0) ...[
+        receiptDivider(),
+        receiptLeft(
+          'Nợ cũ: ${fmt((asInt(widget.saleData['customerTotalDebt']) - asInt(widget.saleData['remainingDebt'])).clamp(0, asInt(widget.saleData['customerTotalDebt'])))} đ',
+        ),
+        receiptLeft('Lần này: ${fmt(asInt(widget.saleData['remainingDebt']))} đ'),
+        receiptLeft(
+          'Tổng nợ: ${fmt(asInt(widget.saleData['customerTotalDebt']))} đ',
+          bold: true,
+        ),
+        receiptGap(),
+      ],
       if (sellerName.isNotEmpty) receiptCenter('NV bán hàng: $sellerName'),
       receiptGap(),
       receiptSmall('- Cảm ơn quý khách đã tin dùng shop.'),
@@ -570,7 +594,7 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
     final sections = <Widget>[
       if (_productPhotoPaths.isNotEmpty) _buildProductPhotosSection(),
       _buildLookupQrSection(),
-      if (_remainingDebt > 0 && _hasBankInfo) _buildPaymentQrContent(),
+      if (_qrAmount > 0 && _hasBankInfo) _buildPaymentQrContent(),
     ];
     return Column(
       children: [
@@ -646,7 +670,7 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
     final payload = buildVietQrPayload(
       bankBin: _bankBin,
       accountNumber: _bankAccount,
-      amountVnd: _remainingDebt,
+      amountVnd: _qrAmount,
       message: message,
     );
 
@@ -671,7 +695,7 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
         ),
         const SizedBox(height: 6),
         Text(
-          'Số tiền: ${MoneyUtils.formatVND(_remainingDebt)} đ',
+          'Số tiền: ${MoneyUtils.formatVND(_qrAmount)} đ',
           style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
         ),
         Text(
