@@ -4,6 +4,45 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-30a] - test(bán hàng) E2E ĐỦ MỌI HÌNH THỨC THANH TOÁN + 3 fix phát hiện qua test
+
+**Test end-to-end trên máy thật (Oppo CPH2203, shop "M")** toàn bộ luồng bán hàng + chi phí + thu nợ, mỗi kịch bản đối chiếu Giao dịch → DB (sales/debts/debt_payments/products/financial_activity_log) → tiền mặt/NH → doanh thu/vốn/lãi → công nợ. **9 kịch bản PASS**, phát hiện **1 bug tài chính** (đã fix), dọn sạch dữ liệu test, đối chiếu 16 nhóm cuối = **DIFFERENCE 0** (mọi nhóm tiền), delta BASE→FINAL: tất cả aggregate tiền = 0.
+
+### Kịch bản đã verify (mỗi cái: đơn + kho + nợ + ledger + cash/bank + doanh thu/COGS/lãi)
+
+| # | Hình thức | Kết quả |
+|---|-----------|---------|
+| 1 | **TIỀN MẶT** (12tr, vốn 10tr) | cashIn +12tr · SALE IN 12tr TIỀN MẶT · kho 2224 1→0 · rev +12tr · COGS +10tr · lãi +2tr ✅ |
+| 2 | **CHUYỂN KHOẢN** (5tr) | bankIn +5tr · SALE IN 5tr CK ✅ |
+| 3 | **KẾT HỢP** (8tr = 3tr TM + 5tr CK) | cashIn +3tr, bankIn +5tr · cashAmount/transferAmount lưu đúng ✅ |
+| 4 | **CÔNG NỢ** đủ (6tr) | debt CUSTOMER_OWES total 6tr paid 0 · KHÔNG cash/ledger (nợ chưa thu) · rev accrual +6tr ✅ |
+| 5 | **CÔNG NỢ trả trước 1 phần** (7tr, trả trước 2.5tr) | ❌→✅ **BUG** (xem dưới) → sau fix: debt_payments +2.5tr · CUSTOMER_DEBT_COLLECT IN 2.5tr · cashIn +2.5tr · paidAmount = SUM(debt_payments) ✅ |
+| 6 | **TRẢ GÓP (NH) 1 ngân hàng** (20tr: cọc 5tr TM, vay 15tr) | cashIn +5tr (chỉ cọc) · loanAmount 15tr, bankName HOME · COGS phân bổ theo tỉ lệ cọc ✅ |
+| 7 | **TRẢ GÓP (NH) 2 ngân hàng** (30tr: cọc 6tr, vay 14tr + 10tr) | loanAmount 14tr + loanAmount2 10tr, bankName HOME + bankName2 MB · cash chỉ +6tr cọc ✅ |
+| 8 | **Ghi chi phí** (ĐIỆN NƯỚC 500k TIỀN MẶT SHOP) | expenses + payment_intent + UTILITY_EXPENSE OUT 500k · cashOut +500k · opex +500k · lãi −500k ✅ |
+| 9 | **Thu nợ trả toàn bộ** (6tr CHUYỂN KHOẢN) | debt_payments +6tr · CUSTOMER_DEBT_COLLECT IN 6tr CK · bankIn +6tr · updateDebtPaid đồng bộ ✅ |
+
+### Bug phát hiện + fix
+
+| Vấn đề | Nguyên nhân | Fix |
+|--------|-------------|-----|
+| **Nút HOÀN TẤT ĐƠN HÀNG gần như không bấm được** | `SingleChildScrollView` màn Tạo đơn bán không có SafeArea đáy → nút nằm ngay mép dưới window, vùng chạm nav bar 3-nút (~132px) nuốt tap | Bọc `SafeArea(top:false)` quanh scroll view |
+| **CÔNG NỢ trả trước 1 phần: TIỀN THỰC THU không được book** | Nhánh CÔNG NỢ trong `_processSale` nhét số trả trước vào `debts.paidAmount` mà KHÔNG tạo `debt_payments`, KHÔNG ghi ledger, KHÔNG cộng tiền → sổ quỹ/chốt quỹ thiếu, `debts.paidAmount` lệch tổng phiếu | (a) `create_sale_view`: sau tạo intent CÔNG NỢ, nếu trả trước > 0 → `executePaymentDirect(customerDebtCollection)`. (b) `payment_intent_service`: mở guard handler nợ chạy khi có `debtId` **HOẶC** `debtFirestoreId` (nợ vừa tạo chưa có local id) |
+
+### Đối chiếu cuối + dọn dữ liệu test
+
+- Dọn: 9 đơn bán test VOID (SALE_VOID append-only → ledger net 0), nợ + debt_payments test xoá, chi phí test xoá + `EXPENSE_REVERSAL` bù, 2 payment_intent VOID huỷ.
+- **`recon16.py` trên FINAL.db: 16/16 PASS, DIFFERENCE = 0.** Delta BASE→FINAL: cashNet/bankNet/revenue/COGS/opex/netProfit/custDebt/supDebt = **0**.
+- **Còn 1 dư (ghi nhận là finding, không phải lỗi đối soát):** `deleteSaleWithReversal` khôi phục kho phụ kiện (TAI NGHE, KHÁC MỚI về đủ số) nhưng KHÔNG kích hoạt lại điện thoại serial (product 2224 giữ `status=0/qty=0` thay vì 1/1). VỐN TỒN KHO của app tự lọc `status=0` nên không sai (nhóm 12 recon = 0); chỉ lệch −10tr so với ảnh baseline. Cùng nhóm: xoá chi phí qua UI không tự ghi bút toán đảo (`financial_activity_log` mồ côi) — đã dọn bằng công cụ.
+
+**Test:** `flutter analyze` 0 error/0 warning mới; `flutter test` (chạy lại). Máy thật: 9 kịch bản + fix CÔNG NỢ trả trước verify từng đồng qua DB.
+
+**Files:** `lib/views/create_sale_view.dart`, `lib/services/payment_intent_service.dart` + docs.
+
+**Đóng gói:** `pubspec` `3.5.0+549` → **`3.5.0+550`**.
+
+---
+
 ## [2026-08-29s] - fix(tài chính) LÀM DỨT ĐIỂM AUDIT: L-1..L-4 + D-1..D-4 + đối chiếu 16 nhóm = 0
 
 **Chốt toàn bộ các phát hiện D/L của đợt audit** — sửa nguồn + dọn dữ liệu tồn trên máy thật (Oppo CPH2203, shop test "M" = `geqXPHQJ…`), đối chiếu 16 nhóm độc lập bằng Python → **DIFFERENCE = 0 cả 16**.
