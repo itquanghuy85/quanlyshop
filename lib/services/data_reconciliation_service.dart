@@ -669,6 +669,15 @@ class DataReconciliationService {
               OR (e.amount = f.amount AND ABS(COALESCE(e.date, e.createdAt) - f.createdAt) < 86400000)
             )
         )
+        -- Bỏ qua nếu ĐÃ có dòng bù EXPENSE_REVERSAL cho cùng referenceId + số
+        -- tiền → chạy lại tool KHÔNG đảo lần 2 (tránh đẻ IN ảo).
+        AND NOT EXISTS (
+          SELECT 1 FROM financial_activity_log r
+          WHERE r.activityType = 'EXPENSE_REVERSAL'
+            AND r.direction = 'IN'
+            AND r.amount = f.amount
+            AND r.referenceId = f.referenceId
+        )
       ORDER BY f.createdAt DESC
     ''');
   }
