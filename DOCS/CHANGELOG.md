@@ -14,9 +14,10 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 **Version:** `pubspec.yaml` `3.4.0+545` → **`3.5.0+546`** (versionCode 546 > 545, đơn điệu tăng — OK cho Play Store).
 
-**Build:** `scripts/build_release.ps1` — `flutter clean` + `pub get` + `flutter build appbundle --release --obfuscate --split-debug-info=build/debug-info` + split-per-abi APK. Ký bằng `key.properties` (upload-keystore.jks). Log: `build_release_2026-08-29.log`.
-- Output AAB: `build/app/outputs/bundle/release/app-release.aab` → upload Play Console.
-- Symbol de-obfuscate: giữ `build/debug-info/` cho Crashlytics.
+**Build:** `scripts/build_release.ps1` — `flutter clean` + `pub get` + `flutter build appbundle --release --obfuscate --split-debug-info=build/debug-info`. Ký bằng `key.properties` (upload-keystore.jks, `CN=huy,O=huluca`). Log: `build_release_2026-08-29.log`.
+- **AAB (artifact cho store): OK** — `build/app/outputs/bundle/release/app-release.aab` (77 MB). Verify: `applicationId=com.huluca.shopmanager`, `versionCode=546`, `versionName=3.5.0`, `targetSdk=36`, ký `META-INF/UPLOAD.RSA`, có native debug symbols arm/arm64/x64, minify + shrinkResources. → upload Play Console.
+- Symbol de-obfuscate: giữ `build/debug-info/` (`app.android-arm*.symbols`) cho Crashlytics.
+- **Bước APK `--split-per-abi` của script BÁO LỖI (exit 1) — KHÔNG ảnh hưởng store.** Nguyên nhân: `android/app/build.gradle.kts` cố định `splits.abi.isEnable = false` nên Gradle chỉ ra 1 APK universal, còn `flutter build apk --split-per-abi` đi tìm các file `app-<abi>-release.apk` → "failed to produce an .apk file". APK universal vẫn tạo OK: `build/app/outputs/flutter-apk/app-release.apk` (122 MB, 4 ABI, `versionCode=546`, ký `CN=huy,O=huluca`) — dùng cài trực tiếp để test. Quirk có sẵn của script; sửa sau bằng cách bỏ `--split-per-abi` khỏi `build_release.ps1` hoặc bật `abi.isEnable` khi build APK.
 
 **Verify trước đóng gói:**
 - `flutter analyze`: **0 error** (warning/info còn lại đều CÓ SẴN, không thuộc 12 file tài chính đã sửa).
