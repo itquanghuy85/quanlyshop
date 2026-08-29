@@ -688,13 +688,16 @@ class PaymentIntentService {
     // 4. Record to ledger
     final now = DateTime.now().millisecondsSinceEpoch;
     final ledgerEntryId = 'ledger_${intent.id}_$now';
+    // Determine direction based on payment type
+    final direction = intent.isIncome ? 'IN' : 'OUT';
+    // D-3: track whether the ledger row was actually written so a later failure
+    // in step 6 can be compensated (otherwise financial_activity_log keeps a
+    // phantom OUT/IN that FinanceV2 — which sums the log — counts as real money).
+    bool ledgerWritten = false;
 
     try {
-      // Determine direction based on payment type
-      final direction = intent.isIncome ? 'IN' : 'OUT';
-
       // Record to ledger via MoneyTransactionService
-      await MoneyTransactionService.appendLedger(
+      final ledgerRes = await MoneyTransactionService.appendLedger(
         activityType: intent.type.code,
         direction: direction,
         amount: intent.amount,
@@ -705,6 +708,7 @@ class PaymentIntentService {
         createdBy: executedBy,
         title: intent.description.isNotEmpty ? intent.description : intent.type.displayName,
       );
+      ledgerWritten = ledgerRes != null;
 
       // 5. Update intent status
       intent.status = PaymentIntentStatus.completed;
@@ -732,7 +736,32 @@ class PaymentIntentService {
       // Mark as failed
       intent.status = PaymentIntentStatus.failed;
       intent.notes = '${intent.notes ?? ''}\nLỗi: $e'.trim();
-      
+
+      // D-3: the ledger row from step 4 is already in financial_activity_log but
+      // the related entity (expense / debt payment / …) was NOT created. Append
+      // an opposite entry so the log nets to zero for this failed intent —
+      // append-only, we never delete the audit row. The reconciliation tool
+      // (findOrphanExpenseActivity) still catches any pre-existing orphans.
+      if (ledgerWritten) {
+        try {
+          await MoneyTransactionService.appendLedger(
+            activityType: '${intent.type.code}_REVERSAL',
+            direction: direction == 'IN' ? 'OUT' : 'IN',
+            amount: intent.amount,
+            paymentMethod: paymentMethod.code,
+            referenceType: 'payment_intent_failed',
+            referenceId: intent.referenceId ?? intent.id,
+            notes:
+                'Đảo bút toán: thực thi thanh toán ${intent.id} thất bại ($e)',
+            createdBy: executedBy,
+            title: 'Đảo bút toán thanh toán lỗi',
+          );
+        } catch (re) {
+          debugPrint(
+              '⚠️ D-3: không ghi được bút toán đảo cho intent lỗi ${intent.id}: $re');
+        }
+      }
+
       // Move failed to history too
       await _moveToHistory(intent);
 
@@ -742,6 +771,21 @@ class PaymentIntentService {
         errorMessage: 'Payment execution failed: $e',
       );
     }
+  }
+
+  /// D-3: idempotent expense insert keyed on the deterministic firestoreId, so a
+  /// re-entry of the payment flow can never crash on the `firestoreId UNIQUE`
+  /// constraint nor create a duplicate expense row.
+  static Future<void> _insertExpenseOnce(Map<String, dynamic> row) async {
+    final fid = (row['firestoreId'] ?? '').toString();
+    if (fid.isNotEmpty) {
+      final existing = await _db.getExpenseByFirestoreId(fid);
+      if (existing != null) {
+        debugPrint('ℹ️ D-3: expense $fid đã tồn tại — bỏ qua insert trùng');
+        return;
+      }
+    }
+    await _db.insertExpense(row);
   }
 
   /// Update related entities after payment execution
@@ -813,7 +857,7 @@ class PaymentIntentService {
         // Insert expense record - FIX: use correct field names
         final shopId = UserService.getShopIdSync();
         final scope = Expense.normalizeScope(intent.metadata?['scope']);
-        await _db.insertExpense({
+        await _insertExpenseOnce({
           'firestoreId': 'exp_${intent.id}',
           'amount': intent.amount,
           'title': intent.description,
@@ -833,7 +877,7 @@ class PaymentIntentService {
       case PaymentIntentType.bonusPayment:
         // Record salary payment - FIX: use correct field names
         final shopIdSalary = UserService.getShopIdSync();
-        await _db.insertExpense({
+        await _insertExpenseOnce({
           'firestoreId': 'salary_${intent.id}',
           'amount': intent.amount,
           'title': intent.description,
@@ -916,7 +960,7 @@ class PaymentIntentService {
 
           // Mirror to expenses so Finance V2/V1 expense reports always include
           // direct partner-service payouts from repair detail.
-          await _db.insertExpense({
+          await _insertExpenseOnce({
             'firestoreId': 'exp_partner_${intent.id}',
             'amount': intent.amount,
             'title': intent.description,
@@ -940,7 +984,7 @@ class PaymentIntentService {
         // Thu phát sinh (miscellaneous income) - save as expense with type 'THU'
         final shopIdIncome = UserService.getShopIdSync();
         final scope = Expense.normalizeScope(intent.metadata?['scope']);
-        await _db.insertExpense({
+        await _insertExpenseOnce({
           'firestoreId': 'inc_${intent.id}',
           'amount': intent.amount,
           'title': intent.description,
