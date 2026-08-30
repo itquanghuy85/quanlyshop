@@ -502,6 +502,7 @@ class _DebtViewState extends State<DebtView>
     return Scaffold(
       backgroundColor: FinanceV2Theme.pageBg,
       appBar: CustomAppBar.buildWithTabs(
+        guideKey: FirstTimeGuideService.keyDebtManagement,
         title: l10n.debtManagementTitle,
         subtitle: l10n.activeDebtsCount(activeDebtsCount),
         tabController: _tabController!,

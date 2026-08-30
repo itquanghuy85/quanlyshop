@@ -166,6 +166,7 @@ class _WarrantyViewState extends State<WarrantyView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F8),
       appBar: CustomAppBar.build(
+        guideKey: FirstTimeGuideService.keyWarrantyView,
         title: 'SIÊU TRUNG TÂM BẢO HÀNH',
         actions: [
           IconButton(

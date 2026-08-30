@@ -424,6 +424,7 @@ class _PayrollViewState extends State<PayrollView> {
     return Scaffold(
       backgroundColor: FinanceV2Theme.pageBg,
       appBar: CustomAppBar.build(
+        guideKey: FirstTimeGuideService.keyPayrollView,
         title: 'BẢNG LƯƠNG',
         accentColor: AppBarAccents.staff,
       ),

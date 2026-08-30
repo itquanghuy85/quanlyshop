@@ -1897,6 +1897,7 @@ class OrderListViewState extends State<OrderListView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F8),
       appBar: CustomAppBar.build(
+        guideKey: FirstTimeGuideService.keyOrderList,
         title: "DANH SÁCH ${_terms.productLabel.toUpperCase()} SỬA",
         subtitle:
             '$count ${_terms.productLabel.toLowerCase()} • $pendingCount đang xử lý'

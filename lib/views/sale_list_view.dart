@@ -843,6 +843,7 @@ class _SaleListViewState extends State<SaleListView> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: CustomAppBar.build(
+        guideKey: FirstTimeGuideService.keySaleList,
         title: widget.todayOnly ? l10n.todaySales : l10n.saleListTitle,
         subtitle:
             '$totalSales ${l10n.ordersCount} • ${MoneyUtils.formatCompactCurrency(totalRevenue)}',

@@ -571,6 +571,7 @@ class _AttendanceViewState extends State<AttendanceView>
     return Scaffold(
       backgroundColor: FinanceV2Theme.pageBg,
       appBar: CustomAppBar.build(
+        guideKey: FirstTimeGuideService.keyAttendanceView,
         title: AppLocalizations.of(context)?.attendance ?? "CHẤM CÔNG",
         subtitle:
             AppLocalizations.of(context)?.personalAttendanceDescription ??

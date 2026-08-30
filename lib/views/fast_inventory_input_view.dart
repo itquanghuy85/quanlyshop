@@ -261,6 +261,7 @@ class _FastInventoryInputViewState extends State<FastInventoryInputView>
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F8),
       appBar: CustomAppBar.build(
+        guideKey: FirstTimeGuideService.keyFastInventoryInput,
         title: 'NHẬP KHO SIÊU TỐC',
         bottom: CustomTabBar.buildGradient(
           controller: _tabController,

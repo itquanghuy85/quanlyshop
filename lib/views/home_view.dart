@@ -2902,6 +2902,7 @@ class _HomeViewState extends State<HomeView>
     final homeScaffold = Scaffold(
       backgroundColor: AppColors.background,
       appBar: CustomAppBar.build(
+        guideKey: FirstTimeGuideService.keyHomeTab,
         title: _getTabTitle(_currentIndex),
         subtitle: _shopName.isNotEmpty ? _shopName : null,
         showBackButton: false,

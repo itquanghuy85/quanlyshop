@@ -1399,6 +1399,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: CustomAppBar.build(
+        guideKey: FirstTimeGuideService.keyCreateRepair,
         title: loc.createRepairOrderTitle,
         subtitle: loc.fillCustomerAndDeviceInfo,
         accentColor: AppBarAccents.repairs,

@@ -2093,6 +2093,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: CustomAppBar.build(
+        guideKey: FirstTimeGuideService.keySalesView,
         title: widget.editSale != null ? 'SỬA ĐƠN BÁN HÀNG' : 'TẠO ĐƠN BÁN HÀNG',
         subtitle: '${_selectedItems.length} sản phẩm đã chọn',
         gradient: const LinearGradient(

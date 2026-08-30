@@ -1907,6 +1907,7 @@ class _FastInventoryCheckViewState extends State<FastInventoryCheckView> {
       },
       child: Scaffold(
       appBar: CustomAppBar.build(
+        guideKey: FirstTimeGuideService.keyFastInventoryCheck,
         title: 'KIỂM KHO NHANH',
         actions: [
           // Zone selector

@@ -535,6 +535,7 @@ class _SupplierListViewState extends State<SupplierListView>
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: CustomAppBar.build(
+        guideKey: FirstTimeGuideService.keySupplierList,
         title: 'Quản lý đối tác',
         subtitle: _isElectronics
             ? '${_items.length} NCC • ${_partners.length} đối tác'

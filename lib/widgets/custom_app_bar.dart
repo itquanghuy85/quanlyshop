@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_text_styles.dart';
+import '../services/first_time_guide_service.dart';
 
 /// Widget AppBar và TabBar - Thiết kế Compact & Modern với Gradient
 class CustomAppBar {
@@ -75,7 +76,12 @@ class CustomAppBar {
     VoidCallback? onBackPressed,
     SystemUiOverlayStyle? systemOverlayStyle,
     bool useGradient = true,
+    String? guideKey,
   }) {
+    // Nút ⓘ mở lại hướng dẫn của màn — chèn đầu danh sách actions nếu có key.
+    final List<Widget>? actions0 = guideKey == null
+        ? actions
+        : [FirstTimeGuideService.helpButton(guideKey), ...?actions];
     // ── Sub-screen style (any view with a back button) ────────────────────
     if (showBackButton && useGradient) {
       return AppBar(
@@ -112,9 +118,9 @@ class CustomAppBar {
                     ),
                   )),
         title: titleWidget ?? _buildSubTitle(title, subtitle, Colors.white),
-        actions: actions != null
+        actions: actions0 != null
             ? [
-                ...actions.map(
+                ...actions0.map(
                   (a) => Theme(
                     data: ThemeData(
                         iconTheme:
@@ -163,9 +169,9 @@ class CustomAppBar {
         ),
         leading: leading,
         title: titleWidget ?? _buildTitleWhite(title, subtitle),
-        actions: actions != null
+        actions: actions0 != null
             ? [
-                ...actions.map(
+                ...actions0.map(
                   (a) => Theme(
                     data: ThemeData(
                       iconTheme: const IconThemeData(color: Colors.white),
@@ -210,9 +216,9 @@ class CustomAppBar {
                 )
               : null),
       title: _buildTitle(title, subtitle, fgColor, accent),
-      actions: actions != null
+      actions: actions0 != null
           ? [
-              ...actions.map(
+              ...actions0.map(
                 (a) => Theme(
                   data: ThemeData(iconTheme: IconThemeData(color: accent)),
                   child: a,
@@ -317,12 +323,16 @@ class CustomAppBar {
     bool isScrollable = false,
     VoidCallback? onBackPressed,
     bool useGradient = true,
+    String? guideKey,
   }) {
     final accent = accentColor ?? (showBackButton ? kSubAccent : kPrimaryColor);
+    final List<Widget>? actions0 = guideKey == null
+        ? actions
+        : [FirstTimeGuideService.helpButton(guideKey), ...?actions];
 
     // Khi title rỗng và không có back button → ẩn toolbar
     final double resolvedToolbarHeight =
-        (title.isEmpty && !showBackButton && (actions == null || actions.isEmpty))
+        (title.isEmpty && !showBackButton && (actions0 == null || actions0.isEmpty))
             ? 0.0
             : kAppBarHeight;
 
@@ -351,9 +361,9 @@ class CustomAppBar {
               )
             : null,
         title: _buildSubTitle(title, subtitle, Colors.white),
-        actions: actions != null
+        actions: actions0 != null
             ? [
-                ...actions.map(
+                ...actions0.map(
                   (a) => Theme(
                     data: ThemeData(
                         iconTheme:
@@ -387,9 +397,9 @@ class CustomAppBar {
           decoration: const BoxDecoration(gradient: kDefaultGradient),
         ),
         title: _buildTitleWhite(title, subtitle),
-        actions: actions != null
+        actions: actions0 != null
             ? [
-                ...actions.map(
+                ...actions0.map(
                   (a) => Theme(
                     data: ThemeData(
                       iconTheme: const IconThemeData(color: Colors.white),
@@ -425,7 +435,7 @@ class CustomAppBar {
             )
           : null,
       title: _buildTitle(title, subtitle, kTextPrimary, accent),
-      actions: actions != null ? [...actions, const SizedBox(width: 8)] : null,
+      actions: actions0 != null ? [...actions0, const SizedBox(width: 8)] : null,
       bottom: CustomTabBar.build(
         controller: tabController,
         tabs: tabs,

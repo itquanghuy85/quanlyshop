@@ -375,6 +375,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomAppBar.build(
+        guideKey: FirstTimeGuideService.keyCustomerManagement,
         title: AppLocalizations.of(context)!.customerManagement,
         actions: [
           IconButton(

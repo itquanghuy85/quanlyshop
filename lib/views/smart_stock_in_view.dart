@@ -1077,6 +1077,7 @@ class _SmartStockInViewState extends State<SmartStockInView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomAppBar.build(
+        guideKey: FirstTimeGuideService.keySmartStockIn,
         title: widget.editEntry != null ? 'CHỈNH SỬA PHIẾU NHẬP' : 'NHẬP KHO MỚI',
         actions: [
           IconButton(

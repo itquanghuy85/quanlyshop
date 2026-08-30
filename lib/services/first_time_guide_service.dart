@@ -29,6 +29,12 @@ class FirstTimeGuideService {
   static const String keyPayrollView = 'payroll_view';
   static const String keyPurchaseOrderList = 'purchase_order_list';
 
+  /// Cache nội dung hướng dẫn đã dựng gần nhất cho mỗi màn — để nút ⓘ trên
+  /// thanh tiêu đề mở LẠI được kể cả khi hộp thoại 1-lần đã tắt vĩnh viễn.
+  /// Được ghi mỗi lần màn gọi [showGuideIfNeeded]/[showCarouselGuide] lúc mở
+  /// (chạy trong initState nên luôn có sẵn trước khi người dùng bấm ⓘ).
+  static final Map<String, _CachedGuide> _cache = {};
+
   /// Kiểm tra xem đã hiển thị hướng dẫn cho màn hình này chưa
   static Future<bool> hasShownGuide(String screenKey) async {
     final prefs = await SharedPreferences.getInstance();
@@ -59,6 +65,14 @@ class FirstTimeGuideService {
     IconData? icon,
     Color? color,
   }) async {
+    _cache[screenKey] = _CachedGuide(
+      title: title,
+      steps: steps,
+      icon: icon ?? Icons.help_outline,
+      color: color ?? Colors.blue,
+      carousel: false,
+    );
+
     if (await hasShownGuide(screenKey)) return;
 
     if (!context.mounted) return;
@@ -87,6 +101,14 @@ class FirstTimeGuideService {
     required List<GuideStep> steps,
     Color? color,
   }) async {
+    _cache[screenKey] = _CachedGuide(
+      title: title,
+      steps: steps,
+      icon: Icons.help_outline,
+      color: color ?? Colors.blue,
+      carousel: true,
+    );
+
     if (await hasShownGuide(screenKey)) return;
 
     if (!context.mounted) return;
@@ -105,6 +127,69 @@ class FirstTimeGuideService {
       ),
     );
   }
+
+  /// Mở LẠI hộp hướng dẫn của màn theo yêu cầu (nút ⓘ) — không phụ thuộc cờ
+  /// "đã xem", không đổi cờ. Nội dung lấy từ [_cache] (màn đã gọi
+  /// show...IfNeeded lúc mở). Nếu chưa có cache → báo nhẹ.
+  static Future<void> reopenGuide(BuildContext context, String screenKey) async {
+    final g = _cache[screenKey];
+    if (g == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mở lại màn này để xem hướng dẫn'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => g.carousel
+          ? _CarouselGuideDialog(
+              title: g.title,
+              steps: g.steps,
+              color: g.color,
+              onDismiss: () => Navigator.pop(ctx),
+            )
+          : _GuideDialog(
+              title: g.title,
+              steps: g.steps,
+              icon: g.icon,
+              color: g.color,
+              onDismiss: () => Navigator.pop(ctx),
+            ),
+    );
+  }
+
+  /// Nút ⓘ dùng trong `actions` của thanh tiêu đề. Bọc [Builder] để lấy
+  /// context hợp lệ khi bấm (các hàm dựng AppBar là static, không có context).
+  static Widget helpButton(String screenKey, {String tooltip = 'Hướng dẫn'}) {
+    return Builder(
+      builder: (ctx) => IconButton(
+        icon: const Icon(Icons.help_outline_rounded, size: 22),
+        tooltip: tooltip,
+        onPressed: () => reopenGuide(ctx, screenKey),
+      ),
+    );
+  }
+}
+
+/// Bản chụp nội dung hướng dẫn gần nhất của 1 màn (để nút ⓘ mở lại).
+class _CachedGuide {
+  final String title;
+  final List<GuideStep> steps;
+  final IconData icon;
+  final Color color;
+  final bool carousel;
+
+  const _CachedGuide({
+    required this.title,
+    required this.steps,
+    required this.icon,
+    required this.color,
+    required this.carousel,
+  });
 }
 
 /// Một bước hướng dẫn

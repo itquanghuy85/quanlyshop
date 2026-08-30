@@ -4,6 +4,26 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-30e] - feat(hướng dẫn) nút ⓘ mở lại hướng dẫn ở ~18 màn (Phase A dễ dùng cho người mới)
+
+**Vấn đề (user báo):** nhiều tính năng khó hiểu, người dùng mới không nắm được bản chất; hộp hướng dẫn `FirstTimeGuideService` **chỉ hiện 1 lần rồi mất**, không có cách mở lại.
+
+**Phase A — hạ tầng + nút ⓘ toàn bộ:**
+- `FirstTimeGuideService`: thêm `_cache` (chụp nội dung hướng dẫn mỗi lần màn gọi `showGuideIfNeeded`/`showCarouselGuide` lúc mở — chạy trong initState nên luôn sẵn) + `reopenGuide(context, screenKey)` (mở lại, KHÔNG phụ thuộc/đổi cờ "đã xem") + `helpButton(screenKey)` (IconButton bọc `Builder` để có context hợp lệ).
+- `CustomAppBar.build` + `buildWithTabs`: thêm tham số `String? guideKey` → tự chèn nút ⓘ đầu `actions`.
+- **18 màn** thêm `guideKey`: Công nợ, Tạo đơn bán, Tạo đơn sửa, DS bán, DS sửa, Kho (SP), Nhập kho mới/nhanh/siêu tốc, Kiểm kho, Xác nhận nhập kho, Đơn nhập hàng, NCC-Đối tác, Khách hàng, Chi phí, Bảng lương, Chấm công, Bảo hành, Trang chủ.
+
+Bấm ⓘ trên thanh tiêu đề → hiện lại đúng hộp hướng dẫn của màn đó bất cứ lúc nào.
+
+**Test:** `flutter analyze` 0 error / 0 warning mới (1871 info lint, ~ baseline). `flutter test` +435 −8 (0 hồi quy). **Máy thật (Oppo CPH2203):** cài APK, mở Công nợ → nút ⓘ hiện đúng chỗ → bấm → hộp "Quản Lý Công Nợ" mở lại OK dù đã xem 1 lần trước đó.
+
+**Còn lại (Phase B — sẽ làm tiếp):** viết lại bước đầu mỗi hướng dẫn theo 3 câu *Để làm gì / Khi nào dùng / Ví dụ* (ưu tiên: công nợ, tài chính/chốt quỹ, trả góp NH, kho nhập tạm) + trạng thái rỗng "biết nói" + màn Cẩm nang & Thuật ngữ.
+
+**Files:** `lib/services/first_time_guide_service.dart`, `lib/widgets/custom_app_bar.dart` + 18 view.
+**Đóng gói:** `pubspec` `3.5.0+553` → **`3.5.0+554`**.
+
+---
+
 ## [2026-08-30d] - fix(công nợ) thanh toán không trừ nợ + mỗi tài khoản một số liệu
 
 **2 lỗi user báo (ảnh iOS), cùng một gốc:** `debts.paidAmount` (số "đã trả") chỉ được `updateDebtPaid()` cập nhật **ngay trên máy bấm thu/trả nợ**. Sổ cái `debt_payments` (append-only) sync tin cậy giữa các máy, nhưng `debts.paidAmount` thì không → phân kỳ.

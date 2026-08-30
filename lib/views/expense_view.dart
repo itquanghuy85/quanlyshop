@@ -982,6 +982,7 @@ class _ExpenseViewState extends State<ExpenseView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: CustomAppBar.build(
+        guideKey: FirstTimeGuideService.keyExpenseView,
         title: _viewMode == 'CHI'
             ? l10n.expenseManagementTitle
             : l10n.incomeManagementTitle,

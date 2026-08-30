@@ -368,6 +368,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomAppBar.build(
+        guideKey: FirstTimeGuideService.keyPendingEntries,
         title: 'XÁC NHẬN NHẬP VÀO KHO',
         titleWidget: Row(
           children: [

@@ -2572,6 +2572,7 @@ class _InventoryViewState extends State<InventoryView>
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: CustomAppBar.build(
+        guideKey: FirstTimeGuideService.keyProductList,
         title: l10n.inventoryManageTitle,
         subtitle:
             '${_products.length} ${_terms.productLabel.toLowerCase()}${_unsyncedCount > 0 ? ' • ${l10n.inventoryUnsyncedNote(_unsyncedCount)}' : ''}',

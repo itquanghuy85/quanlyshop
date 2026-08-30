@@ -222,6 +222,7 @@ class _PurchaseOrderListViewState extends State<PurchaseOrderListView> {
 
     return Scaffold(
       appBar: CustomAppBar.build(
+        guideKey: FirstTimeGuideService.keyPurchaseOrderList,
         title: 'ĐƠN NHẬP HÀNG',
         actions: _hasCreatePermission ? [
           IconButton(
