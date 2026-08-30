@@ -199,6 +199,7 @@ Mỗi thay đổi code PHẢI tự động cập nhật:
 5. **docs/DOCUMENTATION_INDEX.md** - Nếu thêm/xóa file tài liệu
 6. **DOCS/FULL_DOCUMENTATION.md** - Nếu thay đổi kiến trúc/services
 7. **Tài liệu chuyên biệt** - Permission, UI, Finance, KiotViet, Image Upload
+8. **`lib/data/app_knowledge_base.dart`** - Nếu THÊM / ĐỔI / BỎ một tính năng hoặc màn hình, hoặc đổi đường dẫn menu. Đây là nguồn sự thật DUY NHẤT cho AI Trợ Lý *và* Trung tâm trợ giúp (`HelpCenterRepository.topics`). Không cập nhật ⇒ AI trả lời sai vị trí / thiếu tính năng.
 
 ---
 

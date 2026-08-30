@@ -4,6 +4,7 @@ import 'package:speech_to_text/speech_to_text.dart';
 
 import '../data/db_helper.dart';
 import '../services/ai_chat_service.dart';
+import '../services/ai_knowledge_service.dart';
 import '../services/ai_nav_bridge.dart';
 import '../services/ai_usage_logger.dart';
 import '../services/connectivity_service.dart';
@@ -88,6 +89,7 @@ class _AiChatOverlayState extends State<AiChatOverlay>
   bool _canCloudAI = false;        // Manager+ only
   bool _canViewFinance = true;     // false for staff without allowViewRevenue
   bool _isOnline = true;           // driven by ConnectivityService
+  String? _role;                   // owner/manager/technician/cashier — for KB scoping
 
   // ── Feedback (👍/👎 per message index) ────────────────────────────────────
   final Map<int, bool> _feedbackMap = {};
@@ -134,10 +136,12 @@ class _AiChatOverlayState extends State<AiChatOverlay>
 
   Future<void> _loadPermissions() async {
     final perms = await UserService.getCurrentUserPermissions();
+    final role = await UserService.getCachedRole();
     if (mounted) {
       setState(() {
         _canCloudAI = perms['allowCloudAI'] as bool? ?? false;
         _canViewFinance = perms['allowViewRevenue'] as bool? ?? false;
+        _role = role;
       });
     }
   }
@@ -407,6 +411,28 @@ class _AiChatOverlayState extends State<AiChatOverlay>
       return;
     }
 
+    // Kiến thức tính năng (offline, không tốn lượt cloud): trả lời trực tiếp
+    // các câu "làm thế nào / ở đâu / là gì" từ Knowledge Base của app.
+    // Không khớp → null → chuyển tiếp lên cloud (cloud vẫn nhận KB làm context).
+    final kbAnswer = AiKnowledgeService.instance.offlineAnswer(q, role: _role);
+    if (kbAnswer != null) {
+      AiUsageLogger.log(
+        type: AiCallType.quickAnswer,
+        query: q,
+        answer: kbAnswer,
+        matchedKb: AiKnowledgeService.instance.matchedIds(q, role: _role),
+      ).ignore();
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (!mounted) return;
+      setState(() {
+        _sending = false;
+        _messages.add(_Msg(_Role.assistant, kbAnswer));
+      });
+      _scrollToBottom();
+      _saveHistory().ignore();
+      return;
+    }
+
     // Connectivity gate — quick-answers still work offline (handled above)
     if (!_isOnline) {
       setState(() => _sending = false);
@@ -414,10 +440,12 @@ class _AiChatOverlayState extends State<AiChatOverlay>
       return;
     }
 
-    // Permission gate — cloud AI is Manager+ only
+    // Permission gate — cloud AI is Manager+ only.
+    // (Câu "cách dùng / khái niệm" đã được KB trả lời offline ở trên.)
     if (!_canCloudAI) {
       setState(() => _sending = false);
-      _addAI('Tính năng AI nâng cao chỉ dành cho Manager trở lên. Hãy thử các câu hỏi về doanh thu, tồn kho...');
+      _addAI('Câu này cần AI nâng cao (chỉ dành cho quản lý trở lên). Bạn có thể '
+          'hỏi về cách dùng tính năng, hoặc số liệu như "đơn đang chờ", "tồn kho".');
       return;
     }
 
@@ -448,7 +476,8 @@ class _AiChatOverlayState extends State<AiChatOverlay>
         .map((m) => {'role': m.role == _Role.user ? 'user' : 'assistant', 'content': m.text})
         .toList();
 
-    final (answer, error) = await AiChatService.instance.askAI(q, stats, history);
+    final (answer, error) =
+        await AiChatService.instance.askAI(q, stats, history, role: _role);
     if (!mounted) return;
 
     if (answer != null) {
@@ -1168,6 +1197,9 @@ class _AiChatOverlayState extends State<AiChatOverlay>
       query: query.isEmpty ? 'N/A' : query,
       answer: aiAnswer,
       feedbackPositive: positive,
+      matchedKb: query.isEmpty
+          ? const []
+          : AiKnowledgeService.instance.matchedIds(query, role: _role),
     ).ignore();
   }
 

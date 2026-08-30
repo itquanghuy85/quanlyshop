@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../data/db_helper.dart';
 import '../utils/vietnamese_utils.dart';
+import 'ai_knowledge_service.dart';
 import 'repair_vocabulary_service.dart';
 
 // ── AI Action ──────────────────────────────────────────────────────────────────
@@ -107,6 +108,10 @@ class AiChatStats {
   final List<String> repairSummaries;
   final List<String> topDebtorLines;
 
+  /// Tra cứu nợ phải thu theo tên khách (tên gốc → số còn nợ). Chỉ dùng cục bộ
+  /// cho quick-answer "khách X nợ bao nhiêu" — KHÔNG gửi lên cloud.
+  final Map<String, int> debtorLookup;
+
   const AiChatStats({
     this.salesToday = 0,
     this.revenueToday = 0,
@@ -144,6 +149,7 @@ class AiChatStats {
     this.repairsThisYear = 0,
     this.repairSummaries = const [],
     this.topDebtorLines = const [],
+    this.debtorLookup = const {},
   });
 
   Map<String, dynamic> toJson() => {
@@ -389,6 +395,7 @@ class AiChatService {
       repairsThisYear: repairsYear.length,
       repairSummaries: repairSummaries.take(20).toList(),
       topDebtorLines: topDebtorLines,
+      debtorLookup: debtorMap,
     );
   }
 
@@ -1205,6 +1212,62 @@ class AiChatService {
       );
     }
 
+    // "khách <tên> nợ bao nhiêu" — tra một khách cụ thể trong nợ phải thu.
+    // Chỉ trả lời khi tách được tên và khớp ít nhất 1 khách; nếu không → null.
+    if (stats.debtorLookup.isNotEmpty &&
+        _has(n, ['no bao nhieu', 'no tien', 'con no', 'no chua', 'no gi']) &&
+        !_has(n, [
+          'ai no', 'no ai', 'con no ai', 'ai dang no', 'ai con no',
+          'top no', 'nhieu nhat', 'it nhat', 'tong no', 'ncc', 'nha cung cap',
+        ])) {
+      var namePart = n;
+      for (final kw in [
+        'khach hang', 'khach', 'con no bao nhieu', 'no bao nhieu tien',
+        'no bao nhieu', 'con no', 'no tien', 'no chua tra', 'no chua',
+        'bao nhieu', 'no gi khong', 'no gi', 'hien tai', 'bay gio',
+        'tien', 'la', 'cua', 'thi', 'con', 'no',
+      ]) {
+        namePart = namePart.replaceAll(kw, ' ');
+      }
+      const nameStop = {
+        'ai', 'khong', 'gi', 'nao', 'the', 'shop', 'minh', 'toi', 'ban',
+        'hien', 'tai', 'nay', 'do', 'kia',
+      };
+      final nameTokens = namePart
+          .split(RegExp(r'\s+'))
+          .where((w) => w.length >= 2 && !nameStop.contains(w))
+          .toList();
+      if (nameTokens.isNotEmpty) {
+        final matches = <String, int>{};
+        stats.debtorLookup.forEach((name, remaining) {
+          final nn = VietnameseUtils.normalize(name);
+          if (nameTokens.any((t) => nn.contains(t))) matches[name] = remaining;
+        });
+        if (matches.length == 1) {
+          final e = matches.entries.first;
+          return AiQuickResponse(
+            '**${e.key}** đang nợ **${fmt(e.value)}**.',
+            actions: const [_kViewDebtsAction],
+            followUpChips: const [
+              ('Ai nợ nhiều nhất', Icons.person_rounded),
+              ('Tổng công nợ', Icons.account_balance_wallet_rounded),
+            ],
+          );
+        }
+        if (matches.length > 1) {
+          final lines = (matches.entries.toList()
+                ..sort((a, b) => b.value.compareTo(a.value)))
+              .take(6)
+              .map((e) => '• ${e.key}: **${fmt(e.value)}**')
+              .join('\n');
+          return AiQuickResponse(
+            'Có mấy khách khớp:\n$lines',
+            actions: const [_kViewDebtsAction],
+          );
+        }
+      }
+    }
+
     // Ai nợ nhiều nhất
     if (_has(n, ['ai no nhieu nhat', 'no ai nhieu', 'top no',
                   'no nhieu nhat', 'ai no tien nhieu'])) {
@@ -1497,8 +1560,9 @@ class AiChatService {
   Future<(String?, String?)> askAI(
     String question,
     AiChatStats stats,
-    List<Map<String, String>> history,
-  ) async {
+    List<Map<String, String>> history, {
+    String? role,
+  }) async {
     try {
       final callable = _fn.httpsCallable(
         'chatAssistant',
@@ -1506,6 +1570,9 @@ class AiChatService {
       );
       // Sanitize user-controlled strings before sending to LLM
       final safeQuestion = _sanitize(question);
+      // Kiến thức tính năng liên quan (offline, nội dung của app — an toàn).
+      final knowledge = AiKnowledgeService.instance
+          .buildCloudContext(question, role: role);
       final safeHistory = history
           .map((m) => {
                 'role': m['role'] ?? '',
@@ -1529,6 +1596,8 @@ class AiChatService {
         'question': safeQuestion,
         'stats': trimmedStats,
         'history': safeHistory,
+        if (knowledge.isNotEmpty) 'knowledge': knowledge,
+        if (role != null && role.isNotEmpty) 'role': role,
       });
       final data = res.data as Map<Object?, Object?>;
       final answer = data['answer'] as String?;

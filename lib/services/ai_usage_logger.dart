@@ -23,6 +23,7 @@ class AiUsageLogger {
     String? answer,
     bool? feedbackPositive,
     int estimatedTokens = 0,
+    List<String> matchedKb = const [],
   }) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -40,6 +41,7 @@ class AiUsageLogger {
         if (answer != null)
           'answerSnippet': answer.length > 200 ? answer.substring(0, 200) : answer,
         if (feedbackPositive != null) 'feedbackPositive': feedbackPositive,
+        if (matchedKb.isNotEmpty) 'matchedKb': matchedKb,
         'estimatedTokens': estimatedTokens,
         'timestamp': FieldValue.serverTimestamp(),
         'platform': defaultTargetPlatform.name,

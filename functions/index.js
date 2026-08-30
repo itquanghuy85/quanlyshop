@@ -2209,38 +2209,32 @@ exports.parseOrderAI = onCall(
 // Timeout: 20 s client-side, 25 s server-side abort.
 // ============================================================
 
-const CHAT_SYSTEM_PROMPT = `Bạn là AI Trợ Lý của phần mềm quản lý cửa hàng sửa chữa điện thoại HULUCA (tên app: Quản Lý Shop).
+const CHAT_SYSTEM_PROMPT = `Bạn là AI Trợ Lý của phần mềm quản lý cửa hàng sửa chữa & bán điện thoại HULUCA (tên app: Quản Lý Shop), dùng bởi chủ shop và nhân viên ở Việt Nam.
 
 ━━━ VAI TRÒ ━━━
-Bạn hỗ trợ chủ shop và nhân viên tại các cửa hàng sửa chữa điện thoại Việt Nam. Bạn có thể:
-• Tra cứu và giải thích số liệu kinh doanh hôm nay và tháng này.
-• Tư vấn cách vận hành, quản lý kho, xử lý công nợ, theo dõi đơn sửa.
-• Hướng dẫn sử dụng các tính năng trong app.
-• Đưa ra lời khuyên thực tế phù hợp với shop điện thoại Việt Nam.
+• Tra cứu & giải thích số liệu kinh doanh (theo dữ liệu được cung cấp).
+• Hướng dẫn dùng MỌI tính năng của app: ở đâu, làm gì, các bước, khái niệm.
+• Tư vấn vận hành kho / công nợ / tài chính cho shop điện thoại Việt Nam.
+App hoạt động offline-first (dùng được khi mất mạng) và đồng bộ realtime đa thiết bị qua Firebase.
 
-━━━ CÁC TÍNH NĂNG CHÍNH CỦA APP ━━━
-• **Đơn sửa chữa**: Tạo, theo dõi trạng thái (Mới nhận → Đang sửa → Xong chờ lấy → Đã giao), in phiếu.
-• **Bán hàng**: Tạo hoá đơn bán điện thoại, phụ kiện; hỗ trợ trả góp (FE, Home Credit, Mirae...).
-• **Kho hàng**: Quản lý tồn kho, nhập hàng từ NCC, theo dõi giá vốn.
-• **Công nợ**: Quản lý nợ phải thu (khách nợ shop) và nợ phải trả (shop nợ NCC).
-• **Tài chính**: Báo cáo doanh thu, lợi nhuận, chi phí theo ngày/tháng.
-• **Khách hàng**: Danh sách khách, lịch sử sửa chữa, lịch sử mua hàng.
-• **Nhân viên**: Phân quyền theo vai trò (chủ shop, quản lý, kỹ thuật viên, nhân viên bán).
-• **Nhập nhanh bằng giọng nói**: Tạo đơn sửa/bán hàng/nhập kho bằng giọng nói tự nhiên.
-• **Thông báo**: Cảnh báo đơn mới, đổi trạng thái, công nợ qua push notification.
-• **Đồng bộ đa thiết bị**: Dữ liệu đồng bộ realtime qua Firebase giữa các thiết bị trong shop.
-• **Xuất Excel**: Xuất báo cáo tài chính, danh sách đơn sửa, tồn kho ra file Excel.
+━━━ CÁCH TRẢ LỜI CÂU HỎI "CÁCH DÙNG / Ở ĐÂU / LÀ GÌ" ━━━
+• Nếu context có phần "KIẾN THỨC TÍNH NĂNG": TRẢ LỜI DỰA VÀO ĐÓ — nêu đúng đường dẫn menu và các bước trong đó, KHÔNG tự bịa vị trí nút.
+• Nếu KIẾN THỨC TÍNH NĂNG không có thông tin cần thiết: nói thẳng là chưa chắc, và gợi ý mở "Trung tâm trợ giúp" trong app hoặc bấm nút ⓘ trên màn hình liên quan.
+
+━━━ THUẬT NGỮ CHUẨN (đừng giải thích sai) ━━━
+• DÒNG TIỀN = tiền thực vào/ra két & ngân hàng. DỒN TÍCH = ghi doanh thu/lãi ngay khi bán dù chưa thu. Báo cáo lãi/lỗ dùng dồn tích; sổ quỹ dùng dòng tiền. Khách còn nợ ⇒ 2 số lệch nhau là bình thường.
+• CHỐT QUỸ: Kỳ vọng = Đầu kỳ + Thu trong ngày − Chi trong ngày; lệch = thực tế − kỳ vọng.
+• CÔNG NỢ PHẢI THU = khách nợ shop; PHẢI TRẢ = shop nợ NCC/đối tác. Nợ tự sinh khi bán/nhập chọn "CÔNG NỢ".
+• TRẢ GÓP (NH): chỉ tiền CỌC là tiền shop thu ngay; tiền ngân hàng ghi nhận khi TẤT TOÁN.
+• GIÁ VỐN = giá nhập; LÃI = giá bán − giá vốn. Đơn sửa 0đ: "chưa ghi nhận" (cần nhập) khác "không tốn giá vốn" (đơn không dùng linh kiện, đã xác nhận).
+• Kho: "mặt hàng" = số bản ghi còn hàng; "sản phẩm tồn" = tổng số lượng — KHÔNG cộng gộp.
 
 ━━━ QUY TẮC PHẢN HỒI ━━━
-1. **LUÔN dùng tiếng Việt CÓ DẤU đầy đủ** — không viết tắt thiếu dấu, không dùng tiếng Anh khi có từ tiếng Việt tương đương.
-2. Chỉ trả lời dựa trên dữ liệu được cung cấp trong context. KHÔNG bịa số liệu.
-3. Nếu hỏi số liệu ngoài phạm vi dữ liệu cung cấp, giải thích lịch sự rằng chỉ có dữ liệu hôm nay và tháng này.
-4. Nếu câu hỏi không liên quan đến shop, từ chối nhẹ nhàng và gợi ý chủ đề phù hợp.
-5. Dùng **bold** để nhấn mạnh số liệu quan trọng.
-6. Không dùng markdown heading (#) — chỉ dùng gạch đầu dòng (•) nếu cần liệt kê.
-7. Ngắn gọn, súc tích — không quá 250 từ mỗi câu trả lời.
-8. Không lặp lại cùng một tiêu đề hoặc cùng một khối nội dung trong một câu trả lời.
-9. Với kho hàng: "mặt hàng" là số bản ghi sản phẩm còn hàng, còn "sản phẩm tồn" là tổng quantity. Không được cộng gộp hai khái niệm này.`;
+1. **LUÔN tiếng Việt CÓ DẤU đầy đủ** — không viết tắt thiếu dấu, không chèn tiếng Anh khi có từ tiếng Việt.
+2. Không bịa số liệu — chỉ dùng dữ liệu trong context. Hỏi số ngoài phạm vi ⇒ nói lịch sự là chỉ có dữ liệu hôm nay / tháng này.
+3. Câu hỏi không liên quan đến shop ⇒ từ chối nhẹ nhàng, gợi ý chủ đề phù hợp.
+4. Dùng **bold** cho số quan trọng. KHÔNG dùng heading (#); liệt kê bằng gạch đầu dòng (•).
+5. Ngắn gọn, tối đa ~230 từ. Không lặp lại cùng một khối nội dung.`;
 
 function dedupeConsecutiveBlocks(text) {
   const raw = String(text || '').trim();
@@ -2451,13 +2445,30 @@ exports.chatAssistant = onCall(
     }
 
     // 3. Validate input
-    const { question, stats, history } = request.data ?? {};
+    const { question, stats, history, knowledge, role } = request.data ?? {};
     if (!question || typeof question !== "string" || question.trim().length === 0) {
       throw new HttpsError("invalid-argument", "Câu hỏi không được để trống.");
     }
     const q = question.trim().substring(0, 500); // giới hạn độ dài
     const requestId = createSafeRequestId(uid);
     const intent = detectChatIntent(q);
+
+    // 3b. Phân quyền: số liệu tài chính / công nợ chỉ cho chủ shop + quản lý.
+    const roleNorm = String(role ?? "").trim().toLowerCase();
+    const isManagerLike =
+      roleNorm === "" ||
+      ["owner", "manager", "admin", "super_admin"].includes(roleNorm);
+    if (!isManagerLike && (intent === "finance" || intent === "debt")) {
+      return {
+        answer:
+          "Bạn không có quyền xem số liệu tài chính / công nợ. Hãy liên hệ quản lý " +
+          "để được cấp quyền. Mình vẫn hỗ trợ bạn về đơn sửa, kho và cách dùng tính năng.",
+      };
+    }
+
+    // KIẾN THỨC TÍNH NĂNG do client truy hồi từ Knowledge Base của app (an toàn).
+    const kb =
+      typeof knowledge === "string" ? knowledge.trim().substring(0, 3000) : "";
 
     // 4. Build stats context string
     const fmt = (n) => {
@@ -2474,7 +2485,11 @@ exports.chatAssistant = onCall(
 
 ━━━ DỮ LIỆU THỰC TẾ CỦA SHOP ━━━
 ${statsContext}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${kb ? `
+
+━━━ KIẾN THỨC TÍNH NĂNG (dùng để trả lời "cách dùng / ở đâu / là gì") ━━━
+${kb}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━` : ""}`;
 
     const messages = [{ role: "system", content: systemWithContext }];
 
@@ -2490,7 +2505,7 @@ ${statsContext}
 
     // 6. Call DeepSeek
     const startedAt = Date.now();
-    console.log(`🤖 chatAssistant.start rid=${requestId} uid=${uid} intent=${intent} q_len=${q.length} hist=${safeHistory.length}`);
+    console.log(`🤖 chatAssistant.start rid=${requestId} uid=${uid} intent=${intent} role=${roleNorm || "?"} kb=${kb.length} q_len=${q.length} hist=${safeHistory.length}`);
     const apiKey = deepseekApiKey.value();
     const answer = await callDeepSeekChat(apiKey, messages);
 

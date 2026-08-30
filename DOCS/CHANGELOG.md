@@ -4,6 +4,40 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-30q] - feat(AI Trợ Lý) Knowledge Base: hiểu toàn bộ app + hỏi mọi tính năng
+
+**Chưa tăng version.** AI chat trước đây: prompt hệ thống liệt kê tính năng tĩnh ~12 dòng (dễ lệch), Trung tâm trợ giúp (7 topic) KHÔNG nối với AI, cloud chỉ nhận số liệu tổng → không trả lời được "làm thế nào / ở đâu / là gì".
+
+### 1. Nguồn kiến thức DUY NHẤT — `lib/data/app_knowledge_base.dart` (mới)
+- **~40 mục tính năng** (`KbEntry`): tên · đường dẫn menu · làm gì · khi nào dùng · các bước · lưu ý · thuật ngữ liên quan · câu hỏi mẫu · tag · vai trò. Bao trùm: đơn sửa (tạo/trạng thái/giá vốn/đối tác/bảo hành), bán hàng (tạo/6 hình thức thanh toán/giá tham khảo/phiếu QR/trả hàng), kho (tồn/nhập TM/nhập nợ/hàng chờ xác nhận/kiểm kho/PO), công nợ (tổng quan/thu-trả/miễn nợ/công cụ điều chỉnh), tài chính (dòng tiền vs dồn tích/chốt quỹ/báo cáo ngày/FinanceV2/lãi tháng/chi phí/lương/chấm công), khách hàng, Trang chủ (CẦN XỬ LÝ/hoạt động/thẻ), hệ thống (phân quyền/đồng bộ/thông báo/sao lưu/Excel/giọng nói/AI).
+- **~25 thuật ngữ** (`KbTerm`) với định nghĩa CHUẨN của app: dòng tiền, dồn tích, chốt quỹ (công thức), lệch quỹ, giá vốn, lãi gộp, công nợ phải thu/phải trả, trả góp NH, tất toán, cọc, tồn kho giá vốn, "mặt hàng" vs "sản phẩm tồn", biến thể, nhập tạm, trạng thái đơn sửa, giá vốn đơn sửa ("chưa ghi nhận" vs "không tốn"), xoá mềm, đồng bộ, vai trò, shopId, nguồn khoản nợ, miễn nợ, giá tham khảo.
+
+### 2. Truy hồi + trả lời — `lib/services/ai_knowledge_service.dart` (mới)
+- `retrieve(question, {role, minScore})` — chấm điểm theo tag/tiêu đề/thân/câu hỏi mẫu, lọc theo vai trò, chống khớp nhầm do bỏ dấu (câu ≥3 từ mà chỉ trúng 1 từ và không có câu mẫu gần khớp ⇒ loại).
+- `offlineAnswer()` — dựng câu trả lời how-to HOÀN TOÀN từ KB, **chạy offline, không tốn lượt cloud**, hoạt động cả cho nhân viên/kỹ thuật. Ngưỡng điểm cao (6) để chắc chắn.
+- `buildCloudContext()` — chuỗi "KIẾN THỨC TÍNH NĂNG" gọn (≤2600 ký tự) gửi kèm câu hỏi lên cloud.
+
+### 3. Ghép vào luồng chat — `ai_chat_overlay.dart`, `ai_chat_service.dart`
+- `_send`: sau quick-answer + clarify, thử `offlineAnswer` → khớp thì trả lời ngay (log `quickAnswer` + `matchedKb`).
+- Không khớp offline → lên cloud, `askAI(role:)` gửi kèm `knowledge` (KB context) + `role`.
+- Nhân viên không có quyền AI cloud: thay vì từ chối cụt, vẫn được KB trả lời các câu how-to.
+
+### 4. Cloud Function `chatAssistant` (`functions/index.js`)
+- Nhận `knowledge` + `role`. `CHAT_SYSTEM_PROMPT` viết lại gọn: bỏ danh sách tính năng tĩnh, thêm hướng dẫn "dựa vào KIẾN THỨC TÍNH NĂNG, không bịa vị trí nút" + **thuật ngữ chuẩn ghim sẵn**.
+- **Phân quyền phía server**: role không phải owner/manager/admin + intent finance/debt ⇒ từ chối lịch sự (khớp lớp chặn client). **Cần `firebase deploy --only functions`.**
+
+### 5. Trung tâm trợ giúp dùng CHUNG nguồn — `help_center_repository.dart`
+- `topics = _curatedTopics + _kbTopics`: mỗi `KbEntry` tự sinh 1 `HelpTopic` (map category theo id). Help Center giờ hiển thị ~47 mục thay vì 7, cùng nội dung AI dùng. Sửa 1 chỗ (`app_knowledge_base.dart`) là cập nhật cả hai.
+
+### 6. Feedback (đã có sẵn 👍/👎 + dashboard Owner) — bổ sung `matchedKb` vào log ⇒ phản hồi tiêu cực chỉ đúng mục KB cần sửa.
+
+**Chưa làm (có chủ đích):** tra cứu theo thực thể cho SP/đơn cụ thể (chỉ mới làm "khách X nợ bao nhiêu"); đẩy KB lên Firestore để sửa không cần build; ngữ cảnh màn hình đang mở.
+
+**Test:** `flutter analyze` (7 file) 0 error; `flutter test` **+451 −8** (16 test KB mới: toàn vẹn dữ liệu, truy hồi, lọc vai trò, offline answer, help-center bridge). 8 lỗi môi trường có sẵn không đổi.
+**Files:** +`lib/data/app_knowledge_base.dart`, +`lib/services/ai_knowledge_service.dart`, +`test/ai_knowledge_service_test.dart`, `lib/services/ai_chat_service.dart`, `lib/services/ai_usage_logger.dart`, `lib/widgets/ai_chat_overlay.dart`, `lib/data/help_center_repository.dart`, `functions/index.js`.
+
+---
+
 ## [2026-08-30p] - feat(đơn sửa) phân loại giá vốn: "chưa ghi nhận" vs "không tốn chi phí (0đ)"
 
 **Chưa tăng version.** Trước đây đơn sửa có `cost = 0` bị lẫn lộn 2 nghĩa: (a) **chưa nhập giá vốn** (cần xử lý) và (b) **thật sự không tốn linh kiện** (đúng, xong). Cả hai đều hiện "0đ" → gây nhầm, và khung home CẦN XỬ LÝ nhắc oan cả đơn loại (b).

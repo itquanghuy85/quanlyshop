@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'app_knowledge_base.dart';
+
 /// Data models for in-app help center.
 class HelpCategory {
   final String id;
@@ -93,7 +95,8 @@ class HelpCenterRepository {
     ),
   ];
 
-  static final List<HelpTopic> topics = [
+  /// Mục hướng dẫn biên tập thủ công (giữ nguyên).
+  static final List<HelpTopic> _curatedTopics = [
     const HelpTopic(
       id: 'glossary-finance-debt',
       categoryId: 'finance',
@@ -274,6 +277,63 @@ class HelpCenterRepository {
       isFeatured: true,
     ),
   ];
+
+  /// Mục hướng dẫn dựng tự động từ [AppKnowledgeBase] — DÙNG CHUNG một nguồn
+  /// sự thật với AI Trợ Lý. Sửa nội dung tại `lib/data/app_knowledge_base.dart`.
+  static final List<HelpTopic> _kbTopics = [
+    for (final e in AppKnowledgeBase.entries)
+      HelpTopic(
+        id: 'kb-${e.id}',
+        categoryId: _kbCategoryFor(e.id),
+        title: e.title,
+        summary: e.whatItDoes.length > 160
+            ? '${e.whatItDoes.substring(0, 158)}…'
+            : e.whatItDoes,
+        steps: [
+          '📍 ${e.menuPath}',
+          if (e.steps.isNotEmpty)
+            ...e.steps
+          else if (e.whenToUse.isNotEmpty)
+            'Khi nào dùng: ${e.whenToUse}',
+        ],
+        tips: [
+          for (final id in e.terms)
+            if (AppKnowledgeBase.termById(id) case final t?)
+              '${t.term}: ${t.definition}',
+          ...e.notes,
+        ],
+        tags: e.tags,
+        audience: e.audience,
+      ),
+  ];
+
+  static String _kbCategoryFor(String id) {
+    if (id.startsWith('repair') || id == 'warranty') return 'repairs';
+    if (id.startsWith('sale')) return 'sales';
+    if (id.startsWith('debt') ||
+        id == 'data-reconciliation' ||
+        id == 'customers') {
+      return 'sales';
+    }
+    if (id.startsWith('inventory') ||
+        id.startsWith('stock') ||
+        id == 'purchase-order') {
+      return 'inventory';
+    }
+    if (id.startsWith('finance') ||
+        id == 'cash-closing' ||
+        id == 'monthly-profit' ||
+        id == 'expense' ||
+        id == 'payroll' ||
+        id == 'attendance' ||
+        id.startsWith('home-')) {
+      return 'finance';
+    }
+    return 'setup';
+  }
+
+  /// Danh sách hiển thị = mục biên tập thủ công + mục sinh từ Knowledge Base.
+  static final List<HelpTopic> topics = [..._curatedTopics, ..._kbTopics];
 
   static List<HelpTopic> searchTopics(String query, {String? audience}) {
     final lower = query.trim().toLowerCase();
