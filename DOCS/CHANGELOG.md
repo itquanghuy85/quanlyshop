@@ -4,6 +4,22 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-30c] - fix(công cụ dọn dữ liệu) nút MIỄN NỢ bấm không được + thêm cảnh báo lý do bắt buộc
+
+**Bug (user báo, ảnh chụp iOS):** Công cụ điều chỉnh dữ liệu → tab CÔNG NỢ → "Miễn nợ" → gõ lý do xong nút **MIỄN NỢ vẫn xám, bấm không được**.
+
+**Nguyên nhân:** `_writeOff` (`data_reconciliation_view.dart`) dựng `AlertDialog` không có `StatefulBuilder`. `onPressed: reasonCtrl.text.trim().isEmpty ? null : ...` chỉ được tính **1 lần lúc dialog build đầu tiên** (ô rỗng → `null` → disabled). Gõ lý do KHÔNG rebuild dialog → nút disabled vĩnh viễn. Nút MIỄN NỢ trên thực tế **không bao giờ bấm được**.
+
+**Fix:**
+- Bọc `StatefulBuilder` quanh `AlertDialog`, `TextField.onChanged → setLocal(() {})` để `onPressed` được tính lại theo nội dung ô → nút bật khi có lý do.
+- **Bug họ hàng (chủ động sửa):** 2 dialog "Sửa số lượng" (linh kiện + sản phẩm) trong tab KHO & SP — nút LƯU luôn bật nhưng nếu để trống "Lý do điều chỉnh (bắt buộc)" hoặc số lượng sai thì **im lặng thoát, không báo gì** (cảm giác "bấm không ăn"). Nay tách guard: số lượng không hợp lệ → snackbar đỏ; thiếu lý do → snackbar cam. Happy path không đổi.
+
+**Files:** `lib/views/data_reconciliation_view.dart`.
+**Test:** `flutter analyze` 0 error/warning mới; `flutter test` (chạy lại). Cần nghiệm thu lại trên iOS: mở "Miễn nợ" → gõ lý do → nút MIỄN NỢ sáng → bấm → nhập mật khẩu → nợ chuyển trạng thái đã miễn.
+**Đóng gói:** `pubspec` `3.5.0+551` → **`3.5.0+552`**.
+
+---
+
 ## [2026-08-30b] - feat(bán hàng) GIÁ THAM KHẢO khi bán + thu nhỏ QR chuyển khoản trên phiếu
 
 Hai chỉnh UI nhỏ theo yêu cầu:

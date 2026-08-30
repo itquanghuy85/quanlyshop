@@ -578,45 +578,48 @@ class _DebtTabState extends State<_DebtTab> {
     final remaining = d.totalAmount - d.paidAmount;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Miễn nợ'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${d.personName} — còn ${MoneyUtils.formatCurrency(remaining)}đ',
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: reasonCtrl,
-              autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'Lý do miễn nợ (bắt buộc)',
-                border: OutlineInputBorder(),
-                isDense: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('Miễn nợ'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${d.personName} — còn ${MoneyUtils.formatCurrency(remaining)}đ',
               ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: reasonCtrl,
+                autofocus: true,
+                onChanged: (_) => setLocal(() {}),
+                decoration: const InputDecoration(
+                  hintText: 'Lý do miễn nợ (bắt buộc)',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Không ghi nhận là đã thu tiền — chỉ đánh dấu xóa khoản nợ này.',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('HỦY'),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Không ghi nhận là đã thu tiền — chỉ đánh dấu xóa khoản nợ này.',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+              onPressed: reasonCtrl.text.trim().isEmpty
+                  ? null
+                  : () => Navigator.pop(ctx, true),
+              child: const Text('MIỄN NỢ', style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('HỦY'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            onPressed: reasonCtrl.text.trim().isEmpty
-                ? null
-                : () => Navigator.pop(ctx, true),
-            child: const Text('MIỄN NỢ', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
     );
     if (confirmed != true || reasonCtrl.text.trim().isEmpty) return;
@@ -750,9 +753,19 @@ class _InventoryTabState extends State<_InventoryTab> {
         ],
       ),
     );
+    if (confirmed != true) return;
     final newQty = int.tryParse(qtyCtrl.text.trim());
-    if (confirmed != true || newQty == null || reasonCtrl.text.trim().isEmpty)
+    if (newQty == null) {
+      NotificationService.showSnackBar('Số lượng không hợp lệ', color: Colors.red);
       return;
+    }
+    if (reasonCtrl.text.trim().isEmpty) {
+      NotificationService.showSnackBar(
+        'Nhập lý do điều chỉnh (bắt buộc)',
+        color: Colors.orange,
+      );
+      return;
+    }
     if (!await _confirmPassword(context)) return;
 
     await DataReconciliationService.adjustPartQuantity(
@@ -839,9 +852,19 @@ class _InventoryTabState extends State<_InventoryTab> {
         ],
       ),
     );
+    if (confirmed != true) return;
     final newQty = int.tryParse(qtyCtrl.text.trim());
-    if (confirmed != true || newQty == null || reasonCtrl.text.trim().isEmpty)
+    if (newQty == null) {
+      NotificationService.showSnackBar('Số lượng không hợp lệ', color: Colors.red);
       return;
+    }
+    if (reasonCtrl.text.trim().isEmpty) {
+      NotificationService.showSnackBar(
+        'Nhập lý do điều chỉnh (bắt buộc)',
+        color: Colors.orange,
+      );
+      return;
+    }
     if (!await _confirmPassword(context)) return;
 
     await DataReconciliationService.adjustProductQuantity(
