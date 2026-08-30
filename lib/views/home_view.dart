@@ -68,6 +68,7 @@ import 'import_history_view.dart';
 import 'storage_location_view.dart';
 import 'user_guide_view.dart';
 import 'help_center_view.dart';
+import 'money_reconcile_view.dart';
 import '../data/app_knowledge_base.dart';
 import '../widgets/discovery_card.dart';
 import '../data/db_helper.dart';
@@ -8201,6 +8202,13 @@ class _HomeViewState extends State<HomeView>
                 ),
               ],
             ],
+          ),
+          const SizedBox(height: 8),
+          _financeShortcutButton(
+            icon: Icons.fact_check_outlined,
+            label: 'Đối soát tiền về',
+            color: Colors.indigo,
+            onTap: () => openMoneyReconcile(context),
           ),
         ],
       ),

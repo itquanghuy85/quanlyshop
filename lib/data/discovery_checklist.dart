@@ -111,6 +111,14 @@ const List<DiscoveryTask> kDiscoveryTasks = [
     audience: ['owner', 'manager'],
   ),
   DiscoveryTask(
+    id: 'money-reconcile',
+    title: 'Đối soát tiền về',
+    hint: 'Nhập số tiền → tìm đơn trả góp / công nợ khớp → ghi nhận.',
+    icon: Icons.fact_check_outlined,
+    kbEntryId: 'money-reconcile',
+    audience: ['owner', 'manager', 'cashier'],
+  ),
+  DiscoveryTask(
     id: 'expense',
     title: 'Ghi một khoản chi phí',
     hint: 'Mặt bằng, điện nước, ăn uống…',

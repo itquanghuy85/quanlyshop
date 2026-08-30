@@ -842,6 +842,44 @@ class AppKnowledgeBase {
       audience: ['owner', 'manager', 'cashier'],
     ),
     KbEntry(
+      id: 'money-reconcile',
+      title: 'Đối soát tiền về',
+      menuPath:
+          'Trang chủ → TRUY CẬP NHANH TÀI CHÍNH → Đối soát tiền về  (cũng có ở '
+          'Sổ quỹ, Công nợ, Tài chính)',
+      whatItDoes:
+          'Nhập số tiền vừa nhận (hoặc vừa chuyển đi) → app tự tìm đơn trả góp '
+          'ngân hàng chưa tất toán hoặc khoản công nợ có số tiền khớp → chọn và '
+          'xác nhận để ghi nhận + cập nhật trạng thái.',
+      whenToUse:
+          'Khi có tiền về tài khoản (NH tất toán trả góp, khách chuyển trả nợ) '
+          'mà chưa biết ứng với đơn/khoản nào; hoặc khi vừa chuyển tiền trả NCC.',
+      steps: [
+        'Mở "Đối soát tiền về".',
+        'Chọn chiều: Tiền vào (nhận) hoặc Tiền ra (chuyển đi).',
+        'Nhập số tiền, bấm Tìm.',
+        'App liệt kê các khoản khớp (khớp đúng / khớp một phần).',
+        'Chạm một khoản → xem lại → Xác nhận ghi. App ghi nhận qua đúng luồng '
+            '(tất toán trả góp / thu nợ / trả nợ) và cập nhật trạng thái.',
+      ],
+      notes: [
+        'Luôn hiện danh sách để bạn xác nhận — không tự động ghi.',
+        'Đơn bán/sửa CÔNG NỢ còn thiếu tiền nằm trong nhóm "công nợ khách".',
+        'Ghi nhận xong khoản đó biến mất khỏi danh sách.',
+      ],
+      terms: ['tra-gop-nh', 'tat-toan', 'cong-no-phai-thu', 'cong-no-phai-tra', 'dong-tien'],
+      sampleQuestions: [
+        'đối soát tiền về là gì',
+        'nhận tiền ngân hàng tất toán ghi ở đâu',
+        'có tiền về không biết của đơn nào',
+      ],
+      tags: [
+        'doi soat', 'tien ve', 'tat toan', 'nhan tien ngan hang', 'thu no',
+        'khop so tien', 'sao ke'
+      ],
+      audience: ['owner', 'manager', 'cashier'],
+    ),
+    KbEntry(
       id: 'finance-daily-report',
       title: 'Báo cáo ngày',
       menuPath: 'Trang chủ → Tài chính → Báo cáo ngày',
@@ -1229,7 +1267,8 @@ class AppKnowledgeBase {
     if (id.startsWith('finance') ||
         id == 'cash-closing' ||
         id == 'monthly-profit' ||
-        id == 'expense') {
+        id == 'expense' ||
+        id == 'money-reconcile') {
       return 'finance';
     }
     if (id == 'customers' || id == 'payroll' || id == 'attendance') {

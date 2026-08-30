@@ -36,6 +36,7 @@ import '../utils/excel_export_helper.dart';
 import '../utils/vietnamese_utils.dart';
 import '../widgets/export_date_filter_dialog.dart';
 import '../finance_v2/finance_v2_theme.dart';
+import 'money_reconcile_view.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class DebtView extends StatefulWidget {
@@ -630,6 +631,11 @@ class _DebtViewState extends State<DebtView>
                 tooltip: l10n.syncWithFirebase,
               ),
             ],
+          ),
+          IconButton(
+            icon: const Icon(Icons.fact_check_outlined, color: Colors.white),
+            tooltip: 'Đối soát tiền về',
+            onPressed: () => openMoneyReconcile(context),
           ),
           IconButton(
             icon: const Icon(Icons.file_download_outlined, color: Colors.white),

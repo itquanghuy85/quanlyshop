@@ -4,6 +4,36 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-30s] - feat(tài chính) "Đối soát tiền về": nhập số tiền → tự tìm đơn trả góp / công nợ khớp → ghi nhận
+
+**Chưa tăng version.** Khi có tiền về tài khoản (NH tất toán trả góp, khách chuyển trả nợ) hoặc vừa chuyển tiền trả NCC — nhập số tiền, app tự tìm khoản tương ứng để ghi nhận + cập nhật trạng thái, không phải tự dò.
+
+### Màn mới `lib/views/money_reconcile_view.dart` + `lib/services/money_reconcile_service.dart`
+- Toggle **Tiền vào (nhận)** / **Tiền ra (chuyển)** + 1 ô số tiền + nút Tìm.
+- `MoneyReconcileService.findMatches(amount, moneyIn)` — quét:
+  - **Trả góp NH chưa tất toán** (`db.getPendingSettlementSales()` MỚI: `isInstallment=1 AND settlementReceivedAt trống`) — khớp tổng `loanAmount+loanAmount2`.
+  - **Công nợ khách (phải thu)** khi Tiền vào / **Công nợ NCC-đối tác (phải trả)** khi Tiền ra — từ `getDebtsForFinanceSnapshot`, còn dư > 0, chưa PAID/CANCELLED. *(Đơn bán/sửa CÔNG NỢ còn thiếu tiền nằm ở đây.)*
+  - Phân loại **Khớp đúng** (bằng số kỳ vọng) / **Khớp một phần** (nhập < còn nợ). Sắp khớp-đúng lên trước.
+- **LUÔN hiện danh sách để xác nhận** — chạm 1 khoản → dialog (đối tượng / nội dung / số kỳ vọng / số ghi / "còn nợ X sau khi ghi") → Xác nhận ghi.
+- `MoneyReconcileService.apply()` — **tái dùng đúng luồng đã kiểm chứng, KHÔNG viết lại logic tiền:**
+  - Công nợ → `PaymentIntentService.executePaymentDirect(customerDebtCollection | supplierDebt, …)` — y hệt `debt_payment_sheet`.
+  - Trả góp → sao chép 1:1 khối tất toán của `sale_detail_view._openSettlementDialog` (set `settlementReceivedAt`, `updateSale`, enqueue sync, `createIntent(saleInstallment/completed)`, phí NH, audit).
+  - Ghi xong → `AuditService.logAction` + `EventBus.emit` → danh sách tự làm mới.
+
+### Lối tắt ở tất cả màn tài chính
+- **Trang chủ** → thẻ TRUY CẬP NHANH TÀI CHÍNH thêm nút "Đối soát tiền về".
+- **Sổ quỹ** (`cash_closing_view`) → icon trên AppBar.
+- **Công nợ** (`debt_view`) → icon trên AppBar.
+- **Tài chính** (`finance_v2_view`) → mục đầu menu ⋯.
+
+### KB + khám phá
+- Mục KB `money-reconcile` (AI + Trung tâm trợ giúp) + nhiệm vụ checklist "Đối soát tiền về".
+
+**Test:** `flutter analyze` 0 error mới; `flutter test` **+460 −8** (không hồi quy). **Máy thật Oppo CPH2203:** ✅ mở từ menu Tài chính; ✅ tìm 6.111.111đ → ra 2 công nợ khách khớp một phần (HUY kỳ vọng 10tr, ABC 6,99tr), sắp xếp + nhãn đúng; ✅ dialog xác nhận hiện đủ số liệu ("còn nợ 3.888.889đ sau khi ghi"). Nút "Xác nhận ghi" (write) chưa kích qua adb được do kẹt nhập liệu IME — nhưng apply gọi đúng `executePaymentDirect` production của `debt_payment_sheet` + bản sao khối tất toán của `sale_detail_view`. **Chủ shop nên thử ghi 1 khoản thật trên máy để nghiệm thu cuối.**
+**Files:** +`lib/views/money_reconcile_view.dart`, +`lib/services/money_reconcile_service.dart`, `lib/data/db_helper.dart` (+`getPendingSettlementSales`), `lib/data/app_knowledge_base.dart`, `lib/data/discovery_checklist.dart`, `lib/data/help_center_repository.dart`, `lib/views/{home_view,cash_closing_view,debt_view}.dart`, `lib/finance_v2/finance_v2_view.dart`.
+
+---
+
 ## [2026-08-30r] - feat(khám phá) người dùng tự tìm hết tính năng: catalog A–Z + checklist Home + AI chủ động
 
 **Chưa tăng version.** Tiếp nối `[2026-08-30q]` — trước đây 3 hệ thống hướng dẫn rời nhau (ⓘ mỗi màn, Trung tâm trợ giúp, `UserGuideView` viết tay), không có "bản đồ" tính năng, AI thụ động, không có onboarding.

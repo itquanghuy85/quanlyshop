@@ -324,6 +324,7 @@ class HelpCenterRepository {
         id == 'cash-closing' ||
         id == 'monthly-profit' ||
         id == 'expense' ||
+        id == 'money-reconcile' ||
         id == 'payroll' ||
         id == 'attendance' ||
         id.startsWith('home-')) {

@@ -32,6 +32,7 @@ import 'finance_v2_reconciliation.dart';
 import 'finance_v2_theme.dart';
 import 'finance_v2_daily_report_view.dart';
 import '../views/monthly_profit_report_view.dart';
+import '../views/money_reconcile_view.dart';
 
 class _TLEntry {
   final int ts;
@@ -60,7 +61,7 @@ class _TLEntry {
 
 enum _TimeFilter { today, sevenDays, thirtyDays, custom }
 
-enum _ToolbarAction { print, exportExcel, reload }
+enum _ToolbarAction { print, exportExcel, reload, moneyReconcile }
 
 class FinanceV2View extends StatefulWidget {
   const FinanceV2View({super.key});
@@ -944,6 +945,9 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       case _ToolbarAction.reload:
         _load();
         break;
+      case _ToolbarAction.moneyReconcile:
+        openMoneyReconcile(context);
+        break;
     }
   }
 
@@ -998,6 +1002,15 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       icon: const Icon(Icons.more_horiz_rounded, color: Color(0xFF1565C0)),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       itemBuilder: (_) => const [
+        PopupMenuItem(
+          value: _ToolbarAction.moneyReconcile,
+          child: ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.fact_check_outlined),
+            title: Text('Đối soát tiền về'),
+          ),
+        ),
         PopupMenuItem(
           value: _ToolbarAction.print,
           child: ListTile(

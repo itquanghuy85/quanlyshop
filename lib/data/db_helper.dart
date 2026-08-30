@@ -5670,6 +5670,25 @@ class DBHelper {
     return res.isNotEmpty ? SaleOrder.fromMap(res.first) : null;
   }
 
+  /// Đơn trả góp NH đã bán nhưng CHƯA tất toán (chưa nhận tiền vay từ NH).
+  /// Dùng cho màn "Đối soát tiền về".
+  Future<List<SaleOrder>> getPendingSettlementSales() async {
+    final shopId = UserService.getShopIdSync();
+    final db = await database;
+    final hasShop = shopId != null && shopId.isNotEmpty;
+    final maps = await db.query(
+      'sales',
+      where:
+          '${hasShop ? '(shopId = ? OR shopId IS NULL) AND ' : ''}'
+          '(deleted = 0 OR deleted IS NULL) AND isInstallment = 1 '
+          'AND (settlementReceivedAt IS NULL OR settlementReceivedAt = 0) '
+          'AND (loanAmount + loanAmount2) > 0',
+      whereArgs: hasShop ? [shopId] : [],
+      orderBy: 'soldAt DESC',
+    );
+    return List.generate(maps.length, (i) => SaleOrder.fromMap(maps[i]));
+  }
+
   /// Backfill shopId for rows that have NULL/empty shopId (e.g. old KiotViet imports).
   /// Returns number of rows updated.
   Future<int> backfillShopId(String table, String shopId) async {

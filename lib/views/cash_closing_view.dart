@@ -24,6 +24,7 @@ import '../utils/excel_export_helper.dart';
 import '../widgets/custom_app_bar.dart';
 import 'sale_detail_view.dart';
 import 'repair_detail_view.dart';
+import 'money_reconcile_view.dart';
 import '../developer/firestore_audit/firestore_audit_module.dart';
 
 /// Helper: Check if debtType is "Shop owes" (NCC) - includes SHOP_OWES and OTHER_SHOP_OWES
@@ -1100,6 +1101,12 @@ class _CashClosingViewState extends State<CashClosingView>
         FirstTimeGuideService.helpButton(
           FirstTimeGuideService.keyCashClosing,
           color: Colors.white,
+        ),
+        IconButton(
+          tooltip: 'Đối soát tiền về',
+          icon: const Icon(Icons.fact_check_outlined, size: 20, color: Colors.white),
+          onPressed: () => openMoneyReconcile(context),
+          splashRadius: 18,
         ),
         IconButton(
           tooltip: 'Xuất Excel sổ quỹ',
