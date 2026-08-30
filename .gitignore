@@ -91,3 +91,11 @@ test_screenshots/
 
 # Firebase deploy cache
 .firebase/
+
+# Tool caches / scratch (regeneratable — không commit)
+graphify-out/
+lib/graphify-out/
+*.log
+analyze*.txt
+logcat.txt
+logs*.txt

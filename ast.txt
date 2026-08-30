@@ -1,5 +1,0 @@
-Analyzing storage_location_selector.dart...                     
-
-   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\widgets\storage_location_selector.dart:148:7 - use_build_context_synchronously
-
-1 issue found. (ran in 19.0s)
