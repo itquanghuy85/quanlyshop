@@ -48,6 +48,7 @@ Test tự động: `test/*_test.dart` (chạy `flutter test`).
 3. **CLAUDE.md** — chỉ khi đổi kiến trúc / module / quy tắc.
 4. **.github/copilot-instructions.md** — chỉ khi đổi workflow / coding rules.
 5. **DOCS/DOCUMENTATION_INDEX.md** (file này) — khi thêm/xoá tài liệu.
+6. **`lib/data/app_knowledge_base.dart`** — khi THÊM / ĐỔI / BỎ tính năng hoặc màn hình, hoặc đổi đường dẫn menu. Nguồn sự thật DUY NHẤT cho AI Trợ Lý *và* Trung tâm trợ giúp (`HelpCenterRepository`). Xem CLAUDE.md mục VII.
 
 ---
 
