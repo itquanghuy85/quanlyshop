@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../services/money_reconcile_service.dart';
@@ -20,29 +22,45 @@ class _MoneyReconcileViewState extends State<MoneyReconcileView> {
   bool _searching = false;
   bool _searched = false;
   List<ReconcileMatch> _matches = const [];
+  Timer? _debounce;
+  int _lastQueried = -1;
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _amountCtrl.dispose();
     super.dispose();
   }
 
   int get _amount => CurrencyTextField.getValue(_amountCtrl);
 
-  Future<void> _search() async {
-    CurrencyTextField.finalizeAll();
-    final amount = _amount;
-    if (amount <= 0) {
-      _snack('Nhập số tiền cần đối soát.', Colors.orange);
+  /// Gõ tới đâu lọc tới đó — không cần bấm nút.
+  void _onAmountChanged(int value) {
+    _debounce?.cancel();
+    if (value <= 0) {
+      if (_searched || _matches.isNotEmpty) {
+        setState(() {
+          _searched = false;
+          _searching = false;
+          _matches = const [];
+          _lastQueried = -1;
+        });
+      }
       return;
     }
-    FocusScope.of(context).unfocus();
+    _debounce = Timer(const Duration(milliseconds: 350), _search);
+  }
+
+  Future<void> _search() async {
+    final amount = _amount;
+    if (amount <= 0) return;
+    _lastQueried = amount;
     setState(() => _searching = true);
     final res = await MoneyReconcileService.findMatches(
       amount: amount,
       moneyIn: _moneyIn,
     );
-    if (!mounted) return;
+    if (!mounted || amount != _lastQueried) return; // kết quả cũ → bỏ
     setState(() {
       _searching = false;
       _searched = true;
@@ -144,31 +162,42 @@ class _MoneyReconcileViewState extends State<MoneyReconcileView> {
                     ),
                   ],
                   selected: {_moneyIn},
-                  onSelectionChanged: (s) => setState(() {
-                    _moneyIn = s.first;
-                    _searched = false;
-                    _matches = const [];
-                  }),
+                  onSelectionChanged: (s) {
+                    setState(() {
+                      _moneyIn = s.first;
+                      _searched = false;
+                      _matches = const [];
+                    });
+                    if (_amount > 0) _search(); // lọc lại theo chiều mới
+                  },
                 ),
                 const SizedBox(height: 12),
                 CurrencyTextField(
                   controller: _amountCtrl,
                   label: 'Số tiền nhận được từ NH / trên sao kê',
                   icon: Icons.payments_rounded,
+                  onValueChanged: _onAmountChanged,
                   onSubmitted: _search,
                 ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: _searching ? null : _search,
-                    icon: const Icon(Icons.search_rounded),
-                    label: Text(
-                      _moneyIn
-                          ? 'Tìm đơn trả góp / công nợ khách khớp'
-                          : 'Tìm công nợ phải trả khớp',
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(
+                      _searching ? Icons.sync_rounded : Icons.bolt_rounded,
+                      size: 14,
+                      color: Colors.grey.shade500,
                     ),
-                  ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _searching
+                          ? 'Đang lọc…'
+                          : 'Gõ số tiền — tự lọc, không cần bấm tìm',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -181,16 +210,17 @@ class _MoneyReconcileViewState extends State<MoneyReconcileView> {
   }
 
   Widget _buildResults() {
-    if (_searching) {
+    // Lần lọc đầu (chưa có kết quả nào) → spinner giữa màn.
+    if (_searching && _matches.isEmpty && !_searched) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (!_searched) {
+    if (!_searched && _matches.isEmpty) {
       return _hint(
-        'Nhập số tiền rồi bấm Tìm.\nApp sẽ liệt kê các đơn / khoản nợ khớp để bạn '
-        'chọn và xác nhận ghi nhận.',
+        'Gõ số tiền nhận được (hoặc chuyển đi) — app tự lọc các đơn / khoản '
+        'nợ khớp để bạn chọn và xác nhận ghi nhận.',
       );
     }
-    if (_matches.isEmpty) {
+    if (_searched && _matches.isEmpty) {
       return _hint(
         'Không có đơn trả góp hay khoản công nợ nào khớp số này.\n'
         'Kiểm tra lại số tiền, hoặc chiều tiền (vào / ra).',
