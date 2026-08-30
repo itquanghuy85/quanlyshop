@@ -427,7 +427,16 @@ class _AiChatOverlayState extends State<AiChatOverlay>
 
     // Fast local answer (pass lastIntent for context continuity)
     final quick = AiChatService.instance.quickAnswer(q, stats, lastIntent: _lastIntent, canViewFinance: _canViewFinance);
-    if (quick != null) {
+
+    // KB "thắng" quick-answer khi câu hỏi RÕ RÀNG là how-to và khớp rất mạnh —
+    // tránh nhánh mơ hồ ("... thế nào?") trả lời số liệu thay vì hướng dẫn.
+    final preferKb = AiKnowledgeService.instance.looksLikeHowTo(q) &&
+        AiKnowledgeService.instance
+            .retrieve(q, role: _role, minScore: 12)
+            .entries
+            .isNotEmpty;
+
+    if (quick != null && !preferKb) {
       _updateLastIntent(quick.actions);
       AiUsageLogger.log(type: AiCallType.quickAnswer, query: q, answer: quick.text).ignore();
       await Future.delayed(const Duration(milliseconds: 300));

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Một nhiệm vụ trong thẻ "Khám phá HULUCA" ở Trang chủ — giúp người dùng mới
+/// Một nhiệm vụ trong thẻ "Khám phá Ứng Dụng" ở Trang chủ — giúp người dùng mới
 /// đi qua hết các tính năng chính.
 class DiscoveryTask {
   final String id;

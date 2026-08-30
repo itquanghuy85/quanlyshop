@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/discovery_checklist.dart';
 import '../services/discovery_service.dart';
 
-/// Thẻ "Khám phá HULUCA" ở Trang chủ — checklist giúp người dùng mới đi qua
+/// Thẻ "Khám phá Ứng Dụng" ở Trang chủ — checklist giúp người dùng mới đi qua
 /// hết các tính năng chính. Tự ẩn khi hoàn thành hết hoặc khi người dùng bấm Ẩn.
 class DiscoveryCard extends StatefulWidget {
   final String userRole;
@@ -89,7 +89,7 @@ class _DiscoveryCardState extends State<DiscoveryCard> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Khám phá HULUCA  ·  ${s.done}/${s.total}',
+                    'Khám phá Ứng Dụng  ·  ${s.done}/${s.total}',
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 14,

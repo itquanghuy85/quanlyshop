@@ -505,27 +505,36 @@ class _HelpCenterViewState extends State<HelpCenterView> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Icon(category.icon, color: Colors.blue),
-                            const SizedBox(width: 8),
-                            Text(
-                              category.title,
-                              style: AppTextStyles.caption.copyWith(
-                                color: Colors.blue,
-                                fontWeight: FontWeight.bold,
+                        Flexible(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(category.icon, color: Colors.blue),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  category.title,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.caption.copyWith(
+                                    color: Colors.blue,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                         if (!topic.audience.contains('all'))
-                          Chip(
-                            avatar: const Icon(
-                              Icons.workspace_premium,
-                              size: 16,
-                            ),
-                            label: Text(
-                              'Dành cho ${topic.audience.map(_localizeRole).join(', ')}',
+                          Flexible(
+                            child: Chip(
+                              avatar: const Icon(
+                                Icons.workspace_premium,
+                                size: 16,
+                              ),
+                              label: Text(
+                                'Dành cho ${topic.audience.map(_localizeRole).join(', ')}',
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ),
                       ],
@@ -835,7 +844,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 150,
+          height: 172,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: featured.length,

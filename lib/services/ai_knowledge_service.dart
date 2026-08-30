@@ -240,9 +240,19 @@ class AiKnowledgeService {
         buf.writeln('• $note');
       }
     }
-    if (res.terms.isNotEmpty) {
+    // Chỉ kèm thuật ngữ NẾU nó thuộc chính mục này, hoặc tên thuật ngữ xuất
+    // hiện trong câu hỏi — tránh dính thuật ngữ của mục phụ (kém liên quan).
+    final normQ = VietnameseUtils.normalize(question);
+    final relevantTerm = res.terms.where((t) {
+      if (e.terms.contains(t.id)) return true;
+      final tn = VietnameseUtils.normalize(t.term)
+          .replaceAll(RegExp(r'\(.*?\)'), '')
+          .trim();
+      return tn.length >= 3 && normQ.contains(tn);
+    }).toList();
+    if (relevantTerm.isNotEmpty) {
+      final t = relevantTerm.first;
       buf.writeln();
-      final t = res.terms.first;
       buf.writeln('_${t.term}: ${t.definition}_');
     }
     return buf.toString().trimRight();

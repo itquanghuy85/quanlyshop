@@ -7998,7 +7998,7 @@ class _HomeViewState extends State<HomeView>
     );
   }
 
-  /// Thẻ "Khám phá HULUCA" — checklist tính năng cho người dùng mới.
+  /// Thẻ "Khám phá Ứng Dụng" — checklist tính năng cho người dùng mới.
   Widget _buildDiscoveryCard() {
     return DiscoveryCard(
       userRole: widget.role,

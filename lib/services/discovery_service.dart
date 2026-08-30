@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../data/db_helper.dart';
 import '../data/discovery_checklist.dart';
 
-/// Trạng thái thẻ "Khám phá HULUCA" ở Trang chủ.
+/// Trạng thái thẻ "Khám phá Ứng Dụng" ở Trang chủ.
 ///
 /// Một nhiệm vụ coi là XONG khi: (a) người dùng đã bấm vào nó, hoặc
 /// (b) dữ liệu thực tế cho thấy đã làm (vd đã có ≥1 đơn sửa).

@@ -17,7 +17,7 @@ Lịch sử tất cả thay đổi từng phiên bản.
 - Có ô tìm kiếm (chuỗi con, bỏ dấu). Lọc theo vai trò.
 - `AppKnowledgeBase` thêm: `areas`, `areaOf(id)`, `entriesByArea(id)`, `sampleQuestionSpread(n)` (câu hỏi mẫu trải đều nhóm, ổn định theo seed), `tipOfTheDay()`.
 
-### 3. Thẻ "Khám phá HULUCA" ở Trang chủ — `discovery_card.dart` + `discovery_service.dart` + `discovery_checklist.dart` (mới)
+### 3. Thẻ "Khám phá Ứng Dụng" ở Trang chủ — `discovery_card.dart` + `discovery_service.dart` + `discovery_checklist.dart` (mới)
 - Checklist 15 nhiệm vụ ("Tạo đơn sửa đầu tiên", "Chốt quỹ cuối ngày", "Phân quyền nhân viên"…), thanh tiến độ, lọc theo vai trò.
 - Chạm nhiệm vụ → chuyển tab tương ứng hoặc mở hướng dẫn KB, và tự tick.
 - Tự nhận biết đã làm từ dữ liệu thật (đếm đơn sửa / đơn bán / sản phẩm) + tick tay (SharedPrefs). Nút **Ẩn**. Tự ẩn khi xong hết.
@@ -29,7 +29,15 @@ Lịch sử tất cả thay đổi từng phiên bản.
 - `AiNavBridge.ask(question)` (mới) — màn khác nhờ AI trả lời hộ: overlay tự mở + hỏi. Dùng bởi nút "Hỏi AI" trong catalog.
 
 **Test:** `flutter analyze` (12 file) 0 error/warning mới; `flutter test` **+460 −8** (9 test mới: nhóm KB, sampleQuestionSpread ổn định, tipOfTheDay, checklist↔KB toàn vẹn, lọc vai trò). 8 lỗi môi trường có sẵn không đổi.
-**Files:** +`lib/views/feature_catalog_view.dart`, +`lib/widgets/discovery_card.dart`, +`lib/services/discovery_service.dart`, +`lib/data/discovery_checklist.dart`, +`test/discovery_and_catalog_test.dart`, `lib/data/app_knowledge_base.dart`, `lib/services/ai_nav_bridge.dart`, `lib/services/ai_chat_service.dart`, `lib/widgets/ai_chat_overlay.dart`, `lib/views/help_center_view.dart`, `lib/views/home_view.dart`.
+
+**Nghiệm thu máy thật (Oppo CPH2203, shop "M", debug build):** ✅ thẻ Khám phá render + tự tick 3–5/15 từ dữ liệu, tiến độ %, mở rộng/thu gọn, gạch ngang việc xong, **Ẩn** ẩn thẻ (SharedPrefs bền qua khởi động lại); ✅ chạm việc → tick + điều hướng (chuyển tab + deep-link hướng dẫn); ✅ "Mẹo hôm nay"; ✅ AI chào có 3 câu hỏi mẫu xoay ngày + chip "📚 Tất cả tính năng"; ✅ chip mẫu → câu trả lời KB offline; ✅ màn "Tất cả tính năng" (nhóm + tìm kiếm + bottom sheet); ✅ "Hỏi AI về mục này" → về Home + overlay tự mở + trả lời (round-trip trọn vẹn); ✅ HelpCenterView deep-link tự mở chi tiết. **4 lỗi hiển thị phát hiện & sửa ngay:**
+1. Câu mơ hồ "... thế nào?" bị nhánh quick-answer trả số liệu thay vì hướng dẫn → `_send` thêm cổng `preferKb` (câu how-to khớp rất mạnh, minScore ≥ 12 → ưu tiên KB).
+2. `help_center_view` mục Nổi bật tràn dọc 12px (tiêu đề KB dài) → `SizedBox height 150 → 172`.
+3. `help_center_view` chi tiết: hàng "danh mục · Dành cho X, Y, Z" tràn ngang 22px (KB nhiều vai trò) → bọc `Flexible` + `ellipsis`.
+4. `offlineAnswer` chèn thuật ngữ của mục phụ (kém liên quan) → chỉ chèn thuật ngữ của chính mục hoặc tên xuất hiện trong câu hỏi.
+Cả 4 đã build lại + xác minh trên máy: 0 overflow, câu trả lời đúng.
+
+**Files:** +`lib/views/feature_catalog_view.dart`, +`lib/widgets/discovery_card.dart`, +`lib/services/discovery_service.dart`, +`lib/data/discovery_checklist.dart`, +`test/discovery_and_catalog_test.dart`, `lib/data/app_knowledge_base.dart`, `lib/services/ai_nav_bridge.dart`, `lib/services/ai_chat_service.dart`, `lib/services/ai_knowledge_service.dart`, `lib/widgets/ai_chat_overlay.dart`, `lib/views/help_center_view.dart`, `lib/views/home_view.dart`.
 
 ---
 
