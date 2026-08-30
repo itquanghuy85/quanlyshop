@@ -1025,6 +1025,9 @@ function getAllowedRolesForNotificationType(type) {
       return ['admin', 'owner', 'manager', 'technician'];
     case 'staff':
       return ['admin', 'owner', 'manager'];
+    case 'finance': // tiền vào/ra, chi phí, lương, chốt quỹ — nhạy cảm
+    case 'debt':    // công nợ: tạo/thu/trả/miễn
+      return ['admin', 'owner', 'manager'];
     case 'chat':
       return ['admin', 'owner', 'manager', 'employee', 'technician', 'user'];
     case 'system':

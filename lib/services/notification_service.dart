@@ -658,6 +658,29 @@ class NotificationService {
       return false;
     }
 
+    // Phân quyền: thông báo TÀI CHÍNH / CÔNG NỢ (tiền vào-ra, chi phí, lương,
+    // chốt quỹ, công nợ) chỉ dành cho chủ shop + quản lý. Cloud Function cũng
+    // đã lọc theo role khi gửi FCM — đây là lớp phòng vệ thứ 2 phía nhận
+    // (phòng khi CF chưa deploy bản mới).
+    final notifType = (data['type'] ?? '').toString().trim().toLowerCase();
+    if (notifType == 'finance' || notifType == 'debt') {
+      try {
+        final role = (await UserService.getCachedRole() ?? '').toLowerCase();
+        final isManagerLike = role == 'owner' ||
+            role == 'manager' ||
+            role == 'admin' ||
+            role == 'super_admin';
+        if (!isManagerLike) {
+          debugPrint(
+            'Bỏ qua thông báo $notifType cho role="$role" (không đủ quyền tài chính)',
+          );
+          return false;
+        }
+      } catch (_) {
+        // Không đọc được role → để CF (đã lọc role) quyết định.
+      }
+    }
+
     final messageShopId = (data['shopId'] ?? '').toString().trim();
     if (messageShopId.isEmpty) return true;
 

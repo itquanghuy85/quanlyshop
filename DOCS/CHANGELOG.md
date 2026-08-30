@@ -4,6 +4,20 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-30j] - feat(phân quyền) thông báo tài chính/công nợ chỉ cho chủ shop + quản lý
+
+Trả lời câu hỏi "phân quyền chưa": trước đó `[2026-08-30h..i]` broadcast cho **mọi vai trò** (kể cả nhân viên/kỹ thuật thấy lương, chi phí, chốt quỹ...). Nay giới hạn.
+
+- **Cloud Function `functions/index.js`** — `getAllowedRolesForNotificationType`: thêm `case 'finance'` + `case 'debt'` → chỉ `['admin', 'owner', 'manager']`. Đây là cổng chính (lọc FCM token theo role trước khi gửi push). **⚠️ CẦN `firebase deploy --only functions` để có hiệu lực.**
+- **Client `notification_service.dart`** — `_isNotificationForCurrentContext` (dùng chung cho foreground + background) thêm chốt: nếu `type` là `finance`/`debt` và `getCachedRole()` không phải owner/manager/admin → bỏ qua hiển thị. Lớp phòng vệ thứ 2 (hoạt động ngay cả khi CF chưa deploy). Đọc role lỗi → nhường CF quyết định.
+
+Loại `'payment'` (thanh toán đơn bán) giữ nguyên cho cả nhân viên như cũ.
+
+**Test:** `flutter analyze` sạch; `node --check functions/index.js` OK; `flutter test` (chạy lại).
+**Files:** `functions/index.js`, `lib/services/notification_service.dart`.
+
+---
+
 ## [2026-08-30i] - feat(tài chính) thông báo MỌI hoạt động tài chính cho cả shop
 
 Tiếp `[2026-08-30h]` — mở rộng từ "công nợ" sang toàn bộ hoạt động tài chính. **Chưa tăng version.**
