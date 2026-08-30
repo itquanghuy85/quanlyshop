@@ -354,6 +354,8 @@ class AppKnowledgeBase {
             'và bị nhắc ở khung CẦN XỬ LÝ ngoài Trang chủ.',
         'Tích "không tốn giá vốn" → hết bị nhắc, hiện chữ xám "Không tốn giá vốn (0đ)".',
         'Chọn "công nợ NCC" khi ghi giá vốn sẽ tạo một khoản nợ phải trả.',
+        'Linh kiện thêm từ kho hiển thị kèm tên NCC ("Tên xSL · NCC: …") cho dễ '
+            'nhận biết.',
       ],
       terms: ['gia-von-don-sua', 'gia-von', 'cong-no-phai-tra'],
       sampleQuestions: [
@@ -860,19 +862,24 @@ class AppKnowledgeBase {
           'chưa có giá bán.',
       steps: [
         'Mở Bảng giá, chọn tab Sửa chữa hoặc Bán hàng.',
-        'Tìm theo model/lỗi. Mỗi dòng hiện giá đề xuất + số mẫu + độ tin cậy + '
-            'khoảng giá thường gặp.',
-        'Chạm 1 dòng → nhập "Giá niêm yết" → **Ghim giá**. Dòng đó chuyển nhãn '
-            '"NIÊM YẾT".',
+        'Tìm theo model/lỗi. Mỗi dòng hiện 3 ô Thu/Bán · Vốn · Lãi + số mẫu + '
+            'độ tin cậy + khoảng giá thường gặp.',
+        'Chạm 1 dòng → nhập "Giá niêm yết" (+ giá vốn, ghi chú tuỳ chọn) → '
+            '**Ghim giá**. Dòng đó chuyển nhãn "NIÊM YẾT".',
         'Tab Bán hàng: nút "Áp giá cho SP chưa có giá" (góc trên) → xem danh '
             'sách đề xuất → xác nhận để đặt giá hàng loạt.',
+        'Menu ⋮: **Hệ số giá mùa vụ** (+/-% vào giá đề xuất), **Xuất Excel**, '
+            '**Nhập từ Excel** (sửa bảng giá hàng loạt rồi nhập lại — khớp theo '
+            'cột _khoá, "Giá NIÊM YẾT" > 0 thì ghim).',
       ],
       notes: [
         'Giá đề xuất tính từ đơn sửa đã Xong/Đã giao và giá SP trong kho — chạy '
             'local, không tốn mạng.',
         'Khi tạo đơn sửa: nếu "model · lỗi" có giá ghim, thẻ "GIÁ NIÊM YẾT" hiện '
-            'lên và tự điền vào ô giá (nếu đang trống).',
-        'Giá ghim lưu theo máy (chưa đồng bộ giữa các thiết bị).',
+            'lên và tự điền vào ô giá (nếu đang trống). Nhập giá lệch >35% so với '
+            'giá niêm yết/giá thường gặp → có cảnh báo.',
+        'Hệ số mùa vụ chỉ áp cho GIÁ ĐỀ XUẤT, không đụng giá đã ghim.',
+        'Giá ghim & hệ số mùa vụ lưu theo máy (chưa đồng bộ giữa các thiết bị).',
       ],
       terms: ['gia-tham-khao', 'gia-von', 'lai-gop'],
       sampleQuestions: [
@@ -880,10 +887,12 @@ class AppKnowledgeBase {
         'giá ép kính iphone 12 bao nhiêu',
         'chốt bảng giá dịch vụ sửa',
         'áp giá hàng loạt cho sản phẩm chưa có giá',
+        'tăng giá dịp tết',
+        'xuất nhập bảng giá bằng excel',
       ],
       tags: [
         'bang gia', 'gia de xuat', 'gia niem yet', 'ghim gia', 'price book',
-        'chot gia', 'ap gia hang loat'
+        'chot gia', 'ap gia hang loat', 'he so mua vu', 'gia tet', 'excel bang gia'
       ],
       audience: ['owner', 'manager'],
     ),
@@ -903,15 +912,18 @@ class AppKnowledgeBase {
       steps: [
         'Mở "Đối soát tiền về".',
         'Chọn chiều: Tiền vào (nhận) hoặc Tiền ra (chuyển đi).',
-        'Nhập số tiền, bấm Tìm.',
-        'App liệt kê các khoản khớp (khớp đúng / khớp một phần).',
+        'Gõ số tiền — app **tự lọc ngay, không cần bấm nút**. Danh sách hiện các '
+            'khoản khớp (khớp đúng / khớp một phần), khớp đúng lên trước.',
         'Chạm một khoản → xem lại → Xác nhận ghi. App ghi nhận qua đúng luồng '
             '(tất toán trả góp / thu nợ / trả nợ) và cập nhật trạng thái.',
+        'Kéo danh sách xuống để làm mới sau khi ghi.',
       ],
       notes: [
         'Luôn hiện danh sách để bạn xác nhận — không tự động ghi.',
         'Đơn bán/sửa CÔNG NỢ còn thiếu tiền nằm trong nhóm "công nợ khách".',
         'Ghi nhận xong khoản đó biến mất khỏi danh sách.',
+        'Dữ liệu nạp một lần khi mở màn → gõ số tiền lọc trong bộ nhớ, không lag '
+            'dù shop nhiều công nợ.',
       ],
       terms: ['tra-gop-nh', 'tat-toan', 'cong-no-phai-thu', 'cong-no-phai-tra', 'dong-tien'],
       sampleQuestions: [
