@@ -23,6 +23,7 @@ import '../models/expense_model.dart';
 import '../data/db_helper.dart';
 import 'money_validation_service.dart';
 import 'money_transaction_service.dart';
+import 'notification_service.dart';
 import '../constants/financial_constants.dart';
 import 'user_service.dart';
 import 'sync_service.dart';
@@ -430,6 +431,7 @@ class PaymentIntentService {
     String? linkedType,
     String? relatedPartId,
     String? debtFirestoreId,
+    bool notify = false, // true → gửi thông báo "CÔNG NỢ MỚI" cho cả shop
   }) async {
     final shopId = await UserService.getCurrentShopId() ?? '';
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -461,6 +463,16 @@ class PaymentIntentService {
         firestoreId: firestoreId,
         operation: SyncOperation.create,
       );
+      if (notify) {
+        // ignore: unawaited_futures
+        NotificationService.notifyDebtActivity(
+          action: 'create',
+          personName: personName,
+          amount: amount,
+          note: note,
+          debtFirestoreId: firestoreId,
+        );
+      }
     }
     EventBus().emit('debts_changed');
     return debtId;
@@ -727,6 +739,30 @@ class PaymentIntentService {
 
       // 8. Immediately sync to Firestore so other devices see the change
       _syncToCloudAfterPayment();
+
+      // 9. Thông báo hoạt động tài chính cho cả shop. Các loại thu/trả NỢ
+      // đã có helper riêng (notifyDebtActivity, gọi từ debt_payment_sheet) —
+      // bỏ qua ở đây để không báo trùng.
+      const debtHandledElsewhere = {
+        PaymentIntentType.customerDebtCollection,
+        PaymentIntentType.supplierDebt,
+        PaymentIntentType.otherDebt,
+      };
+      if (!debtHandledElsewhere.contains(intent.type)) {
+        // ignore: unawaited_futures
+        NotificationService.notifyFinancialActivity(
+          label: intent.description.isNotEmpty
+              ? intent.description
+              : intent.type.displayName,
+          amount: intent.amount,
+          isIncome: intent.isIncome,
+          paymentMethod: paymentMethod.code,
+          personName: intent.personName,
+          by: executedBy,
+          refType: intent.referenceType,
+          refId: intent.referenceId,
+        );
+      }
 
       return PaymentExecutionResult.success(
         ledgerEntryId: ledgerEntryId,

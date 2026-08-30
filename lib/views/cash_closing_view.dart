@@ -3465,6 +3465,21 @@ class _CashClosingViewState extends State<CashClosingView>
           },
         );
 
+        // Thông báo chốt quỹ cho cả shop.
+        // ignore: unawaited_futures
+        NotificationService.sendCloudNotification(
+          title: hasDiff ? '🔒 ĐÃ CHỐT QUỸ (CÓ LỆCH)' : '🔒 ĐÃ CHỐT QUỸ',
+          body: [
+            '📅 $dateKey',
+            '💵 Tồn quỹ ${MoneyUtils.formatCurrency(actualCash)}đ • 🏦 ${MoneyUtils.formatCurrency(actualBank)}đ',
+            if (hasDiff && noteCtrl.text.trim().isNotEmpty)
+              '⚠️ ${noteCtrl.text.trim()}',
+            '👤 ${closedBy.split('@').first}',
+          ].join('\n'),
+          type: 'finance',
+          data: {'targetType': 'cash_closing', 'targetId': closingFid},
+        );
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("✅ ĐÃ CHỐT QUỸ THÀNH CÔNG"),

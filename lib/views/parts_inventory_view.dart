@@ -1479,6 +1479,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
           note: 'Nhập thêm ${_terms.category3}: $partName x$addQty',
           relatedPartId: firestoreId,
           debtFirestoreId: 'debt_quick_part_${now}_${supplierId ?? 0}',
+          notify: true,
         );
       } else {
         final expenseFirestoreId = 'exp_quick_part_${partId}_$now';
@@ -2476,6 +2477,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                           note: 'Nhập ${_terms.category3}: $partName x$qty',
                           debtFirestoreId:
                               'debt_part_${now}_${selectedSupplierId ?? 0}',
+                          notify: true,
                         );
                       } else {
                         final expFId = 'exp_part_${now}_$partName';
@@ -3377,6 +3379,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                             note: 'Nhập ${_terms.category3}: $partName x$qty',
                             debtFirestoreId:
                                 'debt_part_${DateTime.now().millisecondsSinceEpoch}_${selectedSupplierId ?? 0}',
+                            notify: true,
                           );
                         } else {
                           // TIỀN MẶT/CHUYỂN KHOẢN → Tạo expense record TRỰC TIẾP
@@ -3898,6 +3901,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                           relatedPartId: partFirestoreId,
                           debtFirestoreId:
                               'debt_part_${now}_${effectiveSupplierId ?? 0}',
+                          notify: true,
                         );
                       } else {
                         // TIỀN MẶT / CHUYỂN KHOẢN → expense

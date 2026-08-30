@@ -818,6 +818,7 @@ class StockEntryService {
               linkedId: entryId,
               linkedType: 'stock_entry',
               debtFirestoreId: 'debt_stock_${entryId}_$now',
+              notify: true,
             );
             debugPrint(
               '✅ confirmEntry: Created local DEBT id=$debtId for CÔNG NỢ: $totalCost, supplier: $normalizedSupplierName',

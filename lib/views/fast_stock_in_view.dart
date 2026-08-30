@@ -1051,6 +1051,7 @@ class _FastStockInViewState extends State<FastStockInView> {
             linkedId: product.imei,
             debtFirestoreId:
                 'debt_${DateTime.now().millisecondsSinceEpoch}_${product.imei}',
+            notify: true,
           );
           debugPrint('FastStockIn: Created debt for CÔNG NỢ: $totalCost');
         } else {

@@ -1760,6 +1760,7 @@ class _InventoryViewState extends State<InventoryView>
           linkedId: p.firestoreId ?? '',
           linkedType: 'product_cost',
           debtFirestoreId: 'debt_cost_${p.firestoreId ?? p.id}_$now',
+          notify: true,
         );
       } else {
         // Ghi chi phí TIỀN MẶT / CHUYỂN KHOẢN

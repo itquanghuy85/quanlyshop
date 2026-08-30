@@ -1402,6 +1402,7 @@ class NotificationService {
     return type == 'new_order' ||
         type == 'payment' ||
         type == 'debt' ||
+        type == 'finance' ||
         type == 'inventory' ||
         type == 'staff' ||
         type == 'system' ||
@@ -1571,6 +1572,43 @@ class NotificationService {
         if (debtFirestoreId != null && debtFirestoreId.isNotEmpty)
           'targetId': debtFirestoreId,
         'debtAction': action,
+      },
+    );
+  }
+
+  /// Thông báo MỌI hoạt động tài chính (thanh toán, chi phí, thu nhập,
+  /// lương, tất toán trả góp, chốt quỹ...) — broadcast `type: 'finance'`.
+  /// Nợ có helper riêng [notifyDebtActivity]; hàm này lo phần còn lại.
+  static Future<void> notifyFinancialActivity({
+    required String label,
+    required int amount,
+    required bool isIncome,
+    String? paymentMethod,
+    String? personName,
+    String? by,
+    String? refType,
+    String? refId,
+  }) async {
+    final sign = isIncome ? '+' : '-';
+    final head = isIncome ? '💵' : '🧾';
+    final now = DateTime.now();
+    final time =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final lines = <String>[
+      if (personName != null && personName.trim().isNotEmpty)
+        '👤 ${personName.trim()}',
+      '$sign${MoneyUtils.formatVND(amount)}đ'
+          '${paymentMethod != null && paymentMethod.isNotEmpty ? ' • 💳 $paymentMethod' : ''}',
+      if (by != null && by.trim().isNotEmpty) '👤 ${by.trim()}',
+      '🕐 $time',
+    ];
+    await sendCloudNotification(
+      title: '$head ${label.toUpperCase()}',
+      body: lines.join('\n'),
+      type: 'finance',
+      data: {
+        if (refType != null) 'targetType': refType,
+        if (refId != null && refId.isNotEmpty) 'targetId': refId,
       },
     );
   }

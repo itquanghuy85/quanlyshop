@@ -4,6 +4,22 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-30i] - feat(tài chính) thông báo MỌI hoạt động tài chính cho cả shop
+
+Tiếp `[2026-08-30h]` — mở rộng từ "công nợ" sang toàn bộ hoạt động tài chính. **Chưa tăng version.**
+
+- **`NotificationService.notifyFinancialActivity({label, amount, isIncome, ...})`** (mới) — broadcast `type: 'finance'` (bật mặc định).
+- **`PaymentIntentService.executePayment`** — sau khi thanh toán thành công + ghi ledger, tự gửi thông báo cho MỌI `PaymentIntentType`: thanh toán bán hàng, sửa chữa, chi phí vận hành/tiện ích/khác, thu nhập khác, lương/thưởng, trả góp, trả đối tác... (bỏ qua `customerDebtCollection`/`supplierDebt`/`otherDebt` vì đã có `notifyDebtActivity` từ `debt_payment_sheet` → không báo trùng).
+- **`PaymentIntentService.createDebtRecord`** — thêm cờ `notify` (mặc định `false`). 7 điểm tạo nợ NCC khi nhập hàng/linh kiện (fast_stock_in, inventory_view sửa giá vốn, parts_inventory ×4, stock_entry_service confirmEntry) nay truyền `notify: true` → thông báo "🆕 CÔNG NỢ MỚI".
+- **Chốt quỹ** (`cash_closing_view._saveClosing`) — sau khi chốt thành công gửi "🔒 ĐÃ CHỐT QUỸ" (+ "(CÓ LỆCH)" nếu lệch) kèm tồn quỹ + ghi chú.
+
+Kết quả: thu/chi tiền, chi phí, thu khác, lương, công nợ (mới/thu/trả/miễn), nhập hàng nợ NCC, chốt quỹ — đều báo cho cả nhóm. Chưa gắn: VOID/đảo bút toán, log sửa chữa nội bộ (tránh nhiễu).
+
+**Test:** `flutter analyze` 0 error/warning mới; `flutter test` (chạy lại).
+**Files:** `lib/services/{notification_service,payment_intent_service,stock_entry_service}.dart`, `lib/views/{cash_closing_view,fast_stock_in_view,inventory_view,parts_inventory_view}.dart`.
+
+---
+
 ## [2026-08-30h] - feat(công nợ) thông báo + ghi Hoạt động hôm nay khi thu/trả/tạo/miễn nợ
 
 **Chưa tăng version** (vẫn `3.5.0+554`).
