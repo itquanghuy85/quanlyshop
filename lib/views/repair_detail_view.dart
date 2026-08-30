@@ -2523,6 +2523,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
               productId: p['source'] == 'products' ? p['id'] as int? : null,
               cost: p['cost'] as int? ?? 0,
               qty: p['qty'] as int? ?? 1,
+              supplier: (p['supplier'] ?? '').toString().trim().isEmpty
+                  ? null
+                  : (p['supplier']).toString().trim(),
             ),
           )
           .toList();
@@ -4818,28 +4821,54 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                           ),
                         ],
                       ],
-                      // Phụ tùng
+                      // Phụ tùng — có chi tiết thì liệt kê kèm NCC cho dễ nhận biết
                       if (r.partsUsed.isNotEmpty) ...[
                         const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.build,
-                              size: 14,
-                              color: Colors.blue,
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                loc.partsShort(r.partsUsed),
-                                style: AppTextStyles.caption.copyWith(
-                                  color: Colors.blue,
+                        if (r.partsUsedDetailed.isNotEmpty)
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.build, size: 14,
+                                  color: Colors.blue),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    for (final p in r.partsUsedDetailed)
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(bottom: 1),
+                                        child: Text(
+                                          '${p.name} x${p.qty}'
+                                          '${(p.supplier ?? '').trim().isNotEmpty ? '  ·  NCC: ${p.supplier!.trim()}' : ''}',
+                                          style: AppTextStyles.caption.copyWith(
+                                            color: Colors.blue,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
-                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          )
+                        else
+                          Row(
+                            children: [
+                              const Icon(Icons.build, size: 14,
+                                  color: Colors.blue),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  loc.partsShort(r.partsUsed),
+                                  style: AppTextStyles.caption.copyWith(
+                                    color: Colors.blue,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                       ],
                       // Quick actions — cho phép cả đơn ĐÃ GIAO (status 4) bổ sung
                       // / thay đổi (thêm linh kiện, sửa KTV, ghi chú). Mọi thay

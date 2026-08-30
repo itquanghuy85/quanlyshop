@@ -1,8 +1,26 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quanlyshop/models/part_used_detail_model.dart';
 import 'package:quanlyshop/models/price_book_models.dart';
 import 'package:quanlyshop/services/price_book_service.dart';
 
 void main() {
+  group('PartUsedDetail — NCC', () {
+    test('roundtrip giữ supplier; rỗng → null', () {
+      const p = PartUsedDetail(
+        name: 'Màn iP12',
+        cost: 500000,
+        qty: 1,
+        supplier: 'Anh Tú',
+      );
+      final back = PartUsedDetail.fromMap(p.toMap());
+      expect(back.supplier, 'Anh Tú');
+
+      final noSup = PartUsedDetail.fromMap(
+          const {'name': 'X', 'cost': 0, 'qty': 1, 'supplier': '  '});
+      expect(noSup.supplier, isNull);
+    });
+  });
+
   group('PriceBookService — khoá', () {
     test('repairKey chuẩn hoá (bỏ dấu, gộp khoảng trắng, thường)', () {
       final a = PriceBookService.repairKey('iPhone   12', 'Ép Kính');

@@ -163,6 +163,10 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     nameF.addListener(() => setState(() {}));
     modelCtrl.addListener(_schedulePricingLookup);
     issueCtrl.addListener(_schedulePricingLookup);
+    // Rebuild để cảnh báo "giá lệch nhiều" cập nhật khi gõ giá.
+    priceCtrl.addListener(() {
+      if (mounted && _pricingChecked) setState(() {});
+    });
     _loadPartners();
     // Hiển thị hướng dẫn cho người dùng mới
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -290,13 +294,20 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
 
   Widget _buildPricingSuggestionCard() {
     final pinnedCard = _buildPinnedPriceCard();
-    if (!_pricingChecked) return pinnedCard;
+    final anomaly = _buildPriceAnomalyWarning();
+    if (!_pricingChecked) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [pinnedCard, anomaly],
+      );
+    }
     final s = _pricingSuggestion;
     if (s == null) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           pinnedCard,
+          anomaly,
           Padding(
             padding: const EdgeInsets.only(top: 4, bottom: 4),
             child: Text(
@@ -390,7 +401,46 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [pinnedCard, autoCard],
+      children: [pinnedCard, anomaly, autoCard],
+    );
+  }
+
+  /// Cảnh báo khi giá đang nhập lệch nhiều (>35%) so với giá tham chiếu
+  /// (giá niêm yết nếu có, ngược lại trung vị lịch sử).
+  Widget _buildPriceAnomalyWarning() {
+    final ref = (_pinnedRepairPrice?.price ?? 0) > 0
+        ? _pinnedRepairPrice!.price!
+        : (_pricingSuggestion?.medianSalePrice ?? 0);
+    final entered = MoneyUtils.parseCurrency(priceCtrl.text);
+    if (ref <= 0 || entered <= 0) return const SizedBox.shrink();
+    final diff = (entered - ref) / ref;
+    if (diff.abs() < 0.35) return const SizedBox.shrink();
+    final higher = diff > 0;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 6, bottom: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.orange.shade300),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded,
+              size: 15, color: Colors.orange.shade800),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              'Giá đang nhập ${higher ? 'CAO' : 'THẤP'} hơn '
+              '${(diff.abs() * 100).round()}% so với '
+              '${(_pinnedRepairPrice?.price ?? 0) > 0 ? 'giá niêm yết' : 'giá thường gặp'} '
+              '(${MoneyUtils.formatCurrency(ref)}đ). Kiểm tra lại.',
+              style: TextStyle(fontSize: 11.5, color: Colors.orange.shade900),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

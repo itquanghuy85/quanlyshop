@@ -70,6 +70,26 @@ class ExcelExportHelper {
     }
   }
 
+  /// Public: ghi header + các dòng vào 1 sheet (dùng bởi Bảng giá).
+  static void writeSheet(
+    Sheet sheet,
+    List<String> headers,
+    List<List<dynamic>> rows,
+  ) {
+    _writeHeaders(sheet, headers);
+    for (var i = 0; i < rows.length; i++) {
+      _writeRow(sheet, i + 1, rows[i]);
+    }
+  }
+
+  /// Public: lưu file Excel + chia sẻ (dùng bởi Bảng giá).
+  static Future<void> saveAndShare(
+    Excel excel,
+    String fileName,
+    BuildContext context,
+  ) =>
+      _saveAndShare(excel, fileName, context);
+
   /// Write a row of values to sheet
   static void _writeRow(Sheet sheet, int rowIndex, List<dynamic> values) {
     for (int i = 0; i < values.length; i++) {

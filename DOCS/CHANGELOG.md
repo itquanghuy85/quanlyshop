@@ -4,6 +4,27 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-30v] - feat(bảng giá P3) + đơn sửa hiện NCC linh kiện + list giá gọn lại
+
+**Chưa tăng version.**
+
+### Đơn sửa: hiện NCC của phụ tùng
+- `PartUsedDetail` (+`supplier`, tương thích ngược): lưu tên NCC lúc chọn linh kiện từ kho.
+- `repair_detail_view` mục Phụ tùng: nếu có `partsUsedDetailed` → liệt kê từng dòng `Tên xSL  ·  NCC: X` cho dễ nhận biết; không có thì giữ hiển thị gọn cũ.
+
+### Bảng giá: làm lại giao diện + P3
+- **List giá gọn lại, thêm giá vốn:** mỗi dòng có 3 ô Thu/Bán · **Vốn** · Lãi (kiểu `_metric`), badge NIÊM YẾT lên cùng hàng tiêu đề, dòng phụ mẫu·độ tin cậy·khoảng giá nhỏ lại.
+- **Cảnh báo giá lệch** (`create_repair_order_view`): khi giá đang nhập lệch >35% so với giá niêm yết / giá thường gặp → banner cam "CAO/THẤP hơn N%…". Rebuild khi gõ giá (`priceCtrl` listener).
+- **Hệ số giá mùa vụ** (`PriceBookService.seasonPct/setSeasonPct`, SharedPreferences): cộng/trừ % vào GIÁ ĐỀ XUẤT (không đụng giá ghim). Menu ⋮ trong Bảng giá + banner khi đang bật.
+- **Xuất / Nhập Excel** (`exportToExcel` / `importFromExcel`): xuất 2 sheet (Sửa chữa / Bán hàng) kèm cột `_khoá`; nhập đọc lại → GHIM các dòng "Giá NIÊM YẾT" > 0 (khớp theo `_khoá`), = 0 thì bỏ ghim. `ExcelExportHelper` thêm `writeSheet` + `saveAndShare` công khai. Menu ⋮ + `file_selector`.
+
+**Chưa làm:** giá lẻ / sỉ / khách quen (cần wiring create_sale theo hạng khách — để sau).
+
+**Test:** `flutter analyze` 0 error mới; `flutter test` **+470 −8** (thêm test PartUsedDetail supplier). Chưa nghiệm thu trực quan qua adb (tiết kiệm token).
+**Files:** `lib/models/part_used_detail_model.dart`, `lib/views/repair_detail_view.dart`, `lib/services/price_book_service.dart`, `lib/views/price_book_view.dart`, `lib/views/create_repair_order_view.dart`, `lib/utils/excel_export_helper.dart`, `test/price_book_test.dart`.
+
+---
+
 ## [2026-08-30u] - feat(bảng giá) Bảng giá tự động + giá niêm yết cho sửa chữa & bán hàng
 
 **Chưa tăng version.** Trước đây giá gợi ý chỉ hiện phản ứng khi tạo đơn (`PricingEngineService` cho sửa, `ProductPricingService` cho bán). Nay có **màn Bảng giá** duyệt được + chốt giá niêm yết + tự điền vào form.

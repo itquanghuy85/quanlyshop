@@ -1,7 +1,9 @@
 import 'dart:convert';
 
+import 'package:excel/excel.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/product_constants.dart';
@@ -10,6 +12,8 @@ import '../models/price_book_models.dart';
 import '../models/product_model.dart';
 import '../models/repair_model.dart';
 import '../services/sync_orchestrator.dart';
+import '../utils/excel_export_helper.dart';
+import '../utils/money_utils.dart';
 import '../utils/vietnamese_utils.dart';
 import 'pricing_engine_config.dart';
 import 'pricing_engine_service.dart';
@@ -25,6 +29,144 @@ class PriceBookService {
   PriceBookService._();
 
   static const _kPins = 'pricebook_pins_v1';
+  static const _kSeasonPct = 'pricebook_season_pct_v1';
+
+  // ── Hệ số mùa vụ (áp cho GIÁ ĐỀ XUẤT, không áp cho giá đã ghim) ──────────
+  static Future<int> seasonPct() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getInt(_kSeasonPct) ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  static Future<void> setSeasonPct(int pct) async {
+    final prefs = await SharedPreferences.getInstance();
+    final v = pct.clamp(-90, 300);
+    if (v == 0) {
+      await prefs.remove(_kSeasonPct);
+    } else {
+      await prefs.setInt(_kSeasonPct, v);
+    }
+  }
+
+  static int _applySeason(int price, int pct) =>
+      pct == 0 ? price : (price * (100 + pct) / 100).round();
+
+  // ── Excel: xuất / nhập bảng giá ─────────────────────────────────────────
+  static const _xlHeaders = [
+    'Nhóm',
+    'Tên (model · lỗi / model · biến thể)',
+    'Giá đề xuất',
+    'Giá vốn ĐX',
+    'Giá NIÊM YẾT',
+    'Giá vốn NY',
+    'Ghi chú',
+    'Số mẫu',
+    'Độ tin cậy',
+    '_khoá (không sửa)',
+  ];
+
+  static List<dynamic> _xlRow(PriceBookRow r) => [
+        r.brand,
+        r.title,
+        r.autoPrice,
+        r.autoCost,
+        r.isPinned ? (r.pinnedPrice ?? 0) : 0,
+        r.isPinned ? (r.pinnedCost ?? 0) : 0,
+        r.pinnedNote ?? '',
+        r.sampleCount,
+        r.confidenceLabel,
+        r.key,
+      ];
+
+  static Future<void> exportToExcel(BuildContext context) async {
+    final repair = await buildRepairRows();
+    final sale = await buildSaleRows();
+    final excel = Excel.createExcel();
+    final def = excel.getDefaultSheet();
+    ExcelExportHelper.writeSheet(
+      excel['Sửa chữa'],
+      _xlHeaders,
+      repair.map(_xlRow).toList(),
+    );
+    ExcelExportHelper.writeSheet(
+      excel['Bán hàng'],
+      _xlHeaders,
+      sale.map(_xlRow).toList(),
+    );
+    if (def != null && def != 'Sửa chữa' && def != 'Bán hàng') {
+      excel.delete(def);
+    }
+    final ts = DateTime.now();
+    final name =
+        'BangGia_${ts.year}${ts.month.toString().padLeft(2, '0')}${ts.day.toString().padLeft(2, '0')}.xlsx';
+    if (context.mounted) {
+      await ExcelExportHelper.saveAndShare(excel, name, context);
+    }
+  }
+
+  /// Đọc file xlsx → GHIM các dòng có "Giá NIÊM YẾT" > 0 (khớp theo cột _khoá).
+  static Future<({int pinned, int cleared, List<String> errors})>
+      importFromExcel(Uint8List bytes) async {
+    final errors = <String>[];
+    int pinned = 0, cleared = 0;
+    Excel excel;
+    try {
+      excel = Excel.decodeBytes(bytes);
+    } catch (e) {
+      return (pinned: 0, cleared: 0, errors: ['File Excel không hợp lệ: $e']);
+    }
+    final pins = await loadPins();
+
+    for (final sheet in excel.tables.values) {
+      if (sheet.maxRows < 2) continue;
+      final head = <String, int>{};
+      final h0 = sheet.row(0);
+      for (var c = 0; c < h0.length; c++) {
+        head[(h0[c]?.value?.toString() ?? '').trim().toLowerCase()] = c;
+      }
+      final ciKey = head['_khoá (không sửa)'];
+      final ciPrice = head['giá niêm yết'];
+      final ciCost = head['giá vốn ny'];
+      final ciNote = head['ghi chú'];
+      if (ciKey == null || ciPrice == null) continue;
+
+      for (var rIdx = 1; rIdx < sheet.maxRows; rIdx++) {
+        final row = sheet.row(rIdx);
+        String cell(int? i) => (i == null || i >= row.length)
+            ? ''
+            : (row[i]?.value?.toString() ?? '');
+        final key = cell(ciKey).trim();
+        if (!(key.startsWith('r|') || key.startsWith('s|'))) continue;
+        final price = MoneyUtils.parseCurrency(cell(ciPrice));
+        final cost = MoneyUtils.parseCurrency(cell(ciCost));
+        final note = cell(ciNote).trim();
+        try {
+          if (price > 0) {
+            pins[key] = PricePin(
+              price: price,
+              cost: cost > 0 ? cost : null,
+              note: note,
+              pinnedAt: DateTime.now().millisecondsSinceEpoch,
+              pinnedBy: FirebaseAuth.instance.currentUser?.email
+                      ?.split('@')
+                      .first ??
+                  '',
+            );
+            pinned++;
+          } else if (pins.remove(key) != null) {
+            cleared++;
+          }
+        } catch (e) {
+          errors.add('Dòng ${rIdx + 1}: $e');
+        }
+      }
+    }
+    await _savePins(pins);
+    return (pinned: pinned, cleared: cleared, errors: errors);
+  }
 
   // ── Khoá ổn định ─────────────────────────────────────────────────────────
   static String _n(String? s) =>
@@ -123,6 +265,7 @@ class PriceBookService {
   static Future<List<PriceBookRow>> buildRepairRows() async {
     final db = DBHelper();
     final pins = await loadPins();
+    final season = await seasonPct();
     List<Repair> repairs;
     try {
       repairs = await db.getRepairsForPricing(
@@ -161,7 +304,7 @@ class PriceBookService {
             ? lab.model
             : '${lab.model} · ${lab.issue}',
         note: '${lab.model} ${lab.issue}',
-        autoPrice: _median(prices),
+        autoPrice: _applySeason(_median(prices), season),
         autoCost: _median(costs),
         minPrice: sortedP.first,
         maxPrice: sortedP.last,
@@ -184,6 +327,7 @@ class PriceBookService {
   static Future<List<PriceBookRow>> buildSaleRows() async {
     final db = DBHelper();
     final pins = await loadPins();
+    final season = await seasonPct();
     List<Product> products;
     try {
       products = await db.getProductsForPricing();
@@ -228,7 +372,7 @@ class PriceBookService {
             ? lab.model
             : '${lab.model} $titleExtra',
         note: '${lab.brand} ${lab.model} ${lab.cap} ${lab.cond}',
-        autoPrice: _median(prices),
+        autoPrice: _applySeason(_median(prices), season),
         autoCost: _median(costs),
         minPrice: sortedP.isEmpty ? 0 : sortedP.first,
         maxPrice: sortedP.isEmpty ? 0 : sortedP.last,
@@ -271,8 +415,9 @@ class PriceBookService {
         issueOrService: issue,
       );
       if (s != null && s.medianSalePrice > 0) {
+        final season = await seasonPct();
         return PriceResolution(
-          price: s.medianSalePrice,
+          price: _applySeason(s.medianSalePrice, season),
           cost: s.medianCost,
           source: PriceSource.auto,
           sampleCount: s.sampleCount,
@@ -305,8 +450,9 @@ class PriceBookService {
     try {
       final s = await ProductPricingService.getSuggestion(model: model);
       if (s != null && s.medianSalePrice > 0) {
+        final season = await seasonPct();
         return PriceResolution(
-          price: s.medianSalePrice,
+          price: _applySeason(s.medianSalePrice, season),
           cost: s.medianCost,
           source: PriceSource.auto,
           sampleCount: s.sampleCount,
