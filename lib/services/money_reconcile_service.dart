@@ -63,6 +63,18 @@ class ReconcileApplyResult {
   const ReconcileApplyResult(this.ok, this.message);
 }
 
+/// Dữ liệu nguồn nạp một lần, lọc trong bộ nhớ.
+class ReconcileCandidates {
+  final List<SaleOrder> installments;
+  final List<Map<String, dynamic>> debts;
+  const ReconcileCandidates({
+    this.installments = const [],
+    this.debts = const [],
+  });
+
+  bool get isEmpty => installments.isEmpty && debts.isEmpty;
+}
+
 /// "Đối soát tiền về": nhập số tiền nhận/chuyển → tìm đơn trả góp hoặc khoản
 /// công nợ tương ứng → ghi nhận + cập nhật trạng thái.
 ///
@@ -79,89 +91,101 @@ class MoneyReconcileService {
     'REPAIR_PARTNER',
   };
 
-  /// Tìm các khoản khớp [amount]. [moneyIn] = true tìm khoản nhận tiền
-  /// (trả góp NH + công nợ khách), false tìm khoản chi (công nợ NCC/đối tác).
-  static Future<List<ReconcileMatch>> findMatches({
-    required int amount,
-    required bool moneyIn,
-  }) async {
-    if (amount <= 0) return const [];
+  /// Dữ liệu nguồn để đối soát — nạp MỘT LẦN (mở màn / sau khi ghi / kéo làm
+  /// mới), rồi lọc theo số tiền hoàn toàn trong bộ nhớ (xem [match]).
+  ///
+  /// Nhờ vậy gõ số tiền không đụng DB → không lag dù shop có hàng nghìn công nợ.
+  /// `debts` đã lọc CÒN DƯ ngay ở SQL (`getOutstandingDebtsRaw`) nên danh sách
+  /// thường chỉ vài chục dòng.
+  static Future<ReconcileCandidates> loadCandidates() async {
     final db = DBHelper();
+    List<SaleOrder> installments = const [];
+    List<Map<String, dynamic>> debts = const [];
+    try {
+      installments = await db.getPendingSettlementSales();
+    } catch (e) {
+      debugPrint('MoneyReconcile loadCandidates installments: $e');
+    }
+    try {
+      debts = await db.getOutstandingDebtsRaw();
+    } catch (e) {
+      debugPrint('MoneyReconcile loadCandidates debts: $e');
+    }
+    return ReconcileCandidates(installments: installments, debts: debts);
+  }
+
+  /// Lọc + xếp hạng theo [amount] — THUẦN, đồng bộ, không đụng DB.
+  static List<ReconcileMatch> match(
+    ReconcileCandidates c,
+    int amount, {
+    required bool moneyIn,
+  }) {
+    if (amount <= 0) return const [];
     final out = <ReconcileMatch>[];
 
     if (moneyIn) {
-      // 1) Trả góp NH chưa tất toán — khớp tổng tiền vay.
-      try {
-        final sales = await db.getPendingSettlementSales();
-        for (final s in sales) {
-          final totalLoan = s.loanAmount + s.loanAmount2;
-          if (totalLoan <= 0) continue;
-          final exact = totalLoan == amount;
-          final partial = amount < totalLoan;
-          if (!exact && !partial) continue;
-          final banks = [
-            s.bankName,
-            if ((s.bankName2 ?? '').isNotEmpty) s.bankName2,
-          ].whereType<String>().where((b) => b.isNotEmpty).join(' + ');
-          out.add(ReconcileMatch(
-            kind: ReconcileKind.installment,
-            title: banks.isEmpty ? 'Ngân hàng' : banks,
-            subtitle: 'Tất toán trả góp — KH: ${s.customerName}',
-            expected: totalLoan,
-            exact: exact,
-            moneyIn: true,
-            sale: s,
-          ));
-        }
-      } catch (e) {
-        debugPrint('MoneyReconcile installment: $e');
-      }
-    }
-
-    // 2/3) Công nợ — phải thu (moneyIn) hoặc phải trả (moneyOut).
-    try {
-      final debts = await db.getDebtsForFinanceSnapshot();
-      for (final d in debts) {
-        final total = (d['totalAmount'] as int?) ?? 0;
-        final paid = (d['paidAmount'] as int?) ?? 0;
-        final remaining = total - paid;
-        if (remaining <= 0) continue;
-        final status = (d['status'] as String? ?? '').toUpperCase();
-        if (status == 'PAID' || status == 'CANCELLED') continue;
-        final type = (d['type'] as String? ?? 'CUSTOMER_OWES');
-        final isPayable = _payableTypes.contains(type);
-        if (moneyIn && isPayable) continue;
-        if (!moneyIn && !isPayable) continue;
-
-        final exact = remaining == amount;
-        final partial = amount < remaining;
-        if (!exact && !partial) continue;
-
-        final note = (d['note'] as String? ?? '').trim();
+      for (final s in c.installments) {
+        final totalLoan = s.loanAmount + s.loanAmount2;
+        if (totalLoan <= 0) continue;
+        final exact = totalLoan == amount;
+        if (!exact && amount >= totalLoan) continue; // nhập > tổng vay → bỏ
+        final banks = [
+          s.bankName,
+          if ((s.bankName2 ?? '').isNotEmpty) s.bankName2,
+        ].whereType<String>().where((b) => b.isNotEmpty).join(' + ');
         out.add(ReconcileMatch(
-          kind: isPayable
-              ? ReconcileKind.supplierDebt
-              : ReconcileKind.customerDebt,
-          title: (d['personName'] as String? ?? 'Không rõ').trim(),
-          subtitle: note.isEmpty
-              ? (isPayable ? 'Công nợ phải trả' : 'Công nợ phải thu')
-              : note,
-          expected: remaining,
+          kind: ReconcileKind.installment,
+          title: banks.isEmpty ? 'Ngân hàng' : banks,
+          subtitle: 'Tất toán trả góp — KH: ${s.customerName}',
+          expected: totalLoan,
           exact: exact,
-          moneyIn: moneyIn,
-          debtRow: d,
+          moneyIn: true,
+          sale: s,
         ));
       }
-    } catch (e) {
-      debugPrint('MoneyReconcile debts: $e');
     }
 
-    // Khớp đúng lên trước, rồi tới khớp một phần; trong mỗi nhóm số lớn trước.
+    for (final d in c.debts) {
+      final total = (d['totalAmount'] as int?) ?? 0;
+      final paid = (d['paidAmount'] as int?) ?? 0;
+      final remaining = total - paid;
+      if (remaining <= 0) continue;
+      final type = (d['type'] as String? ?? 'CUSTOMER_OWES');
+      final isPayable = _payableTypes.contains(type);
+      if (moneyIn && isPayable) continue;
+      if (!moneyIn && !isPayable) continue;
+
+      final exact = remaining == amount;
+      if (!exact && amount >= remaining) continue; // nhập ≥ còn nợ → bỏ
+      final note = (d['note'] as String? ?? '').trim();
+      out.add(ReconcileMatch(
+        kind: isPayable ? ReconcileKind.supplierDebt : ReconcileKind.customerDebt,
+        title: (d['personName'] as String? ?? 'Không rõ').trim(),
+        subtitle: note.isEmpty
+            ? (isPayable ? 'Công nợ phải trả' : 'Công nợ phải thu')
+            : note,
+        expected: remaining,
+        exact: exact,
+        moneyIn: moneyIn,
+        debtRow: d,
+      ));
+    }
+
     out.sort((a, b) {
       if (a.exact != b.exact) return a.exact ? -1 : 1;
       return b.expected.compareTo(a.expected);
     });
     return out;
+  }
+
+  /// Tiện lợi: nạp + lọc trong một lần (cho caller ngoài màn đối soát).
+  static Future<List<ReconcileMatch>> findMatches({
+    required int amount,
+    required bool moneyIn,
+  }) async {
+    if (amount <= 0) return const [];
+    final c = await loadCandidates();
+    return match(c, amount, moneyIn: moneyIn);
   }
 
   /// Ghi nhận khoản tiền cho [match]. [amount] = số tiền thực nhận/chi.

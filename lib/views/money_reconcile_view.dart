@@ -19,11 +19,20 @@ class MoneyReconcileView extends StatefulWidget {
 class _MoneyReconcileViewState extends State<MoneyReconcileView> {
   final _amountCtrl = TextEditingController();
   bool _moneyIn = true; // true: tiền vào (nhận) | false: tiền ra (chuyển đi)
-  bool _searching = false;
   bool _searched = false;
   List<ReconcileMatch> _matches = const [];
   Timer? _debounce;
-  int _lastQueried = -1;
+
+  // Nạp MỘT LẦN, lọc trong bộ nhớ → gõ số tiền không đụng DB, không lag dù shop
+  // có hàng nghìn công nợ.
+  ReconcileCandidates? _candidates;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCandidates();
+  }
 
   @override
   void dispose() {
@@ -34,35 +43,39 @@ class _MoneyReconcileViewState extends State<MoneyReconcileView> {
 
   int get _amount => CurrencyTextField.getValue(_amountCtrl);
 
-  /// Gõ tới đâu lọc tới đó — không cần bấm nút.
+  Future<void> _loadCandidates() async {
+    setState(() => _loading = true);
+    final c = await MoneyReconcileService.loadCandidates();
+    if (!mounted) return;
+    setState(() {
+      _candidates = c;
+      _loading = false;
+    });
+    _applyFilter(); // giữ kết quả khớp với số đang nhập
+  }
+
+  /// Gõ tới đâu lọc tới đó — thuần bộ nhớ, tức thì.
   void _onAmountChanged(int value) {
     _debounce?.cancel();
     if (value <= 0) {
       if (_searched || _matches.isNotEmpty) {
         setState(() {
           _searched = false;
-          _searching = false;
           _matches = const [];
-          _lastQueried = -1;
         });
       }
       return;
     }
-    _debounce = Timer(const Duration(milliseconds: 350), _search);
+    _debounce = Timer(const Duration(milliseconds: 250), _applyFilter);
   }
 
-  Future<void> _search() async {
+  void _applyFilter() {
+    final c = _candidates;
     final amount = _amount;
-    if (amount <= 0) return;
-    _lastQueried = amount;
-    setState(() => _searching = true);
-    final res = await MoneyReconcileService.findMatches(
-      amount: amount,
-      moneyIn: _moneyIn,
-    );
-    if (!mounted || amount != _lastQueried) return; // kết quả cũ → bỏ
+    if (c == null || amount <= 0) return;
+    final res = MoneyReconcileService.match(c, amount, moneyIn: _moneyIn);
+    if (!mounted) return;
     setState(() {
-      _searching = false;
       _searched = true;
       _matches = res;
     });
@@ -116,7 +129,7 @@ class _MoneyReconcileViewState extends State<MoneyReconcileView> {
     );
     if (ok != true) return;
 
-    setState(() => _searching = true);
+    setState(() => _loading = true);
     final r = await MoneyReconcileService.apply(
       match: m,
       amount: amount,
@@ -124,11 +137,8 @@ class _MoneyReconcileViewState extends State<MoneyReconcileView> {
     );
     if (!mounted) return;
     _snack(r.message, r.ok ? Colors.green : Colors.red);
-    if (r.ok) {
-      await _search(); // làm mới danh sách (khoản đã xử lý sẽ biến mất / đổi)
-    } else {
-      setState(() => _searching = false);
-    }
+    // Dữ liệu đã đổi → nạp lại danh sách nguồn rồi lọc lại.
+    await _loadCandidates();
   }
 
   void _snack(String msg, Color color) {
@@ -168,7 +178,7 @@ class _MoneyReconcileViewState extends State<MoneyReconcileView> {
                       _searched = false;
                       _matches = const [];
                     });
-                    if (_amount > 0) _search(); // lọc lại theo chiều mới
+                    _applyFilter(); // lọc lại theo chiều mới (dữ liệu đã có sẵn)
                   },
                 ),
                 const SizedBox(height: 12),
@@ -177,20 +187,20 @@ class _MoneyReconcileViewState extends State<MoneyReconcileView> {
                   label: 'Số tiền nhận được từ NH / trên sao kê',
                   icon: Icons.payments_rounded,
                   onValueChanged: _onAmountChanged,
-                  onSubmitted: _search,
+                  onSubmitted: _applyFilter,
                 ),
                 const SizedBox(height: 6),
                 Row(
                   children: [
                     Icon(
-                      _searching ? Icons.sync_rounded : Icons.bolt_rounded,
+                      _loading ? Icons.sync_rounded : Icons.bolt_rounded,
                       size: 14,
                       color: Colors.grey.shade500,
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      _searching
-                          ? 'Đang lọc…'
+                      _loading
+                          ? 'Đang tải danh sách…'
                           : 'Gõ số tiền — tự lọc, không cần bấm tìm',
                       style: TextStyle(
                         fontSize: 11.5,
@@ -210,8 +220,7 @@ class _MoneyReconcileViewState extends State<MoneyReconcileView> {
   }
 
   Widget _buildResults() {
-    // Lần lọc đầu (chưa có kết quả nào) → spinner giữa màn.
-    if (_searching && _matches.isEmpty && !_searched) {
+    if (_loading && _candidates == null) {
       return const Center(child: CircularProgressIndicator());
     }
     if (!_searched && _matches.isEmpty) {
@@ -226,11 +235,14 @@ class _MoneyReconcileViewState extends State<MoneyReconcileView> {
         'Kiểm tra lại số tiền, hoặc chiều tiền (vào / ra).',
       );
     }
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 24),
-      itemCount: _matches.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (_, i) => _matchCard(_matches[i]),
+    return RefreshIndicator(
+      onRefresh: _loadCandidates,
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 24),
+        itemCount: _matches.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        itemBuilder: (_, i) => _matchCard(_matches[i]),
+      ),
     );
   }
 

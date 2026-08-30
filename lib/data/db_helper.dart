@@ -7513,6 +7513,27 @@ class DBHelper {
     );
   }
 
+  /// Chỉ các công nợ CÒN DƯ (chưa trả hết, chưa huỷ) — dùng cho màn "Đối soát
+  /// tiền về". Lọc ngay ở SQL để shop lâu năm (hàng nghìn nợ đã tất) không phải
+  /// nạp cả bảng.
+  Future<List<Map<String, dynamic>>> getOutstandingDebtsRaw() async {
+    final shopId = UserService.getShopIdSync();
+    final db = await database;
+    const cond =
+        "(deleted = 0 OR deleted IS NULL) "
+        "AND UPPER(COALESCE(status, '')) NOT IN ('PAID', 'CANCELLED') "
+        "AND (COALESCE(totalAmount, 0) - COALESCE(paidAmount, 0)) > 0";
+    if (shopId != null && shopId.isNotEmpty) {
+      return db.query(
+        'debts',
+        where: '(shopId = ? OR shopId IS NULL) AND $cond',
+        whereArgs: [shopId],
+        orderBy: 'createdAt DESC',
+      );
+    }
+    return db.query('debts', where: cond, orderBy: 'createdAt DESC');
+  }
+
   Future<List<Map<String, dynamic>>> getPurchaseDebts() async =>
       (await database).query(
         'purchase_orders',

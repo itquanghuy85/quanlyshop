@@ -9,7 +9,8 @@ Lịch sử tất cả thay đổi từng phiên bản.
 **Chưa tăng version.** Khi có tiền về tài khoản (NH tất toán trả góp, khách chuyển trả nợ) hoặc vừa chuyển tiền trả NCC — nhập số tiền, app tự tìm khoản tương ứng để ghi nhận + cập nhật trạng thái, không phải tự dò.
 
 ### Màn mới `lib/views/money_reconcile_view.dart` + `lib/services/money_reconcile_service.dart`
-- Toggle **Tiền vào (nhận)** / **Tiền ra (chuyển)** + 1 ô số tiền. **Tự lọc khi gõ** (debounce 350ms, không cần bấm nút); xoá hết số → về gợi ý; đổi toggle → lọc lại theo chiều mới; có chốt chống kết quả cũ đè kết quả mới.
+- Toggle **Tiền vào (nhận)** / **Tiền ra (chuyển)** + 1 ô số tiền. **Tự lọc khi gõ** (debounce 250ms, không cần bấm nút); xoá hết số → về gợi ý; đổi toggle → lọc lại theo chiều mới; kéo xuống làm mới.
+- **Không lag dù shop nhiều nợ:** nạp dữ liệu nguồn MỘT LẦN lúc mở màn (+ sau khi ghi / kéo làm mới), gõ số tiền chỉ lọc trong bộ nhớ (`MoneyReconcileService.match` thuần, đồng bộ). Công nợ đã lọc CÒN DƯ ngay ở SQL (`db.getOutstandingDebtsRaw()` MỚI: `status NOT IN (PAID,CANCELLED) AND totalAmount-paidAmount > 0`) nên shop lâu năm không phải nạp cả bảng `debts`.
 - `MoneyReconcileService.findMatches(amount, moneyIn)` — quét:
   - **Trả góp NH chưa tất toán** (`db.getPendingSettlementSales()` MỚI: `isInstallment=1 AND settlementReceivedAt trống`) — khớp tổng `loanAmount+loanAmount2`.
   - **Công nợ khách (phải thu)** khi Tiền vào / **Công nợ NCC-đối tác (phải trả)** khi Tiền ra — từ `getDebtsForFinanceSnapshot`, còn dư > 0, chưa PAID/CANCELLED. *(Đơn bán/sửa CÔNG NỢ còn thiếu tiền nằm ở đây.)*
