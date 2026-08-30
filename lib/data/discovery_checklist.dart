@@ -119,6 +119,14 @@ const List<DiscoveryTask> kDiscoveryTasks = [
     audience: ['owner', 'manager', 'cashier'],
   ),
   DiscoveryTask(
+    id: 'price-book',
+    title: 'Xem & chốt Bảng giá',
+    hint: 'Giá đề xuất theo lịch sử; ghim giá niêm yết để tự điền vào đơn.',
+    icon: Icons.sell_outlined,
+    kbEntryId: 'price-book',
+    audience: ['owner', 'manager'],
+  ),
+  DiscoveryTask(
     id: 'expense',
     title: 'Ghi một khoản chi phí',
     hint: 'Mặt bằng, điện nước, ăn uống…',

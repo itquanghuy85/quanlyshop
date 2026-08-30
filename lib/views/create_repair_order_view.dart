@@ -16,6 +16,8 @@ import '../services/unified_printer_service.dart';
 import '../services/adjustment_service.dart';
 import '../services/first_time_guide_service.dart';
 import '../services/pricing_engine_service.dart';
+import '../services/price_book_service.dart';
+import '../models/price_book_models.dart';
 import 'similar_repair_history_view.dart';
 import 'customer_history_view.dart';
 import '../utils/money_utils.dart';
@@ -119,6 +121,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   Timer? _pricingDebounce;
   PricingSuggestion? _pricingSuggestion;
   bool _pricingChecked = false;
+  PriceResolution? _pinnedRepairPrice; // giá NIÊM YẾT từ Bảng giá (nếu có)
 
   final List<String> brands = [
     "IPHONE ",
@@ -185,19 +188,28 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     final model = modelCtrl.text.trim();
     final issue = issueCtrl.text.trim();
     if (model.isEmpty || issue.isEmpty) {
-      if (mounted && (_pricingChecked || _pricingSuggestion != null)) {
+      if (mounted &&
+          (_pricingChecked ||
+              _pricingSuggestion != null ||
+              _pinnedRepairPrice != null)) {
         setState(() {
           _pricingSuggestion = null;
           _pricingChecked = false;
+          _pinnedRepairPrice = null;
         });
       }
       return;
     }
     PricingSuggestion? suggestion;
+    PriceResolution resolution = const PriceResolution();
     try {
       suggestion = await PricingEngineService.getSuggestion(
         model: model,
         issueOrService: issue,
+      );
+      resolution = await PriceBookService.resolveRepair(
+        model: model,
+        issue: issue,
       );
     } catch (e) {
       debugPrint('⚠️ PricingEngine lookup lỗi: $e');
@@ -208,25 +220,95 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     if (modelCtrl.text.trim() != model || issueCtrl.text.trim() != issue) {
       return;
     }
+    final pinned = resolution.isPinned ? resolution : null;
+    // Tự điền giá NIÊM YẾT nếu người dùng chưa nhập giá nào.
+    if (pinned != null &&
+        (pinned.price ?? 0) > 0 &&
+        priceCtrl.text.trim().isEmpty) {
+      priceCtrl.text = MoneyUtils.formatCurrency(pinned.price!);
+    }
     setState(() {
       _pricingSuggestion = suggestion;
       _pricingChecked = true;
+      _pinnedRepairPrice = pinned;
     });
   }
 
+  Widget _buildPinnedPriceCard() {
+    final p = _pinnedRepairPrice;
+    if (p == null || (p.price ?? 0) <= 0) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 8, bottom: 4),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.indigo.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.indigo.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.sell_rounded, size: 14, color: Colors.indigo.shade700),
+              const SizedBox(width: 6),
+              Text(
+                'GIÁ NIÊM YẾT (Bảng giá)',
+                style: AppTextStyles.caption.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.indigo.shade800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Thu khách: ${MoneyUtils.formatCurrency(p.price!)}đ'
+            '${_canViewCostPrice && (p.cost ?? 0) > 0 ? '   Vốn: ${MoneyUtils.formatCurrency(p.cost!)}đ' : ''}',
+            style: AppTextStyles.body2,
+          ),
+          const SizedBox(height: 6),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () {
+                priceCtrl.text = MoneyUtils.formatCurrency(p.price!);
+                setState(() {});
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.indigo.shade800,
+                side: BorderSide(color: Colors.indigo.shade300),
+              ),
+              child: Text('DÙNG GIÁ ${MoneyUtils.formatCurrency(p.price!)}đ'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPricingSuggestionCard() {
-    if (!_pricingChecked) return const SizedBox.shrink();
+    final pinnedCard = _buildPinnedPriceCard();
+    if (!_pricingChecked) return pinnedCard;
     final s = _pricingSuggestion;
     if (s == null) {
-      return Padding(
-        padding: const EdgeInsets.only(top: 4, bottom: 4),
-        child: Text(
-          'Chưa đủ dữ liệu lịch sử để đề xuất giá.',
-          style: AppTextStyles.caption.copyWith(color: Colors.grey.shade600),
-        ),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          pinnedCard,
+          Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 4),
+            child: Text(
+              'Chưa đủ dữ liệu lịch sử để đề xuất giá.',
+              style:
+                  AppTextStyles.caption.copyWith(color: Colors.grey.shade600),
+            ),
+          ),
+        ],
       );
     }
-    return Container(
+    final autoCard = Container(
       width: double.infinity,
       margin: const EdgeInsets.only(top: 8, bottom: 4),
       padding: const EdgeInsets.all(10),
@@ -305,6 +387,10 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
           ),
         ],
       ),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [pinnedCard, autoCard],
     );
   }
 

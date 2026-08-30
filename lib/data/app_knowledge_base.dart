@@ -847,6 +847,47 @@ class AppKnowledgeBase {
       audience: ['owner', 'manager', 'cashier'],
     ),
     KbEntry(
+      id: 'price-book',
+      title: 'Bảng giá (giá đề xuất + giá niêm yết)',
+      menuPath:
+          'Trang chủ → TRUY CẬP NHANH TÀI CHÍNH → Bảng giá',
+      whatItDoes:
+          'Tổng hợp giá đề xuất (trung vị lịch sử) cho từng "model · lỗi" (sửa '
+          'chữa) và từng model/biến thể (bán hàng). Chủ shop có thể GHIM giá '
+          'niêm yết chính thức; form tạo đơn sẽ tự điền giá đó.',
+      whenToUse:
+          'Xem mặt bằng giá, chốt bảng giá dịch vụ, hoặc đặt giá nhanh cho SP '
+          'chưa có giá bán.',
+      steps: [
+        'Mở Bảng giá, chọn tab Sửa chữa hoặc Bán hàng.',
+        'Tìm theo model/lỗi. Mỗi dòng hiện giá đề xuất + số mẫu + độ tin cậy + '
+            'khoảng giá thường gặp.',
+        'Chạm 1 dòng → nhập "Giá niêm yết" → **Ghim giá**. Dòng đó chuyển nhãn '
+            '"NIÊM YẾT".',
+        'Tab Bán hàng: nút "Áp giá cho SP chưa có giá" (góc trên) → xem danh '
+            'sách đề xuất → xác nhận để đặt giá hàng loạt.',
+      ],
+      notes: [
+        'Giá đề xuất tính từ đơn sửa đã Xong/Đã giao và giá SP trong kho — chạy '
+            'local, không tốn mạng.',
+        'Khi tạo đơn sửa: nếu "model · lỗi" có giá ghim, thẻ "GIÁ NIÊM YẾT" hiện '
+            'lên và tự điền vào ô giá (nếu đang trống).',
+        'Giá ghim lưu theo máy (chưa đồng bộ giữa các thiết bị).',
+      ],
+      terms: ['gia-tham-khao', 'gia-von', 'lai-gop'],
+      sampleQuestions: [
+        'bảng giá ở đâu',
+        'giá ép kính iphone 12 bao nhiêu',
+        'chốt bảng giá dịch vụ sửa',
+        'áp giá hàng loạt cho sản phẩm chưa có giá',
+      ],
+      tags: [
+        'bang gia', 'gia de xuat', 'gia niem yet', 'ghim gia', 'price book',
+        'chot gia', 'ap gia hang loat'
+      ],
+      audience: ['owner', 'manager'],
+    ),
+    KbEntry(
       id: 'money-reconcile',
       title: 'Đối soát tiền về',
       menuPath:
@@ -1273,7 +1314,8 @@ class AppKnowledgeBase {
         id == 'cash-closing' ||
         id == 'monthly-profit' ||
         id == 'expense' ||
-        id == 'money-reconcile') {
+        id == 'money-reconcile' ||
+        id == 'price-book') {
       return 'finance';
     }
     if (id == 'customers' || id == 'payroll' || id == 'attendance') {

@@ -4,6 +4,37 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-30u] - feat(bảng giá) Bảng giá tự động + giá niêm yết cho sửa chữa & bán hàng
+
+**Chưa tăng version.** Trước đây giá gợi ý chỉ hiện phản ứng khi tạo đơn (`PricingEngineService` cho sửa, `ProductPricingService` cho bán). Nay có **màn Bảng giá** duyệt được + chốt giá niêm yết + tự điền vào form.
+
+### Nền tảng
+- `lib/models/price_book_models.dart` (mới): `PriceBookRow` (auto/pinned, `effectivePrice`), `PricePin`, `PriceResolution`, `SalePriceProposal`.
+- `lib/services/price_book_service.dart` (mới) — layer mỏng trên 2 engine sẵn có:
+  - `buildRepairRows()` gom đơn Xong/Đã giao theo (model · lỗi) → trung vị giá/vốn/lãi + số mẫu + độ tin cậy + khoảng min–max.
+  - `buildSaleRows()` gom SP theo (hãng · model · dung lượng · tình trạng).
+  - Ghim: `pin()` / `unpin()` lưu SharedPreferences (`pricebook_pins_v1`, **theo máy**). Khoá chuẩn hoá: `repairKey` / `saleKey`.
+  - `resolveRepair()` / `resolveSale()` — ưu tiên GHIM → trung vị → không có; cho form tạo đơn.
+  - `proposeSalePrices()` (dry-run) + `commitSalePrices()` — áp giá hàng loạt cho SP chưa có giá (chỉ khi có nhóm cùng loại đã có giá để lấy trung vị).
+
+### Màn "Bảng giá" — `lib/views/price_book_view.dart` (mới)
+- 2 tab Sửa chữa / Bán hàng, tìm kiếm, nhóm theo hãng. Mỗi dòng: giá hiệu lực + số mẫu · độ tin cậy · khoảng giá; badge **NIÊM YẾT** nếu đã ghim, else "lãi X".
+- Chạm dòng → dialog nhập "Giá niêm yết" + "Giá vốn dự kiến" + ghi chú → **Ghim giá** / **Bỏ ghim**.
+- Tab Bán hàng: nút AppBar "Áp giá cho SP chưa có giá" → dialog xem trước → xác nhận.
+- Kéo xuống làm mới.
+
+### Tự điền vào form
+- `create_repair_order_view`: `_runPricingLookup` gọi thêm `PriceBookService.resolveRepair` — nếu (model · lỗi) có giá NIÊM YẾT: hiện thẻ "GIÁ NIÊM YẾT (Bảng giá)" + nút "DÙNG GIÁ X", và **tự điền vào ô giá nếu đang trống**. Thẻ "GIÁ THAM KHẢO" (trung vị) vẫn hiện bên dưới.
+
+### Lối tắt + KB
+- Home → thẻ TRUY CẬP NHANH TÀI CHÍNH: thêm nút **Bảng giá** (cạnh "Đối soát tiền về").
+- Mục KB `price-book` (AI + Trung tâm trợ giúp) + nhiệm vụ checklist khám phá.
+
+**Test:** `flutter analyze` 0 error mới; `flutter test` **+469 −8** (9 test bảng giá: khoá chuẩn hoá, effectivePrice pinned/auto, PricePin JSON, PriceResolution). **Máy thật Oppo:** màn Bảng giá render đủ (Sửa: IPHONE·ÉP KÍNH 600k lãi 597k…; Bán: 12 32GB (MỚI) 12tr…); ghim IPHONE·ÉP KÍNH → badge NIÊM YẾT + snackbar; áp-giá-hàng-loạt xử lý đúng trường hợp không có dữ liệu. Thẻ "GIÁ NIÊM YẾT" trong form tạo đơn: đã wire + analyze sạch, chưa nghiệm thu trực quan qua adb (kẹt nhập liệu).
+**Files:** +`lib/models/price_book_models.dart`, +`lib/services/price_book_service.dart`, +`lib/views/price_book_view.dart`, +`test/price_book_test.dart`, `lib/views/{home_view,create_repair_order_view}.dart`, `lib/data/{app_knowledge_base,discovery_checklist,help_center_repository}.dart`.
+
+---
+
 ## [2026-08-30t] - feat(đơn sửa) đơn ĐÃ GIAO vẫn bổ sung / chỉnh sửa được (thêm linh kiện, Sửa KTV)
 
 **Chưa tăng version.** Trước: đơn `status = 4` (Đã giao) khóa gần hết thao tác sửa — chỉ cho "Xóa PT" nếu có phụ tùng. Nay mở để bổ sung / sửa nhầm sau khi giao.
