@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
+import '../data/app_knowledge_base.dart';
 import '../data/db_helper.dart';
 import '../services/ai_chat_service.dart';
 import '../services/ai_knowledge_service.dart';
@@ -11,6 +12,7 @@ import '../services/connectivity_service.dart';
 import '../services/user_service.dart';
 import '../services/voice_correction_service.dart';
 import '../theme/popup_theme.dart';
+import '../views/feature_catalog_view.dart';
 import '../views/repair_detail_view.dart';
 import '../views/sale_detail_view.dart';
 import 'ai_order_input_sheet.dart';
@@ -131,7 +133,23 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     _loadPermissions();
     _watchConnectivity();
     _loadHistory();
+    AiNavBridge.askRequest.addListener(_onExternalAsk);
     // Stats loaded lazily on first open — not in initState to avoid wasted SQLite reads
+  }
+
+  /// Mở màn "Tất cả tính năng" — nhãn chip đặc biệt.
+  static const _kSeeAllFeatures = '📚 Tất cả tính năng';
+
+  /// Có màn khác (vd Tất cả tính năng) nhờ hỏi AI hộ một câu.
+  void _onExternalAsk() {
+    final q = AiNavBridge.askRequest.value;
+    if (q == null || q.isEmpty) return;
+    AiNavBridge.askRequest.value = null;
+    if (!mounted) return;
+    if (!_open) _toggle();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _send(q);
+    });
   }
 
   Future<void> _loadPermissions() async {
@@ -160,6 +178,7 @@ class _AiChatOverlayState extends State<AiChatOverlay>
 
   @override
   void dispose() {
+    AiNavBridge.askRequest.removeListener(_onExternalAsk);
     _anim.dispose();
     _pulse.dispose();
     _ctrl.dispose();
@@ -340,6 +359,27 @@ class _AiChatOverlayState extends State<AiChatOverlay>
         'Bạn muốn biết thêm gì?',
       );
     }
+
+    // Gợi ý khám phá: 3 câu hỏi mẫu xoay theo ngày + lối vào "Tất cả tính năng".
+    try {
+      final now = DateTime.now();
+      final daySeed = DateTime(now.year, now.month, now.day)
+          .difference(DateTime(now.year))
+          .inDays;
+      final samples = AppKnowledgeBase.sampleQuestionSpread(3, seed: daySeed);
+      if (samples.isNotEmpty && mounted) {
+        _addAI(
+          'Bạn có thể hỏi mình **cách dùng bất kỳ tính năng nào**. Thử:\n'
+          '${samples.map((s) => '• _"$s"_').join('\n')}',
+        );
+        setState(() {
+          _contextChips = [
+            for (final s in samples) (s, Icons.help_outline_rounded),
+            (_kSeeAllFeatures, Icons.apps_rounded),
+          ];
+        });
+      }
+    } catch (_) {}
   }
 
   // ── Messaging ─────────────────────────────────────────────────────────────
@@ -366,6 +406,14 @@ class _AiChatOverlayState extends State<AiChatOverlay>
   Future<void> _send([String? text]) async {
     final q = (text ?? _ctrl.text).trim();
     if (q.isEmpty || _sending) return;
+
+    // Chip đặc biệt: mở màn "Tất cả tính năng" thay vì gửi câu hỏi.
+    if (q == _kSeeAllFeatures || q == 'Tất cả tính năng') {
+      _ctrl.clear();
+      openFeatureCatalog(context, userRole: _role ?? '');
+      return;
+    }
+
     _ctrl.clear();
     setState(() {
       _sending = true;

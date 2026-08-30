@@ -16,6 +16,18 @@ class AiNavBridge {
   /// Overlay listens to this to show context-aware placeholder text.
   static final screenContext = ValueNotifier<String>(tabHome);
 
+  /// Yêu cầu mở bong bóng AI và hỏi sẵn một câu (vd từ màn "Tất cả tính năng").
+  /// AiChatOverlay lắng nghe; xử lý xong tự đặt lại `null`.
+  static final askRequest = ValueNotifier<String?>(null);
+
+  /// Gọi từ bất kỳ đâu để nhờ AI trả lời [question]. Nên `popUntil(isFirst)`
+  /// trước để đảm bảo Home (nơi có overlay) đang hiển thị.
+  static void ask(String question) {
+    final q = question.trim();
+    if (q.isEmpty) return;
+    askRequest.value = q;
+  }
+
   /// Registered by HomeView to switch bottom-nav tabs by ID.
   static Function(String tabId)? _onSwitchTab;
 

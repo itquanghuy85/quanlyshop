@@ -4,6 +4,35 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-30r] - feat(khám phá) người dùng tự tìm hết tính năng: catalog A–Z + checklist Home + AI chủ động
+
+**Chưa tăng version.** Tiếp nối `[2026-08-30q]` — trước đây 3 hệ thống hướng dẫn rời nhau (ⓘ mỗi màn, Trung tâm trợ giúp, `UserGuideView` viết tay), không có "bản đồ" tính năng, AI thụ động, không có onboarding.
+
+### 1. Gộp về 1 cửa
+- Lối tắt "Hướng dẫn sử dụng" ở Trang chủ nay mở **Trung tâm hướng dẫn** (`HelpCenterView`, ~47 mục dựng từ `AppKnowledgeBase`) thay vì `UserGuideView` cũ (giữ lại, vẫn vào được từ Cài đặt).
+- `HelpCenterView` thêm tham số `initialTopicId` → mở thẳng chi tiết một mục (dùng cho deep-link từ checklist / mẹo).
+
+### 2. Màn "Tất cả tính năng" — `lib/views/feature_catalog_view.dart` (mới)
+- Bản đồ mọi tính năng, nhóm theo 8 khu (`AppKnowledgeBase.areas`): mỗi dòng = tên + 1 câu "làm gì" → chạm mở chi tiết (vị trí menu, các bước, lưu ý, thuật ngữ) + nút **"Hỏi AI Trợ Lý về mục này"**.
+- Có ô tìm kiếm (chuỗi con, bỏ dấu). Lọc theo vai trò.
+- `AppKnowledgeBase` thêm: `areas`, `areaOf(id)`, `entriesByArea(id)`, `sampleQuestionSpread(n)` (câu hỏi mẫu trải đều nhóm, ổn định theo seed), `tipOfTheDay()`.
+
+### 3. Thẻ "Khám phá HULUCA" ở Trang chủ — `discovery_card.dart` + `discovery_service.dart` + `discovery_checklist.dart` (mới)
+- Checklist 15 nhiệm vụ ("Tạo đơn sửa đầu tiên", "Chốt quỹ cuối ngày", "Phân quyền nhân viên"…), thanh tiến độ, lọc theo vai trò.
+- Chạm nhiệm vụ → chuyển tab tương ứng hoặc mở hướng dẫn KB, và tự tick.
+- Tự nhận biết đã làm từ dữ liệu thật (đếm đơn sửa / đơn bán / sản phẩm) + tick tay (SharedPrefs). Nút **Ẩn**. Tự ẩn khi xong hết.
+- Dòng **"Mẹo hôm nay"** xoay vòng theo ngày (từ `notes` của KB), chạm mở hướng dẫn.
+
+### 4. AI Trợ Lý chủ động khoe tính năng
+- Lời chào thêm 3 câu hỏi mẫu **xoay theo ngày, trải đều các nhóm** + chip **"📚 Tất cả tính năng"** (mở catalog).
+- Câu trả lời "Hướng dẫn" bổ sung nhóm ví dụ "Cách dùng tính năng" + chip mở catalog.
+- `AiNavBridge.ask(question)` (mới) — màn khác nhờ AI trả lời hộ: overlay tự mở + hỏi. Dùng bởi nút "Hỏi AI" trong catalog.
+
+**Test:** `flutter analyze` (12 file) 0 error/warning mới; `flutter test` **+460 −8** (9 test mới: nhóm KB, sampleQuestionSpread ổn định, tipOfTheDay, checklist↔KB toàn vẹn, lọc vai trò). 8 lỗi môi trường có sẵn không đổi.
+**Files:** +`lib/views/feature_catalog_view.dart`, +`lib/widgets/discovery_card.dart`, +`lib/services/discovery_service.dart`, +`lib/data/discovery_checklist.dart`, +`test/discovery_and_catalog_test.dart`, `lib/data/app_knowledge_base.dart`, `lib/services/ai_nav_bridge.dart`, `lib/services/ai_chat_service.dart`, `lib/widgets/ai_chat_overlay.dart`, `lib/views/help_center_view.dart`, `lib/views/home_view.dart`.
+
+---
+
 ## [2026-08-30q] - feat(AI Trợ Lý) Knowledge Base: hiểu toàn bộ app + hỏi mọi tính năng
 
 **Chưa tăng version.** AI chat trước đây: prompt hệ thống liệt kê tính năng tĩnh ~12 dòng (dễ lệch), Trung tâm trợ giúp (7 topic) KHÔNG nối với AI, cloud chỉ nhận số liệu tổng → không trả lời được "làm thế nào / ở đâu / là gì".

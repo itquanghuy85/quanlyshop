@@ -7,7 +7,15 @@ import '../services/notification_service.dart';
 
 class HelpCenterView extends StatefulWidget {
   final String userRole;
-  const HelpCenterView({super.key, required this.userRole});
+
+  /// Nếu có → tự mở chi tiết topic này khi vào màn (vd 'kb-cash-closing').
+  final String? initialTopicId;
+
+  const HelpCenterView({
+    super.key,
+    required this.userRole,
+    this.initialTopicId,
+  });
 
   @override
   State<HelpCenterView> createState() => _HelpCenterViewState();
@@ -16,6 +24,27 @@ class HelpCenterView extends StatefulWidget {
 class _HelpCenterViewState extends State<HelpCenterView> {
   final TextEditingController _searchCtrl = TextEditingController();
   String _activeCategoryId = 'all';
+
+  @override
+  void initState() {
+    super.initState();
+    final id = widget.initialTopicId;
+    if (id != null && id.isNotEmpty) {
+      HelpTopic? topic;
+      for (final t in HelpCenterRepository.topics) {
+        if (t.id == id) {
+          topic = t;
+          break;
+        }
+      }
+      if (topic != null) {
+        final t = topic;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _openTopicDetail(t);
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {

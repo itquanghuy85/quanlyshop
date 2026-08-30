@@ -67,6 +67,9 @@ import 'pending_stock_list_view.dart';
 import 'import_history_view.dart';
 import 'storage_location_view.dart';
 import 'user_guide_view.dart';
+import 'help_center_view.dart';
+import '../data/app_knowledge_base.dart';
+import '../widgets/discovery_card.dart';
 import '../data/db_helper.dart';
 import '../widgets/pending_stock_widget.dart';
 import '../widgets/unified_sync_button.dart';
@@ -3403,6 +3406,7 @@ class _HomeViewState extends State<HomeView>
     // If config not loaded yet, show lightweight defaults (no greeting/finance)
     if (!_dashboardConfigLoaded || _dashboardConfigs.isEmpty) {
       return [
+        _buildDiscoveryCard(),
         _buildTodayActivityDashboardCard(),
         _buildPendingPaymentBanner(),
         _buildChatCard(),
@@ -3417,6 +3421,8 @@ class _HomeViewState extends State<HomeView>
 
     // Customize button at top
     widgets.add(_buildCustomizeDashboardButton());
+    widgets.add(_buildDiscoveryCard());
+    widgets.add(_buildTipOfDayLine());
 
     for (final config in _dashboardConfigs) {
       if (!config.visible) continue;
@@ -7992,7 +7998,70 @@ class _HomeViewState extends State<HomeView>
     );
   }
 
-  /// Lối tắt đến Hướng dẫn sử dụng ở cuối Home
+  /// Thẻ "Khám phá HULUCA" — checklist tính năng cho người dùng mới.
+  Widget _buildDiscoveryCard() {
+    return DiscoveryCard(
+      userRole: widget.role,
+      onOpenTab: (tabId) => AiNavBridge.switchToTab(tabId),
+      onOpenGuide: (kbId) => _pushRoute(
+        context,
+        MaterialPageRoute(
+          builder: (_) => HelpCenterView(
+            userRole: widget.role,
+            initialTopicId: 'kb-$kbId',
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Dòng "Mẹo hôm nay" — xoay vòng theo ngày, chạm để mở hướng dẫn.
+  Widget _buildTipOfDayLine() {
+    final tod = AppKnowledgeBase.tipOfTheDay();
+    if (tod == null) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: InkWell(
+        onTap: () => _pushRoute(
+          context,
+          MaterialPageRoute(
+            builder: (_) => HelpCenterView(
+              userRole: widget.role,
+              initialTopicId: 'kb-${tod.entryId}',
+            ),
+          ),
+        ),
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.amber.shade50,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.amber.shade200),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.lightbulb_outline_rounded,
+                  size: 16, color: Colors.amber.shade800),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Mẹo hôm nay: ${tod.tip}',
+                  style: TextStyle(
+                      fontSize: 12, color: Colors.brown.shade800),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Lối tắt đến Hướng dẫn sử dụng ở cuối Home → Trung tâm hướng dẫn
+  /// (dùng chung nguồn `AppKnowledgeBase` với AI Trợ Lý).
   Widget _buildUserGuideShortcut() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
@@ -8001,7 +8070,7 @@ class _HomeViewState extends State<HomeView>
           _pushRoute(
             context,
             MaterialPageRoute(
-              builder: (_) => UserGuideView(userRole: widget.role),
+              builder: (_) => HelpCenterView(userRole: widget.role),
             ),
           );
         },

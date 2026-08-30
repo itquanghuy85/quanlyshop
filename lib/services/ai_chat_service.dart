@@ -775,11 +775,15 @@ class AiChatService {
         '• *"Tạo đơn bán Samsung A55 cho 0912345678"*\n\n'
         '**Kho & Công nợ:**\n'
         '• *"Tồn kho hiện tại"* · *"Kho linh kiện"*\n'
-        '• *"Công nợ khách"* · *"Ai nợ nhiều nhất?"*',
+        '• *"Công nợ khách"* · *"Ai nợ nhiều nhất?"*\n\n'
+        '**Cách dùng tính năng:**\n'
+        '• *"Làm sao chốt quỹ?"* · *"Miễn nợ ở đâu?"*\n'
+        '• *"Trả góp ngân hàng là gì?"*\n\n'
+        'Bấm **📚 Tất cả tính năng** để xem toàn bộ.',
         followUpChips: [
-          ('Doanh thu hôm nay', Icons.trending_up_rounded),
+          ('📚 Tất cả tính năng', Icons.apps_rounded),
+          ('Làm sao chốt quỹ?', Icons.help_outline_rounded),
           ('Đơn đang chờ', Icons.pending_actions_rounded),
-          ('Tổng hợp tài chính', Icons.summarize_rounded),
         ],
       );
     }

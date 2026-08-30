@@ -8,6 +8,8 @@
 /// Vai trò (audience): 'all' | 'owner' | 'manager' | 'technician' | 'cashier'
 library;
 
+import 'dart:math';
+
 /// Một mục kiến thức = một tính năng / màn hình.
 class KbEntry {
   final String id;
@@ -1198,5 +1200,78 @@ class AppKnowledgeBase {
       if (e.id == id) return e;
     }
     return null;
+  }
+
+  // ─── NHÓM TÍNH NĂNG (cho màn "Tất cả tính năng") ──────────────────────────
+  /// Thứ tự hiển thị + nhãn nhóm.
+  static const List<(String id, String label)> areas = [
+    ('home', 'Trang chủ & tổng quan'),
+    ('repair', 'Sửa chữa'),
+    ('sale', 'Bán hàng'),
+    ('inventory', 'Kho hàng'),
+    ('debt', 'Công nợ'),
+    ('finance', 'Tài chính & báo cáo'),
+    ('staff', 'Khách hàng & nhân viên'),
+    ('system', 'Hệ thống & tiện ích'),
+  ];
+
+  /// Nhóm của một mục (suy từ id).
+  static String areaOf(String id) {
+    if (id.startsWith('home-')) return 'home';
+    if (id.startsWith('repair') || id == 'warranty') return 'repair';
+    if (id.startsWith('sale')) return 'sale';
+    if (id.startsWith('inventory') ||
+        id.startsWith('stock') ||
+        id == 'purchase-order') {
+      return 'inventory';
+    }
+    if (id.startsWith('debt') || id == 'data-reconciliation') return 'debt';
+    if (id.startsWith('finance') ||
+        id == 'cash-closing' ||
+        id == 'monthly-profit' ||
+        id == 'expense') {
+      return 'finance';
+    }
+    if (id == 'customers' || id == 'payroll' || id == 'attendance') {
+      return 'staff';
+    }
+    return 'system';
+  }
+
+  /// Các mục thuộc một nhóm, giữ nguyên thứ tự khai báo.
+  static List<KbEntry> entriesByArea(String areaId) =>
+      [for (final e in entries) if (areaOf(e.id) == areaId) e];
+
+  /// Câu hỏi mẫu ngẫu nhiên trải đều các nhóm — dùng cho gợi ý của AI.
+  static List<String> sampleQuestionSpread(int n, {int? seed}) {
+    final rnd = Random(seed ?? DateTime.now().millisecondsSinceEpoch);
+    final pool = <String>[];
+    final shuffledAreas = [...areas]..shuffle(rnd);
+    for (final a in shuffledAreas) {
+      final es = entriesByArea(a.$1)
+          .where((e) => e.sampleQuestions.isNotEmpty)
+          .toList()
+        ..shuffle(rnd);
+      if (es.isNotEmpty) {
+        final qs = [...es.first.sampleQuestions]..shuffle(rnd);
+        pool.add(qs.first);
+      }
+      if (pool.length >= n) break;
+    }
+    return pool.take(n).toList();
+  }
+
+  /// "Mẹo hôm nay" — 1 lưu ý xoay vòng theo ngày, kèm id mục để mở chi tiết.
+  static ({String tip, String entryId})? tipOfTheDay([DateTime? now]) {
+    final withNotes =
+        [for (final e in entries) if (e.notes.isNotEmpty) e];
+    if (withNotes.isEmpty) return null;
+    final d = now ?? DateTime.now();
+    final dayIndex = DateTime(d.year, d.month, d.day)
+            .difference(DateTime(d.year))
+            .inDays;
+    final e = withNotes[dayIndex % withNotes.length];
+    final note = e.notes[dayIndex % e.notes.length];
+    return (tip: note, entryId: e.id);
   }
 }
