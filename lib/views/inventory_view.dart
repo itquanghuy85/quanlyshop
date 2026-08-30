@@ -208,6 +208,15 @@ class _InventoryViewState extends State<InventoryView>
       icon: Icons.inventory_2,
       color: Colors.blue,
       steps: [
+        const GuideStep(
+          title: '🎯 Màn này để làm gì?',
+          description:
+              'ĐỂ LÀM GÌ: xem & quản lý toàn bộ hàng trong kho — số lượng, giá vốn, giá bán, biến thể (size/màu).\n'
+              'KHI NÀO DÙNG: kiểm tra còn bao nhiêu hàng, sửa giá bán, bổ sung giá vốn còn thiếu, thêm biến thể cho SP thời trang.\n'
+              'VÍ DỤ: áo thun có 3 size S/M/L → mỗi size là 1 "biến thể" với tồn kho riêng; SP thiếu giá vốn hiện cảnh báo để bổ sung.',
+          icon: Icons.lightbulb_outline,
+          iconColor: Colors.amber,
+        ),
         GuideStep(
           title: '📦 Tồn kho hiện tại',
           description:

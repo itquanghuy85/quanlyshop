@@ -141,6 +141,15 @@ class _DebtViewState extends State<DebtView>
       icon: Icons.account_balance_wallet,
       color: Colors.red,
       steps: [
+        const GuideStep(
+          title: '🎯 Màn này để làm gì?',
+          description:
+              'ĐỂ LÀM GÌ: theo dõi ai đang nợ shop (PHẢI THU) và shop đang nợ ai (PHẢI TRẢ), ghi nhận khi thu/trả tiền.\n'
+              'KHI NÀO DÙNG: xem còn phải đòi/phải trả bao nhiêu; bấm "Thu nợ"/"Thanh toán nợ" mỗi lần nhận hoặc trả tiền (được trả từng phần).\n'
+              'VÍ DỤ: khách ABC nợ 4tr → nhận 1tr → bấm Thu nợ 1tr, còn nợ 3tr. Số "đã trả" tự cộng dồn và đồng bộ mọi thiết bị.',
+          icon: Icons.lightbulb_outline,
+          iconColor: Colors.amber,
+        ),
         GuideStep(
           title: _enableRepair
               ? l10n.debtGuideStep1Title3Types
@@ -792,7 +801,17 @@ class _DebtViewState extends State<DebtView>
                   ? l10n.trySearchOther
                   : _showPaidDebts
                   ? null
-                  : l10n.showPaidToSeeHistory,
+                  : (isReceivable
+                      ? 'Khoản khách nợ shop tự hiện ở đây khi bán hàng chọn "CÔNG NỢ". '
+                          'Bạn cũng có thể tự thêm bằng nút +. Bật "Hiện đã trả" để xem lịch sử.'
+                      : 'Khoản shop nợ NCC/đối tác tự hiện ở đây khi nhập kho chọn "CÔNG NỢ". '
+                          'Bạn cũng có thể tự thêm bằng nút +. Bật "Hiện đã trả" để xem lịch sử.'),
+              onAction: (_searchQuery.isEmpty && !_showPaidDebts)
+                  ? () => _showCreateDebtChooser(isReceivable: isReceivable)
+                  : null,
+              actionLabel: (_searchQuery.isEmpty && !_showPaidDebts)
+                  ? 'Thêm khoản nợ'
+                  : null,
             ),
           )
         else

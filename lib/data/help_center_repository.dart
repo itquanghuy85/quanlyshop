@@ -95,6 +95,34 @@ class HelpCenterRepository {
 
   static final List<HelpTopic> topics = [
     const HelpTopic(
+      id: 'glossary-finance-debt',
+      categoryId: 'finance',
+      title: 'Thuật ngữ tài chính & công nợ (giải thích dễ hiểu)',
+      summary:
+          'Các khái niệm hay gây nhầm: dồn tích vs dòng tiền, chốt quỹ, công nợ, trả góp NH, giá vốn.',
+      steps: [
+        'DÒNG TIỀN (cash): tiền THỰC SỰ đã vào/ra két và tài khoản. Ví dụ: bán 10tr nhưng khách nợ 4tr → dòng tiền chỉ +6tr.',
+        'DỒN TÍCH (accrual): ghi nhận doanh thu/lãi ngay khi bán, dù chưa thu đủ tiền. Ví dụ: bán 10tr công nợ → doanh thu +10tr, lãi tính đủ, nhưng tiền chưa về. Báo cáo lãi/lỗ dùng cách này.',
+        'Vì sao 2 con số khác nhau: "Lãi gộp (phần đã thu)" là theo dòng tiền; "Lợi nhuận (accrual)" là theo dồn tích. Khách còn nợ nhiều thì 2 số lệch nhau — đó là bình thường.',
+        'CHỐT QUỸ (Sổ quỹ): cuối ngày đếm tiền mặt + số dư ngân hàng thực tế, nhập vào app. App so: Kỳ vọng = Đầu kỳ + Thu trong ngày − Chi trong ngày. Lệch = thừa/thiếu quỹ cần tìm nguyên nhân.',
+        'CÔNG NỢ PHẢI THU: khách đang nợ shop. PHẢI TRẢ: shop đang nợ (nhà cung cấp, đối tác sửa chữa). Nợ tự sinh khi bán/nhập chọn "CÔNG NỢ".',
+        'THU NỢ / THANH TOÁN NỢ: mỗi lần nhận/trả tiền bấm nút tương ứng, được trả từng phần. Số "đã trả" cộng dồn và đồng bộ mọi máy.',
+        'TRẢ GÓP (NH): khách đưa tiền CỌC, phần còn lại NGÂN HÀNG cho vay. Chỉ tiền cọc tính là tiền shop thu ngay; tiền NH ghi nhận khi ngân hàng tất toán (giải ngân) cho shop.',
+        'GIÁ VỐN: số tiền shop bỏ ra để có món hàng (giá nhập). LÃI = Giá bán − Giá vốn. SP thiếu giá vốn sẽ hiện cảnh báo vì không tính được lãi.',
+        'TỒN KHO (giá vốn): tổng giá vốn của hàng còn trong kho — là "tiền đang nằm ở hàng hoá".',
+      ],
+      tips: [
+        'Khách nợ nhiều → "tiền vào" ít hơn "doanh thu": không phải lỗi, chỉ là chưa thu.',
+        'Chốt quỹ mỗi ngày giúp phát hiện thất thoát sớm.',
+        'Mỗi màn có nút ⓘ ở góc trên — bấm để xem lại hướng dẫn bất cứ lúc nào.',
+      ],
+      tags: ['tài chính', 'công nợ', 'thuật ngữ', 'chốt quỹ', 'trả góp'],
+      audience: ['manager', 'owner', 'cashier'],
+      difficulty: 'Cơ bản',
+      estimatedTime: '4 phút',
+      isFeatured: true,
+    ),
+    const HelpTopic(
       id: 'inventory-fast-check',
       categoryId: 'inventory',
       title: 'Kiểm kho nhanh bằng QR',

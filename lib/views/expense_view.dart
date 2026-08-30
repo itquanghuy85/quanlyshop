@@ -94,6 +94,15 @@ class _ExpenseViewState extends State<ExpenseView> {
       icon: Icons.account_balance_wallet_rounded,
       color: Colors.deepPurple,
       steps: [
+        const GuideStep(
+          title: '🎯 Màn này để làm gì?',
+          description:
+              'ĐỂ LÀM GÌ: ghi các khoản tiền RA/VÀO không phải từ bán hàng — chi phí vận hành và thu nhập khác.\n'
+              'KHI NÀO DÙNG: mỗi lần trả tiền điện/nước/mặt bằng/lương, hoặc nhận khoản thu ngoài (ví dụ bán phế liệu).\n'
+              'VÍ DỤ: trả 500k tiền điện → Ghi chi "ĐIỆN NƯỚC" 500k, chọn "cửa hàng" → báo cáo lãi/lỗ trừ đi 500k.',
+          icon: Icons.lightbulb_outline,
+          iconColor: Colors.amber,
+        ),
         GuideStep(
           title: l10n.expenseGuideStep1Title,
           description: l10n.expenseGuideStep1Desc,

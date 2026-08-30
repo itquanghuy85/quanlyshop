@@ -203,6 +203,15 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       color: Colors.green,
       steps: [
         const GuideStep(
+          title: '🎯 Màn này để làm gì?',
+          description:
+              'ĐỂ LÀM GÌ: lập hoá đơn bán 1 hay nhiều sản phẩm cho khách, chọn cách khách trả tiền.\n'
+              'KHI NÀO DÙNG: mỗi lần bán hàng — khách trả đủ, trả một phần (công nợ), hay mua trả góp qua ngân hàng.\n'
+              'VÍ DỤ: bán iPhone 12tr — khách đưa 8tr, còn 4tr ghi công nợ; hệ thống tự tạo khoản nợ 4tr và trừ kho.',
+          icon: Icons.lightbulb_outline,
+          iconColor: Colors.amber,
+        ),
+        const GuideStep(
           title: '👤 Thông tin khách hàng',
           description:
               'Nhập SĐT để tự động điền tên khách cũ. Hoặc chọn từ danh bạ khách hàng.',
@@ -224,18 +233,14 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           iconColor: Colors.green,
         ),
         const GuideStep(
-          title: '🏦 Thanh toán trả góp',
+          title: '💳 Các hình thức thanh toán',
           description:
-              'Bật trả góp để nhập tiền đặt cọc, số tiền vay và ngân hàng hỗ trợ.',
+              'TIỀN MẶT / CHUYỂN KHOẢN: khách trả đủ ngay.\n'
+              'KẾT HỢP: một phần tiền mặt + một phần chuyển khoản.\n'
+              'CÔNG NỢ: khách nợ lại — có thể nhập "trả trước" một phần, phần còn lại thành khoản nợ theo dõi ở Tài chính → Công nợ.\n'
+              'TRẢ GÓP (NH): khách đưa tiền cọc, phần còn lại ngân hàng cho vay (nhập số tiền vay + tên NH; hỗ trợ 2 ngân hàng). Chỉ tiền cọc tính là tiền shop thu; tiền NH ghi nhận khi tất toán.',
           icon: Icons.credit_card,
           iconColor: Colors.blue,
-        ),
-        const GuideStep(
-          title: '📝 Công nợ khách hàng',
-          description:
-              'Chọn "CÔNG NỢ" nếu khách chưa thanh toán đủ. Theo dõi trong mục Tài chính.',
-          icon: Icons.account_balance_wallet,
-          iconColor: Colors.red,
         ),
       ],
     );

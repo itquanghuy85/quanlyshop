@@ -288,6 +288,15 @@ class _SmartStockInViewState extends State<SmartStockInView> {
       icon: Icons.add_box,
       color: Colors.green,
       steps: [
+        const GuideStep(
+          title: '🎯 Màn này để làm gì?',
+          description:
+              'ĐỂ LÀM GÌ: nhập hàng mới vào kho — khai giá vốn, số lượng, nhà cung cấp và cách trả tiền NCC.\n'
+              'KHI NÀO DÙNG: mỗi lần nhập hàng về. Bận thì bấm LƯU TẠM (chỉ cần tên), bổ sung sau ở "Hàng chờ xác nhận".\n'
+              'VÍ DỤ: nhập 5 ốp lưng giá vốn 20k/cái từ NCC A, chọn "Nợ NCC" → hệ thống cộng tồn kho +5 và tạo khoản phải trả NCC A 100k.',
+          icon: Icons.lightbulb_outline,
+          iconColor: Colors.amber,
+        ),
         GuideStep(
           title: '📱 Chọn loại sản phẩm',
           description:

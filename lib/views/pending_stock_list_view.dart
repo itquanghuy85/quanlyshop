@@ -123,6 +123,15 @@ class _PendingStockListViewState extends State<PendingStockListView> {
       color: Colors.orange,
       steps: const [
         GuideStep(
+          title: '🎯 Màn này để làm gì?',
+          description:
+              'ĐỂ LÀM GÌ: nơi chứa các phiếu nhập kho "lưu tạm" — hàng CHƯA thực sự vào kho, CHƯA tính tồn kho/công nợ.\n'
+              'KHI NÀO DÙNG: sau khi lưu tạm lúc nhập hàng. Mở từng phiếu, điền nốt Giá vốn / NCC / cách trả tiền rồi bấm XÁC NHẬN.\n'
+              'VÍ DỤ: hôm qua bận, lưu tạm 3 phiếu "chỉ có tên". Hôm nay vào đây điền giá vốn + NCC → XÁC NHẬN → hàng mới cộng vào tồn kho.',
+          icon: Icons.lightbulb_outline,
+          iconColor: Colors.amber,
+        ),
+        GuideStep(
           title: '📋 Phiếu nhập tạm',
           description:
               'Danh sách các phiếu đã lưu tạm, chưa vào kho chính thức. Cần bổ sung thông tin để xác nhận.',

@@ -4,6 +4,21 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-30f] - feat(hướng dẫn) Phase B: nội dung "bản chất" + empty state biết nói + Cẩm nang thuật ngữ
+
+Tiếp `[2026-08-30e]`. **Chưa tăng version** (vẫn `3.5.0+554`, chưa lên store — sẽ bump khi user yêu cầu).
+
+- **Bước "🎯 Màn này để làm gì?"** thêm vào ĐẦU hộp hướng dẫn 6 màn khó, theo khung *ĐỂ LÀM GÌ / KHI NÀO DÙNG / VÍ DỤ cụ thể*: Tạo đơn bán (kèm viết lại step "💳 Các hình thức thanh toán" — tiền mặt/CK/kết hợp/công nợ/trả góp NH), Công nợ, Nhập kho thông minh, Hàng chờ xác nhận, Chi phí, Danh sách SP (kho + biến thể).
+- **Empty state biết nói** — màn Công nợ: khi chưa có khoản nợ nào, thay vì trống trơn → giải thích "Công nợ tự sinh khi bán/nhập chọn CÔNG NỢ" + nút **"Thêm khoản nợ"** (phân biệt Phải thu / Phải trả).
+- **Cẩm nang thuật ngữ** — thêm 1 chủ đề nổi bật vào Trung tâm trợ giúp (nhóm "finance"): *"Thuật ngữ tài chính & công nợ (giải thích dễ hiểu)"* — 9 mục: dòng tiền vs dồn tích, vì sao 2 số lãi khác nhau, chốt quỹ, công nợ phải thu/trả, thu nợ/thanh toán nợ, trả góp NH, giá vốn/lãi, tồn kho giá vốn.
+
+**Chưa làm (Phase C):** nút ⓘ cho FinanceV2 Tổng quan/Báo cáo + Sổ quỹ (appbar tự vẽ, chưa có guide infra); empty state cho các màn còn lại.
+
+**Test:** `flutter analyze` 0 error / 0 warning mới; `flutter test` (chạy lại).
+**Files:** `lib/views/{create_sale,debt,smart_stock_in,pending_stock_list,expense,inventory}_view.dart`, `lib/data/help_center_repository.dart`.
+
+---
+
 ## [2026-08-30e] - feat(hướng dẫn) nút ⓘ mở lại hướng dẫn ở ~18 màn (Phase A dễ dùng cho người mới)
 
 **Vấn đề (user báo):** nhiều tính năng khó hiểu, người dùng mới không nắm được bản chất; hộp hướng dẫn `FirstTimeGuideService` **chỉ hiện 1 lần rồi mất**, không có cách mở lại.
