@@ -550,7 +550,16 @@ class _DebtTabState extends State<_DebtTab> {
   Future<void> _load() async {
     setState(() => _loading = true);
     final raw = await widget.db.getAllDebts();
-    final list = raw.map((m) => Debt.fromMap(m)).toList();
+    // Chỉ hiện các khoản CÒN DƯ để miễn — bỏ nợ 0đ / đã trả hết / đã huỷ
+    // (những dòng đó không có gì để "miễn", chỉ làm loãng danh sách).
+    final list = raw
+        .map((m) => Debt.fromMap(m))
+        .where((d) {
+          final st = d.status.toUpperCase();
+          if (st == 'PAID' || st == 'CANCELLED') return false;
+          return d.totalAmount > 0 && (d.totalAmount - d.paidAmount) > 0;
+        })
+        .toList();
     setState(() {
       _all = list;
       _filtered = list;

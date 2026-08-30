@@ -352,17 +352,21 @@ class ProductConstants {
     String? color,
     String? condition,
   }) {
+    // KHÔNG dựng tên từ brand/tình trạng khi thiếu MODEL — nếu không, phụ
+    // kiện/hàng không model bị đặt tên vô nghĩa kiểu "KHÁC MỚI" (brand mặc
+    // định "KHÁC" + tình trạng "MỚI"). Trả '' để caller dùng tên tự nhập.
+    if (model == null || model.trim().isEmpty) return '';
+
     final parts = <String>[];
-    
-    // Brand - map về chuẩn
+
+    // Brand - map về chuẩn (bỏ qua "KHÁC" — không phải hãng thật)
     if (brand != null && brand.isNotEmpty) {
-      parts.add(mapBrand(brand));
+      final mb = mapBrand(brand);
+      if (mb.isNotEmpty && mb != 'KHÁC') parts.add(mb);
     }
-    
+
     // Model
-    if (model != null && model.isNotEmpty) {
-      parts.add(model.toUpperCase().trim());
-    }
+    parts.add(model.toUpperCase().trim());
 
     // Capacity
     final mappedCapacity = mapCapacity(capacity);

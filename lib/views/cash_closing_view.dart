@@ -1043,7 +1043,10 @@ class _CashClosingViewState extends State<CashClosingView>
           ),
         ),
       ),
-      title: Row(
+      title: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           const Text(
@@ -1091,6 +1094,7 @@ class _CashClosingViewState extends State<CashClosingView>
             ),
           ),
         ],
+        ),
       ),
       actions: [
         FirstTimeGuideService.helpButton(

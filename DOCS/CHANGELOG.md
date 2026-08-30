@@ -4,6 +4,20 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-30l] - fix 4 điểm: nợ 0đ, tên "KHÁC MỚI", Sổ quỹ overflow, danh sách bảo hành
+
+**Chưa tăng version.**
+
+1. **Công cụ điều chỉnh dữ liệu → CÔNG NỢ**: danh sách hiện cả nợ 0đ / đã trả hết / đã huỷ (không có gì để miễn, chỉ làm loãng). Nay lọc chỉ hiện khoản **còn dư > 0** và `status` không phải `PAID`/`CANCELLED`.
+2. **Tên hàng "KHÁC MỚI"** (brand mặc định "KHÁC" + tình trạng "MỚI" khi thiếu model): `ProductConstants.generateProductName` nay **trả '' khi không có model** + **bỏ qua brand "KHÁC"**. Chặn phát sinh MỚI. *(Hàng cũ đã lỡ đặt tên "KHÁC MỚI" cần sửa tên thủ công — chưa có cleanup tự động.)*
+3. **Sổ quỹ — ngày trên AppBar bị overflow**: bọc `title` trong `FittedBox(scaleDown)` → tự co khi hẹp, không tràn.
+4. **Danh sách bảo hành** hiện thêm: **📞 SĐT khách**, **thời hạn BH** (vd "BH 12 tháng"), và **🔧 nội dung sửa** (đơn sửa) — mỗi dòng 1 hàng, ellipsis.
+
+**Test:** `flutter analyze` sạch; `flutter test` (chạy lại).
+**Files:** `lib/views/{data_reconciliation_view,cash_closing_view,warranty_view}.dart`, `lib/constants/product_constants.dart`.
+
+---
+
 ## [2026-08-30k] - feat(home) CẦN XỬ LÝ: giới hạn cảnh báo NH chưa tất toán + đơn sửa thiếu giá vốn về "tuần này"
 
 **Chưa tăng version.** 2 cảnh báo này đã có trong khung CẦN XỬ LÝ nhưng đang đếm **toàn thời gian** — đơn cũ (khó/không bao giờ xử lý) làm loãng con số, che mất việc thực sự cần làm.

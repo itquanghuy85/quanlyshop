@@ -112,8 +112,11 @@ class _WarrantyViewState extends State<WarrantyView> {
             results.add({
               'type': 'REPAIR',
               'customer': r.customerName,
+              'phone': r.phone,
               'model': r.model,
               'imei': r.imei ?? "N/A",
+              'warranty': r.warranty,
+              'issue': r.issue,
               'startDate': delDate,
               'expiry': expDate,
               'data': r,
@@ -140,8 +143,11 @@ class _WarrantyViewState extends State<WarrantyView> {
           results.add({
             'type': 'SALE',
             'customer': s.customerName,
+            'phone': s.phone,
             'model': s.productNames,
             'imei': s.productImeis,
+            'warranty': s.warranty,
+            'issue': '',
             'startDate': saleDate,
             'expiry': expDate,
             'data': s,
@@ -356,16 +362,41 @@ class _WarrantyViewState extends State<WarrantyView> {
                             ),
                           ],
                         ),
-                        // Customer + IMEI
+                        // Khách + SĐT
                         Text(
-                          '${item['customer']} • ${item['imei']}',
+                          '${item['customer']}'
+                          '${(item['phone'] ?? '').toString().trim().isNotEmpty ? '  •  📞 ${item['phone']}' : ''}',
                           style: TextStyle(
                             fontSize: AppTextStyles.caption.fontSize,
-                            color: Colors.grey.shade600,
+                            color: Colors.grey.shade700,
+                            fontWeight: FontWeight.w500,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
+                        // IMEI + thời hạn BH
+                        Text(
+                          'IMEI: ${item['imei']}'
+                          '${(item['warranty'] ?? '').toString().trim().isNotEmpty ? '  •  BH ${item['warranty']}' : ''}',
+                          style: TextStyle(
+                            fontSize: AppTextStyles.overlineSize,
+                            color: Colors.grey.shade500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        // Lỗi/nội dung sửa (chỉ đơn sửa)
+                        if ((item['issue'] ?? '').toString().trim().isNotEmpty)
+                          Text(
+                            '🔧 ${item['issue']}',
+                            style: TextStyle(
+                              fontSize: AppTextStyles.overlineSize,
+                              color: Colors.grey.shade600,
+                              fontStyle: FontStyle.italic,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                       ],
                     ),
                   ),
