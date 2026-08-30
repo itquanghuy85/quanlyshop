@@ -4,6 +4,20 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-30m] - feat(home) Hoạt động hôm nay: tách "Sửa xong" / "Giao máy" + thông tin chi tiết đơn sửa
+
+**Chưa tăng version.** Trước đây feed chỉ phân biệt "Nhận sửa" vs "Giao máy" (status 4), không có mốc "Sửa xong" (status 3), và không hiện lỗi máy / kỹ thuật viên.
+
+`dashboard_cards._loadActivities` — query `repairs` bổ sung cột `issue`, `finishedAt`, `repairedBy`, `deliveredBy`; WHERE thêm `finishedAt >= đầu ngày` (bắt cả đơn hôm nay mới sửa xong). Mỗi đơn hiện 1 dòng theo trạng thái mới nhất:
+- **status 3 "Sửa xong - {máy}"** — mốc `finishedAt`, phụ đề: tên khách · lỗi · "KTV: {người sửa}". Icon ✔ xanh ngọc.
+- **status 4 "Giao máy - {khách}"** — mốc `deliveredAt`, phụ đề: máy · lỗi · "Giao: {người giao}". +tiền.
+- **status 1/2 "Nhận sửa - {máy}"** — phụ đề: khách · lỗi.
+
+**Test:** `flutter analyze` sạch; `flutter test` (chạy lại).
+**Files:** `lib/widgets/dashboard_cards.dart`.
+
+---
+
 ## [2026-08-30l] - fix 4 điểm: nợ 0đ, tên "KHÁC MỚI", Sổ quỹ overflow, danh sách bảo hành
 
 **Chưa tăng version.**

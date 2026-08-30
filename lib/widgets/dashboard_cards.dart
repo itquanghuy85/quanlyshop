@@ -565,15 +565,20 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
               'customerName',
               'model',
               'price',
+              'issue',
               'createdAt',
               'status',
+              'finishedAt',
               'deliveredAt',
+              'repairedBy',
+              'deliveredBy',
             ],
             where:
-                'createdAt >= ? OR (deliveredAt IS NOT NULL AND deliveredAt >= ?)',
-            whereArgs: [startMs, startMs],
+                'createdAt >= ? OR (finishedAt IS NOT NULL AND finishedAt >= ?) '
+                'OR (deliveredAt IS NOT NULL AND deliveredAt >= ?)',
+            whereArgs: [startMs, startMs, startMs],
             orderBy: 'createdAt DESC',
-            limit: 5,
+            limit: 6,
           )
         else
           Future.value(<Map<String, dynamic>>[]),
@@ -701,28 +706,68 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
         );
       }
 
-      // Repairs
+      // Repairs — phân biệt Nhận sửa / Sửa xong / Giao máy + thông tin chi tiết
       for (final r in results[1]) {
-        final name = (r['customerName'] ?? '').toString();
-        final device = (r['model'] ?? '').toString();
+        final name = (r['customerName'] ?? '').toString().trim();
+        final device = (r['model'] ?? '').toString().trim();
+        final issue = (r['issue'] ?? '').toString().trim();
         final status = (r['status'] as num?)?.toInt() ?? 1;
-        final at =
-            (r['deliveredAt'] as num?)?.toInt() ??
-            (r['createdAt'] as num?)?.toInt() ??
-            0;
         final price = (r['price'] as num?)?.toInt() ?? 0;
-        final isDelivered = status == 4;
+        final createdAt = (r['createdAt'] as num?)?.toInt() ?? 0;
+        final finishedAt = (r['finishedAt'] as num?)?.toInt() ?? 0;
+        final deliveredAt = (r['deliveredAt'] as num?)?.toInt() ?? 0;
+        final repairedBy = (r['repairedBy'] ?? '').toString().trim();
+        final deliveredBy = (r['deliveredBy'] ?? '').toString().trim();
         final fid = r['firestoreId'] as String?;
+
+        String rTitle;
+        int rAt;
+        IconData rIcon;
+        Color rColor;
+        String rAmount = '';
+        final sub = <String>[];
+        final shortIssue = issue.length > 26
+            ? '${issue.substring(0, 26)}…'
+            : issue;
+
+        if (status == 4) {
+          rTitle = 'Giao máy${name.isNotEmpty ? ' - $name' : ''}';
+          rAt = deliveredAt > 0
+              ? deliveredAt
+              : (finishedAt > 0 ? finishedAt : createdAt);
+          rIcon = Icons.check_circle;
+          rColor = Colors.blue;
+          rAmount = '+${MoneyUtils.formatCompact(price)}';
+          if (device.isNotEmpty) sub.add(device);
+          if (shortIssue.isNotEmpty) sub.add(shortIssue);
+          if (deliveredBy.isNotEmpty) sub.add('Giao: $deliveredBy');
+        } else if (status == 3) {
+          rTitle =
+              'Sửa xong - ${device.isNotEmpty ? device : (name.isNotEmpty ? name : 'đơn sửa')}';
+          rAt = finishedAt > 0 ? finishedAt : createdAt;
+          rIcon = Icons.task_alt;
+          rColor = Colors.teal;
+          if (name.isNotEmpty) sub.add(name);
+          if (shortIssue.isNotEmpty) sub.add(shortIssue);
+          if (repairedBy.isNotEmpty) sub.add('KTV: $repairedBy');
+        } else {
+          rTitle = 'Nhận sửa - ${device.isNotEmpty ? device : name}';
+          rAt = createdAt;
+          rIcon = Icons.build_circle;
+          rColor = Colors.orange;
+          if (device.isNotEmpty && name.isNotEmpty) sub.add(name);
+          if (shortIssue.isNotEmpty) sub.add(shortIssue);
+        }
+
         activities.add(
           _ActivityItem(
-            icon: isDelivered ? Icons.check_circle : Icons.build_circle,
-            color: isDelivered ? Colors.blue : Colors.orange,
-            title: isDelivered
-                ? 'Giao máy - $name'
-                : 'Nhận sửa - ${device.isNotEmpty ? device : name}',
-            amount: isDelivered ? '+${MoneyUtils.formatCompact(price)}' : '',
+            icon: rIcon,
+            color: rColor,
+            title: rTitle,
+            subtitle: sub.join(' · '),
+            amount: rAmount,
             amountColor: Colors.blue,
-            timestamp: at,
+            timestamp: rAt,
             referenceType: 'repair',
             referenceId: fid,
           ),
