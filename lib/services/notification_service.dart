@@ -1401,6 +1401,7 @@ class NotificationService {
     // Business-critical notifications are enabled by default.
     return type == 'new_order' ||
         type == 'payment' ||
+        type == 'debt' ||
         type == 'inventory' ||
         type == 'staff' ||
         type == 'system' ||
@@ -1518,6 +1519,58 @@ class NotificationService {
         'targetId': orderId,
         'saleId': orderId,
         'orderId': orderId,
+      },
+    );
+  }
+
+  /// Thông báo hoạt động công nợ (thu/trả nợ, tạo nợ mới, miễn nợ) —
+  /// broadcast cho mọi thiết bị trong shop để cả nhóm cùng nắm.
+  /// [action]: 'collect' (thu nợ khách) | 'pay' (trả nợ NCC/đối tác) |
+  /// 'create' (công nợ mới) | 'waive' (miễn nợ).
+  static Future<void> notifyDebtActivity({
+    required String action,
+    required String personName,
+    required int amount,
+    String? by,
+    String? debtFirestoreId,
+    String? note,
+  }) async {
+    String title;
+    switch (action) {
+      case 'collect':
+        title = '💰 ĐÃ THU NỢ';
+        break;
+      case 'pay':
+        title = '💸 ĐÃ TRẢ NỢ';
+        break;
+      case 'create':
+        title = '🆕 CÔNG NỢ MỚI';
+        break;
+      case 'waive':
+        title = '✅ ĐÃ MIỄN NỢ';
+        break;
+      default:
+        title = 'CÔNG NỢ';
+    }
+    final now = DateTime.now();
+    final time =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final lines = <String>[
+      '👤 ${personName.isEmpty ? 'Khách lẻ' : personName}',
+      '💵 ${MoneyUtils.formatVND(amount)}đ'
+          '${by != null && by.isNotEmpty ? ' • 👤 $by' : ''}',
+      if (note != null && note.trim().isNotEmpty) '📝 ${note.trim()}',
+      '🕐 $time',
+    ];
+    await sendCloudNotification(
+      title: title,
+      body: lines.join('\n'),
+      type: 'debt',
+      data: {
+        'targetType': 'debt',
+        if (debtFirestoreId != null && debtFirestoreId.isNotEmpty)
+          'targetId': debtFirestoreId,
+        'debtAction': action,
       },
     );
   }

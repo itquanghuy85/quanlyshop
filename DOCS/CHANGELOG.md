@@ -4,6 +4,26 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-30h] - feat(công nợ) thông báo + ghi Hoạt động hôm nay khi thu/trả/tạo/miễn nợ
+
+**Chưa tăng version** (vẫn `3.5.0+554`).
+
+Trước đây thu/trả nợ chỉ hiện sheet kết quả cục bộ, không báo cho các thiết bị khác; tạo công nợ mới không xuất hiện ở "Hoạt động hôm nay" (chỉ `debt_payments` mới hiện).
+
+- **`NotificationService.notifyDebtActivity({action, personName, amount, by, ...})`** (mới) — broadcast `type: 'debt'` cho MỌI thiết bị trong shop + FCM push. `action`: `collect` (thu nợ khách) · `pay` (trả nợ NCC/đối tác) · `create` (công nợ mới) · `waive` (miễn nợ). `'debt'` thêm vào danh sách bật mặc định.
+- **Gọi từ:**
+  - `debt_payment_sheet` — sau mỗi lần thu/trả nợ thành công ("💰 ĐÃ THU NỢ" / "💸 ĐÃ TRẢ NỢ" + số tiền + người thao tác).
+  - `create_sale_view` — đơn CÔNG NỢ tạo xong ("🆕 CÔNG NỢ MỚI").
+  - `data_reconciliation_view._writeOff` — miễn nợ ("✅ ĐÃ MIỄN NỢ" + lý do).
+- **Hoạt động hôm nay** (`dashboard_cards`) — thêm truy vấn `debts` tạo trong ngày → dòng "Công nợ khách mới / phải trả mới - <tên>". (Thu/trả nợ vốn đã hiện qua `debt_payments`.)
+
+Chưa gắn thông báo cho công nợ nội bộ tự sinh (giá vốn linh kiện từng dịch vụ...) để tránh spam.
+
+**Test:** `flutter analyze` 0 error / 0 warning mới; `flutter test` (chạy lại).
+**Files:** `lib/services/notification_service.dart`, `lib/widgets/{debt_payment_sheet,dashboard_cards}.dart`, `lib/views/{create_sale_view,data_reconciliation_view}.dart`.
+
+---
+
 ## [2026-08-30g] - feat(hướng dẫn) Phase C: ⓘ + hướng dẫn cho FinanceV2 & Sổ quỹ
 
 Tiếp `[2026-08-30f]`. **Chưa tăng version** (vẫn `3.5.0+554`).

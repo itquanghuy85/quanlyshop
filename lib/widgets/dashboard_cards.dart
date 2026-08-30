@@ -628,6 +628,24 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
               limit: 5,
             )
             .catchError((_) => <Map<String, dynamic>>[]),
+        // Công nợ mới phát sinh hôm nay (last 5)
+        db
+            .query(
+              'debts',
+              columns: [
+                'firestoreId',
+                'personName',
+                'totalAmount',
+                'createdAt',
+                'type',
+                'note',
+              ],
+              where: 'createdAt >= ? AND (deleted IS NULL OR deleted != 1)',
+              whereArgs: [startMs],
+              orderBy: 'createdAt DESC',
+              limit: 5,
+            )
+            .catchError((_) => <Map<String, dynamic>>[]),
       ]);
 
       final activities = <_ActivityItem>[];
@@ -793,6 +811,31 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
             amountColor: Colors.indigo,
             timestamp: at,
             referenceType: 'partner_payment',
+          ),
+        );
+      }
+
+      // Công nợ mới tạo hôm nay
+      for (final dbt in results[6]) {
+        final amount = (dbt['totalAmount'] as num?)?.toInt() ?? 0;
+        final at = (dbt['createdAt'] as num?)?.toInt() ?? 0;
+        final name = ((dbt['personName'] as String?) ?? '').trim();
+        final t = ((dbt['type'] as String?) ?? '').toUpperCase();
+        final isShopOwes = t.contains('SHOP_OWES') ||
+            t == 'OWED' ||
+            t == 'REPAIR_PARTNER';
+        activities.add(
+          _ActivityItem(
+            icon: Icons.note_add_outlined,
+            color: Colors.blueGrey,
+            title: isShopOwes
+                ? 'Công nợ phải trả mới${name.isNotEmpty ? ' - $name' : ''}'
+                : 'Công nợ khách mới${name.isNotEmpty ? ' - $name' : ''}',
+            amount: MoneyUtils.formatCompact(amount),
+            amountColor: Colors.blueGrey,
+            timestamp: at,
+            referenceType: 'debt',
+            referenceId: dbt['firestoreId'] as String?,
           ),
         );
       }

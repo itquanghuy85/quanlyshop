@@ -1716,6 +1716,18 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           await PaymentIntentService.createIntent(intent);
           debugPrint('✅ Created PaymentIntent for sale CÔNG NỢ: ${intent.id}');
 
+          // Thông báo cho cả shop: có công nợ khách mới.
+          // ignore: unawaited_futures
+          NotificationService.notifyDebtActivity(
+            action: 'create',
+            personName: payerName,
+            amount: finalPrice,
+            by: userName,
+            debtFirestoreId:
+                debtDataForTransaction?['firestoreId'] as String?,
+            note: '${_selectedItems.length} SP',
+          );
+
           // Đơn CÔNG NỢ có TRẢ TRƯỚC 1 phần ("SỐ TIỀN"): trước đây số này chỉ
           // được nhét vào debts.paidAmount mà KHÔNG tạo phiếu thu, KHÔNG ghi
           // ledger, KHÔNG cộng tiền mặt/NH → sổ quỹ + chốt quỹ thiếu đúng khoản

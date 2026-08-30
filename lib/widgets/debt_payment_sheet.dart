@@ -238,6 +238,18 @@ class DebtPaymentSheet {
                                   summary:
                                       '${isCustomerDebt ? "Thu nợ" : "Thanh toán nợ"} ${debt['personName']}: ${MoneyUtils.formatCurrency(amount)}đ',
                                 );
+                                // Thông báo cho cả shop (mọi thiết bị) — thu/trả nợ.
+                                // ignore: unawaited_futures
+                                NotificationService.notifyDebtActivity(
+                                  action: isCustomerDebt ? 'collect' : 'pay',
+                                  personName:
+                                      debt['personName']?.toString() ?? '',
+                                  amount: amount,
+                                  by: user?.displayName ??
+                                      user?.email?.split('@').first,
+                                  debtFirestoreId:
+                                      debt['firestoreId']?.toString(),
+                                );
                                 EventBus().emit('debts_changed');
                                 onSuccess?.call();
                               }

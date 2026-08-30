@@ -630,6 +630,16 @@ class _DebtTabState extends State<_DebtTab> {
       reason: reasonCtrl.text.trim(),
       personName: d.personName,
     );
+    // Thông báo cho cả shop: 1 khoản nợ vừa được miễn (thao tác nhạy cảm).
+    final waiveUser = FirebaseAuth.instance.currentUser;
+    // ignore: unawaited_futures
+    NotificationService.notifyDebtActivity(
+      action: 'waive',
+      personName: d.personName,
+      amount: (d.totalAmount - d.paidAmount).clamp(0, d.totalAmount),
+      by: waiveUser?.displayName ?? waiveUser?.email?.split('@').first,
+      note: reasonCtrl.text.trim(),
+    );
     if (!mounted) return;
     NotificationService.showSnackBar(
       '✅ Đã miễn nợ cho ${d.personName}',
