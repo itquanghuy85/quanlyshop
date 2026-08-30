@@ -3718,6 +3718,121 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   }
 
   /// Cho phép KTV ghi chú cho đơn sửa (vd: kt thay ic hay sàng main ...)
+  /// Đổi / gán lại kỹ thuật viên (repairedBy) — dùng được cả khi đơn đã giao,
+  /// để sửa nhầm người hoặc bổ sung KTV. Ảnh hưởng hoa hồng lương của KTV.
+  Future<void> _editTechnician() async {
+    if (!_ensureCanEditRepairOrder()) return;
+    final shopId = await UserService.getCurrentShopId();
+    if (!mounted) return;
+    if (shopId == null || shopId.isEmpty) {
+      NotificationService.showSnackBar(
+        'Không xác định được cửa hàng.',
+        color: Colors.orange,
+      );
+      return;
+    }
+    List<Map<String, dynamic>> staff = const [];
+    try {
+      staff = await FirestoreService.getShopStaffList(shopId);
+    } catch (_) {}
+    if (!mounted) return;
+
+    final currentUid = (r.repairedByUid ?? '').trim();
+    String nameOf(Map<String, dynamic> s) =>
+        (s['name'] ?? s['displayName'] ?? s['email'] ?? 'Nhân viên').toString();
+
+    final picked = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Chọn kỹ thuật viên'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'KTV hiện tại: '
+                '${(r.repairedBy ?? '').trim().isEmpty ? "— chưa gán —" : r.repairedBy}',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Đổi KTV sẽ tính lại hoa hồng cho người mới.',
+                style: TextStyle(fontSize: 11, color: Colors.orange),
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.person_off_outlined),
+                      title: const Text('— Bỏ gán KTV —'),
+                      onTap: () => Navigator.pop(
+                        ctx,
+                        <String, String>{'uid': '', 'name': ''},
+                      ),
+                    ),
+                    for (final s in staff)
+                      ListTile(
+                        dense: true,
+                        selected: currentUid.isNotEmpty &&
+                            (s['uid'] ?? '').toString() == currentUid,
+                        leading: const Icon(Icons.engineering_rounded),
+                        title: Text(nameOf(s)),
+                        subtitle: (s['role'] ?? '').toString().isEmpty
+                            ? null
+                            : Text((s['role']).toString()),
+                        onTap: () => Navigator.pop(ctx, <String, String>{
+                          'uid': (s['uid'] ?? '').toString(),
+                          'name': nameOf(s),
+                        }),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Huỷ'),
+          ),
+        ],
+      ),
+    );
+    if (picked == null || !mounted) return;
+
+    final oldName = (r.repairedBy ?? '').trim();
+    setState(() {
+      final n = (picked['name'] ?? '').trim();
+      final u = (picked['uid'] ?? '').trim();
+      r.repairedBy = n.isEmpty ? null : n;
+      r.repairedByUid = u.isEmpty ? null : u;
+    });
+    await _saveData();
+    if (!mounted) return;
+    try {
+      await AuditService.logAction(
+        action: 'REPAIR_TECHNICIAN_CHANGED',
+        entityType: 'repair',
+        entityId: r.firestoreId ?? r.id?.toString() ?? 'unknown',
+        summary: 'Đổi KTV đơn ${r.model}: '
+            '"${oldName.isEmpty ? "—" : oldName}" → '
+            '"${(r.repairedBy ?? '').isEmpty ? "—" : r.repairedBy}"',
+      );
+    } catch (_) {}
+    NotificationService.showSnackBar(
+      (r.repairedBy ?? '').isEmpty
+          ? 'Đã bỏ gán KTV.'
+          : 'Đã đổi KTV: ${r.repairedBy}',
+      color: Colors.green,
+    );
+  }
+
   Future<void> _editTechnicianNotes() async {
     if (!_canEditRepairNotes && !_canEditRepairOrder) {
       _ensureCanEditRepairOrder();
@@ -4726,10 +4841,23 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                           ],
                         ),
                       ],
-                      // Quick actions
-                      if (r.status < 4 &&
-                          (_canEditRepairOrder || _canEditRepairNotes)) ...[
+                      // Quick actions — cho phép cả đơn ĐÃ GIAO (status 4) bổ sung
+                      // / thay đổi (thêm linh kiện, sửa KTV, ghi chú). Mọi thay
+                      // đổi đều ghi nhật ký; các thao tác sửa vẫn theo phân quyền.
+                      if (_canEditRepairOrder || _canEditRepairNotes) ...[
                         const SizedBox(height: 6),
+                        if (r.status == 4)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(
+                              'Đơn đã giao — vẫn có thể bổ sung / chỉnh sửa, '
+                              'thay đổi được ghi nhật ký.',
+                              style: AppTextStyles.overline.copyWith(
+                                color: Colors.blueGrey.shade600,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ),
                         Wrap(
                           spacing: 4,
                           runSpacing: 4,
@@ -4760,29 +4888,18 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                                 Colors.red,
                                 _removePartFromRepair,
                               ),
+                            if (_canEditRepairOrder)
+                              _quickAction(
+                                'Sửa KTV',
+                                Icons.engineering_rounded,
+                                Colors.indigo,
+                                _editTechnician,
+                              ),
                             _quickAction(
                               loc.techShort,
                               Icons.note_add,
                               Colors.orange,
                               _editTechnicianNotes,
-                            ),
-                          ],
-                        ),
-                      ] else if (r.status == 4 &&
-                          r.partsUsed.isNotEmpty &&
-                          _canEditRepairOrder) ...[
-                        // Đơn đã giao: vẫn cho phép xóa phụ tùng (trả kho + audit log),
-                        // các thao tác sửa khác vẫn khóa vì đơn đã ở trạng thái cuối.
-                        const SizedBox(height: 6),
-                        Wrap(
-                          spacing: 4,
-                          runSpacing: 4,
-                          children: [
-                            _quickAction(
-                              'Xóa PT',
-                              Icons.delete_sweep,
-                              Colors.red,
-                              _removePartFromRepair,
                             ),
                           ],
                         ),

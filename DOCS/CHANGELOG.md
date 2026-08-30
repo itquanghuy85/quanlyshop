@@ -4,6 +4,20 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-30t] - feat(đơn sửa) đơn ĐÃ GIAO vẫn bổ sung / chỉnh sửa được (thêm linh kiện, Sửa KTV)
+
+**Chưa tăng version.** Trước: đơn `status = 4` (Đã giao) khóa gần hết thao tác sửa — chỉ cho "Xóa PT" nếu có phụ tùng. Nay mở để bổ sung / sửa nhầm sau khi giao.
+
+- `repair_detail_view` — bỏ điều kiện `status < 4` ở khối "Quick actions": đơn ĐÃ GIAO nay hiện đủ **Phụ tùng** (thêm linh kiện), **Kho LK**, **Đổi/Xóa PT**, **Sửa KTV**, **KTV** (ghi chú) — vẫn theo phân quyền (`_canEditRepairOrder` cho mutation, `_canEditRepairNotes` cho ghi chú). Có dòng nhắc *"Đơn đã giao — vẫn có thể bổ sung / chỉnh sửa, thay đổi được ghi nhật ký."*
+- **`_editTechnician()` (MỚI)** — nút "Sửa KTV": dialog chọn KTV từ danh sách nhân viên shop (`FirestoreService.getShopStaffList`) + "Bỏ gán KTV" + KTV hiện tại được đánh dấu + cảnh báo "đổi KTV sẽ tính lại hoa hồng". Chọn → set `repairedBy`/`repairedByUid` → `_saveData()` (local + cloud + queue sync) + `AuditService.logAction('REPAIR_TECHNICIAN_CHANGED')` + snackbar.
+- Các handler thêm/đổi/xóa phụ tùng tái dùng nguyên bản (đã có audit + trả kho) — không viết lại.
+- KB `repair-status`: thêm lưu ý + câu hỏi mẫu về sửa đơn sau khi giao.
+
+**Test:** `flutter analyze` 0 error mới; `flutter test` +460 −8. **Máy thật Oppo:** mở đơn "ĐÃ GIAO" → hiện đủ nút + dòng nhắc; "Sửa KTV" → dialog liệt kê H/N/WEBSYNC + cảnh báo hoa hồng; chọn → lưu + snackbar "Đã đổi KTV", `Đã sync`, 0 exception.
+**Files:** `lib/views/repair_detail_view.dart`, `lib/data/app_knowledge_base.dart`.
+
+---
+
 ## [2026-08-30s] - feat(tài chính) "Đối soát tiền về": nhập số tiền → tự tìm đơn trả góp / công nợ khớp → ghi nhận
 
 **Chưa tăng version.** Khi có tiền về tài khoản (NH tất toán trả góp, khách chuyển trả nợ) hoặc vừa chuyển tiền trả NCC — nhập số tiền, app tự tìm khoản tương ứng để ghi nhận + cập nhật trạng thái, không phải tự dò.

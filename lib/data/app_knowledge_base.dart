@@ -318,10 +318,15 @@ class AppKnowledgeBase {
       notes: [
         'Doanh thu sửa chỉ tính khi đơn "Đã giao".',
         'Nhân viên giao có thể cần quản lý duyệt giá nếu lệch giá dự kiến.',
+        'Đơn ĐÃ GIAO vẫn bổ sung / chỉnh sửa được: thêm linh kiện, đổi / xoá '
+            'phụ tùng, "Sửa KTV" (đổi người sửa → tính lại hoa hồng), ghi chú KTV, '
+            'sửa giá vốn — mọi thay đổi đều ghi nhật ký.',
       ],
       terms: ['trang-thai-don-sua', 'dong-tien'],
       sampleQuestions: [
         'giao máy cho khách làm sao',
+        'đổi ktv đơn đã giao',
+        'thêm linh kiện vào đơn đã giao',
         'đổi trạng thái đơn sửa',
         'đơn sửa xong rồi làm gì',
       ],
