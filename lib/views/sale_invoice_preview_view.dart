@@ -681,7 +681,7 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.5),
         ),
         const SizedBox(height: 12),
-        QrImageView(data: payload, size: 180, backgroundColor: Colors.white),
+        QrImageView(data: payload, size: 150, backgroundColor: Colors.white),
         const SizedBox(height: 12),
         Text(
           '$_bankName${_bankHolder.isNotEmpty ? ' • $_bankHolder' : ''}',

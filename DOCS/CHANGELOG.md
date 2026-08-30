@@ -4,6 +4,30 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-30b] - feat(bán hàng) GIÁ THAM KHẢO khi bán + thu nhỏ QR chuyển khoản trên phiếu
+
+Hai chỉnh UI nhỏ theo yêu cầu:
+
+### 1. Gợi ý giá vốn/giá bán trong màn TẠO ĐƠN BÁN
+
+Trước đây gợi ý giá (median lịch sử nhập cùng model, `ProductPricingService`) chỉ có ở Nhập kho nhanh / Nhập kho thông minh / Thêm-Sửa SP trong Kho. Nay thêm vào **`create_sale_view`**, dùng chung service — kiểu **THAM KHẢO, không tự điền**:
+
+- **Bottom sheet Tặng / Giảm giá / 💰 Sửa giá bán sản phẩm** (`_GiftDiscountSheetContent`): thẻ vàng "💡 GIÁ THAM KHẢO" hiện ở cả 3 trạng thái (menu · panel Giảm giá · panel Sửa giá bán). Hiện Vốn / Bán / Lợi nhuận + số mẫu + khoảng giá thường gặp + độ tin cậy. Trong 2 panel nhập có nút **DÙNG GIÁ BÁN** đổ giá gợi ý vào ô "Giá bán mới".
+- **Ẩn Vốn / Lợi nhuận** nếu tài khoản không có quyền `allowViewCostPrice` (fetch thêm trong `_checkPermission`).
+- **Dòng SP chưa có giá** trên thẻ sản phẩm đã chọn: `"Giá bán: 0"` → cảnh báo cam **"⚠️ Chưa có giá bán — chạm để đặt giá / xem gợi ý"**, chạm mở luôn sheet.
+- Thẻ **im lặng** (SizedBox.shrink) khi model rỗng hoặc chưa đủ dữ liệu lịch sử — không thêm nhiễu vào form bán hàng.
+- KHÔNG đụng nghiệp vụ: không tự sửa giá, không ghi kho (nút "Cập nhật giá bán mặc định trong kho" vẫn opt-in như cũ).
+
+### 2. Thu nhỏ QR chuyển khoản trên phiếu bán
+
+`sale_invoice_preview_view.dart` — QR VietQR "QUÉT MÃ ĐỂ CHUYỂN KHOẢN": `size 180 → 150`. QR tra cứu đơn (110) giữ nguyên.
+
+**Files:** `lib/views/create_sale_view.dart`, `lib/views/sale_invoice_preview_view.dart`.
+**Test:** `flutter analyze` 0 error / 0 warning; `flutter test` +429 −8 (0 hồi quy). Chưa nghiệm thu trực quan trên máy — thay đổi thuần UI, tái dùng service đã test.
+**Đóng gói:** `pubspec` `3.5.0+550` → **`3.5.0+551`**.
+
+---
+
 ## [2026-08-30a] - test(bán hàng) E2E ĐỦ MỌI HÌNH THỨC THANH TOÁN + 3 fix phát hiện qua test
 
 **Test end-to-end trên máy thật (Oppo CPH2203, shop "M")** toàn bộ luồng bán hàng + chi phí + thu nợ, mỗi kịch bản đối chiếu Giao dịch → DB (sales/debts/debt_payments/products/financial_activity_log) → tiền mặt/NH → doanh thu/vốn/lãi → công nợ. **9 kịch bản PASS**, phát hiện **1 bug tài chính** (đã fix), dọn sạch dữ liệu test, đối chiếu 16 nhóm cuối = **DIFFERENCE 0** (mọi nhóm tiền), delta BASE→FINAL: tất cả aggregate tiền = 0.

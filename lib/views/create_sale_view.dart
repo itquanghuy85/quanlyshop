@@ -32,6 +32,7 @@ import '../services/payment_intent_service.dart';
 import '../services/category_service.dart';
 import '../services/debt_summary_service.dart';
 import '../services/business_type_helper.dart';
+import '../services/product_pricing_service.dart';
 import '../services/variant_service.dart';
 import '../models/payment_intent_model.dart';
 import '../models/shop_settings_model.dart';
@@ -134,6 +135,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   bool _isLoading = true;
   bool _isSaving = false;
   bool _hasPermission = false;
+  bool _canViewCostPrice = false;
 
   // Customer quick card state
   // type: 'repair' | 'sale'; title: model/product name; subtitle: issue (repair only); ts: epoch ms
@@ -242,7 +244,10 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   Future<void> _checkPermission() async {
     final perms = await UserService.getCurrentUserPermissions();
     if (!mounted) return;
-    setState(() => _hasPermission = perms['allowViewSales'] ?? false);
+    setState(() {
+      _hasPermission = perms['allowViewSales'] ?? false;
+      _canViewCostPrice = perms['allowViewCostPrice'] ?? false;
+    });
   }
 
   Future<void> _loadCustomerQuickData(String phone) async {
@@ -3169,6 +3174,8 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       builder: (ctx) {
         return _GiftDiscountSheetContent(
           productName: product.name,
+          productModel: product.model,
+          canViewCost: _canViewCostPrice,
           originalPrice: originalPrice,
           currentSellPrice: sellPrice,
           isGift: isGift,
@@ -3444,6 +3451,17 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                         ),
                       ),
                     ],
+                  )
+                else if (sellPrice <= 0)
+                  InkWell(
+                    onTap: () => _showGiftDiscountSheet(item),
+                    child: Text(
+                      '⚠️ Chưa có giá bán — chạm để đặt giá / xem gợi ý',
+                      style: TextStyle(
+                        color: Colors.orange.shade800,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   )
                 else
                   Text(
@@ -3765,6 +3783,13 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
 /// Stateful bottom sheet content for gift/discount — avoids chaining overlays
 class _GiftDiscountSheetContent extends StatefulWidget {
   final String productName;
+
+  /// Model máy để tra gợi ý giá tham khảo từ lịch sử nhập kho — null/rỗng
+  /// thì bỏ qua phần gợi ý.
+  final String? productModel;
+
+  /// Có quyền xem giá vốn không (ẩn dòng Vốn/Lợi nhuận nếu không).
+  final bool canViewCost;
   final int originalPrice;
   final int currentSellPrice;
   final bool isGift;
@@ -3774,6 +3799,8 @@ class _GiftDiscountSheetContent extends StatefulWidget {
 
   const _GiftDiscountSheetContent({
     required this.productName,
+    this.productModel,
+    this.canViewCost = false,
     required this.originalPrice,
     required this.currentSellPrice,
     required this.isGift,
@@ -3794,6 +3821,11 @@ class _GiftDiscountSheetContentState extends State<_GiftDiscountSheetContent> {
   late TextEditingController _priceController;
   late TextEditingController _editPriceController;
 
+  // Gợi ý giá tham khảo (median lịch sử nhập cùng model) — chỉ để THAM KHẢO,
+  // không tự điền vào form. Cùng nguồn với màn nhập kho.
+  ProductPricingSuggestion? _suggestion;
+  bool _suggestionLoaded = false;
+
   @override
   void initState() {
     super.initState();
@@ -3807,6 +3839,100 @@ class _GiftDiscountSheetContentState extends State<_GiftDiscountSheetContent> {
     );
     _editPriceController = TextEditingController(
       text: widget.formatCurrency(widget.currentSellPrice),
+    );
+    _loadPricingSuggestion();
+  }
+
+  Future<void> _loadPricingSuggestion() async {
+    final model = widget.productModel?.trim() ?? '';
+    if (model.isEmpty) {
+      if (mounted) setState(() => _suggestionLoaded = true);
+      return;
+    }
+    ProductPricingSuggestion? s;
+    try {
+      s = await ProductPricingService.getSuggestion(model: model);
+    } catch (e) {
+      debugPrint('⚠️ ProductPricingService lookup lỗi: $e');
+    }
+    if (!mounted) return;
+    setState(() {
+      _suggestion = s;
+      _suggestionLoaded = true;
+    });
+  }
+
+  /// Thẻ "GIÁ THAM KHẢO" — im lặng nếu chưa đủ dữ liệu. Nếu truyền [fillTarget]
+  /// thì hiện nút đổ giá bán gợi ý vào ô đang nhập.
+  Widget _buildPricingRefCard({TextEditingController? fillTarget}) {
+    final s = _suggestion;
+    if (!_suggestionLoaded || s == null) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 8, bottom: 4),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.amber.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text('💡', style: TextStyle(fontSize: 14)),
+              const SizedBox(width: 6),
+              Text(
+                'GIÁ THAM KHẢO',
+                style: AppTextStyles.caption.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.amber.shade900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          if (widget.canViewCost)
+            Text('Vốn: ${MoneyUtils.formatCurrency(s.medianCost)}đ',
+                style: AppTextStyles.body2),
+          Text('Bán: ${MoneyUtils.formatCurrency(s.medianSalePrice)}đ',
+              style: AppTextStyles.body2),
+          if (widget.canViewCost)
+            Text('Lợi nhuận: ${MoneyUtils.formatCurrency(s.medianProfit)}đ',
+                style: AppTextStyles.body2),
+          const SizedBox(height: 2),
+          Text(
+            '${s.sampleCount} sản phẩm tương tự · Khoảng giá thường gặp: '
+            '${MoneyUtils.formatCurrency(s.minPrice)}đ - ${MoneyUtils.formatCurrency(s.maxPrice)}đ\n'
+            'Độ tin cậy: ${s.confidence.label}',
+            style: AppTextStyles.caption.copyWith(color: Colors.grey.shade700),
+          ),
+          if (fillTarget != null && s.medianSalePrice > 0) ...[
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton(
+                onPressed: () {
+                  final text = widget.formatCurrency(s.medianSalePrice);
+                  fillTarget.value = TextEditingValue(
+                    text: text,
+                    selection: TextSelection.collapsed(offset: text.length),
+                  );
+                  setState(() {});
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.amber.shade900,
+                  side: BorderSide(color: Colors.amber.shade400),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  visualDensity: VisualDensity.compact,
+                ),
+                child: const Text('DÙNG GIÁ BÁN', style: TextStyle(fontSize: 12)),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -3840,6 +3966,10 @@ class _GiftDiscountSheetContentState extends State<_GiftDiscountSheetContent> {
             const Divider(height: 1),
             if (!_showDiscountInput && !_showEditPriceInput) ...[
               // --- Menu options ---
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _buildPricingRefCard(),
+              ),
               ListTile(
                 leading: const Icon(Icons.card_giftcard, color: Colors.green),
                 title: const Text('Tặng miễn phí (0đ)'),
@@ -3892,6 +4022,7 @@ class _GiftDiscountSheetContentState extends State<_GiftDiscountSheetContent> {
                       'Giá gốc: ${MoneyUtils.formatCurrency(widget.originalPrice)}',
                       style: TextStyle(color: Colors.grey.shade600),
                     ),
+                    _buildPricingRefCard(fillTarget: _priceController),
                     const SizedBox(height: 12),
                     TextField(
                       controller: _priceController,
@@ -3953,6 +4084,7 @@ class _GiftDiscountSheetContentState extends State<_GiftDiscountSheetContent> {
                       'Giá hiện tại: ${MoneyUtils.formatCurrency(widget.currentSellPrice)}',
                       style: TextStyle(color: Colors.grey.shade600),
                     ),
+                    _buildPricingRefCard(fillTarget: _editPriceController),
                     const SizedBox(height: 12),
                     TextField(
                       controller: _editPriceController,
