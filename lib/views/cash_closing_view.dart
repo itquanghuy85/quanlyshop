@@ -12,6 +12,7 @@ import '../models/sale_order_model.dart';
 import '../models/repair_model.dart';
 import '../models/shop_settings_model.dart';
 import '../services/user_service.dart';
+import '../services/first_time_guide_service.dart';
 import '../services/audit_service.dart';
 import '../services/notification_service.dart';
 import '../services/category_service.dart';
@@ -113,6 +114,47 @@ class _CashClosingViewState extends State<CashClosingView>
     _loadShopSettings();
     _loadAllData();
     _initRealTimeSync();
+    if (!widget.showOnlyTransactions) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _maybeShowGuide();
+      });
+    }
+  }
+
+  Future<void> _maybeShowGuide() async {
+    await FirstTimeGuideService.showGuideIfNeeded(
+      context: context,
+      screenKey: FirstTimeGuideService.keyCashClosing,
+      title: 'Sổ Quỹ / Chốt Quỹ',
+      icon: Icons.lock_clock_rounded,
+      color: const Color(0xFF6A1B9A),
+      steps: const [
+        GuideStep(
+          title: '🎯 Màn này để làm gì?',
+          description:
+              'ĐỂ LÀM GÌ: cuối ngày đối chiếu tiền THỰC TẾ (tiền mặt trong két + số dư ngân hàng) với số máy tính ra.\n'
+              'KHI NÀO DÙNG: mỗi ngày trước khi đóng cửa. Đếm tiền → nhập số thực tế → bấm Chốt quỹ.\n'
+              'VÍ DỤ: đầu ngày có 2tr, trong ngày thu 5tr, chi 1tr → máy tính kỳ vọng 6tr. Đếm két thực tế 5,95tr → thiếu 50k cần tìm nguyên nhân.',
+          icon: Icons.lightbulb_outline,
+          iconColor: Colors.amber,
+        ),
+        GuideStep(
+          title: '🧮 Công thức',
+          description:
+              'Kỳ vọng cuối kỳ = Đầu kỳ + Tổng THU trong kỳ − Tổng CHI trong kỳ.\n'
+              'Đầu kỳ = số dư cuối của lần chốt trước. Vì vậy nên chốt LIÊN TỤC mỗi ngày, không bỏ ngày.',
+          icon: Icons.functions_rounded,
+          iconColor: Colors.blue,
+        ),
+        GuideStep(
+          title: '⚠️ Lệch quỹ',
+          description:
+              'Thực tế > kỳ vọng = thừa quỹ. Thực tế < kỳ vọng = thiếu quỹ. Chênh lệch thường do quên ghi 1 giao dịch, ghi sai số, hoặc tiền lẻ. Kiểm tra tab Giao dịch của ngày đó.',
+          icon: Icons.report_problem_rounded,
+          iconColor: Colors.deepOrange,
+        ),
+      ],
+    );
   }
 
   Future<void> _loadShopSettings() async {
@@ -1051,6 +1093,10 @@ class _CashClosingViewState extends State<CashClosingView>
         ],
       ),
       actions: [
+        FirstTimeGuideService.helpButton(
+          FirstTimeGuideService.keyCashClosing,
+          color: Colors.white,
+        ),
         IconButton(
           tooltip: 'Xuất Excel sổ quỹ',
           icon: const Icon(Icons.file_download, size: 20, color: Colors.white),

@@ -28,6 +28,8 @@ class FirstTimeGuideService {
   static const String keyAttendanceView = 'attendance_view';
   static const String keyPayrollView = 'payroll_view';
   static const String keyPurchaseOrderList = 'purchase_order_list';
+  static const String keyFinanceDailyReport = 'finance_daily_report';
+  static const String keyCashClosing = 'cash_closing';
 
   /// Cache nội dung hướng dẫn đã dựng gần nhất cho mỗi màn — để nút ⓘ trên
   /// thanh tiêu đề mở LẠI được kể cả khi hộp thoại 1-lần đã tắt vĩnh viễn.
@@ -164,10 +166,14 @@ class FirstTimeGuideService {
 
   /// Nút ⓘ dùng trong `actions` của thanh tiêu đề. Bọc [Builder] để lấy
   /// context hợp lệ khi bấm (các hàm dựng AppBar là static, không có context).
-  static Widget helpButton(String screenKey, {String tooltip = 'Hướng dẫn'}) {
+  static Widget helpButton(
+    String screenKey, {
+    String tooltip = 'Hướng dẫn',
+    Color? color,
+  }) {
     return Builder(
       builder: (ctx) => IconButton(
-        icon: const Icon(Icons.help_outline_rounded, size: 22),
+        icon: Icon(Icons.help_outline_rounded, size: 22, color: color),
         tooltip: tooltip,
         onPressed: () => reopenGuide(ctx, screenKey),
       ),

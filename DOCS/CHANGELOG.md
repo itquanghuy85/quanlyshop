@@ -4,6 +4,24 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-30g] - feat(hướng dẫn) Phase C: ⓘ + hướng dẫn cho FinanceV2 & Sổ quỹ
+
+Tiếp `[2026-08-30f]`. **Chưa tăng version** (vẫn `3.5.0+554`).
+
+3 màn tài chính có appbar tự vẽ tay (không dùng `CustomAppBar.build`) nay cũng có nút ⓘ + hộp hướng dẫn "bản chất":
+- **Tài chính (FinanceV2 — 5 tab)**: ⓘ cạnh menu "..." trên thanh tab. Hộp: để làm gì · dòng tiền vs dồn tích · chốt quỹ · trỏ sang Cẩm nang thuật ngữ. Key `keyFinanceTab` (trước là key chết, nay dùng).
+- **Báo cáo ngày**: ⓘ đầu `actions`. Hộp: để làm gì · KẾT QUẢ KINH DOANH (accrual) vs DÒNG TIỀN (cash) · Cẩm nang. Key mới `keyFinanceDailyReport`.
+- **Sổ quỹ / Chốt quỹ**: ⓘ đầu `actions` (SliverAppBar tự vẽ). Hộp: để làm gì + ví dụ số · công thức "Kỳ vọng = Đầu kỳ + Thu − Chi" · lệch quỹ do đâu. Key mới `keyCashClosing`. Chỉ chạy ở màn Sổ quỹ chính, không phải chế độ "Lịch sử tài chính".
+
+`FirstTimeGuideService.helpButton` thêm tham số `color` (cho appbar nền tối). Guide trigger qua `addPostFrameCallback` trong initState.
+
+**Test:** `flutter analyze` 0 error / 0 warning mới; `flutter test` (chạy lại); debug APK build.
+**Files:** `lib/finance_v2/{finance_v2_view,finance_v2_daily_report_view}.dart`, `lib/views/cash_closing_view.dart`, `lib/services/first_time_guide_service.dart`.
+
+Sau Phase C: **toàn bộ màn nghiệp vụ chính đã có nút ⓘ.**
+
+---
+
 ## [2026-08-30f] - feat(hướng dẫn) Phase B: nội dung "bản chất" + empty state biết nói + Cẩm nang thuật ngữ
 
 Tiếp `[2026-08-30e]`. **Chưa tăng version** (vẫn `3.5.0+554`, chưa lên store — sẽ bump khi user yêu cầu).

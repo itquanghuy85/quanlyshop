@@ -8,6 +8,7 @@ import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 import 'package:intl/intl.dart';
 
 import '../data/db_helper.dart';
+import '../services/first_time_guide_service.dart';
 import '../models/sale_order_model.dart';
 import '../models/repair_model.dart';
 import '../utils/money_utils.dart';
@@ -117,6 +118,9 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _maybeShowFinanceGuide();
+    });
     _txCtrl.addListener(() {
       if (!mounted) return;
       setState(() {
@@ -943,6 +947,50 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     }
   }
 
+  Future<void> _maybeShowFinanceGuide() async {
+    await FirstTimeGuideService.showGuideIfNeeded(
+      context: context,
+      screenKey: FirstTimeGuideService.keyFinanceTab,
+      title: 'Tài Chính',
+      icon: Icons.account_balance_wallet_rounded,
+      color: const Color(0xFF6A1B9A),
+      steps: const [
+        GuideStep(
+          title: '🎯 Màn này để làm gì?',
+          description:
+              'ĐỂ LÀM GÌ: xem sức khoẻ tài chính cửa hàng — tiền vào/ra, lãi/lỗ, công nợ, và đối chiếu sổ sách.\n'
+              'KHI NÀO DÙNG: xem nhanh hôm nay/tuần/tháng; vào tab CÔNG NỢ để thu/trả nợ; tab BÁO CÁO để xuất Excel.\n'
+              'VÍ DỤ: cuối ngày mở tab Tổng quan xem "Tiền vào 5tr / Tiền ra 2tr / còn nợ phải thu 10tr".',
+          icon: Icons.lightbulb_outline,
+          iconColor: Colors.amber,
+        ),
+        GuideStep(
+          title: '💵 Dòng tiền (cash) vs 📈 Dồn tích (accrual)',
+          description:
+              'DÒNG TIỀN: tiền THỰC đã vào/ra két. DỒN TÍCH: ghi doanh thu/lãi ngay khi bán dù chưa thu đủ.\n'
+              'Vì thế "Tiền đã thu" thường nhỏ hơn "Doanh thu" khi khách còn nợ — đó là bình thường, không phải lỗi.',
+          icon: Icons.compare_arrows_rounded,
+          iconColor: Colors.blue,
+        ),
+        GuideStep(
+          title: '🔒 Chốt quỹ (Sổ quỹ)',
+          description:
+              'Cuối ngày đếm tiền mặt + số dư NH thực tế nhập vào. App so: Kỳ vọng = Đầu kỳ + Thu − Chi. '
+              'Lệch = thừa/thiếu quỹ cần tìm nguyên nhân. Nên chốt mỗi ngày.',
+          icon: Icons.lock_clock_rounded,
+          iconColor: Colors.deepOrange,
+        ),
+        GuideStep(
+          title: '📚 Xem thêm',
+          description:
+              'Cần định nghĩa chi tiết? Vào Cài đặt → Trung tâm trợ giúp → "Thuật ngữ tài chính & công nợ".',
+          icon: Icons.menu_book_rounded,
+          iconColor: Colors.teal,
+        ),
+      ],
+    );
+  }
+
   PopupMenuButton<_ToolbarAction> _buildToolbarMenu() {
     return PopupMenuButton<_ToolbarAction>(
       tooltip: 'Thao tác',
@@ -1001,6 +1049,10 @@ class _FinanceV2ViewState extends State<FinanceV2View>
             child: Row(
               children: [
                 Expanded(child: _buildAdaptiveTabStrip()),
+                FirstTimeGuideService.helpButton(
+                  FirstTimeGuideService.keyFinanceTab,
+                  color: const Color(0xFF1565C0),
+                ),
                 _buildToolbarMenu(),
                 const SizedBox(width: 4),
               ],

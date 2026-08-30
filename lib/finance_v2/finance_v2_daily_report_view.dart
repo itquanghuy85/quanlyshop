@@ -15,6 +15,7 @@ import 'finance_v2_excel_export.dart';
 import '../services/label_settings_service.dart';
 import '../services/user_service.dart';
 import '../services/event_bus.dart';
+import '../services/first_time_guide_service.dart';
 import '../data/db_helper.dart';
 import '../views/debt_view.dart';
 import '../services/daily_financial_analysis_service.dart';
@@ -70,6 +71,9 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _maybeShowGuide();
+    });
     _eventSub = EventBus().stream.where((event) =>
       event == EventBus.shopChanged ||
       event == EventBus.financialChanged ||
@@ -79,6 +83,42 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
       _loadReport();
     });
     _loadReport();
+  }
+
+  Future<void> _maybeShowGuide() async {
+    await FirstTimeGuideService.showGuideIfNeeded(
+      context: context,
+      screenKey: FirstTimeGuideService.keyFinanceDailyReport,
+      title: 'Báo Cáo Ngày',
+      icon: Icons.assessment_rounded,
+      color: FinanceV2Theme.accent,
+      steps: const [
+        GuideStep(
+          title: '🎯 Màn này để làm gì?',
+          description:
+              'ĐỂ LÀM GÌ: bảng tổng kết theo ngày/kỳ — doanh thu, giá vốn, lợi nhuận, tiền vào/ra, có thể in & xuất Excel.\n'
+              'KHI NÀO DÙNG: cuối ngày/tuần/tháng để xem kết quả kinh doanh và đối chiếu.\n'
+              'VÍ DỤ: chọn "hôm nay" → thấy Doanh thu 8tr, Giá vốn 6tr, Lợi nhuận 2tr, Tiền thực thu 5tr (còn 3tr khách nợ).',
+          icon: Icons.lightbulb_outline,
+          iconColor: Colors.amber,
+        ),
+        GuideStep(
+          title: '📈 KẾT QUẢ KINH DOANH vs 💵 DÒNG TIỀN',
+          description:
+              'KẾT QUẢ KINH DOANH (accrual): tính đủ doanh thu/lãi ngay khi bán, kể cả bán chịu.\n'
+              'DÒNG TIỀN (cash): chỉ tính tiền THỰC đã thu/chi. Khách nợ nhiều thì 2 nhóm số lệch nhau — bình thường.',
+          icon: Icons.compare_arrows_rounded,
+          iconColor: Colors.blue,
+        ),
+        GuideStep(
+          title: '📚 Xem thêm',
+          description:
+              'Định nghĩa chi tiết ở: Cài đặt → Trung tâm trợ giúp → "Thuật ngữ tài chính & công nợ".',
+          icon: Icons.menu_book_rounded,
+          iconColor: Colors.teal,
+        ),
+      ],
+    );
   }
 
   @override
@@ -1663,6 +1703,9 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
         backgroundColor: FinanceV2Theme.accent,
         foregroundColor: AppColors.surface,
         actions: [
+          FirstTimeGuideService.helpButton(
+            FirstTimeGuideService.keyFinanceDailyReport,
+          ),
           if (_snapshot != null)
             IconButton(
               onPressed: _printReport,
