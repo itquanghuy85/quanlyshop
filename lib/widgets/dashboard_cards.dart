@@ -103,10 +103,14 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
           'SELECT MIN(soldAt) as firstSale FROM sales '
           'WHERE (deleted IS NULL OR deleted != 1)',
         ),
-        // Đơn sửa đã giao TUẦN NÀY nhưng chưa ghi nhận giá vốn (cost = 0/null)
+        // Đơn sửa đã giao TUẦN NÀY nhưng CHƯA GHI NHẬN giá vốn.
+        // Chỉ tính khi cost = 0 VÀ chưa từng ghi nhận (costRecordedAt rỗng) —
+        // đơn đã đánh dấu "không tốn giá vốn" (costRecordedAt có giá trị,
+        // cost = 0) KHÔNG bị nhắc; đơn cost > 0 cũng không (đã có giá vốn).
         db.rawQuery(
           "SELECT COUNT(*) FROM repairs WHERE status = 4 "
           "AND (cost IS NULL OR cost = 0) "
+          "AND (costRecordedAt IS NULL OR costRecordedAt = 0) "
           "AND deliveredAt >= ? "
           "AND (deleted IS NULL OR deleted != 1)",
           [startOfWeekMs],

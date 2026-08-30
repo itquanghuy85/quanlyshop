@@ -3218,6 +3218,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     final costC = TextEditingController(
       text: CurrencyTextField.formatDisplay(r.cost),
     );
+    // "Không tốn giá vốn": đơn không dùng linh kiện — 0đ là ĐÚNG, khác với
+    // "chưa nhập giá vốn". Nhận biết ban đầu: cost = 0 và đã từng ghi nhận.
+    bool noCost = r.cost == 0 &&
+        r.costRecordedAt != null &&
+        (r.costRecordedAt ?? 0) > 0;
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) {
@@ -3241,14 +3246,30 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   ),
                   if (canEditCost) ...[
                     const SizedBox(height: 12),
-                    CurrencyTextField(
-                      controller: costC,
-                      label: dialogLoc.partsCostVnd,
-                      validator: (v) => MoneyUtils.validateAmount(
-                        v ?? '',
-                        min: 0,
-                        fieldName: dialogLoc.partsCost,
+                    if (!noCost)
+                      CurrencyTextField(
+                        controller: costC,
+                        label: dialogLoc.partsCostVnd,
+                        validator: (v) => MoneyUtils.validateAmount(
+                          v ?? '',
+                          min: 0,
+                          fieldName: dialogLoc.partsCost,
+                        ),
                       ),
+                    CheckboxListTile(
+                      value: noCost,
+                      onChanged: (v) => setDialogState(() {
+                        noCost = v ?? false;
+                        if (noCost) costC.text = '0';
+                      }),
+                      title: const Text('Đơn này KHÔNG tốn giá vốn (0đ)'),
+                      subtitle: const Text(
+                        'Không dùng linh kiện — đánh dấu để không bị nhắc "chưa có giá vốn"',
+                        style: TextStyle(fontSize: 11),
+                      ),
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      dense: true,
                     ),
                   ],
                 ],
@@ -3273,9 +3294,8 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     );
     if (result == true) {
       final parsedPrice = MoneyUtils.parseCurrency(priceC.text);
-      final parsedCost = canEditCost
-          ? MoneyUtils.parseCurrency(costC.text)
-          : r.cost;
+      final parsedCost =
+          canEditCost ? (noCost ? 0 : MoneyUtils.parseCurrency(costC.text)) : r.cost;
       final oldPrice = r.price;
       final oldCost = r.cost;
       final wasFundRecorded = r.costRecordedInFund;
@@ -3290,7 +3310,21 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         r.cost = parsedCost;
       });
 
-      if (canEditCost) {
+      if (canEditCost && noCost) {
+        // Đánh dấu ĐÃ GHI NHẬN giá vốn = 0 (đơn không tốn linh kiện) — không
+        // popup ghi quỹ, và hoàn nhập nếu trước đó đã lỡ ghi quỹ.
+        if (wasFundRecorded && oldRecordedBase > 0) {
+          await _applyCostFundDelta(
+            deltaAmount: -oldRecordedBase,
+            newRecordedAmount: 0,
+          );
+        }
+        setState(() {
+          r.costRecordedAt = DateTime.now().millisecondsSinceEpoch;
+          r.costRecordedInFund = false;
+          r.costRecordedAmount = 0;
+        });
+      } else if (canEditCost) {
         if (!wasFundRecorded && parsedCost > 0) {
           // Chỉ popup ghi quỹ lần đầu để chọn phương thức chi.
           await _showCostFundRecordingPopup(parsedCost);
@@ -4632,6 +4666,37 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                                 style: AppTextStyles.overline.copyWith(
                                   color: Colors.green.shade600,
                                   fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        // Phân loại trạng thái giá vốn khi cost = 0:
+                        // - chưa ghi nhận (costRecordedAt trống) => nhắc nhập
+                        // - đã xác nhận không tốn chi phí => hiển thị rõ
+                        if (canShowCost && r.cost == 0) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(
+                                (r.costRecordedAt ?? 0) > 0
+                                    ? Icons.check_circle_outline
+                                    : Icons.error_outline,
+                                size: 12,
+                                color: (r.costRecordedAt ?? 0) > 0
+                                    ? Colors.blueGrey.shade500
+                                    : Colors.orange.shade700,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                (r.costRecordedAt ?? 0) > 0
+                                    ? 'Không tốn giá vốn (0đ)'
+                                    : 'Chưa ghi nhận giá vốn',
+                                style: AppTextStyles.overline.copyWith(
+                                  color: (r.costRecordedAt ?? 0) > 0
+                                      ? Colors.blueGrey.shade600
+                                      : Colors.orange.shade800,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],

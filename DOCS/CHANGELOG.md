@@ -4,6 +4,21 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-30p] - feat(đơn sửa) phân loại giá vốn: "chưa ghi nhận" vs "không tốn chi phí (0đ)"
+
+**Chưa tăng version.** Trước đây đơn sửa có `cost = 0` bị lẫn lộn 2 nghĩa: (a) **chưa nhập giá vốn** (cần xử lý) và (b) **thật sự không tốn linh kiện** (đúng, xong). Cả hai đều hiện "0đ" → gây nhầm, và khung home CẦN XỬ LÝ nhắc oan cả đơn loại (b).
+
+Dùng `repairs.costRecordedAt` (mốc thời gian đã ghi nhận giá vốn — trước nay chỉ set khi `cost > 0`) làm dấu phân biệt:
+
+- **Dialog "Tài chính đơn sửa"** (`repair_detail_view`): thêm ô tích **"Đơn này KHÔNG tốn giá vốn (0đ)"**. Tích → ẩn ô nhập giá vốn, ép `cost = 0`, set `costRecordedAt = now`, **không** popup ghi sổ quỹ, và **hoàn nhập** phần đã lỡ ghi quỹ trước đó (`_applyCostFundDelta` âm). Bỏ tích lại nhập bình thường.
+- **Hiển thị chi tiết đơn**: khi `cost == 0` hiện 1 dòng trạng thái — `costRecordedAt` có giá trị → *"Không tốn giá vốn (0đ)"* (xám, ✓); trống → *"Chưa ghi nhận giá vốn"* (cam, ⚠).
+- **Home CẦN XỬ LÝ** (`dashboard_cards`): cảnh báo "đơn sửa tuần này chưa có giá vốn" nay lọc thêm `AND (costRecordedAt IS NULL OR costRecordedAt = 0)` — đơn đã đánh dấu "không tốn giá vốn" KHÔNG còn bị nhắc.
+
+**Test:** `flutter analyze` (2 file chạm) — 0 error, chỉ info/style có sẵn; `flutter test` +435 −8 (8 lỗi môi trường có sẵn, không hồi quy).
+**Files:** `lib/views/repair_detail_view.dart`, `lib/widgets/dashboard_cards.dart`.
+
+---
+
 ## [2026-08-30o] - chore(docs) dọn tài liệu lỗi thời + fix "Không tìm thấy đơn gốc"
 
 **Chưa tăng version.**
