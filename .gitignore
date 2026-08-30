@@ -88,3 +88,6 @@ android_window_*.xml
 android_window_*.xml.localbak
 oppo_test_log.txt
 test_screenshots/
+
+# Firebase deploy cache
+.firebase/

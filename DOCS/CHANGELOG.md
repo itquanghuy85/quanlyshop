@@ -4,6 +4,33 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-30o] - chore(docs) dọn tài liệu lỗi thời + fix "Không tìm thấy đơn gốc"
+
+**Chưa tăng version.**
+
+### fix(công nợ) "Không tìm thấy đơn gốc (có thể đã bị xóa)"
+
+Nguyên nhân: `debt_view._openSourceOrder` chỉ tra `sales` + `repairs` theo `linkedId`. Nhưng nợ **NHẬP KHO** (`debt_stock_*`, `linkedId` = id phiếu `stock_entries` — bảng này KHÔNG lưu local), nợ **giá vốn** (`debt_cost_*`, linkedId = product firestoreId), nợ **linh kiện** (`debt_part_*`, linkedId rỗng) → không bao giờ khớp → luôn báo "không tìm thấy" (dù SP không hề bị xoá). Rất nhiều nợ NCC bị.
+
+Nay: nếu không khớp đơn bán/sửa → hiện **bảng "Nguồn khoản nợ"** (suy loại từ tiền tố firestoreId: nhập kho / giá vốn / linh kiện / bán CÔNG NỢ / tạo tay) + đối tượng, nội dung, tổng/đã trả/còn nợ, ngày tạo + dòng giải thích "phát sinh khi nhập hàng — không tách thành đơn riêng, SP vẫn còn trong kho". Hết báo sai "đã bị xoá".
+
+### chore(docs) xoá tài liệu lỗi thời (148 file, ~12.5k dòng)
+
+- 14 báo cáo one-off ở gốc repo (IMAGE_UPLOAD_*, *_REPORT, DESIGN_*, DEEP_LINK_*, ui_guidelines, "tính năng kiểm tra read firebase", "AI SOFTWARE DEVELOPMENT PROTOCOL"...) — toàn bộ đã gộp vào CHANGELOG/HANDOVER hoặc thay bằng code (`lib/theme/design_tokens.dart`).
+- `DOCS/BLUEPRINT/` (124 file) — bộ "rebuild guide" auto-gen tháng 5, một nửa file 0 byte, nội dung template chung chung, lỗi thời sau 100+ mục changelog.
+- `DOCS/UX_AUDIT/` (8 file) — audit UX một lần tháng 5.
+- `DOCS/KIOTVIET_INTEGRATION_REPORT.md` (trùng bản gốc), `DOCS/# HULUCA Context for Claude.txt`.
+- `.firebase/` (cache deploy) bỏ khỏi git + thêm vào `.gitignore`.
+
+**Giữ:** CHANGELOG/HANDOVER/DOCUMENTATION_INDEX, release_notes_*, store_metadata, DEEPSEEK_AI_SETUP, AI_SECURITY_RISK_AUDIT, DOCS/vocabulary, test/*.md, CLAUDE.md, copilot-instructions.
+
+**Cần user quyết:** `CHANGELOG.md` ở gốc repo (bản cũ, dừng ở [1.0.5] 2026-05-01 — bản sống là `DOCS/CHANGELOG.md`) — giữ tên chuẩn hay xoá? `DOCS/DOCUMENTATION_INDEX.md` giờ có link chết tới BLUEPRINT/UX_AUDIT.
+
+**Test:** `flutter analyze` sạch; `flutter test` +435 −8.
+**Files:** `lib/views/debt_view.dart`, `.gitignore` + 148 xoá.
+
+---
+
 ## [2026-08-30m] - feat(home) Hoạt động hôm nay: tách "Sửa xong" / "Giao máy" + thông tin chi tiết đơn sửa
 
 **Chưa tăng version.** Trước đây feed chỉ phân biệt "Nhận sửa" vs "Giao máy" (status 4), không có mốc "Sửa xong" (status 3), và không hiện lỗi máy / kỹ thuật viên.

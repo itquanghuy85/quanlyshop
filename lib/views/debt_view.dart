@@ -431,42 +431,129 @@ class _DebtViewState extends State<DebtView>
     if (didPay && mounted) await _refresh();
   }
 
-  /// Mở đơn bán/sửa gốc đã phát sinh khoản nợ này — công nợ hiện đang tách
-  /// biệt khỏi đơn gốc, chỉ tìm được bằng cách tự nhớ đơn nào. Thử tìm theo
-  /// đơn bán trước (đa số nợ phát sinh từ bán CÔNG NỢ), rồi tới đơn sửa.
+  /// Mở nguồn gốc của khoản nợ. Nợ bán/sửa CÔNG NỢ → mở đơn bán/sửa. Nợ
+  /// phát sinh khi NHẬP KHO / bổ sung giá vốn / nhập linh kiện thì KHÔNG có
+  /// "đơn" riêng để mở (phiếu nhập nằm trên cloud, không lưu local) — hiện
+  /// bảng thông tin nguồn thay vì báo "không tìm thấy" gây hiểu nhầm là
+  /// dữ liệu bị xoá.
   Future<void> _openSourceOrder(
     BuildContext sheetCtx,
     Map<String, dynamic> debt,
   ) async {
     Navigator.pop(sheetCtx);
     final linkedId = ((debt['linkedId'] as String?) ?? '').trim();
-    if (linkedId.isEmpty) return;
+    final fid = (debt['firestoreId'] as String?) ?? '';
 
-    final sale = await db.getSaleByFirestoreId(linkedId);
-    if (!mounted) return;
-    if (sale != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => SaleDetailView(sale: sale)),
-      );
-      return;
+    if (linkedId.isNotEmpty) {
+      final sale = await db.getSaleByFirestoreId(linkedId);
+      if (!mounted) return;
+      if (sale != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => SaleDetailView(sale: sale)),
+        );
+        return;
+      }
+
+      final repair = await db.getRepairByFirestoreId(linkedId);
+      if (!mounted) return;
+      if (repair != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => RepairDetailView(repair: repair)),
+        );
+        return;
+      }
     }
 
-    final repair = await db.getRepairByFirestoreId(linkedId);
     if (!mounted) return;
-    if (repair != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => RepairDetailView(repair: repair)),
-      );
-      return;
+
+    // Suy loại nguồn từ tiền tố firestoreId của khoản nợ.
+    String source;
+    if (fid.startsWith('debt_stock_')) {
+      source = 'Nhập kho (phiếu nhập hàng từ NCC)';
+    } else if (fid.startsWith('debt_cost_')) {
+      source = 'Bổ sung giá vốn sản phẩm';
+    } else if (fid.startsWith('debt_part_') ||
+        fid.startsWith('debt_quick_part_')) {
+      source = 'Nhập linh kiện từ NCC';
+    } else if (fid.startsWith('debt_repair_') ||
+        fid.startsWith('debt_partner_debt_')) {
+      source = 'Đơn sửa chữa (đơn gốc có thể đã bị xoá)';
+    } else if (fid.startsWith('debt_customer_') || linkedId.isNotEmpty) {
+      source = 'Bán hàng CÔNG NỢ (đơn gốc có thể đã bị xoá)';
+    } else {
+      source = 'Tạo tay trong mục Công nợ';
     }
 
-    NotificationService.showSnackBar(
-      'Không tìm thấy đơn gốc (có thể đã bị xóa)',
-      color: Colors.orange,
+    final total = _toInt(debt['totalAmount']);
+    final paid = _toInt(debt['paidAmount']);
+    final createdAt = _toInt(debt['createdAt']);
+    final dateStr = createdAt > 0
+        ? DateFormat('HH:mm - dd/MM/yyyy')
+            .format(DateTime.fromMillisecondsSinceEpoch(createdAt))
+        : '—';
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Nguồn khoản nợ'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _srcRow('Phát sinh từ', source),
+            _srcRow('Đối tượng', (debt['personName'] ?? '').toString()),
+            if ((debt['note'] ?? '').toString().trim().isNotEmpty)
+              _srcRow('Nội dung', debt['note'].toString()),
+            _srcRow('Tổng nợ', '${MoneyUtils.formatCurrency(total)}đ'),
+            _srcRow('Đã trả', '${MoneyUtils.formatCurrency(paid)}đ'),
+            _srcRow('Còn nợ', '${MoneyUtils.formatCurrency(total - paid)}đ'),
+            _srcRow('Ngày tạo', dateStr),
+            const SizedBox(height: 8),
+            if (fid.startsWith('debt_stock_') ||
+                fid.startsWith('debt_part_') ||
+                fid.startsWith('debt_quick_part_') ||
+                fid.startsWith('debt_cost_'))
+              Text(
+                'Khoản nợ này phát sinh khi nhập hàng — không tách thành đơn '
+                'riêng để mở. Sản phẩm/linh kiện vẫn còn trong kho.',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('ĐÓNG'),
+          ),
+        ],
+      ),
     );
   }
+
+  Widget _srcRow(String k, String v) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 88,
+              child: Text(
+                k,
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                v.isEmpty ? '—' : v,
+                style: const TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        ),
+      );
 
   @override
   bool get wantKeepAlive => true;
