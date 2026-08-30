@@ -63,8 +63,13 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
   Future<void> _loadCounts() async {
     try {
       final db = await DBHelper().database;
-      final overdueDebtCutoffMs = DateTime.now()
+      final nowDt = DateTime.now();
+      final overdueDebtCutoffMs = nowDt
           .subtract(const Duration(days: 30))
+          .millisecondsSinceEpoch;
+      // Đầu tuần này (Thứ 2, 00:00) — dùng cho các cảnh báo "trong tuần".
+      final startOfWeekMs = DateTime(nowDt.year, nowDt.month, nowDt.day)
+          .subtract(Duration(days: nowDt.weekday - 1))
           .millisecondsSinceEpoch;
       final results = await Future.wait([
         db.rawQuery('SELECT COUNT(*) FROM repairs WHERE status IN (1, 2)'),
@@ -83,11 +88,13 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
           'AND (totalAmount - paidAmount) > 0 AND createdAt < ?',
           [overdueDebtCutoffMs],
         ),
-        // Đơn bán trả góp NH chưa được ngân hàng tất toán
+        // Đơn bán trả góp NH TUẦN NÀY chưa được ngân hàng tất toán
         db.rawQuery(
           'SELECT COUNT(*) FROM sales WHERE isInstallment = 1 '
           'AND settlementReceivedAt IS NULL '
+          'AND soldAt >= ? '
           'AND (deleted IS NULL OR deleted != 1)',
+          [startOfWeekMs],
         ),
         // Lần chốt quỹ gần nhất (để tính số ngày chưa chốt)
         db.rawQuery('SELECT MAX(dateKey) as lastKey FROM cash_closings'),
@@ -96,17 +103,21 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
           'SELECT MIN(soldAt) as firstSale FROM sales '
           'WHERE (deleted IS NULL OR deleted != 1)',
         ),
-        // Đơn sửa đã giao nhưng chưa ghi nhận giá vốn (cost = 0/null)
+        // Đơn sửa đã giao TUẦN NÀY nhưng chưa ghi nhận giá vốn (cost = 0/null)
         db.rawQuery(
           "SELECT COUNT(*) FROM repairs WHERE status = 4 "
           "AND (cost IS NULL OR cost = 0) "
+          "AND deliveredAt >= ? "
           "AND (deleted IS NULL OR deleted != 1)",
+          [startOfWeekMs],
         ),
-        // Tổng tiền NH chưa tất toán (cùng điều kiện với đếm đơn ở trên)
+        // Tổng tiền NH chưa tất toán TUẦN NÀY (cùng điều kiện với đếm đơn ở trên)
         db.rawQuery(
           'SELECT COALESCE(SUM(loanAmount + loanAmount2), 0) AS total FROM sales '
           'WHERE isInstallment = 1 AND settlementReceivedAt IS NULL '
+          'AND soldAt >= ? '
           'AND (deleted IS NULL OR deleted != 1)',
+          [startOfWeekMs],
         ),
       ]);
 
@@ -233,7 +244,7 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
       items.add(
         _ActionItem(
           icon: Icons.money_off,
-          label: '$_missingCostRepairs đơn sửa đã giao chưa có giá vốn',
+          label: '$_missingCostRepairs đơn sửa tuần này chưa có giá vốn',
           color: Colors.purple.shade700,
           onTap: widget.onMissingCostRepairsTap,
         ),
@@ -254,8 +265,8 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
         _ActionItem(
           icon: Icons.account_balance,
           label: _pendingInstallmentAmount > 0
-              ? 'Tiền NH chưa tất toán: ${MoneyUtils.formatVND(_pendingInstallmentAmount)} đ · $_pendingInstallments đơn'
-              : '$_pendingInstallments đơn trả góp chờ NH tất toán',
+              ? 'Tiền NH tuần này chưa tất toán: ${MoneyUtils.formatVND(_pendingInstallmentAmount)} đ · $_pendingInstallments đơn'
+              : '$_pendingInstallments đơn trả góp tuần này chờ NH tất toán',
           color: Colors.indigo,
           onTap: widget.onPendingInstallmentTap,
         ),

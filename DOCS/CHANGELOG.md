@@ -4,6 +4,21 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-30k] - feat(home) CẦN XỬ LÝ: giới hạn cảnh báo NH chưa tất toán + đơn sửa thiếu giá vốn về "tuần này"
+
+**Chưa tăng version.** 2 cảnh báo này đã có trong khung CẦN XỬ LÝ nhưng đang đếm **toàn thời gian** — đơn cũ (khó/không bao giờ xử lý) làm loãng con số, che mất việc thực sự cần làm.
+
+`dashboard_cards.dart` — thêm mốc `startOfWeekMs` (Thứ 2, 00:00 tuần này) và scope lại:
+- **"Tiền NH tuần này chưa tất toán: X đ · N đơn"** — `sales WHERE isInstallment=1 AND settlementReceivedAt IS NULL AND soldAt >= startOfWeek` (cả count lẫn SUM).
+- **"N đơn sửa tuần này chưa có giá vốn"** — `repairs WHERE status=4 AND cost=0 AND deliveredAt >= startOfWeek`.
+
+Nhãn đổi để nói rõ "tuần này". Nút bấm vẫn mở danh sách đầy đủ như cũ (home chỉ là nhắc việc trong tuần).
+
+**Test:** `flutter analyze` sạch; `flutter test` (chạy lại).
+**Files:** `lib/widgets/dashboard_cards.dart`.
+
+---
+
 ## [2026-08-30j] - feat(phân quyền) thông báo tài chính/công nợ chỉ cho chủ shop + quản lý
 
 Trả lời câu hỏi "phân quyền chưa": trước đó `[2026-08-30h..i]` broadcast cho **mọi vai trò** (kể cả nhân viên/kỹ thuật thấy lương, chi phí, chốt quỹ...). Nay giới hạn.
