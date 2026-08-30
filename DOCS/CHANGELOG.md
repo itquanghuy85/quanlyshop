@@ -4,6 +4,35 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-30d] - fix(công nợ) thanh toán không trừ nợ + mỗi tài khoản một số liệu
+
+**2 lỗi user báo (ảnh iOS), cùng một gốc:** `debts.paidAmount` (số "đã trả") chỉ được `updateDebtPaid()` cập nhật **ngay trên máy bấm thu/trả nợ**. Sổ cái `debt_payments` (append-only) sync tin cậy giữa các máy, nhưng `debts.paidAmount` thì không → phân kỳ.
+
+### Lỗi 2 — mỗi tài khoản một số công nợ khác nhau (NCC + đối tác SC)
+
+Listener realtime `debt_payments` ([sync_service.dart](lib/services/sync_service.dart)) và vòng batch sync khi nhận phiếu từ cloud **chỉ `upsertDebtPayment(data)`** — KHÔNG tính lại `debts.paidAmount`. Máy B chỉ đúng nếu doc `debts` riêng của máy A cũng về tới VÀ thắng conflict; nếu máy B có sửa cục bộ chưa sync khoản nợ đó, hoặc push `debts` của A trượt → máy B **kẹt số cũ vĩnh viễn**.
+
+### Lỗi 1 — thanh toán xong không trừ nợ (ngay trên máy vừa bấm)
+
+Sau khi `updateDebtPaid` đặt `paidAmount` + `isSynced=0`, orchestrator push xong rồi lật `isSynced=1`. Lúc này 1 **echo cũ** của doc `debts` từ Firestore về → `_shouldAcceptCloudData` cho `debts`: `isSynced==1` ⇒ nhận cloud vô điều kiện (chỉ `repairs` có chốt so timestamp, `debts` không) ⇒ ghi đè `paidAmount` về số cũ. "Còn nợ" nhảy lại như chưa trả.
+
+### Fix — `debts.paidAmount` tự khớp từ sổ cái trên mọi máy
+
+1. **`SyncService._reconcileDebtFromPaymentRow`** (mới): sau khi nhận 1 dòng `debt_payments` từ cloud (thêm/xóa) — cả listener realtime lẫn batch — gọi `updateDebtPaid(..., markUnsynced: false)` để tính lại `paidAmount` từ TỔNG `debt_payments` local. Không chờ doc `debts` của máy nguồn. (sửa Lỗi 2)
+2. **`DBHelper.updateDebtPaid`**: thêm cờ `markUnsynced` (mặc định `true` cho thao tác cục bộ; `false` khi gọi từ sync — không re-push, tránh ping-pong echo) + **no-op khi số không đổi** (khỏi bơm `updatedAt`/`isSynced` vô ích khi bị gọi lặp từ echo).
+3. **`_shouldAcceptCloudData`**: thêm `debts` vào chốt "local mới hơn cloud + tolerance 3s thì skip" y như `repairs` (chặn echo cũ reset `paidAmount`). (sửa Lỗi 1)
+
+### Test
+
+- **Máy thật (Oppo CPH2203)**: trả 500.000đ 1 nợ NCC (tổng 3tr) → `debts.paidAmount` 0→500.000, `debt_payments` id 84 tạo + `isSynced=1`, "Tổng nợ còn lại" 15.3tr→14.8tr, **giữ nguyên sau 15s chờ echo sync** (không revert).
+- **Unit test mới** `test/debt_paid_reconcile_test.dart` — 6 test: nhận phiếu từ cloud → paidAmount tự khớp dù `debtId` local lệch; echo cũ reset về 0 → reconcile khôi phục; gọi lặp không cộng đôi; phiếu bị soft-delete → giảm lại; thao tác cục bộ vẫn đánh dấu cần push; `extractKey` fallback.
+- `flutter analyze` 0 error/warning mới; `flutter test` +429 −8 (0 hồi quy — nay là +435 với 6 test mới).
+
+**Files:** `lib/data/db_helper.dart`, `lib/services/sync_service.dart`, `test/debt_paid_reconcile_test.dart`.
+**Đóng gói:** `pubspec` `3.5.0+552` → **`3.5.0+553`**.
+
+---
+
 ## [2026-08-30c] - fix(công cụ dọn dữ liệu) nút MIỄN NỢ bấm không được + thêm cảnh báo lý do bắt buộc
 
 **Bug (user báo, ảnh chụp iOS):** Công cụ điều chỉnh dữ liệu → tab CÔNG NỢ → "Miễn nợ" → gõ lý do xong nút **MIỄN NỢ vẫn xám, bấm không được**.

@@ -7518,14 +7518,24 @@ class DBHelper {
   ///
   /// Yêu cầu: phiếu `debt_payments` tương ứng đã được `insertDebtPayment` TRƯỚC
   /// khi gọi hàm này (các caller hiện tại đều theo thứ tự đó).
-  Future<int> updateDebtPaid(int? id, {String? firestoreId}) async {
+  ///
+  /// [markUnsynced]: mặc định `true` — caller là thao tác cục bộ (bấm thu/trả
+  /// nợ) nên cần đẩy `debts` lên cloud. Đặt `false` khi gọi TỪ luồng đồng bộ
+  /// (nhận `debt_payments` từ cloud rồi tự khớp lại `paidAmount` từ sổ cái) —
+  /// giá trị này bằng đúng số máy nguồn đã tính, không cần re-push, tránh
+  /// ping-pong echo giữa các máy.
+  Future<int> updateDebtPaid(
+    int? id, {
+    String? firestoreId,
+    bool markUnsynced = true,
+  }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final db = await database;
 
     final useFid = firestoreId != null && firestoreId.isNotEmpty;
     final rows = await db.query(
       'debts',
-      columns: ['id', 'firestoreId', 'totalAmount'],
+      columns: ['id', 'firestoreId', 'totalAmount', 'paidAmount'],
       where: useFid ? 'firestoreId = ?' : 'id = ?',
       whereArgs: [useFid ? firestoreId : id],
       limit: 1,
@@ -7540,6 +7550,7 @@ class DBHelper {
     final debtLocalId = debtRow['id'] as int?;
     final debtFid = debtRow['firestoreId'] as String?;
     final total = (debtRow['totalAmount'] as int?) ?? 0;
+    final currentPaid = (debtRow['paidAmount'] as int?) ?? 0;
     if (debtLocalId == null) return 0;
 
     final sumRows = await db.rawQuery(
@@ -7556,6 +7567,10 @@ class DBHelper {
     );
     final newPaid = (sumRows.first['s'] as int?) ?? 0;
 
+    // Không có gì đổi → khỏi ghi (tránh bơm updatedAt/isSynced vô ích, nhất là
+    // khi bị gọi lặp từ echo sync).
+    if (newPaid == currentPaid) return 0;
+
     if (total > 0 && newPaid > total) {
       debugPrint(
         '⚠️ updateDebtPaid: paidAmount ($newPaid) VƯỢT totalAmount ($total) '
@@ -7566,7 +7581,7 @@ class DBHelper {
     return await db.rawUpdate(
       'UPDATE debts SET paidAmount = ?, '
       'status = CASE WHEN ? >= totalAmount THEN ? ELSE ? END, '
-      'updatedAt = ?, isSynced = 0 WHERE id = ?',
+      'updatedAt = ?${markUnsynced ? ', isSynced = 0' : ''} WHERE id = ?',
       [newPaid, newPaid, 'PAID', 'UNPAID', now, debtLocalId],
     );
   }

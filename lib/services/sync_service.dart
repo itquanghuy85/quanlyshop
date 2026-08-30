@@ -835,13 +835,18 @@ class SyncService {
     }
 
     // Nếu local đã sync (không có thay đổi pending) → accept cloud
-    // Ngoại lệ: repairs — so sánh timestamp để tránh overwrite status mới bằng cloud cũ
+    // Ngoại lệ: repairs + debts — so sánh timestamp để tránh 1 echo CŨ của
+    // Firestore ghi đè thay đổi vừa xảy ra cục bộ (repairs: status mới; debts:
+    // paidAmount vừa cập nhật sau khi thu/trả nợ — "thanh toán xong không trừ
+    // nợ" chính là echo cũ này reset paidAmount về số trước đó).
     if (localIsSynced) {
-      if (collection == 'repairs' && cloudTime > 0 && localUpdatedAt > 0) {
+      if ((collection == 'repairs' || collection == 'debts') &&
+          cloudTime > 0 &&
+          localUpdatedAt > 0) {
         const toleranceMs = 3000;
         if (localUpdatedAt > cloudTime + toleranceMs) {
           debugPrint(
-            '🔒 SYNC: repairs/$firestoreId - Local mới hơn cloud dù isSynced=true, skip (local: $localUpdatedAt, cloud: $cloudTime)',
+            '🔒 SYNC: $collection/$firestoreId - Local mới hơn cloud dù isSynced=true, skip (local: $localUpdatedAt, cloud: $cloudTime)',
           );
           return false;
         }
@@ -954,6 +959,41 @@ class SyncService {
     // Best-effort: nếu đã enqueue thì cố gắng đẩy ngay lên cloud (tránh tình trạng "lúc được lúc không")
     // ignore: unawaited_futures
     orchestrator.syncAll();
+  }
+
+  /// Sau khi nhận 1 dòng `debt_payments` từ cloud (mới/xóa), tự khớp lại
+  /// `debts.paidAmount` của khoản nợ liên quan từ TỔNG sổ cái `debt_payments`
+  /// local — KHÔNG chờ doc `debts` riêng của máy nguồn về (có thể trượt/kẹt
+  /// conflict). Đây là gốc rễ của "mỗi máy một số công nợ": trước đây listener
+  /// chỉ upsert dòng phiếu, không đụng `paidAmount`.
+  ///
+  /// `markUnsynced: false` — giá trị bằng đúng số máy nguồn đã tính, không
+  /// re-push để tránh ping-pong echo.
+  static Future<void> _reconcileDebtFromPaymentRow(
+    DBHelper db,
+    Map<String, dynamic> paymentRow,
+  ) async {
+    try {
+      final fidRaw = paymentRow['debtFirestoreId'];
+      final fid = fidRaw is String ? fidRaw.trim() : null;
+      final rawId = paymentRow['debtId'];
+      int? debtId;
+      if (rawId is int) {
+        debtId = rawId;
+      } else if (rawId is num) {
+        debtId = rawId.toInt();
+      } else if (rawId is String) {
+        debtId = int.tryParse(rawId.trim());
+      }
+      if ((fid == null || fid.isEmpty) && debtId == null) return;
+      await db.updateDebtPaid(
+        debtId,
+        firestoreId: (fid != null && fid.isNotEmpty) ? fid : null,
+        markUnsynced: false,
+      );
+    } catch (e) {
+      debugPrint('⚠️ _reconcileDebtFromPaymentRow: $e');
+    }
   }
 
   /// Khởi tạo đồng bộ thời gian thực
@@ -1357,11 +1397,16 @@ class SyncService {
             final db = DBHelper();
             if (data['deleted'] == true || data['deleted'] == 1) {
               await db.deleteDebtPaymentByFirestoreId(docId);
+              // Phiếu bị xóa trên cloud → nợ liên quan phải giảm paidAmount.
+              await _reconcileDebtFromPaymentRow(db, data);
             } else {
               data['firestoreId'] = docId;
               data['isSynced'] = 1;
               _convertTimestampFields(data);
               await db.upsertDebtPayment(data);
+              // Tự khớp lại debts.paidAmount từ sổ cái — không chờ doc debts
+              // riêng của máy nguồn (gốc rễ "mỗi máy một số công nợ").
+              await _reconcileDebtFromPaymentRow(db, data);
             }
           } catch (e) {
             debugPrint("Lỗi sync debt_payment $docId: $e");
@@ -5085,6 +5130,8 @@ class SyncService {
                 await db.upsertDebt(Debt.fromMap(data));
               } else if (col == 'debt_payments') {
                 await db.upsertDebtPayment(data);
+                // Khớp lại debts.paidAmount từ sổ cái ngay khi kéo phiếu về.
+                await _reconcileDebtFromPaymentRow(db, data);
               } else if (col == 'attendance') {
                 await db.upsertAttendance(Attendance.fromMap(data));
               } else if (col == 'leave_requests') {
