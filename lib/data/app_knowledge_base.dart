@@ -852,7 +852,9 @@ class AppKnowledgeBase {
       id: 'price-book',
       title: 'Bảng giá (giá đề xuất + giá niêm yết)',
       menuPath:
-          'Trang chủ → TRUY CẬP NHANH TÀI CHÍNH → Bảng giá',
+          'Trang chủ → TRUY CẬP NHANH TÀI CHÍNH → Bảng giá  (hoặc tab Sửa '
+          'chữa → "Bảng giá sửa chữa", tab Bán hàng → "Bảng giá bán hàng" — '
+          'vào đúng tab tương ứng)',
       whatItDoes:
           'Tổng hợp giá đề xuất (trung vị lịch sử) cho từng "model · lỗi" (sửa '
           'chữa) và từng model/biến thể (bán hàng). Chủ shop có thể GHIM giá '
@@ -865,7 +867,9 @@ class AppKnowledgeBase {
         'Tìm theo model/lỗi. Mỗi dòng hiện 3 ô Thu/Bán · Vốn · Lãi + số mẫu + '
             'độ tin cậy + khoảng giá thường gặp.',
         'Chạm 1 dòng → nhập "Giá niêm yết" (+ giá vốn, ghi chú tuỳ chọn) → '
-            '**Ghim giá**. Dòng đó chuyển nhãn "NIÊM YẾT".',
+            '**Ghim giá**. Dòng đó chuyển nhãn "NIÊM YẾT". Nút "Xem N đơn/SP '
+            'tương ứng" mở danh sách các đơn sửa / SP đã tạo ra giá đó (bấm để '
+            'xem chi tiết).',
         'Tab Bán hàng: nút "Áp giá cho SP chưa có giá" (góc trên) → xem danh '
             'sách đề xuất → xác nhận để đặt giá hàng loạt.',
         'Menu ⋮: **Hệ số giá mùa vụ** (+/-% vào giá đề xuất), **Xuất Excel**, '
@@ -901,7 +905,7 @@ class AppKnowledgeBase {
       title: 'Đối soát tiền về',
       menuPath:
           'Trang chủ → TRUY CẬP NHANH TÀI CHÍNH → Đối soát tiền về  (cũng có ở '
-          'Sổ quỹ, Công nợ, Tài chính)',
+          'Sổ quỹ, Công nợ, Tài chính, tab Bán hàng)',
       whatItDoes:
           'Nhập số tiền vừa nhận (hoặc vừa chuyển đi) → app tự tìm đơn trả góp '
           'ngân hàng chưa tất toán hoặc khoản công nợ có số tiền khớp → chọn và '
@@ -916,6 +920,8 @@ class AppKnowledgeBase {
             'khoản khớp (khớp đúng / khớp một phần), khớp đúng lên trước.',
         'Chạm một khoản → xem lại → Xác nhận ghi. App ghi nhận qua đúng luồng '
             '(tất toán trả góp / thu nợ / trả nợ) và cập nhật trạng thái.',
+        'Nút ↗ trên mỗi dòng: mở đơn bán/sửa gốc hoặc màn Công nợ để đối chiếu '
+            'trước khi ghi.',
         'Kéo danh sách xuống để làm mới sau khi ghi.',
       ],
       notes: [
