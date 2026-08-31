@@ -7,6 +7,7 @@ import '../services/money_reconcile_service.dart';
 import '../utils/money_utils.dart';
 import '../widgets/currency_text_field.dart';
 import '../widgets/custom_app_bar.dart';
+import '../widgets/bank_transfer_assist.dart';
 import 'debt_view.dart';
 import 'repair_detail_view.dart';
 import 'sale_detail_view.dart';
@@ -213,6 +214,12 @@ class _MoneyReconcileViewState extends State<MoneyReconcileView> {
                     ),
                   ],
                 ),
+                if (_moneyIn)
+                  bankTransferAssistCard(
+                    amountController: _amountCtrl,
+                    direction: BankPayDirection.inbound,
+                    refText: 'Doi soat tien ve',
+                  ),
               ],
             ),
           ),

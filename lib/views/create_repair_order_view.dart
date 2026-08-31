@@ -49,6 +49,7 @@ import 'order_list_view.dart';
 import '../theme/popup_theme.dart';
 import '../widgets/app_popup.dart';
 import '../widgets/ai_order_input_sheet.dart';
+import '../widgets/bank_transfer_assist.dart';
 
 class CreateRepairOrderView extends StatefulWidget {
   final String role;
@@ -1446,6 +1447,14 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                                       ? sheetLoc.pleaseSelectPaymentMethod
                                       : null,
                                 ),
+                                if (selectedPaymentMethod == 'CHUYỂN KHOẢN')
+                                  bankTransferAssistCard(
+                                    amountController: costCtrl,
+                                    direction: BankPayDirection.outbound,
+                                    counterpartyName: selectedPartner?.name,
+                                    refText: 'Tra doi tac '
+                                        '${selectedPartner?.name ?? ''}',
+                                  ),
                               ],
                               const SizedBox(height: 16),
                             ],

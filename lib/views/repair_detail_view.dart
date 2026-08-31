@@ -56,6 +56,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'inventory_view.dart';
 import 'inventory_detail_view.dart';
 import 'repair_partner_view.dart';
+import '../widgets/bank_transfer_assist.dart';
 import '../widgets/clickable_customer_header.dart';
 import 'repair_invoice_template_view.dart';
 import 'repair_invoice_preview_view.dart';
@@ -1556,6 +1557,13 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                             )
                             .toList(),
                   ),
+                  if (payMethod == dialogLoc.transfer)
+                    bankTransferAssistCard(
+                      amountController: priceCtrl,
+                      direction: BankPayDirection.inbound,
+                      counterpartyName: r.customerName,
+                      refText: 'Sua chua ${r.customerName}',
+                    ),
                 ],
               ),
             ),
@@ -6103,6 +6111,14 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                                           ? dialogLoc.pleaseSelectPaymentMethod
                                           : null,
                                     ),
+                                    if (selectedPaymentMethod == 'CHUYỂN KHOẢN')
+                                      bankTransferAssistCard(
+                                        amountController: costCtrl,
+                                        direction: BankPayDirection.outbound,
+                                        counterpartyName: selectedPartner?.name,
+                                        refText: 'Tra doi tac '
+                                            '${selectedPartner?.name ?? ''}',
+                                      ),
                                   ],
                                 ],
                               ),
@@ -7497,6 +7513,16 @@ class _PartsPaymentDialogState extends State<_PartsPaymentDialog> {
               Colors.blue,
             ),
             _buildPaymentOption('CÔNG NỢ', Icons.access_time, Colors.orange),
+
+            if (_selectedMethod == 'CHUYỂN KHOẢN')
+              bankTransferAssistCard(
+                amount: widget.totalCost,
+                direction: BankPayDirection.outbound,
+                counterpartyName: _supplierController.text.trim().isEmpty
+                    ? null
+                    : _supplierController.text.trim(),
+                refText: 'Tien linh kien',
+              ),
 
             // Cảnh báo nếu chọn công nợ
             if (_selectedMethod == 'CÔNG NỢ')

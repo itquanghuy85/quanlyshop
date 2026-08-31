@@ -32,6 +32,7 @@ import '../utils/excel_export_helper.dart';
 import '../widgets/export_date_filter_dialog.dart';
 import '../theme/popup_theme.dart';
 import '../widgets/app_popup.dart';
+import '../widgets/bank_transfer_assist.dart';
 import '../l10n/app_localizations.dart';
 
 class ExpenseView extends StatefulWidget {
@@ -751,6 +752,14 @@ class _ExpenseViewState extends State<ExpenseView> {
                                   )
                                   .toList(),
                             ),
+                            if (payMethod == 'CHUYỂN KHOẢN')
+                              bankTransferAssistCard(
+                                amountController: amountC,
+                                direction: BankPayDirection.outbound,
+                                refText: noteC.text.trim().isNotEmpty
+                                    ? noteC.text.trim()
+                                    : 'Chi phi',
+                              ),
                             const SizedBox(height: 12),
                             Text(
                               l10n.expenseScopeLabel,
@@ -1469,6 +1478,14 @@ class _ExpenseViewState extends State<ExpenseView> {
                                   )
                                   .toList(),
                             ),
+                            if (payMethod == 'CHUYỂN KHOẢN')
+                              bankTransferAssistCard(
+                                amountController: amountC,
+                                direction: BankPayDirection.inbound,
+                                refText: noteC.text.trim().isNotEmpty
+                                    ? noteC.text.trim()
+                                    : 'Thu phat sinh',
+                              ),
                             const SizedBox(height: 12),
                             Text(
                               l10n.incomeScopeLabel,

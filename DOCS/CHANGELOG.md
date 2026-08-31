@@ -4,6 +4,56 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-31d] - feat(thanh toán) "Thanh toán qua ngân hàng" — mã QR VietQR + mở app NH ở mọi sheet thanh toán
+
+**Chưa tăng version.**
+
+### Ý tưởng
+Khi chọn phương thức "Chuyển khoản", app hiện thêm khối **cố vấn**: mã QR
+VietQR (đã điền sẵn số tiền + nội dung) để quét chuyển vào TK shop, kèm nút
+**"Mở app ngân hàng"**, và nút sao chép STK / số tiền / nội dung. **KHÔNG đụng
+logic tiền** — nút Xác nhận của mỗi sheet vẫn gọi y nguyên
+`PaymentIntentService.executePaymentDirect(...)` như cũ.
+
+### Mới
+- **`lib/services/bank_accounts_service.dart`** — đọc TK nhận CK của shop
+  (tái dùng cấu hình `settings/bank_qr` + SharedPreferences `bank_qr_*` sẵn có;
+  đọc thêm mảng `accounts[]` nếu có — tương thích ngược). `ValueNotifier` để
+  widget tự cập nhật sau khi lưu cài đặt.
+- **`lib/widgets/bank_transfer_assist.dart`** — `bankTransferAssistCard(...)`:
+  render `QrImageView(buildVietQrPayload(...))` (chuẩn NAPAS247, offline),
+  hàng STK/số tiền/nội dung + nút sao chép, nút "Mở app ngân hàng" (thử
+  `dl.vietqr.io` / `api.vietqr.io`, im lặng fallback về QR). Chiều
+  `inbound` (nhận) hiện QR TK shop; `outbound` (chi) hiện nút mở app.
+  `amountController` → QR tự cập nhật theo số tiền đang gõ. Ẩn nút deeplink
+  trên web/desktop.
+- **`AndroidManifest.xml`** — thêm `<queries>` cho `VIEW https/http` + `DIAL`
+  để `canLaunchUrl` chạy đúng trên Android 11+.
+
+### Cắm vào (mọi luồng có "Chuyển khoản")
+`debt_payment_sheet` (thu/trả nợ), `collect_customer_debt_view` (thu nợ phân bổ),
+`money_reconcile_view` (đối soát — chiều nhận), `create_sale_view` (thu tiền đơn
+bán), `create_repair_order_view` (trả đối tác), `create_purchase_order_view`
+(trả NCC), `expense_view` ×2 (chi phí CK + thu phát sinh), `sale_detail_view`
+(tất toán trả góp NH), `repair_detail_view` ×3 (duyệt giao + thu tiền, chi phí
+linh kiện, trả đối tác), `pending_payments_list_view` (thực thi khoản chờ).
+
+**Test:** `flutter analyze` 0 error/warning mới; `flutter test` **+470 −8**.
+**Máy thật Oppo CPH2203:** thu nợ HUY → chọn "Chuyển khoản" → hiện QR đúng TK
+shop (Vietcombank/…/TRANMINH) + số tiền 500.000 + nội dung "Thu no HUY" + nút
+"Mở app ngân hàng" + sao chép; bấm **Xác nhận** → `debts.paidAmount` 0→500.000,
+`debt_payments` (CHUYỂN KHOẢN), `financial_activity_log` (CUSTOMER_DEBT_COLLECT/
+IN/500.000/CHUYỂN KHOẢN) — **đúng như luồng cũ, không regression**.
+
+**Chưa làm (Đợt 3 — tách riêng):** đọc thông báo app ngân hàng tự động
+(NotificationListenerService, Android-only, cần quyền + khai báo Play Store).
+
+**Files:** `lib/services/bank_accounts_service.dart` (MỚI),
+`lib/widgets/bank_transfer_assist.dart` (MỚI), 10 sheet thanh toán,
+`android/app/src/main/AndroidManifest.xml`.
+
+---
+
 ## [2026-08-31c] - fix(đồng bộ) badge "N cần đồng bộ" ảo — bản ghi local đã xoá mà cloud còn sống
 
 **Chưa tăng version.**

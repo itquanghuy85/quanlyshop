@@ -37,6 +37,7 @@ import '../constants/financial_constants.dart';
 import '../constants/product_constants.dart';
 import '../widgets/printer_selection_dialog.dart';
 import '../widgets/responsive_wrapper.dart';
+import '../widgets/bank_transfer_assist.dart';
 import '../theme/app_colors.dart';
 import 'sale_invoice_template_view.dart';
 import 'sale_invoice_preview_view.dart';
@@ -749,6 +750,12 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                       ),
                     ),
                   ),
+                ),
+                bankTransferAssistCard(
+                  amountController: amountCtrl,
+                  direction: BankPayDirection.inbound,
+                  counterpartyName: s.bankName ?? s.customerName,
+                  refText: 'Tat toan ${s.customerName}',
                 ),
                 const SizedBox(height: 20),
                 Row(

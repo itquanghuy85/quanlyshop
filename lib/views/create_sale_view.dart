@@ -58,6 +58,7 @@ import 'expansion/pricing/price_selector_sheet.dart';
 import '../widgets/app_cached_image.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/ai_order_input_sheet.dart';
+import '../widgets/bank_transfer_assist.dart';
 
 class CreateSaleView extends StatefulWidget {
   final Product? preSelectedProduct;
@@ -2586,6 +2587,17 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             downPaymentCtrl,
             _isInstallment ? "KHÁCH TRẢ" : "SỐ TIỀN",
             AppColors.secondary,
+          ),
+
+        // Hỗ trợ chuyển khoản: hiện mã QR + nút mở app ngân hàng khi thu bằng CK.
+        if (_paymentMethod == "CHUYỂN KHOẢN" && !_isCombined)
+          bankTransferAssistCard(
+            amountController: downPaymentCtrl,
+            direction: BankPayDirection.inbound,
+            counterpartyName: nameCtrl.text.trim().isEmpty
+                ? null
+                : nameCtrl.text.trim(),
+            refText: 'Ban hang ${nameCtrl.text.trim()}',
           ),
 
         // === KẾT HỢP THANH TOÁN (TIỀN MẶT + CHUYỂN KHOẢN) ===

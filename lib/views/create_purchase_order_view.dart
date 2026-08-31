@@ -18,6 +18,7 @@ import '../constants/financial_constants.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/currency_text_field.dart';
+import '../widgets/bank_transfer_assist.dart';
 
 class CreatePurchaseOrderView extends StatefulWidget {
   const CreatePurchaseOrderView({super.key});
@@ -594,6 +595,18 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
                       ],
                       onChanged: (v) => setState(() => _paymentMethod = v!),
                     ),
+                    if (_paymentMethod == 'CHUYỂN KHOẢN')
+                      bankTransferAssistCard(
+                        amount: _items.fold<int>(
+                          0,
+                          (acc, item) => acc + (item.unitCost * item.quantity),
+                        ),
+                        direction: BankPayDirection.outbound,
+                        counterpartyName: supplierNameCtrl.text.trim().isEmpty
+                            ? null
+                            : supplierNameCtrl.text.trim(),
+                        refText: 'Nhap hang ${supplierNameCtrl.text.trim()}',
+                      ),
                   ],
                 ),
               ),

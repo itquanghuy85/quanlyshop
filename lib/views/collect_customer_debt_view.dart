@@ -9,6 +9,7 @@ import '../utils/money_utils.dart';
 import '../widgets/currency_text_field.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/responsive_wrapper.dart';
+import '../widgets/bank_transfer_assist.dart';
 
 /// 1 dòng phân bổ chỉnh sửa được trong bước 2 của luồng thu tiền gộp.
 class _AllocRow {
@@ -277,6 +278,13 @@ class _CollectCustomerDebtViewState extends State<CollectCustomerDebtView> {
                   )
                   .toList(),
             ),
+            if (_paymentMethodCode == 'CHUYỂN KHOẢN')
+              bankTransferAssistCard(
+                amountController: _amountCtrl,
+                direction: BankPayDirection.inbound,
+                counterpartyName: widget.personName,
+                refText: 'Thu no ${widget.personName}',
+              ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _noteCtrl,

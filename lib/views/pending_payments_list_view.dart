@@ -18,6 +18,7 @@ import '../constants/financial_constants.dart';
 import '../services/event_bus.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/responsive_wrapper.dart';
+import '../widgets/bank_transfer_assist.dart';
 
 class PendingPaymentsListView extends StatefulWidget {
   const PendingPaymentsListView({super.key});
@@ -858,6 +859,15 @@ class _PaymentMethodSheetState extends State<_PaymentMethodSheet> {
                 ),
               ],
             ),
+            if (_selected == PaymentMethod.transfer)
+              bankTransferAssistCard(
+                amount: intent.amount,
+                direction: isIncome
+                    ? BankPayDirection.inbound
+                    : BankPayDirection.outbound,
+                counterpartyName: intent.personName,
+                refText: intent.description,
+              ),
             const SizedBox(height: 16),
             // ── Confirm ──
             SizedBox(

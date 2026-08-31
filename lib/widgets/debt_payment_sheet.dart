@@ -16,6 +16,7 @@ import '../theme/app_colors.dart';
 import '../theme/popup_theme.dart';
 import '../widgets/app_popup.dart';
 import '../widgets/payment_result_sheet.dart';
+import '../widgets/bank_transfer_assist.dart';
 
 /// Sheet thanh toán/thu nợ thống nhất — dùng chung toàn bộ ứng dụng.
 /// Nhận debt map từ bảng debts (hoặc virtual map có cùng cấu trúc).
@@ -169,6 +170,17 @@ class DebtPaymentSheet {
                           )
                           .toList(),
                     ),
+                    if (payMethod == 'CHUYỂN KHOẢN')
+                      bankTransferAssistCard(
+                        amountController: payC,
+                        direction: isCustomerDebt
+                            ? BankPayDirection.inbound
+                            : BankPayDirection.outbound,
+                        counterpartyName: debt['personName']?.toString(),
+                        refText: isCustomerDebt
+                            ? 'Thu no ${debt['personName'] ?? ''}'
+                            : 'Tra no ${debt['personName'] ?? ''}',
+                      ),
                     const SizedBox(height: 14),
                     Row(
                       children: [

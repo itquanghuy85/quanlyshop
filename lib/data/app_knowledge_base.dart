@@ -514,16 +514,24 @@ class AppKnowledgeBase {
       menuPath: 'Sau khi tạo đơn bán → Xem / In phiếu',
       whatItDoes:
           'Xuất phiếu bán cho khách, kèm mã QR VietQR để khách quét chuyển '
-          'khoản đúng số tiền (kể cả tổng nợ nếu còn nợ cũ).',
+          'khoản đúng số tiền (kể cả tổng nợ nếu còn nợ cũ). Cấu hình tài khoản '
+          'nhận tiền ở Cài đặt → QR chuyển khoản.',
       whenToUse: 'Khi cần đưa phiếu cho khách hoặc cho khách chuyển khoản.',
       steps: [
         'Mở đơn bán vừa tạo, chọn Xem phiếu.',
         'Khối "Nợ cũ / Lần này / Tổng nợ" hiện khi khách còn nợ.',
         'Khách quét QR để chuyển đúng số tiền; hoặc bấm In (máy in nhiệt).',
       ],
+      notes: [
+        'Cùng mã QR đó nay còn hiện ngay trong các sheet thanh toán khi chọn '
+            '"Chuyển khoản" (thu nợ, thu tiền đơn, tất toán, trả NCC…) — kèm nút '
+            '"Mở app ngân hàng" và nút sao chép. Vẫn phải bấm Xác nhận để ghi nhận.',
+      ],
       sampleQuestions: [
         'in phiếu bán ở đâu',
         'mã qr chuyển khoản',
+        'thanh toán qua ngân hàng',
+        'mở app ngân hàng khi thu tiền',
       ],
       tags: ['phieu ban', 'in phieu', 'qr', 'chuyen khoan', 'vietqr', 'hoa don'],
       audience: ['all'],
@@ -734,6 +742,10 @@ class AppKnowledgeBase {
         'Mỗi lần trả tạo một dòng "phiếu trả nợ"; tổng "đã trả" tự khớp lại và '
             'đồng bộ mọi máy (kể cả khi các máy nhập lệch nhau).',
         'Trả đủ → khoản nợ chuyển trạng thái "Đã trả".',
+        'Chọn "Chuyển khoản" → hiện mã QR VietQR (điền sẵn số tiền + nội dung, '
+            'theo TK ngân hàng đã cấu hình ở Cài đặt → QR chuyển khoản) + nút '
+            '"Mở app ngân hàng" + sao chép STK/số tiền. Đây chỉ là hỗ trợ — '
+            'chuyển khoản xong vẫn phải bấm Xác nhận để app ghi nhận.',
       ],
       terms: ['dong-tien', 'cong-no-phai-thu', 'cong-no-phai-tra'],
       sampleQuestions: [
