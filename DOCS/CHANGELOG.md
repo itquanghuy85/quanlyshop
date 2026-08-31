@@ -4,6 +4,37 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-30w] - feat(điều hướng) lối tắt Bảng giá/Đối soát vào tab + xem đơn gốc
+
+**Chưa tăng version.**
+
+### Lối tắt vào đúng tab
+- Tab **Sửa chữa** → thẻ "Bảng giá sửa chữa" → mở Bảng giá ở tab Sửa chữa.
+- Tab **Bán hàng** → thẻ "Bảng giá bán hàng" (mở tab Bán hàng) + "Đối soát tiền về".
+- `PriceBookView` + `openPriceBook` nhận `initialTab` (0 = Sửa chữa, 1 = Bán hàng).
+
+### Đối soát tiền về: xem đơn / công nợ tương ứng
+- Mỗi kết quả khớp có nút ↗ "Xem đơn / khoản tương ứng" → mở:
+  trả góp → `SaleDetailView`; công nợ có `linkedType`/`linkedId` (hoặc tiền tố
+  `debt_customer_`/`debt_repair_`/`debt_partner_debt_`) → mở đơn bán/sửa gốc;
+  không lần được → mở màn Công nợ.
+
+### Bảng giá: xem các đơn/SP đã tạo ra dòng giá
+- Dialog ghim giá thêm nút "Xem N đơn / SP tương ứng":
+  sửa chữa → `SimilarRepairHistoryView` (bấm vào đơn để mở chi tiết);
+  bán hàng → sheet liệt kê SP khớp (tên · giá bán · vốn · tồn · IMEI).
+- `PriceBookService.repairSourcesFor` / `saleSourcesFor` (mới);
+  `PriceBookRow` thêm `src1..src4` (thành phần gốc để truy nguồn).
+
+### Đơn sửa: NCC phụ tùng cho đơn cũ
+- `repair_detail_view` tra NCC theo `productId` (`_loadPartSuppliers`) → phụ tùng
+  đơn cũ (chưa lưu `supplier`) vẫn hiện "NCC: …".
+
+**Test:** `flutter analyze` 0 error mới; `flutter test` **+470 −8**. Chưa nghiệm thu adb (tiết kiệm token).
+**Files:** `lib/views/{price_book_view,money_reconcile_view,home_view,repair_detail_view}.dart`, `lib/services/price_book_service.dart`, `lib/models/price_book_models.dart`.
+
+---
+
 ## [2026-08-30v] - feat(bảng giá P3) + đơn sửa hiện NCC linh kiện + list giá gọn lại
 
 **Chưa tăng version.**

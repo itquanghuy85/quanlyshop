@@ -74,6 +74,8 @@ class RepairDetailView extends StatefulWidget {
 class _RepairDetailViewState extends State<RepairDetailView> {
   final db = DBHelper();
   late Repair r;
+  // NCC của phụ tùng tra theo productId — bù cho đơn cũ chưa lưu supplier.
+  final Map<int, String> _partSupplierByPid = {};
   bool _isUpdating = false;
   bool _isPrinting = false;
   String _shopName = "";
@@ -128,10 +130,35 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     _checkPermission();
     _loadShopInfo();
     _loadPartners();
-    unawaited(_loadFreshRepairFromDb());
+    unawaited(_loadFreshRepairFromDb().then((_) => _loadPartSuppliers()));
     unawaited(_startRepairRealtimeListener(forceRestart: true));
     unawaited(_loadLastModifierInfo());
     unawaited(_loadHistoricalPricing());
+  }
+
+  /// Tra NCC cho các phụ tùng có productId nhưng chưa lưu supplier (đơn cũ).
+  Future<void> _loadPartSuppliers() async {
+    try {
+      final pids = <int>{
+        for (final p in r.partsUsedDetailed)
+          if (p.productId != null &&
+              (p.supplier ?? '').trim().isEmpty &&
+              !_partSupplierByPid.containsKey(p.productId))
+            p.productId!,
+      };
+      if (pids.isEmpty) return;
+      final map = <int, String>{};
+      for (final pid in pids) {
+        final prod = await db.getProductById(pid);
+        final sup = (prod?.supplier ?? '').trim();
+        if (sup.isNotEmpty) map[pid] = sup;
+      }
+      if (map.isNotEmpty && mounted) {
+        setState(() => _partSupplierByPid.addAll(map));
+      }
+    } catch (e) {
+      debugPrint('_loadPartSuppliers: $e');
+    }
   }
 
   Future<void> _loadHistoricalPricing() async {
@@ -4836,17 +4863,27 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     for (final p in r.partsUsedDetailed)
-                                      Padding(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 1),
-                                        child: Text(
-                                          '${p.name} x${p.qty}'
-                                          '${(p.supplier ?? '').trim().isNotEmpty ? '  ·  NCC: ${p.supplier!.trim()}' : ''}',
-                                          style: AppTextStyles.caption.copyWith(
-                                            color: Colors.blue,
+                                      Builder(builder: (_) {
+                                        final sup = (p.supplier ?? '')
+                                                .trim()
+                                                .isNotEmpty
+                                            ? p.supplier!.trim()
+                                            : (p.productId != null
+                                                ? (_partSupplierByPid[
+                                                        p.productId] ??
+                                                    '')
+                                                : '');
+                                        return Padding(
+                                          padding: const EdgeInsets.only(
+                                              bottom: 1),
+                                          child: Text(
+                                            '${p.name} x${p.qty}'
+                                            '${sup.isNotEmpty ? '  ·  NCC: $sup' : ''}',
+                                            style: AppTextStyles.caption
+                                                .copyWith(color: Colors.blue),
                                           ),
-                                        ),
-                                      ),
+                                        );
+                                      }),
                                   ],
                                 ),
                               ),

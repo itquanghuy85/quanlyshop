@@ -5050,6 +5050,20 @@ class _HomeViewState extends State<HomeView>
                 MaterialPageRoute(builder: (_) => const CreateSaleView()),
               ),
             ),
+            const SizedBox(height: 6),
+            _financeQuickCard(
+              'Bảng giá bán hàng',
+              Icons.sell_outlined,
+              Colors.deepPurple,
+              () => openPriceBook(context, initialTab: 1),
+            ),
+            const SizedBox(height: 6),
+            _financeQuickCard(
+              'Đối soát tiền về',
+              Icons.fact_check_outlined,
+              Colors.indigo,
+              () => openMoneyReconcile(context),
+            ),
 
             const SizedBox(height: 10),
             _buildSectionHeader(loc.management),
@@ -5166,6 +5180,13 @@ class _HomeViewState extends State<HomeView>
                   builder: (_) => const PaymentRequestChatView(),
                 ),
               ),
+            ),
+            const SizedBox(height: 6),
+            _financeQuickCard(
+              'Bảng giá sửa chữa',
+              Icons.sell_outlined,
+              Colors.deepPurple,
+              () => openPriceBook(context, initialTab: 0),
             ),
 
             const SizedBox(height: 10),

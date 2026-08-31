@@ -4,16 +4,20 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import '../models/price_book_models.dart';
+import '../models/product_model.dart';
 import '../services/price_book_service.dart';
 import '../utils/money_utils.dart';
 import '../utils/vietnamese_utils.dart';
 import '../widgets/currency_text_field.dart';
 import '../widgets/custom_app_bar.dart';
+import 'similar_repair_history_view.dart';
 
 /// "Bảng giá" — giá đề xuất (trung vị lịch sử) cho sửa chữa & bán hàng,
 /// cho phép chủ shop GHIM giá niêm yết. Form tạo đơn đọc từ đây.
 class PriceBookView extends StatefulWidget {
-  const PriceBookView({super.key});
+  /// 0 = Sửa chữa, 1 = Bán hàng.
+  final int initialTab;
+  const PriceBookView({super.key, this.initialTab = 0});
 
   @override
   State<PriceBookView> createState() => _PriceBookViewState();
@@ -33,7 +37,11 @@ class _PriceBookViewState extends State<PriceBookView>
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 2, vsync: this)..addListener(_onTab);
+    _tab = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTab.clamp(0, 1),
+    )..addListener(_onTab);
     _load();
   }
 
@@ -85,6 +93,80 @@ class _PriceBookViewState extends State<PriceBookView>
 
   Future<void> _export() async {
     await PriceBookService.exportToExcel(context);
+  }
+
+  /// Xem các đơn sửa / SP đã tạo ra dòng bảng giá.
+  Future<void> _openSources(PriceBookRow r) async {
+    if (r.scope == 'repair') {
+      final list =
+          await PriceBookService.repairSourcesFor(r.src1, r.src2);
+      if (!mounted) return;
+      if (list.isEmpty) {
+        _snack('Không tìm thấy đơn tương ứng.');
+        return;
+      }
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) =>
+              SimilarRepairHistoryView(repairs: list, showCost: true),
+        ),
+      );
+      return;
+    }
+    // sale
+    final products = await PriceBookService.saleSourcesFor(
+      r.src1,
+      r.src2,
+      r.src3,
+      r.src4,
+    );
+    if (!mounted) return;
+    if (products.isEmpty) {
+      _snack('Không tìm thấy sản phẩm tương ứng.');
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.6,
+        maxChildSize: 0.9,
+        builder: (_, sc) => Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Text(
+                '${r.title} — ${products.length} SP',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView.separated(
+                controller: sc,
+                itemCount: products.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (_, i) => _productTile(products[i]),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _productTile(Product p) {
+    return ListTile(
+      dense: true,
+      title: Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: Text(
+        'Bán ${MoneyUtils.formatCurrency(p.price)}đ  ·  Vốn '
+        '${MoneyUtils.formatCurrency(p.cost)}đ  ·  Tồn ${p.quantity}'
+        '${p.imei != null && p.imei!.isNotEmpty ? '  ·  ${p.imei}' : ''}',
+        style: const TextStyle(fontSize: 11.5),
+      ),
+    );
   }
 
   Future<void> _import() async {
@@ -454,6 +536,23 @@ class _PriceBookViewState extends State<PriceBookView>
                 'Ghim = đặt giá chính thức, form tạo đơn sẽ tự điền giá này.',
                 style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
               ),
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => Navigator.pop(ctx, 'sources'),
+                  icon: const Icon(Icons.list_alt_rounded, size: 16),
+                  label: Text(
+                    r.scope == 'repair'
+                        ? 'Xem ${r.sampleCount} đơn tương ứng'
+                        : 'Xem ${r.sampleCount} sản phẩm tương ứng',
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, 32),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -477,7 +576,9 @@ class _PriceBookViewState extends State<PriceBookView>
     );
 
     if (!mounted || action == null) return;
-    if (action == 'unpin') {
+    if (action == 'sources') {
+      await _openSources(r);
+    } else if (action == 'unpin') {
       await PriceBookService.unpin(r.key);
       _snack('Đã bỏ ghim.');
     } else if (action == 'pin') {
@@ -578,9 +679,11 @@ class _PriceBookViewState extends State<PriceBookView>
   }
 }
 
-/// Lối tắt mở màn "Bảng giá".
-void openPriceBook(BuildContext context) {
+/// Lối tắt mở màn "Bảng giá". [initialTab] 0 = Sửa chữa, 1 = Bán hàng.
+void openPriceBook(BuildContext context, {int initialTab = 0}) {
   Navigator.of(context, rootNavigator: true).push(
-    MaterialPageRoute(builder: (_) => const PriceBookView()),
+    MaterialPageRoute(
+      builder: (_) => PriceBookView(initialTab: initialTab),
+    ),
   );
 }

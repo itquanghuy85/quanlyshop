@@ -30,6 +30,14 @@ class PriceBookRow {
   final int? pinnedCost;
   final String? pinnedNote;
 
+  /// Thành phần gốc để mở "các đơn/SP tương ứng".
+  /// repair: [src1] = model, [src2] = lỗi.
+  /// sale:   [src1] = hãng, [src2] = model, [src3] = dung lượng, [src4] = tình trạng.
+  final String src1;
+  final String src2;
+  final String src3;
+  final String src4;
+
   const PriceBookRow({
     required this.scope,
     required this.key,
@@ -46,6 +54,10 @@ class PriceBookRow {
     this.pinnedPrice,
     this.pinnedCost,
     this.pinnedNote,
+    this.src1 = '',
+    this.src2 = '',
+    this.src3 = '',
+    this.src4 = '',
   });
 
   bool get isPinned => source == PriceSource.pinned;
@@ -81,6 +93,10 @@ class PriceBookRow {
       pinnedPrice: pinnedPrice ?? this.pinnedPrice,
       pinnedCost: pinnedCost ?? this.pinnedCost,
       pinnedNote: pinnedNote ?? this.pinnedNote,
+      src1: src1,
+      src2: src2,
+      src3: src3,
+      src4: src4,
     );
   }
 }

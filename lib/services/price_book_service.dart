@@ -304,6 +304,8 @@ class PriceBookService {
             ? lab.model
             : '${lab.model} · ${lab.issue}',
         note: '${lab.model} ${lab.issue}',
+        src1: lab.model,
+        src2: lab.issue,
         autoPrice: _applySeason(_median(prices), season),
         autoCost: _median(costs),
         minPrice: sortedP.first,
@@ -372,6 +374,10 @@ class PriceBookService {
             ? lab.model
             : '${lab.model} $titleExtra',
         note: '${lab.brand} ${lab.model} ${lab.cap} ${lab.cond}',
+        src1: lab.brand,
+        src2: lab.model,
+        src3: lab.cap,
+        src4: lab.cond,
         autoPrice: _applySeason(_median(prices), season),
         autoCost: _median(costs),
         minPrice: sortedP.isEmpty ? 0 : sortedP.first,
@@ -463,6 +469,52 @@ class PriceBookService {
       debugPrint('PriceBook.resolveSale: $e');
     }
     return const PriceResolution();
+  }
+
+  // ── Xem các đơn / SP đã tạo ra dòng bảng giá ────────────────────────────
+  /// Các đơn sửa (Xong/Đã giao) khớp model + lỗi của 1 dòng bảng giá sửa chữa.
+  static Future<List<Repair>> repairSourcesFor(String model, String issue) async {
+    try {
+      final db = DBHelper();
+      final all = await db.getRepairsForPricing(
+        statuses: PricingEngineConfig.pricingStatuses,
+      );
+      final nm = _n(model);
+      final ni = _n(issue);
+      return all.where((r) {
+        if (r.deleted || r.price <= 0) return false;
+        if (_n(r.model) != nm) return false;
+        return _n(_issueOf(r)) == ni;
+      }).toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    } catch (e) {
+      debugPrint('PriceBook.repairSourcesFor: $e');
+      return const [];
+    }
+  }
+
+  /// Các SP trong kho khớp (hãng · model · dung lượng · tình trạng).
+  static Future<List<Product>> saleSourcesFor(
+    String brand,
+    String model,
+    String? capacity,
+    String? condition,
+  ) async {
+    try {
+      final db = DBHelper();
+      final all = await db.getProductsForPricing();
+      final bk = saleKey(brand, model, capacity, condition);
+      return all.where((p) {
+        final m = (p.model ?? '').trim();
+        if (m.isEmpty) return false;
+        final b = p.brand.trim().isEmpty ? _brandOf(m) : p.brand.trim();
+        return saleKey(b, m, p.capacity, p.condition) == bk;
+      }).toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    } catch (e) {
+      debugPrint('PriceBook.saleSourcesFor: $e');
+      return const [];
+    }
   }
 
   // ── Áp giá hàng loạt cho SP chưa có giá ─────────────────────────────────

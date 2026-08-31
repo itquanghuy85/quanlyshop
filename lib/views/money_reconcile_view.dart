@@ -2,10 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../data/db_helper.dart';
 import '../services/money_reconcile_service.dart';
 import '../utils/money_utils.dart';
 import '../widgets/currency_text_field.dart';
 import '../widgets/custom_app_bar.dart';
+import 'debt_view.dart';
+import 'repair_detail_view.dart';
+import 'sale_detail_view.dart';
 
 /// "Đối soát tiền về" — nhập số tiền nhận / chuyển đi → app tìm đơn trả góp NH
 /// hoặc khoản công nợ khớp → xác nhận → ghi nhận + cập nhật trạng thái.
@@ -246,6 +250,52 @@ class _MoneyReconcileViewState extends State<MoneyReconcileView> {
     );
   }
 
+  /// Mở đơn / khoản công nợ tương ứng với 1 kết quả đối soát.
+  Future<void> _openSource(ReconcileMatch m) async {
+    if (m.kind == ReconcileKind.installment && m.sale != null) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => SaleDetailView(sale: m.sale!)),
+      );
+      return;
+    }
+    final d = m.debtRow;
+    if (d == null) return;
+    final lt = (d['linkedType'] ?? '').toString().toLowerCase();
+    final lid = (d['linkedId'] ?? '').toString().trim();
+    final fid = (d['firestoreId'] ?? '').toString();
+    final db = DBHelper();
+
+    if (lid.isNotEmpty &&
+        (lt == 'sale' || fid.startsWith('debt_customer_'))) {
+      final s = await db.getSaleByFirestoreId(lid);
+      if (!mounted) return;
+      if (s != null) {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => SaleDetailView(sale: s)),
+        );
+        return;
+      }
+    }
+    if (lid.isNotEmpty &&
+        (lt == 'repair' ||
+            fid.startsWith('debt_repair_') ||
+            fid.startsWith('debt_partner_debt_'))) {
+      final r = await db.getRepairByFirestoreId(lid);
+      if (!mounted) return;
+      if (r != null) {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => RepairDetailView(repair: r)),
+        );
+        return;
+      }
+    }
+    // Không lần được đơn gốc → mở màn Công nợ.
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const DebtView()),
+    );
+  }
+
   Widget _matchCard(ReconcileMatch m) {
     final (icon, color) = switch (m.kind) {
       ReconcileKind.installment => (Icons.account_balance_rounded, Colors.indigo),
@@ -324,6 +374,13 @@ class _MoneyReconcileViewState extends State<MoneyReconcileView> {
                     ),
                   ],
                 ),
+              ),
+              IconButton(
+                tooltip: 'Xem đơn / khoản tương ứng',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.open_in_new_rounded,
+                    size: 18, color: Colors.grey),
+                onPressed: () => _openSource(m),
               ),
               const Icon(Icons.chevron_right_rounded, color: Colors.grey),
             ],
