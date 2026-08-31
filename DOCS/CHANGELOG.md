@@ -4,6 +4,26 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-31b] - feat(đơn sửa) chạm phụ tùng / dịch vụ để mở nguồn tương ứng
+
+**Chưa tăng version.**
+
+- **Phụ tùng:** mỗi dòng trong mục Phụ tùng của đơn sửa nay chạm được →
+  mở đúng sản phẩm đó trong Kho (`InventoryDetailView`, tra theo `productId`
+  rồi theo tên); không tra được thì mở Kho lọc sẵn tab Linh kiện. Dòng có
+  gạch chân + mũi tên ›.
+- **Dịch vụ:** chạm 1 dòng dịch vụ → `SimilarRepairHistoryView` liệt kê các
+  đơn sửa khác dùng dịch vụ cùng tên (đối chiếu giá / lịch sử), chạm 1 đơn để
+  mở chi tiết. Khớp tên có bỏ dấu (`_normNameForMatch`).
+- `repair_detail_view`: `_openPartInInventory`, `_openPartsWarehouse`,
+  `_openServiceHistory` (mới). Import `inventory_detail_view.dart`,
+  `product_model.dart`.
+
+**Test:** `flutter analyze` 0 error mới; `flutter test` **+470 −8**.
+**Files:** `lib/views/repair_detail_view.dart`.
+
+---
+
 ## [2026-08-31a] - fix(đồng bộ) "Đã giao" là trạng thái cuối — không bị máy khác kéo ngược
 
 **Chưa tăng version.**

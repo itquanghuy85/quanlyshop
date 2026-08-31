@@ -18,6 +18,7 @@ import '../l10n/app_localizations.dart';
 import '../models/repair_model.dart';
 import '../models/repair_service_model.dart';
 import '../models/part_used_detail_model.dart';
+import '../models/product_model.dart';
 import '../services/pricing_engine_service.dart';
 import 'similar_repair_history_view.dart';
 import '../models/repair_partner_model.dart';
@@ -53,6 +54,7 @@ import '../theme/app_text_styles.dart';
 import '../widgets/app_cached_image.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'inventory_view.dart';
+import 'inventory_detail_view.dart';
 import 'repair_partner_view.dart';
 import '../widgets/clickable_customer_header.dart';
 import 'repair_invoice_template_view.dart';
@@ -2400,6 +2402,104 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           role: role,
           initialFilterType: 'LINH_KIEN',
           triggerPartsAdd: true,
+        ),
+      ),
+    );
+  }
+
+  /// Chuẩn hoá tên để so khớp (bỏ dấu tiếng Việt + gộp khoảng trắng).
+  static String _normNameForMatch(String s) {
+    var t = s.trim().toLowerCase();
+    const from = 'áàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđ';
+    const to = 'aaaaaaaaaaaaaaaaaeeeeeeeeeeeiiiiiooooooooooooooooouuuuuuuuuuuyyyyyd';
+    final b = StringBuffer();
+    for (final ch in t.split('')) {
+      final i = from.indexOf(ch);
+      b.write(i >= 0 ? to[i] : ch);
+    }
+    t = b.toString();
+    return t.replaceAll(RegExp(r'\s+'), ' ').trim();
+  }
+
+  /// Mở màn Kho lọc sẵn tab Linh kiện (không tự bật hộp thoại thêm phụ tùng).
+  Future<void> _openPartsWarehouse() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final role = currentUser != null
+        ? await UserService.getUserRole(currentUser.uid)
+        : 'user';
+    if (!mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => InventoryView(role: role, initialFilterType: 'LINH_KIEN'),
+      ),
+    );
+  }
+
+  /// Chạm 1 dòng phụ tùng → mở đúng phụ tùng đó trong Kho (hoặc Kho Linh kiện
+  /// nếu không tra được sản phẩm cụ thể).
+  Future<void> _openPartInInventory(PartUsedDetail p) async {
+    Product? prod;
+    try {
+      if (p.productId != null) {
+        prod = await db.getProductById(p.productId!);
+      }
+      if (prod == null && p.name.trim().isNotEmpty) {
+        prod = await db.getProductByNameFlexible(p.name.trim());
+      }
+    } catch (e) {
+      debugPrint('_openPartInInventory: $e');
+    }
+    if (!mounted) return;
+    if (prod != null) {
+      final found = prod;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => InventoryDetailView(product: found)),
+      );
+      return;
+    }
+    await _openPartsWarehouse();
+  }
+
+  /// Chạm 1 dòng dịch vụ → xem các đơn sửa khác cũng dùng dịch vụ cùng tên
+  /// (để đối chiếu giá / lịch sử dịch vụ đó). Chỉ đọc, bấm 1 đơn để mở.
+  Future<void> _openServiceHistory(RepairService s) async {
+    final name = s.serviceName.trim();
+    if (name.isEmpty) return;
+    final target = _normNameForMatch(name);
+    List<Repair> all = const [];
+    try {
+      all = await db.getRepairsForPricing(
+        statuses: const [1, 2, 3, 4],
+        limit: 5000,
+      );
+    } catch (e) {
+      debugPrint('_openServiceHistory: $e');
+    }
+    final matched =
+        all
+            .where(
+              (rp) => rp.services.any(
+                (x) => _normNameForMatch(x.serviceName) == target,
+              ),
+            )
+            .toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    if (!mounted) return;
+    if (matched.isEmpty) {
+      NotificationService.showSnackBar(
+        'Chưa có đơn sửa nào khác dùng dịch vụ "$name".',
+        color: Colors.blueGrey,
+      );
+      return;
+    }
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SimilarRepairHistoryView(
+          repairs: matched,
+          showCost: _canViewAnyFinancial,
         ),
       ),
     );
@@ -4873,14 +4973,41 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                                                         p.productId] ??
                                                     '')
                                                 : '');
-                                        return Padding(
-                                          padding: const EdgeInsets.only(
-                                              bottom: 1),
-                                          child: Text(
-                                            '${p.name} x${p.qty}'
-                                            '${sup.isNotEmpty ? '  ·  NCC: $sup' : ''}',
-                                            style: AppTextStyles.caption
-                                                .copyWith(color: Colors.blue),
+                                        return InkWell(
+                                          onTap: () =>
+                                              _openPartInInventory(p),
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(
+                                                top: 2, bottom: 2),
+                                            child: Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    '${p.name} x${p.qty}'
+                                                    '${sup.isNotEmpty ? '  ·  NCC: $sup' : ''}',
+                                                    style: AppTextStyles
+                                                        .caption
+                                                        .copyWith(
+                                                      color: Colors.blue,
+                                                      decoration:
+                                                          TextDecoration
+                                                              .underline,
+                                                      decorationColor:
+                                                          Colors.blue
+                                                              .withValues(
+                                                                  alpha: 0.35),
+                                                    ),
+                                                  ),
+                                                ),
+                                                const Icon(
+                                                  Icons.chevron_right,
+                                                  size: 14,
+                                                  color: Colors.blue,
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         );
                                       }),
@@ -4890,21 +5017,26 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                             ],
                           )
                         else
-                          Row(
-                            children: [
-                              const Icon(Icons.build, size: 14,
-                                  color: Colors.blue),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  loc.partsShort(r.partsUsed),
-                                  style: AppTextStyles.caption.copyWith(
-                                    color: Colors.blue,
+                          InkWell(
+                            onTap: _openPartsWarehouse,
+                            child: Row(
+                              children: [
+                                const Icon(Icons.build, size: 14,
+                                    color: Colors.blue),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    loc.partsShort(r.partsUsed),
+                                    style: AppTextStyles.caption.copyWith(
+                                      color: Colors.blue,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                            ],
+                                const Icon(Icons.chevron_right, size: 14,
+                                    color: Colors.blue),
+                              ],
+                            ),
                           ),
                       ],
                       // Quick actions — cho phép cả đơn ĐÃ GIAO (status 4) bổ sung
@@ -5488,52 +5620,64 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   }
 
   Widget _buildCompactServiceItem(int index, RepairService s) {
-    return Container(
-      margin: EdgeInsets.only(top: index > 0 ? 6 : 0),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.background,
+    return Padding(
+      padding: EdgeInsets.only(top: index > 0 ? 6 : 0),
+      child: InkWell(
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.build_circle, size: 16, color: Colors.blue),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+        onTap: () => _openServiceHistory(s),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.build_circle, size: 16, color: Colors.blue),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      s.serviceName,
+                      style: AppTextStyles.caption.copyWith(
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
+                        decorationColor: Colors.grey.shade400,
+                      ),
+                    ),
+                    if (s.partnerName != null)
+                      Text(
+                        loc.partnerLabel(s.partnerName!),
+                        style: AppTextStyles.overline
+                            .copyWith(color: Colors.blue),
+                      ),
+                  ],
+                ),
+              ),
+              if (_canViewAnyFinancial)
                 Text(
-                  s.serviceName,
+                  "${MoneyUtils.formatCurrency(s.cost)} đ",
                   style: AppTextStyles.caption.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: AppColors.warning,
                   ),
                 ),
-                if (s.partnerName != null)
-                  Text(
-                    loc.partnerLabel(s.partnerName!),
-                    style: AppTextStyles.overline.copyWith(color: Colors.blue),
-                  ),
-              ],
-            ),
+              if (r.status != 4 && _canEditRepairNotes)
+                IconButton(
+                  icon: const Icon(Icons.edit, size: 14, color: Colors.grey),
+                  onPressed: () => _showAddServiceDialog(s, index),
+                  padding: EdgeInsets.zero,
+                  constraints:
+                      const BoxConstraints(minWidth: 24, minHeight: 24),
+                )
+              else
+                const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
+            ],
           ),
-          if (_canViewAnyFinancial)
-            Text(
-              "${MoneyUtils.formatCurrency(s.cost)} đ",
-              style: AppTextStyles.caption.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.warning,
-              ),
-            ),
-          if (r.status != 4 && _canEditRepairNotes)
-            IconButton(
-              icon: const Icon(Icons.edit, size: 14, color: Colors.grey),
-              onPressed: () => _showAddServiceDialog(s, index),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
-            ),
-        ],
+        ),
       ),
     );
   }
