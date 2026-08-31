@@ -962,6 +962,101 @@ class AppKnowledgeBase {
       audience: ['owner', 'manager', 'cashier'],
     ),
     KbEntry(
+      id: 'bank-transfer-qr',
+      title: 'Thanh toán qua ngân hàng (mã QR + mở app NH)',
+      menuPath:
+          'Bất kỳ ô thanh toán nào → chọn "Chuyển khoản" (thu/trả nợ, thu tiền '
+          'đơn bán, đơn sửa, tất toán NH, trả NCC, chi phí, đối soát)',
+      whatItDoes:
+          'Khi chọn "Chuyển khoản", app hiện thêm khối hỗ trợ: mã QR VietQR đã '
+          'điền sẵn số tài khoản shop + số tiền + nội dung để khách quét, kèm nút '
+          '"Mở app ngân hàng" và nút sao chép số TK / số tiền / nội dung.',
+      whenToUse:
+          'Khi khách chuyển khoản trả tiền, hoặc khi shop chuyển khoản trả NCC / '
+          'đối tác / chi phí.',
+      steps: [
+        'Cấu hình tài khoản nhận tiền một lần: Cài đặt → QR chuyển khoản '
+            '(chọn ngân hàng, số TK, tên chủ TK).',
+        'Trong ô thanh toán, nhập số tiền rồi chọn "Chuyển khoản" — mã QR hiện '
+            'ra và TỰ CẬP NHẬT theo số tiền bạn đang gõ.',
+        'Đưa khách quét QR, hoặc bấm "Mở app ngân hàng" để tự chuyển.',
+        'Chuyển khoản xong → bấm **Xác nhận** như bình thường để app ghi nhận.',
+      ],
+      notes: [
+        'Khối này chỉ HỖ TRỢ — app không tự ghi tiền. Chưa bấm Xác nhận là chưa '
+            'ghi sổ.',
+        'Chưa cấu hình tài khoản → khối hiện nút "Cấu hình tài khoản ngân hàng".',
+        'Chiều CHI (trả NCC, chi phí): chỉ hiện nút mở app ngân hàng, vì app '
+            'chưa lưu số TK người nhận.',
+        'Nên tự quét thử mã QR một lần bằng app ngân hàng để chắc số TK + số tiền '
+            'đúng trước khi dùng cho khách.',
+      ],
+      terms: ['dong-tien'],
+      sampleQuestions: [
+        'thanh toán qua ngân hàng',
+        'mã qr chuyển khoản hiện ở đâu',
+        'mở app ngân hàng khi thu tiền',
+        'cấu hình tài khoản nhận chuyển khoản',
+      ],
+      tags: [
+        'chuyen khoan', 'qr', 'vietqr', 'ma qr', 'mo app ngan hang', 'tai khoan',
+        'so tk', 'thanh toan ngan hang'
+      ],
+      audience: ['all'],
+    ),
+    KbEntry(
+      id: 'bank-notification',
+      title: 'Đọc thông báo ngân hàng tự động',
+      menuPath: 'Cài đặt → Cửa hàng → Đọc thông báo ngân hàng  (chỉ Android)',
+      whatItDoes:
+          'Cho phép app đọc nội dung thông báo của CÁC APP NGÂN HÀNG (và tin '
+          'nhắn SMS từ đầu số ngân hàng) để tự nhận diện số tiền vào / ra, rồi '
+          'gợi ý khớp đơn / công nợ ở màn "Đối soát tiền về".',
+      whenToUse:
+          'Khi shop nhận / chuyển tiền qua ngân hàng nhiều và muốn khỏi phải gõ '
+          'tay số tiền mỗi lần đối soát.',
+      steps: [
+        'Cài đặt → "Đọc thông báo ngân hàng" → bật công tắc.',
+        'App mở màn "Truy cập thông báo" của hệ thống → tìm "Quản Lý Shop" → '
+            'Cho phép.',
+        'Quay lại app — tính năng tự bật.',
+        'Khi có thông báo NH: Trang chủ hiện banner "N giao dịch ngân hàng chưa '
+            'đối soát".',
+        'Bấm banner (hoặc mở Đối soát tiền về) → mục "Giao dịch ngân hàng gần '
+            'đây" → chạm 1 dòng → app tự điền số tiền + chiều tiền → chọn đơn / '
+            'khoản nợ khớp → **Xác nhận ghi**.',
+        'Không phải giao dịch của shop → bấm ✕ để bỏ qua dòng đó.',
+      ],
+      notes: [
+        'App KHÔNG đọc thông báo của ứng dụng khác — chỉ các ngân hàng / ví '
+            'trong danh sách hỗ trợ (xem ngay trong màn cài đặt).',
+        'App KHÔNG tự ghi nhận tiền — luôn phải bấm Xác nhận, ghi qua đúng luồng '
+            'thu nợ / trả nợ / tất toán như khi làm tay.',
+        'Dữ liệu lưu trên MÁY NÀY, không tải lên máy chủ, không đồng bộ sang máy '
+            'khác.',
+        'App cần đang mở hoặc chạy nền để bắt thông báo. Giao dịch lúc app tắt '
+            'hẳn có thể không bắt được — vẫn gõ tay số tiền ở Đối soát tiền về.',
+        'Không đọc được chiều tiền (vào / ra) thì app để trống cho bạn tự chọn — '
+            'thà hỏi còn hơn đoán sai.',
+        'Chỉ có trên Android. iOS không cho ứng dụng đọc thông báo của app khác.',
+        'Ngân hàng của bạn không có trong danh sách → vẫn dùng "Đối soát tiền về" '
+            'bằng cách gõ số tiền.',
+      ],
+      terms: ['dong-tien', 'cong-no-phai-thu', 'tat-toan'],
+      sampleQuestions: [
+        'app tự đọc thông báo ngân hàng',
+        'bật đọc thông báo ngân hàng ở đâu',
+        'sao không thấy giao dịch ngân hàng nào',
+        'app có đọc tin nhắn của tôi không',
+        'ngân hàng của tôi có được hỗ trợ không',
+      ],
+      tags: [
+        'doc thong bao', 'thong bao ngan hang', 'tu dong doi soat', 'bien dong so du',
+        'sms ngan hang', 'truy cap thong bao', 'quyen thong bao'
+      ],
+      audience: ['owner', 'manager'],
+    ),
+    KbEntry(
       id: 'finance-daily-report',
       title: 'Báo cáo ngày',
       menuPath: 'Trang chủ → Tài chính → Báo cáo ngày',
@@ -1347,6 +1442,7 @@ class AppKnowledgeBase {
     }
     if (id.startsWith('debt') || id == 'data-reconciliation') return 'debt';
     if (id.startsWith('finance') ||
+        id.startsWith('bank-') ||
         id == 'cash-closing' ||
         id == 'monthly-profit' ||
         id == 'expense' ||

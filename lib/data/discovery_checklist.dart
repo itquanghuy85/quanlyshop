@@ -127,6 +127,21 @@ const List<DiscoveryTask> kDiscoveryTasks = [
     audience: ['owner', 'manager'],
   ),
   DiscoveryTask(
+    id: 'bank-transfer-qr',
+    title: 'Thu tiền bằng mã QR ngân hàng',
+    hint: 'Chọn "Chuyển khoản" khi thu tiền → hiện QR đúng số tiền cho khách quét.',
+    icon: Icons.qr_code_2_outlined,
+    kbEntryId: 'bank-transfer-qr',
+  ),
+  DiscoveryTask(
+    id: 'bank-notification',
+    title: 'Bật đọc thông báo ngân hàng',
+    hint: 'App tự nhận diện tiền vào/ra để gợi ý đối soát (Android).',
+    icon: Icons.notifications_active_outlined,
+    kbEntryId: 'bank-notification',
+    audience: ['owner', 'manager'],
+  ),
+  DiscoveryTask(
     id: 'expense',
     title: 'Ghi một khoản chi phí',
     hint: 'Mặt bằng, điện nước, ăn uống…',

@@ -321,6 +321,7 @@ class HelpCenterRepository {
       return 'inventory';
     }
     if (id.startsWith('finance') ||
+        id.startsWith('bank-') ||
         id == 'cash-closing' ||
         id == 'monthly-profit' ||
         id == 'expense' ||

@@ -4,6 +4,39 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-31f] - docs(hướng dẫn) cập nhật KB trong app cho 2 tính năng ngân hàng
+
+**Chưa tăng version.**
+
+`app_knowledge_base.dart` là nguồn sự thật DUY NHẤT cho **AI Trợ Lý** *và*
+**Trung tâm trợ giúp** — bổ sung 2 mục mới cho tính năng vừa làm:
+
+- **`bank-transfer-qr` — "Thanh toán qua ngân hàng (mã QR + mở app NH)"**:
+  đường dẫn (mọi ô thanh toán khi chọn "Chuyển khoản"), cách cấu hình TK ở
+  Cài đặt → QR chuyển khoản, QR tự cập nhật theo số tiền đang gõ, lưu ý
+  "chỉ hỗ trợ — chưa bấm Xác nhận là chưa ghi sổ", chiều CHI chỉ có nút mở app,
+  nhắc tự quét thử QR 1 lần trước khi dùng cho khách.
+- **`bank-notification` — "Đọc thông báo ngân hàng tự động"** (owner/manager):
+  các bước bật + cấp quyền, luồng banner Home → Đối soát → chạm dòng → Xác nhận,
+  và 7 lưu ý về riêng tư / giới hạn (không đọc app khác, không tự ghi tiền, lưu
+  cục bộ, cần app mở/chạy nền, không rõ chiều thì để trống, chỉ Android, NH
+  ngoài danh sách vẫn gõ tay được).
+
+Kèm theo:
+- `areaOf()` + `help_center_repository._kbCategoryFor()`: `bank-*` → nhóm **Tài chính**.
+- `discovery_checklist.dart`: thêm 2 nhiệm vụ "Thu tiền bằng mã QR ngân hàng" và
+  "Bật đọc thông báo ngân hàng" (checklist "Khám phá Ứng Dụng" → 19 việc).
+- Cập nhật thêm ghi chú ở `debt-collect`, `sale-invoice`, `money-reconcile`.
+
+**Test:** `flutter analyze` 0 error; `flutter test` **+490 −8** (+1 test mới:
+AI truy hồi đúng 2 mục ngân hàng từ câu hỏi tự nhiên). Test sẵn có đã bao phủ:
+id duy nhất, thuật ngữ tham chiếu tồn tại, mọi topic sinh từ KB có nhóm hợp lệ,
+mọi nhiệm vụ checklist trỏ tới mục KB có thật.
+
+**Files:** `lib/data/{app_knowledge_base,help_center_repository,discovery_checklist}.dart`, `test/ai_knowledge_service_test.dart`.
+
+---
+
 ## [2026-08-31e] - feat(đối soát) Đọc thông báo app ngân hàng tự động (Android)
 
 **Chưa tăng version.** DB schema **v108 → v109** (bảng `bank_notifications`, cục bộ, không sync).

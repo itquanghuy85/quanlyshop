@@ -78,6 +78,13 @@ void main() {
       expectTop('sao 2 máy số liệu khác nhau', 'multi-device-sync');
     });
 
+    test('mục ngân hàng mới', () {
+      expectTop('bật đọc thông báo ngân hàng ở đâu', 'bank-notification');
+      expectTop('app có đọc tin nhắn của tôi không', 'bank-notification');
+      expectTop('mã qr chuyển khoản hiện ở đâu', 'bank-transfer-qr');
+      expectTop('mở app ngân hàng khi thu tiền', 'bank-transfer-qr');
+    });
+
     test('lọc theo vai trò — kỹ thuật viên không thấy mục owner-only', () {
       final r = kb.retrieve('phân quyền nhân viên', role: 'technician');
       expect(r.entries.map((e) => e.id), isNot(contains('roles-permissions')));
