@@ -942,12 +942,18 @@ class AppKnowledgeBase {
         'Ghi nhận xong khoản đó biến mất khỏi danh sách.',
         'Dữ liệu nạp một lần khi mở màn → gõ số tiền lọc trong bộ nhớ, không lag '
             'dù shop nhiều công nợ.',
+        'Nếu đã bật "Đọc thông báo ngân hàng" (Cài đặt, chỉ Android): mục "Giao '
+            'dịch ngân hàng gần đây" hiện các khoản tiền vào/ra app đọc được từ '
+            'thông báo NH — chạm 1 dòng để tự điền số tiền + chiều rồi đối soát. '
+            'Vẫn phải bấm Xác nhận.',
       ],
       terms: ['tra-gop-nh', 'tat-toan', 'cong-no-phai-thu', 'cong-no-phai-tra', 'dong-tien'],
       sampleQuestions: [
         'đối soát tiền về là gì',
         'nhận tiền ngân hàng tất toán ghi ở đâu',
         'có tiền về không biết của đơn nào',
+        'app tự đọc thông báo ngân hàng',
+        'bật đọc thông báo ngân hàng ở đâu',
       ],
       tags: [
         'doi soat', 'tien ve', 'tat toan', 'nhan tien ngan hang', 'thu no',

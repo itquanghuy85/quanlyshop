@@ -66,6 +66,9 @@ dependencies:
   firebase_app_check: ^0.3.2+10
   flutter_native_splash: ^2.4.0
   speech_to_text: ^7.0.0
+  # Đọc thông báo app ngân hàng để đối soát (Android-only; iOS không có API
+  # tương đương — mọi lời gọi được bọc Platform.isAndroid).
+  notification_listener_service: ^0.3.3
 
 dev_dependencies:
   flutter_test:

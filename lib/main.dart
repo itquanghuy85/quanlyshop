@@ -26,6 +26,7 @@ import 'services/connectivity_service.dart';
 import 'services/sync_service.dart';
 import 'services/storage_service.dart'; // For retrying pending uploads
 import 'services/sync_health_check.dart'; // Kiểm tra sync health
+import 'services/bank_notification_service.dart';
 import 'services/sync_orchestrator.dart'; // Quản lý đồng bộ local -> cloud
 import 'services/cash_closing_notifier.dart'; // Realtime notify chốt quỹ
 import 'services/claims_service.dart'; // Custom claims management
@@ -504,6 +505,10 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       debugPrint('App resumed - checking FCM token validity...');
       NotificationService.ensureFCMTokenValid();
 
+      // Bắt bù thông báo ngân hàng còn trên thanh trạng thái (nếu đã bật).
+      // ignore: unawaited_futures
+      BankNotificationService.instance.onAppResumed();
+
       // Bắt kịp dữ liệu ngay khi quay lại app — các collection dùng
       // controlled get() polling (không phải snapshots() realtime) nên cần
       // chủ động fetch lại thay vì chờ tới nhịp polling định kỳ tiếp theo.
@@ -591,6 +596,13 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         await SyncHealthCheck.runFullCheck();
       } catch (e) {
         debugPrint('⚠️ background health check failed: $e');
+      }
+
+      // Đọc thông báo ngân hàng (Android, chỉ khi người dùng đã bật + cấp quyền).
+      try {
+        await BankNotificationService.instance.start();
+      } catch (e) {
+        debugPrint('⚠️ bank notification listener start failed: $e');
       }
     });
   }

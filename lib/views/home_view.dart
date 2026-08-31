@@ -30,6 +30,7 @@ import 'debt_view.dart';
 import 'warranty_view.dart';
 import 'shop_settings_view.dart';
 import 'bank_qr_settings_view.dart';
+import 'bank_notification_settings_view.dart';
 import 'advanced_chat_view.dart';
 import 'printer_settings_view.dart';
 import 'super_admin_console_view.dart' as admin_view;
@@ -83,6 +84,7 @@ import '../widgets/custom_app_bar.dart';
 import '../services/sync_service.dart';
 import '../services/sync_orchestrator.dart';
 import '../services/sync_health_check.dart';
+import '../services/bank_notification_service.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
 import '../services/ai_nav_bridge.dart';
@@ -3411,6 +3413,7 @@ class _HomeViewState extends State<HomeView>
         _buildDiscoveryCard(),
         _buildTodayActivityDashboardCard(),
         _buildPendingPaymentBanner(),
+        _buildBankNotifBanner(),
         _buildChatCard(),
         _buildHomeCommunityQuickCard(),
         _buildUnifiedShortcuts(),
@@ -3440,6 +3443,7 @@ class _HomeViewState extends State<HomeView>
         case DashboardCardType.greeting:
           widgets.add(_buildGreetingCard());
           widgets.add(_buildPendingPaymentBanner());
+          widgets.add(_buildBankNotifBanner());
           break;
         case DashboardCardType.actionRequired:
           final canRepair =
@@ -6267,6 +6271,17 @@ class _HomeViewState extends State<HomeView>
               color: Colors.green,
               onTap: () => _fadePush(context, const BankQrSettingsView()),
             ),
+          if (hasFullAccess &&
+              BankNotificationService.instance.isSupported)
+            _SettingsItem(
+              group: 'shop',
+              title: 'Đọc thông báo ngân hàng',
+              subtitle: 'Tự nhận diện tiền vào / ra để gợi ý đối soát',
+              icon: Icons.notifications_active_rounded,
+              color: Colors.blueGrey,
+              onTap: () =>
+                  _fadePush(context, const BankNotificationSettingsView()),
+            ),
           _SettingsItem(
             group: 'shop',
             title: 'Tuỳ chỉnh dashboard',
@@ -8449,6 +8464,53 @@ class _HomeViewState extends State<HomeView>
           ],
         ),
       ),
+    );
+  }
+
+  /// Banner "N giao dịch ngân hàng chưa đối soát" — chỉ khi tính năng đọc
+  /// thông báo NH đang bật và có giao dịch mới chưa xử lý.
+  Widget _buildBankNotifBanner() {
+    if (!BankNotificationService.instance.isSupported) {
+      return const SizedBox.shrink();
+    }
+    return ValueListenableBuilder<int>(
+      valueListenable: BankNotificationService.instance.unreviewedCount,
+      builder: (context, n, _) {
+        final count = n;
+        if (count <= 0) return const SizedBox.shrink();
+        return GestureDetector(
+          onTap: () => openMoneyReconcile(context),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF7ED),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFFDBA74)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.account_balance_rounded,
+                    color: Color(0xFFEA580C), size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '$count giao dịch ngân hàng chưa đối soát',
+                    style: const TextStyle(
+                      color: Color(0xFF9A3412),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13.5,
+                    ),
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded,
+                    color: Color(0xFFEA580C), size: 20),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

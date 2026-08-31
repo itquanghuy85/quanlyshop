@@ -629,7 +629,7 @@ class DBHelper {
 
     final db = await openDatabase(
       path,
-      version: 108,
+      version: 109,
       onConfigure: (db) async {
         try {
           await db.execute('PRAGMA foreign_keys = ON');
@@ -1237,6 +1237,32 @@ class DBHelper {
         ''');
         await db.execute(
           'CREATE INDEX IF NOT EXISTS idx_payment_requests_shopId ON payment_requests(shopId)',
+        );
+        // bank_notifications (v109) — thông báo giao dịch từ app ngân hàng, đọc
+        // qua NotificationListenerService để gợi ý đối soát. LƯU CỤC BỘ theo máy
+        // (không đồng bộ cloud) — dữ liệu nhạy cảm, chỉ máy nhận thông báo dùng.
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS bank_notifications(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            dedupHash TEXT UNIQUE,
+            shopId TEXT,
+            at INTEGER,
+            bankPackage TEXT,
+            bankName TEXT,
+            direction TEXT,
+            amount INTEGER,
+            balanceAfter INTEGER,
+            memo TEXT,
+            rawText TEXT,
+            status TEXT DEFAULT 'new',
+            matchedType TEXT,
+            matchedRefId TEXT,
+            appliedAt INTEGER,
+            createdAt INTEGER
+          )
+        ''');
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_bank_notifications_status ON bank_notifications(status, at)',
         );
       },
       onUpgrade: (db, oldV, newV) async {
@@ -2442,6 +2468,39 @@ class DBHelper {
           } catch (e) {
             debugPrint(
                 'DB upgrade error (v108 repair_partner_payments.partnerFirestoreId): $e');
+          }
+        }
+        if (oldV < 109) {
+          // bank_notifications: thông báo GD ngân hàng đọc qua
+          // NotificationListenerService (Android) để gợi ý đối soát. Lưu cục bộ,
+          // KHÔNG đồng bộ cloud.
+          try {
+            await db.execute('''
+              CREATE TABLE IF NOT EXISTS bank_notifications(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                dedupHash TEXT UNIQUE,
+                shopId TEXT,
+                at INTEGER,
+                bankPackage TEXT,
+                bankName TEXT,
+                direction TEXT,
+                amount INTEGER,
+                balanceAfter INTEGER,
+                memo TEXT,
+                rawText TEXT,
+                status TEXT DEFAULT 'new',
+                matchedType TEXT,
+                matchedRefId TEXT,
+                appliedAt INTEGER,
+                createdAt INTEGER
+              )
+            ''');
+            await db.execute(
+              'CREATE INDEX IF NOT EXISTS idx_bank_notifications_status ON bank_notifications(status, at)',
+            );
+            debugPrint('DB upgrade v109: created bank_notifications table');
+          } catch (e) {
+            debugPrint('DB upgrade error (v109 bank_notifications): $e');
           }
         }
         if (oldV < 26) {
@@ -7541,6 +7600,89 @@ class DBHelper {
         whereArgs: ['CÔNG NỢ', 'PENDING'],
         orderBy: 'createdAt DESC',
       );
+
+  // --- BANK NOTIFICATIONS (đọc từ NotificationListenerService, lưu cục bộ) ---
+
+  /// Chèn 1 thông báo GD ngân hàng đã parse. Trả về `true` nếu là bản ghi MỚI
+  /// (chưa trùng `dedupHash`); `false` nếu đã có (bỏ qua).
+  Future<bool> insertBankNotificationOnce(Map<String, dynamic> row) async {
+    final db = await database;
+    final hash = (row['dedupHash'] ?? '').toString();
+    if (hash.isEmpty) return false;
+    final existing = await db.query(
+      'bank_notifications',
+      columns: ['id'],
+      where: 'dedupHash = ?',
+      whereArgs: [hash],
+      limit: 1,
+    );
+    if (existing.isNotEmpty) return false;
+    await db.insert('bank_notifications', row);
+    return true;
+  }
+
+  /// Các thông báo GD ngân hàng chưa xử lý (status='new'), mới nhất trước.
+  Future<List<Map<String, dynamic>>> getNewBankNotifications({
+    int limit = 50,
+  }) async {
+    final db = await database;
+    return db.query(
+      'bank_notifications',
+      where: "status = 'new'",
+      orderBy: 'at DESC',
+      limit: limit,
+    );
+  }
+
+  Future<int> getNewBankNotificationCount() async {
+    final db = await database;
+    final r = await db.rawQuery(
+      "SELECT COUNT(*) c FROM bank_notifications WHERE status = 'new'",
+    );
+    return Sqflite.firstIntValue(r) ?? 0;
+  }
+
+  Future<void> markBankNotificationApplied(
+    int id, {
+    String? matchedType,
+    String? matchedRefId,
+  }) async {
+    final db = await database;
+    await db.update(
+      'bank_notifications',
+      {
+        'status': 'applied',
+        'matchedType': matchedType,
+        'matchedRefId': matchedRefId,
+        'appliedAt': DateTime.now().millisecondsSinceEpoch,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<void> markBankNotificationDismissed(int id) async {
+    final db = await database;
+    await db.update(
+      'bank_notifications',
+      {'status': 'dismissed'},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  /// Dọn thông báo cũ hơn N ngày (mọi trạng thái) để bảng không phình.
+  Future<void> pruneOldBankNotifications({int keepDays = 45}) async {
+    final db = await database;
+    final cutoff = DateTime.now()
+        .subtract(Duration(days: keepDays))
+        .millisecondsSinceEpoch;
+    await db.delete(
+      'bank_notifications',
+      where: 'at < ? AND status != ?',
+      whereArgs: [cutoff, 'new'],
+    );
+  }
   /// Cập nhật `paidAmount`/`status` của 1 công nợ sau khi ghi phiếu thu/trả.
   ///
   /// Khác bản cũ (`paidAmount = paidAmount + pay` với `WHERE id = ?`):

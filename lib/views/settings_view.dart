@@ -32,6 +32,7 @@ import 'staff_permissions_view.dart';
 import 'category_management_view.dart';
 import 'shop_settings_view.dart';
 import 'bank_qr_settings_view.dart';
+import 'bank_notification_settings_view.dart';
 import 'printer_settings_view.dart';
 import 'notification_settings_view.dart';
 import 'kiotviet_settings_view.dart';
@@ -687,6 +688,10 @@ class _SettingsViewState extends State<SettingsView> {
                   const SizedBox(height: 6),
                   _buildNavTile(icon: Icons.qr_code_2_outlined, color: Colors.green, title: 'QR chuyển khoản', subtitle: 'Tài khoản NH hiện trên biên nhận đơn bán', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BankQrSettingsView()))),
                   const SizedBox(height: 6),
+                  if (!kIsWeb && Platform.isAndroid)
+                    _buildNavTile(icon: Icons.notifications_active_outlined, color: Colors.blueGrey, title: 'Đọc thông báo ngân hàng', subtitle: 'Tự nhận diện tiền vào/ra để gợi ý đối soát', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BankNotificationSettingsView()))),
+                  if (!kIsWeb && Platform.isAndroid)
+                    const SizedBox(height: 6),
                   _buildNavTile(icon: Icons.category_outlined, color: Colors.indigo, title: 'Danh mục sản phẩm', subtitle: 'Thêm, sửa, xóa danh mục', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CategoryManagementView()))),
                   const SizedBox(height: 6),
                   _buildNavTile(icon: Icons.print_outlined, color: Colors.teal, title: 'Máy in nhiệt', subtitle: 'Kết nối máy in Bluetooth', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrinterSettingsView()))),

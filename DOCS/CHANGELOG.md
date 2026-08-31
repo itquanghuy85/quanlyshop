@@ -4,6 +4,56 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-31e] - feat(đối soát) Đọc thông báo app ngân hàng tự động (Android)
+
+**Chưa tăng version.** DB schema **v108 → v109** (bảng `bank_notifications`, cục bộ, không sync).
+
+### Ý tưởng
+Tính năng **TÙY CHỌN, mặc định TẮT**, chỉ Android. Khi bật + cấp quyền "Truy cập
+thông báo": app đọc nội dung thông báo của **các app ngân hàng** (và SMS từ đầu
+số ngân hàng) → tự nhận diện số tiền +/− → tạo bản ghi "gợi ý" → hiện ở Home
+banner + màn "Đối soát tiền về". **KHÔNG tự ghi tiền** — người dùng vẫn bấm Xác
+nhận, đi qua đúng luồng `MoneyReconcileService.apply` / `executePaymentDirect`.
+
+### An toàn / riêng tư
+- Chỉ đọc thông báo từ nguồn trong danh sách NH (`resolveBankSource`) — app khác
+  bỏ qua hoàn toàn, không đọc.
+- SMS: chỉ xử lý khi tiêu đề (người gửi) khớp đầu số ngân hàng.
+- Lưu **cục bộ trên máy**, không đồng bộ cloud.
+- Parser THẬN TRỌNG: không rõ chiều tiền → `unknown` (người dùng tự chọn), không
+  đoán. Loại OTP / khuyến mãi / nhắc nợ / báo số dư đơn thuần.
+
+### Mới
+- `pubspec`: `notification_listener_service: ^0.3.5`.
+- `AndroidManifest`: `<service>` NotificationListener + `BIND_NOTIFICATION_LISTENER_SERVICE`.
+- `lib/data/bank_directory.dart` — danh bạ ~35 app NH/ví + ~35 đầu số SMS NH + `resolveBankSource`.
+- `lib/services/bank_notification_parser.dart` — `BankNotificationParser.parse()` → `{amount, direction, balanceAfter, memo}`. 19 test (`test/bank_notification_parser_test.dart`).
+- `lib/services/bank_notification_service.dart` — nghe stream + `getActiveNotifications` bắt bù khi resume; dedup theo (gói|số tiền|chiều|ngày|hash text); `unreviewedCount` ValueNotifier.
+- `lib/views/bank_notification_settings_view.dart` — bật/tắt + xin quyền + danh sách NH hỗ trợ + cảnh báo "app cần mở/chạy nền".
+- `db_helper` v109: bảng `bank_notifications` + `insertBankNotificationOnce` / `getNewBankNotifications` / `markBankNotificationApplied|Dismissed` / `pruneOldBankNotifications`.
+- `main.dart`: `BankNotificationService.instance.start()` sau đăng nhập + `onAppResumed()`.
+- `home_view`: banner "N giao dịch ngân hàng chưa đối soát" + tile Cài đặt (chỉ Android + owner).
+- `money_reconcile_view`: mục "Giao dịch ngân hàng gần đây" — chạm 1 dòng → tự điền số tiền + chiều → auto-match → Xác nhận → đánh dấu `applied`.
+- Hook QA `kDebugMode`: chấp nhận `com.android.shell` (để test bằng `adb shell cmd notification post`).
+
+**Test:** `flutter analyze` 0 error/warning mới; `flutter test` **+489 −8** (+19 test parser).
+
+**Nghiệm thu máy thật (Oppo CPH2203) — ĐẠT:**
+1. DB migration `v109: created bank_notifications table` chạy OK.
+2. Cài đặt → tile "Đọc thông báo ngân hàng" → bật → mở đúng màn "Truy cập thông báo" hệ thống → cấp quyền → quay lại app tự bật (`_pendingEnable`).
+3. `🔔 BankNotif.start: đã lắng nghe` + `_scanActive()` quét thông báo đang hiển thị; thông báo app khác (systemui, phonemanager, googlequicksearchbox…) **bị bỏ qua đúng**.
+4. Bơm thông báo test `Vietcombank / "So du TK 0071 +690,000 VND. So du 5,200,000 VND"` → parse đúng: `amount=690000, direction=credit, balanceAfter=5200000` → 1 dòng `bank_notifications` (status `new`).
+5. Home hiện banner **"1 giao dịch ngân hàng chưa đối soát"** → chạm → mở Đối soát.
+6. Đối soát hiện mục **"Giao dịch ngân hàng gần đây (1)"** → chạm dòng → **tự điền 690.000 + chiều Tiền vào** → chạy auto-match; QR card cũng cập nhật theo số tiền.
+
+**Sửa trong lúc test:** `requestPermission()` của plugin trả `null` (lỗi cast `Null → bool`) → bọc lại + luôn kiểm tra quyền thực tế; màn Cài đặt thêm `_pendingEnable` để tự bật sau khi cấp quyền (không bắt bấm 2 lần). Log chứa nội dung thông báo NH được bọc `kDebugMode` (không ghi ra logcat bản phát hành).
+
+**⚠️ Việc cần làm khi lên store:** khai báo mục đích dùng `BIND_NOTIFICATION_LISTENER_SERVICE` + cập nhật **Play Store Data safety** và chính sách quyền riêng tư.
+
+**Files:** `pubspec.yaml`, `android/app/src/main/AndroidManifest.xml`, `lib/data/{bank_directory,app_knowledge_base}.dart`, `lib/services/{bank_notification_parser,bank_notification_service}.dart`, `lib/views/{bank_notification_settings_view,money_reconcile_view,home_view,settings_view}.dart`, `lib/data/db_helper.dart`, `lib/main.dart`, `test/bank_notification_parser_test.dart`.
+
+---
+
 ## [2026-08-31d] - feat(thanh toán) "Thanh toán qua ngân hàng" — mã QR VietQR + mở app NH ở mọi sheet thanh toán
 
 **Chưa tăng version.**

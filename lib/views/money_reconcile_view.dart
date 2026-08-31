@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../data/db_helper.dart';
 import '../services/money_reconcile_service.dart';
+import '../services/bank_notification_service.dart';
+import '../services/event_bus.dart';
 import '../utils/money_utils.dart';
 import '../widgets/currency_text_field.dart';
 import '../widgets/custom_app_bar.dart';
@@ -33,17 +35,59 @@ class _MoneyReconcileViewState extends State<MoneyReconcileView> {
   ReconcileCandidates? _candidates;
   bool _loading = true;
 
+  // Giao dịch ngân hàng đọc được từ thông báo (Android). Bấm 1 dòng → tự điền
+  // số tiền + chiều tiền để đối soát.
+  final _db = DBHelper();
+  List<Map<String, dynamic>> _bankNotifs = const [];
+  int? _activeNotifId; // thông báo đang dùng để đối soát
+  StreamSubscription<String>? _busSub;
+
   @override
   void initState() {
     super.initState();
     _loadCandidates();
+    _loadBankNotifs();
+    _busSub = EventBus().on('bank_notifications_changed', (_) {
+      if (mounted) _loadBankNotifs();
+    });
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
+    _busSub?.cancel();
     _amountCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadBankNotifs() async {
+    if (!BankNotificationService.instance.isSupported) return;
+    try {
+      final rows = await _db.getNewBankNotifications(limit: 30);
+      if (!mounted) return;
+      setState(() => _bankNotifs = rows);
+    } catch (_) {}
+  }
+
+  void _pickBankNotif(Map<String, dynamic> n) {
+    final amount = (n['amount'] as num?)?.toInt() ?? 0;
+    final dir = (n['direction'] ?? 'unknown').toString();
+    setState(() {
+      _activeNotifId = n['id'] as int?;
+      if (dir == 'credit') _moneyIn = true;
+      if (dir == 'debit') _moneyIn = false;
+      if (amount > 0) {
+        _amountCtrl.text = CurrencyTextField.formatDisplay(amount);
+      }
+    });
+    _applyFilter();
+  }
+
+  Future<void> _dismissNotif(int id) async {
+    await _db.markBankNotificationDismissed(id);
+    if (_activeNotifId == id) _activeNotifId = null;
+    await BankNotificationService.instance.refreshCount();
+    await _loadBankNotifs();
   }
 
   int get _amount => CurrencyTextField.getValue(_amountCtrl);
@@ -142,8 +186,147 @@ class _MoneyReconcileViewState extends State<MoneyReconcileView> {
     );
     if (!mounted) return;
     _snack(r.message, r.ok ? Colors.green : Colors.red);
+
+    // Nếu đang đối soát theo 1 thông báo ngân hàng → đánh dấu đã xử lý.
+    if (r.ok && _activeNotifId != null) {
+      final refId = m.sale?.firestoreId ??
+          (m.debtRow?['firestoreId']?.toString());
+      await _db.markBankNotificationApplied(
+        _activeNotifId!,
+        matchedType: m.kind.name,
+        matchedRefId: refId,
+      );
+      _activeNotifId = null;
+      await BankNotificationService.instance.refreshCount();
+      await _loadBankNotifs();
+    }
+
     // Dữ liệu đã đổi → nạp lại danh sách nguồn rồi lọc lại.
     await _loadCandidates();
+  }
+
+  Widget _bankNotifSection() {
+    if (_bankNotifs.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7ED),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFFED7AA)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
+            child: Row(
+              children: [
+                const Icon(Icons.notifications_active_rounded,
+                    size: 15, color: Color(0xFFEA580C)),
+                const SizedBox(width: 6),
+                Text(
+                  'Giao dịch ngân hàng gần đây (${_bankNotifs.length})',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12.5,
+                    color: Color(0xFFEA580C),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 176),
+            child: ListView.separated(
+              shrinkWrap: true,
+              padding: const EdgeInsets.only(bottom: 6),
+              itemCount: _bankNotifs.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (_, i) => _bankNotifRow(_bankNotifs[i]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _bankNotifRow(Map<String, dynamic> n) {
+    final amount = (n['amount'] as num?)?.toInt() ?? 0;
+    final dir = (n['direction'] ?? 'unknown').toString();
+    final active = _activeNotifId == n['id'];
+    final dirLabel = dir == 'credit'
+        ? 'Tiền vào'
+        : dir == 'debit'
+            ? 'Tiền ra'
+            : '?';
+    final dirColor = dir == 'credit'
+        ? Colors.green
+        : dir == 'debit'
+            ? Colors.red
+            : Colors.grey;
+    return InkWell(
+      onTap: () => _pickBankNotif(n),
+      child: Container(
+        color: active ? const Color(0xFFFFE8D1) : null,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        '${n['bankName'] ?? 'NH'} · ',
+                        style: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: dirColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(dirLabel,
+                            style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.bold,
+                                color: dirColor)),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        amount > 0
+                            ? '${MoneyUtils.formatCurrency(amount)} đ'
+                            : '—',
+                        style: const TextStyle(
+                            fontSize: 12.5, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    (n['memo']?.toString().trim().isNotEmpty == true
+                        ? n['memo'].toString()
+                        : (n['rawText']?.toString() ?? '')),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 11, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              tooltip: 'Bỏ qua',
+              icon: const Icon(Icons.close_rounded, size: 16),
+              visualDensity: VisualDensity.compact,
+              onPressed: () => _dismissNotif(n['id'] as int),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _snack(String msg, Color color) {
@@ -214,6 +397,7 @@ class _MoneyReconcileViewState extends State<MoneyReconcileView> {
                     ),
                   ],
                 ),
+                _bankNotifSection(),
                 if (_moneyIn)
                   bankTransferAssistCard(
                     amountController: _amountCtrl,

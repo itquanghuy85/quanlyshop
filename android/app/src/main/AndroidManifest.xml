@@ -35,6 +35,19 @@
         <meta-data
             android:name="io.flutter.embedding.android.EnableImpeller"
             android:value="true" />
+        <!-- Đọc thông báo app ngân hàng để đối soát tiền về (tính năng TÙY CHỌN,
+             mặc định TẮT; chỉ hoạt động sau khi người dùng bật trong Cài đặt VÀ
+             cấp quyền "Truy cập thông báo" của hệ thống). Plugin
+             notification_listener_service. -->
+        <service
+            android:label="Đọc thông báo ngân hàng (HULUCA)"
+            android:name="notification.listener.service.NotificationListener"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
     </application>
     <!-- Quyền truy cập internet -->
     <uses-permission android:name="android.permission.INTERNET" />
