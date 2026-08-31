@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,6 +14,7 @@ import '../models/attendance_model.dart';
 import '../models/quick_input_code_model.dart';
 import 'user_service.dart';
 import 'sync_service.dart';
+import 'sync_orchestrator.dart';
 import 'encryption_service.dart';
 
 /// Global notifier để các widget có thể theo dõi sync health
@@ -110,9 +112,14 @@ class SyncHealthCheck {
   static final _localDb = DBHelper();
   static final Map<String, Set<String>> _tableColumnsCache = {};
 
+  /// Số lệnh xoá đã enqueue trong lần runFullCheck hiện tại (bản ghi local đã
+  /// xoá mềm mà cloud còn sống) — dùng để flush hàng đợi sau khi kiểm tra.
+  static int _cloudDeletePushedThisRun = 0;
+
   /// Kiểm tra toàn bộ sync health
   static Future<SyncHealthReport> runFullCheck() async {
     debugPrint('🔍 Bắt đầu kiểm tra Sync Health...');
+    _cloudDeletePushedThisRun = 0;
 
     final user = FirebaseAuth.instance.currentUser;
     final String? shopId = await UserService.getCurrentShopId();
@@ -225,6 +232,15 @@ class SyncHealthCheck {
     syncHealthNotifier.value = report.isFullyHealthy;
     syncMismatchCountNotifier.value = totalMismatches;
 
+    // Có lệnh xoá vừa được enqueue (local đã xoá mềm, cloud còn sống) → flush
+    // hàng đợi để cloud khớp lại, lần kiểm tra sau con số lệch sẽ tự hết.
+    if (_cloudDeletePushedThisRun > 0) {
+      debugPrint(
+        '🔄 Sync Health: đã enqueue $_cloudDeletePushedThisRun lệnh xoá — chạy syncAll() để đẩy lên cloud',
+      );
+      unawaited(SyncOrchestrator().syncAll());
+    }
+
     return report;
   }
 
@@ -281,29 +297,68 @@ class SyncHealthCheck {
       // out of cloudIds by _buildCloudComparisonRows, so they won't be restored.
       const noAutoRestoreCollections = <String>{};
 
-      // AUTO-FIX: Tự động download records thiếu trên local
+      // AUTO-FIX: đồng bộ các bản ghi cloud đang thiếu ở local.
+      //
+      // Trường hợp đặc biệt (fix "N cần đồng bộ" kẹt vĩnh viễn): bản ghi CÒN
+      // sống trên cloud nhưng ở local đã bị XOÁ MỀM (deleted=1) và đã đánh dấu
+      // isSynced=1 — tức lệnh xoá cục bộ chưa kịp đẩy lên cloud (thường do dọn
+      // dữ liệu ở "Công cụ điều chỉnh dữ liệu"). KHÔNG "tải lại" (sẽ hồi sinh
+      // bản ghi người dùng đã chủ ý xoá; hơn nữa các model như Debt không có
+      // cột `deleted` nên _upsertToLocal cũng KHÔNG gỡ được deleted=1 → auto-fix
+      // báo "đã tải" nhưng thực chất vô hiệu, lệch số không bao giờ hết). Thay
+      // vào đó ENQUEUE một lệnh delete để đẩy việc xoá lên cloud cho khớp.
       if (cloudOnly > 0 && !noAutoRestoreCollections.contains(collection)) {
         debugPrint(
-          '   🔧 Auto-fix: Tải $cloudOnly records thiếu cho $collection...',
+          '   🔧 Auto-fix: xử lý $cloudOnly bản ghi cloud thiếu ở local cho $collection...',
         );
         final missingIds = cloudIds.difference(localIds);
         int fixed = 0;
+        int pushedDelete = 0;
         for (final docId in missingIds) {
           try {
             var data = Map<String, dynamic>.from(cloudRows[docId]!);
             data = EncryptionService.decryptMap(data);
-            data['firestoreId'] = data['firestoreId'] ?? docId;
+            final realFid = (data['firestoreId'] ?? docId).toString();
+            data['firestoreId'] = realFid;
+
+            // Local có bản ghi cùng firestoreId nhưng đã xoá mềm + đã synced?
+            final localRow = await _getLocalRowByFirestoreId(
+              collection,
+              realFid,
+            );
+            final localSoftDeleted = localRow != null &&
+                (localRow['deleted'] == 1 || localRow['deleted'] == true) &&
+                !_isUnsyncedRow(localRow);
+            if (localSoftDeleted) {
+              final enqueued = await _enqueueCloudDelete(
+                collection,
+                localRow,
+                realFid,
+              );
+              if (enqueued) {
+                pushedDelete++;
+                debugPrint(
+                  '   ⬆️ $collection/$realFid: local đã xoá — đẩy lệnh xoá lên cloud (không hồi sinh)',
+                );
+              } else {
+                debugPrint(
+                  '   ⚠️ $collection/$realFid: local đã xoá nhưng chưa map được entity để đẩy lệnh xoá',
+                );
+              }
+              continue;
+            }
+
             data['isSynced'] = 1;
             data['deleted'] = data['deleted'] ?? 0;
             SyncService.convertTimestampFieldsPublic(data);
             await _upsertToLocal(collection, data);
             fixed++;
           } catch (e) {
-            debugPrint('   ❌ Không tải được $docId: $e');
+            debugPrint('   ❌ Không xử lý được $docId: $e');
           }
         }
         debugPrint(
-          '   ✅ Đã tải $fixed/$cloudOnly records thiếu cho $collection',
+          '   ✅ $collection: tải $fixed, đẩy lệnh xoá $pushedDelete / tổng $cloudOnly',
         );
       } else if (cloudOnly > 0 && noAutoRestoreCollections.contains(collection)) {
         debugPrint(
@@ -935,6 +990,70 @@ class SyncHealthCheck {
       case 'payment_requests':
         await db.upsertPaymentRequest(data);
         break;
+    }
+  }
+
+  /// Map collection → SyncEntityType (chỉ các collection có thể enqueue qua
+  /// SyncOrchestrator). Dùng để đẩy lệnh xoá lên cloud khi local đã xoá mềm.
+  static const Map<String, SyncEntityType> _entityTypeByCollection = {
+    'repairs': SyncEntityType.repair,
+    'repair_parts': SyncEntityType.repairPart,
+    'repair_partners': SyncEntityType.repairPartner,
+    'sales': SyncEntityType.sale,
+    'salvage_phones': SyncEntityType.salvagePhone,
+    'products': SyncEntityType.product,
+    'expenses': SyncEntityType.expense,
+    'debts': SyncEntityType.debt,
+    'debt_payments': SyncEntityType.debtPayment,
+    'attendance': SyncEntityType.attendance,
+    'customers': SyncEntityType.customer,
+    'suppliers': SyncEntityType.supplier,
+    'quick_input_codes': SyncEntityType.quickInputCode,
+  };
+
+  /// Lấy 1 dòng local theo firestoreId — KHÔNG lọc deleted (để phát hiện bản
+  /// ghi đã xoá mềm cục bộ mà cloud vẫn còn sống).
+  static Future<Map<String, dynamic>?> _getLocalRowByFirestoreId(
+    String collection,
+    String firestoreId,
+  ) async {
+    try {
+      final db = await _localDb.database;
+      final rows = await db.query(
+        collection,
+        where: 'firestoreId = ?',
+        whereArgs: [firestoreId],
+        limit: 1,
+      );
+      return rows.isEmpty ? null : rows.first;
+    } catch (e) {
+      debugPrint('⚠️ _getLocalRowByFirestoreId $collection/$firestoreId: $e');
+      return null;
+    }
+  }
+
+  /// Đẩy 1 lệnh delete lên hàng đợi đồng bộ (cho bản ghi local đã xoá mềm mà
+  /// cloud vẫn còn). Trả về true nếu enqueue được.
+  static Future<bool> _enqueueCloudDelete(
+    String collection,
+    Map<String, dynamic> localRow,
+    String firestoreId,
+  ) async {
+    final type = _entityTypeByCollection[collection];
+    final id = localRow['id'];
+    if (type == null || id is! int) return false;
+    try {
+      await SyncOrchestrator().enqueue(
+        entityType: type,
+        entityId: id,
+        firestoreId: firestoreId,
+        operation: SyncOperation.delete,
+      );
+      _cloudDeletePushedThisRun++;
+      return true;
+    } catch (e) {
+      debugPrint('⚠️ _enqueueCloudDelete $collection/$firestoreId: $e');
+      return false;
     }
   }
 

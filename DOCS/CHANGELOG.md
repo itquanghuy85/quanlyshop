@@ -4,6 +4,38 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-31c] - fix(đồng bộ) badge "N cần đồng bộ" ảo — bản ghi local đã xoá mà cloud còn sống
+
+**Chưa tăng version.**
+
+### Sự cố
+Máy test hiện "⚠️ Cần đồng bộ dữ liệu (2)" mãi không hết, dù hàng đợi
+(`sync_queue`) trống, thao tác đồng bộ gần nhất đều thành công, mọi bản ghi
+`isSynced=1`. Truy: `SyncHealthCheck` so **số lượng** local↔cloud, lệch ở bảng
+`debts` — 2 công nợ đã **xoá mềm ở local** (`deleted=1`, phiên dọn dữ liệu 30/8)
+nhưng **Firestore vẫn `deleted:false`**. Auto-fix "tải lại" 2 bản ghi này mỗi lần
+mở app và ghi log *"✅ Đã tải 2/2"* — nhưng **vô hiệu**: model `Debt` không có
+trường `deleted` nên `_upsertToLocal` không thể gỡ `deleted=1` ⇒ lệch **kẹt
+vĩnh viễn**, không thao tác nào xử lý được.
+
+### Sửa (`sync_health_check.dart`)
+- Vòng auto-fix của `_checkCollection`: trước khi "tải lại" 1 bản ghi cloud-only,
+  kiểm tra local có bản ghi cùng `firestoreId` đã **xoá mềm + đã synced** không.
+  Nếu có → **KHÔNG hồi sinh**; thay vào đó **enqueue lệnh `delete`** qua
+  `SyncOrchestrator` để đẩy việc xoá lên cloud cho khớp.
+- `_entityTypeByCollection` (map collection→`SyncEntityType`),
+  `_getLocalRowByFirestoreId` (không lọc deleted), `_enqueueCloudDelete` (mới).
+- Sau `runFullCheck`, nếu có lệnh xoá vừa enqueue → `SyncOrchestrator().syncAll()`
+  để cloud khớp lại ngay; lần kiểm tra sau con số lệch tự về 0.
+- Áp cho mọi collection map được entity type (repairs, sales, products, debts,
+  customers, suppliers, expenses, …); collection không map được thì bỏ qua
+  (không hồi sinh, không báo "đã tải" sai).
+
+**Test:** `flutter analyze` 0 issue; `flutter test` **+470 −8**. Chưa nghiệm thu máy thật (fix passive path, chờ build mới).
+**Files:** `lib/services/sync_health_check.dart`.
+
+---
+
 ## [2026-08-31b] - feat(đơn sửa) chạm phụ tùng / dịch vụ để mở nguồn tương ứng
 
 **Chưa tăng version.**
