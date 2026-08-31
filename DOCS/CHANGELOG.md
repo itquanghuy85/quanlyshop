@@ -4,6 +4,35 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-08-31a] - fix(đồng bộ) "Đã giao" là trạng thái cuối — không bị máy khác kéo ngược
+
+**Chưa tăng version.**
+
+### Sự cố
+Nhân viên xin giao máy → chủ shop A duyệt (đơn về **ĐÃ GIAO / status 4**), nhưng
+trên máy chủ shop B đơn vẫn hiện **CHƯA GIAO**. Nguyên nhân: bộ giải quyết xung đột
+đồng bộ (`SyncService._shouldAcceptCloudData`) coi bản local "mới hơn" (do lệch giờ
+máy, hoặc local có sửa đổi chưa sync, hoặc `lastCaredAt` cũ) nên **từ chối** bản
+cloud status 4. Máy B còn có thể đẩy ngược status 3 lên cloud → "hủy giao" toàn hệ thống.
+
+### Sửa
+- **`sync_service.dart`** — thêm luật *trạng thái cuối*: nếu cloud `status >= 4`
+  và không còn `pendingDeliveryApproval`, mà local `status < 4` → **LUÔN nhận cloud**,
+  bỏ qua so sánh timestamp / `isSynced` / lệch giờ; đồng thời dọn hàng đợi đẩy cũ
+  (`_dropStaleRepairQueueEntry`).
+- **`sync_orchestrator.dart`** `_handleUpdate` — *guard đảo ngược*: trước khi đẩy 1
+  đơn sửa `status < 4` lên cloud, đọc bản cloud; nếu cloud đã `status >= 4` &
+  không chờ duyệt → **bỏ các field trạng thái giao** (`status`, `deliveredAt`,
+  `deliveredBy`, `deliveredByUid`, `pendingDeliveryApproval`) khỏi merge, vẫn đồng
+  bộ các thay đổi khác (ghi chú, linh kiện, giá vốn).
+- Hai lớp phối hợp: máy cũ vừa nhận cloud status 4 (qua listener) vừa không thể
+  đẩy ngược status thấp hơn.
+
+**Test:** `flutter analyze` 0 error mới (5 info lint có sẵn); `flutter test` **+470 −8** (baseline, 8 lỗi môi trường có sẵn). Chưa nghiệm thu 2 máy thật.
+**Files:** `lib/services/sync_service.dart`, `lib/services/sync_orchestrator.dart`.
+
+---
+
 ## [2026-08-30w] - feat(điều hướng) lối tắt Bảng giá/Đối soát vào tab + xem đơn gốc
 
 **Chưa tăng version.**

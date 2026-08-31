@@ -727,6 +727,39 @@ class SyncOrchestrator {
     if (item.entityType == SyncEntityType.repair) {
       _normalizeRepairPayloadForCloud(data);
       await _normalizeRepairImagePathsForCloud(data);
+
+      // KHÔNG ĐẢO NGƯỢC "ĐÃ GIAO": nếu payload local đang < 4 mà bản trên cloud
+      // đã ở trạng thái 4 (đã giao, không còn chờ duyệt) thì bỏ các field trạng
+      // thái giao khỏi merge — vẫn đồng bộ các thay đổi khác (ghi chú, linh kiện,
+      // giá vốn). Chặn kịch bản máy chưa nhận status 4 push đè status 3 lên cloud
+      // rồi "hủy giao" toàn hệ thống.
+      final localStatus = _normalizeRepairStatus(data['status']);
+      if (localStatus < 4 && item.firestoreId != null) {
+        try {
+          final snap = await _withCloudWriteTimeout(
+            _firestore.collection(collection).doc(item.firestoreId).get(),
+            'delivery_guard_$collection/${item.firestoreId}',
+          );
+          final cloud = snap.data();
+          if (cloud != null) {
+            final cloudStatus = _normalizeRepairStatus(cloud['status']);
+            final cloudPending = _asBool(cloud['pendingDeliveryApproval']);
+            if (cloudStatus >= 4 && !cloudPending) {
+              data.remove('status');
+              data.remove('deliveredAt');
+              data.remove('deliveredBy');
+              data.remove('deliveredByUid');
+              data.remove('pendingDeliveryApproval');
+              debugPrint(
+                '🛡️ SyncOrchestrator: repairs/${item.firestoreId} cloud ĐÃ GIAO (4) '
+                '— giữ trạng thái cloud, chỉ merge các field khác (local status $localStatus)',
+              );
+            }
+          }
+        } catch (e) {
+          debugPrint('⚠️ SyncOrchestrator delivery-guard read failed: $e');
+        }
+      }
     }
 
     // Remove local-only fields

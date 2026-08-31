@@ -774,6 +774,7 @@ class SyncService {
     int localUpdatedAt = 0;
     bool localIsSynced = true;
     int? localEntityId;
+    int localRepairStatus = -1;
 
     try {
       switch (collection) {
@@ -784,6 +785,7 @@ class SyncService {
             localUpdatedAt = local.lastCaredAt ?? local.createdAt;
             localIsSynced = local.isSynced;
             localEntityId = local.id;
+            localRepairStatus = local.status;
           }
           break;
         case 'sales':
@@ -832,6 +834,21 @@ class SyncService {
         '✅ SYNC: $collection/$firestoreId - Local không tồn tại, accept cloud',
       );
       return true;
+    }
+
+    // TRẠNG THÁI CUỐI: đơn sửa "Đã giao" (status 4) không đảo ngược qua sync.
+    // Nếu cloud = 4 mà local < 4 → LUÔN nhận cloud, bất kể timestamp / isSynced /
+    // lệch giờ máy. Đây là fix "máy khác duyệt giao rồi mà máy này vẫn chưa giao".
+    if (collection == 'repairs' && localRepairStatus >= 0) {
+      final cloudStatus = _normalizeRepairStatusValue(cloudData['status']);
+      final cloudPending = _asBool(cloudData['pendingDeliveryApproval']);
+      if (cloudStatus >= 4 && !cloudPending && localRepairStatus < 4) {
+        debugPrint(
+          '⬇️ SYNC: repairs/$firestoreId - Cloud ĐÃ GIAO (4), local $localRepairStatus → accept cloud (trạng thái cuối)',
+        );
+        await _dropStaleRepairQueueEntry(firestoreId, localId: localEntityId);
+        return true;
+      }
     }
 
     // Nếu local đã sync (không có thay đổi pending) → accept cloud
