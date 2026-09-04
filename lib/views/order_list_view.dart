@@ -1261,12 +1261,19 @@ class OrderListViewState extends State<OrderListView> {
               return;
             }
             searchTimer = Timer(const Duration(milliseconds: 300), () async {
-              if (!dialogActive) return;
+              // `dialogActive` KHÔNG đủ: cờ đó chỉ được tắt trong 2 nút
+              // Huỷ/Lưu, mà dialog này `barrierDismissible` mặc định = true —
+              // chạm ra ngoài hoặc bấm Back thì cờ vẫn còn true. Khi đó timer
+              // vẫn gọi setState lên element ĐÃ CHẾT ⇒ rebuild giữa lúc
+              // teardown ⇒ subtree (Divider/InkWell → Theme.of) đăng ký
+              // dependency mới vào InheritedElement đang deactivate ⇒ nổ
+              // `assert(_dependents.isEmpty)` (framework.dart). `try/catch`
+              // quanh setState KHÔNG bắt được vì assert nổ ở pha build sau.
+              // `ctx.mounted` mới là chốt đúng cho MỌI đường đóng dialog.
+              if (!dialogActive || !ctx.mounted) return;
               final results = await db.searchCustomers(q.trim(), shopId);
-              if (!dialogActive) return;
-              try {
-                setS(() => searchResults = results.take(6).toList());
-              } catch (_) {}
+              if (!dialogActive || !ctx.mounted) return;
+              setS(() => searchResults = results.take(6).toList());
             });
           }
 

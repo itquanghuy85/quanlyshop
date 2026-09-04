@@ -75,7 +75,6 @@ class _SaleDetailViewState extends State<SaleDetailView> {
   String _shopPhone = "";
   bool get _isInstallmentNH => s.paymentMethod.toUpperCase() == "TRẢ GÓP (NH)";
   bool _managerUnlocked = false;
-  bool _checkingManager = false;
   bool _canViewCostPrice = false;
   late List<ProductLinkRef> _linkedProducts;
 
@@ -524,61 +523,102 @@ class _SaleDetailViewState extends State<SaleDetailView> {
 
     final passCtrl = TextEditingController();
     if (!mounted) return;
+
+    // Dialog CHỈ đóng khi xác thực THÀNH CÔNG — không pop rồi mới await
+    // `reauthenticateWithCredential`. Pop một route đang có TextField mật khẩu
+    // giữ focus rồi mới chạy tiếp việc async là đúng kiểu đã gây crash
+    // `assert(_dependents.isEmpty)` (framework.dart, `InheritedElement`).
+    // Đây là cùng khuôn đã áp cho `order_list_view._confirmDelete` và đã hết
+    // crash ở đó. Sai mật khẩu -> báo lỗi NGAY TRONG dialog, dialog vẫn mở để
+    // nhập lại (trước đây dialog đóng mất rồi mới hiện SnackBar báo sai).
+    String? errorText;
+    bool submitting = false;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) {
         final dialogL10n = AppLocalizations.of(ctx)!;
-        return AlertDialog(
-          title: Text(dialogL10n.managerAuthTitle),
-          content: TextField(
-            controller: passCtrl,
-            obscureText: true,
-            decoration: InputDecoration(
-              labelText: dialogL10n.managerPasswordLabel,
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) => AlertDialog(
+            title: Text(dialogL10n.managerAuthTitle),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: passCtrl,
+                  obscureText: true,
+                  enabled: !submitting,
+                  decoration: InputDecoration(
+                    labelText: dialogL10n.managerPasswordLabel,
+                    errorText: errorText,
+                  ),
+                ),
+              ],
             ),
+            actions: [
+              TextButton(
+                onPressed: submitting ? null : () => Navigator.pop(ctx, false),
+                child: Text(dialogL10n.cancel),
+              ),
+              ElevatedButton(
+                onPressed: submitting
+                    ? null
+                    : () async {
+                        setDialogState(() {
+                          submitting = true;
+                          errorText = null;
+                        });
+                        final authed = await _reauthenticate(
+                          user,
+                          passCtrl.text,
+                        );
+                        if (!ctx.mounted) return;
+                        if (authed) {
+                          Navigator.pop(ctx, true);
+                        } else {
+                          setDialogState(() {
+                            submitting = false;
+                            errorText = AppLocalizations.of(
+                              ctx,
+                            )!.wrongManagerPassword;
+                          });
+                        }
+                      },
+                child: submitting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(dialogL10n.confirmButton),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(dialogL10n.cancel),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(dialogL10n.confirmButton),
-            ),
-          ],
         );
       },
     );
 
     passCtrl.dispose();
-    if (ok != true) return;
+    if (ok != true || !mounted) return;
 
+    setState(() => _managerUnlocked = true);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context)!.editUnlocked)),
+    );
+  }
+
+  /// Xác thực lại mật khẩu quản lý. Trả về false khi sai mật khẩu / lỗi mạng —
+  /// không ném ra ngoài để dialog tự hiện lỗi inline và giữ nguyên trạng thái.
+  Future<bool> _reauthenticate(User user, String password) async {
     try {
-      setState(() => _checkingManager = true);
       final cred = EmailAuthProvider.credential(
         email: user.email ?? '',
-        password: passCtrl.text,
+        password: password,
       );
       await user.reauthenticateWithCredential(cred);
-      if (mounted) {
-        setState(() {
-          _managerUnlocked = true;
-          _checkingManager = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.editUnlocked)),
-        );
-      }
+      return true;
     } catch (_) {
-      if (mounted) {
-        setState(() => _checkingManager = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.wrongManagerPassword),
-          ),
-        );
-      }
+      return false;
     }
   }
 
@@ -1858,19 +1898,8 @@ class _SaleDetailViewState extends State<SaleDetailView> {
               );
             },
           ),
-          if (_checkingManager)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-              child: SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              ),
-            )
-          else
+          // Không còn nhánh spinner trên AppBar: việc xác thực quản lý giờ
+          // chạy BÊN TRONG dialog và dialog tự hiện vòng quay ở nút Xác nhận.
             Builder(
               builder: (ctx) {
                 final l10n = AppLocalizations.of(ctx)!;
