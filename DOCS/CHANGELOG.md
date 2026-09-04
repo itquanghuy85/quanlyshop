@@ -4,6 +4,40 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-04f] - feat(bảng giá) tích hợp giá vốn phụ tùng vào tab Sửa chữa + tạo tay khi chưa có lịch sử
+
+**Chưa tăng version.**
+
+Bảng giá (tab Sửa chữa) giờ gộp cả giá vốn phụ tùng/linh kiện để nhân viên
+tra cứu ngay khi nhận máy sửa, và cho phép chủ shop dựng sẵn bảng giá TRƯỚC
+khi có đơn/hoá đơn thật.
+
+- `PriceBookService.buildPartRows()`: dòng phụ tùng tham khảo trong tab Sửa
+  chữa (KHÔNG tách tab riêng), nguồn = giá vốn LIVE từ Kho phụ tùng + các
+  mục nhập từ hoá đơn NCC chưa khớp tên (Excel). Ghim giá cho dòng phụ tùng
+  không bắt buộc phải có giá thu khách (chỉ vốn tham khảo cũng ghi được).
+- **Fix gộp nhóm hãng sai:** tên phụ tùng thường theo mẫu "loại phụ tùng +
+  hãng + model" (vd "Pin iPhone 13") nên hãng KHÔNG nằm ở từ đầu — trước đây
+  bị gộp nhầm vào nhóm theo từ đầu tiên (vd nhóm "PIN"). Nay quét toàn bộ
+  các từ trong tên để tìm đúng hãng máy đã biết.
+- **Nút nổi "Thêm mục"** (tab Sửa chữa) → tạo tay 1 trong 2:
+  - Mục sửa chữa mới (model + lỗi) — dùng khi CHƯA từng có đơn nào, để đặt
+    giá thu khách trước, tránh mỗi nhân viên báo 1 giá.
+  - Phụ tùng tham khảo mới (tên + giá vốn, có thể ghi rõ Hãng máy) — dùng
+    khi phụ tùng CHƯA có trong Kho.
+- Nhập hoá đơn NCC (Excel): thêm cột "Hãng" tuỳ chọn (prompt AI cập nhật) để
+  gộp nhóm chính xác hơn tự đoán, khi tên hàng trên hoá đơn không nêu rõ
+  hãng.
+
+**Test:** `flutter analyze` 0 lỗi mới (chỉ info cũ có sẵn). Máy thật Oppo
+CPH2203 (shop "M"): xác nhận phụ tùng test gộp đúng nhóm hãng theo từ giữa
+tên (không còn lệch nhóm); tạo tay 1 mục sửa chữa mới → xuất hiện đúng nhóm
+hãng, nhãn NIÊM YẾT, "0 mẫu"; tạo tay 1 phụ tùng tham khảo kèm Hãng máy tự
+ghi → gộp đúng nhóm hãng đó thay vì "Khác". Không thấy lỗi trong logcat khi
+test.
+
+---
+
 ## [2026-09-04e] - feat(kho) cập nhật giá vốn phụ tùng từ hoá đơn NCC (Excel + AI)
 
 **Chưa tăng version.**

@@ -114,12 +114,31 @@ class PricePin {
   final int pinnedAt;
   final String pinnedBy;
 
+  /// Tên gốc (chưa chuẩn hoá) — dùng khi KHÔNG có dữ liệu lịch sử/kho để tự
+  /// suy ra tên hiển thị: ghim phụ tùng (khoá `p|...`, đây là tên phụ tùng),
+  /// hoặc ghim sửa chữa mới tạo tay chưa từng có đơn (khoá `r|...`, đây là
+  /// tên model — đi kèm [displayExtra] là tên lỗi/dịch vụ).
+  final String? displayName;
+
+  /// Chỉ dùng cho ghim sửa chữa mới tạo tay (khoá `r|...`) chưa từng có đơn
+  /// lịch sử — lưu tên lỗi/dịch vụ gốc song song với [displayName] (model).
+  final String? displayExtra;
+
+  /// Hãng máy tường minh (khoá `p|...`) — khi có (vd từ cột "Hãng" của file
+  /// Excel nhập hoá đơn NCC, hoặc chọn tay khi tạo mục mới), Bảng giá dùng
+  /// trực tiếp thay vì tự đoán hãng từ tên phụ tùng (đoán có thể sai với
+  /// tên không nêu rõ hãng, vd "Pin Zin 13").
+  final String? brandHint;
+
   const PricePin({
     required this.price,
     this.cost,
     this.note = '',
     required this.pinnedAt,
     this.pinnedBy = '',
+    this.displayName,
+    this.displayExtra,
+    this.brandHint,
   });
 
   Map<String, dynamic> toJson() => {
@@ -128,6 +147,9 @@ class PricePin {
         'note': note,
         'at': pinnedAt,
         'by': pinnedBy,
+        if (displayName != null) 'name': displayName,
+        if (displayExtra != null) 'name2': displayExtra,
+        if (brandHint != null) 'brand': brandHint,
       };
 
   factory PricePin.fromJson(Map<String, dynamic> j) => PricePin(
@@ -136,6 +158,9 @@ class PricePin {
         note: (j['note'] as String?) ?? '',
         pinnedAt: (j['at'] as num?)?.toInt() ?? 0,
         pinnedBy: (j['by'] as String?) ?? '',
+        displayName: (j['name'] as String?),
+        displayExtra: (j['name2'] as String?),
+        brandHint: (j['brand'] as String?),
       );
 }
 

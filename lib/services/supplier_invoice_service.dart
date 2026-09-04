@@ -21,31 +21,40 @@ import 'sync_orchestrator.dart';
 class SupplierInvoiceService {
   SupplierInvoiceService._();
 
-  static const List<String> templateHeaders = ['Tên phụ tùng', 'Giá vốn'];
+  static const List<String> templateHeaders = [
+    'Tên phụ tùng',
+    'Giá vốn',
+    'Hãng',
+  ];
 
   /// Câu lệnh (prompt) chủ shop copy dán cho ChatGPT/Gemini/Claude kèm ảnh
   /// hoá đơn NCC — yêu cầu AI tạo thẳng 1 file Excel để tải về và nhập
   /// thẳng vào app (đỡ phải copy/dán tay). Có kèm phương án dự phòng (xuất
-  /// bảng văn bản) cho các bản AI không tạo được file.
+  /// bảng văn bản) cho các bản AI không tạo được file. Cột "Hãng" là tuỳ
+  /// chọn — giúp Bảng giá gom đúng nhóm hãng máy (vd "Pin iPhone 13" nếu
+  /// không có cột này app tự đoán hãng từ tên, có thể sai khi tên không rõ
+  /// hãng, vd "Pin Zin 13").
   static const String chatGptPrompt =
       'Đây là ảnh hoá đơn mua hàng từ nhà cung cấp phụ tùng điện thoại. Hãy '
       'đọc TẤT CẢ các dòng hàng trong hoá đơn, rồi tạo cho tôi 1 file Excel '
-      '(.xlsx) để tôi tải về, gồm đúng 2 cột:\n'
+      '(.xlsx) để tôi tải về, gồm đúng 3 cột:\n'
       'Cột A "Tên phụ tùng": tên hàng đúng như trên hoá đơn.\n'
       'Cột B "Giá vốn": đơn giá của dòng đó (chỉ số, không ghi "đ" hay dấu '
       'chấm phẩy nghìn).\n'
-      'Dòng 1 là tiêu đề "Tên phụ tùng" và "Giá vốn". Không thêm cột nào '
-      'khác, không thêm dòng tổng cộng, không giải thích gì thêm.\n'
+      'Cột C "Hãng": hãng máy dòng đó dùng cho (vd Oppo, iPhone, Samsung, '
+      'Xiaomi, Vivo…) nếu suy ra được từ tên hàng; để trống nếu không rõ.\n'
+      'Dòng 1 là tiêu đề "Tên phụ tùng", "Giá vốn", "Hãng". Không thêm cột '
+      'nào khác, không thêm dòng tổng cộng, không giải thích gì thêm.\n'
       'Nếu không tạo được file, hãy xuất đúng bảng đó dưới dạng văn bản, '
       'phân cách bằng dấu Tab, để tôi tự dán vào Excel.';
 
-  /// Tạo file Excel mẫu (2 cột + 1 dòng ví dụ) để chủ shop dán dữ liệu từ
+  /// Tạo file Excel mẫu (3 cột + 1 dòng ví dụ) để chủ shop dán dữ liệu từ
   /// AI vào, hoặc tự gõ tay.
   static Excel buildTemplateExcel() {
     final excel = Excel.createExcel();
     final sheet = excel[excel.getDefaultSheet() ?? 'Sheet1'];
     ExcelExportHelper.writeSheet(sheet, templateHeaders, [
-      ['Ví dụ: Pin iPhone 11 Pro Max', 310000],
+      ['Ví dụ: Pin iPhone 11 Pro Max', 310000, 'iPhone'],
     ]);
     return excel;
   }
@@ -98,6 +107,7 @@ class SupplierInvoiceService {
       }
       final ciName = head['tên phụ tùng'];
       final ciPrice = head['giá vốn'];
+      final ciBrand = head['hãng']; // tuỳ chọn — có thể null/thiếu cột
       if (ciName == null || ciPrice == null) {
         errors.add(
           'Sheet "${sheet.sheetName}": thiếu cột "Tên phụ tùng" hoặc "Giá '
@@ -119,7 +129,11 @@ class SupplierInvoiceService {
               'hoặc giá vốn không hợp lệ — đã bỏ qua.');
           continue;
         }
-        items.add(InvoiceLineItem(name: name, unitPrice: price));
+        items.add(InvoiceLineItem(
+          name: name,
+          unitPrice: price,
+          brand: cell(ciBrand).trim(),
+        ));
       }
     }
     return (items: items, errors: errors);

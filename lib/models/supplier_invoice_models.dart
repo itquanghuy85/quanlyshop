@@ -5,17 +5,29 @@ class InvoiceLineItem {
   final int unitPrice;
   final int qty;
 
+  /// Hãng máy (Oppo/iPhone/Samsung/…), nếu file Excel có cột "Hãng" riêng —
+  /// đáng tin hơn việc tự đoán hãng từ chuỗi tên gộp. Rỗng nếu AI/người dùng
+  /// không điền — khi đó Bảng giá tự đoán hãng từ [name].
+  final String brand;
+
   const InvoiceLineItem({
     required this.name,
     required this.unitPrice,
     this.qty = 1,
+    this.brand = '',
   });
 
-  InvoiceLineItem copyWith({String? name, int? unitPrice, int? qty}) {
+  InvoiceLineItem copyWith({
+    String? name,
+    int? unitPrice,
+    int? qty,
+    String? brand,
+  }) {
     return InvoiceLineItem(
       name: name ?? this.name,
       unitPrice: unitPrice ?? this.unitPrice,
       qty: qty ?? this.qty,
+      brand: brand ?? this.brand,
     );
   }
 }

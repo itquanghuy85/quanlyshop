@@ -5,6 +5,7 @@ import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:intl/intl.dart';
 import '../models/supplier_invoice_models.dart';
 import '../services/supplier_invoice_service.dart';
+import '../services/price_book_service.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../widgets/keyboard_aware_padding.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -342,27 +343,55 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
         .where((item) => !matchedSourceNames.contains(item.name))
         .toList();
 
-    final proposals = await _reviewImportProposals(autoMatched, unmatched);
-    if (proposals == null || proposals.isEmpty || !mounted) return;
+    final result = await _reviewImportProposals(autoMatched, unmatched);
+    if (result == null || !mounted) return;
+    final proposals = result.proposals;
+    final stillUnmatched = result.stillUnmatched;
+    if (proposals.isEmpty && stillUnmatched.isEmpty) return;
 
-    final n = await SupplierInvoiceService.commitCostUpdates(proposals);
+    final n = proposals.isEmpty
+        ? 0
+        : await SupplierInvoiceService.commitCostUpdates(proposals);
+
+    // Dòng còn lại (không có phụ tùng thật trong kho để gán) — thêm vào
+    // Bảng giá (tab Sửa chữa) làm giá vốn tham khảo, KHÔNG tạo tồn kho ảo.
+    // Nhân viên vẫn xem được giá này khi báo khách; chủ shop có thể ghim
+    // thêm giá thu khách dựa trên đó sau này.
+    for (final item in stillUnmatched) {
+      await PriceBookService.pin(
+        PriceBookService.partKey(item.name),
+        price: 0,
+        cost: item.unitPrice,
+        displayName: item.name,
+        brandHint: item.brand.trim().isEmpty ? null : item.brand.trim(),
+      );
+    }
+
     if (!mounted) return;
-    _invoiceSnack('Đã cập nhật giá vốn cho $n phụ tùng.');
+    final parts = [
+      if (n > 0) 'cập nhật giá vốn cho $n phụ tùng',
+      if (stillUnmatched.isNotEmpty)
+        'thêm ${stillUnmatched.length} mục vào Bảng giá tham khảo',
+    ];
+    _invoiceSnack('Đã ${parts.join(' và ')}.');
     await _refreshParts();
   }
 
   /// Dialog xem lại: danh sách khớp tự động (chỉ hiển thị) + danh sách chưa
   /// khớp (mỗi dòng có nút "Gán" mở màn chọn phụ tùng — chọn được nhiều,
-  /// đúng cho trường hợp 1 linh kiện dùng chung nhiều model). Trả về danh
-  /// sách cuối cùng người dùng đồng ý cập nhật, hoặc null nếu huỷ.
-  Future<List<PartCostUpdateProposal>?> _reviewImportProposals(
+  /// đúng cho trường hợp 1 linh kiện dùng chung nhiều model). Trả về cả danh
+  /// sách đồng ý cập nhật kho LẪN danh sách còn lại chưa gán (để caller thêm
+  /// vào Bảng giá làm giá tham khảo) — hoặc null nếu huỷ hẳn dialog.
+  Future<({List<PartCostUpdateProposal> proposals, List<InvoiceLineItem> stillUnmatched})?>
+      _reviewImportProposals(
     List<PartCostUpdateProposal> autoMatched,
     List<InvoiceLineItem> unmatchedInitial,
   ) {
     final proposals = List<PartCostUpdateProposal>.from(autoMatched);
     final unmatched = List<InvoiceLineItem>.from(unmatchedInitial);
 
-    return showDialog<List<PartCostUpdateProposal>>(
+    return showDialog<
+        ({List<PartCostUpdateProposal> proposals, List<InvoiceLineItem> stillUnmatched})>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setLocal) => AlertDialog(
@@ -392,8 +421,9 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                     const SizedBox(height: 12),
                     Text(
                       'Chưa khớp tự động (${unmatched.length}) — thường do 1 '
-                      'linh kiện dùng chung nhiều model. Bấm "Gán" để chọn '
-                      'phụ tùng (chọn được nhiều):',
+                      'linh kiện dùng chung nhiều model. Bấm "Gán" nếu đây là '
+                      'phụ tùng đã có trong kho (chọn được nhiều); bỏ qua thì '
+                      'vẫn được thêm vào Bảng giá làm giá tham khảo:',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 12.5,
@@ -454,10 +484,16 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
               child: const Text('Huỷ'),
             ),
             FilledButton(
-              onPressed: proposals.isEmpty
+              onPressed: proposals.isEmpty && unmatched.isEmpty
                   ? null
-                  : () => Navigator.pop(ctx, proposals),
-              child: Text('Cập nhật ${proposals.length}'),
+                  : () => Navigator.pop(
+                        ctx,
+                        (
+                          proposals: proposals,
+                          stillUnmatched: unmatched,
+                        ),
+                      ),
+              child: Text('Lưu ${proposals.length + unmatched.length}'),
             ),
           ],
         ),

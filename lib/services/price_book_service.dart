@@ -183,6 +183,77 @@ class PriceBookService {
   ) =>
       's|${_n(brand)}|${_n(model)}|${_n(capacity)}|${_n(condition)}';
 
+  /// Khoá cho 1 phụ tùng/linh kiện tham khảo trong tab Sửa chữa (vd "Pin
+  /// iPhone 11 Pro Max"). Khác `repairKey`/`saleKey` — không gắn với model +
+  /// lỗi/model + biến thể, chỉ theo tên phụ tùng.
+  static String partKey(String name) => 'p|${_n(name)}';
+
+  /// Dòng "phụ tùng/linh kiện" cho tab Sửa chữa — để nhân viên tham khảo
+  /// giá vốn khi báo giá, KHÔNG phải bảng giá bán riêng cho phụ tùng.
+  /// Nguồn: (1) phụ tùng thật đang có trong Kho phụ tùng — giá vốn = giá
+  /// đang lưu thật (không phải trung vị lịch sử); (2) ghim "mồ côi" — tên đã
+  /// ghim giá (vd từ hoá đơn NCC) nhưng CHƯA có phụ tùng thật trong kho —
+  /// vẫn hiện để tham khảo, KHÔNG tạo tồn kho ảo.
+  static Future<List<PriceBookRow>> buildPartRows() async {
+    final db = DBHelper();
+    final pins = await loadPins();
+    List<Map<String, dynamic>> parts;
+    try {
+      parts = await db.getAllParts();
+    } catch (e) {
+      debugPrint('PriceBook.buildPartRows: $e');
+      parts = const [];
+    }
+
+    final rows = <PriceBookRow>[];
+    final usedKeys = <String>{};
+    for (final p in parts) {
+      final name = ((p['partName'] as String?) ?? '').trim();
+      final cost = (p['cost'] as int?) ?? 0;
+      if (name.isEmpty || cost <= 0) continue;
+      final key = partKey(name);
+      if (!usedKeys.add(key)) continue; // trùng tên chuẩn hoá — giữ dòng đầu
+      final pin = pins[key];
+      rows.add(PriceBookRow(
+        scope: 'part',
+        key: key,
+        brand: _brandOfPart(name),
+        title: name,
+        note: name,
+        autoCost: cost,
+        source: pin != null ? PriceSource.pinned : PriceSource.auto,
+        pinnedPrice: pin?.price,
+        pinnedCost: pin?.cost,
+        pinnedNote: pin?.note,
+      ));
+    }
+
+    pins.forEach((key, pin) {
+      if (!key.startsWith('p|') || usedKeys.contains(key)) return;
+      final name = (pin.displayName ?? '').trim().isNotEmpty
+          ? pin.displayName!.trim()
+          : key.substring(2);
+      final brandHint = (pin.brandHint ?? '').trim();
+      rows.add(PriceBookRow(
+        scope: 'part',
+        key: key,
+        brand: brandHint.isNotEmpty ? brandHint : _brandOfPart(name),
+        title: name,
+        note: name,
+        source: PriceSource.pinned,
+        pinnedPrice: pin.price,
+        pinnedCost: pin.cost,
+        pinnedNote: pin.note,
+      ));
+    });
+
+    rows.sort((a, b) {
+      final c = a.brand.compareTo(b.brand);
+      return c != 0 ? c : a.title.compareTo(b.title);
+    });
+    return rows;
+  }
+
   // ── Ghim ─────────────────────────────────────────────────────────────────
   static Future<Map<String, PricePin>> loadPins() async {
     try {
@@ -212,12 +283,18 @@ class PriceBookService {
     required int price,
     int? cost,
     String note = '',
+    String? displayName,
+    String? displayExtra,
+    String? brandHint,
   }) async {
     final pins = await loadPins();
     pins[key] = PricePin(
       price: price,
       cost: cost,
       note: note,
+      displayName: displayName,
+      displayExtra: displayExtra,
+      brandHint: brandHint,
       pinnedAt: DateTime.now().millisecondsSinceEpoch,
       pinnedBy: FirebaseAuth.instance.currentUser?.displayName ??
           FirebaseAuth.instance.currentUser?.email?.split('@').first ??
@@ -255,6 +332,20 @@ class PriceBookService {
         : b;
   }
 
+  /// Tên phụ tùng thường theo mẫu "[loại phụ tùng] [hãng] [model]" (vd "Pin
+  /// iPhone 13", "Màn hình Oppo A74") — hãng máy KHÔNG nằm ở từ đầu tiên như
+  /// tên model sửa chữa/SP, nên không dùng [_brandOf] (chỉ xét từ đầu) cho
+  /// phụ tùng — sẽ gộp nhầm "Pin iPhone 13" vào nhóm "PIN" thay vì "IPHONE".
+  /// Quét toàn bộ các từ trong tên, lấy từ đầu tiên khớp 1 hãng máy đã biết;
+  /// không từ nào khớp thì xếp "Khác" (không dùng từ đầu làm hãng giả).
+  static String _brandOfPart(String name) {
+    for (final w in name.trim().split(RegExp(r'\s+'))) {
+      final b = ProductConstants.mapBrand(w);
+      if (b.isNotEmpty && b != 'KHÁC') return b;
+    }
+    return 'Khác';
+  }
+
   static String _issueOf(Repair r) {
     if (r.services.length == 1) return r.services.first.serviceName.trim();
     if (r.services.isEmpty) return r.issue.trim();
@@ -289,12 +380,14 @@ class PriceBookService {
     }
 
     final rows = <PriceBookRow>[];
+    final usedKeys = <String>{};
     groups.forEach((gk, list) {
       final lab = labels[gk]!;
       final prices = list.map((e) => e.price).toList();
       final costs = list.map((e) => e.cost).toList()..removeWhere((c) => c < 0);
       final sortedP = [...prices]..sort();
       final key = repairKey(lab.model, lab.issue);
+      usedKeys.add(key);
       final pin = pins[key];
       rows.add(PriceBookRow(
         scope: 'repair',
@@ -316,6 +409,29 @@ class PriceBookService {
         pinnedPrice: pin?.price,
         pinnedCost: pin?.cost,
         pinnedNote: pin?.note,
+      ));
+    });
+
+    // Ghim "mồ côi" — mục sửa chữa tạo tay (chưa từng có đơn thật nào) qua
+    // luồng "Thêm mục sửa chữa mới" trên Bảng giá. Cho phép chủ shop dựng
+    // sẵn bảng giá trước khi khách mang máy đến, không phải đợi có lịch sử.
+    pins.forEach((key, pin) {
+      if (!key.startsWith('r|') || usedKeys.contains(key)) return;
+      final model = (pin.displayName ?? '').trim();
+      if (model.isEmpty) return; // thiếu tên gốc — bỏ qua an toàn
+      final issue = (pin.displayExtra ?? '').trim();
+      rows.add(PriceBookRow(
+        scope: 'repair',
+        key: key,
+        brand: _brandOf(model),
+        title: issue.isEmpty ? model : '$model · $issue',
+        note: '$model $issue',
+        src1: model,
+        src2: issue,
+        source: PriceSource.pinned,
+        pinnedPrice: pin.price,
+        pinnedCost: pin.cost,
+        pinnedNote: pin.note,
       ));
     });
 

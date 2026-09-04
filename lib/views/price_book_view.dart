@@ -31,6 +31,7 @@ class _PriceBookViewState extends State<PriceBookView>
 
   bool _loading = true;
   List<PriceBookRow> _repair = const [];
+  List<PriceBookRow> _parts = const [];
   List<PriceBookRow> _sale = const [];
   int _seasonPct = 0;
 
@@ -221,11 +222,13 @@ class _PriceBookViewState extends State<PriceBookView>
   Future<void> _load() async {
     setState(() => _loading = true);
     final r = await PriceBookService.buildRepairRows();
+    final parts = await PriceBookService.buildPartRows();
     final s = await PriceBookService.buildSaleRows();
     final pct = await PriceBookService.seasonPct();
     if (!mounted) return;
     setState(() {
       _repair = r;
+      _parts = parts;
       _sale = s;
       _seasonPct = pct;
       _loading = false;
@@ -335,15 +338,277 @@ class _PriceBookViewState extends State<PriceBookView>
                 : TabBarView(
                     controller: _tab,
                     children: [
-                      _list(_filtered(_repair), 'Chưa có đơn sửa nào đã hoàn '
-                          'thành để tính giá.'),
+                      _list(
+                        _filtered([..._repair, ..._parts]),
+                        'Chưa có đơn sửa nào đã hoàn thành để tính giá.',
+                      ),
                       _list(_filtered(_sale), 'Chưa có sản phẩm nào để tính giá.'),
                     ],
                   ),
           ),
         ],
       ),
+      floatingActionButton: isSale
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: _showAddMenu,
+              icon: const Icon(Icons.add),
+              label: const Text('Thêm mục'),
+            ),
     );
+  }
+
+  /// Cho phép chủ shop tự dựng bảng giá TRƯỚC khi có đơn/hoá đơn thật —
+  /// "Sửa chữa" (model + lỗi) hoặc "Phụ tùng tham khảo" (tên + giá vốn),
+  /// cùng cơ chế ghim "mồ côi" đã dùng cho luồng nhập hoá đơn NCC.
+  Future<void> _showAddMenu() async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.build_outlined),
+              title: const Text('Thêm mục sửa chữa mới'),
+              subtitle: const Text(
+                  'Model + lỗi chưa từng có đơn — đặt giá trước để báo khách.'),
+              onTap: () => Navigator.pop(ctx, 'repair'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.memory_outlined),
+              title: const Text('Thêm phụ tùng tham khảo mới'),
+              subtitle: const Text(
+                  'Tên phụ tùng + giá vốn — chưa cần có trong Kho phụ tùng.'),
+              onTap: () => Navigator.pop(ctx, 'part'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || choice == null) return;
+    if (choice == 'repair') {
+      await _addRepairEntry();
+    } else {
+      await _addPartEntry();
+    }
+  }
+
+  Future<void> _addRepairEntry() async {
+    final modelCtrl = TextEditingController();
+    final issueCtrl = TextEditingController();
+    final priceCtrl = TextEditingController();
+    final costCtrl = TextEditingController();
+    String? err;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('Thêm mục sửa chữa mới'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Đặt sẵn giá cho 1 model + lỗi CHƯA từng có đơn — nhân '
+                  'viên/chủ shop nhìn vào là báo giá được ngay, tránh mỗi '
+                  'người báo 1 giá.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: modelCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Model (vd "iPhone 13", "Oppo A74")',
+                    isDense: true,
+                  ),
+                  textCapitalization: TextCapitalization.words,
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: issueCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Lỗi / dịch vụ (vd "Thay pin", "Ép kính")',
+                    isDense: true,
+                  ),
+                  textCapitalization: TextCapitalization.sentences,
+                ),
+                const SizedBox(height: 10),
+                CurrencyTextField(
+                  controller: priceCtrl,
+                  label: 'Giá thu khách (niêm yết)',
+                ),
+                const SizedBox(height: 10),
+                CurrencyTextField(
+                  controller: costCtrl,
+                  label: 'Giá vốn dự kiến (tuỳ chọn)',
+                ),
+                if (err != null) ...[
+                  const SizedBox(height: 8),
+                  Text(err!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Huỷ'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final model = modelCtrl.text.trim();
+                final issue = issueCtrl.text.trim();
+                final p = MoneyUtils.parseCurrency(priceCtrl.text);
+                if (model.isEmpty) {
+                  setLocal(() => err = 'Nhập model.');
+                  return;
+                }
+                if (issue.isEmpty) {
+                  setLocal(() => err = 'Nhập lỗi/dịch vụ.');
+                  return;
+                }
+                if (p <= 0) {
+                  setLocal(() => err = 'Nhập giá thu khách hợp lệ.');
+                  return;
+                }
+                Navigator.pop(ctx, true);
+              },
+              child: const Text('Lưu'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (ok == true && mounted) {
+      final model = modelCtrl.text.trim();
+      final issue = issueCtrl.text.trim();
+      final p = MoneyUtils.parseCurrency(priceCtrl.text);
+      final c = MoneyUtils.parseCurrency(costCtrl.text);
+      await PriceBookService.pin(
+        PriceBookService.repairKey(model, issue),
+        price: p,
+        cost: c > 0 ? c : null,
+        displayName: model,
+        displayExtra: issue,
+      );
+      _snack('Đã thêm: $model · $issue');
+      await _load();
+    }
+    modelCtrl.dispose();
+    issueCtrl.dispose();
+    priceCtrl.dispose();
+    costCtrl.dispose();
+  }
+
+  Future<void> _addPartEntry() async {
+    final nameCtrl = TextEditingController();
+    final brandCtrl = TextEditingController();
+    final costCtrl = TextEditingController();
+    final priceCtrl = TextEditingController();
+    String? err;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('Thêm phụ tùng tham khảo mới'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Chỉ để tham khảo giá vốn/báo giá — không tạo tồn kho, '
+                  'không đụng Kho phụ tùng. Đặt tên rõ kèm model để dễ tra '
+                  'cứu (vd "Màn hình Oppo A74" thay vì chỉ "Màn hình").',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Tên phụ tùng (vd "Pin iPhone 13")',
+                    isDense: true,
+                  ),
+                  textCapitalization: TextCapitalization.sentences,
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: brandCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Hãng máy (tuỳ chọn, vd "iPhone")',
+                    helperText: 'Để trống thì app tự đoán hãng từ tên.',
+                    isDense: true,
+                  ),
+                  textCapitalization: TextCapitalization.words,
+                ),
+                const SizedBox(height: 10),
+                CurrencyTextField(
+                  controller: costCtrl,
+                  label: 'Giá vốn tham khảo',
+                ),
+                const SizedBox(height: 10),
+                CurrencyTextField(
+                  controller: priceCtrl,
+                  label: 'Giá thu khách (tuỳ chọn)',
+                ),
+                if (err != null) ...[
+                  const SizedBox(height: 8),
+                  Text(err!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Huỷ'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final name = nameCtrl.text.trim();
+                final c = MoneyUtils.parseCurrency(costCtrl.text);
+                final p = MoneyUtils.parseCurrency(priceCtrl.text);
+                if (name.isEmpty) {
+                  setLocal(() => err = 'Nhập tên phụ tùng.');
+                  return;
+                }
+                if (c <= 0 && p <= 0) {
+                  setLocal(() => err = 'Nhập giá vốn hoặc giá thu khách.');
+                  return;
+                }
+                Navigator.pop(ctx, true);
+              },
+              child: const Text('Lưu'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (ok == true && mounted) {
+      final name = nameCtrl.text.trim();
+      final brand = brandCtrl.text.trim();
+      final c = MoneyUtils.parseCurrency(costCtrl.text);
+      final p = MoneyUtils.parseCurrency(priceCtrl.text);
+      await PriceBookService.pin(
+        PriceBookService.partKey(name),
+        price: p,
+        cost: c > 0 ? c : null,
+        displayName: name,
+        brandHint: brand.isEmpty ? null : brand,
+      );
+      _snack('Đã thêm: $name');
+      await _load();
+    }
+    nameCtrl.dispose();
+    brandCtrl.dispose();
+    costCtrl.dispose();
+    priceCtrl.dispose();
   }
 
   Widget _list(List<PriceBookRow> rows, String emptyMsg) {
@@ -428,7 +693,7 @@ class _PriceBookViewState extends State<PriceBookView>
   }
 
   Widget _rowCard(PriceBookRow r) {
-    final priceLabel = r.scope == 'repair' ? 'Thu' : 'Bán';
+    final priceLabel = r.scope == 'sale' ? 'Bán' : 'Thu';
     return Card(
       elevation: 0,
       margin: const EdgeInsets.symmetric(vertical: 3, horizontal: 2),
@@ -594,22 +859,33 @@ class _PriceBookViewState extends State<PriceBookView>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Đề xuất: ${MoneyUtils.formatCurrency(r.autoPrice)}đ '
-                '(${r.sampleCount} mẫu · ${r.confidenceLabel})',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-              ),
+              if (r.scope == 'part')
+                Text(
+                  'Vốn hiện tại: ${MoneyUtils.formatCurrency(r.autoCost)}đ'
+                  '${r.autoCost <= 0 ? ' (chưa có trong Kho phụ tùng — chỉ để tham khảo)' : ' (đang lưu trong Kho phụ tùng)'}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                )
+              else
+                Text(
+                  'Đề xuất: ${MoneyUtils.formatCurrency(r.autoPrice)}đ '
+                  '(${r.sampleCount} mẫu · ${r.confidenceLabel})',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
               const SizedBox(height: 12),
               CurrencyTextField(
                 controller: priceCtrl,
-                label: r.scope == 'repair'
-                    ? 'Giá thu khách (niêm yết)'
-                    : 'Giá bán (niêm yết)',
+                label: switch (r.scope) {
+                  'repair' => 'Giá thu khách (niêm yết)',
+                  'part' => 'Giá thu khách (tuỳ chọn)',
+                  _ => 'Giá bán (niêm yết)',
+                },
               ),
               const SizedBox(height: 10),
               CurrencyTextField(
                 controller: costCtrl,
-                label: 'Giá vốn dự kiến (tuỳ chọn)',
+                label: r.scope == 'part'
+                    ? 'Giá vốn tham khảo'
+                    : 'Giá vốn dự kiến (tuỳ chọn)',
               ),
               const SizedBox(height: 10),
               TextField(
@@ -621,26 +897,30 @@ class _PriceBookViewState extends State<PriceBookView>
               ),
               const SizedBox(height: 8),
               Text(
-                'Ghim = đặt giá chính thức, form tạo đơn sẽ tự điền giá này.',
+                r.scope == 'part'
+                    ? 'Chỉ để tham khảo — không tự điền vào đơn sửa.'
+                    : 'Ghim = đặt giá chính thức, form tạo đơn sẽ tự điền giá này.',
                 style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
               ),
-              const SizedBox(height: 6),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: () => Navigator.pop(ctx, 'sources'),
-                  icon: const Icon(Icons.list_alt_rounded, size: 16),
-                  label: Text(
-                    r.scope == 'repair'
-                        ? 'Xem ${r.sampleCount} đơn tương ứng'
-                        : 'Xem ${r.sampleCount} sản phẩm tương ứng',
-                  ),
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(0, 32),
+              if (r.scope != 'part') ...[
+                const SizedBox(height: 6),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () => Navigator.pop(ctx, 'sources'),
+                    icon: const Icon(Icons.list_alt_rounded, size: 16),
+                    label: Text(
+                      r.scope == 'repair'
+                          ? 'Xem ${r.sampleCount} đơn tương ứng'
+                          : 'Xem ${r.sampleCount} sản phẩm tương ứng',
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(0, 32),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
@@ -671,18 +951,28 @@ class _PriceBookViewState extends State<PriceBookView>
       _snack('Đã bỏ ghim.');
     } else if (action == 'pin') {
       final p = MoneyUtils.parseCurrency(priceCtrl.text);
-      if (p <= 0) {
+      final c = MoneyUtils.parseCurrency(costCtrl.text);
+      if (r.scope == 'part') {
+        // Phụ tùng: chỉ cần 1 trong 2 (vốn tham khảo hoặc giá thu) — không
+        // bắt buộc có giá thu như đơn sửa/SP.
+        if (p <= 0 && c <= 0) {
+          _snack('Nhập giá vốn hoặc giá thu khách.', err: true);
+          return;
+        }
+      } else if (p <= 0) {
         _snack('Nhập giá niêm yết hợp lệ.', err: true);
         return;
       }
-      final c = MoneyUtils.parseCurrency(costCtrl.text);
       await PriceBookService.pin(
         r.key,
         price: p,
         cost: c > 0 ? c : null,
         note: noteCtrl.text.trim(),
+        displayName: r.scope == 'part' ? r.title : null,
       );
-      _snack('Đã ghim: ${MoneyUtils.formatCurrency(p)}đ');
+      _snack(p > 0
+          ? 'Đã ghim: ${MoneyUtils.formatCurrency(p)}đ'
+          : 'Đã lưu giá vốn tham khảo: ${MoneyUtils.formatCurrency(c)}đ');
     }
     priceCtrl.dispose();
     costCtrl.dispose();

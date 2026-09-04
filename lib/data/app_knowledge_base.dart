@@ -870,18 +870,28 @@ class AppKnowledgeBase {
       whatItDoes:
           'Tổng hợp giá đề xuất (trung vị lịch sử) cho từng "model · lỗi" (sửa '
           'chữa) và từng model/biến thể (bán hàng). Chủ shop có thể GHIM giá '
-          'niêm yết chính thức; form tạo đơn sẽ tự điền giá đó.',
+          'niêm yết chính thức; form tạo đơn sẽ tự điền giá đó. Tab Sửa chữa '
+          'còn gộp cả giá vốn phụ tùng/linh kiện (từ Kho phụ tùng, hoặc từ '
+          'nhập hoá đơn NCC) để nhân viên tra cứu khi báo giá.',
       whenToUse:
-          'Xem mặt bằng giá, chốt bảng giá dịch vụ, hoặc đặt giá nhanh cho SP '
+          'Xem mặt bằng giá, chốt bảng giá dịch vụ, tra giá vốn phụ tùng khi '
+          'nhận máy sửa để báo khách thống nhất, hoặc đặt giá nhanh cho SP '
           'chưa có giá bán.',
       steps: [
         'Mở Bảng giá, chọn tab Sửa chữa hoặc Bán hàng.',
-        'Tìm theo model/lỗi. Mỗi dòng hiện 3 ô Thu/Bán · Vốn · Lãi + số mẫu + '
-            'độ tin cậy + khoảng giá thường gặp.',
+        'Tìm theo model/lỗi/tên phụ tùng. Mỗi dòng hiện 3 ô Thu/Bán · Vốn · '
+            'Lãi + số mẫu + độ tin cậy + khoảng giá thường gặp (dòng phụ tùng '
+            'hiện giá vốn LIVE từ Kho, không phải trung vị).',
         'Chạm 1 dòng → nhập "Giá niêm yết" (+ giá vốn, ghi chú tuỳ chọn) → '
             '**Ghim giá**. Dòng đó chuyển nhãn "NIÊM YẾT". Nút "Xem N đơn/SP '
             'tương ứng" mở danh sách các đơn sửa / SP đã tạo ra giá đó (bấm để '
-            'xem chi tiết).',
+            'xem chi tiết) — dòng phụ tùng không có nút này (chỉ để tham khảo, '
+            'không tự điền vào đơn sửa).',
+        'Tab Sửa chữa → nút nổi "Thêm mục" (góc dưới phải): tạo tay 1 mục '
+            'sửa chữa (model + lỗi) hoặc 1 phụ tùng tham khảo (tên + giá vốn, '
+            'có thể ghi rõ Hãng máy) NGAY CẢ KHI chưa từng có đơn/chưa có '
+            'trong Kho phụ tùng — dựng sẵn bảng giá trước khi khách mang máy '
+            'đến.',
         'Tab Bán hàng: nút "Áp giá cho SP chưa có giá" (góc trên) → xem danh '
             'sách đề xuất → xác nhận để đặt giá hàng loạt.',
         'Menu ⋮: **Hệ số giá mùa vụ** (+/-% vào giá đề xuất), **Xuất Excel**, '
@@ -896,6 +906,10 @@ class AppKnowledgeBase {
             'giá niêm yết/giá thường gặp → có cảnh báo.',
         'Hệ số mùa vụ chỉ áp cho GIÁ ĐỀ XUẤT, không đụng giá đã ghim.',
         'Giá ghim & hệ số mùa vụ lưu theo máy (chưa đồng bộ giữa các thiết bị).',
+        'Nhóm hãng của dòng phụ tùng tự nhận diện từ tên (quét mọi từ, vd '
+            '"Pin iPhone 13" → nhóm IPHONE); tên không nêu hãng (vd phụ kiện '
+            'chung) → có thể ghi rõ Hãng máy khi tạo tay để gộp đúng nhóm, '
+            'nếu không sẽ vào nhóm "Khác".',
       ],
       terms: ['gia-tham-khao', 'gia-von', 'lai-gop'],
       sampleQuestions: [
@@ -905,10 +919,14 @@ class AppKnowledgeBase {
         'áp giá hàng loạt cho sản phẩm chưa có giá',
         'tăng giá dịp tết',
         'xuất nhập bảng giá bằng excel',
+        'tra giá vốn phụ tùng ở đâu',
+        'tạo bảng giá cho model chưa từng sửa',
+        'thêm phụ tùng tham khảo vào bảng giá',
       ],
       tags: [
         'bang gia', 'gia de xuat', 'gia niem yet', 'ghim gia', 'price book',
-        'chot gia', 'ap gia hang loat', 'he so mua vu', 'gia tet', 'excel bang gia'
+        'chot gia', 'ap gia hang loat', 'he so mua vu', 'gia tet', 'excel bang gia',
+        'gia von phu tung', 'them muc bang gia', 'tao gia truoc'
       ],
       audience: ['owner', 'manager'],
     ),
