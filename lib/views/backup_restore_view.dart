@@ -2,6 +2,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../l10n/app_localizations.dart';
+import '../utils/file_picker_types.dart';
 import '../theme/app_colors.dart';
 import '../services/backup_service.dart';
 import '../services/notification_service.dart';
@@ -406,9 +407,24 @@ class _SqliteTabState extends State<_SqliteTab> {
   }
 
   Future<void> _restoreFromFile() async {
-    const typeGroup = XTypeGroup(label: 'Database', extensions: ['db']);
-    final file = await openFile(acceptedTypeGroups: [typeGroup]);
-    if (file == null) return;
+    // Dung FilePickerTypes — thieu `uniformTypeIdentifiers` la iOS nem
+    // ArgumentError, bam nut khong len gi.
+    XFile? picked;
+    try {
+      picked = await openFile(acceptedTypeGroups: [FilePickerTypes.database]);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Khong mo duoc trinh chon file: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    if (picked == null) return;
+    final file = picked;
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
     setState(() => _loading = true);

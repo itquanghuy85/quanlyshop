@@ -113,6 +113,12 @@ SHEET 3 "Lỗi cần kiểm tra" — các dòng tôi cần tự kiểm tra lại
 
 SHEET 4 "Hướng dẫn nhập" — 2 cột "Mục" và "Nội dung", giải thích ngắn từng cột và cách tôi kiểm tra file trước khi nhập.
 
+ĐỊNH DẠNG FILE (làm sai là app không đọc được):
+- Dòng 1 của mỗi sheet dữ liệu PHẢI là dòng tiêu đề, chữ y hệt danh sách trên, CÓ DẤU tiếng Việt, không thêm bớt khoảng trắng.
+- Ô số (Số lượng, Đơn giá nhập, Chiết khấu, Thuế, Thành tiền, Giá vốn) phải là Ô SỐ THẬT trong Excel, không phải chữ.
+- KHÔNG gộp ô (merge cells), KHÔNG đóng băng dòng, KHÔNG thêm màu/định dạng đặc biệt, KHÔNG thêm dòng trống xen giữa.
+- Xuất bằng openpyxl hoặc tương đương đều được — app đọc được cả file do Python tạo.
+
 QUY TẮC BẮT BUỘC:
 - "Giá vốn" = đơn giá nhập thực tế cho MỘT đơn vị (đã trừ chiết khấu nếu hoá đơn ghi rõ). Chỉ ghi SỐ NGUYÊN, không ghi "đ", không dấu chấm/phẩy ngăn cách nghìn. Ví dụ: 310000.
 - "Giá thu khách": ĐỂ TRỐNG HOÀN TOÀN. Tuyệt đối không tự đoán, không suy ra từ giá vốn. Tôi sẽ tự điền.

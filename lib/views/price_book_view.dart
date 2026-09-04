@@ -8,10 +8,12 @@ import '../models/price_catalog_models.dart';
 import '../models/product_model.dart';
 import '../services/price_book_service.dart';
 import '../services/price_catalog_service.dart';
+import '../utils/file_picker_types.dart';
 import '../utils/money_utils.dart';
 import '../utils/vietnamese_utils.dart';
 import '../widgets/currency_text_field.dart';
 import '../widgets/custom_app_bar.dart';
+import '../widgets/responsive_wrapper.dart';
 import 'similar_repair_history_view.dart';
 import 'supplier_invoice_price_import_view.dart';
 
@@ -180,9 +182,17 @@ class _PriceBookViewState extends State<PriceBookView>
   }
 
   Future<void> _import() async {
-    const xlsx = XTypeGroup(label: 'Excel', extensions: ['xlsx']);
-    final file = await openFile(acceptedTypeGroups: [xlsx]);
-    if (file == null || !mounted) return;
+    // Dùng FilePickerTypes.excel — KHÔNG tự khai XTypeGroup tại chỗ: thiếu
+    // `uniformTypeIdentifiers` là iOS ném ArgumentError, bấm nút không lên gì.
+    XFile? picked;
+    try {
+      picked = await openFile(acceptedTypeGroups: [FilePickerTypes.excel]);
+    } catch (e) {
+      if (mounted) _snack('Không mở được trình chọn file: $e', err: true);
+      return;
+    }
+    if (picked == null || !mounted) return;
+    final file = picked;
     Uint8List bytes;
     try {
       bytes = await file.readAsBytes();
@@ -314,7 +324,11 @@ class _PriceBookViewState extends State<PriceBookView>
           ],
         ),
       ),
-      body: Column(
+      // Web/máy tính bảng: chốt bề ngang để thẻ giá không bị kéo dài cả màn
+      // (giá nằm mãi bên phải, tên mãi bên trái, mắt phải quét rất xa).
+      body: ResponsiveBody(
+        maxWidth: 1100,
+        child: Column(
         children: [
           if (_seasonPct != 0)
             Material(
@@ -374,6 +388,7 @@ class _PriceBookViewState extends State<PriceBookView>
                   ),
           ),
         ],
+        ),
       ),
       floatingActionButton: isSale
           ? null
@@ -433,7 +448,11 @@ class _PriceBookViewState extends State<PriceBookView>
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setLocal) => AlertDialog(
           title: const Text('Thêm mục sửa chữa mới'),
-          content: SingleChildScrollView(
+          content: SizedBox(
+            // Chot be ngang: tren web/may tinh bang dialog mac dinh
+            // gian rat rong, o nhap gia nam lot thom giua man.
+            width: responsiveDialogWidth(ctx, maxWidth: 520),
+            child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -478,6 +497,7 @@ class _PriceBookViewState extends State<PriceBookView>
                 ],
               ],
             ),
+          ),
           ),
           actions: [
             TextButton(
@@ -543,7 +563,11 @@ class _PriceBookViewState extends State<PriceBookView>
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setLocal) => AlertDialog(
           title: const Text('Thêm phụ tùng tham khảo mới'),
-          content: SingleChildScrollView(
+          content: SizedBox(
+            // Chot be ngang: tren web/may tinh bang dialog mac dinh
+            // gian rat rong, o nhap gia nam lot thom giua man.
+            width: responsiveDialogWidth(ctx, maxWidth: 520),
+            child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -589,6 +613,7 @@ class _PriceBookViewState extends State<PriceBookView>
                 ],
               ],
             ),
+          ),
           ),
           actions: [
             TextButton(
@@ -683,7 +708,15 @@ class _PriceBookViewState extends State<PriceBookView>
                 ),
               ),
             ),
-            for (final r in groups[b]!) _rowCard(r),
+            // Màn rộng xếp 2–3 thẻ mỗi hàng thay vì 1 thẻ kéo dài cả màn.
+            // Điện thoại dựng đứng vẫn 1 cột như cũ (minChildWidth > bề ngang).
+            ResponsiveGrid(
+              minChildWidth: 330,
+              maxColumns: 3,
+              spacing: 6,
+              runSpacing: 0,
+              children: [for (final r in groups[b]!) _rowCard(r)],
+            ),
           ],
         ],
       ),
@@ -994,7 +1027,11 @@ class _PriceBookViewState extends State<PriceBookView>
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
-        content: SingleChildScrollView(
+        content: SizedBox(
+          // Chot be ngang: tren web/may tinh bang dialog mac dinh
+          // gian rat rong, o nhap gia nam lot thom giua man.
+          width: responsiveDialogWidth(ctx, maxWidth: 520),
+          child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1075,6 +1112,7 @@ class _PriceBookViewState extends State<PriceBookView>
               ),
             ],
           ),
+        ),
         ),
         actions: [
           TextButton(
@@ -1170,7 +1208,11 @@ class _PriceBookViewState extends State<PriceBookView>
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
-        content: SingleChildScrollView(
+        content: SizedBox(
+          // Chot be ngang: tren web/may tinh bang dialog mac dinh
+          // gian rat rong, o nhap gia nam lot thom giua man.
+          width: responsiveDialogWidth(ctx, maxWidth: 520),
+          child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1245,6 +1287,7 @@ class _PriceBookViewState extends State<PriceBookView>
               ],
             ],
           ),
+        ),
         ),
         actions: [
           if (r.isPinned)

@@ -5,8 +5,10 @@ import 'package:flutter/services.dart';
 import '../models/price_catalog_models.dart';
 import '../services/price_catalog_service.dart';
 import '../services/supplier_invoice_price_book_service.dart';
+import '../utils/file_picker_types.dart';
 import '../utils/money_utils.dart';
 import '../widgets/custom_app_bar.dart';
+import '../widgets/responsive_wrapper.dart';
 
 /// "Nhập bảng giá từ hoá đơn NCC" — luồng riêng, KHÔNG dùng chung với
 /// "Nhập từ Excel" của Bảng giá (luồng đó sửa giá GHIM theo cột `_khoá`).
@@ -49,9 +51,17 @@ class _SupplierInvoicePriceImportViewState
   }
 
   Future<void> _pickAndPreview() async {
-    const xlsx = XTypeGroup(label: 'Excel', extensions: ['xlsx']);
-    final file = await openFile(acceptedTypeGroups: [xlsx]);
-    if (file == null || !mounted) return;
+    // Dùng FilePickerTypes.excel — KHÔNG tự khai XTypeGroup tại chỗ: thiếu
+    // `uniformTypeIdentifiers` là iOS ném ArgumentError, bấm nút không lên gì.
+    XFile? picked;
+    try {
+      picked = await openFile(acceptedTypeGroups: [FilePickerTypes.excel]);
+    } catch (e) {
+      if (mounted) _snack('Không mở được trình chọn file: $e', err: true);
+      return;
+    }
+    if (picked == null || !mounted) return;
+    final file = picked;
 
     setState(() {
       _busy = true;
@@ -127,22 +137,33 @@ class _SupplierInvoicePriceImportViewState
     });
   }
 
+  /// Bề ngang tối đa của nội dung. Đây là màn hướng dẫn đọc-theo-thứ-tự nên
+  /// giữ MỘT cột hẹp dễ đọc; trên web/máy tính nếu để giãn hết màn thì mỗi
+  /// dòng dài cả gang tay, đọc rất mỏi và các bước mất cảm giác nối tiếp nhau.
+  static const double _maxContentWidth = 760;
+
   @override
   Widget build(BuildContext context) {
+    // Xoay ngang trên điện thoại: chiều cao còn rất ít, nên bớt khoảng đệm
+    // dọc để phần đọc được không bị bóp lại quá nhỏ.
+    final isShort = MediaQuery.sizeOf(context).height < 480;
     return Scaffold(
       appBar: CustomAppBar.build(title: 'Nhập bảng giá từ hoá đơn NCC'),
       body: Stack(
         children: [
-          ListView(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 90),
-            children: [
-              if (_result != null)
-                _resultCard(_result!)
-              else if (_preview != null)
-                _previewCard(_preview!)
-              else
-                ..._introCards(),
-            ],
+          ResponsiveBody(
+            maxWidth: _maxContentWidth,
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(14, isShort ? 6 : 12, 14, 90),
+              children: [
+                if (_result != null)
+                  _resultCard(_result!)
+                else if (_preview != null)
+                  _previewCard(_preview!)
+                else
+                  ..._introCards(),
+              ],
+            ),
           ),
           if (_busy)
             const Positioned.fill(
@@ -154,9 +175,12 @@ class _SupplierInvoicePriceImportViewState
         ],
       ),
       bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 6, 14, 10),
-          child: _bottomButton(),
+        child: ResponsiveBody(
+          maxWidth: _maxContentWidth,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(14, isShort ? 4 : 6, 14, isShort ? 6 : 10),
+            child: _bottomButton(),
+          ),
         ),
       ),
     );
@@ -204,18 +228,37 @@ class _SupplierInvoicePriceImportViewState
 
   // ── Bước 1: hướng dẫn ────────────────────────────────────────────────────
   List<Widget> _introCards() => [
+        _flowCard(),
         _card(
-          icon: Icons.auto_awesome,
+          icon: Icons.looks_one_outlined,
           color: Colors.indigo,
-          title: 'Bước 1 — Nhờ AI đọc ảnh hoá đơn',
+          title: 'Chụp ảnh hoá đơn',
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Chụp rõ từng tờ hoá đơn nhà cung cấp — nhìn thấy được tên '
+                'hàng, số lượng và đơn giá. Bao nhiêu tờ cũng được, gửi chung '
+                'một lần.',
+                style: TextStyle(fontSize: 12.5, height: 1.4),
+              ),
+              SizedBox(height: 8),
+              _Tip('Chỗ nào ảnh mờ, AI sẽ đánh dấu để bạn kiểm tra lại chứ '
+                  'không tự đoán bừa.'),
+            ],
+          ),
+        ),
+        _card(
+          icon: Icons.looks_two_outlined,
+          color: Colors.deepPurple,
+          title: 'Đưa cho ChatGPT kèm câu lệnh',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Mở ChatGPT (hoặc Gemini/Claude), dán câu lệnh dưới đây rồi '
-                'đính kèm TẤT CẢ ảnh hoá đơn nhà cung cấp. AI sẽ trả về 1 file '
-                'Excel duy nhất.',
-                style: TextStyle(fontSize: 12.5),
+                'Mở ChatGPT (hoặc Gemini, Claude) → bấm nút bên dưới để chép '
+                'câu lệnh → dán vào ô chat → đính kèm tất cả ảnh hoá đơn → gửi.',
+                style: TextStyle(fontSize: 12.5, height: 1.4),
               ),
               const SizedBox(height: 10),
               Container(
@@ -228,68 +271,97 @@ class _SupplierInvoicePriceImportViewState
                 ),
                 child: const Text(
                   SupplierInvoicePriceBookService.gptPrompt,
-                  maxLines: 6,
+                  maxLines: 4,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 11, height: 1.35),
                 ),
               ),
+              const SizedBox(height: 10),
+              _actionRow([
+                FilledButton.icon(
+                  onPressed: _copyPrompt,
+                  icon: const Icon(Icons.copy_all, size: 18),
+                  label: const Text('Chép câu lệnh'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _showFullPrompt,
+                  icon: const Icon(Icons.visibility_outlined, size: 18),
+                  label: const Text('Xem đầy đủ'),
+                ),
+              ]),
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: FilledButton.tonalIcon(
-                      onPressed: _copyPrompt,
-                      icon: const Icon(Icons.copy_all, size: 18),
-                      label: const Text('Copy câu lệnh'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _showFullPrompt,
-                      icon: const Icon(Icons.visibility_outlined, size: 18),
-                      label: const Text('Xem đầy đủ'),
-                    ),
-                  ),
-                ],
-              ),
+              const _Tip('AI sẽ trả về MỘT file Excel (.xlsx) để tải về. Nếu '
+                  'nó chỉ trả bảng chữ, bảo nó "xuất thành file .xlsx cho tôi '
+                  'tải về".'),
             ],
           ),
         ),
         _card(
-          icon: Icons.fact_check_outlined,
+          icon: Icons.looks_3_outlined,
           color: Colors.teal,
-          title: 'Bước 2 — Kiểm tra file trước khi nhập',
+          title: 'Mở file ra kiểm tra',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'File có 4 trang (sheet). Bạn chỉ cần quan tâm 2 trang:',
+                style: TextStyle(fontSize: 12.5, height: 1.4),
+              ),
+              const SizedBox(height: 8),
+              _sheetRow(
+                'Lỗi cần kiểm tra',
+                'Những dòng AI đọc không chắc. Soát lại và sửa cho đúng.',
+                Colors.orange,
+                Icons.warning_amber_rounded,
+              ),
+              _sheetRow(
+                'Tổng hợp giá vốn',
+                'Điền cột "Giá thu khách" — giá bạn báo cho khách.',
+                Colors.green,
+                Icons.edit_outlined,
+              ),
+              const SizedBox(height: 4),
+              const _Tip('Để trống "Giá thu khách" vẫn nhập được. App sẽ hiện '
+                  '"Chưa thiết lập giá thu khách", KHÔNG bao giờ lấy giá vốn '
+                  'báo cho khách.'),
+              const SizedBox(height: 12),
+              _fileShapeTable(),
+            ],
+          ),
+        ),
+        _card(
+          icon: Icons.looks_4_outlined,
+          color: Colors.blue,
+          title: 'Nhập vào app',
           child: const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Mở file AI trả về và soát 3 việc:',
-                style: TextStyle(fontSize: 12.5),
+                'Bấm "Chọn file Excel để nhập" ở dưới cùng. App cho bạn xem '
+                'trước có bao nhiêu mặt hàng mới, bao nhiêu mặt hàng được cập '
+                'nhật — xem xong rồi mới ghi.',
+                style: TextStyle(fontSize: 12.5, height: 1.4),
               ),
-              SizedBox(height: 6),
-              _Bullet('Sheet "Lỗi cần kiểm tra" — sửa lại các dòng AI đọc '
-                  'không chắc (nhất là dòng nhiều model tương thích).'),
-              _Bullet('Cột "Giá vốn" — đúng giá nhập 1 đơn vị, không có "đ".'),
-              _Bullet('Cột "Giá thu khách" ở sheet "Tổng hợp giá vốn" — '
-                  'tự điền giá báo khách. Để trống cũng được, app sẽ hiện '
-                  '"Chưa thiết lập giá thu khách".'),
+              SizedBox(height: 8),
+              _Tip('Lỡ nhập lại đúng file cũ cũng không sao — app tự nhận ra '
+                  'và không ghi trùng.'),
             ],
           ),
         ),
         _card(
           icon: Icons.download_outlined,
-          color: Colors.orange,
-          title: 'Chưa có file? Tải file mẫu',
+          color: Colors.blueGrey,
+          title: 'Chưa có file? Tải mẫu về xem trước',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'File mẫu có đủ 4 sheet đúng chuẩn + dữ liệu ví dụ để bạn '
-                'đối chiếu hoặc tự gõ tay.',
-                style: TextStyle(fontSize: 12.5),
+                'File mẫu có đủ 4 trang đúng chuẩn kèm dữ liệu ví dụ của một '
+                'hoá đơn thật — mở ra là hình dung được ngay. Bạn cũng có thể '
+                'tự gõ tay theo mẫu này mà không cần AI.',
+                style: TextStyle(fontSize: 12.5, height: 1.4),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               OutlinedButton.icon(
                 onPressed: _busy ? null : _downloadTemplate,
                 icon: const Icon(Icons.file_download_outlined, size: 18),
@@ -300,15 +372,257 @@ class _SupplierInvoicePriceImportViewState
         ),
       ];
 
+  /// Sơ đồ 4 bước — để người dùng mới thấy toàn cảnh trước khi đọc chi tiết.
+  /// Dùng [Wrap] nên tự xuống dòng ở màn hẹp thay vì tràn ngang.
+  Widget _flowCard() {
+    const steps = <(IconData, String)>[
+      (Icons.photo_camera_outlined, 'Chụp ảnh\nhoá đơn'),
+      (Icons.smart_toy_outlined, 'ChatGPT\nđọc ảnh'),
+      (Icons.table_chart_outlined, 'Một file\nExcel'),
+      (Icons.price_check, 'Bảng giá\ntrong app'),
+    ];
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 12),
+      color: Colors.indigo.shade50,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.indigo.shade100),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Biến ảnh hoá đơn thành bảng giá tra cứu được',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Colors.indigo.shade900,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Không phải gõ tay từng dòng. Làm một lần, cả cửa hàng tra chung.',
+              style: TextStyle(fontSize: 11.5, color: Colors.indigo.shade700),
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 4,
+              runSpacing: 10,
+              children: [
+                for (var i = 0; i < steps.length; i++) ...[
+                  if (i > 0)
+                    Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 16,
+                      color: Colors.indigo.shade300,
+                    ),
+                  SizedBox(
+                    width: 72,
+                    child: Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: Colors.white,
+                          child: Icon(
+                            steps[i].$1,
+                            size: 18,
+                            color: Colors.indigo.shade700,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          steps[i].$2,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 10,
+                            height: 1.25,
+                            color: Colors.indigo.shade900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Một dòng mô tả trang (sheet) cần để ý trong file Excel.
+  Widget _sheetRow(
+    String name,
+    String desc,
+    MaterialColor color,
+    IconData icon,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: color.shade700),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Trang "$name"',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: color.shade800,
+                  ),
+                ),
+                Text(
+                  desc,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    height: 1.35,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Bảng minh hoạ file trông ra sao — nhìn là biết phải điền vào đâu, đỡ
+  /// phải tưởng tượng từ chữ. Cuộn ngang trong khung riêng để không đẩy tràn
+  /// cả trang trên màn hẹp.
+  Widget _fileShapeTable() {
+    Widget cell(String t, {bool head = false, bool highlight = false}) =>
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+          color: head
+              ? Colors.grey.shade200
+              : (highlight ? Colors.green.shade50 : Colors.transparent),
+          child: Text(
+            t,
+            style: TextStyle(
+              fontSize: 9.5,
+              height: 1.2,
+              fontWeight: head ? FontWeight.w700 : FontWeight.w400,
+              color: highlight ? Colors.green.shade900 : Colors.grey.shade800,
+            ),
+          ),
+        );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'File trông như thế này (rút gọn):',
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey.shade700,
+          ),
+        ),
+        const SizedBox(height: 6),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Table(
+              defaultColumnWidth: const IntrinsicColumnWidth(),
+              border: TableBorder.symmetric(
+                inside: BorderSide(color: Colors.grey.shade200),
+              ),
+              children: [
+                TableRow(
+                  children: [
+                    cell('Tên mặt hàng', head: true),
+                    cell('Số lượng', head: true),
+                    cell('Giá vốn', head: true),
+                    cell('Giá thu khách', head: true),
+                  ],
+                ),
+                TableRow(
+                  children: [
+                    cell('Pin iPhone 11 Pro Max'),
+                    cell('3'),
+                    cell('310000'),
+                    cell('← bạn điền', highlight: true),
+                  ],
+                ),
+                TableRow(
+                  children: [
+                    cell('Màn hình iPhone 13 OLED'),
+                    cell('1'),
+                    cell('900000'),
+                    cell('← bạn điền', highlight: true),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'AI điền sẵn phần giá vốn. Bạn chỉ điền cột cuối (để trống cũng được).',
+          style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
+        ),
+      ],
+    );
+  }
+
+  /// Hàng nút tự xuống dòng khi quá hẹp — tránh tràn ở màn nhỏ / cửa sổ chia đôi.
+  Widget _actionRow(List<Widget> buttons) {
+    return LayoutBuilder(
+      builder: (_, c) {
+        if (c.maxWidth < 320) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < buttons.length; i++) ...[
+                if (i > 0) const SizedBox(height: 8),
+                buttons[i],
+              ],
+            ],
+          );
+        }
+        return Row(
+          children: [
+            for (var i = 0; i < buttons.length; i++) ...[
+              if (i > 0) const SizedBox(width: 8),
+              Expanded(child: buttons[i]),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _showFullPrompt() async {
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Câu lệnh cho AI', style: TextStyle(fontSize: 16)),
-        content: const SingleChildScrollView(
-          child: SelectableText(
-            SupplierInvoicePriceBookService.gptPrompt,
-            style: TextStyle(fontSize: 11.5, height: 1.4),
+        // Câu lệnh rất dài: khi xoay ngang chiều cao còn rất ít nên phải chốt
+        // trần chiều cao, nếu không AlertDialog tự giãn quá màn và tràn.
+        content: SizedBox(
+          width: responsiveDialogWidth(ctx, maxWidth: 640),
+          height: MediaQuery.sizeOf(ctx).height * 0.6,
+          child: const SingleChildScrollView(
+            child: SelectableText(
+              SupplierInvoicePriceBookService.gptPrompt,
+              style: TextStyle(fontSize: 11.5, height: 1.4),
+            ),
           ),
         ),
         actions: [
@@ -361,7 +675,13 @@ class _SupplierInvoicePriceImportViewState
           icon: Icons.summarize_outlined,
           color: Colors.indigo,
           title: 'Xem trước — $_fileName',
-          child: Column(
+          // Màn rộng (web/máy tính bảng/xoay ngang) xếp 2 cột cho đỡ phải cuộn;
+          // màn hẹp giữ 1 cột để nhãn dài không bị cắt.
+          child: ResponsiveGrid(
+            minChildWidth: 260,
+            maxColumns: 2,
+            spacing: 14,
+            runSpacing: 0,
             children: [
               _stat('Dòng hợp lệ', p.validRows, Colors.green.shade700),
               _stat('Mặt hàng MỚI', p.newItems.length, Colors.blue.shade700),
@@ -713,19 +1033,41 @@ class _SupplierInvoicePriceImportViewState
   }
 }
 
-class _Bullet extends StatelessWidget {
+/// Dòng mẹo/trấn an dưới mỗi bước hướng dẫn — nền nhạt + icon bóng đèn để mắt
+/// phân biệt ngay với phần việc phải làm ở trên.
+class _Tip extends StatelessWidget {
   final String text;
-  const _Bullet(this.text);
+  const _Tip(this.text);
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: Colors.amber.shade200),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('•  ', style: TextStyle(fontSize: 12.5)),
-          Expanded(child: Text(text, style: const TextStyle(fontSize: 12.5))),
+          Icon(
+            Icons.lightbulb_outline,
+            size: 14,
+            color: Colors.amber.shade900,
+          ),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 11.5,
+                height: 1.35,
+                color: Colors.brown.shade800,
+              ),
+            ),
+          ),
         ],
       ),
     );

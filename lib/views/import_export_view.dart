@@ -3,6 +3,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import '../services/excel_import_service.dart';
+import '../utils/file_picker_types.dart';
 import '../utils/excel_export_helper.dart';
 
 /// Consolidated import/export Excel page (Settings → Nhập/Xuất dữ liệu).
@@ -105,9 +106,24 @@ class _ImportExportViewState extends State<ImportExportView> {
   // ── IMPORT ─────────────────────────────────────────────────────────────
 
   Future<void> _import(_DataType dt) async {
-    const xlsxType = XTypeGroup(label: 'Excel', extensions: ['xlsx']);
-    final file = await openFile(acceptedTypeGroups: [xlsxType]);
-    if (file == null || !mounted) return;
+    // Dung FilePickerTypes — thieu `uniformTypeIdentifiers` la iOS nem
+    // ArgumentError, bam nut khong len gi.
+    XFile? picked;
+    try {
+      picked = await openFile(acceptedTypeGroups: [FilePickerTypes.excel]);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Khong mo duoc trinh chon file: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    if (picked == null || !mounted) return;
+    final file = picked;
 
     Uint8List bytes;
     try {

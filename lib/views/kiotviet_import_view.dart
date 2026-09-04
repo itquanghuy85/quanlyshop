@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import '../utils/file_picker_types.dart';
 import '../data/db_helper.dart';
 import '../services/kiotviet_excel_import_service.dart';
 import '../services/notification_service.dart';
@@ -71,10 +72,7 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
   Future<void> _pickFile(String type) async {
     final file = await openFile(
       acceptedTypeGroups: [
-        const XTypeGroup(
-          label: 'Excel KiotViet',
-          extensions: ['xlsx', 'xls'],
-        ),
+        FilePickerTypes.excelWithLegacy,
       ],
     );
     if (file == null) return;

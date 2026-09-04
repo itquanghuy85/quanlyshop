@@ -27,6 +27,7 @@ import '../core/utils/money_utils.dart';
 import '../models/shop_settings_model.dart';
 import '../services/category_service.dart';
 import '../services/business_type_helper.dart';
+import '../utils/file_picker_types.dart';
 import '../utils/vietnamese_utils.dart';
 import '../models/supplier_model.dart';
 import '../services/supplier_service.dart';
@@ -306,9 +307,24 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
   /// tùng đã có trong kho → xác nhận → cập nhật giá vốn. KHÔNG đụng tồn kho,
   /// KHÔNG tự tạo phụ tùng mới.
   Future<void> _importPartsCostFromExcel() async {
-    const xlsx = XTypeGroup(label: 'Excel', extensions: ['xlsx']);
-    final file = await openFile(acceptedTypeGroups: [xlsx]);
-    if (file == null || !mounted) return;
+    // Dung FilePickerTypes — thieu `uniformTypeIdentifiers` la iOS nem
+    // ArgumentError, bam nut khong len gi.
+    XFile? picked;
+    try {
+      picked = await openFile(acceptedTypeGroups: [FilePickerTypes.excel]);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Khong mo duoc trinh chon file: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    if (picked == null || !mounted) return;
+    final file = picked;
 
     Uint8List bytes;
     try {
