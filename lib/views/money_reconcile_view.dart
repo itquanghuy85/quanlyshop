@@ -1,15 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../data/db_helper.dart';
 import '../services/money_reconcile_service.dart';
+import '../services/bank_notification_parser.dart';
 import '../services/bank_notification_service.dart';
 import '../services/event_bus.dart';
 import '../utils/money_utils.dart';
 import '../widgets/currency_text_field.dart';
 import '../widgets/custom_app_bar.dart';
-import '../widgets/bank_transfer_assist.dart';
 import 'debt_view.dart';
 import 'repair_detail_view.dart';
 import 'sale_detail_view.dart';
@@ -88,6 +89,49 @@ class _MoneyReconcileViewState extends State<MoneyReconcileView> {
     if (_activeNotifId == id) _activeNotifId = null;
     await BankNotificationService.instance.refreshCount();
     await _loadBankNotifs();
+  }
+
+  /// Dán nội dung tin nhắn / thông báo ngân hàng từ clipboard rồi để app tự
+  /// đọc số tiền + chiều tiền. Dùng được trên MỌI nền tảng — đặc biệt cho iOS
+  /// (không có API đọc thông báo) và cho ngân hàng ngoài danh sách hỗ trợ.
+  Future<void> _pasteBankText() async {
+    String text = '';
+    try {
+      final data = await Clipboard.getData(Clipboard.kTextPlain);
+      text = (data?.text ?? '').trim();
+    } catch (e) {
+      debugPrint('_pasteBankText: $e');
+    }
+    if (text.isEmpty) {
+      _snack('Bộ nhớ tạm đang trống — hãy sao chép nội dung tin nhắn / thông '
+          'báo ngân hàng trước.', Colors.orange);
+      return;
+    }
+
+    final parsed = BankNotificationParser.parse(content: text);
+    if (parsed == null || parsed.amount <= 0) {
+      _snack('Không đọc được số tiền trong nội dung vừa dán — hãy gõ tay số '
+          'tiền bên trên.', Colors.orange);
+      return;
+    }
+
+    setState(() {
+      _activeNotifId = null; // nguồn là dán tay, không gắn với thông báo nào
+      if (parsed.direction == 'credit') _moneyIn = true;
+      if (parsed.direction == 'debit') _moneyIn = false;
+      _amountCtrl.text = CurrencyTextField.formatDisplay(parsed.amount);
+    });
+    _applyFilter();
+
+    final dirLabel = switch (parsed.direction) {
+      'credit' => 'tiền vào',
+      'debit' => 'tiền ra',
+      _ => 'chưa rõ chiều — hãy tự chọn Tiền vào / Tiền ra',
+    };
+    _snack(
+      'Đã đọc: ${MoneyUtils.formatCurrency(parsed.amount)} đ ($dirLabel)',
+      parsed.direction == 'unknown' ? Colors.orange : Colors.green,
+    );
   }
 
   int get _amount => CurrencyTextField.getValue(_amountCtrl);
@@ -339,7 +383,10 @@ class _MoneyReconcileViewState extends State<MoneyReconcileView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomAppBar.build(title: 'Đối soát tiền về'),
-      body: Column(
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
@@ -386,30 +433,41 @@ class _MoneyReconcileViewState extends State<MoneyReconcileView> {
                       color: Colors.grey.shade500,
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      _loading
-                          ? 'Đang tải danh sách…'
-                          : 'Gõ số tiền — tự lọc, không cần bấm tìm',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: Colors.grey.shade500,
+                    Expanded(
+                      child: Text(
+                        _loading
+                            ? 'Đang tải danh sách…'
+                            : 'Gõ số tiền — tự lọc, không cần bấm tìm',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ),
+                    // Dán tin nhắn / thông báo NH → app tự đọc số tiền.
+                    // Có ở MỌI nền tảng (iOS không đọc được thông báo tự động).
+                    TextButton.icon(
+                      onPressed: _pasteBankText,
+                      icon: const Icon(Icons.content_paste_rounded, size: 15),
+                      label: const Text('Dán tin nhắn NH',
+                          style: TextStyle(fontSize: 12)),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        visualDensity: VisualDensity.compact,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                     ),
                   ],
                 ),
                 _bankNotifSection(),
-                if (_moneyIn)
-                  bankTransferAssistCard(
-                    amountController: _amountCtrl,
-                    direction: BankPayDirection.inbound,
-                    refText: 'Doi soat tien ve',
-                  ),
               ],
             ),
           ),
           const Divider(height: 1),
           Expanded(child: _buildResults()),
         ],
+        ),
       ),
     );
   }
@@ -433,6 +491,7 @@ class _MoneyReconcileViewState extends State<MoneyReconcileView> {
     return RefreshIndicator(
       onRefresh: _loadCandidates,
       child: ListView.separated(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 24),
         itemCount: _matches.length,
         separatorBuilder: (_, __) => const SizedBox(height: 8),

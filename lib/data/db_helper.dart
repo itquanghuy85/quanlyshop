@@ -8589,7 +8589,7 @@ class DBHelper {
 
     // Tìm phụ tùng theo tên trong bảng repair_parts (không phân biệt chữ hoa/thường)
     final parts = await db.rawQuery(
-      'SELECT * FROM repair_parts WHERE UPPER(name) = ? AND (deleted = 0 OR deleted IS NULL) LIMIT 1',
+      'SELECT * FROM repair_parts WHERE UPPER(partName) = ? AND (deleted = 0 OR deleted IS NULL) LIMIT 1',
       [partName.toUpperCase()],
     );
 

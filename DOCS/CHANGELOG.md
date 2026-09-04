@@ -4,6 +4,76 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-04c] - fix(đơn sửa) NCC/link phụ tùng, dialog xoá đơn sai mật khẩu, xoá/đổi PT không phản ánh
+
+**Chưa tăng version.**
+
+**3 bug user báo qua đơn sửa:**
+
+1. **Phụ tùng không hiện NCC, chạm vào link luôn ra "Kho Linh kiện" chung** thay
+   vì đúng linh kiện đó. `Repair.partsUsedDetailed` (feature `[2026-08-31b]`)
+   chỉ được ghi khi thêm phụ tùng qua dialog chọn kho; đơn có phụ tùng thêm
+   trước đó có trường này rỗng → rơi vào nhánh fallback cũ (1 dòng gộp,
+   `onTap: _openPartsWarehouse`). Fix: `_legacyPartLookup` (cache tên→Product
+   qua `getProductByNameFlexible`, load khi `partsUsedDetailed` rỗng) + tách
+   fallback thành từng dòng per-part, `onTap` gọi `_openPartInInventory` (tự
+   tra lại kể cả cache chưa xong) + hiện NCC nếu tra được.
+
+2. **Xoá đơn sửa: "Mật khẩu sai" bị dialog che, không thấy phản hồi.**
+   `order_list_view.dart::_confirmDelete`. Fix: `StatefulBuilder` bọc dialog —
+   lỗi hiện NGAY TRONG dialog (dòng đỏ), dialog chỉ đóng khi xác thực thành
+   công. **Lưu ý quan trọng:** bản sửa ĐẦU TIÊN (đóng dialog ngay khi bấm XÓA
+   rồi mới await xác thực) đã TÁI TẠO ĐÚNG crash `_dependents.isEmpty`
+   (framework.dart:6268) đã ghi nhận ở `sale_detail_view.dart::_unlockManager`
+   — phát hiện qua test máy thật, sửa lại đúng hướng (không pop dialog trước
+   khi async xong) trước khi bàn giao.
+
+3. **Xoá/đổi phụ tùng trong đơn sửa: không thấy phản ánh thay đổi.** 2 nguyên
+   nhân: (a) `_removePartFromRepair`/`_swapPartInRepair` thiếu cờ
+   `_isUpdating=true` khi mutate (mọi hàm mutate khác trong file đều có) —
+   thiếu cờ này khiến Firestore realtime listener có thể đè lại dữ liệu cũ
+   giữa chừng; (b) **[phát hiện khi test sống] bug SQL** —
+   `db_helper.dart::restorePartQuantityByName` query
+   `WHERE UPPER(name) = ?` trên bảng `repair_parts` nhưng cột thật là
+   `partName` (không có cột `name`) → mọi lần xoá/đổi phụ tùng nguồn
+   "Kho cũ" crash âm thầm (bắt bởi `runZonedGuarded`, không red-screen,
+   không báo user) ngay tại bước hoàn trả kho, nên đơn không bao giờ được
+   lưu lại — đây là nguyên nhân chính. Sửa cả 2.
+
+**Test:** `flutter analyze`/`flutter test` sạch (8 fail còn lại pre-existing,
+không liên quan). Máy thật Oppo CPH2203: thêm phụ tùng → NCC/link hiện đúng;
+"Xóa PT" xác nhận log `✅ Restored part quantity: LK TÉT 2B, +1 => 3`, phụ
+tùng biến mất khỏi UI ngay, snackbar đúng; dialog xoá đơn nhập sai mật khẩu →
+dòng đỏ "❌ Mật khẩu sai" hiện ngay trong dialog, không crash, logcat sạch.
+
+**Files:** `lib/views/repair_detail_view.dart`, `lib/views/order_list_view.dart`,
+`lib/data/db_helper.dart`.
+
+---
+
+## [2026-09-04b] - fix(đối soát tiền về) bỏ QR thừa ở tab "Tiền vào" + ẩn bàn phím số
+
+**Chưa tăng version.**
+
+**Bug:** (1) Tab "Tiền vào (nhận)" ở `money_reconcile_view.dart` hiện thêm khối
+"Nhận tiền qua ngân hàng" (QR VietQR của SHOP) — không cần thiết vì màn này
+dùng để đối soát tiền đã về, không phải để tạo QR nhận tiền. (2) Sau khi gõ
+số tiền xong, không có cách ẩn bàn phím số (không tap-outside-to-dismiss).
+
+**Fix:** (1) Bỏ hẳn `bankTransferAssistCard(...)` + import không dùng nữa —
+tab "Tiền vào" giờ giống hệt "Tiền ra" (không có QR). (2) Bọc body bằng
+`GestureDetector(onTap: unfocus)` + `keyboardDismissBehavior: onDrag` cho
+danh sách kết quả.
+
+**Test:** `flutter analyze` sạch. Máy thật Oppo CPH2203: gõ 500.000 ở tab
+"Tiền vào" → không còn khối QR; chạm ra ngoài ô nhập → bàn phím ẩn ngay; chạm
+vào 1 kết quả khớp vẫn mở dialog xác nhận bình thường (GestureDetector không
+chặn tap của card bên trong).
+
+**Files:** `lib/views/money_reconcile_view.dart`.
+
+---
+
 ## [2026-09-04a] - fix(tìm kiếm) không dấu + không phân biệt hoa/thường toàn app
 
 **Chưa tăng version.**

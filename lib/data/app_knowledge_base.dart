@@ -930,6 +930,9 @@ class AppKnowledgeBase {
         'Chọn chiều: Tiền vào (nhận) hoặc Tiền ra (chuyển đi).',
         'Gõ số tiền — app **tự lọc ngay, không cần bấm nút**. Danh sách hiện các '
             'khoản khớp (khớp đúng / khớp một phần), khớp đúng lên trước.',
+        'Lười gõ? Sao chép nội dung tin nhắn / thông báo ngân hàng rồi bấm '
+            '**"Dán tin nhắn NH"** — app tự đọc số tiền + chiều tiền. Dùng được '
+            'trên cả Android lẫn iPhone.',
         'Chạm một khoản → xem lại → Xác nhận ghi. App ghi nhận qua đúng luồng '
             '(tất toán trả góp / thu nợ / trả nợ) và cập nhật trạng thái.',
         'Nút ↗ trên mỗi dòng: mở đơn bán/sửa gốc hoặc màn Công nợ để đối chiếu '
@@ -1038,9 +1041,12 @@ class AppKnowledgeBase {
             'hẳn có thể không bắt được — vẫn gõ tay số tiền ở Đối soát tiền về.',
         'Không đọc được chiều tiền (vào / ra) thì app để trống cho bạn tự chọn — '
             'thà hỏi còn hơn đoán sai.',
-        'Chỉ có trên Android. iOS không cho ứng dụng đọc thông báo của app khác.',
+        'Chỉ có trên Android. iOS không cho ứng dụng đọc thông báo của app khác '
+            '— **iPhone dùng nút "Dán tin nhắn NH"** ở màn Đối soát tiền về: sao '
+            'chép nội dung tin nhắn / thông báo ngân hàng rồi bấm dán, app tự đọc '
+            'số tiền + chiều tiền giúp, khỏi gõ tay.',
         'Ngân hàng của bạn không có trong danh sách → vẫn dùng "Đối soát tiền về" '
-            'bằng cách gõ số tiền.',
+            '(nút "Dán tin nhắn NH" hoặc gõ tay số tiền).',
       ],
       terms: ['dong-tien', 'cong-no-phai-thu', 'tat-toan'],
       sampleQuestions: [
@@ -1049,6 +1055,8 @@ class AppKnowledgeBase {
         'sao không thấy giao dịch ngân hàng nào',
         'app có đọc tin nhắn của tôi không',
         'ngân hàng của tôi có được hỗ trợ không',
+        'iphone có dùng được không',
+        'dán tin nhắn ngân hàng',
       ],
       tags: [
         'doc thong bao', 'thong bao ngan hang', 'tu dong doi soat', 'bien dong so du',

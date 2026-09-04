@@ -45,6 +45,7 @@ class OrderListView extends StatefulWidget {
   final bool todayOnly;
   final List<int>? statusFilter;
   final String role;
+
   /// Chỉ hiện đơn đã giao (status 4) nhưng chưa ghi nhận giá vốn (cost = 0).
   final bool filterMissingCost;
   const OrderListView({
@@ -811,8 +812,7 @@ class OrderListViewState extends State<OrderListView> {
           !widget.statusFilter!.contains(r.status)) {
         return false;
       }
-      if (widget.filterMissingCost &&
-          (r.status != 4 || r.totalCost > 0)) {
+      if (widget.filterMissingCost && (r.status != 4 || r.totalCost > 0)) {
         return false;
       }
       // Lọc đơn chờ duyệt giao
@@ -1571,7 +1571,7 @@ class OrderListViewState extends State<OrderListView> {
     }
   }
 
-  void _confirmDelete(Repair r) {
+  Future<void> _confirmDelete(Repair r) async {
     if (!canDelete) return;
 
     final displayPrice = _displayedChargePrice(r);
@@ -1593,149 +1593,209 @@ class OrderListViewState extends State<OrderListView> {
     final hasPartsUsed = r.partsUsed.isNotEmpty;
 
     final passCtrl = TextEditingController();
-    showDialog(
+    String? errorText;
+    bool submitting = false;
+    // Dialog CHỈ đóng khi xóa thành công — không đóng dialog rồi mới xác
+    // thực (đóng route đang có TextField mật khẩu giữ focus dễ trúng crash
+    // "_dependents.isEmpty" đã ghi nhận ở sale_detail_view). Sai mật khẩu ->
+    // hiện lỗi ngay TRONG dialog (luôn thấy được, không bị gì che khuất) và
+    // dialog vẫn mở để nhập lại.
+    final deleted = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(
-              hasAccountingData || hasPartsUsed
-                  ? Icons.warning_amber_rounded
-                  : Icons.delete_forever,
-              color: Colors.red,
-            ),
-            const SizedBox(width: 8),
-            const Expanded(child: Text("XÁC NHẬN XÓA ĐƠN")),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Thông tin đơn
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                hasAccountingData || hasPartsUsed
+                    ? Icons.warning_amber_rounded
+                    : Icons.delete_forever,
+                color: Colors.red,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    r.model,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text('${r.customerName} - ${r.phone}'),
-                  Text('Trạng thái: ${_getStatusText(r.status)}'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Cảnh báo nếu có số liệu
-            if (hasAccountingData)
+              const SizedBox(width: 8),
+              const Expanded(child: Text("XÁC NHẬN XÓA ĐƠN")),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Thông tin đơn
               Container(
                 padding: const EdgeInsets.all(8),
-                margin: const EdgeInsets.only(bottom: 8),
                 decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
+                  color: Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.attach_money,
-                      color: Colors.orange,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _canViewCostPrice
-                            ? loc.orderHasAccounting(
-                                _formatMoney(displayPrice),
-                                _formatMoney(r.cost),
-                              )
-                            : loc.orderHasAccounting(
-                                _formatMoney(displayPrice),
-                                '***',
-                              ),
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-            // Cảnh báo nếu có phụ tùng
-            if (hasPartsUsed)
-              Container(
-                padding: const EdgeInsets.all(8),
-                margin: const EdgeInsets.only(bottom: 8),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.build, color: Colors.blue, size: 20),
-                        const SizedBox(width: 8),
-                        Text(
-                          loc.orderHasParts,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
                     Text(
-                      r.partsUsed,
-                      style: const TextStyle(fontSize: 13, color: Colors.blue),
+                      r.model,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      loc.partsWillReturn,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                    ),
+                    Text('${r.customerName} - ${r.phone}'),
+                    Text('Trạng thái: ${_getStatusText(r.status)}'),
                   ],
                 ),
               ),
+              const SizedBox(height: 12),
 
-            const SizedBox(height: 8),
-            TextField(
-              controller: passCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(
-                hintText: "Nhập mật khẩu quản lý để xác nhận",
-                border: OutlineInputBorder(),
-                isDense: true,
+              // Cảnh báo nếu có số liệu
+              if (hasAccountingData)
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.attach_money,
+                        color: Colors.orange,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _canViewCostPrice
+                              ? loc.orderHasAccounting(
+                                  _formatMoney(displayPrice),
+                                  _formatMoney(r.cost),
+                                )
+                              : loc.orderHasAccounting(
+                                  _formatMoney(displayPrice),
+                                  '***',
+                                ),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Cảnh báo nếu có phụ tùng
+              if (hasPartsUsed)
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.build, color: Colors.blue, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            loc.orderHasParts,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        r.partsUsed,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.blue,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        loc.partsWillReturn,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              const SizedBox(height: 8),
+              TextField(
+                controller: passCtrl,
+                obscureText: true,
+                enabled: !submitting,
+                decoration: const InputDecoration(
+                  hintText: "Nhập mật khẩu quản lý để xác nhận",
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
               ),
+              if (errorText != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    errorText!,
+                    style: const TextStyle(color: Colors.red, fontSize: 13),
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: submitting ? null : () => Navigator.pop(ctx, false),
+              child: const Text("HỦY"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: submitting
+                  ? null
+                  : () async {
+                      setDialogState(() {
+                        submitting = true;
+                        errorText = null;
+                      });
+                      final ok = await _executeDelete(r, passCtrl.text);
+                      if (!ctx.mounted) return;
+                      if (ok) {
+                        Navigator.pop(ctx, true);
+                      } else {
+                        setDialogState(() {
+                          submitting = false;
+                          errorText = "❌ Mật khẩu sai";
+                        });
+                      }
+                    },
+              child: submitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text("XÓA", style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("HỦY"),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => _executeDelete(ctx, r, passCtrl.text),
-            child: const Text("XÓA", style: TextStyle(color: Colors.white)),
-          ),
-        ],
+      ),
+    );
+    passCtrl.dispose();
+    if (deleted != true) return;
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          hasPartsUsed
+              ? '✅ Đã xóa đơn và hoàn trả phụ tùng về kho'
+              : '✅ Đã xóa đơn thành công',
+        ),
+        backgroundColor: Colors.green,
       ),
     );
   }
@@ -1760,17 +1820,15 @@ class OrderListViewState extends State<OrderListView> {
     return '${NumberFormat('#,###', 'vi_VN').format(amount)}đ';
   }
 
-  Future<void> _executeDelete(
-    BuildContext ctx,
-    Repair r,
-    String password,
-  ) async {
-    final messenger = ScaffoldMessenger.of(context);
+  /// Thực hiện xóa đơn — trả về true nếu thành công. KHÔNG tự đóng dialog
+  /// hay show SnackBar; caller (`_confirmDelete`) xử lý cả hai sau khi hàm
+  /// này trả về, để tránh đóng dialog xác thực sớm (crash _dependents khi
+  /// route dialog có TextField focus bị gỡ giữa chừng).
+  Future<bool> _executeDelete(Repair r, String password) async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null || user.email == null) return;
+    if (user == null || user.email == null) return false;
 
     try {
-      final navigator = Navigator.of(ctx);
       final cred = EmailAuthProvider.credential(
         email: user.email!,
         password: password,
@@ -1838,25 +1896,10 @@ class OrderListViewState extends State<OrderListView> {
         '✅ Repair deleted directly on Firestore - no need for sync queue',
       );
 
-      navigator.pop();
       _removeRepairFromRealtimeCache(repairFirestoreId);
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            r.partsUsed.isNotEmpty
-                ? '✅ Đã xóa đơn và hoàn trả phụ tùng về kho'
-                : '✅ Đã xóa đơn thành công',
-          ),
-          backgroundColor: Colors.green,
-        ),
-      );
+      return true;
     } catch (_) {
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('❌ Mật khẩu sai'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      return false;
     }
   }
 

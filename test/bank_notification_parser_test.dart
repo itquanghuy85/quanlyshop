@@ -146,6 +146,38 @@ void main() {
       expect(BankNotificationParser.parse(), isNull);
     });
 
+    // Luồng "Dán tin nhắn NH" ở màn Đối soát chỉ truyền `content` (người dùng
+    // copy nguyên body SMS, không có tiêu đề) — phải parse được như thường.
+    test('dán body SMS (chỉ content, không title) — ghi có', () {
+      final r = BankNotificationParser.parse(
+        content:
+            'TK 0071000123456|GD:+690,000VND luc 31/08/2025 12:22'
+            '|So du:5,200,000VND|ND: TRAN THUONG CK tra hang',
+      );
+      expect(r, isNotNull);
+      expect(r!.amount, 690000);
+      expect(r.direction, 'credit');
+      expect(r.balanceAfter, 5200000);
+      expect(r.memo, contains('TRAN THUONG'));
+    });
+
+    test('dán body SMS (chỉ content) — ghi nợ', () {
+      final r = BankNotificationParser.parse(
+        content: 'TK 0071000123456 -2.500.000 VND. So du 700.000 VND',
+      );
+      expect(r, isNotNull);
+      expect(r!.amount, 2500000);
+      expect(r.direction, 'debit');
+      expect(r.balanceAfter, 700000);
+    });
+
+    test('dán nội dung không liên quan → null', () {
+      final r = BankNotificationParser.parse(
+        content: 'Chieu nay 5h qua quan cafe nhe',
+      );
+      expect(r, isNull);
+    });
+
     test('chỉ có số dư, không có số tiền GD → null', () {
       final r = BankNotificationParser.parse(
         title: 'VCB',

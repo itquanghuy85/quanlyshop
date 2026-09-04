@@ -99,6 +99,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   String? _lastModifiedBy;
   int? _lastModifiedAt;
 
+  // Tra sản phẩm theo tên cho phụ tùng KHÔNG có partsUsedDetailed (đơn cũ /
+  // luồng thêm phụ tùng không lưu productId) — chỉ để hiển thị NCC; việc mở
+  // đúng linh kiện khi chạm vẫn tự tra lại qua _openPartInInventory.
+  final Map<String, Product?> _legacyPartLookup = {};
+
   // Chỉ cho sửa giá/vốn khi giao trong ngày; qua ngày → khóa
   bool get _isDeliverySameDay {
     final deliveredAt = r.deliveredAt;
@@ -133,7 +138,12 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     _checkPermission();
     _loadShopInfo();
     _loadPartners();
-    unawaited(_loadFreshRepairFromDb().then((_) => _loadPartSuppliers()));
+    unawaited(
+      _loadFreshRepairFromDb().then((_) {
+        _loadPartSuppliers();
+        _loadLegacyPartsLookup();
+      }),
+    );
     unawaited(_startRepairRealtimeListener(forceRestart: true));
     unawaited(_loadLastModifierInfo());
     unawaited(_loadHistoricalPricing());
@@ -161,6 +171,41 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       }
     } catch (e) {
       debugPrint('_loadPartSuppliers: $e');
+    }
+  }
+
+  /// Tách "PIN IPHONE 11 x1, MÀN HÌNH IP12 x2" → [(tên, sl), ...].
+  List<(String, int)> _parsePartsUsedText(String text) {
+    return text
+        .split(', ')
+        .map((p) => p.trim())
+        .where((p) => p.isNotEmpty)
+        .map((p) {
+          final m = RegExp(r'^(.+)\s+x(\d+)$').firstMatch(p);
+          if (m == null) return (p, 1);
+          return (m.group(1)!.trim(), int.tryParse(m.group(2)!) ?? 1);
+        })
+        .toList();
+  }
+
+  /// Tra sản phẩm theo tên cho phụ tùng KHÔNG có partsUsedDetailed (đơn cũ) —
+  /// chỉ để hiển thị đúng NCC ngay trên màn; việc mở đúng linh kiện khi chạm
+  /// tự tra lại (không phụ thuộc cache này) nên vẫn đúng dù cache chưa xong.
+  Future<void> _loadLegacyPartsLookup() async {
+    if (r.partsUsedDetailed.isNotEmpty || r.partsUsed.trim().isEmpty) return;
+    try {
+      final names = _parsePartsUsedText(r.partsUsed)
+          .map((e) => e.$1)
+          .where((n) => n.isNotEmpty && !_legacyPartLookup.containsKey(n))
+          .toSet();
+      if (names.isEmpty) return;
+      final map = <String, Product?>{};
+      for (final name in names) {
+        map[name] = await db.getProductByNameFlexible(name);
+      }
+      if (mounted) setState(() => _legacyPartLookup.addAll(map));
+    } catch (e) {
+      debugPrint('_loadLegacyPartsLookup: $e');
     }
   }
 
@@ -3063,102 +3108,110 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
     if (confirm != true) return;
 
-    // 1. Estimate cost + current inventory quantity of the removed part
-    //    (looked up BEFORE restoring, so we can log old→new for audit).
-    int removedCost = 0;
-    int? oldQty;
-    final allParts = await db.getAllPartsUnified();
-    for (final p in allParts) {
-      final pName = (p['partName'] ?? '').toString().toUpperCase();
-      if (pName == partName.toUpperCase()) {
-        removedCost = (p['cost'] as int? ?? 0) * partQty;
-        oldQty = p['quantity'] as int? ?? 0;
-        break;
+    // Chặn realtime listener ghi đè local trong lúc đang xóa/đồng bộ — thiếu
+    // guard này khiến 1 snapshot cloud cũ (chưa kịp nhận thay đổi) đè lại
+    // partsUsed vừa xóa, làm màn hình như "không xóa được".
+    if (mounted) setState(() => _isUpdating = true);
+    try {
+      // 1. Estimate cost + current inventory quantity of the removed part
+      //    (looked up BEFORE restoring, so we can log old→new for audit).
+      int removedCost = 0;
+      int? oldQty;
+      final allParts = await db.getAllPartsUnified();
+      for (final p in allParts) {
+        final pName = (p['partName'] ?? '').toString().toUpperCase();
+        if (pName == partName.toUpperCase()) {
+          removedCost = (p['cost'] as int? ?? 0) * partQty;
+          oldQty = p['quantity'] as int? ?? 0;
+          break;
+        }
       }
-    }
 
-    // 2. Restore part quantity to inventory
-    final restored = await db.restorePartQuantityByNameUnified(
-      partName,
-      partQty,
-    );
-    if (restored) {
-      debugPrint('✅ Restored $partName x$partQty to inventory');
-    } else {
-      debugPrint('⚠️ Could not find part "$partName" in inventory to restore');
-    }
-    final newQty = (restored && oldQty != null) ? oldQty + partQty : oldQty;
-
-    // 3. Update partsUsed string
-    parts.removeAt(selectedIndex);
-    r.partsUsed = parts.join(', ');
-
-    // 3b. Best-effort: gỡ 1 entry khớp tên khỏi partsUsedDetailed (nếu có).
-    //     Đơn cũ/không thêm qua kho sẽ không có entry nào — bỏ qua, không lỗi.
-    if (r.partsUsedDetailed.isNotEmpty) {
-      final updatedDetailed = List<PartUsedDetail>.from(r.partsUsedDetailed);
-      final matchIndex = updatedDetailed.indexWhere(
-        (p) => p.name.toUpperCase() == partName.toUpperCase(),
+      // 2. Restore part quantity to inventory
+      final restored = await db.restorePartQuantityByNameUnified(
+        partName,
+        partQty,
       );
-      if (matchIndex != -1) {
-        updatedDetailed.removeAt(matchIndex);
-        r.partsUsedDetailed = updatedDetailed;
+      if (restored) {
+        debugPrint('✅ Restored $partName x$partQty to inventory');
+      } else {
+        debugPrint(
+          '⚠️ Could not find part "$partName" in inventory to restore',
+        );
       }
-    }
+      final newQty = (restored && oldQty != null) ? oldQty + partQty : oldQty;
 
-    // 4. Reduce cost
-    final oldCost = r.cost;
-    final wasDelivered = r.status == 4;
-    r.cost = (r.cost - removedCost).clamp(0, r.cost);
-    final newCost = r.cost;
-    r.isSynced = false;
-    r.lastCaredAt = DateTime.now().millisecondsSinceEpoch;
-    await db.updateRepair(r);
+      // 3. Update partsUsed string
+      parts.removeAt(selectedIndex);
+      r.partsUsed = parts.join(', ');
 
-    // 5. Sync
-    if (r.firestoreId != null && r.id != null) {
-      await SyncOrchestrator().enqueue(
-        entityType: SyncEntityType.repair,
-        entityId: r.id!,
-        firestoreId: r.firestoreId,
-        operation: SyncOperation.update,
-        data: r.toMap(),
+      // 3b. Best-effort: gỡ 1 entry khớp tên khỏi partsUsedDetailed (nếu có).
+      //     Đơn cũ/không thêm qua kho sẽ không có entry nào — bỏ qua, không lỗi.
+      if (r.partsUsedDetailed.isNotEmpty) {
+        final updatedDetailed = List<PartUsedDetail>.from(r.partsUsedDetailed);
+        final matchIndex = updatedDetailed.indexWhere(
+          (p) => p.name.toUpperCase() == partName.toUpperCase(),
+        );
+        if (matchIndex != -1) {
+          updatedDetailed.removeAt(matchIndex);
+          r.partsUsedDetailed = updatedDetailed;
+        }
+      }
+
+      // 4. Reduce cost
+      final oldCost = r.cost;
+      final wasDelivered = r.status == 4;
+      r.cost = (r.cost - removedCost).clamp(0, r.cost);
+      final newCost = r.cost;
+      r.isSynced = false;
+      r.lastCaredAt = DateTime.now().millisecondsSinceEpoch;
+      await db.updateRepair(r);
+
+      // 5. Sync
+      if (r.firestoreId != null && r.id != null) {
+        await SyncOrchestrator().enqueue(
+          entityType: SyncEntityType.repair,
+          entityId: r.id!,
+          firestoreId: r.firestoreId,
+          operation: SyncOperation.update,
+          data: r.toMap(),
+        );
+        try {
+          await SyncOrchestrator().syncAll();
+          if (mounted) setState(() => r.isSynced = true);
+        } catch (_) {}
+      }
+
+      // 6. Log audit — ghi rõ giá trị cũ → mới của kho và giá vốn đơn
+      await AuditService.logAction(
+        action: 'PART_REMOVED',
+        entityType: 'repair',
+        entityId: r.id?.toString() ?? '',
+        summary:
+            'Xóa phụ tùng: $removedPart (kho: ${oldQty ?? "?"} → ${newQty ?? "?"}, '
+            'giá vốn đơn: $oldCost → $newCost)'
+            '${wasDelivered ? " [ĐƠN ĐÃ GIAO]" : ""}',
+        payload: {
+          'partName': partName,
+          'quantity': partQty,
+          'removedCost': removedCost,
+          'restored': restored,
+          'oldInventoryQty': oldQty,
+          'newInventoryQty': newQty,
+          'oldCost': oldCost,
+          'newCost': newCost,
+          'wasDelivered': wasDelivered,
+        },
       );
-      try {
-        await SyncOrchestrator().syncAll();
-        if (mounted) setState(() => r.isSynced = true);
-      } catch (_) {}
+
+      NotificationService.showSnackBar(
+        'Đã xóa $removedPart${restored ? " và trả lại kho" : ""}',
+        color: Colors.green,
+      );
+      _emitRepairChanged(financialImpact: true);
+    } finally {
+      if (mounted) setState(() => _isUpdating = false);
     }
-
-    // 6. Log audit — ghi rõ giá trị cũ → mới của kho và giá vốn đơn
-    await AuditService.logAction(
-      action: 'PART_REMOVED',
-      entityType: 'repair',
-      entityId: r.id?.toString() ?? '',
-      summary:
-          'Xóa phụ tùng: $removedPart (kho: ${oldQty ?? "?"} → ${newQty ?? "?"}, '
-          'giá vốn đơn: $oldCost → $newCost)'
-          '${wasDelivered ? " [ĐƠN ĐÃ GIAO]" : ""}',
-      payload: {
-        'partName': partName,
-        'quantity': partQty,
-        'removedCost': removedCost,
-        'restored': restored,
-        'oldInventoryQty': oldQty,
-        'newInventoryQty': newQty,
-        'oldCost': oldCost,
-        'newCost': newCost,
-        'wasDelivered': wasDelivered,
-      },
-    );
-
-    NotificationService.showSnackBar(
-      'Đã xóa $removedPart${restored ? " và trả lại kho" : ""}',
-      color: Colors.green,
-    );
-    _emitRepairChanged(financialImpact: true);
-
-    if (mounted) setState(() {});
   }
 
   /// Đổi phụ tùng: xóa linh kiện cũ (trả kho) → chọn linh kiện mới thay thế
@@ -3253,77 +3306,83 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       partQty = int.tryParse(xMatch.group(2)!) ?? 1;
     }
 
-    // Bước 2: Xóa phụ tùng cũ + trả kho
-    final restored = await db.restorePartQuantityByNameUnified(
-      partName,
-      partQty,
-    );
-    debugPrint(
-      restored
-          ? '✅ Đổi PT - Đã trả kho: $partName x$partQty'
-          : '⚠️ Đổi PT - Không tìm thấy "$partName" trong kho để trả',
-    );
-
-    // Tính giá vốn phụ tùng bị xóa
-    int removedCost = 0;
-    final allParts = await db.getAllPartsUnified();
-    for (final p in allParts) {
-      final pName = (p['partName'] ?? '').toString().toUpperCase();
-      if (pName == partName.toUpperCase()) {
-        removedCost = (p['cost'] as int? ?? 0) * partQty;
-        break;
-      }
-    }
-
-    // Cập nhật repair: xóa phụ tùng cũ khỏi danh sách
-    parts.removeAt(selectedIndex);
-    r.partsUsed = parts.join(', ');
-    r.cost = (r.cost - removedCost).clamp(0, r.cost);
-    // Best-effort: gỡ entry khớp tên khỏi partsUsedDetailed (nếu có).
-    if (r.partsUsedDetailed.isNotEmpty) {
-      final updatedDetailed = List<PartUsedDetail>.from(r.partsUsedDetailed);
-      final matchIndex = updatedDetailed.indexWhere(
-        (p) => p.name.toUpperCase() == partName.toUpperCase(),
+    // Chặn realtime listener ghi đè local trong lúc đang đổi/đồng bộ — thiếu
+    // guard này khiến 1 snapshot cloud cũ đè lại partsUsed vừa đổi.
+    if (mounted) setState(() => _isUpdating = true);
+    try {
+      // Bước 2: Xóa phụ tùng cũ + trả kho
+      final restored = await db.restorePartQuantityByNameUnified(
+        partName,
+        partQty,
       );
-      if (matchIndex != -1) {
-        updatedDetailed.removeAt(matchIndex);
-        r.partsUsedDetailed = updatedDetailed;
-      }
-    }
-    r.isSynced = false;
-    await db.updateRepair(r);
-
-    if (r.firestoreId != null && r.id != null) {
-      await SyncOrchestrator().enqueue(
-        entityType: SyncEntityType.repair,
-        entityId: r.id!,
-        firestoreId: r.firestoreId,
-        operation: SyncOperation.update,
-        data: r.toMap(),
+      debugPrint(
+        restored
+            ? '✅ Đổi PT - Đã trả kho: $partName x$partQty'
+            : '⚠️ Đổi PT - Không tìm thấy "$partName" trong kho để trả',
       );
-      try {
-        await SyncOrchestrator().syncAll();
-        if (mounted) setState(() => r.isSynced = true);
-      } catch (_) {}
+
+      // Tính giá vốn phụ tùng bị xóa
+      int removedCost = 0;
+      final allParts = await db.getAllPartsUnified();
+      for (final p in allParts) {
+        final pName = (p['partName'] ?? '').toString().toUpperCase();
+        if (pName == partName.toUpperCase()) {
+          removedCost = (p['cost'] as int? ?? 0) * partQty;
+          break;
+        }
+      }
+
+      // Cập nhật repair: xóa phụ tùng cũ khỏi danh sách
+      parts.removeAt(selectedIndex);
+      r.partsUsed = parts.join(', ');
+      r.cost = (r.cost - removedCost).clamp(0, r.cost);
+      // Best-effort: gỡ entry khớp tên khỏi partsUsedDetailed (nếu có).
+      if (r.partsUsedDetailed.isNotEmpty) {
+        final updatedDetailed = List<PartUsedDetail>.from(r.partsUsedDetailed);
+        final matchIndex = updatedDetailed.indexWhere(
+          (p) => p.name.toUpperCase() == partName.toUpperCase(),
+        );
+        if (matchIndex != -1) {
+          updatedDetailed.removeAt(matchIndex);
+          r.partsUsedDetailed = updatedDetailed;
+        }
+      }
+      r.isSynced = false;
+      await db.updateRepair(r);
+
+      if (r.firestoreId != null && r.id != null) {
+        await SyncOrchestrator().enqueue(
+          entityType: SyncEntityType.repair,
+          entityId: r.id!,
+          firestoreId: r.firestoreId,
+          operation: SyncOperation.update,
+          data: r.toMap(),
+        );
+        try {
+          await SyncOrchestrator().syncAll();
+          if (mounted) setState(() => r.isSynced = true);
+        } catch (_) {}
+      }
+
+      // Log xóa
+      await AuditService.logAction(
+        action: 'PART_SWAP_REMOVE',
+        entityType: 'repair',
+        entityId: r.id?.toString() ?? '',
+        summary:
+            'Đổi PT - xóa: $removedPart (trả kho: ${restored ? "OK" : "Không tìm thấy"})',
+        payload: {
+          'partName': partName,
+          'quantity': partQty,
+          'removedCost': removedCost,
+          'restored': restored,
+        },
+      );
+
+      _emitRepairChanged(financialImpact: true);
+    } finally {
+      if (mounted) setState(() => _isUpdating = false);
     }
-
-    // Log xóa
-    await AuditService.logAction(
-      action: 'PART_SWAP_REMOVE',
-      entityType: 'repair',
-      entityId: r.id?.toString() ?? '',
-      summary:
-          'Đổi PT - xóa: $removedPart (trả kho: ${restored ? "OK" : "Không tìm thấy"})',
-      payload: {
-        'partName': partName,
-        'quantity': partQty,
-        'removedCost': removedCost,
-        'restored': restored,
-      },
-    );
-
-    if (mounted) setState(() {});
-    _emitRepairChanged(financialImpact: true);
 
     // Bước 3: Tự động mở dialog chọn phụ tùng mới (bỏ qua cảnh báo)
     if (!mounted) return;
@@ -5025,26 +5084,71 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                             ],
                           )
                         else
-                          InkWell(
-                            onTap: _openPartsWarehouse,
-                            child: Row(
-                              children: [
-                                const Icon(Icons.build, size: 14,
-                                    color: Colors.blue),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    loc.partsShort(r.partsUsed),
-                                    style: AppTextStyles.caption.copyWith(
-                                      color: Colors.blue,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.build, size: 14,
+                                  color: Colors.blue),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    for (final entry
+                                        in _parsePartsUsedText(r.partsUsed))
+                                      Builder(builder: (_) {
+                                        final name = entry.$1;
+                                        final qty = entry.$2;
+                                        final prod = _legacyPartLookup[name];
+                                        final sup = (prod?.supplier ?? '')
+                                            .trim();
+                                        return InkWell(
+                                          onTap: () => _openPartInInventory(
+                                            PartUsedDetail(
+                                              name: name,
+                                              cost: 0,
+                                              qty: qty,
+                                            ),
+                                          ),
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(
+                                                top: 2, bottom: 2),
+                                            child: Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    '$name x$qty'
+                                                    '${sup.isNotEmpty ? '  ·  NCC: $sup' : ''}',
+                                                    style: AppTextStyles
+                                                        .caption
+                                                        .copyWith(
+                                                      color: Colors.blue,
+                                                      decoration:
+                                                          TextDecoration
+                                                              .underline,
+                                                      decorationColor:
+                                                          Colors.blue
+                                                              .withValues(
+                                                                  alpha: 0.35),
+                                                    ),
+                                                  ),
+                                                ),
+                                                const Icon(
+                                                  Icons.chevron_right,
+                                                  size: 14,
+                                                  color: Colors.blue,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      }),
+                                  ],
                                 ),
-                                const Icon(Icons.chevron_right, size: 14,
-                                    color: Colors.blue),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                       ],
                       // Quick actions — cho phép cả đơn ĐÃ GIAO (status 4) bổ sung
