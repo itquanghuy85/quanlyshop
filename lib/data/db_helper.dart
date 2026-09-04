@@ -6406,9 +6406,29 @@ class DBHelper {
   Future<List<Map<String, dynamic>>> getAllPartsUnified() async {
     final List<Map<String, dynamic>> result = [];
 
-    // 1. Lấy từ bảng repair_parts (kho cũ)
+    // 1. Lấy từ bảng repair_parts (kho cũ) — resolve supplierId → tên NCC
+    // ngay ở đây để caller (dialog chọn linh kiện khi thêm vào đơn sửa) đọc
+    // được 'supplier' luôn, KHÔNG chỉ trả supplierId thô (trước đây caller
+    // đọc part['supplier']/part['supplierName'] nhưng map này chưa từng có
+    // 2 khoá đó ⇒ NCC luôn rỗng khi ghi vào PartUsedDetail, kể cả khi phụ
+    // tùng đã có NCC trong Kho phụ tùng).
     final oldParts = await getAllParts();
+    final supplierIds = <int>{
+      for (final p in oldParts)
+        if (p['supplierId'] != null) p['supplierId'] as int,
+    };
+    final supplierNameById = <int, String>{};
+    if (supplierIds.isNotEmpty) {
+      final suppliers = await getSuppliers();
+      for (final s in suppliers) {
+        final id = s['id'] as int?;
+        if (id != null && supplierIds.contains(id)) {
+          supplierNameById[id] = (s['name'] as String?)?.trim() ?? '';
+        }
+      }
+    }
     for (var p in oldParts) {
+      final supplierId = p['supplierId'] as int?;
       result.add({
         'id': p['id'],
         'source': 'repair_parts', // Đánh dấu nguồn
@@ -6417,7 +6437,8 @@ class DBHelper {
         'quantity': p['quantity'] ?? 0,
         'cost': p['cost'] ?? 0,
         'price': p['price'] ?? 0,
-        'supplierId': p['supplierId'],
+        'supplierId': supplierId,
+        'supplier': supplierId != null ? supplierNameById[supplierId] : null,
       });
     }
 
@@ -6433,6 +6454,7 @@ class DBHelper {
         'cost': p.cost,
         'price': p.price,
         'supplierId': null, // Products không có supplierId trực tiếp
+        'supplier': p.supplier,
       });
     }
 
@@ -6861,6 +6883,57 @@ class DBHelper {
       [name, shopId],
     );
     return res.isNotEmpty ? Product.fromMap(res.first) : null;
+  }
+
+  /// Tra tên NCC của 1 phụ tùng (Kho phụ tùng/linh kiện, bảng `repair_parts`)
+  /// theo TÊN — dùng để hiển thị NCC cho phụ tùng đã dùng trong đơn sửa
+  /// nhưng chưa lưu `supplier` lúc thêm (đơn cũ, từ trước khi
+  /// `getAllPartsUnified` resolve supplierId → tên; hoặc phụ tùng lúc đó
+  /// chưa có NCC, sau này mới gán qua "Sửa" ở Kho phụ tùng).
+  /// Khớp linh hoạt: exact -> bỏ khoảng trắng -> chứa 2 chiều (giống
+  /// [getProductByNameFlexible]).
+  Future<String?> getPartSupplierByNameFlexible(String name) async {
+    final shopId = await _getScopedShopId('getPartSupplierByNameFlexible');
+    if (shopId == null) return null;
+
+    final cleaned = name.trim();
+    if (cleaned.isEmpty) return null;
+
+    final compact = cleaned.replaceAll(RegExp(r'\s+'), '');
+    final like = '%${cleaned.toUpperCase()}%';
+    final db = await database;
+
+    final res = await db.rawQuery(
+      '''
+      SELECT supplierId
+      FROM repair_parts
+      WHERE shopId = ?
+        AND (deleted = 0 OR deleted IS NULL)
+        AND supplierId IS NOT NULL
+        AND (
+          UPPER(partName) = UPPER(?)
+          OR UPPER(REPLACE(partName, ' ', '')) = UPPER(?)
+          OR UPPER(partName) LIKE ?
+          OR UPPER(?) LIKE '%' || UPPER(partName) || '%'
+        )
+      LIMIT 1
+      ''',
+      [shopId, cleaned, compact, like, cleaned],
+    );
+    if (res.isEmpty) return null;
+    final supplierId = res.first['supplierId'] as int?;
+    if (supplierId == null) return null;
+
+    final supRes = await db.query(
+      'suppliers',
+      columns: ['name'],
+      where: 'id = ? AND shopId = ?',
+      whereArgs: [supplierId, shopId],
+      limit: 1,
+    );
+    if (supRes.isEmpty) return null;
+    final supName = (supRes.first['name'] as String?)?.trim();
+    return (supName != null && supName.isNotEmpty) ? supName : null;
   }
 
   /// Tìm sản phẩm theo tên linh hoạt hơn cho luồng trả hàng.

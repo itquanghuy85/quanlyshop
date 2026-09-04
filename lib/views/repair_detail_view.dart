@@ -79,6 +79,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   late Repair r;
   // NCC của phụ tùng tra theo productId — bù cho đơn cũ chưa lưu supplier.
   final Map<int, String> _partSupplierByPid = {};
+  // NCC của phụ tùng nguồn Kho phụ tùng (repair_parts, không có productId)
+  // tra theo TÊN — bù cho đơn cũ chưa lưu supplier, hoặc phụ tùng lúc thêm
+  // vào đơn chưa có NCC, sau này mới gán ở Kho phụ tùng.
+  final Map<String, String> _partSupplierByName = {};
   bool _isUpdating = false;
   bool _isPrinting = false;
   String _shopName = "";
@@ -141,6 +145,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     unawaited(
       _loadFreshRepairFromDb().then((_) {
         _loadPartSuppliers();
+        _loadPartSuppliersByName();
         _loadLegacyPartsLookup();
       }),
     );
@@ -171,6 +176,40 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       }
     } catch (e) {
       debugPrint('_loadPartSuppliers: $e');
+    }
+  }
+
+  /// Tra NCC theo TÊN cho phụ tùng nguồn Kho phụ tùng (repair_parts, không
+  /// có productId) chưa lưu supplier — đơn cũ, hoặc phụ tùng lúc thêm vào
+  /// đơn chưa có NCC, sau này mới gán ở Kho phụ tùng (Sửa linh kiện). Áp
+  /// dụng cho cả 2 nhánh hiển thị: có `partsUsedDetailed` (tên phụ tùng có
+  /// productId==null) lẫn đơn hoàn toàn cũ chỉ có `partsUsed` dạng text.
+  Future<void> _loadPartSuppliersByName() async {
+    try {
+      final names = <String>{
+        if (r.partsUsedDetailed.isNotEmpty)
+          for (final p in r.partsUsedDetailed)
+            if (p.productId == null &&
+                (p.supplier ?? '').trim().isEmpty &&
+                p.name.trim().isNotEmpty &&
+                !_partSupplierByName.containsKey(p.name))
+              p.name
+        else if (r.partsUsed.trim().isNotEmpty)
+          for (final entry in _parsePartsUsedText(r.partsUsed))
+            if (entry.$1.isNotEmpty && !_partSupplierByName.containsKey(entry.$1))
+              entry.$1,
+      };
+      if (names.isEmpty) return;
+      final map = <String, String>{};
+      for (final name in names) {
+        final sup = await db.getPartSupplierByNameFlexible(name);
+        if (sup != null && sup.isNotEmpty) map[name] = sup;
+      }
+      if (map.isNotEmpty && mounted) {
+        setState(() => _partSupplierByName.addAll(map));
+      }
+    } catch (e) {
+      debugPrint('_loadPartSuppliersByName: $e');
     }
   }
 
@@ -5039,7 +5078,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                                                 ? (_partSupplierByPid[
                                                         p.productId] ??
                                                     '')
-                                                : '');
+                                                : (_partSupplierByName[
+                                                        p.name] ??
+                                                    ''));
                                         return InkWell(
                                           onTap: () =>
                                               _openPartInInventory(p),
@@ -5100,8 +5141,12 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                                         final name = entry.$1;
                                         final qty = entry.$2;
                                         final prod = _legacyPartLookup[name];
-                                        final sup = (prod?.supplier ?? '')
-                                            .trim();
+                                        final prodSup =
+                                            (prod?.supplier ?? '').trim();
+                                        final sup = prodSup.isNotEmpty
+                                            ? prodSup
+                                            : (_partSupplierByName[name] ??
+                                                '');
                                         return InkWell(
                                           onTap: () => _openPartInInventory(
                                             PartUsedDetail(
