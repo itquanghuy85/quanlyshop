@@ -1,5 +1,10 @@
+import 'dart:typed_data';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:intl/intl.dart';
+import '../models/supplier_invoice_models.dart';
+import '../services/supplier_invoice_service.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../widgets/keyboard_aware_padding.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -204,6 +209,358 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
     final mapped = Map<String, dynamic>.from(row);
     mapped['id'] = _toNullableInt(mapped['id']);
     return mapped;
+  }
+
+  void _invoiceSnack(String m, {bool err = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(m),
+        backgroundColor: err ? Colors.red : Colors.green,
+      ),
+    );
+  }
+
+  /// Hướng dẫn: chụp/chụp màn hình hoá đơn NCC → dán câu lệnh cho AI (nhờ AI
+  /// đọc ảnh) → dán kết quả vào file Excel mẫu → nhập lại vào app. Không cần
+  /// app tự đọc ảnh (tránh phải xin thêm API key AI đọc ảnh + rủi ro chọn
+  /// ảnh gây lỗi hiển thị đã gặp trên máy test).
+  Future<void> _showInvoiceHelp() async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Đọc hoá đơn NCC bằng AI + Excel'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '1. Mở ChatGPT/Gemini (app hoặc web) trên điện thoại.\n'
+                '2. Đính kèm ảnh hoá đơn NCC (chụp hoặc chụp màn hình Zalo).\n'
+                '3. Dán câu lệnh bên dưới rồi gửi — AI sẽ tạo sẵn 1 file '
+                'Excel để tải về (nếu bản AI không tạo được file, AI sẽ trả '
+                'bảng văn bản, lúc đó tự dán vào file mẫu — tải ở nút bên '
+                'dưới, cột A "Tên phụ tùng", cột B "Giá vốn").\n'
+                '4. Tải file Excel AI vừa tạo về máy.\n'
+                '5. Quay lại đây, bấm "Nhập từ Excel" và chọn file vừa tải.',
+                style: TextStyle(fontSize: 13, height: 1.5),
+              ),
+              const SizedBox(height: 14),
+              const Text('Câu lệnh (prompt) cho AI:',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  SupplierInvoiceService.chatGptPrompt,
+                  style: TextStyle(fontSize: 12, height: 1.4),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () async {
+                    await Clipboard.setData(
+                      const ClipboardData(
+                          text: SupplierInvoiceService.chatGptPrompt),
+                    );
+                    _invoiceSnack('Đã sao chép câu lệnh.');
+                  },
+                  icon: const Icon(Icons.copy_rounded, size: 16),
+                  label: const Text('Sao chép câu lệnh'),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, 32),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Đóng'),
+          ),
+          FilledButton.icon(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await SupplierInvoiceService.exportTemplate(context);
+            },
+            icon: const Icon(Icons.download_rounded, size: 16),
+            label: const Text('Tải file Excel mẫu'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Chọn file Excel (đúng mẫu "Tên phụ tùng" / "Giá vốn") → khớp với phụ
+  /// tùng đã có trong kho → xác nhận → cập nhật giá vốn. KHÔNG đụng tồn kho,
+  /// KHÔNG tự tạo phụ tùng mới.
+  Future<void> _importPartsCostFromExcel() async {
+    const xlsx = XTypeGroup(label: 'Excel', extensions: ['xlsx']);
+    final file = await openFile(acceptedTypeGroups: [xlsx]);
+    if (file == null || !mounted) return;
+
+    Uint8List bytes;
+    try {
+      bytes = await file.readAsBytes();
+    } catch (e) {
+      _invoiceSnack('Không đọc được file: $e', err: true);
+      return;
+    }
+    if (!mounted) return;
+
+    final parsed = SupplierInvoiceService.parseExcelLineItems(bytes);
+    if (parsed.items.isEmpty) {
+      _invoiceSnack(
+        parsed.errors.isNotEmpty
+            ? parsed.errors.first
+            : 'File không có dòng nào hợp lệ (cần cột "Tên phụ tùng" và '
+                '"Giá vốn").',
+        err: true,
+      );
+      return;
+    }
+
+    final autoMatched = await SupplierInvoiceService.matchLineItems(parsed.items);
+    if (!mounted) return;
+
+    // Dòng nào không khớp tự động được — thường vì hoá đơn ghi tên linh
+    // kiện dùng chung cho nhiều model (vd "Màn hình Oppo A58/Realme C55/…")
+    // trong khi kho lưu riêng từng model — để chủ shop tự gán tay, có thể
+    // chọn NHIỀU phụ tùng cùng lúc cho 1 dòng giá.
+    final matchedSourceNames = autoMatched.map((p) => p.sourceLineName).toSet();
+    final unmatched = parsed.items
+        .where((item) => !matchedSourceNames.contains(item.name))
+        .toList();
+
+    final proposals = await _reviewImportProposals(autoMatched, unmatched);
+    if (proposals == null || proposals.isEmpty || !mounted) return;
+
+    final n = await SupplierInvoiceService.commitCostUpdates(proposals);
+    if (!mounted) return;
+    _invoiceSnack('Đã cập nhật giá vốn cho $n phụ tùng.');
+    await _refreshParts();
+  }
+
+  /// Dialog xem lại: danh sách khớp tự động (chỉ hiển thị) + danh sách chưa
+  /// khớp (mỗi dòng có nút "Gán" mở màn chọn phụ tùng — chọn được nhiều,
+  /// đúng cho trường hợp 1 linh kiện dùng chung nhiều model). Trả về danh
+  /// sách cuối cùng người dùng đồng ý cập nhật, hoặc null nếu huỷ.
+  Future<List<PartCostUpdateProposal>?> _reviewImportProposals(
+    List<PartCostUpdateProposal> autoMatched,
+    List<InvoiceLineItem> unmatchedInitial,
+  ) {
+    final proposals = List<PartCostUpdateProposal>.from(autoMatched);
+    final unmatched = List<InvoiceLineItem>.from(unmatchedInitial);
+
+    return showDialog<List<PartCostUpdateProposal>>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: Text('Cập nhật giá vốn — ${proposals.length} phụ tùng'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (proposals.isNotEmpty) ...[
+                    const Text('Đã khớp tự động:',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 12.5)),
+                    const SizedBox(height: 4),
+                    for (final p in proposals)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Text(
+                          '• ${p.partName}: ${p.oldCost}đ → ${p.newCost}đ',
+                          style: const TextStyle(fontSize: 12.5),
+                        ),
+                      ),
+                  ],
+                  if (unmatched.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      'Chưa khớp tự động (${unmatched.length}) — thường do 1 '
+                      'linh kiện dùng chung nhiều model. Bấm "Gán" để chọn '
+                      'phụ tùng (chọn được nhiều):',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12.5,
+                        color: Colors.orange.shade800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    for (final item in unmatched)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 3),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${item.name} — ${item.unitPrice}đ',
+                                style: const TextStyle(fontSize: 12.5),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                final picked = await _pickPartsForLine(item.name);
+                                if (picked == null || picked.isEmpty) return;
+                                setLocal(() {
+                                  for (final part in picked) {
+                                    proposals.add(PartCostUpdateProposal(
+                                      partId: part['id'] as int,
+                                      partName:
+                                          (part['partName'] as String?) ??
+                                              item.name,
+                                      oldCost: (part['cost'] as int?) ?? 0,
+                                      newCost: item.unitPrice,
+                                      sourceLineName: item.name,
+                                    ));
+                                  }
+                                  unmatched.remove(item);
+                                });
+                              },
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                minimumSize: const Size(0, 30),
+                              ),
+                              child: const Text('Gán',
+                                  style: TextStyle(fontSize: 12.5)),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, null),
+              child: const Text('Huỷ'),
+            ),
+            FilledButton(
+              onPressed: proposals.isEmpty
+                  ? null
+                  : () => Navigator.pop(ctx, proposals),
+              child: Text('Cập nhật ${proposals.length}'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Chọn 1 hoặc nhiều phụ tùng đã có trong kho để áp cùng 1 giá vốn (dùng
+  /// khi 1 dòng hoá đơn ghi chung cho nhiều model). Có ô tìm theo tên.
+  Future<List<Map<String, dynamic>>?> _pickPartsForLine(
+    String forLineName,
+  ) async {
+    final allParts = await db.getAllParts();
+    if (!mounted) return null;
+    final selected = <int>{};
+    final searchCtrl = TextEditingController();
+
+    return showDialog<List<Map<String, dynamic>>>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) {
+          final q = VietnameseUtils.normalize(searchCtrl.text.trim());
+          final filtered = q.isEmpty
+              ? allParts
+              : allParts
+                  .where((p) => VietnameseUtils.normalize(
+                          (p['partName'] as String?) ?? '')
+                      .contains(q))
+                  .toList();
+          return AlertDialog(
+            title: Text(
+              'Chọn phụ tùng cho "$forLineName"',
+              style: const TextStyle(fontSize: 15),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            content: SizedBox(
+              width: double.maxFinite,
+              height: 420,
+              child: Column(
+                children: [
+                  TextField(
+                    controller: searchCtrl,
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.search),
+                      hintText: 'Tìm phụ tùng…',
+                      isDense: true,
+                    ),
+                    onChanged: (_) => setLocal(() {}),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: filtered.length,
+                      itemBuilder: (_, i) {
+                        final p = filtered[i];
+                        final id = p['id'] as int;
+                        final name = (p['partName'] as String?) ?? '';
+                        final cost = (p['cost'] as int?) ?? 0;
+                        return CheckboxListTile(
+                          dense: true,
+                          value: selected.contains(id),
+                          title:
+                              Text(name, style: const TextStyle(fontSize: 13)),
+                          subtitle: Text(
+                            'Vốn hiện tại: ${MoneyUtils.formatVND(cost)}đ',
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          onChanged: (v) => setLocal(() {
+                            if (v == true) {
+                              selected.add(id);
+                            } else {
+                              selected.remove(id);
+                            }
+                          }),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, null),
+                child: const Text('Huỷ'),
+              ),
+              FilledButton(
+                onPressed: selected.isEmpty
+                    ? null
+                    : () => Navigator.pop(
+                          ctx,
+                          allParts
+                              .where((p) => selected.contains(p['id']))
+                              .toList(),
+                        ),
+                child: Text('Chọn (${selected.length})'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   Future<void> _refreshParts() async {
@@ -714,6 +1071,32 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                 _sortMenuItem('cost', 'Giá vốn', Icons.attach_money),
             ],
           ),
+          if (_canViewCostPrice) ...[
+            const SizedBox(width: 4),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.receipt_long,
+                  color: _primaryColor, size: 22),
+              tooltip: 'Giá vốn từ hoá đơn NCC',
+              onSelected: (v) {
+                switch (v) {
+                  case 'import':
+                    _importPartsCostFromExcel();
+                  case 'help':
+                    _showInvoiceHelp();
+                }
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(
+                  value: 'import',
+                  child: Text('Nhập giá vốn từ Excel'),
+                ),
+                PopupMenuItem(
+                  value: 'help',
+                  child: Text('Hướng dẫn dùng AI đọc hoá đơn'),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

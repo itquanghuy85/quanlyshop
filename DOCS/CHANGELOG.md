@@ -4,6 +4,47 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-04e] - feat(kho) cập nhật giá vốn phụ tùng từ hoá đơn NCC (Excel + AI)
+
+**Chưa tăng version.**
+
+Chủ shop chụp hoá đơn NCC (mua phụ tùng) → nhờ ChatGPT/Gemini đọc ảnh + tạo
+file Excel 2 cột (Tên phụ tùng, Giá vốn) → nhập file vào app → cập nhật giá
+vốn cho phụ tùng khớp tên trong Kho phụ tùng/linh kiện. KHÔNG đụng tồn kho,
+KHÔNG tự tạo phụ tùng mới.
+
+- **Kho phụ tùng** (icon hoá đơn cạnh nút Sắp xếp, chỉ hiện nếu có quyền xem
+  giá vốn) → menu 2 mục: **"Nhập giá vốn từ Excel"** (chọn file `.xlsx`) và
+  **"Hướng dẫn dùng AI đọc hoá đơn"** (câu lệnh mẫu có nút Copy + nút tải
+  file Excel mẫu).
+- Khớp tên tự động (bỏ dấu, không phân biệt hoa/thường). Dòng không khớp
+  được (thường do 1 linh kiện dùng chung nhiều model, hoá đơn ghi gộp 1
+  dòng) → nút **"Gán"** mở tìm kiếm + chọn NHIỀU phụ tùng cùng lúc để áp
+  chung 1 giá.
+- **Fix quan trọng:** gói `excel: ^4.0.0` ném lỗi *"Null check operator used
+  on a null value"* khi đọc file `.xlsx` do Python/openpyxl tạo (ghi đường
+  dẫn worksheet trong `workbook.xml.rels` dạng tuyệt đối) — nhiều khả năng
+  AI tạo file trực tiếp cũng dùng openpyxl nên đây là lỗi ảnh hưởng luồng
+  chính chứ không phải hiếm gặp. Đã fix bằng cách tự sửa lại đường dẫn
+  trong file zip (gói `archive` có sẵn) trước khi đưa cho `excel` đọc.
+- **Lịch sử quyết định kiến trúc:** bản đầu định để app tự đọc ảnh bằng AI
+  (`image_picker` + màn xem lại) — gặp bug màn hình trắng trơn sau
+  `Navigator.push` không giải thích được dù đã thử nhiều cách sửa (xem
+  memory dự án). Đổi hướng sang Excel vừa né được bug đó, vừa không cần
+  xin thêm API key AI đọc ảnh.
+
+**Test:** `flutter analyze` 0 error mới. Máy thật Oppo CPH2203 (shop test
+"M"): nhập file 3 dòng (1 khớp tự động, 2 gán tay cho 2 phụ tùng khác nhau)
+→ dialog xác nhận đúng before→after → cập nhật → snackbar thành công →
+danh sách refresh đúng giá mới ngay. Chưa test với file Excel thật do
+ChatGPT/Gemini tạo trực tiếp (mới test bằng file mô phỏng).
+
+**Files:** `lib/models/supplier_invoice_models.dart` (mới),
+`lib/services/supplier_invoice_service.dart` (mới),
+`lib/views/parts_inventory_view.dart`.
+
+---
+
 ## [2026-09-04b] - fix(bảng giá) sửa số liệu sai + tinh chỉnh giao diện (Giai đoạn 1 audit)
 
 **Chưa tăng version.**
