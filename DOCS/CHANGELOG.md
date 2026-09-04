@@ -4,6 +4,29 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-04h] - fix(kho phụ tùng) không thể sửa/gán nhà cung cấp cho linh kiện đã có
+
+**Chưa tăng version.**
+
+User báo: thêm phụ tùng xong không thấy NCC dù "đã nhập nhà cung cấp rồi".
+Nguyên nhân: dialog **"SỬA linh kiện"** (nút Sửa trên thẻ chi tiết) và luồng
+**"Nhập thêm"** (restock) hoàn toàn KHÔNG có ô chọn nhà cung cấp — chỉ dialog
+"Thêm phụ tùng mới" (tạo mới hoàn toàn) mới có. Phụ tùng tạo trước đó không
+gán NCC, hoặc muốn đổi NCC sau này, không có cách nào sửa được — luôn hiện
+"Không xác định".
+
+- `_showEditPartDialog` (`parts_inventory_view.dart`): bọc `StatefulBuilder`,
+  thêm ô "Nhà cung cấp" (tái dùng `_SupplierSearchField` + nút "Thêm NCC
+  mới" — đúng widget đã dùng ở dialog Thêm mới) + ghi `supplierId` vào
+  `editData` khi lưu.
+
+**Test:** `flutter analyze` 0 lỗi mới. Máy thật Oppo CPH2203: phụ tùng "LK
+TÉT 2B" (Nhà cung cấp: Không xác định) → Sửa → ô Nhà cung cấp (2 NCC) hiện
+đúng → chọn "KHO TỔNG" → Lưu → thẻ list cập nhật chip NCC ngay, mở lại chi
+tiết hiện "KHO TỔNG" (link bấm được), không còn "Không xác định". Logcat sạch.
+
+---
+
 ## [2026-09-04g] - fix(bảng giá) Xuất/Nhập Excel bỏ sót dòng phụ tùng tham khảo
 
 **Chưa tăng version.**

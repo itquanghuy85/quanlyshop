@@ -2323,10 +2323,12 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
       text: CurrencyTextField.formatDisplay(p['price'] ?? 0),
     );
     final formKey = GlobalKey<FormState>();
+    int? selectedSupplierId = p['supplierId'] as int?;
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
         title: Text("SỬA ${_terms.category3.toUpperCase()}"),
         content: SizedBox(
           width: double.maxFinite,
@@ -2439,6 +2441,37 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  _SupplierSearchField(
+                    suppliers: _suppliers,
+                    selectedSupplierId: selectedSupplierId,
+                    onChanged: (v) => setS(() => selectedSupplierId = v),
+                  ),
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () async {
+                        final result = await Navigator.push(
+                          ctx,
+                          MaterialPageRoute(
+                            builder: (_) => const SupplierFormView(),
+                          ),
+                        );
+                        if (result == true) {
+                          await _loadSuppliers();
+                          setS(() {});
+                        }
+                      },
+                      icon: const Icon(Icons.add_circle_outline, size: 16),
+                      label: Text('Thêm NCC mới', style: AppTextStyles.body1),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.teal,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -2465,6 +2498,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                   'partName': partName,
                   'compatibleModels': modelC.text.toUpperCase(),
                   'price': price,
+                  'supplierId': selectedSupplierId,
                   'updatedAt': now,
                   'isSynced': 0,
                 };
@@ -2500,6 +2534,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                     'partName': partName,
                     'price': price,
                     'oldPrice': p['price'],
+                    'supplierName': _getSupplierName(selectedSupplierId),
                   },
                 );
 
@@ -2525,6 +2560,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
             child: const Text("LƯU"),
           ),
         ],
+        ),
       ),
     );
   }
