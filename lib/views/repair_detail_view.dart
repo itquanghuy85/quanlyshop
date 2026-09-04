@@ -5233,7 +5233,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                             ),
                           ),
                           const Spacer(),
-                          if (r.status != 4 && _canEditRepairNotes)
+                          if (_canEditRepairNotes)
                             TextButton.icon(
                               onPressed: _showAddServiceDialog,
                               icon: const Icon(Icons.add, size: 14),
@@ -5777,7 +5777,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     color: AppColors.warning,
                   ),
                 ),
-              if (r.status != 4 && _canEditRepairNotes)
+              if (_canEditRepairNotes)
                 IconButton(
                   icon: const Icon(Icons.edit, size: 14, color: Colors.grey),
                   onPressed: () => _showAddServiceDialog(s, index),

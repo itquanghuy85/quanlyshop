@@ -4,6 +4,45 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-04d] - feat(đơn sửa) hiện phụ tùng/dịch vụ trong list + cho sửa dịch vụ khi đã giao
+
+**Chưa tăng version.**
+
+**Yêu cầu:** (1) Danh sách đơn sửa (`order_list_view.dart`) thêm thông tin
+phụ tùng + dịch vụ đã dùng ngay trên từng thẻ đơn — trước đây phải mở chi
+tiết mới thấy. (2) Cho phép sửa dịch vụ ngay cả khi đơn đã giao (status 4) —
+trước đây bị khóa cứng.
+
+**Fix:**
+1. `_buildRepairCard`: thêm 2 chip mới vào hàng info-chip — 🔩 phụ tùng
+   (`r.partsUsed`) và 🛠️ dịch vụ (`r.services.map((s) => s.serviceName)`),
+   chỉ hiện khi có dữ liệu, giới hạn 2 dòng tránh tràn màn.
+2. `repair_detail_view.dart`: bỏ điều kiện `r.status != 4` ở 2 chỗ khóa dịch
+   vụ khi đã giao — nút "+ Thêm" dịch vụ (dòng tiêu đề mục DỊCH VỤ) và icon
+   ✏️ sửa từng dịch vụ (`_buildCompactServiceItem`). Còn lại chỉ theo phân
+   quyền `_canEditRepairNotes`, khớp hành vi phụ tùng đã unlock từ trước
+   (`[2026-08-30t]`). Logic lưu/xóa dịch vụ (`_saveService`/`_deleteService`)
+   vốn không có khóa status nội bộ nên không cần sửa gì thêm.
+
+**Phát hiện phụ (KHÔNG sửa, đã ghi nhớ):** trong lúc test bấm nhầm nút
+"Thêm khách hàng" ở thẻ đơn → bấm "Hủy" → tái tạo **lần thứ 3** crash màn đỏ
+`_dependents.isEmpty` đã biết (`order_list_view.dart::_addCustomerToRepair`).
+Hàm này ĐÃ SẴN cách né unfocus+delay nhưng vẫn crash — bẻ gãy giả thuyết
+"đừng pop sớm" ở fix `[2026-09-04c]` là giải pháp triệt để (có thể chỉ là
+may mắn về timing). Không blind-patch thêm — cần phiên `flutter run` attach
+riêng để bắt đúng gốc rễ. Xem memory `feedback_modal_sheet_dependents_crash`.
+
+**Test:** `flutter analyze` sạch (chỉ info/warning có sẵn từ trước). Máy
+thật Oppo CPH2203: chip phụ tùng/dịch vụ hiện đúng trên cả đơn ĐÃ GIAO lẫn
+chưa giao (vd "IPHONE TÉT 3" — ĐÃ GIAO — hiện đủ 🔩+🛠️); mở đơn ĐÃ GIAO →
+nút "+ Thêm" dịch vụ và icon ✏️ đều hiện; sửa giá dịch vụ 250.000→300.000đ
+→ lưu thành công, cập nhật đúng trên UI, không crash, logcat sạch — đã trả
+lại 250.000đ ban đầu sau khi test.
+
+**Files:** `lib/views/order_list_view.dart`, `lib/views/repair_detail_view.dart`.
+
+---
+
 ## [2026-09-04c] - fix(đơn sửa) NCC/link phụ tùng, dialog xoá đơn sai mật khẩu, xoá/đổi PT không phản ánh
 
 **Chưa tăng version.**

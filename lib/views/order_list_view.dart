@@ -2615,6 +2615,24 @@ class OrderListViewState extends State<OrderListView> {
                             : Colors.red.shade700,
                         fontWeight: FontWeight.w600,
                       ),
+                    // Phụ tùng đã dùng (nếu có) - giới hạn 2 dòng tránh overflow
+                    if (r.partsUsed.isNotEmpty)
+                      _repairInfoChip(
+                        '🔩 ${r.partsUsed}',
+                        Colors.cyan.shade50,
+                        textColor: Colors.cyan.shade800,
+                        fontWeight: FontWeight.w600,
+                        maxLines: 2,
+                      ),
+                    // Dịch vụ đã dùng (nếu có)
+                    if (r.services.isNotEmpty)
+                      _repairInfoChip(
+                        '🛠️ ${r.services.map((s) => s.serviceName).join(', ')}',
+                        Colors.teal.shade50,
+                        textColor: Colors.teal.shade800,
+                        fontWeight: FontWeight.w600,
+                        maxLines: 2,
+                      ),
                     // Ghi chú KTV (nếu có) - giới hạn 2 dòng tránh overflow
                     if (r.notes != null && r.notes!.isNotEmpty)
                       _repairInfoChip(
