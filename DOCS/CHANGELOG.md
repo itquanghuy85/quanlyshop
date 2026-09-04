@@ -4,6 +4,45 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-04b] - fix(bảng giá) sửa số liệu sai + tinh chỉnh giao diện (Giai đoạn 1 audit)
+
+**Chưa tăng version.**
+
+Audit UX/dữ liệu tính năng Bảng giá (artifact báo cáo riêng) phát hiện 1 lỗi
+hiển thị sai số liệu (P0) + vài điểm trải nghiệm; đợt này làm phần "sửa
+nhanh, rủi ro thấp" — thuần UI, không đụng công thức tính giá.
+
+- **P0 — SP chưa có giá bán hiện như đang lỗ:** `buildSaleRows` lọc giá>0 khi
+  tính trung vị nhưng KHÔNG lọc khi tạo dòng bảng giá → SP có vốn nhưng chưa
+  định giá bán (giá=0) bị hiện "Lãi -X đ" đỏ chót, và `sampleCount`/
+  `confidenceLabel` lệch nguồn đếm ("1 mẫu · Không có dữ liệu" mâu thuẫn
+  nhau). Sửa: `sampleCount` đếm lại trên cùng danh sách giá>0 với
+  `confidenceLabel`; thêm `PriceBookRow.hasPrice`; `_rowCard` khi không có
+  giá hiện trạng thái trung tính "Chưa có giá bán — chạm để đặt giá" +
+  Vốn (nếu có) thay vì 3 ô Bán/Vốn/Lãi với số âm giả.
+- **Mã màu độ tin cậy:** nhãn "Dữ liệu quá ít/Thấp/Khá/Tốt" giờ là badge màu
+  (xám/cam/xanh dương/xanh lá) đặt cạnh số mẫu, thay vì chữ xám nhỏ chôn ở
+  cuối dòng.
+- **Hệ số giá mùa vụ chạm được ngay:** banner vàng khi đang bật giờ là
+  `InkWell` mở thẳng dialog sửa/tắt, không cần vòng qua menu 3 chấm.
+- **Tiêu đề nhóm hãng có số đếm:** "IPHONE" → "IPHONE (6)".
+
+**Test:** `flutter analyze` 0 error mới. Máy thật Oppo (shop test "M"): SP
+"17 128GB (MỚI)" (vốn 19tr, chưa có giá bán) trước hiện "Lãi -19.000.000đ"
+đỏ, sau hiện đúng "Chưa có giá bán — chạm để đặt giá · Vốn 19.000.000đ";
+badge độ tin cậy lên màu đúng; bật hệ số mùa vụ +10% → banner chạm mở lại
+dialog được, giá đề xuất nhân đúng 1.1×; đã tắt lại 0% sau test.
+
+**Chưa làm (Giai đoạn 2/3 của audit — chờ duyệt riêng):** chip lọc Tất cả/Đã
+niêm yết/Chưa ghim/Tin cậy thấp, ghim hàng loạt cho tab Sửa chữa, thanh
+khoảng giá min–max trực quan, báo lỗi rõ khi Import Excel thiếu cột khoá,
+hoàn tác sau bỏ ghim/áp giá hàng loạt, từ điển dịch vụ chuẩn hoá, đồng bộ giá
+ghim lên Firestore.
+
+**Files:** `lib/models/price_book_models.dart`, `lib/services/price_book_service.dart`, `lib/views/price_book_view.dart`.
+
+---
+
 ## [2026-09-04d] - feat(đơn sửa) hiện phụ tùng/dịch vụ trong list + cho sửa dịch vụ khi đã giao
 
 **Chưa tăng version.**

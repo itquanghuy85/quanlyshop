@@ -382,7 +382,9 @@ class PriceBookService {
         autoCost: _median(costs),
         minPrice: sortedP.isEmpty ? 0 : sortedP.first,
         maxPrice: sortedP.isEmpty ? 0 : sortedP.last,
-        sampleCount: list.length,
+        // Đếm trên CÙNG danh sách (chỉ giá > 0) với confidenceLabel, không
+        // đếm cả SP giá=0 — tránh nhãn mâu thuẫn kiểu "1 mẫu · Không có dữ liệu".
+        sampleCount: prices.length,
         confidenceLabel: _confLabel(prices.length),
         source: pin != null ? PriceSource.pinned : PriceSource.auto,
         pinnedPrice: pin?.price,

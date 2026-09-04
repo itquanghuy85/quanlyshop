@@ -62,6 +62,11 @@ class PriceBookRow {
 
   bool get isPinned => source == PriceSource.pinned;
 
+  /// Có giá để hiển thị/dùng không (đã ghim, hoặc có trung vị lịch sử > 0).
+  /// false = chưa đủ dữ liệu để đề xuất VÀ chưa ghim — không nên vẽ như 1 khoản
+  /// lãi/lỗ, chỉ nên mời chủ shop đặt giá.
+  bool get hasPrice => isPinned ? (pinnedPrice ?? autoPrice) > 0 : autoPrice > 0;
+
   int get effectivePrice =>
       isPinned ? (pinnedPrice ?? autoPrice) : autoPrice;
 

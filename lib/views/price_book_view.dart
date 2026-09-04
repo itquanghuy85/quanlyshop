@@ -192,6 +192,22 @@ class _PriceBookViewState extends State<PriceBookView>
     await _load();
   }
 
+  /// Màu theo mức độ tin cậy — dùng thống nhất cho badge + (khi rất thấp)
+  /// làm nhạt con số giá, để mắt phân biệt được dòng đáng tin và dòng chỉ
+  /// dựa trên 1 lần bán ngẫu nhiên.
+  Color _confColor(String label) {
+    switch (label) {
+      case 'Tốt':
+        return Colors.green.shade700;
+      case 'Khá':
+        return Colors.blue.shade700;
+      case 'Thấp':
+        return Colors.orange.shade800;
+      default: // 'Dữ liệu quá ít' / 'Không có dữ liệu'
+        return Colors.grey.shade600;
+    }
+  }
+
   void _onTab() => setState(() {});
 
   @override
@@ -271,15 +287,28 @@ class _PriceBookViewState extends State<PriceBookView>
       body: Column(
         children: [
           if (_seasonPct != 0)
-            Container(
-              width: double.infinity,
+            Material(
               color: Colors.amber.shade100,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              child: Text(
-                'Đang áp hệ số mùa vụ: ${_seasonPct > 0 ? '+' : ''}$_seasonPct% '
-                '(chỉ vào giá đề xuất)',
-                style: TextStyle(
-                    fontSize: 11.5, color: Colors.brown.shade800),
+              child: InkWell(
+                onTap: _editSeason,
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Đang áp hệ số mùa vụ: ${_seasonPct > 0 ? '+' : ''}'
+                          '$_seasonPct% (chỉ vào giá đề xuất) — chạm để sửa',
+                          style: TextStyle(
+                              fontSize: 11.5, color: Colors.brown.shade800),
+                        ),
+                      ),
+                      Icon(Icons.edit_outlined,
+                          size: 14, color: Colors.brown.shade800),
+                    ],
+                  ),
+                ),
               ),
             ),
           Padding(
@@ -353,7 +382,7 @@ class _PriceBookViewState extends State<PriceBookView>
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 14, 8, 6),
               child: Text(
-                b.toUpperCase(),
+                '${b.toUpperCase()} (${groups[b]!.length})',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -454,28 +483,87 @@ class _PriceBookViewState extends State<PriceBookView>
                 ],
               ),
               const SizedBox(height: 6),
-              Row(
-                children: [
-                  _metric(priceLabel, r.effectivePrice,
-                      r.isPinned ? Colors.indigo.shade700 : Colors.black87),
-                  const SizedBox(width: 8),
-                  _metric('Vốn', r.effectiveCost, Colors.orange.shade800),
-                  const SizedBox(width: 8),
-                  _metric(
-                    'Lãi',
-                    r.effectiveProfit,
-                    r.effectiveProfit >= 0
-                        ? Colors.green.shade700
-                        : Colors.red.shade700,
+              if (!r.hasPrice)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${r.sampleCount} mẫu · ${r.confidenceLabel}'
-                '${r.minPrice > 0 && r.minPrice != r.maxPrice ? ' · ${MoneyUtils.formatCurrency(r.minPrice)}–${MoneyUtils.formatCurrency(r.maxPrice)}đ' : ''}',
-                style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
-              ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.price_change_outlined,
+                          size: 14, color: Colors.grey.shade600),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Chưa có giá ${priceLabel.toLowerCase()} — chạm để đặt giá',
+                          style: TextStyle(
+                              fontSize: 11.5, color: Colors.grey.shade700),
+                        ),
+                      ),
+                      if (r.effectiveCost > 0)
+                        Text(
+                          'Vốn ${MoneyUtils.formatCurrency(r.effectiveCost)}đ',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.orange.shade800,
+                          ),
+                        ),
+                    ],
+                  ),
+                )
+              else ...[
+                Row(
+                  children: [
+                    _metric(priceLabel, r.effectivePrice,
+                        r.isPinned ? Colors.indigo.shade700 : Colors.black87),
+                    const SizedBox(width: 8),
+                    _metric('Vốn', r.effectiveCost, Colors.orange.shade800),
+                    const SizedBox(width: 8),
+                    _metric(
+                      'Lãi',
+                      r.effectiveProfit,
+                      r.effectiveProfit >= 0
+                          ? Colors.green.shade700
+                          : Colors.red.shade700,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${r.sampleCount} mẫu'
+                        '${r.minPrice > 0 && r.minPrice != r.maxPrice ? ' · ${MoneyUtils.formatCurrency(r.minPrice)}–${MoneyUtils.formatCurrency(r.maxPrice)}đ' : ''}',
+                        style: TextStyle(
+                            fontSize: 10.5, color: Colors.grey.shade600),
+                      ),
+                    ),
+                    Container(
+                      margin: const EdgeInsets.only(left: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: _confColor(r.confidenceLabel)
+                            .withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        r.confidenceLabel,
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w700,
+                          color: _confColor(r.confidenceLabel),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
