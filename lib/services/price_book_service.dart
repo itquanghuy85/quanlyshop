@@ -57,7 +57,7 @@ class PriceBookService {
   // ── Excel: xuất / nhập bảng giá ─────────────────────────────────────────
   static const _xlHeaders = [
     'Nhóm',
-    'Tên (model · lỗi / model · biến thể)',
+    'Tên (model · lỗi / model · biến thể / tên phụ tùng)',
     'Giá đề xuất',
     'Giá vốn ĐX',
     'Giá NIÊM YẾT',
@@ -83,13 +83,16 @@ class PriceBookService {
 
   static Future<void> exportToExcel(BuildContext context) async {
     final repair = await buildRepairRows();
+    final parts = await buildPartRows();
     final sale = await buildSaleRows();
     final excel = Excel.createExcel();
     final def = excel.getDefaultSheet();
     ExcelExportHelper.writeSheet(
       excel['Sửa chữa'],
       _xlHeaders,
-      repair.map(_xlRow).toList(),
+      // Gộp cả dòng phụ tùng tham khảo vào cùng sheet Sửa chữa — khớp đúng
+      // cách hiển thị trên tab Sửa chữa của Bảng giá (không tách sheet riêng).
+      [...repair, ...parts].map(_xlRow).toList(),
     );
     ExcelExportHelper.writeSheet(
       excel['Bán hàng'],
@@ -107,7 +110,9 @@ class PriceBookService {
     }
   }
 
-  /// Đọc file xlsx → GHIM các dòng có "Giá NIÊM YẾT" > 0 (khớp theo cột _khoá).
+  /// Đọc file xlsx → GHIM các dòng có "Giá NIÊM YẾT" > 0 (khớp theo cột
+  /// _khoá). Dòng phụ tùng tham khảo (khoá `p|...`) ghim được chỉ với "Giá
+  /// vốn NY" > 0 — không bắt buộc có giá niêm yết như sửa chữa/bán hàng.
   static Future<({int pinned, int cleared, List<String> errors})>
       importFromExcel(Uint8List bytes) async {
     final errors = <String>[];
@@ -128,6 +133,7 @@ class PriceBookService {
         head[(h0[c]?.value?.toString() ?? '').trim().toLowerCase()] = c;
       }
       final ciKey = head['_khoá (không sửa)'];
+      final ciTitle = head['tên (model · lỗi / model · biến thể / tên phụ tùng)'];
       final ciPrice = head['giá niêm yết'];
       final ciCost = head['giá vốn ny'];
       final ciNote = head['ghi chú'];
@@ -139,16 +145,43 @@ class PriceBookService {
             ? ''
             : (row[i]?.value?.toString() ?? '');
         final key = cell(ciKey).trim();
-        if (!(key.startsWith('r|') || key.startsWith('s|'))) continue;
+        final isPart = key.startsWith('p|');
+        if (!(key.startsWith('r|') || key.startsWith('s|') || isPart)) {
+          continue;
+        }
         final price = MoneyUtils.parseCurrency(cell(ciPrice));
         final cost = MoneyUtils.parseCurrency(cell(ciCost));
         final note = cell(ciNote).trim();
+        final title = cell(ciTitle).trim();
         try {
-          if (price > 0) {
+          // Phụ tùng: ghim được chỉ với giá vốn tham khảo (không bắt buộc có
+          // giá thu) — chỉ coi là "bỏ ghim" khi CẢ 2 đều <= 0.
+          final shouldPin = isPart ? (price > 0 || cost > 0) : price > 0;
+          if (shouldPin) {
+            // Sửa dòng đã ghim từ trước (vd chỉ đổi giá) → giữ nguyên tên
+            // gốc/hãng đã lưu. Dòng ghim MỚI hoàn toàn qua Excel (chưa từng
+            // có lịch sử/chưa có trong kho) → suy tên gốc từ cột "Tên" để
+            // dòng "mồ côi" vẫn hiển thị đúng thay vì rơi về khoá đã chuẩn hoá.
+            final existing = pins[key];
+            var displayName = existing?.displayName;
+            var displayExtra = existing?.displayExtra;
+            if (existing == null && title.isNotEmpty) {
+              if (isPart) {
+                displayName = title;
+              } else if (key.startsWith('r|')) {
+                final segs = title.split(' · ');
+                displayName = segs.first.trim();
+                displayExtra =
+                    segs.length > 1 ? segs.sublist(1).join(' · ').trim() : '';
+              }
+            }
             pins[key] = PricePin(
               price: price,
               cost: cost > 0 ? cost : null,
               note: note,
+              displayName: displayName,
+              displayExtra: displayExtra,
+              brandHint: existing?.brandHint,
               pinnedAt: DateTime.now().millisecondsSinceEpoch,
               pinnedBy: FirebaseAuth.instance.currentUser?.email
                       ?.split('@')

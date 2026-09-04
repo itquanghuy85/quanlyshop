@@ -4,6 +4,32 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-04g] - fix(bảng giá) Xuất/Nhập Excel bỏ sót dòng phụ tùng tham khảo
+
+**Chưa tăng version.**
+
+Tính năng Xuất/Nhập Excel có sẵn của Bảng giá (từ `[2026-08-30v]`) chưa được
+cập nhật khi thêm dòng phụ tùng tham khảo ở `[2026-09-04f]` — xuất file
+hoàn toàn bỏ sót các dòng đó, nhập lại cũng không nhận diện được.
+
+- `exportToExcel`: sheet "Sửa chữa" giờ gộp cả dòng sửa chữa lẫn phụ tùng
+  tham khảo (khớp đúng cách hiển thị trên UI).
+- `importFromExcel`: nhận thêm khoá `p|`; ghim phụ tùng chỉ cần "Giá NIÊM
+  YẾT" HOẶC "Giá vốn NY" > 0 (trước dùng chung điều kiện với sửa chữa/bán
+  hàng sẽ vô tình BỎ GHIM phụ tùng chỉ có giá vốn khi nhập lại). Dòng mồ
+  côi hoàn toàn mới (gõ thẳng vào Excel, chưa từng ghim) suy tên gốc từ cột
+  "Tên" để hiển thị đúng thay vì rơi về khoá đã chuẩn hoá.
+
+**Test:** `flutter analyze` + `flutter test test/price_book_test.dart` (10
+test, PASS) không lỗi mới. Máy thật Oppo CPH2203: xuất file → `adb pull`
+trực tiếp từ Download → xác nhận đủ cả 4 dòng phụ tùng + 1 dòng sửa chữa
+mồ côi trong sheet Sửa chữa. Nhập lại chính file vừa xuất → "Nhập xong:
+ghim 3, bỏ ghim 0" khớp đúng 3 dòng đang ghim thật, 0 lỗi. Cuộn lại kiểm
+tra tên hiển thị + nhóm hãng của cả 3 dòng mồ côi giữ nguyên sau nhập.
+Logcat sạch.
+
+---
+
 ## [2026-09-04f] - feat(bảng giá) tích hợp giá vốn phụ tùng vào tab Sửa chữa + tạo tay khi chưa có lịch sử
 
 **Chưa tăng version.**

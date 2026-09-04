@@ -896,7 +896,12 @@ class AppKnowledgeBase {
             'sách đề xuất → xác nhận để đặt giá hàng loạt.',
         'Menu ⋮: **Hệ số giá mùa vụ** (+/-% vào giá đề xuất), **Xuất Excel**, '
             '**Nhập từ Excel** (sửa bảng giá hàng loạt rồi nhập lại — khớp theo '
-            'cột _khoá, "Giá NIÊM YẾT" > 0 thì ghim).',
+            'cột _khoá, "Giá NIÊM YẾT" > 0 thì ghim; dòng phụ tùng chỉ cần '
+            '"Giá vốn NY" > 0 là ghim được, không bắt buộc có giá niêm yết). '
+            'File Excel gồm cả dòng sửa chữa LẪN phụ tùng tham khảo trong '
+            'cùng sheet "Sửa chữa" — sửa/thêm dòng nào trong Excel rồi nhập '
+            'lại là áp dụng đúng dòng đó trên Bảng giá, kể cả dòng phụ tùng '
+            'hoàn toàn mới gõ tay vào Excel (chưa từng có trên app).',
       ],
       notes: [
         'Giá đề xuất tính từ đơn sửa đã Xong/Đã giao và giá SP trong kho — chạy '
