@@ -1,3 +1,5 @@
+import 'price_catalog_models.dart';
+
 /// Nguồn giá của một dòng bảng giá.
 enum PriceSource {
   /// Chủ shop đã GHIM (giá niêm yết chính thức).
@@ -30,6 +32,12 @@ class PriceBookRow {
   final int? pinnedCost;
   final String? pinnedNote;
 
+  /// Mặt hàng trong danh mục giá ("Bảng giá từ hoá đơn NCC") sinh ra dòng
+  /// này — chỉ có khi [scope] == 'catalog'. Mang theo giá vốn bình quân/thấp
+  /// nhất/cao nhất, NCC, ngày hoá đơn… để thẻ giá hiển thị mà không phải
+  /// truy vấn lại DB.
+  final PriceCatalogItem? catalog;
+
   /// Thành phần gốc để mở "các đơn/SP tương ứng".
   /// repair: [src1] = model, [src2] = lỗi.
   /// sale:   [src1] = hãng, [src2] = model, [src3] = dung lượng, [src4] = tình trạng.
@@ -54,6 +62,7 @@ class PriceBookRow {
     this.pinnedPrice,
     this.pinnedCost,
     this.pinnedNote,
+    this.catalog,
     this.src1 = '',
     this.src2 = '',
     this.src3 = '',
@@ -98,6 +107,7 @@ class PriceBookRow {
       pinnedPrice: pinnedPrice ?? this.pinnedPrice,
       pinnedCost: pinnedCost ?? this.pinnedCost,
       pinnedNote: pinnedNote ?? this.pinnedNote,
+      catalog: catalog,
       src1: src1,
       src2: src2,
       src3: src3,

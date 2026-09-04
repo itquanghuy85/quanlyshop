@@ -35,6 +35,7 @@ enum SyncEntityType {
   salvagePhone,
   salesReturn,
   salesReturnItem,
+  priceCatalogItem,
 }
 
 /// Enum định nghĩa operation
@@ -917,6 +918,8 @@ class SyncOrchestrator {
         return 'sales_returns';
       case SyncEntityType.salesReturnItem:
         return 'sales_return_items';
+      case SyncEntityType.priceCatalogItem:
+        return 'price_catalog_items';
     }
   }
 
@@ -967,6 +970,8 @@ class SyncOrchestrator {
         return 'sales_returns';
       case SyncEntityType.salesReturnItem:
         return 'sales_return_items';
+      case SyncEntityType.priceCatalogItem:
+        return 'price_catalog_items';
     }
   }
 

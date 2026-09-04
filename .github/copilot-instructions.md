@@ -40,7 +40,7 @@ Integration points and files to inspect first
 - `lib/services/user_service.dart` — role logic, shopId caching, validation.
 - `lib/services/firestore_service.dart` — Firestore CRUD with shopId filtering.
 - `lib/services/sync_service.dart` — real-time subscriptions to local DB.
-- `lib/data/db_helper.dart` — SQLite schema (version 17), upsert/delete patterns.
+- `lib/data/db_helper.dart` — SQLite schema (version 110), upsert/delete patterns.
 - `lib/models/` — data structures (e.g., `Repair` with status enum 1-4).
 - `pubspec.yaml` — Firebase packages, `sqflite`, `flutter_local_notifications`, printer libs (`print_bluetooth_thermal`, `esc_pos_printer`).
 
@@ -98,7 +98,7 @@ After EVERY code change, automatically update:
 5. docs/DOCUMENTATION_INDEX.md (if: new/removed doc files)
    - Add/remove entries from documentation index
 
-6. DOCS/FULL_DOCUMENTATION.md (if: architecture/services change)
+6. (DOCS/FULL_DOCUMENTATION.md đã xoá ở [2026-08-30o] — bỏ qua mục này)
    - Chi tiết services, database schema, core logic
 
 7. Specialized Reports (if: relevant to change):
@@ -148,7 +148,7 @@ Project Management:
 
 Implementation:
 - docs/IMPLEMENTATION_REPORT.md (chi tiết)
-- DOCS/FULL_DOCUMENTATION.md (tài liệu toàn bộ)
+- (DOCS/FULL_DOCUMENTATION.md đã xoá ở [2026-08-30o])
 
 References:
 - Read CLAUDE.md first (kiến trúc + quy tắc)

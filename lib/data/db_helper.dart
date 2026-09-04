@@ -16,6 +16,7 @@ import '../models/attendance_model.dart';
 import '../models/leave_request_model.dart';
 import '../models/quick_input_code_model.dart';
 import '../models/storage_location_model.dart';
+import '../models/price_catalog_models.dart';
 import '../services/user_service.dart';
 import '../utils/vietnamese_utils.dart';
 
@@ -630,7 +631,7 @@ class DBHelper {
 
     final db = await openDatabase(
       path,
-      version: 109,
+      version: 110,
       onConfigure: (db) async {
         try {
           await db.execute('PRAGMA foreign_keys = ON');
@@ -1265,6 +1266,8 @@ class DBHelper {
         await db.execute(
           'CREATE INDEX IF NOT EXISTS idx_bank_notifications_status ON bank_notifications(status, at)',
         );
+        // price_catalog_items (v110) — danh mục giá từ hoá đơn NCC.
+        await _createPriceCatalogTable(db);
       },
       onUpgrade: (db, oldV, newV) async {
         debugPrint('Upgrading DB from $oldV to $newV');
@@ -2502,6 +2505,18 @@ class DBHelper {
             debugPrint('DB upgrade v109: created bank_notifications table');
           } catch (e) {
             debugPrint('DB upgrade error (v109 bank_notifications): $e');
+          }
+        }
+        if (oldV < 110) {
+          // price_catalog_items: danh mục giá ("Bảng giá từ hoá đơn NCC").
+          // Thay cho việc chỉ lưu giá ghim trong SharedPreferences theo máy —
+          // bảng này đồng bộ Firestore theo shopId nên mọi thiết bị trong
+          // cùng shop đều tra cứu được. KHÔNG đụng dữ liệu ghim cũ.
+          try {
+            await _createPriceCatalogTable(db);
+            debugPrint('DB upgrade v110: created price_catalog_items table');
+          } catch (e) {
+            debugPrint('DB upgrade error (v110 price_catalog_items): $e');
           }
         }
         if (oldV < 26) {
@@ -13159,6 +13174,228 @@ class DBHelper {
       for (final r in rows)
         r['locationCode'] as String: Map<String, dynamic>.from(r),
     };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PRICE CATALOG — "Bảng giá từ hoá đơn NCC" (v110)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /// DDL bảng danh mục giá. Dùng CHUNG cho cài mới (`onCreate`) và nâng cấp
+  /// (`onUpgrade` v110) để 2 đường không bao giờ lệch schema.
+  ///
+  /// `importKey` KHÔNG đặt UNIQUE ở tầng SQLite: bản ghi tải từ cloud về có
+  /// thể trùng khoá với bản ghi tạo offline ở máy này (khác `firestoreId`).
+  /// Ràng buộc UNIQUE sẽ làm sync ném lỗi và kẹt hàng đợi — thay vào đó
+  /// [upsertPriceCatalogItem] tự gộp 2 bản ghi cùng khoá.
+  static Future<void> _createPriceCatalogTable(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS price_catalog_items(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        firestoreId TEXT UNIQUE,
+        importKey TEXT,
+        itemName TEXT,
+        brand TEXT,
+        model TEXT,
+        partType TEXT,
+        sku TEXT,
+        unit TEXT,
+        supplier TEXT,
+        lastCost INTEGER DEFAULT 0,
+        avgCost INTEGER DEFAULT 0,
+        minCost INTEGER DEFAULT 0,
+        maxCost INTEGER DEFAULT 0,
+        customerPrice INTEGER DEFAULT 0,
+        lastInvoiceNo TEXT,
+        lastInvoiceDate TEXT,
+        note TEXT,
+        sourceType TEXT DEFAULT 'supplier_invoice_excel',
+        needsReview INTEGER DEFAULT 0,
+        reviewNote TEXT,
+        confidence TEXT,
+        costHistoryJson TEXT,
+        createdAt INTEGER,
+        updatedAt INTEGER,
+        deleted INTEGER DEFAULT 0,
+        shopId TEXT,
+        isSynced INTEGER DEFAULT 0
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_price_catalog_shop_key ON price_catalog_items(shopId, importKey)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_price_catalog_updatedAt ON price_catalog_items(updatedAt)',
+    );
+  }
+
+  /// Toàn bộ danh mục giá của shop hiện tại (bỏ bản ghi đã xoá mềm).
+  Future<List<PriceCatalogItem>> getPriceCatalogItems({
+    bool includeDeleted = false,
+  }) async {
+    final shopId = await _getScopedShopId('getPriceCatalogItems');
+    if (shopId == null) return const [];
+    final db = await database;
+    final rows = await db.query(
+      'price_catalog_items',
+      where: includeDeleted
+          ? 'shopId = ?'
+          : 'shopId = ? AND (deleted = 0 OR deleted IS NULL)',
+      whereArgs: [shopId],
+      orderBy: 'itemName COLLATE NOCASE ASC',
+    );
+    return rows.map(PriceCatalogItem.fromMap).toList();
+  }
+
+  /// Tra 1 mặt hàng theo khoá ổn định `_khóa_import` (trong shop hiện tại).
+  Future<PriceCatalogItem?> getPriceCatalogItemByKey(String importKey) async {
+    final shopId = await _getScopedShopId('getPriceCatalogItemByKey');
+    if (shopId == null) return null;
+    final key = importKey.trim();
+    if (key.isEmpty) return null;
+    final db = await database;
+    final rows = await db.query(
+      'price_catalog_items',
+      where: 'shopId = ? AND importKey = ?',
+      whereArgs: [shopId, key],
+      limit: 1,
+    );
+    return rows.isEmpty ? null : PriceCatalogItem.fromMap(rows.first);
+  }
+
+  /// Ghi 1 mặt hàng (tạo mới hoặc cập nhật) — trả về id cục bộ.
+  ///
+  /// Ưu tiên khớp theo `firestoreId`; không có thì khớp theo
+  /// (`shopId`, `importKey`) để nhập lại cùng file không đẻ bản ghi trùng.
+  Future<int> savePriceCatalogItem(PriceCatalogItem item) async {
+    final shopId = item.shopId ?? await _getCurrentShopId();
+    final db = await database;
+    final data = item.copyWith(shopId: shopId).toMap();
+    data.remove('id');
+    await _filterToTableColumns('price_catalog_items', data);
+
+    final fid = item.firestoreId;
+    if (fid != null && fid.isNotEmpty) {
+      final existing = await db.query(
+        'price_catalog_items',
+        columns: ['id'],
+        where: 'firestoreId = ?',
+        whereArgs: [fid],
+        limit: 1,
+      );
+      if (existing.isNotEmpty) {
+        final id = existing.first['id'] as int;
+        await db.update(
+          'price_catalog_items',
+          data,
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+        return id;
+      }
+    }
+
+    final byKey = await db.query(
+      'price_catalog_items',
+      columns: ['id'],
+      where: 'shopId = ? AND importKey = ?',
+      whereArgs: [shopId, item.importKey],
+      limit: 1,
+    );
+    if (byKey.isNotEmpty) {
+      final id = byKey.first['id'] as int;
+      await db.update(
+        'price_catalog_items',
+        data,
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      return id;
+    }
+
+    return db.insert('price_catalog_items', data);
+  }
+
+  /// Upsert từ dữ liệu Firestore (đường sync xuống).
+  ///
+  /// Bản ghi cloud thắng khi trùng khoá: nếu máy này đang có bản ghi CÙNG
+  /// `importKey` nhưng chưa có `firestoreId` (tạo offline, chưa đẩy lên), ta
+  /// "nhận" luôn `firestoreId` của cloud vào bản ghi đó thay vì tạo dòng thứ
+  /// hai — nếu không danh mục sẽ hiện trùng mặt hàng.
+  Future<void> upsertPriceCatalogItem(Map<String, dynamic> data) async {
+    final db = await database;
+    final firestoreId = data['firestoreId'] as String?;
+    if (firestoreId == null || firestoreId.isEmpty) return;
+
+    final cleanData = _sanitizeForSqlite(Map<String, dynamic>.from(data));
+    cleanData.remove('id');
+    cleanData.remove('_encrypted');
+    // Firestore trả bool, SQLite chỉ nhận int.
+    for (final k in ['needsReview', 'deleted', 'isSynced']) {
+      final v = cleanData[k];
+      if (v is bool) cleanData[k] = v ? 1 : 0;
+    }
+    // costHistory có thể về dạng List (Firestore array) — chuẩn hoá về JSON.
+    final ch = cleanData['costHistoryJson'];
+    if (ch != null && ch is! String) {
+      cleanData['costHistoryJson'] = jsonEncode(ch);
+    }
+    await _filterToTableColumns('price_catalog_items', cleanData);
+
+    final existing = await db.query(
+      'price_catalog_items',
+      columns: ['id'],
+      where: 'firestoreId = ?',
+      whereArgs: [firestoreId],
+      limit: 1,
+    );
+    if (existing.isNotEmpty) {
+      await db.update(
+        'price_catalog_items',
+        cleanData,
+        where: 'id = ?',
+        whereArgs: [existing.first['id']],
+      );
+      return;
+    }
+
+    final shopId = cleanData['shopId'] as String?;
+    final importKey = cleanData['importKey'] as String?;
+    if (shopId != null && importKey != null && importKey.isNotEmpty) {
+      final orphan = await db.query(
+        'price_catalog_items',
+        columns: ['id'],
+        where:
+            "shopId = ? AND importKey = ? AND (firestoreId IS NULL OR firestoreId = '')",
+        whereArgs: [shopId, importKey],
+        limit: 1,
+      );
+      if (orphan.isNotEmpty) {
+        await db.update(
+          'price_catalog_items',
+          cleanData,
+          where: 'id = ?',
+          whereArgs: [orphan.first['id']],
+        );
+        return;
+      }
+    }
+
+    await db.insert('price_catalog_items', cleanData);
+  }
+
+  /// Xoá MỀM 1 mặt hàng (giữ bản ghi để trạng thái xoá đồng bộ sang máy khác).
+  Future<void> softDeletePriceCatalogItem(int id) async {
+    final db = await database;
+    await db.update(
+      'price_catalog_items',
+      {
+        'deleted': 1,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+        'isSynced': 0,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   /// Returns active repair orders stored at a given location code.

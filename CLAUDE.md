@@ -68,7 +68,9 @@
 | **Auth** | `lib/services/user_service.dart` | Quản lý quyền, role, shopId |
 | **Firestore** | `lib/services/firestore_service.dart` | Tất cả tương tác với Firestore |
 | **Sync** | `lib/services/sync_service.dart` | Real-time subscriptions, offline-first |
-| **Local DB** | `lib/data/db_helper.dart` | SQLite schema v17, upsert patterns |
+| **Local DB** | `lib/data/db_helper.dart` | SQLite schema v110, upsert patterns |
+| **Bảng giá** | `lib/services/price_book_service.dart` | Giá đề xuất + giá GHIM (SharedPreferences, theo máy) |
+| **Danh mục giá NCC** | `lib/services/price_catalog_service.dart` | Bảng giá từ hoá đơn NCC — SQLite + Firestore theo `shopId` |
 | **Payments** | `lib/services/payment_intent_service.dart` | Xử lý thanh toán |
 | **Notifications** | `lib/services/notification_service.dart` | Firebase Cloud Messaging + local |
 | **UI/Views** | `lib/views/` | Các màn hình (login, home, create repair, etc.) |
@@ -117,7 +119,13 @@
 - **Unique key:** `firestoreId`
 - **Conflict resolution:** `isSynced` flag
 
-### 9. Soft Deletes
+### 9. Giá vốn — phân quyền BẮT BUỘC 2 tầng
+- **Quyền:** `UserService.canViewCostPrice()` (`allowViewCostPrice`; super-admin luôn true)
+- **Quy tắc:** chặn ở CẢ UI lẫn tầng service — service phải **xoá trường giá vốn khỏi dữ liệu trả về**, không chỉ ẩn trên giao diện. Xuất Excel cũng phải bỏ cột giá vốn.
+- **Không bao giờ** lấy giá vốn thay cho giá thu khách khi chưa đặt giá — hiển thị "Chưa thiết lập giá thu khách".
+- Tham khảo: `PriceCatalogService.buildRows/lookup`, `PriceBookService.exportToExcel`
+
+### 10. Soft Deletes
 - **Firestore:** Update với `deleted: true` + `updatedAt: serverTimestamp()`
 - **Local DB:** Mark deleted nhưng giữ records
 - **Queries:** Luôn filter `deleted != true`
@@ -167,7 +175,7 @@ flutter test integration_test/
 
 ### Database
 - **Local DB path:** `repair_shop_v22.db`
-- **Schema version:** 17
+- **Schema version:** 110
 - **Location:** `lib/data/db_helper.dart`
 
 ---
@@ -272,7 +280,7 @@ try {
 - **Phiên bản:** 1.x (develop)
 - **Build Status:** ✓ Passing
 - **Analyze Status:** ✓ No errors
-- **Database:** SQLite v17
+- **Database:** SQLite v110
 - **Firebase:** Integrated (Auth, Firestore, Storage, Functions)
 - **KiotViet:** Integrated (API sync)
 - **Payments:** Integrated (PaymentIntentService)

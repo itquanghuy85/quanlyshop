@@ -904,6 +904,8 @@ class AppKnowledgeBase {
             'hoàn toàn mới gõ tay vào Excel (chưa từng có trên app).',
       ],
       notes: [
+        'Menu ⋮ còn có **Nhập bảng giá từ hoá đơn NCC** — luồng RIÊNG, xem mục '
+            '"Bảng giá từ hoá đơn NCC" (khác "Nhập từ Excel" ở trên).',
         'Giá đề xuất tính từ đơn sửa đã Xong/Đã giao và giá SP trong kho — chạy '
             'local, không tốn mạng.',
         'Khi tạo đơn sửa: nếu "model · lỗi" có giá ghim, thẻ "GIÁ NIÊM YẾT" hiện '
@@ -932,6 +934,80 @@ class AppKnowledgeBase {
         'bang gia', 'gia de xuat', 'gia niem yet', 'ghim gia', 'price book',
         'chot gia', 'ap gia hang loat', 'he so mua vu', 'gia tet', 'excel bang gia',
         'gia von phu tung', 'them muc bang gia', 'tao gia truoc'
+      ],
+      audience: ['owner', 'manager'],
+    ),
+    KbEntry(
+      id: 'price-book-supplier-invoice',
+      title: 'Bảng giá từ hoá đơn NCC (nhờ AI đọc ảnh hoá đơn)',
+      menuPath: 'Bảng giá → menu ⋮ → "Nhập bảng giá từ hoá đơn NCC"',
+      whatItDoes:
+          'Biến nhiều ảnh hoá đơn nhà cung cấp thành bảng giá tra cứu được: '
+          'nhờ ChatGPT/Gemini đọc ảnh và tạo 1 file Excel chuẩn, chủ shop điền '
+          'thêm "Giá thu khách", rồi nhập vào app. Nhân viên tra Giá thu khách '
+          'để báo cho khách; chủ shop/quản lý xem thêm giá vốn gần nhất, giá '
+          'vốn bình quân, nhà cung cấp, ngày nhập và lợi nhuận tham khảo.',
+      whenToUse:
+          'Sau khi nhập một đợt hàng và có ảnh/hoá đơn giấy của NCC, muốn cả '
+          'shop tra được giá thống nhất mà không phải gõ tay từng dòng.',
+      steps: [
+        'Mở Bảng giá → menu ⋮ → "Nhập bảng giá từ hoá đơn NCC".',
+        'Bước 1: bấm **Copy câu lệnh** → mở ChatGPT (hoặc Gemini/Claude) → dán '
+            'câu lệnh → đính kèm TẤT CẢ ảnh hoá đơn → AI trả về 1 file Excel '
+            '(.xlsx) có 4 sheet.',
+        'Bước 2: mở file đó ra kiểm tra. Xem sheet "Lỗi cần kiểm tra" và sửa '
+            'các dòng AI đọc không chắc. Điền cột **"Giá thu khách"** ở sheet '
+            '"Tổng hợp giá vốn" (để trống cũng được).',
+        'Bước 3: quay lại app → "Chọn file Excel để nhập" → app hiện **bản xem '
+            'trước**: bao nhiêu dòng hợp lệ, mặt hàng mới, sẽ cập nhật, dòng '
+            'trùng, thiếu tên, thiếu giá vốn, chưa có giá thu khách, cần kiểm '
+            'tra.',
+        'Mặt hàng đã có trong bảng giá: chọn **Cập nhật** (gộp thêm lịch sử '
+            'giá, tính lại bình quân) hoặc **Bỏ qua** (giữ nguyên bản cũ).',
+        'Bấm Nhập → xem báo cáo kết quả. Dữ liệu vào tab **Sửa chữa** của Bảng '
+            'giá, badge "BẢNG GIÁ NCC".',
+        'Chưa có file? Bấm **Tải file Excel mẫu** để xem đúng cấu trúc, hoặc tự '
+            'gõ tay theo mẫu đó.',
+      ],
+      notes: [
+        'Giá thu khách ĐƯỢC PHÉP để trống. App KHÔNG bao giờ tự đoán giá bán '
+            'từ giá vốn — chưa đặt thì hiện rõ "Chưa thiết lập giá thu khách", '
+            'nhân viên tuyệt đối không lấy giá vốn báo cho khách.',
+        'Nhân viên KHÔNG có quyền xem giá vốn sẽ không thấy Vốn/Lãi/nhà cung '
+            'cấp/ngày nhập — kể cả khi Xuất Excel (file xuất ra cũng không có '
+            'cột giá vốn).',
+        'Nhập LẠI đúng file cũ là an toàn: dòng hoá đơn đã ghi nhận bị nhận ra '
+            'là trùng, không cộng trùng vào giá bình quân, không tạo bản ghi '
+            'trùng — kể cả khi nhập từ 2 máy khác nhau.',
+        'Cùng một mặt hàng ở nhiều hoá đơn: app lưu giá vốn **gần nhất** (theo '
+            'ngày hoá đơn), **thấp nhất**, **cao nhất** và **bình quân gia '
+            'quyền** theo số lượng.',
+        'Cột `_khóa_import` trong file KHÔNG được sửa — app dùng nó để nhận '
+            'diện mặt hàng. Có Mã hàng/SKU thì app ưu tiên dùng SKU (chính xác '
+            'hơn tên hàng).',
+        'Một dòng hoá đơn dùng chung cho nhiều model (vd 1 màn hình cho 12 máy) '
+            'sẽ bị đánh dấu **KIỂM TRA** để tự soát lại — app không tự tách '
+            'thành nhiều mặt hàng.',
+        'Dữ liệu này **đồng bộ giữa các máy trong cùng shop** (khác giá GHIM ở '
+            'Bảng giá — giá ghim chỉ nằm trên 1 máy).',
+        'Chỉ chủ shop/quản lý (có quyền xem giá vốn) mới nhập được. Không đụng '
+            'tồn kho, không đổi giá vốn của các đơn hàng đã tạo.',
+      ],
+      terms: ['gia-von', 'gia-tham-khao', 'lai-gop'],
+      sampleQuestions: [
+        'nhập bảng giá từ hoá đơn nhà cung cấp',
+        'nhờ chatgpt đọc ảnh hoá đơn',
+        'chụp ảnh hoá đơn ncc để lên bảng giá',
+        'file excel mẫu bảng giá ncc',
+        'nhân viên có thấy giá vốn không',
+        'sao hiện chưa thiết lập giá thu khách',
+        'nhập lại cùng file có bị trùng không',
+        'giá vốn bình quân tính thế nào',
+      ],
+      tags: [
+        'bang gia ncc', 'hoa don ncc', 'nhap bang gia', 'gpt doc hoa don',
+        'chatgpt hoa don', 'excel hoa don ncc', 'gia thu khach', 'gia von',
+        'gia von binh quan', 'danh muc gia', 'khoa import', 'anh hoa don',
       ],
       audience: ['owner', 'manager'],
     ),
@@ -1478,7 +1554,7 @@ class AppKnowledgeBase {
         id == 'monthly-profit' ||
         id == 'expense' ||
         id == 'money-reconcile' ||
-        id == 'price-book') {
+        id.startsWith('price-book')) {
       return 'finance';
     }
     if (id == 'customers' || id == 'payroll' || id == 'attendance') {

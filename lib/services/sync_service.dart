@@ -183,6 +183,12 @@ class SyncService {
         return _hasPermission(permissions, 'allowViewInventory');
       case 'suppliers':
         return _hasPermission(permissions, 'allowViewSuppliers');
+      // Danh mục giá từ hoá đơn NCC: nhân viên VẪN cần tải về để tra Giá thu
+      // khách khi báo giá. Giá vốn nằm cùng bản ghi nhưng bị che ở tầng
+      // service/UI (PriceCatalogService.canViewCost) — quyền xem giá vốn KHÔNG
+      // dùng để chặn sync, nếu chặn thì nhân viên mất luôn giá báo khách.
+      case 'price_catalog_items':
+        return true;
       case 'expenses':
         return _hasPermission(permissions, 'allowViewExpenses') &&
             _isManagerLike(role, isSuperAdmin);
@@ -300,6 +306,7 @@ class SyncService {
     'salvage_phones',
     'supplier_import_history',
     'suppliers',
+    'price_catalog_items',
     'purchase_orders',
     'product_categories',
     'supplier_payments',
@@ -2600,6 +2607,36 @@ class SyncService {
       );
     } catch (e) {
       debugPrint("Lỗi khởi tạo sales_return_items sync: $e");
+    }
+
+    // 28b. Đồng bộ PRICE CATALOG ITEMS (Danh mục giá từ hoá đơn NCC)
+    try {
+      _subscribeToCollection(
+        collection: 'price_catalog_items',
+        shopId: shopId,
+        permissions: permissions,
+        role: role,
+        isSuperAdmin: isSuperAdmin,
+        onChanged: (data, docId) async {
+          try {
+            final db = DBHelper();
+            data['firestoreId'] = docId;
+            data['isSynced'] = 1;
+            _convertTimestampFields(data);
+            // Xoá MỀM: vẫn upsert (giữ cờ deleted) thay vì xoá hẳn — bản ghi
+            // còn đó để máy khác không "hồi sinh" mặt hàng đã bỏ.
+            await db.upsertPriceCatalogItem(data);
+          } catch (e) {
+            debugPrint("Lỗi sync price_catalog_item $docId: $e");
+          }
+        },
+        onBatchDone: () {
+          onDataChanged();
+          EventBus().emit('price_catalog_changed');
+        },
+      );
+    } catch (e) {
+      debugPrint("Lỗi khởi tạo price_catalog_items sync: $e");
     }
 
     // 29. Đồng bộ SALVAGE PHONES (Kho máy xác)
@@ -5021,6 +5058,7 @@ class SyncService {
         'leave_requests', // FIX: Đồng bộ đơn xin nghỉ giữa các máy
         'import_orders', // Đồng bộ phiếu nhập kho
         'import_order_items', // Đồng bộ chi tiết phiếu nhập
+        'price_catalog_items', // Danh mục giá từ hoá đơn NCC
       ];
       final allowedCollections = collections.where((col) {
         return _canSubscribeCollection(
@@ -5199,6 +5237,8 @@ class SyncService {
                 await db.upsertImportOrder(data);
               } else if (col == 'import_order_items') {
                 await db.upsertImportOrderItem(data);
+              } else if (col == 'price_catalog_items') {
+                await db.upsertPriceCatalogItem(data);
               }
               successCount++;
             } catch (e) {

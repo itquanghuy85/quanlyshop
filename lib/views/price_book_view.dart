@@ -4,13 +4,16 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import '../models/price_book_models.dart';
+import '../models/price_catalog_models.dart';
 import '../models/product_model.dart';
 import '../services/price_book_service.dart';
+import '../services/price_catalog_service.dart';
 import '../utils/money_utils.dart';
 import '../utils/vietnamese_utils.dart';
 import '../widgets/currency_text_field.dart';
 import '../widgets/custom_app_bar.dart';
 import 'similar_repair_history_view.dart';
+import 'supplier_invoice_price_import_view.dart';
 
 /// "Bảng giá" — giá đề xuất (trung vị lịch sử) cho sửa chữa & bán hàng,
 /// cho phép chủ shop GHIM giá niêm yết. Form tạo đơn đọc từ đây.
@@ -32,8 +35,14 @@ class _PriceBookViewState extends State<PriceBookView>
   bool _loading = true;
   List<PriceBookRow> _repair = const [];
   List<PriceBookRow> _parts = const [];
+  List<PriceBookRow> _catalog = const [];
   List<PriceBookRow> _sale = const [];
   int _seasonPct = 0;
+
+  /// Nhân viên KHÔNG có quyền xem giá vốn ⇒ ẩn toàn bộ ô Vốn/Lãi và mọi
+  /// thông tin nhập hàng. Dữ liệu giá vốn cũng đã bị service loại bỏ trước
+  /// khi tới đây, cờ này chỉ để giao diện không chừa ô trống vô nghĩa.
+  bool _canViewCost = false;
 
   @override
   void initState() {
@@ -193,6 +202,14 @@ class _PriceBookViewState extends State<PriceBookView>
     await _load();
   }
 
+  /// Luồng RIÊNG cho file Excel 4 sheet do AI đọc ảnh hoá đơn NCC tạo ra —
+  /// KHÔNG dùng chung với [_import] (luồng đó sửa giá GHIM theo cột _khoá của
+  /// chính file Bảng giá xuất ra).
+  Future<void> _importFromSupplierInvoice() async {
+    final done = await openSupplierInvoicePriceImport(context);
+    if (done && mounted) await _load();
+  }
+
   /// Màu theo mức độ tin cậy — dùng thống nhất cho badge + (khi rất thấp)
   /// làm nhạt con số giá, để mắt phân biệt được dòng đáng tin và dòng chỉ
   /// dựa trên 1 lần bán ngẫu nhiên.
@@ -221,14 +238,18 @@ class _PriceBookViewState extends State<PriceBookView>
 
   Future<void> _load() async {
     setState(() => _loading = true);
+    final canCost = await PriceCatalogService.canViewCost();
     final r = await PriceBookService.buildRepairRows();
     final parts = await PriceBookService.buildPartRows();
+    final catalog = await PriceCatalogService.buildRows(includeCost: canCost);
     final s = await PriceBookService.buildSaleRows();
     final pct = await PriceBookService.seasonPct();
     if (!mounted) return;
     setState(() {
+      _canViewCost = canCost;
       _repair = r;
       _parts = parts;
+      _catalog = catalog;
       _sale = s;
       _seasonPct = pct;
       _loading = false;
@@ -267,12 +288,18 @@ class _PriceBookViewState extends State<PriceBookView>
                   _export();
                 case 'import':
                   _import();
+                case 'import_invoice':
+                  _importFromSupplierInvoice();
               }
             },
             itemBuilder: (_) => const [
               PopupMenuItem(value: 'season', child: Text('Hệ số giá mùa vụ')),
               PopupMenuItem(value: 'export', child: Text('Xuất Excel')),
               PopupMenuItem(value: 'import', child: Text('Nhập từ Excel')),
+              PopupMenuItem(
+                value: 'import_invoice',
+                child: Text('Nhập bảng giá từ hoá đơn NCC'),
+              ),
             ],
           ),
         ],
@@ -339,7 +366,7 @@ class _PriceBookViewState extends State<PriceBookView>
                     controller: _tab,
                     children: [
                       _list(
-                        _filtered([..._repair, ..._parts]),
+                        _filtered([..._repair, ..._parts, ..._catalog]),
                         'Chưa có đơn sửa nào đã hoàn thành để tính giá.',
                       ),
                       _list(_filtered(_sale), 'Chưa có sản phẩm nào để tính giá.'),
@@ -692,6 +719,56 @@ class _PriceBookViewState extends State<PriceBookView>
     );
   }
 
+  /// Dòng phụ dưới thẻ giá cho mặt hàng đến từ hoá đơn NCC.
+  ///
+  /// Model/loại linh kiện/SKU hiện cho MỌI vai trò (nhân viên cần để tra
+  /// đúng mặt hàng). Giá vốn bình quân, NCC, ngày nhập chỉ hiện cho người có
+  /// quyền xem giá vốn — và với người không có quyền thì các trường này đã
+  /// rỗng sẵn từ tầng service, đây chỉ là lớp chặn thứ hai.
+  Widget _catalogMeta(PriceCatalogItem c) {
+    final idParts = [
+      if (c.partType.trim().isNotEmpty) c.partType.trim(),
+      if (c.model.trim().isNotEmpty) c.model.trim(),
+      if (c.sku.trim().isNotEmpty) 'SKU ${c.sku.trim()}',
+    ].join(' · ');
+
+    final costParts = !_canViewCost
+        ? const <String>[]
+        : [
+            if (c.avgCost > 0 && c.avgCost != c.lastCost)
+              'BQ ${MoneyUtils.formatCurrency(c.avgCost)}đ',
+            if (c.minCost > 0 && c.minCost != c.maxCost)
+              '${MoneyUtils.formatCurrency(c.minCost)}–${MoneyUtils.formatCurrency(c.maxCost)}đ',
+            if (c.supplier.trim().isNotEmpty) c.supplier.trim(),
+            if (c.lastInvoiceDate.trim().isNotEmpty)
+              'Nhập ${c.lastInvoiceDate.trim()}',
+          ];
+
+    if (idParts.isEmpty && costParts.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (idParts.isNotEmpty)
+            Text(
+              idParts,
+              style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          if (costParts.isNotEmpty)
+            Text(
+              costParts.join('  ·  '),
+              style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _rowCard(PriceBookRow r) {
     final priceLabel = r.scope == 'sale' ? 'Bán' : 'Thu';
     return Card(
@@ -723,6 +800,26 @@ class _PriceBookViewState extends State<PriceBookView>
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  if (r.catalog?.needsReview ?? false)
+                    Container(
+                      margin: const EdgeInsets.only(left: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.deepOrange.shade50,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'KIỂM TRA',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.deepOrange.shade800,
+                        ),
+                      ),
+                    ),
                   if (r.isPinned)
                     Container(
                       margin: const EdgeInsets.only(left: 6),
@@ -735,7 +832,7 @@ class _PriceBookViewState extends State<PriceBookView>
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        'NIÊM YẾT',
+                        r.scope == 'catalog' ? 'BẢNG GIÁ NCC' : 'NIÊM YẾT',
                         style: TextStyle(
                           fontSize: 9,
                           fontWeight: FontWeight.w700,
@@ -763,12 +860,19 @@ class _PriceBookViewState extends State<PriceBookView>
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          'Chưa có giá ${priceLabel.toLowerCase()} — chạm để đặt giá',
+                          // Dòng danh mục NCC: nói rõ "chưa thiết lập giá thu
+                          // khách" — nhân viên tuyệt đối không được lấy giá
+                          // vốn báo cho khách thay thế.
+                          r.scope == 'catalog'
+                              ? (_canViewCost
+                                  ? '${CatalogLookup.noPriceMessage} — chạm để đặt giá'
+                                  : CatalogLookup.noPriceMessage)
+                              : 'Chưa có giá ${priceLabel.toLowerCase()} — chạm để đặt giá',
                           style: TextStyle(
                               fontSize: 11.5, color: Colors.grey.shade700),
                         ),
                       ),
-                      if (r.effectiveCost > 0)
+                      if (_canViewCost && r.effectiveCost > 0)
                         Text(
                           'Vốn ${MoneyUtils.formatCurrency(r.effectiveCost)}đ',
                           style: TextStyle(
@@ -785,50 +889,55 @@ class _PriceBookViewState extends State<PriceBookView>
                   children: [
                     _metric(priceLabel, r.effectivePrice,
                         r.isPinned ? Colors.indigo.shade700 : Colors.black87),
-                    const SizedBox(width: 8),
-                    _metric('Vốn', r.effectiveCost, Colors.orange.shade800),
-                    const SizedBox(width: 8),
-                    _metric(
-                      'Lãi',
-                      r.effectiveProfit,
-                      r.effectiveProfit >= 0
-                          ? Colors.green.shade700
-                          : Colors.red.shade700,
-                    ),
+                    // Vốn + Lãi chỉ dành cho chủ shop/quản lý.
+                    if (_canViewCost) ...[
+                      const SizedBox(width: 8),
+                      _metric('Vốn', r.effectiveCost, Colors.orange.shade800),
+                      const SizedBox(width: 8),
+                      _metric(
+                        'Lãi',
+                        r.effectiveProfit,
+                        r.effectiveProfit >= 0
+                            ? Colors.green.shade700
+                            : Colors.red.shade700,
+                      ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '${r.sampleCount} mẫu'
-                        '${r.minPrice > 0 && r.minPrice != r.maxPrice ? ' · ${MoneyUtils.formatCurrency(r.minPrice)}–${MoneyUtils.formatCurrency(r.maxPrice)}đ' : ''}',
-                        style: TextStyle(
-                            fontSize: 10.5, color: Colors.grey.shade600),
-                      ),
-                    ),
-                    Container(
-                      margin: const EdgeInsets.only(left: 6),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 5, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: _confColor(r.confidenceLabel)
-                            .withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        r.confidenceLabel,
-                        style: TextStyle(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w700,
-                          color: _confColor(r.confidenceLabel),
+                if (r.scope != 'catalog')
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${r.sampleCount} mẫu'
+                          '${r.minPrice > 0 && r.minPrice != r.maxPrice ? ' · ${MoneyUtils.formatCurrency(r.minPrice)}–${MoneyUtils.formatCurrency(r.maxPrice)}đ' : ''}',
+                          style: TextStyle(
+                              fontSize: 10.5, color: Colors.grey.shade600),
                         ),
                       ),
-                    ),
-                  ],
-                ),
+                      Container(
+                        margin: const EdgeInsets.only(left: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: _confColor(r.confidenceLabel)
+                              .withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          r.confidenceLabel,
+                          style: TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w700,
+                            color: _confColor(r.confidenceLabel),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
               ],
+              if (r.catalog != null) _catalogMeta(r.catalog!),
             ],
           ),
         ),
@@ -836,7 +945,214 @@ class _PriceBookViewState extends State<PriceBookView>
     );
   }
 
+  /// Đặt/sửa GIÁ THU KHÁCH cho 1 mặt hàng của danh mục hoá đơn NCC.
+  ///
+  /// Ghi vào SQLite + đồng bộ Firestore ([PriceCatalogService]), KHÔNG dùng
+  /// cơ chế ghim SharedPreferences (chỉ nằm trên 1 máy).
+  Future<void> _openCatalogSheet(PriceBookRow r) async {
+    final c = r.catalog;
+    if (c == null) return;
+
+    // Nhân viên chỉ được XEM giá thu khách, không được sửa bảng giá.
+    if (!_canViewCost) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(c.itemName, style: const TextStyle(fontSize: 15)),
+          content: Text(
+            c.hasCustomerPrice
+                ? 'Giá thu khách: '
+                    '${MoneyUtils.formatCurrency(c.customerPrice)}đ'
+                : '${CatalogLookup.noPriceMessage}.\n\n'
+                    'Hãy hỏi chủ shop/quản lý trước khi báo giá cho khách.',
+            style: const TextStyle(fontSize: 13),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Đóng'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final priceCtrl = TextEditingController(
+      text: c.hasCustomerPrice
+          ? CurrencyTextField.formatDisplay(c.customerPrice)
+          : '',
+    );
+    final noteCtrl = TextEditingController(text: c.note);
+
+    final action = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          c.itemName,
+          style: const TextStyle(fontSize: 15),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Giá vốn gần nhất: '
+                      '${MoneyUtils.formatCurrency(c.lastCost)}đ',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.orange.shade900,
+                      ),
+                    ),
+                    if (c.avgCost > 0)
+                      Text(
+                        'Bình quân: ${MoneyUtils.formatCurrency(c.avgCost)}đ'
+                        '${c.minCost != c.maxCost ? '  ·  Thấp nhất ${MoneyUtils.formatCurrency(c.minCost)}đ  ·  Cao nhất ${MoneyUtils.formatCurrency(c.maxCost)}đ' : ''}',
+                        style: TextStyle(
+                            fontSize: 11, color: Colors.orange.shade900),
+                      ),
+                    if (c.supplier.trim().isNotEmpty ||
+                        c.lastInvoiceDate.trim().isNotEmpty)
+                      Text(
+                        [
+                          if (c.supplier.trim().isNotEmpty) c.supplier.trim(),
+                          if (c.lastInvoiceNo.trim().isNotEmpty)
+                            'HĐ ${c.lastInvoiceNo.trim()}',
+                          if (c.lastInvoiceDate.trim().isNotEmpty)
+                            c.lastInvoiceDate.trim(),
+                        ].join('  ·  '),
+                        style: TextStyle(
+                            fontSize: 11, color: Colors.orange.shade900),
+                      ),
+                    Text(
+                      '${c.costHistory.length} lần nhập đã ghi nhận',
+                      style: TextStyle(
+                          fontSize: 10.5, color: Colors.orange.shade800),
+                    ),
+                  ],
+                ),
+              ),
+              if (c.needsReview && c.reviewNote.trim().isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '⚠ ${c.reviewNote.trim()}',
+                  style: TextStyle(
+                      fontSize: 11.5, color: Colors.deepOrange.shade800),
+                ),
+              ],
+              const SizedBox(height: 12),
+              CurrencyTextField(
+                controller: priceCtrl,
+                label: 'Giá thu khách',
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: noteCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Ghi chú (tuỳ chọn)',
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Để trống = chưa thiết lập giá. Nhân viên sẽ thấy "'
+                '${CatalogLookup.noPriceMessage}" thay vì giá vốn.',
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'delete'),
+            child: const Text('Xoá khỏi bảng giá',
+                style: TextStyle(color: Colors.red)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, null),
+            child: const Text('Đóng'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, 'save'),
+            child: const Text('Lưu'),
+          ),
+        ],
+      ),
+    );
+
+    if (mounted && action == 'save') {
+      final p = MoneyUtils.parseCurrency(priceCtrl.text);
+      final ok = await PriceCatalogService.setCustomerPrice(
+        c.importKey,
+        p,
+        note: noteCtrl.text.trim(),
+      );
+      if (mounted) {
+        _snack(
+          !ok
+              ? 'Không lưu được.'
+              : (p > 0
+                  ? 'Đã đặt giá thu khách: ${MoneyUtils.formatCurrency(p)}đ'
+                  : 'Đã xoá giá thu khách.'),
+          err: !ok,
+        );
+      }
+    } else if (mounted && action == 'delete') {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Xoá khỏi bảng giá?'),
+          content: Text(
+            'Xoá "${c.itemName}" khỏi bảng giá NCC. Lịch sử giá nhập cũng '
+            'sẽ không còn tra được. Không ảnh hưởng Kho phụ tùng và các đơn '
+            'hàng đã tạo.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Huỷ'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Xoá'),
+            ),
+          ],
+        ),
+      );
+      if (ok == true) {
+        final done = await PriceCatalogService.softDelete(c);
+        if (mounted) {
+          _snack(done ? 'Đã xoá khỏi bảng giá.' : 'Không xoá được.',
+              err: !done);
+        }
+      }
+    }
+
+    priceCtrl.dispose();
+    noteCtrl.dispose();
+    if (mounted) await _load();
+  }
+
   Future<void> _openPinSheet(PriceBookRow r) async {
+    if (r.scope == 'catalog') {
+      await _openCatalogSheet(r);
+      return;
+    }
     final priceCtrl = TextEditingController(
       text: CurrencyTextField.formatDisplay(r.effectivePrice),
     );
@@ -860,11 +1176,15 @@ class _PriceBookViewState extends State<PriceBookView>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (r.scope == 'part')
-                Text(
-                  'Vốn hiện tại: ${MoneyUtils.formatCurrency(r.autoCost)}đ'
-                  '${r.autoCost <= 0 ? ' (chưa có trong Kho phụ tùng — chỉ để tham khảo)' : ' (đang lưu trong Kho phụ tùng)'}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                )
+                // Nhân viên không có quyền xem giá vốn ⇒ không hiện dòng vốn.
+                _canViewCost
+                    ? Text(
+                        'Vốn hiện tại: ${MoneyUtils.formatCurrency(r.autoCost)}đ'
+                        '${r.autoCost <= 0 ? ' (chưa có trong Kho phụ tùng — chỉ để tham khảo)' : ' (đang lưu trong Kho phụ tùng)'}',
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.grey.shade600),
+                      )
+                    : const SizedBox.shrink()
               else
                 Text(
                   'Đề xuất: ${MoneyUtils.formatCurrency(r.autoPrice)}đ '
@@ -880,13 +1200,15 @@ class _PriceBookViewState extends State<PriceBookView>
                   _ => 'Giá bán (niêm yết)',
                 },
               ),
-              const SizedBox(height: 10),
-              CurrencyTextField(
-                controller: costCtrl,
-                label: r.scope == 'part'
-                    ? 'Giá vốn tham khảo'
-                    : 'Giá vốn dự kiến (tuỳ chọn)',
-              ),
+              if (_canViewCost) ...[
+                const SizedBox(height: 10),
+                CurrencyTextField(
+                  controller: costCtrl,
+                  label: r.scope == 'part'
+                      ? 'Giá vốn tham khảo'
+                      : 'Giá vốn dự kiến (tuỳ chọn)',
+                ),
+              ],
               const SizedBox(height: 10),
               TextField(
                 controller: noteCtrl,

@@ -15,6 +15,7 @@ import '../services/sync_orchestrator.dart';
 import '../utils/excel_export_helper.dart';
 import '../utils/money_utils.dart';
 import '../utils/vietnamese_utils.dart';
+import 'price_catalog_service.dart';
 import 'pricing_engine_config.dart';
 import 'pricing_engine_service.dart';
 import 'product_pricing_service.dart';
@@ -81,25 +82,92 @@ class PriceBookService {
         r.key,
       ];
 
+  /// Chỉ số các cột GIÁ VỐN trong [_xlHeaders] — bị loại khỏi file xuất khi
+  /// người dùng không có quyền xem giá vốn.
+  static const _xlCostCols = {3, 5};
+
+  static List<String> _xlHeadersFor(bool showCost) => showCost
+      ? _xlHeaders
+      : [
+          for (var i = 0; i < _xlHeaders.length; i++)
+            if (!_xlCostCols.contains(i)) _xlHeaders[i],
+        ];
+
+  static List<dynamic> _xlRowFor(PriceBookRow r, bool showCost) {
+    final full = _xlRow(r);
+    if (showCost) return full;
+    return [
+      for (var i = 0; i < full.length; i++)
+        if (!_xlCostCols.contains(i)) full[i],
+    ];
+  }
+
+  /// Cột riêng cho sheet danh mục giá từ hoá đơn NCC.
+  static const _xlCatalogHeaders = [
+    'Nhóm',
+    'Tên mặt hàng',
+    'Model tương thích',
+    'Loại linh kiện',
+    'Mã hàng/SKU',
+    'Giá thu khách',
+    'Giá vốn gần nhất',
+    'Giá vốn bình quân',
+    'Giá vốn thấp nhất',
+    'Giá vốn cao nhất',
+    'Nhà cung cấp',
+    'Ngày hoá đơn gần nhất',
+    'Cần kiểm tra',
+    'Ghi chú',
+    '_khoá (không sửa)',
+  ];
+
+  /// Chỉ số cột giá vốn trong [_xlCatalogHeaders].
+  static const _xlCatalogCostCols = {6, 7, 8, 9, 10, 11};
+
   static Future<void> exportToExcel(BuildContext context) async {
+    // Quyền quyết định NỘI DUNG file, không chỉ giao diện: nhân viên không
+    // có quyền xem giá vốn thì file xuất ra cũng không được có cột giá vốn
+    // (nếu không, chặn trên UI là vô nghĩa — chỉ cần bấm Xuất Excel là thấy).
+    final showCost = await PriceCatalogService.canViewCost();
     final repair = await buildRepairRows();
     final parts = await buildPartRows();
     final sale = await buildSaleRows();
+    final catalog = await PriceCatalogService.buildRows(includeCost: showCost);
     final excel = Excel.createExcel();
     final def = excel.getDefaultSheet();
+    final headers = _xlHeadersFor(showCost);
     ExcelExportHelper.writeSheet(
       excel['Sửa chữa'],
-      _xlHeaders,
+      headers,
       // Gộp cả dòng phụ tùng tham khảo vào cùng sheet Sửa chữa — khớp đúng
       // cách hiển thị trên tab Sửa chữa của Bảng giá (không tách sheet riêng).
-      [...repair, ...parts].map(_xlRow).toList(),
+      [...repair, ...parts].map((r) => _xlRowFor(r, showCost)).toList(),
     );
     ExcelExportHelper.writeSheet(
       excel['Bán hàng'],
-      _xlHeaders,
-      sale.map(_xlRow).toList(),
+      headers,
+      sale.map((r) => _xlRowFor(r, showCost)).toList(),
     );
-    if (def != null && def != 'Sửa chữa' && def != 'Bán hàng') {
+    if (catalog.isNotEmpty) {
+      // Sheet RIÊNG (không gộp vào "Sửa chữa"): danh mục NCC có bộ cột khác
+      // hẳn, và khoá `pc|…` của nó KHÔNG được luồng "Nhập từ Excel" (giá
+      // ghim) đụng tới — nhập lại đúng chỗ là màn "Nhập bảng giá từ hoá đơn
+      // NCC".
+      ExcelExportHelper.writeSheet(
+        excel['Bảng giá NCC'],
+        showCost
+            ? _xlCatalogHeaders
+            : [
+                for (var i = 0; i < _xlCatalogHeaders.length; i++)
+                  if (!_xlCatalogCostCols.contains(i)) _xlCatalogHeaders[i],
+              ],
+        catalog.map((r) => _xlCatalogRow(r, showCost)).toList(),
+      );
+    }
+    if (def != null &&
+        def != 'Sửa chữa' &&
+        def != 'Bán hàng' &&
+        def != 'Bảng giá NCC') {
       excel.delete(def);
     }
     final ts = DateTime.now();
@@ -108,6 +176,34 @@ class PriceBookService {
     if (context.mounted) {
       await ExcelExportHelper.saveAndShare(excel, name, context);
     }
+  }
+
+  static List<dynamic> _xlCatalogRow(PriceBookRow r, bool showCost) {
+    final c = r.catalog;
+    final full = <dynamic>[
+      r.brand,
+      r.title,
+      c?.model ?? '',
+      c?.partType ?? '',
+      c?.sku ?? '',
+      // Chưa đặt giá thu khách thì để TRỐNG, không ghi 0 — 0 dễ bị đọc nhầm
+      // thành "miễn phí" khi nhân viên nhìn file.
+      (c?.customerPrice ?? 0) > 0 ? c!.customerPrice : '',
+      c?.lastCost ?? 0,
+      c?.avgCost ?? 0,
+      c?.minCost ?? 0,
+      c?.maxCost ?? 0,
+      c?.supplier ?? '',
+      c?.lastInvoiceDate ?? '',
+      (c?.needsReview ?? false) ? 'x' : '',
+      c?.note ?? '',
+      r.key,
+    ];
+    if (showCost) return full;
+    return [
+      for (var i = 0; i < full.length; i++)
+        if (!_xlCatalogCostCols.contains(i)) full[i],
+    ];
   }
 
   /// Đọc file xlsx → GHIM các dòng có "Giá NIÊM YẾT" > 0 (khớp theo cột
@@ -618,6 +714,54 @@ class PriceBookService {
       }
     } catch (e) {
       debugPrint('PriceBook.resolveSale: $e');
+    }
+    return const PriceResolution();
+  }
+
+  /// Tra GIÁ THU KHÁCH của 1 linh kiện/mặt hàng theo model hoặc tên, cho
+  /// luồng báo giá.
+  ///
+  /// Thứ tự ưu tiên: danh mục giá từ hoá đơn NCC (giá thu khách chủ shop đã
+  /// nhập) → giá đã GHIM cho phụ tùng cùng tên. KHÔNG bao giờ trả giá vốn
+  /// làm giá báo khách: không có giá thì trả [PriceResolution] rỗng để màn
+  /// gọi hiện "Chưa thiết lập giá thu khách".
+  ///
+  /// Cố ý TÁCH khỏi [resolveRepair]: giá 1 linh kiện không phải giá 1 dịch
+  /// vụ sửa chữa (model + lỗi), trộn vào sẽ tự điền sai giá cho đơn sửa.
+  static Future<PriceResolution> resolvePartPrice(String query) async {
+    final q = query.trim();
+    if (q.isEmpty) return const PriceResolution();
+
+    try {
+      final hit = await PriceCatalogService.lookup(q);
+      if (hit.hasPrice) {
+        return PriceResolution(
+          price: hit.price,
+          cost: hit.referenceCost,
+          source: PriceSource.pinned,
+          confidenceLabel: 'Bảng giá NCC',
+        );
+      }
+      // Có trong danh mục nhưng CHƯA đặt giá thu ⇒ dừng ở đây, không rơi
+      // xuống giá ghim của mục khác trùng tên gần đúng.
+      if (hit.found) return const PriceResolution();
+    } catch (e) {
+      debugPrint('PriceBook.resolvePartPrice catalog: $e');
+    }
+
+    try {
+      final pins = await loadPins();
+      final pin = pins[partKey(q)];
+      if (pin != null && pin.price > 0) {
+        return PriceResolution(
+          price: pin.price,
+          cost: pin.cost,
+          source: PriceSource.pinned,
+          confidenceLabel: 'Niêm yết',
+        );
+      }
+    } catch (e) {
+      debugPrint('PriceBook.resolvePartPrice pin: $e');
     }
     return const PriceResolution();
   }

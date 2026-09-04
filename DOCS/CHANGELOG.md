@@ -4,6 +4,101 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-05a] - feat(bảng giá) "Bảng giá từ hoá đơn NCC" — danh mục giá đồng bộ đám mây
+
+**Chưa tăng version. DB v109 → v110.**
+
+Mở rộng Bảng giá: chủ shop nhờ GPT đọc **nhiều ảnh hoá đơn NCC** → 1 file Excel
+4 sheet → kiểm tra/điền "Giá thu khách" → nhập vào app. Nhân viên tra Giá thu
+khách; chủ shop/quản lý xem thêm giá vốn.
+
+### Dữ liệu — hết phụ thuộc SharedPreferences theo máy
+
+- **MỚI** `lib/models/price_catalog_models.dart`: `PriceCatalogItem`,
+  `InvoiceCostLine`, `CostHistoryEntry`, `CatalogImportPreview`,
+  `CatalogImportResult`, `CatalogExistingPolicy`.
+- **MỚI** bảng SQLite `price_catalog_items` (v110) — đủ trường yêu cầu (tên,
+  hãng, model, loại linh kiện, SKU, NCC, giá vốn gần nhất/bình quân, giá thu
+  khách, ngày cập nhật, nguồn dữ liệu, ghi chú, `deleted`, `shopId`,
+  `firestoreId`, `isSynced`) + `costHistoryJson`.
+- Đồng bộ **2 chiều** như các thực thể khác: `SyncEntityType.priceCatalogItem`,
+  subscription realtime `price_catalog_items`, có trong
+  `downloadAllFromCloud` + danh sách cursor tăng dần. Offline-first, xoá mềm.
+- **Chống trùng 2 lớp:** (1) `firestoreId` **tất định** =
+  `pcat_sha1(shopId|_khóa_import)` ⇒ 2 máy nhập cùng file ghi vào cùng
+  document; (2) `costHistoryJson` lưu vân tay từng dòng hoá đơn ⇒ nhập lại
+  cùng file không cộng trùng vào bình quân gia quyền.
+- `importKey` **cố ý không UNIQUE** ở SQLite — bản ghi cloud có thể trùng khoá
+  với bản tạo offline; ràng buộc cứng sẽ làm kẹt hàng đợi sync. Thay vào đó
+  `upsertPriceCatalogItem` tự "nhận" `firestoreId` cloud vào bản ghi mồ côi.
+
+### Excel 4 sheet + prompt GPT
+
+- **MỚI** `lib/services/supplier_invoice_price_book_service.dart`: sheet
+  "Chi tiết nhập hàng" / "Tổng hợp giá vốn" / "Lỗi cần kiểm tra" /
+  "Hướng dẫn nhập", đủ 23 cột theo yêu cầu, kèm `_khóa_import`.
+- `gptPrompt` — câu lệnh copy dán cho GPT: đọc nhiều ảnh, gộp 1 file, giữ dữ
+  liệu theo từng hoá đơn, **để trống Giá thu khách**, không đoán bừa, đánh dấu
+  lỗi + độ tin cậy, không tạo dòng trùng, tự sinh `_khóa_import`.
+- File mẫu = hoá đơn **HD014650** (30/08/2026, tổng 3.120.000, 5 dòng), cột
+  Giá thu khách để TRỐNG.
+- **Fix bẫy tiền tệ:** `MoneyUtils.parseCurrency` bỏ mọi ký tự không phải số,
+  nên ô Excel `310000.5` sẽ ra `3100005` (sai 10 lần). Bộ đọc mới đọc theo
+  KIỂU `CellValue` + `_parseMoneyText` phân biệt dấu ngăn nghìn với dấu thập
+  phân ("310.000" = 310000, "310.000,75" = 310001).
+- Mất cột `_khóa_import` ⇒ tự dựng lại theo công thức, không mất dòng.
+
+### Màn nhập riêng
+
+- **MỚI** `lib/views/supplier_invoice_price_import_view.dart` — menu ⋮ Bảng giá
+  → **"Nhập bảng giá từ hoá đơn NCC"** (KHÔNG dùng chung "Nhập từ Excel" của
+  giá ghim). 3 bước: prompt GPT/tải file mẫu → chọn file + **xem trước** →
+  ghi + báo cáo.
+- Xem trước báo đủ: dòng hợp lệ, mặt hàng mới, sẽ cập nhật, dòng trùng, thiếu
+  tên, thiếu giá vốn, số lượng không hợp lệ, chưa có giá thu khách, cần kiểm
+  tra. Chọn **Cập nhật / Bỏ qua** cho mặt hàng đã có. Audit log
+  `PRICE_CATALOG_IMPORT`.
+
+### Phân quyền giá vốn (trước đây Bảng giá KHÔNG hề kiểm tra)
+
+- `PriceBookView` nay đọc `UserService.canViewCostPrice()`: nhân viên không
+  thấy ô **Vốn**/**Lãi**, không thấy NCC/ngày nhập/giá bình quân, không sửa
+  được bảng giá NCC (chỉ xem giá thu khách).
+- Chặn ở **tầng service**, không chỉ UI: `PriceCatalogService.buildRows` /
+  `lookup` **xoá sạch** trường giá vốn khỏi dữ liệu trả về khi không có quyền.
+- **Xuất Excel cũng bị chặn** — file xuất ra không có cột giá vốn với người
+  không có quyền (trước đây rò rỉ toàn bộ, kể cả sheet Sửa chữa/Bán hàng).
+- Nhập danh mục yêu cầu quyền xem giá vốn (`canImport`).
+
+### Hiển thị & tra cứu
+
+- Dòng danh mục hiện ở tab **Sửa chữa**, badge `BẢNG GIÁ NCC` / `KIỂM TRA`.
+- Chưa có giá thu khách ⇒ hiện rõ **"Chưa thiết lập giá thu khách"**, tuyệt
+  đối không lấy giá vốn thay thế.
+- `PriceBookService.resolvePartPrice(query)` (MỚI) tra giá thu khách theo
+  SKU/tên/model. **Cố ý tách khỏi `resolveRepair`** — giá 1 linh kiện không
+  phải giá 1 dịch vụ sửa chữa, trộn vào sẽ tự điền sai giá cho đơn sửa.
+- Luồng bảng giá ghim cũ (SharedPreferences) **giữ nguyên 100%**, dữ liệu cũ
+  tra cứu bình thường.
+
+**Test:** `flutter analyze` **0 lỗi**, không thêm cảnh báo nào ở file mới/sửa.
+`flutter test` **+524 −8** (8 lỗi ĐÃ CÓ TỪ TRƯỚC — đã xác minh bằng
+`git stash` chạy lại trên cây sạch: Firebase chưa init, file test trỏ đường
+dẫn `D:/ảnh claude/...` không tồn tại, widget test kiotviet). Test mới:
+`test/price_catalog_import_test.dart` **31/31 PASS** — phủ khoá ổn định
+(SKU/khác model/khác chất lượng), bình quân gia quyền, nhập lại cùng file,
+nhiều sheet, giá thu khách trống/có, tiền có dấu chấm-phẩy-"đ", ô số thực,
+thiếu cột bắt buộc, thiếu tên/giá vốn/số lượng sai, nhiều model tương thích,
+và đối chiếu hoá đơn mẫu HD014650 (tổng khớp 3.120.000).
+`flutter build apk --debug` **OK**.
+
+**⚠️ CHƯA nghiệm thu máy thật** — máy test đang cắm là Redmi M2101K7AG, MIUI
+chặn cài qua USB (`INSTALL_FAILED_USER_RESTRICTED`), không vượt được bằng
+adb. Cần bật "Install via USB" trong Developer options (hoặc cắm lại Oppo
+CPH2203) rồi chạy lại kịch bản ở `docs/HANDOVER.md`.
+
+---
+
 ## [2026-09-04h] - fix(kho phụ tùng) không thể sửa/gán nhà cung cấp cho linh kiện đã có
 
 **Chưa tăng version.**
