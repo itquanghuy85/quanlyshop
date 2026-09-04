@@ -17,6 +17,7 @@ import '../models/leave_request_model.dart';
 import '../models/quick_input_code_model.dart';
 import '../models/storage_location_model.dart';
 import '../services/user_service.dart';
+import '../utils/vietnamese_utils.dart';
 
 /// Kết quả của [DBHelper.deductPartsAndUpdateRepairAtomic].
 class AtomicPartsResult {
@@ -4980,67 +4981,66 @@ class DBHelper {
   /// Search repairs by query string using SQL LIKE on key columns.
   /// Searches both original query and Vietnamese-normalized query for accent-insensitive matching.
   /// Returns max [limit] results ordered by createdAt DESC.
+  /// Search repairs, accent- and case-insensitive (e.g. "pham" matches "PHẠM").
+  /// SQL LIKE can't fold Vietnamese diacritics, so we scan the (shop-scoped,
+  /// recency-capped) candidate set and filter with [VietnameseUtils] in Dart.
   Future<List<Repair>> searchRepairs(
     String query,
     String normalizedQuery, {
     int limit = 25,
   }) async {
     final db = await database;
-    final like = '%$query%';
-    final likeNorm = '%$normalizedQuery%';
     final maps = await db.rawQuery(
-      '''
-      SELECT * FROM repairs
-      WHERE (customerName LIKE ? OR customerName LIKE ?
-        OR phone LIKE ?
-        OR model LIKE ? OR model LIKE ?
-        OR issue LIKE ? OR issue LIKE ?
-        OR address LIKE ? OR address LIKE ?)
-      ORDER BY createdAt DESC
-      LIMIT ?
-    ''',
-      [
-        like,
-        likeNorm,
-        like,
-        like,
-        likeNorm,
-        like,
-        likeNorm,
-        like,
-        likeNorm,
-        limit,
-      ],
+      'SELECT * FROM repairs ORDER BY createdAt DESC LIMIT ?',
+      [5000],
     );
-    return List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
+    final results = <Repair>[];
+    for (final m in maps) {
+      final repair = Repair.fromMap(m);
+      final matches =
+          VietnameseUtils.containsVietnamese(repair.customerName, query) ||
+          repair.phone.contains(query) ||
+          VietnameseUtils.containsVietnamese(repair.model, query) ||
+          VietnameseUtils.containsVietnamese(repair.issue, query) ||
+          VietnameseUtils.containsVietnamese(repair.address, query);
+      if (matches) {
+        results.add(repair);
+        if (results.length >= limit) break;
+      }
+    }
+    return results;
   }
 
-  /// Search sales by query string using SQL LIKE on key columns.
+  /// Search sales, accent- and case-insensitive. See [searchRepairs].
   Future<List<SaleOrder>> searchSales(
     String query,
     String normalizedQuery, {
     int limit = 25,
   }) async {
     final db = await database;
-    final like = '%$query%';
-    final likeNorm = '%$normalizedQuery%';
     final maps = await db.rawQuery(
-      '''
-      SELECT * FROM sales
-      WHERE (customerName LIKE ? OR customerName LIKE ?
-        OR phone LIKE ?
-        OR productNames LIKE ? OR productNames LIKE ?
-        OR productImeis LIKE ?
-        OR itemSnapshotsJson LIKE ?)
-      ORDER BY soldAt DESC
-      LIMIT ?
-    ''',
-      [like, likeNorm, like, like, likeNorm, like, like, limit],
+      'SELECT * FROM sales ORDER BY soldAt DESC LIMIT ?',
+      [5000],
     );
-    return List.generate(maps.length, (i) => SaleOrder.fromMap(maps[i]));
+    final upperQuery = query.toUpperCase();
+    final results = <SaleOrder>[];
+    for (final m in maps) {
+      final sale = SaleOrder.fromMap(m);
+      final matches =
+          VietnameseUtils.containsVietnamese(sale.customerName, query) ||
+          sale.phone.contains(query) ||
+          VietnameseUtils.containsVietnamese(sale.productNames, query) ||
+          sale.allImeisForSearch.toUpperCase().contains(upperQuery) ||
+          (sale.itemSnapshotsJson ?? '').contains(query);
+      if (matches) {
+        results.add(sale);
+        if (results.length >= limit) break;
+      }
+    }
+    return results;
   }
 
-  /// Search products by query string using SQL LIKE on key columns.
+  /// Search products, accent- and case-insensitive. See [searchRepairs].
   Future<List<Product>> searchProducts(
     String query,
     String normalizedQuery, {
@@ -5050,36 +5050,30 @@ class DBHelper {
     final shopId = await _getScopedShopId('searchProducts');
     if (shopId == null) return [];
 
-    final like = '%$query%';
-    final likeNorm = '%$normalizedQuery%';
     final maps = await db.rawQuery(
       '''
       SELECT * FROM products
-      WHERE (deleted = 0 OR deleted IS NULL)
-        AND shopId = ?
-        AND (name LIKE ? OR name LIKE ?
-          OR imei LIKE ?
-          OR description LIKE ? OR description LIKE ?
-          OR color LIKE ? OR color LIKE ?
-          OR capacity LIKE ? OR capacity LIKE ?)
+      WHERE (deleted = 0 OR deleted IS NULL) AND shopId = ?
       ORDER BY createdAt DESC
       LIMIT ?
     ''',
-      [
-        shopId,
-        like,
-        likeNorm,
-        like,
-        like,
-        likeNorm,
-        like,
-        likeNorm,
-        like,
-        likeNorm,
-        limit,
-      ],
+      [shopId, 5000],
     );
-    return List.generate(maps.length, (i) => Product.fromMap(maps[i]));
+    final results = <Product>[];
+    for (final m in maps) {
+      final product = Product.fromMap(m);
+      final matches =
+          VietnameseUtils.containsVietnamese(product.name, query) ||
+          (product.imei ?? '').toUpperCase().contains(query.toUpperCase()) ||
+          VietnameseUtils.containsVietnamese(product.description, query) ||
+          VietnameseUtils.containsVietnamese(product.color ?? '', query) ||
+          VietnameseUtils.containsVietnamese(product.capacity ?? '', query);
+      if (matches) {
+        results.add(product);
+        if (results.length >= limit) break;
+      }
+    }
+    return results;
   }
 
   /// Get repairs with pagination support for lazy loading — scoped by shopId, excludes deleted.
@@ -11154,27 +11148,32 @@ class DBHelper {
     return await db.delete('customers', where: 'id = ?', whereArgs: [id]);
   }
 
+  /// Search customers by name/phone, accent- and case-insensitive.
+  /// SQL LIKE can't fold Vietnamese diacritics, so we fetch the shop-scoped
+  /// set and filter with [VietnameseUtils] in Dart.
   Future<List<Map<String, dynamic>>> searchCustomers(
     String query,
     String? shopId,
   ) async {
     final db = await database;
-    if (shopId == null) {
-      // Super admin: search all customers
-      return await db.query(
-        'customers',
-        where: 'deleted = 0 AND (name LIKE ? OR phone LIKE ?)',
-        whereArgs: ['%$query%', '%$query%'],
-        orderBy: 'name ASC',
-      );
-    } else {
-      return await db.query(
-        'customers',
-        where: 'shopId = ? AND deleted = 0 AND (name LIKE ? OR phone LIKE ?)',
-        whereArgs: [shopId, '%$query%', '%$query%'],
-        orderBy: 'name ASC',
-      );
-    }
+    final rows = shopId == null
+        ? await db.query(
+            'customers',
+            where: 'deleted = 0',
+            orderBy: 'name ASC',
+          )
+        : await db.query(
+            'customers',
+            where: 'shopId = ? AND deleted = 0',
+            whereArgs: [shopId],
+            orderBy: 'name ASC',
+          );
+    return rows.where((row) {
+      final name = (row['name'] as String?) ?? '';
+      final phone = (row['phone'] as String?) ?? '';
+      return phone.contains(query) ||
+          VietnameseUtils.containsVietnamese(name, query);
+    }).toList();
   }
 
   /// Ranked customer search for autocomplete UIs: exact phone match first,
@@ -11203,24 +11202,40 @@ class DBHelper {
       );
     }
 
-    final contains = '%$q%';
-    final startsWith = '$q%';
-    return db.rawQuery(
-      '''
-      SELECT *,
-        CASE
-          WHEN phone = ? THEN 0
-          WHEN phone LIKE ? THEN 1
-          WHEN name LIKE ? THEN 2
-          ELSE 3
-        END AS _rank
-      FROM customers
-      WHERE ${shopFilter}deleted = 0 AND (name LIKE ? OR phone LIKE ?)
-      ORDER BY _rank ASC, name ASC
-      LIMIT ?
-      ''',
-      [q, startsWith, startsWith, ...shopArgs, contains, contains, limit],
+    // SQL LIKE can't fold Vietnamese diacritics, so rank/filter in Dart.
+    final rows = await db.query(
+      'customers',
+      where: '${shopFilter}deleted = 0',
+      whereArgs: shopArgs,
     );
+
+    final normalizedQuery = VietnameseUtils.normalize(q);
+    int rank(Map<String, Object?> row) {
+      final phone = (row['phone'] as String?) ?? '';
+      final name = (row['name'] as String?) ?? '';
+      if (phone == q) return 0;
+      if (phone.startsWith(q)) return 1;
+      if (VietnameseUtils.normalize(name).startsWith(normalizedQuery)) {
+        return 2;
+      }
+      return 3;
+    }
+
+    final matches = rows.where((row) {
+      final phone = (row['phone'] as String?) ?? '';
+      final name = (row['name'] as String?) ?? '';
+      return phone.contains(q) || VietnameseUtils.containsVietnamese(name, q);
+    }).toList();
+
+    matches.sort((a, b) {
+      final rankCompare = rank(a).compareTo(rank(b));
+      if (rankCompare != 0) return rankCompare;
+      return ((a['name'] as String?) ?? '').compareTo(
+        (b['name'] as String?) ?? '',
+      );
+    });
+
+    return matches.take(limit).toList();
   }
 
   Future<List<Map<String, dynamic>>> getCustomerByPhone(

@@ -4,6 +4,39 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-04a] - fix(tìm kiếm) không dấu + không phân biệt hoa/thường toàn app
+
+**Chưa tăng version.**
+
+**Bug:** Ô "TÌM KIẾM TOÀN APP" và ô "Chọn khách hàng" (dùng chung khi tạo đơn
+sửa/bán) không ra kết quả khi gõ không dấu hoặc sai hoa/thường (vd gõ "PHAM"
+hoặc "pham" nhưng khách lưu tên "PHẠM..."). **Gốc:** SQLite `LIKE` mặc định
+không tự bỏ dấu tiếng Việt (chỉ case-fold ASCII) — các hàm
+`searchRepairs`/`searchSales`/`searchProducts`/`searchCustomers`/
+`searchCustomersRanked` trong `db_helper.dart` dùng `LIKE` để lọc SQL TRƯỚC
+khi lọc lại đúng bằng `VietnameseUtils` ở Dart (`global_search_view.dart`) →
+hàng bị SQL loại sai trước khi tới bước lọc đúng.
+
+**Fix:** Bỏ `LIKE` khỏi cả 5 hàm, chuyển hẳn sang fetch (giới hạn 5000 dòng
+theo recency) rồi lọc/rank bằng `VietnameseUtils.containsVietnamese` hoàn
+toàn ở Dart — cùng cơ chế đã chạy đúng sẵn ở danh sách đơn sửa
+(`order_list_view.dart`). `customer_autocomplete_field.dart` (ô "Chọn khách
+hàng" dùng ở tạo đơn sửa, tạo đơn bán...) gọi `searchCustomersRanked` nên fix
+này phủ hết các ô tìm kiếm chính của app mà không cần sửa từng màn riêng lẻ.
+Không đụng `suppliers.nameNorm` (đã có cơ chế cột chuẩn hoá riêng, đang đúng).
+
+**Test:** `flutter analyze` 0 error mới. Máy thật Oppo CPH2203 (shop test
+"M"): tạo đơn sửa "PHAM THI TEO" (SĐT 0909887766), tìm "teo" (chữ thường) ở
+cả **Tìm kiếm toàn app** và **Chọn khách hàng** đều ra đúng kết quả (trước
+fix sẽ báo "Không tìm thấy kết quả"). `adb shell input text` không gõ được
+ký tự có dấu trên máy test nên phần bỏ dấu được xác minh qua đọc code (cùng
+pattern `VietnameseUtils` đã chạy đúng ở nơi khác) — khuyến khích chủ shop tự
+gõ thử 1 lần trên bàn phím thật để yên tâm tuyệt đối.
+
+**Files:** `lib/data/db_helper.dart`.
+
+---
+
 ## [2026-08-31f] - docs(hướng dẫn) cập nhật KB trong app cho 2 tính năng ngân hàng
 
 **Chưa tăng version.**
