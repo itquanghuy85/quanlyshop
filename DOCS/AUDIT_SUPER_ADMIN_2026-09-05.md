@@ -6,8 +6,14 @@ rules), Super Admin Console, cổng PIN, nhật ký kiểm toán, xoá shop.
 (uid `46H9mmb68BQFDz6o6QkNzpWk1I33`), project `huyaka-1809`.
 
 **Kết luận:** 🔴 **NOT READY** cho tính năng super admin — hiện **không dùng
-được**. Kiến trúc phân quyền thì đúng và chắc; vấn đề nằm ở **1 lỗi cấu hình dữ
-liệu** (SA-01) cộng **2 lỗi bảo mật cổng PIN** (SA-02, SA-03).
+được**. Kiến trúc phân quyền thì đúng và chắc; vấn đề nằm ở **1 lỗi CODE tự thu
+hồi quyền super admin mỗi lần đăng nhập** (SA-09 — nguyên nhân gốc, ĐÃ SỬA) cộng
+**2 lỗi bảo mật cổng PIN** (SA-02, SA-03).
+
+> **Cập nhật quan trọng:** SA-01 ban đầu được ghi nhận là "dữ liệu cấu hình sai".
+> Sau khi sửa dữ liệu và quan sát trên máy thật thì phát hiện **dữ liệu bị chính
+> app ghi đè trở lại** — nguyên nhân thật là SA-09. Sửa tay trên Firestore
+> Console bao nhiêu lần cũng vô ích nếu chưa vá SA-09.
 
 ---
 
@@ -72,17 +78,101 @@ isSuperAdmin:false`, khớp đúng log. Đáng chú ý: `"admin"` **không nằm
 admin — `UserService.getUserRole()` map claims `super_admin` → trả về `'admin'`.
 Hai tầng đặt tên khác nhau cho cùng một vai trò.
 
-**Cách sửa (dữ liệu, KHÔNG phải code):** đặt
-`users/46H9mmb68BQFDz6o6QkNzpWk1I33.role = "super_admin"`. Cloud Function
-`syncUserClaims` (trigger `onDocumentWritten("users/{userId}")`) tự cấp lại
-claims. Đảo ngược bằng cách đổi role về như cũ.
+**⚠️ VÌ SAO doc lại có `role: "admin"` — xem SA-09.** Ban đầu tưởng là cấu hình
+sai một lần; thực tế **chính app ghi đè nó mỗi lần đăng nhập**. Sửa tay trên
+Firestore Console mà chưa vá SA-09 thì chỉ giữ được tới lần đăng nhập kế tiếp
+(đã đo được: claims đúng lúc 15:30:58, hỏng lại lúc 15:37:20).
+
+**Cách sửa đúng — 2 bước, phải đủ cả hai:**
+1. **Code:** vá SA-09 (đã làm) để app thôi ghi đè.
+2. **Dữ liệu:** đặt lại `users/46H9mmb68BQFDz6o6QkNzpWk1I33.role = "super_admin"`
+   một lần. Trigger `syncUserClaims` (`onDocumentWritten("users/{userId}")`) tự
+   cấp lại claims; từ đó app sẽ **giữ nguyên** giá trị này.
 
 > ⚠️ **KHÔNG** sửa code kiểu "coi `role=='admin'` là super admin":
 > `getCurrentUserPermissions` cấp **full quyền** cho `role=admin`, đó là vai trò
 > app-level của chủ shop/quản lý ⇒ sẽ cấp nhầm quyền super admin hàng loạt.
 
-**Trạng thái:** chờ sửa dữ liệu trên Firebase Console. Phần audit Console /
-cross-shop vì vậy là **NOT RUN (BLOCKED)**.
+**Trạng thái:** code đã vá + đã cài lên máy 2; chờ đặt lại `role` trên Firestore
+Console lần cuối. Phần audit Console / cross-shop vì vậy vẫn là
+**NOT RUN (BLOCKED)**.
+
+---
+
+## 2b. 🔴 SA-09 — APP TỰ THU HỒI QUYỀN SUPER ADMIN MỖI LẦN ĐĂNG NHẬP ✅ ĐÃ SỬA
+
+**Đây là nguyên nhân gốc của SA-01.** Không phải ai đó lỡ ghi sai `role` — chính
+`UserService.syncUserInfo()` ghi đè nó về `'admin'` sau mỗi lần đăng nhập.
+
+**Mã lỗi** (`lib/services/user_service.dart:1161`, trước khi sửa):
+```dart
+final resolvedRole = isSuperAdmin
+    ? 'admin'                                   // ← ghi thẳng xuống Firestore
+    : (data['role'] ?? (shopId == uid ? 'owner' : 'user')) as String;
+
+final userData = { ..., 'role': resolvedRole, ... };
+await userRef.set(userData, SetOptions(merge: true));
+```
+
+**Vòng lặp tự huỷ:**
+1. Admin đặt `users/{uid}.role = "super_admin"` → CF cấp claims
+   `role: super_admin, isSuperAdmin: true`. ✅
+2. Lần đăng nhập kế tiếp, app thấy `isSuperAdmin == true` ⇒ ghi **`role: 'admin'`**
+   ngược xuống `users/{uid}`.
+3. Trigger `syncUserClaims` chạy lại:
+   `isSuperAdmin = ("admin" === "super_admin")` ⇒ **false** ⇒ claims bị hạ cấp.
+4. Super admin mất quyền. Vĩnh viễn, ngay lần đăng nhập sau.
+
+**Bằng chứng bắt được đúng chuỗi trên máy thật:**
+```
+15:30:58  🔑 Token claims: shopId=IXmcXpc13VMPocoE8oN8hq73uHz1, role=super_admin
+          (ngay sau khi sửa tay trên Firestore Console)
+15:37:20  🔑 Token claims: shopId=46H9mmb68BQFDz6o6QkNzpWk1I33, role=admin
+          (sau vài lần đăng nhập — app đã ghi đè)
+```
+
+**Vì sao lập trình viên viết ra lỗi này:** `UserService.getUserRole()` **map**
+claims `super_admin` → trả về `'admin'` làm tên vai trò *app-level*. Dòng 1161
+dùng đúng cái tên app-level đó để **ghi xuống Firestore** — nơi Cloud Function
+lại đòi đúng chuỗi `'super_admin'`. Hai tầng đặt tên khác nhau cho cùng một vai
+trò, bị gộp làm một.
+
+**Chủ shop xác nhận đây là HỒI QUY:** trước kia đăng nhập tài khoản super admin
+là vào thẳng trang Super Admin rồi mới chọn shop — đúng như `main.dart:1091`
+thiết kế.
+
+**Đã sửa** — tách hẳn hai khái niệm, chỉ đổi giá trị ghi xuống Firestore:
+```dart
+final persistedRole = isSuperAdmin
+    ? 'super_admin'                             // ghi Firestore — CF đọc chuỗi này
+    : (data['role'] ?? (shopId == uid ? 'owner' : 'user')) as String;
+final resolvedRole = isSuperAdmin ? 'admin' : persistedRole;  // tên app-level, giữ nguyên
+...
+'role': persistedRole,
+```
+`resolvedRole` vẫn là `'admin'` nên **không đụng** hai chỗ dùng còn lại
+(`isNewShop && resolvedRole == 'owner'` và `saveAuthCache`), cũng như mọi nhánh
+`role == 'admin'` sẵn có trong app.
+
+---
+
+## 2c. 🟡 SA-08 — `_isSuperAdmin` của HomeView chỉ tính MỘT LẦN (LOW-MEDIUM)
+
+`lib/views/home_view.dart:591`
+```dart
+final bool _isSuperAdmin = UserService.isCurrentUserSuperAdmin();
+```
+Đây là **field initializer**, chỉ chạy đúng một lần lúc tạo State và **không bao
+giờ tính lại**. Trong khi đó quyền super admin resolve **muộn** (đo được trên
+máy: `syncAllToCloud`/`initRealTimeSync` báo `isSuperAdmin=false`, mãi tới
+`runFullCheck` mới `true`). Nếu HomeView dựng trúng lúc chưa resolve thì
+`_isSuperAdmin=false` bị **đóng băng cả phiên** ⇒ 3 mục chỉ dành cho super admin
+("Trung tâm quản trị", "Kiểm tra kết nối", "Thống kê đọc/ghi") **biến mất suốt
+phiên đó**, dù quyền đã đúng.
+
+Đã quan sát trực tiếp: `runFullCheck ... isSuperAdmin=true` nhưng danh sách Cài
+đặt vẫn **không có** mục "Trung tâm quản trị". Nên chuyển sang đọc động (hoặc
+rebuild khi claims resolve xong).
 
 ---
 

@@ -1158,16 +1158,26 @@ class UserService {
           : '';
     }
 
-    final resolvedRole = isSuperAdmin
-        ? 'admin'
+    // ⚠️ HAI TÊN VAI TRÒ KHÁC NHAU — đừng gộp làm một:
+    //  • persistedRole: giá trị GHI XUỐNG `users/{uid}.role`. Cloud Function
+    //    `buildCustomClaims()` so ĐÚNG CHUỖI 'super_admin' để cấp claims. Ghi
+    //    'admin' (tên app-level) vào đây làm CF tính isSuperAdmin=false ⇒ super
+    //    admin bị THU HỒI QUYỀN ngay lần đăng nhập kế tiếp, và không cách nào
+    //    giữ được quyền dù admin có sửa tay trên Firestore Console.
+    //  • resolvedRole: tên vai trò dùng trong app (getUserRole map
+    //    super_admin → 'admin'), giữ nguyên để không đụng các nhánh
+    //    `role == 'admin'` sẵn có.
+    final persistedRole = isSuperAdmin
+        ? 'super_admin'
         : (data['role'] ?? (shopId == uid ? 'owner' : 'user')) as String;
+    final resolvedRole = isSuperAdmin ? 'admin' : persistedRole;
 
     final userData = {
       'email': email,
       'displayName': resolvedDisplayName,
       'phone': data['phone'] ?? '',
       'address': data['address'] ?? '',
-      'role': resolvedRole,
+      'role': persistedRole,
       'shopId': shopId,
       'lastLogin': FieldValue.serverTimestamp(),
     };
