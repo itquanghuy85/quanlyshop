@@ -1,4 +1,5 @@
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -318,6 +319,11 @@ class _SupplierInvoicePriceImportViewState
             ],
           ),
         ),
+        // Chỉ hiện trên iPhone/iPad: đây là chỗ tắc thật của iOS — bấm "Tải
+        // xuống" trong ChatGPT KHÔNG tự đưa file vào nơi trình chọn file của
+        // app nhìn thấy, người dùng tưởng tải hỏng. Android tải thẳng vào
+        // Download nên không cần đoạn này.
+        if (_isIOS) _iosFileTipCard(),
         _card(
           icon: Icons.looks_3_outlined,
           color: Colors.teal,
@@ -393,6 +399,52 @@ class _SupplierInvoicePriceImportViewState
           ),
         ),
       ];
+
+  /// iPhone/iPad. Dùng `defaultTargetPlatform` chứ không `Platform.isIOS` để
+  /// bản web chạy trên Safari iOS cũng nhận đúng (và không nổ vì `dart:io`).
+  bool get _isIOS => defaultTargetPlatform == TargetPlatform.iOS;
+
+  /// Hướng dẫn riêng cho iPhone/iPad: tìm file Excel vừa tải từ ChatGPT.
+  ///
+  /// Trên iOS, bấm "Tải xuống" trong ChatGPT KHÔNG chắc đưa file vào thư mục
+  /// mà trình chọn file của app nhìn thấy — người dùng mở lên không thấy đâu
+  /// và tưởng tải hỏng. Cách chắc ăn là Chia sẻ → Lưu vào Tệp → Trên iPhone →
+  /// Downloads.
+  Widget _iosFileTipCard() {
+    return _card(
+      icon: Icons.phone_iphone,
+      color: Colors.blueGrey,
+      title: 'Trên iPhone / iPad: file tải về nằm ở đâu?',
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Cách chắc ăn nhất — làm ngay trong ChatGPT:',
+            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+          ),
+          SizedBox(height: 6),
+          _Step(1, 'Mở lại file trong cuộc trò chuyện.'),
+          _Step(2, 'Bấm nút Chia sẻ.'),
+          _Step(3, 'Chọn "Lưu vào Tệp".'),
+          _Step(4, 'Chọn Trên iPhone → Downloads → Lưu.'),
+          SizedBox(height: 10),
+          Text(
+            'Đã tải rồi mà không thấy file:',
+            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+          ),
+          SizedBox(height: 6),
+          _Step(1, 'Mở ứng dụng Tệp (Files).'),
+          _Step(2, 'Chọn Duyệt ở dưới cùng → vào Tải về (Downloads).'),
+          _Step(3, 'Vẫn không thấy: gõ tên file vào ô Tìm kiếm ở trên, '
+              'và xem cả hai nơi — iCloud Drive → Downloads và Trên iPhone → '
+              'Downloads.'),
+          SizedBox(height: 8),
+          _Tip('Tìm thấy file rồi thì quay lại đây bấm "Chọn file Excel '
+              'để nhập" — trình chọn file sẽ thấy nó trong mục Tải về.'),
+        ],
+      ),
+    );
+  }
 
   /// Sơ đồ 4 bước — để người dùng mới thấy toàn cảnh trước khi đọc chi tiết.
   /// Dùng [Wrap] nên tự xuống dòng ở màn hẹp thay vì tràn ngang.
@@ -1060,6 +1112,49 @@ class _SupplierInvoicePriceImportViewState
       SnackBar(
         content: Text(m),
         backgroundColor: err ? Colors.red : Colors.green,
+      ),
+    );
+  }
+}
+
+/// Một bước đánh số trong hướng dẫn thao tác (dùng cho phần iPhone).
+class _Step extends StatelessWidget {
+  final int n;
+  final String text;
+  const _Step(this.n, this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 18,
+            height: 18,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.blueGrey.shade100,
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              '$n',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: Colors.blueGrey.shade800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 12.5, height: 1.35),
+            ),
+          ),
+        ],
       ),
     );
   }

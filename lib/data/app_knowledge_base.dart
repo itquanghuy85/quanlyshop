@@ -968,6 +968,14 @@ class AppKnowledgeBase {
             'giá, badge "BẢNG GIÁ NCC".',
         'Chưa có file? Bấm **Tải file Excel mẫu** để xem đúng cấu trúc, hoặc tự '
             'gõ tay theo mẫu đó.',
+        '**Dùng iPhone/iPad mà tải xong không thấy file đâu?** Cách chắc ăn: '
+            'mở lại file trong cuộc trò chuyện ChatGPT → bấm **Chia sẻ** → '
+            '**Lưu vào Tệp** → chọn **Trên iPhone → Downloads** → Lưu. Sau đó '
+            'quay lại app bấm "Chọn file Excel để nhập" là thấy.',
+        'Nếu đã tải rồi: mở ứng dụng **Tệp (Files)** → **Duyệt** → **Tải về '
+            '(Downloads)**. Vẫn không thấy thì gõ tên file vào ô Tìm kiếm, và '
+            'nhớ xem CẢ HAI nơi: **iCloud Drive → Downloads** và **Trên '
+            'iPhone → Downloads**.',
       ],
       notes: [
         'Giá thu khách ĐƯỢC PHÉP để trống. App KHÔNG bao giờ tự đoán giá bán '
@@ -992,6 +1000,11 @@ class AppKnowledgeBase {
             'Bảng giá — giá ghim chỉ nằm trên 1 máy).',
         'Chỉ chủ shop/quản lý (có quyền xem giá vốn) mới nhập được. Không đụng '
             'tồn kho, không đổi giá vốn của các đơn hàng đã tạo.',
+        'Trên iPhone/iPad, bấm "Tải xuống" trong ChatGPT KHÔNG chắc đưa file '
+            'vào nơi app nhìn thấy được — phải "Lưu vào Tệp" như hướng dẫn ở '
+            'bước 4. Máy Android thì tải thẳng vào thư mục Tải về, không cần '
+            'làm gì thêm. Màn nhập trong app cũng hiện sẵn hướng dẫn này khi '
+            'bạn dùng iPhone.',
       ],
       terms: ['gia-von', 'gia-tham-khao', 'lai-gop'],
       sampleQuestions: [
@@ -1003,11 +1016,16 @@ class AppKnowledgeBase {
         'sao hiện chưa thiết lập giá thu khách',
         'nhập lại cùng file có bị trùng không',
         'giá vốn bình quân tính thế nào',
+        'tải file excel trên iphone xong không thấy đâu',
+        'file tải về iphone nằm ở thư mục nào',
+        'lưu file từ chatgpt vào tệp trên iphone',
       ],
       tags: [
         'bang gia ncc', 'hoa don ncc', 'nhap bang gia', 'gpt doc hoa don',
         'chatgpt hoa don', 'excel hoa don ncc', 'gia thu khach', 'gia von',
         'gia von binh quan', 'danh muc gia', 'khoa import', 'anh hoa don',
+        'iphone', 'ios', 'tep', 'files', 'downloads', 'tai ve',
+        'khong thay file', 'luu vao tep',
       ],
       audience: ['owner', 'manager'],
     ),

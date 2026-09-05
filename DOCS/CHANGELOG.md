@@ -4,6 +4,38 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-05e] - feat(bảng giá NCC) hướng dẫn tìm file Excel trên iPhone/iPad
+
+**Điểm tắc thật của iOS.** Trên iPhone, bấm "Tải xuống" trong ChatGPT KHÔNG
+chắc đưa file vào thư mục mà trình chọn file của app nhìn thấy được — người
+dùng mở app lên không thấy file đâu và tưởng tải hỏng. Android tải thẳng vào
+thư mục Tải về nên không gặp.
+
+- Màn "Nhập bảng giá từ hoá đơn NCC" thêm thẻ **"Trên iPhone / iPad: file tải
+  về nằm ở đâu?"**, đặt ngay sau bước 2 (đưa cho ChatGPT) — đúng lúc người
+  dùng vừa tải file xong. Nội dung 2 phần:
+  1. *Cách chắc ăn* — mở lại file trong ChatGPT → Chia sẻ → **Lưu vào Tệp** →
+     **Trên iPhone → Downloads**.
+  2. *Đã tải rồi mà không thấy* — Tệp (Files) → Duyệt → Tải về; vẫn không thấy
+     thì tìm theo tên và xem **cả hai** nơi: iCloud Drive → Downloads và Trên
+     iPhone → Downloads.
+- **Chỉ hiện trên iOS.** Dùng `defaultTargetPlatform == TargetPlatform.iOS`
+  chứ không `Platform.isIOS`, để bản web chạy trên Safari iOS cũng nhận đúng và
+  không phụ thuộc `dart:io`. Android không thấy thẻ này (đã kiểm trên máy).
+- `_Step` (widget mới): bước đánh số tròn, dùng cho phần hướng dẫn thao tác.
+- `app_knowledge_base.dart`: mục `price-book-supplier-invoice` thêm 2 bước iOS
+  vào `steps`, 1 ghi chú vào `notes`, 3 câu hỏi mẫu ("tải file excel trên
+  iphone xong không thấy đâu"…) và các thẻ `iphone/ios/tep/files/downloads` —
+  để AI Trợ Lý và Trung tâm trợ giúp trả lời được câu này.
+
+**Test:** `flutter analyze` 0 lỗi; `flutter test` **+550 −8** (8 lỗi có sẵn).
+Máy thật Oppo: tạm bật cờ để render thẻ → bố cục đúng (các bước đánh số, hộp
+mẹo, đúng vị trí giữa bước 2 và bước 3); trả cờ về `defaultTargetPlatform` rồi
+kiểm lại → **thẻ không hiện trên Android**. Chưa kiểm được trên máy iOS thật
+(không có thiết bị) — phần gating là một phép so sánh nền tảng, rủi ro thấp.
+
+---
+
 ## [2026-09-05d] - fix(bảng giá NCC) LỖI CHẶN: không đọc được file do ChatGPT tạo
 
 **Phát hiện khi chạy nốt các kịch bản kiểm thử còn thiếu.**
