@@ -186,6 +186,24 @@ trên Oppo CPH2203 với dữ liệu shop thật (xem mục 6).
 
 ## [2026-09-06a] - fix(UI) NÚT DỌN TRÙNG BỊ KHUẤT + SOÁT TRÙNG TOÀN BỘ BẢNG
 
+### ✅ NGHIỆM THU: đã dọn xong trên dữ liệu thật (06/09/2026)
+
+Chủ shop tự bấm nút. Đối chiếu CSDL sau khi dọn — **khớp chính xác kỳ vọng**:
+
+| | Trước | Sau |
+|---|---|---|
+| Đơn bán | 6.485 | **4.240** |
+| Bản ghi KV / mã hoá đơn | 6.218 / 3.973 | **3.973 / 3.973 (thừa 0)** |
+| Doanh thu | 99.817.152.000đ | **64.210.963.000đ** |
+| Doanh thu 2026 | 25.814.613.000đ | **15.390.584.000đ** |
+
+- **Không xoá nhầm:** đơn app tự tạo vẫn đúng **267 đơn / 3.980.865.000đ**;
+  hôm nay và tháng 9/2026 không đổi.
+- **Không lượt nào hụt cloud:** `sync_queue` = 0 dòng.
+- **Chạy lại an toàn:** lượt đầu (xoá lẻ) dọn 716/2245 rồi bị ngắt giữa chừng
+  để đổi sang bản gộp lô; quét lại đếm đúng 1.529 bản còn lại, không mất và
+  không xoá nhầm gì.
+
 **Chủ shop báo:** "tôi không thấy chỗ dọn đơn từ kiotviet trùng".
 
 **Nguyên nhân:** panel đặt ở tab **TÀI CHÍNH** — tab thứ 5 của `TabBar` có

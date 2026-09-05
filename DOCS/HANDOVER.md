@@ -63,6 +63,28 @@ firebase functions:delete notifyNewRepair notifyNewChat notifyStatusChange \
 `TypeError` rồi thoát. Prompt `CHAT_SYSTEM_PROMPT` vừa thêm 1 dòng cấm `*nghiêng*`
 thì **cần deploy mới có hiệu lực**.
 
+**✅ ĐÃ DỌN XONG 2.245 ĐƠN KIOTVIET TRÙNG — NGHIỆM THU 06/09/2026.**
+Chủ shop tự bấm nút (bước cuối đòi mật khẩu đăng nhập). Đối chiếu CSDL thật
+sau khi dọn, **khớp chính xác kỳ vọng**:
+
+| | Trước | Sau | Kỳ vọng |
+|---|---|---|---|
+| Đơn bán | 6.485 | **4.240** | 4.240 |
+| Bản ghi KV / mã hoá đơn | 6.218 / 3.973 | **3.973 / 3.973** | thừa = 0 |
+| Doanh thu | 99.817.152.000đ | **64.210.963.000đ** | 64.210.963.000đ |
+| Doanh thu 2026 | 25,8 tỷ | **15.390.584.000đ** | 15,4 tỷ |
+
+· **KHÔNG xoá nhầm:** đơn app tự tạo giữ nguyên **267 đơn / 3.980.865.000đ**
+(y hệt trước khi dọn). Hôm nay + tháng 9/2026 không đổi.
+· **Không lượt nào hụt lên cloud:** `sync_queue` = **0 dòng** ⇒ cả 2.245 bản đã
+soft-delete xong trên Firestore, máy khác sẽ tự gỡ theo khi đồng bộ.
+· File phục hồi vẫn còn ở `/sdcard/Download/kv_rollback_manifest.json` nếu cần
+lật lại (đặt `deleted=false` cho các `firestoreId` trong đó).
+· **Đã chạy 2 lượt:** lượt đầu (xoá lẻ từng bản, ~25–37 bản/phút) dọn được
+716/2245 rồi bị ngắt để đổi sang bản gộp lô; quét lại đếm đúng 1.529 bản còn
+lại, **ngắt giữa chừng không mất và không xoá nhầm gì** — chứng minh thao tác
+này chạy lại nhiều lần vẫn an toàn.
+
 **📍 NÚT DỌN TRÙNG ĐÃ CHUYỂN SANG TAB "ĐƠN BÁN" (`[2026-09-06a]`).** Trước đặt ở
 tab TÀI CHÍNH — tab thứ 5 của `TabBar isScrollable: true` nên **bị khuất mép
 phải màn hình**, chủ shop không tìm ra. Nay là widget `_KvDuplicatePanel` nằm
