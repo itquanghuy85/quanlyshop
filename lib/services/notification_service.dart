@@ -360,8 +360,17 @@ class NotificationService {
       _handleMessageOpenedApp(initialMessage);
     }
 
-    // Subscribe to staff topic for business notifications
-    await _firebaseMessaging.subscribeToTopic('staff');
+    // ⛔ KHÔNG subscribe topic 'staff' nữa (2026-09-06).
+    // Topic này là TOÀN CỤC — mọi nhân viên của MỌI shop cùng nhận. Ba trigger
+    // từng gửi vào đó (notifyNewRepair/notifyNewChat/notifyStatusChange) đã được
+    // gỡ khỏi functions/index.js vì vừa chết sẵn (API sendToTopic/sendMulticast
+    // đã bị xoá khỏi firebase-admin v13), vừa làm rò tên khách + SĐT + model +
+    // giá sang shop khác. Nay topic 'staff' không còn ai gửi; bỏ luôn đăng ký để
+    // không còn đường rò. Thông báo nghiệp vụ đi qua callable sendShopNotification
+    // (gửi theo token của đúng shop).
+    // Thiết bị cũ đã lỡ đăng ký sẽ tự rời khi FCM token xoay vòng.
+    await _firebaseMessaging.unsubscribeFromTopic('staff');
+
     // Subscribe to global broadcast topic (super admin announcements)
     await _firebaseMessaging.subscribeToTopic('all_users');
 

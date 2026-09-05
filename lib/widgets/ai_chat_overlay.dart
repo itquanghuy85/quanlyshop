@@ -36,12 +36,52 @@ class _Msg {
 
 // ── Quick chip presets ─────────────────────────────────────────────────────────
 
-const _kChips = [
+/// Chip mặc định đặt NĂNG LỰC lên trước câu hỏi số liệu.
+///
+/// Trước đây 4 chip đều là truy vấn số liệu, còn ngay sau lời chào thì chip bị
+/// thay bằng 3 câu mẫu "cách dùng tính năng" — nên người dùng không có đường
+/// nào biết AI còn **tạo đơn / nhập kho / mở màn hình hộ** được.
+const _kChipWhatCanYouDo = ('✨ AI làm được gì?', Icons.auto_awesome_rounded);
+
+/// Nhãn chip cần quyền xem doanh thu — ẩn với nhân viên không có quyền.
+const _kFinanceChipLabels = {
+  'Doanh thu hôm nay',
+  'Lợi nhuận hôm nay',
+  'Công nợ khách hàng',
+  'Ai nợ nhiều nhất',
+};
+
+const _kChipsHome = [
+  ('Tạo đơn sửa', Icons.build_circle_rounded),
+  ('Đơn đang chờ', Icons.pending_actions_rounded),
   ('Doanh thu hôm nay', Icons.trending_up_rounded),
   ('Tồn kho hiện tại', Icons.inventory_2_rounded),
   ('Công nợ khách hàng', Icons.account_balance_wallet_rounded),
-  ('Đơn sửa đang chờ', Icons.build_circle_rounded),
 ];
+
+/// Chip gợi ý theo tab đang mở — mỗi nhãn phải khớp một nhánh quick-answer.
+const _kChipsByTab = <String, List<(String, IconData)>>{
+  AiNavBridge.tabRepairs: [
+    ('Tạo đơn sửa', Icons.build_circle_rounded),
+    ('Đơn đang chờ', Icons.pending_actions_rounded),
+    ('Sửa chữa hôm nay', Icons.today_rounded),
+  ],
+  AiNavBridge.tabSales: [
+    ('Tạo đơn bán', Icons.point_of_sale_rounded),
+    ('Bán hàng hôm nay', Icons.today_rounded),
+    ('Đơn bán gần nhất', Icons.receipt_long_rounded),
+  ],
+  AiNavBridge.tabInventory: [
+    ('Nhập kho mới', Icons.add_box_rounded),
+    ('Tồn kho hiện tại', Icons.inventory_2_rounded),
+    ('Kho linh kiện', Icons.memory_rounded),
+  ],
+  AiNavBridge.tabFinance: [
+    ('Doanh thu hôm nay', Icons.trending_up_rounded),
+    ('Lợi nhuận hôm nay', Icons.savings_rounded),
+    ('Ai nợ nhiều nhất', Icons.account_balance_wallet_rounded),
+  ],
+};
 
 // ── Widget ─────────────────────────────────────────────────────────────────────
 
@@ -83,6 +123,10 @@ class _AiChatOverlayState extends State<AiChatOverlay>
 
   // Whether welcome message has been sent this session
   bool _welcomeSent = false;
+
+  /// Lần đầu mở app trong ngày → chấm đỏ trên nút AI để mời xem bản tin sáng.
+  /// Chỉ ĐỌC mốc ngày; việc ghi vẫn do [_sendWelcome] làm khi thực sự hiện tin.
+  bool _briefingPending = false;
 
   // ── FAB drag position (null = default bottom-right on first build) ─────────
   Offset? _fabOffset;
@@ -133,7 +177,9 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     _loadPermissions();
     _watchConnectivity();
     _loadHistory();
+    _checkBriefingPending();
     AiNavBridge.askRequest.addListener(_onExternalAsk);
+    AiNavBridge.screenContext.addListener(_onScreenContextChanged);
     // Stats loaded lazily on first open — not in initState to avoid wasted SQLite reads
   }
 
@@ -150,6 +196,42 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _send(q);
     });
+  }
+
+  /// Tab đang mở đổi → đổi bộ chip gợi ý mặc định (chỉ khi đang không có chip
+  /// ngữ cảnh của câu trả lời trước).
+  void _onScreenContextChanged() {
+    if (!mounted || _contextChips.isNotEmpty) return;
+    setState(() {});
+  }
+
+  Future<void> _checkBriefingPending() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final now = DateTime.now();
+      final todayStr = '${now.year}-${now.month}-${now.day}';
+      final pending = (prefs.getString(_kLastOpenKey) ?? '') != todayStr;
+      if (mounted && pending) setState(() => _briefingPending = true);
+    } catch (_) {}
+  }
+
+  /// Chip mặc định: năng lực trước, rồi gợi ý theo tab, lọc theo quyền.
+  List<(String, IconData)> _defaultChips() {
+    final tab = AiNavBridge.screenContext.value;
+    final chips = <(String, IconData)>[
+      _kChipWhatCanYouDo,
+      ...(_kChipsByTab[tab] ?? _kChipsHome),
+    ];
+    if (!_canViewFinance) {
+      chips.removeWhere((c) => _kFinanceChipLabels.contains(c.$1));
+      // Tab tài chính lọc xong có thể rỗng → quay về bộ chip chung.
+      if (chips.length == 1) {
+        chips.addAll(_kChipsHome
+            .where((c) => !_kFinanceChipLabels.contains(c.$1)));
+      }
+    }
+    chips.add((_kSeeAllFeatures, Icons.apps_rounded));
+    return chips;
   }
 
   Future<void> _loadPermissions() async {
@@ -179,6 +261,7 @@ class _AiChatOverlayState extends State<AiChatOverlay>
   @override
   void dispose() {
     AiNavBridge.askRequest.removeListener(_onExternalAsk);
+    AiNavBridge.screenContext.removeListener(_onScreenContextChanged);
     _anim.dispose();
     _pulse.dispose();
     _ctrl.dispose();
@@ -330,11 +413,16 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     } catch (_) {}
 
     if (!mounted) return;
+    if (_briefingPending) setState(() => _briefingPending = false);
 
     if (isFirstToday && (stats.repairsPending > 0 || (_canViewFinance && stats.debtReceivable > 0))) {
       final buf = StringBuffer('Chào buổi mới! Điểm cần lưu ý hôm nay:\n');
       if (stats.repairsPending > 0) {
         buf.writeln('• **${stats.repairsPending} đơn sửa** đang chờ xử lý');
+      }
+      if (stats.repairsOverdue > 0) {
+        buf.writeln(
+            '• ⚠️ Trong đó **${stats.repairsOverdue} đơn** tồn từ hôm trước');
       }
       if (_canViewFinance && stats.debtReceivable > 0) {
         buf.writeln('• Công nợ khách hàng: **${_fmtStats(stats.debtReceivable)}**');
@@ -369,11 +457,14 @@ class _AiChatOverlayState extends State<AiChatOverlay>
       final samples = AppKnowledgeBase.sampleQuestionSpread(3, seed: daySeed);
       if (samples.isNotEmpty && mounted) {
         _addAI(
-          'Bạn có thể hỏi mình **cách dùng bất kỳ tính năng nào**. Thử:\n'
+          'Mình **làm hộ** được chứ không chỉ trả lời: *"Tạo đơn sửa iPhone 13 '
+          'thay màn cho Minh"*, *"Nhập kho mới 10 pin"*, *"Mở đơn sửa gần nhất"*.\n\n'
+          'Hoặc hỏi **cách dùng bất kỳ tính năng nào**:\n'
           '${samples.map((s) => '• _"$s"_').join('\n')}',
         );
         setState(() {
           _contextChips = [
+            _kChipWhatCanYouDo,
             for (final s in samples) (s, Icons.help_outline_rounded),
             (_kSeeAllFeatures, Icons.apps_rounded),
           ];
@@ -730,29 +821,49 @@ class _AiChatOverlayState extends State<AiChatOverlay>
       duration: const Duration(milliseconds: 200),
       child: GestureDetector(
         onTap: _toggle,
-        child: Container(
-          width: 52,
-          height: 52,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF4F46E5), Color(0xFF6366F1)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF4F46E5).withValues(alpha: 0.35),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF4F46E5), Color(0xFF6366F1)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF4F46E5).withValues(alpha: 0.35),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: const Icon(
-            Icons.auto_awesome_rounded,
-            color: Colors.white,
-            size: 24,
-          ),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            // Chấm đỏ: có bản tin đầu ngày chưa xem.
+            if (_briefingPending && !_open)
+              Positioned(
+                right: 1,
+                top: 1,
+                child: Container(
+                  width: 13,
+                  height: 13,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF4444),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -925,7 +1036,7 @@ class _AiChatOverlayState extends State<AiChatOverlay>
   }
 
   Widget _buildChips() {
-    final chips = _contextChips.isNotEmpty ? _contextChips : _kChips;
+    final chips = _contextChips.isNotEmpty ? _contextChips : _defaultChips();
     final isContext = _contextChips.isNotEmpty;
     return SizedBox(
       height: 42,

@@ -4,6 +4,118 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-06b] - feat(AI) LỘ NĂNG LỰC AI + BẢN TIN ĐẦU NGÀY · fix ĐẾM ĐƠN CHỜ SAI · gỡ 3 TRIGGER THÔNG BÁO CHẾT
+
+**Chủ shop báo:** *"AI chat đang có ít card gợi ý, chỉ chú tâm vào hướng dẫn sử
+dụng là nhiều — cần cho người dùng biết chức năng, khả năng của AI hơn."*
+
+### 1. Vì sao người dùng không biết AI làm được gì
+
+Không phải AI thiếu năng lực — mà **không có đường nào nhìn thấy nó**:
+
+- 4 chip mặc định (`ai_chat_overlay.dart`) đều là câu hỏi **số liệu**.
+- Ngay sau lời chào, `_sendWelcome` **ghi đè** chip bằng 3 câu mẫu "cách dùng
+  tính năng" từ `AppKnowledgeBase.sampleQuestionSpread(3)`, kèm câu dẫn *"Bạn có
+  thể hỏi mình cách dùng bất kỳ tính năng nào"* ⇒ **chip đầu tiên người dùng
+  nhìn thấy 100% là hướng dẫn sử dụng**.
+- Câu trả lời liệt kê năng lực **đã có sẵn** trong `quickAnswer`, nhưng chỉ khớp
+  cụm `'lam gi duoc'` — gõ "AI **làm được gì**" (đảo trật tự từ) là trượt, rơi
+  xuống cloud/KB.
+- `app_knowledge_base.dart` — nguồn sự thật của **cả AI lẫn Trung tâm trợ giúp**
+  — **ghi sai**: *"AI chỉ đọc số liệu, không tự tạo/sửa đơn"*. Thực tế AI mở
+  được form **tạo đơn sửa / đơn bán / nhập kho** đã điền sẵn nội dung
+  (`AiOrderInputSheet` + `createRepairFromChat`/`createSaleFromChat`/
+  `createStockFromChat`). Tức là AI đang **tự khai báo sai về chính mình**.
+
+### 2. Đã sửa — AI
+
+- **Chip mặc định đặt năng lực lên trước:** chip đầu luôn là **"✨ AI làm được
+  gì?"**, rồi tới nhóm chip theo việc (`Tạo đơn sửa`, `Đơn đang chờ`, `Doanh thu
+  hôm nay`, `Tồn kho hiện tại`, `Công nợ khách hàng`), chốt bằng
+  `📚 Tất cả tính năng`.
+- **Chip đổi theo tab đang mở** (`AiNavBridge.screenContext`): Sửa chữa → *Tạo
+  đơn sửa · Đơn đang chờ · Sửa chữa hôm nay*; Bán hàng → *Tạo đơn bán · Bán hàng
+  hôm nay · Đơn bán gần nhất*; Kho → *Nhập kho mới · Tồn kho hiện tại · Kho linh
+  kiện*; Tài chính → *Doanh thu hôm nay · Lợi nhuận hôm nay · Ai nợ nhiều nhất*.
+  Mọi nhãn đều đã đối chiếu để khớp đúng một nhánh `quickAnswer`.
+- **Lọc theo quyền:** chip tài chính bị **ẩn** với người không có
+  `allowViewRevenue` (trước đây vẫn hiện rồi mới bị AI từ chối). Nếu lọc xong
+  rỗng thì quay về bộ chip chung.
+- **Bắt thêm cách hỏi tự nhiên:** thêm `lam duoc gi`, `lam duoc nhung gi`,
+  `lam nhung gi`, `giup duoc gi`, `kha nang`, `biet lam gi`, `co the lam gi`.
+- **Viết lại câu trả lời năng lực** theo 4 nhóm — 🛠️ LÀM HỘ BẠN / 📊 TRA SỐ LIỆU
+  / 📂 MỞ NHANH MÀN HÌNH / 📚 CHỈ CÁCH LÀM — mở đầu bằng *"Mình không chỉ trả
+  lời — mình làm hộ được luôn"* và nhắc nút 🎤.
+- **Tin nhắn sau lời chào** nay dẫn bằng năng lực *làm hộ* trước, rồi mới tới
+  câu mẫu how-to.
+- **`app_knowledge_base.dart` (`ai-assistant`):** viết lại `whatItDoes` thành 4
+  nhóm năng lực, thay ghi chú sai bằng ghi chú đúng — *"AI KHÔNG tự ghi dữ liệu:
+  với lệnh tạo đơn, AI chỉ mở form điền sẵn, bạn vẫn phải tự bấm Lưu"* — thêm
+  bước "bấm chip ✨ AI làm được gì?" và 1 câu hỏi mẫu.
+
+### 3. Đã sửa — bản tin đầu ngày (chủ động hơn)
+
+- **Chấm đỏ trên nút AI** khi lần đầu mở app trong ngày chưa xem bản tin
+  (`_checkBriefingPending` chỉ **đọc** mốc ngày; việc **ghi** vẫn do
+  `_sendWelcome` làm khi thật sự hiện tin — không tự tiêu bản tin).
+- Bản tin thêm dòng **"⚠️ Trong đó N đơn tồn từ hôm trước"**.
+
+### 4. 🐛 fix: "đơn sửa đang chờ" trước nay **chỉ đếm đơn tạo trong ngày**
+
+`AiChatStats.repairsPending` được tính từ `getRepairsByCreatedAtRange(dayStart,
+dayEnd)` — tức **bỏ sót toàn bộ đơn tồn của những hôm trước**. Chủ shop hỏi "đơn
+đang chờ" lúc 9h sáng có thể nhận về **0** dù còn 20 máy chưa trả. Danh sách liệt
+kê cũng lọc từ `repairSummaries` (cũng chỉ trong ngày). Con số này xuất hiện ở
+**16 chỗ** trong `ai_chat_service.dart` + lời chào.
+
+**Sửa:**
+- `db_helper.dart` thêm `getPendingRepairCounts(dayStartMs)` (1 câu `COUNT` +
+  `SUM(CASE…)` → `{total, overdue}`) và `getPendingRepairs({limit: 8})` — đều
+  lọc `status < 4`, `deleted`, `shopId`, **không giới hạn ngày tạo**.
+- `AiChatStats` thêm `repairsOverdue` + `pendingRepairSummaries`;
+  `repairsPending` nay là **toàn bộ đơn chưa giao**.
+- Câu trả lời "đơn đang chờ" liệt kê từ danh sách chưa giao thật, mỗi dòng có
+  **"tồn N ngày"**, kèm cảnh báo số đơn tồn từ hôm trước.
+- `repairsToday` giữ nguyên nghĩa cũ (đơn tạo trong ngày) — không đụng.
+
+### 5. 🔴 Gỡ 3 trigger thông báo: vừa CHẾT SẴN vừa RÒ DỮ LIỆU CHÉO SHOP
+
+`functions/index.js` có `notifyNewRepair`, `notifyNewChat`, `notifyStatusChange`.
+
+- **Chết sẵn:** chúng gọi `admin.messaging().sendToTopic()` và `.sendMulticast()`
+  — **cả hai API đã bị xoá khỏi `firebase-admin` v13**, mà `package.json` đang
+  `^13.6.0` (đã kiểm `node_modules`: không còn hàm nào). Mỗi lần chạy đều ném
+  `TypeError` rồi bị `catch` nuốt ⇒ **im lặng không gửi được gì**.
+- **Rò chéo shop:** `notifyNewRepair`/`notifyStatusChange` bắn tới topic
+  **`staff` TOÀN CỤC**, mà `notification_service.dart` cho nhân viên của **mọi
+  shop** subscribe topic đó. "Sửa cho chạy lại" nguyên trạng = **tên khách +
+  SĐT + model + giá của shop A hiện trên máy shop B** (cùng họ AR-05/AR-06).
+- **Và sẽ gây trùng:** client đã tự gửi đủ cả 3 loại qua callable
+  `sendShopNotification` (đúng API `sendEachForMulticast`, lọc theo `shopId`):
+  đơn sửa mới `create_repair_order_view.dart:1116`, đổi trạng thái
+  `repair_detail_view.dart:1422`, chat `chat_service.dart:111`. Hồi sinh trigger
+  ⇒ **mỗi sự kiện 2 thông báo**.
+
+**Xử lý: gỡ hẳn 3 trigger** (thay bằng khối chú thích nêu đủ 3 lý do + cách làm
+đúng nếu sau này muốn chuyển thông báo về server), trim import
+`onDocumentCreated`/`onDocumentUpdated` không còn dùng, và **bỏ đăng ký topic
+`staff`** ở client (`subscribeToTopic` → `unsubscribeFromTopic`) vì topic này
+nay không còn ai gửi — đóng luôn đường rò. Topic `all_users` (broadcast của super
+admin) **giữ nguyên**.
+
+### Files
+
+`lib/widgets/ai_chat_overlay.dart` · `lib/services/ai_chat_service.dart` ·
+`lib/data/db_helper.dart` · `lib/data/app_knowledge_base.dart` ·
+`lib/services/notification_service.dart` · `functions/index.js`
+
+**Kiểm chứng:** `flutter analyze` **0 error** (không phát sinh issue nào ở file
+đã sửa) · `node --check functions/index.js` OK · `flutter test` xem mục Trạng
+thái. **Chưa nghiệm thu trên máy thật.**
+
+---
+
+
 ## [2026-09-06a] - fix(UI) NÚT DỌN TRÙNG BỊ KHUẤT + SOÁT TRÙNG TOÀN BỘ BẢNG
 
 **Chủ shop báo:** "tôi không thấy chỗ dọn đơn từ kiotviet trùng".

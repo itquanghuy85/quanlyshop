@@ -5365,6 +5365,61 @@ class DBHelper {
     return List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
   }
 
+  /// Đếm đơn sửa CHƯA GIAO (status < 4) trên toàn bộ lịch sử, không giới hạn
+  /// theo ngày tạo. Trả về `{'total': n, 'overdue': m}` với `overdue` là số đơn
+  /// tồn từ trước [dayStartMs] (tức đã qua ít nhất một ngày mà vẫn chưa giao).
+  ///
+  /// Dùng cho AI Trợ Lý: câu "đơn đang chờ" phải tính cả đơn của những hôm
+  /// trước, không chỉ đơn tạo trong ngày.
+  Future<Map<String, int>> getPendingRepairCounts(int dayStartMs) async {
+    final db = await database;
+    final shopId = await _getScopedShopId('getPendingRepairCounts');
+    const base =
+        'SELECT COUNT(*) AS total, '
+        'SUM(CASE WHEN createdAt < ? THEN 1 ELSE 0 END) AS overdue '
+        'FROM repairs WHERE status < 4 AND (deleted = 0 OR deleted IS NULL)';
+    final List<Map<String, Object?>> rows;
+    if (shopId != null && shopId.isNotEmpty) {
+      rows = await db.rawQuery(
+        '$base AND (shopId = ? OR shopId IS NULL)',
+        [dayStartMs, shopId],
+      );
+    } else {
+      rows = await db.rawQuery(base, [dayStartMs]);
+    }
+    final row = rows.isEmpty ? const <String, Object?>{} : rows.first;
+    return {
+      'total': (row['total'] as num?)?.toInt() ?? 0,
+      'overdue': (row['overdue'] as num?)?.toInt() ?? 0,
+    };
+  }
+
+  /// Danh sách đơn sửa CHƯA GIAO (status < 4), mới nhất trước, để AI liệt kê.
+  /// [limit] giữ nhỏ vì chỉ dùng để hiển thị vài dòng tóm tắt.
+  Future<List<Repair>> getPendingRepairs({int limit = 8}) async {
+    final db = await database;
+    final shopId = await _getScopedShopId('getPendingRepairs');
+    final List<Map<String, dynamic>> maps;
+    if (shopId != null && shopId.isNotEmpty) {
+      maps = await db.query(
+        'repairs',
+        where:
+            'status < 4 AND (deleted = 0 OR deleted IS NULL) AND (shopId = ? OR shopId IS NULL)',
+        whereArgs: [shopId],
+        orderBy: 'createdAt DESC',
+        limit: limit,
+      );
+    } else {
+      maps = await db.query(
+        'repairs',
+        where: 'status < 4 AND (deleted = 0 OR deleted IS NULL)',
+        orderBy: 'createdAt DESC',
+        limit: limit,
+      );
+    }
+    return List.generate(maps.length, (i) => Repair.fromMap(maps[i]));
+  }
+
   /// Repairs where cost was actually paid (cash/transfer) and recorded into the
   /// fund during the given date range, regardless of when the repair was created.
   Future<List<Repair>> getRepairsByCostRecordedAtRange(

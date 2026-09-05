@@ -68,7 +68,13 @@ class AiChatStats {
 
   // Repairs all statuses today (for count + pending list)
   final int repairsToday;
+
+  /// Đơn sửa chưa giao (status < 4) trên TOÀN BỘ lịch sử — không chỉ đơn tạo
+  /// hôm nay. Trước đây chỉ đếm trong ngày nên bỏ sót đơn tồn của hôm trước.
   final int repairsPending;
+
+  /// Trong [repairsPending], số đơn đã tồn từ hôm trước trở về trước.
+  final int repairsOverdue;
 
   // Stock
   final int stockCount;
@@ -106,6 +112,10 @@ class AiChatStats {
 
   // Detail lists
   final List<String> repairSummaries;
+
+  /// Tóm tắt các đơn CHƯA GIAO (mọi ngày), dùng cho câu "đơn đang chờ".
+  final List<String> pendingRepairSummaries;
+
   final List<String> topDebtorLines;
 
   /// Tra cứu nợ phải thu theo tên khách (tên gốc → số còn nợ). Chỉ dùng cục bộ
@@ -121,6 +131,7 @@ class AiChatStats {
     this.deliveredRepairsToday = 0,
     this.repairsToday = 0,
     this.repairsPending = 0,
+    this.repairsOverdue = 0,
     this.stockCount = 0,
     this.stockQuantity = 0,
     this.stockCapital = 0,
@@ -148,6 +159,7 @@ class AiChatStats {
     this.profitThisYear = 0,
     this.repairsThisYear = 0,
     this.repairSummaries = const [],
+    this.pendingRepairSummaries = const [],
     this.topDebtorLines = const [],
     this.debtorLookup = const {},
   });
@@ -161,6 +173,7 @@ class AiChatStats {
         'deliveredRepairsToday': deliveredRepairsToday,
         'repairsToday': repairsToday,
         'repairsPending': repairsPending,
+        'repairsOverdue': repairsOverdue,
         'stockCount': stockCount,
         'stockQuantity': stockQuantity,
         'stockCapital': stockCapital,
@@ -239,6 +252,8 @@ class AiChatService {
       db.getSalesByDateRange(yearStart, yearEnd),                   // [8] sales năm
       db.getRepairsByCreatedAtRange(yearStart, yearEnd),           // [9] đơn sửa năm
       db.getDeliveredRepairsByDateRange(yearStart, yearEnd),       // [10] đã giao năm
+      db.getPendingRepairCounts(dayStart),                          // [11] đơn chưa giao (mọi ngày)
+      db.getPendingRepairs(),                                       // [12] vài đơn chưa giao gần nhất
     ]);
 
     final sales = results[0] as List;
@@ -252,6 +267,8 @@ class AiChatService {
     final salesYear = results[8] as List;
     final repairsYear = results[9] as List;
     final deliveredRepairsYear = results[10] as List;
+    final pendingCounts = results[11] as Map<String, int>;
+    final pendingRepairs = results[12] as List;
 
     // ── Doanh thu bán hàng ──
     int saleRevenue = 0, saleProfit = 0;
@@ -307,26 +324,41 @@ class AiChatService {
       repairProfitYear += price - cost;
     }
 
-    // ── Đơn sửa: đếm + list (mọi trạng thái) ──
-    int pending = 0;
-    final repairSummaries = <String>[];
+    // ── Đơn sửa: list hôm nay (mọi trạng thái) + list chưa giao (mọi ngày) ──
     const statusLabel = {1: 'Mới nhận', 2: 'Đang sửa', 3: 'Xong chờ lấy', 4: 'Đã giao'};
-    for (final r in repairs) {
+    String summarize(dynamic r, {int? ageDays}) {
       final status = (r.status as num?)?.toInt() ?? 0;
-      if (status < 4) pending++;
       final model = (r.model as String?)?.trim() ?? '';
       final issue = (r.issue as String?)?.trim() ?? '';
       final name = (r.customerName as String?)?.trim() ?? '';
       final price = (r.price as num?)?.toInt() ?? 0;
       final statusStr = statusLabel[status] ?? 'Không rõ';
-      final summary = [
+      return [
         if (model.isNotEmpty) model,
         if (issue.isNotEmpty) issue else 'chưa ghi lỗi',
         if (name.isNotEmpty) name,
         if (price > 0) fmt(price),
-        '($statusStr)',
+        '($statusStr${ageDays != null && ageDays > 0 ? ', tồn $ageDays ngày' : ''})',
       ].join(' - ');
-      repairSummaries.add(summary);
+    }
+
+    final repairSummaries = [for (final r in repairs) summarize(r)];
+
+    // Đơn chưa giao lấy từ truy vấn riêng — KHÔNG lọc theo ngày tạo, nên đơn
+    // tồn của những hôm trước vẫn được đếm và liệt kê.
+    final pending = pendingCounts['total'] ?? 0;
+    final pendingOverdue = pendingCounts['overdue'] ?? 0;
+    final pendingRepairSummaries = <String>[];
+    for (final r in pendingRepairs) {
+      final createdAt = (r.createdAt as num?)?.toInt() ?? 0;
+      int ageDays = 0;
+      if (createdAt > 0) {
+        final c = DateTime.fromMillisecondsSinceEpoch(createdAt);
+        ageDays = DateTime(now.year, now.month, now.day)
+            .difference(DateTime(c.year, c.month, c.day))
+            .inDays;
+      }
+      pendingRepairSummaries.add(summarize(r, ageDays: ageDays));
     }
 
     // ── Công nợ — same classification as Finance V2 ──
@@ -367,6 +399,8 @@ class AiChatService {
       deliveredRepairsToday: deliveredRepairs.length,
       repairsToday: repairs.length,
       repairsPending: pending,
+      repairsOverdue: pendingOverdue,
+      pendingRepairSummaries: pendingRepairSummaries,
       stockCount: inventory['totalItems'] ?? 0,
       stockQuantity: inventory['totalQty'] ?? 0,
       stockCapital: inventory['totalCapital'] ?? 0,
@@ -761,29 +795,32 @@ class AiChatService {
     // Hướng dẫn / trợ giúp
     if (_has(n, ['huong dan', 'tro giup', 'giup toi', 'ban co the', 'lam gi duoc',
                   'chuc nang', 'ho tro', 'dung duoc gi', 'biet gi', 'hoi gi duoc',
-                  'noi nhu the nao', 'cach hoi', 'vi du'])) {
+                  'noi nhu the nao', 'cach hoi', 'vi du',
+                  // Cách hỏi tự nhiên khác của cùng một ý — trước đây không khớp
+                  // nên người dùng không có đường nào thấy được năng lực của AI.
+                  'lam duoc gi', 'lam duoc nhung gi', 'lam nhung gi', 'giup duoc gi',
+                  'kha nang', 'biet lam gi', 'co the lam gi'])) {
       return const AiQuickResponse(
-        'Mình hiểu câu hỏi tự nhiên. Ví dụ bạn có thể nói:\n\n'
-        '**Doanh thu & lợi nhuận:**\n'
-        '• *"Hôm nay bán được bao nhiêu?"*\n'
-        '• *"Lợi nhuận tháng này?"* · *"Năm nay doanh thu?"*\n\n'
-        '**Đơn sửa chữa:**\n'
-        '• *"Đơn nào đang chờ?"* · *"Đơn sửa hôm nay"*\n'
-        '• *"Tạo đơn sửa iPhone 15 Pro cho Minh"*\n\n'
-        '**Đơn bán hàng:**\n'
-        '• *"Đơn bán gần nhất"* · *"Bán hàng hôm nay"*\n'
-        '• *"Tạo đơn bán Samsung A55 cho 0912345678"*\n\n'
-        '**Kho & Công nợ:**\n'
-        '• *"Tồn kho hiện tại"* · *"Kho linh kiện"*\n'
-        '• *"Công nợ khách"* · *"Ai nợ nhiều nhất?"*\n\n'
-        '**Cách dùng tính năng:**\n'
+        'Mình không chỉ trả lời — mình **làm hộ** được luôn. '
+        'Bấm nút 🎤 để nói thay vì gõ.\n\n'
+        '**🛠️ LÀM HỘ BẠN** (mình mở sẵn form, điền sẵn nội dung)\n'
+        '• *"Tạo đơn sửa iPhone 15 Pro thay màn cho Minh 0912345678"*\n'
+        '• *"Tạo đơn bán Samsung A55 giá 6 triệu"*\n'
+        '• *"Nhập kho mới 10 pin iPhone 13"*\n\n'
+        '**📊 TRA SỐ LIỆU** (trả lời ngay, không cần mạng)\n'
+        '• *"Hôm nay bán được bao nhiêu?"* · *"Lợi nhuận tháng này?"*\n'
+        '• *"Đơn nào đang chờ?"* · *"Tồn kho linh kiện"*\n'
+        '• *"Ai nợ nhiều nhất?"* · *"Khách Minh nợ bao nhiêu?"*\n\n'
+        '**📂 MỞ NHANH MÀN HÌNH**\n'
+        '• *"Mở đơn sửa gần nhất"* · *"Xem công nợ"* · *"Vào kho hàng"*\n\n'
+        '**📚 CHỈ CÁCH LÀM** (hỏi bất kỳ tính năng nào của app)\n'
         '• *"Làm sao chốt quỹ?"* · *"Miễn nợ ở đâu?"*\n'
         '• *"Trả góp ngân hàng là gì?"*\n\n'
-        'Bấm **📚 Tất cả tính năng** để xem toàn bộ.',
+        'Bấm **📚 Tất cả tính năng** để xem toàn bộ danh mục.',
         followUpChips: [
-          ('📚 Tất cả tính năng', Icons.apps_rounded),
-          ('Làm sao chốt quỹ?', Icons.help_outline_rounded),
+          ('Tạo đơn sửa', Icons.build_circle_rounded),
           ('Đơn đang chờ', Icons.pending_actions_rounded),
+          ('📚 Tất cả tính năng', Icons.apps_rounded),
         ],
       );
     }
@@ -844,13 +881,15 @@ class AiChatService {
           actions: [_kOpenLatestRepairAction],
         );
       }
-      final pending = stats.repairSummaries
-          .where((s) => s.contains('Đang sửa') || s.contains('Mới nhận') || s.contains('Xong chờ'))
+      final pending = stats.pendingRepairSummaries
           .take(5)
           .map((s) => '• $s')
           .join('\n');
+      final overdueNote = stats.repairsOverdue > 0
+          ? '\n\n⚠️ Trong đó **${stats.repairsOverdue} đơn** tồn từ hôm trước.'
+          : '';
       return AiQuickResponse(
-        'Đang có **${stats.repairsPending} đơn** chờ xử lý:\n$pending',
+        'Đang có **${stats.repairsPending} đơn** chờ xử lý:\n$pending$overdueNote',
         actions: const [_kOpenLatestRepairAction],
         followUpChips: const [
           ('Tạo đơn sửa mới', Icons.add_circle_outline_rounded),

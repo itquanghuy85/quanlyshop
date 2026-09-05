@@ -7,7 +7,36 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## ⚡ Trạng thái hiện tại
 
 **Version:** 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
-**Last Updated:** 2026-09-05  
+**Last Updated:** 2026-09-06  
+
+**🤖 AI TRỢ LÝ — LỘ NĂNG LỰC + BẢN TIN ĐẦU NGÀY (`[2026-09-06b]`).**
+Chủ shop báo AI "chỉ chú tâm hướng dẫn sử dụng". Nguyên nhân không phải AI yếu
+mà **không có đường nhìn thấy**: chip mặc định toàn câu hỏi số liệu, còn ngay sau
+lời chào `_sendWelcome` **ghi đè** chip bằng 3 câu mẫu how-to. Nay chip đầu luôn
+là **"✨ AI làm được gì?"**, chip đổi **theo tab đang mở**, ẩn chip tài chính với
+người không có quyền, và câu trả lời năng lực viết lại theo 4 nhóm (LÀM HỘ / TRA
+SỐ / MỞ MÀN HÌNH / CHỈ CÁCH LÀM). Nút AI có **chấm đỏ** khi còn bản tin đầu ngày.
+· **KB tự khai sai:** `app_knowledge_base.dart` ghi *"AI chỉ đọc số liệu, không
+tự tạo/sửa đơn"* — sai, AI mở được form tạo đơn sửa/bán/nhập kho điền sẵn. Đã sửa
+thành "AI chỉ mở form điền sẵn, bạn vẫn phải tự bấm Lưu".
+
+**🐛 "ĐƠN SỬA ĐANG CHỜ" TRƯỚC NAY CHỈ ĐẾM ĐƠN TẠO TRONG NGÀY.**
+`AiChatStats.repairsPending` tính từ `getRepairsByCreatedAtRange(dayStart,dayEnd)`
+⇒ hỏi lúc 9h sáng có thể ra **0** dù còn 20 máy chưa trả. Ảnh hưởng **16 chỗ** ở
+`ai_chat_service.dart` + lời chào. Đã thêm `getPendingRepairCounts` +
+`getPendingRepairs` (lọc `status < 4`, không giới hạn ngày), thêm
+`repairsOverdue` + `pendingRepairSummaries`; mỗi dòng liệt kê có **"tồn N ngày"**.
+
+**🔴 GỠ 3 TRIGGER THÔNG BÁO SERVER — CHẾT SẴN + RÒ CHÉO SHOP.**
+`notifyNewRepair`/`notifyNewChat`/`notifyStatusChange` gọi `sendToTopic()` và
+`sendMulticast()` — **hai API đã bị xoá khỏi firebase-admin v13** (đang dùng
+^13.6.0) ⇒ ném TypeError, bị `catch` nuốt, **im lặng không gửi gì**. Tệ hơn: 2 cái
+đầu bắn tới topic **`staff` toàn cục** mà nhân viên **mọi shop** đều subscribe ⇒
+sửa cho chạy lại nguyên trạng là **rò tên khách + SĐT + model + giá sang shop
+khác**. Và client vốn đã gửi đủ cả 3 loại qua `sendShopNotification` ⇒ hồi sinh sẽ
+**thông báo trùng 2 lần**. **Xử lý: gỡ hẳn 3 trigger** + bỏ `subscribeToTopic('staff')'
+ở client (topic nay không còn ai gửi). Topic `all_users` giữ nguyên.
+**Chưa nghiệm thu máy thật; functions CHƯA deploy lại.**
 
 **📍 NÚT DỌN TRÙNG ĐÃ CHUYỂN SANG TAB "ĐƠN BÁN" (`[2026-09-06a]`).** Trước đặt ở
 tab TÀI CHÍNH — tab thứ 5 của `TabBar isScrollable: true` nên **bị khuất mép

@@ -1612,21 +1612,31 @@ class AppKnowledgeBase {
       title: 'AI Trợ Lý (chat)',
       menuPath: 'Nút AI (bong bóng chat) ở Trang chủ',
       whatItDoes:
-          'Hỏi đáp tiếng Việt về số liệu shop (doanh thu, đơn, kho, công nợ) và '
-          'cách dùng mọi tính năng. Trả lời nhanh offline cho câu thường gặp.',
-      whenToUse: 'Khi cần tra số nhanh hoặc quên thao tác một tính năng.',
+          'Làm 4 việc: (1) LÀM HỘ — nói "tạo đơn sửa iPhone 13 thay màn cho '
+          'Minh" thì AI mở sẵn form đã điền nội dung; tương tự tạo đơn bán, '
+          'nhập kho. (2) TRA SỐ LIỆU doanh thu, đơn, kho, công nợ (trả lời '
+          'offline). (3) MỞ NHANH màn hình: "mở đơn sửa gần nhất", "xem công '
+          'nợ". (4) CHỈ CÁCH LÀM mọi tính năng của app.',
+      whenToUse:
+          'Khi muốn tạo đơn thật nhanh bằng một câu nói, tra số liệu, hoặc quên '
+          'thao tác một tính năng.',
       steps: [
-        'Mở bong bóng AI, gõ hoặc nói câu hỏi.',
+        'Mở bong bóng AI, gõ hoặc bấm 🎤 để nói.',
+        'Bấm chip "✨ AI làm được gì?" để xem toàn bộ năng lực kèm câu mẫu.',
         'Bấm gợi ý nhanh hoặc mở màn liên quan từ nút trong câu trả lời.',
         'Bấm 👍/👎 để phản hồi chất lượng.',
       ],
       notes: [
         'Câu hỏi tài chính từ nhân viên/kỹ thuật sẽ bị từ chối theo phân quyền.',
-        'AI chỉ đọc số liệu, không tự tạo/sửa đơn.',
+        'AI KHÔNG tự ghi dữ liệu: với lệnh tạo đơn, AI chỉ mở form điền sẵn — '
+            'bạn vẫn phải kiểm tra và tự bấm Lưu.',
+        'Chấm đỏ trên nút AI = có bản tin đầu ngày chưa xem.',
+        'Chip gợi ý đổi theo tab đang mở (Kho, Sửa chữa, Bán hàng, Tài chính).',
       ],
       sampleQuestions: [
         'ai trợ lý làm được gì',
         'hỏi ai thế nào',
+        'ai tạo đơn sửa được không',
       ],
       tags: ['ai', 'tro ly', 'chat', 'hoi dap', 'assistant'],
       audience: ['all'],

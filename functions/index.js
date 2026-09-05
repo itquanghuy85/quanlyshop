@@ -1,6 +1,6 @@
 const admin = require("firebase-admin");
 const crypto = require("crypto");
-const { onDocumentCreated, onDocumentUpdated, onDocumentWritten } = require("firebase-functions/v2/firestore");
+const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { setGlobalOptions } = require("firebase-functions/v2/options");
@@ -673,133 +673,29 @@ exports.getUserClaims = onCall(async (request) => {
 // END CUSTOM CLAIMS MANAGEMENT
 // ============================================================
 
-// 🔔 Thông báo khi CÓ ĐƠN SỬA MỚI
-exports.notifyNewRepair = onDocumentCreated("repairs/{repairId}", async (event) => {
-  const data = event.data?.data();
-  if (!data) return;
-
-  const price = data.price ? Number(data.price).toLocaleString('vi-VN') : '0';
-  const phone = data.phone || '';
-  const time = data.createdAt ? new Date(data.createdAt.toDate()).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'}) : '';
-  let body = `👤 ${data.customerName || 'N/A'}`;
-  if (phone) body += ` • 📞 ${phone}`;
-  body += `\n📱 ${data.model || 'N/A'} • 💰 ${price}đ`;
-  if (time) body += `\n🕐 ${time}`;
-
-  const payload = {
-    notification: {
-      title: "🔧 ĐƠN SỬA MỚI",
-      body: body,
-    },
-    data: {
-      repairId: event.params.repairId,
-    },
-  };
-
-  try {
-    await admin.messaging().sendToTopic("staff", payload);
-    console.log("Đã gửi thông báo đơn mới");
-  } catch (e) {
-    console.error("Lỗi gửi thông báo:", e);
-  }
-});
-
-// 🔔 Thông báo khi CÓ TIN NHẮN CHAT MỚI
-exports.notifyNewChat = onDocumentCreated("chats/{chatId}", async (event) => {
-  const data = event.data?.data();
-  if (!data) return;
-
-  const shopId = data.shopId;
-  const senderId = data.senderId;
-  const senderName = data.senderName;
-  const message = data.message;
-
-  try {
-    // Get all users in the shop except sender
-    const userDocs = await admin.firestore()
-      .collection('users')
-      .where('shopId', '==', shopId)
-      .get();
-
-    const tokens = [];
-    for (const doc of userDocs.docs) {
-      const userData = doc.data();
-      // Don't send to sender
-      if (doc.id !== senderId && userData.fcmToken) {
-        tokens.push(userData.fcmToken);
-      }
-    }
-
-    if (tokens.length === 0) {
-      console.log('No FCM tokens found for shop chat:', shopId);
-      return;
-    }
-
-    const payload = {
-      notification: {
-        title: `💬 ${senderName}`,
-        body: message.length > 100 ? message.substring(0, 100) + '...' : message,
-      },
-      data: {
-        type: 'chat',
-        chatId: event.params.chatId,
-        shopId: shopId,
-        senderId: senderId,
-      },
-      android: {
-        notification: {
-          channelId: 'system_channel',
-          priority: 'default',
-          defaultSound: true,
-        },
-      },
-      apns: {
-        payload: {
-          aps: {
-            sound: 'default',
-            badge: 1,
-          },
-        },
-      },
-      tokens: tokens,
-    };
-
-    const response = await admin.messaging().sendMulticast(payload);
-    console.log(`Sent ${response.successCount} chat notifications for shop ${shopId}`);
-
-  } catch (error) {
-    console.error('Error sending chat FCM notification:', error);
-  }
-});
-
-// 🔔 Thông báo khi ĐỔI TRẠNG THÁI (đã sửa / đã giao)
-exports.notifyStatusChange = onDocumentUpdated("repairs/{repairId}", async (event) => {
-  const before = event.data?.before.data();
-  const after = event.data?.after.data();
-  if (!before || !after) return;
-  if (before.status === after.status) return;
-
-  let statusText = "Cập nhật đơn sửa";
-  if (after.status === 2) statusText = "🛠️ Đã sửa xong";
-  if (after.status === 3) statusText = "✅ Đã giao máy";
-
-  const price = after.price ? Number(after.price).toLocaleString('vi-VN') : '0';
-  const body = `👤 ${after.customerName || 'N/A'} • 📱 ${after.model || 'N/A'}\n💰 ${price}đ`;
-
-  const payload = {
-    notification: {
-      title: statusText,
-      body: body,
-    },
-  };
-
-  try {
-    await admin.messaging().sendToTopic("staff", payload);
-    console.log("Đã gửi thông báo đổi trạng thái");
-  } catch (e) {
-    console.error("Lỗi gửi thông báo:", e);
-  }
-});
+// ⛔ ĐÃ GỠ 3 TRIGGER THÔNG BÁO (2026-09-06):
+//    notifyNewRepair · notifyNewChat · notifyStatusChange
+//
+// Lý do 1 — CHẾT SẴN: chúng gọi admin.messaging().sendToTopic() và
+//   .sendMulticast(). Cả hai API này đã bị XOÁ khỏi firebase-admin v13
+//   (package.json đang ^13.6.0). Mỗi lần chạy đều ném TypeError rồi bị
+//   khối catch nuốt mất — tức là đã không gửi được gì từ lâu.
+//
+// Lý do 2 — RÒ DỮ LIỆU CHÉO SHOP: notifyNewRepair/notifyStatusChange bắn
+//   tới topic "staff" TOÀN CỤC, mà notification_service.dart cho nhân viên
+//   của MỌI shop subscribe topic đó. Sửa cho chạy lại nguyên trạng thì tên
+//   khách + SĐT + model + giá của shop A sẽ hiện trên máy shop B.
+//
+// Lý do 3 — TRÙNG THÔNG BÁO: client đã tự gửi đủ cả 3 loại qua callable
+//   sendShopNotification (dùng đúng API sendEachForMulticast và lọc shopId):
+//     • đơn sửa mới    → create_repair_order_view.dart:1116
+//     • đổi trạng thái → repair_detail_view.dart:1422
+//     • tin nhắn chat  → chat_service.dart:111
+//   Hồi sinh trigger sẽ khiến mỗi sự kiện bắn 2 thông báo.
+//
+// ⚠️ Muốn chuyển thông báo về phía server sau này thì PHẢI gửi theo token của
+//   đúng shop (như sendShopNotification), KHÔNG dùng topic chung, và phải bỏ
+//   đường gửi ở client để không bị trùng.
 
 // ✅ Chỉ quản lý/super admin được tạo tài khoản nhân viên qua callable
 exports.createStaffAccount = onCall(async (request) => {
