@@ -51,9 +51,23 @@ Lịch sử tất cả thay đổi từng phiên bản.
 - Đặt giá thu khách 1.500.000 → lưu đúng, lãi 600.000.
 - Sau khi deploy rules: hàng đợi trống, cả 5 bản ghi `isSynced=1`.
 
-**Còn lại chưa nghiệm thu:** tài khoản NHÂN VIÊN (không có `allowViewCostPrice`)
-chưa test trên máy — logic che giá vốn mới chỉ có unit test. Và chưa test 2 máy
-cùng lúc để thấy dữ liệu hiện sang máy thứ hai.
+**Nghiệm thu bổ sung trên máy thứ 2 (Oppo CPH2239) — ĐẠT hết:**
+
+- **Nhân viên `n@n.com` (role=employee):** Trang chủ không có "Dòng tiền hôm
+  nay" / "Truy cập nhanh tài chính", thẻ Hoạt động không có ô CÔNG NỢ. Bảng giá
+  chỉ hiện `Thu`, **không có chữ "Vốn"/"Lãi" nào**; dòng danh mục NCC hiện
+  "Chưa thiết lập giá thu khách" + loại linh kiện/model (đủ để tra cứu) nhưng
+  **không lộ nhà cung cấp lẫn ngày nhập**. Dialog ghim giá cũng không có ô giá
+  vốn.
+- **Xuất Excel của nhân viên cũng sạch:** sheet "Sửa chữa"/"Bán hàng" còn **8
+  cột** (bản đủ 10 — cắt "Giá vốn ĐX" và "Giá vốn NY"); sheet "Bảng giá NCC"
+  còn **9 cột** (bản đủ 15 — cắt cả 6 cột giá vốn gần nhất/bình quân/thấp
+  nhất/cao nhất/nhà cung cấp/ngày hoá đơn). Cột "Giá thu khách" 1.500.000 vẫn
+  giữ để nhân viên báo giá được.
+- **Đồng bộ 2 máy:** mặt hàng tạo và đặt giá ở máy 1 hiện đúng trên máy 2.
+- **Đổi vai trò trên CÙNG máy 2:** đăng xuất nhân viên → đăng nhập `m@m.com` →
+  đúng dòng đó hiện `Thu 1.500.000đ · Vốn 900.000đ · Lãi 600.000đ`. Chứng minh
+  việc che giá vốn là **theo vai trò**, không phải dữ liệu bị mất.
 
 ---
 
