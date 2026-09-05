@@ -51,17 +51,17 @@ hiện thêm 4 lỗi và đã sửa hết trong cùng đợt:
   Đã bỏ khỏi text mới; vài quick-answer cũ khác vẫn còn, chưa đụng.
 · **Chip theo tab gần như không hiện** vì `_sendWelcome` set `_contextChips` rồi
   giữ mãi ⇒ đổi tab nay xoá `_contextChips`.
-**⚠️ CHỦ SHOP CẦN TỰ CHẠY 1 LỆNH** — xoá 3 trigger chết khỏi cloud (lệnh bị
-classifier của môi trường agent chặn, giống việc truy vấn Firestore production):
+**✅ ĐÃ XOÁ 3 TRIGGER CHẾT KHỎI CLOUD (2026-09-06).** Lệnh đã chạy:
 ```
 firebase functions:delete notifyNewRepair notifyNewChat notifyStatusChange \
   --region asia-southeast1 --force --project huyaka-1809
 ```
-Đã đối chiếu `functions:list`: cloud có đúng 21 hàm của nguồn + 3 trigger đã gỡ +
-3 hàm Firebase Extension (`ext-delete-user-data-*`, us-central1, KHÔNG thuộc repo)
-⇒ **không cần deploy lại cả 21 hàm**. Chưa chạy cũng không hại: 3 hàm đó ném
-`TypeError` rồi thoát. Prompt `CHAT_SYSTEM_PROMPT` vừa thêm 1 dòng cấm `*nghiêng*`
-thì **cần deploy mới có hiệu lực**.
+Xác minh sau khi xoá bằng `functions:list`: **27 → 24 hàm**; 3 trigger biến mất;
+**đủ 21 hàm của mã nguồn**; 3 hàm Firebase Extension (`ext-delete-user-data-*`,
+us-central1) nguyên vẹn. Chọn `functions:delete` thay vì `deploy --only functions`
+để KHÔNG đụng tới 21 hàm đang chạy ổn.
+**⚠️ Còn 1 việc chờ deploy:** `CHAT_SYSTEM_PROMPT` vừa thêm dòng cấm `*nghiêng*` —
+chỉ có hiệu lực sau `firebase deploy --only functions`.
 
 **✅ ĐÃ DỌN XONG 2.245 ĐƠN KIOTVIET TRÙNG — NGHIỆM THU 06/09/2026.**
 Chủ shop tự bấm nút (bước cuối đòi mật khẩu đăng nhập). Đối chiếu CSDL thật

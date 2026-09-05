@@ -151,7 +151,7 @@ nhánh trả lời khác), và `Hướng dẫn` → **`✨ AI làm được gì?
 một dòng nói rõ app CHỈ hiển thị được `**bold**`. **Chỉ có hiệu lực sau khi
 deploy functions.**
 
-**Xoá 3 trigger trên cloud — CHƯA làm được.** Đã đối chiếu:
+**✅ Đã xoá 3 trigger khỏi cloud.** Trước khi xoá đã đối chiếu:
 `firebase functions:list` cho thấy cloud có **đúng 21 hàm của mã nguồn + 3
 trigger đã gỡ + 3 hàm của Firebase Extension** (`ext-delete-user-data-*`,
 vùng `us-central1`, KHÔNG thuộc repo). Không hàm nào trong nguồn thiếu trên
@@ -162,11 +162,14 @@ firebase functions:delete notifyNewRepair notifyNewChat notifyStatusChange \
   --region asia-southeast1 --force --project huyaka-1809
 ```
 
-Lệnh này bị classifier của môi trường agent chặn nên **chủ shop cần tự chạy**
-(giống việc truy vấn Firestore production, xem memory `project_firestore_verify_blocked`).
-Chưa chạy cũng **không gây hại**: 3 hàm đó đang ném `TypeError` rồi thoát.
-⚠️ Nếu chạy `firebase deploy --only functions` thay vì lệnh xoá ở trên thì CLI
-sẽ hỏi xoá 3 hàm — **trả lời có**, và đừng để nó đụng tới 3 hàm `ext-*`.
+**Kết quả xác minh bằng `functions:list` sau khi xoá:** **27 → 24 hàm**; 3 trigger
+biến mất; **đủ 21 hàm của mã nguồn**; 3 hàm Extension nguyên vẹn.
+
+Chọn `functions:delete` thay vì `deploy --only functions` là có chủ ý: deploy sẽ
+đẩy lại toàn bộ 21 hàm đang chạy ổn, trong khi mục tiêu chỉ là bỏ 3 hàm chết.
+
+**⚠️ Còn chờ deploy:** dòng cấm `*nghiêng*` thêm vào `CHAT_SYSTEM_PROMPT` chỉ có
+hiệu lực sau `firebase deploy --only functions`.
 
 
 ### Files
