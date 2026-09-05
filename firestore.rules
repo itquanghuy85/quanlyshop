@@ -201,12 +201,42 @@ service cloud.firestore {
     }
     
     // Protected fields - nhưng owner có thể thay đổi role và shopId của nhân viên trong shop
+    // Mã mời hợp lệ, CHƯA dùng, và đúng shop đang muốn vào.
+    function hasValidInvite(targetShopId) {
+      return 'joinInviteCode' in request.resource.data &&
+             request.resource.data.joinInviteCode is string &&
+             exists(/databases/$(database)/documents/invites/$(request.resource.data.joinInviteCode)) &&
+             get(/databases/$(database)/documents/invites/$(request.resource.data.joinInviteCode)).data.shopId == targetShopId &&
+             get(/databases/$(database)/documents/invites/$(request.resource.data.joinInviteCode)).data.used != true;
+    }
+
+    // ⚠️ Ghi `shopId` vào users/{uid} là điểm chiếm quyền cả shop.
+    // Bản cũ chỉ đòi isOwner(), mà isOwner() = (myRole()=='owner') — KHÔNG ràng
+    // buộc với shop nào. myRole()/myShopId() lại đọc từ chính users/{uid} do
+    // người dùng tự ghi. Nên bất kỳ ai tự đăng ký (mặc định thành owner shop
+    // của mình) chỉ cần ghi shopId = <shop nạn nhân> là docInMyShop()/isOwner()
+    // đều true trên shop đó ⇒ toàn quyền đọc/ghi đơn hàng, kho, công nợ, sổ tiền.
+    // shopId nạn nhân lấy dễ dàng vì collection `invites` cho mọi user đăng nhập
+    // đọc, mỗi mã mời chứa sẵn shopId.
+    //
+    // Nay chỉ chấp nhận 4 đường HỢP LỆ:
+    function shopIdWriteOK() {
+      return !addedOrChanged('shopId') ||
+             isSuperAdmin() ||
+             // (a) shop do chính người thao tác sở hữu — đăng ký mới (shop doc
+             //     được tạo TRƯỚC khi ghi user doc), chủ nhiều shop, hoặc chủ
+             //     shop gán nhân viên vào shop của mình.
+             isShopOwner(request.resource.data.shopId) ||
+             // (b) khôi phục đúng shop đã ghi trong custom claims (do server ký,
+             //     không giả mạo được) — nhân viên đăng nhập lại mà doc mất shopId.
+             request.resource.data.shopId == request.auth.token.shopId ||
+             // (c) nhận lời mời bằng mã hợp lệ, chưa dùng, đúng shop đó.
+             hasValidInvite(request.resource.data.shopId);
+    }
+
     function protectedOK() {
       return isSuperAdmin() || (
-        // shopId: owner có thể gán/đổi shopId cho nhân viên.
-        // Giữ changed() ở đây (không siết thành addedOrChanged) vì luồng đăng ký
-        // mới hợp lệ có bước THÊM shopId vào doc chưa có shopId.
-        (!changed('shopId') || isOwner()) &&
+        shopIdWriteOK() &&
         // Các field đặc quyền: chặn cả THÊM MỚI lẫn SỬA.
         !addedOrChanged('isAdmin') &&
         !addedOrChanged('isSuperAdmin') &&

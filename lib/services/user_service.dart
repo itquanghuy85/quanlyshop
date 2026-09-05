@@ -1846,8 +1846,14 @@ class UserService {
     if (invite == null) return false;
     final shopId = invite['shopId'];
     // Update user shopId
+    //
+    // PHẢI ghi kèm `joinInviteCode`: firestore.rules dùng nó để xác minh người
+    // dùng thật sự được mời vào shop này (hasValidInvite). Không có nó thì lệnh
+    // ghi shopId sẽ bị từ chối — đây chính là chốt chặn đường chiếm quyền shop
+    // (tự đặt shopId = shop người khác).
     await _db.collection('users').doc(uid).set({
       'shopId': shopId,
+      'joinInviteCode': code,
     }, SetOptions(merge: true));
     // Mark invite as used
     await _db.collection('invites').doc(code).update({'used': true});

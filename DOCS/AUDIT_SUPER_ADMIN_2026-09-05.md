@@ -316,3 +316,88 @@ PIN*. Nếu super admin bấm "Thiết lập" ở đây thì sẽ **ghi đè** h
 * **Đối chiếu người thường mở thẳng console:** cổng vào đã bị ẩn theo
   `_isSuperAdmin` và console tự xác minh lại bằng `forceRefresh` — đã đọc kỹ mã,
   nhưng chưa dựng lại được ca chạy sạch trên máy.
+
+
+---
+
+## 10. AUDIT BẢO MẬT MỞ RỘNG (ngoài phạm vi super admin)
+
+### 🔴 AR-01 — Leo thang đặc quyền lên super admin ✅ ĐÃ VÁ + DEPLOY
+
+`changed()` trong rules chỉ chặn SỬA, không chặn THÊM MỚI:
+```
+function changed(field) {
+  return field in resource.data && ...   // doc CŨ chưa có field ⇒ false
+}
+```
+Chuỗi: đăng ký → tạo `users/U` chỉ với `{email}` (rule create cho phép vì `role`
+là tuỳ chọn ⇒ whitelist bị bỏ qua) → tự update thêm `role: "super_admin"`
+(`!changed('role')` = true vì doc cũ không có `role`) → `syncUserClaims` cấp
+claims `isSuperAdmin: true` → toàn quyền 147 shop. Cùng lỗ còn cho THÊM MỚI
+`isAdmin` / `isSuperAdmin` / `balance` / `ownerUid`.
+
+**Vá:** thêm `addedOrChanged()` (chặn cả thêm lẫn sửa) cho mọi field đặc quyền;
+thêm `roleValueOK()` — client không bao giờ được ghi `role: 'super_admin'`.
+
+### 🔴 AR-04 — Chiếm quyền TOÀN BỘ một shop bằng 1 lệnh ghi ✅ ĐÃ VÁ + DEPLOY
+
+Nghiêm trọng hơn AR-01 vì **không cần mẹo gì**:
+1. `myShopId()` đọc `users/{uid}.shopId` — chính document người dùng tự ghi được.
+2. `myRole()` cũng đọc từ đó; người tự đăng ký mặc định là `owner`.
+3. `isOwner()` = `myRole()=='owner'` — **không ràng buộc shop nào**.
+4. `protectedOK()` cũ cho đổi `shopId` nếu `isOwner()` ⇒ đổi sang shopId bất kỳ.
+5. Sau đó `docInMyShop()`, `isManager()`, `isEmployee()` đều true trên shop nạn
+   nhân ⇒ toàn quyền đơn sửa, đơn bán, kho, khách hàng, công nợ, sổ tiền.
+
+shopId nạn nhân lấy từ `invites` (đọc được bởi mọi user đăng nhập — AR-05).
+
+**Vá:** `shopIdWriteOK()` chỉ chấp nhận 4 đường hợp lệ — (a) shop do chính người
+thao tác sở hữu (`isShopOwner`), (b) đúng shopId trong custom claims đã ký (cho
+nhân viên đăng nhập lại), (c) có mã mời hợp lệ chưa dùng đúng shop
+(`hasValidInvite`), (d) super admin. Kèm sửa client: `useInviteCode` ghi thêm
+`joinInviteCode` để rules xác minh được.
+
+### 🟠 AR-05 — `invites` đọc được bởi mọi user đăng nhập ⚠️ CHƯA VÁ
+
+`allow read: if isAuth()` không kèm ràng buộc nào ⇒ liệt kê được **toàn bộ mã
+mời của mọi shop**, mỗi mã chứa `shopId` + `role`. Sau khi vá AR-04 thì không
+còn dùng để chiếm shop được nữa (mã phải chưa dùng và rules kiểm đúng shop),
+nhưng vẫn là rò rỉ thông tin + cho phép **dùng trộm mã mời của shop khác**.
+Đề xuất: `allow read` chỉ cho `belongsTo(resource.data.shopId)`, còn việc đổi mã
+khi đăng ký thì chuyển sang Cloud Function.
+
+### 🟠 AR-06 — `users` đọc được toàn bộ, xuyên shop ⚠️ CHƯA VÁ
+
+`match /users/{userId} { allow read: if isAuth(); }` — bất kỳ ai đăng nhập cũng
+đọc/liệt kê được **toàn bộ 159 user của 147 shop**: email, tên, **số điện thoại,
+địa chỉ**, vai trò, shopId, các cờ quyền. Chú thích trong rules ghi "for
+collaboration features" nhưng không giới hạn theo shop. Đề xuất: chỉ cho đọc
+user cùng shop (+ super admin).
+
+### 🟡 AR-03 — Mã hoá dữ liệu gần như không có tác dụng ⚠️ GHI NHẬN, KHÔNG SỬA
+
+`encryption_service.dart` mã hoá AES-256 các trường nhạy cảm trước khi lên
+Firestore (bật mặc định, dùng khắp `firestore_service`), nhưng:
+1. **Khoá suy ra được từ APK** — `_masterSecret = 'HuLuCa_Shop_2024_Secure_Key_@!#'`
+   hardcode, khoá = `sha256(shopId + masterSecret)`, mà `shopId` nằm plaintext
+   trên mọi document ⇒ ai có APK cũng dựng lại được khoá của **mọi shop**.
+2. **IV cố định theo shop** — `IV = md5('IV_' + shopId)`, không đổi. AES-CBC với
+   IV cố định ⇒ cùng plaintext cho cùng ciphertext ⇒ kể cả không có khoá vẫn
+   biết bản ghi nào trùng tên/trùng SĐT, dựng được thống kê tần suất.
+
+**Quyết định:** ghi nhận, chưa sửa. Sửa IV (thêm định dạng `ENC3:` IV ngẫu nhiên)
+đụng đường ghi của mọi bản ghi trên 147 shop production trong khi lợi ích hạn
+chế — chừng nào khoá còn suy ra được từ APK thì vá IV chỉ chặn được người xem DB
+mà không có APK. Muốn giải quyết tận gốc phải đổi kiến trúc khoá (server/KMS),
+nên làm thành một đợt riêng có kế hoạch migration.
+
+### 🟡 AR-07 — `chat_online` / `chat_typing` đọc chéo shop (LOW)
+
+`allow read: if isAuth()` ⇒ thấy trạng thái online/đang gõ của người thuộc shop
+khác. Độ nhạy thấp nhưng vẫn là rò rỉ xuyên tenant.
+
+### ✅ Không phải lỗi
+
+`app_config` `allow read: if true` — có chủ ý và đã ghi rõ lý do: phải đọc được
+cấu hình "buộc cập nhật" trước khi biết user là ai; ghi thì chỉ super admin.
+`broadcasts` / `other_apps` đọc bởi mọi user — thông báo hệ thống toàn cục.
