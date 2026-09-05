@@ -672,20 +672,25 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
         i,
         i + chunkSize > pending.length ? pending.length : i + chunkSize,
       );
-      try {
-        final snap = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: chunk)
-            .get();
-        for (final doc in snap.docs) {
-          final url = (doc.data()['photoUrl'] ?? '').toString().trim();
-          if (url.isNotEmpty) {
-            found[doc.id] = url;
-          }
+      // Đọc TỪNG document thay vì `whereIn documentId`.
+      // firestore.rules nay giới hạn đọc `users` theo shop; truy vấn collection
+      // phải kèm `where('shopId', ...)` thì Firestore mới chứng minh được là hợp
+      // lệ, còn `whereIn documentId` thì không ⇒ bị từ chối cả mẻ. Đọc từng doc
+      // được đánh giá theo từng document nên vẫn chạy. Mỗi mẻ tối đa 10 người
+      // nên chi phí không đáng kể, lại có cache `_senderAvatarCache`.
+      final futures = chunk.map((id) async {
+        try {
+          final doc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(id)
+              .get();
+          final url = (doc.data()?['photoUrl'] ?? '').toString().trim();
+          if (url.isNotEmpty) found[id] = url;
+        } catch (e) {
+          debugPrint('Chat avatar load failed for $id: $e');
         }
-      } catch (e) {
-        debugPrint('Chat avatar cache load failed: $e');
-      }
+      });
+      await Future.wait(futures);
     }
 
     if (!mounted || found.isEmpty) return;

@@ -366,13 +366,34 @@ nhưng vẫn là rò rỉ thông tin + cho phép **dùng trộm mã mời của 
 Đề xuất: `allow read` chỉ cho `belongsTo(resource.data.shopId)`, còn việc đổi mã
 khi đăng ký thì chuyển sang Cloud Function.
 
-### 🟠 AR-06 — `users` đọc được toàn bộ, xuyên shop ⚠️ CHƯA VÁ
+### 🟠 AR-06 — `users` đọc được toàn bộ, xuyên shop ✅ ĐÃ VÁ + DEPLOY
 
 `match /users/{userId} { allow read: if isAuth(); }` — bất kỳ ai đăng nhập cũng
 đọc/liệt kê được **toàn bộ 159 user của 147 shop**: email, tên, **số điện thoại,
 địa chỉ**, vai trò, shopId, các cờ quyền. Chú thích trong rules ghi "for
-collaboration features" nhưng không giới hạn theo shop. Đề xuất: chỉ cho đọc
-user cùng shop (+ super admin).
+collaboration features" nhưng không giới hạn theo shop.
+
+**Vá:** `allow read: if isAuth() && (isSuperAdmin() || uid() == userId ||
+resource.data.shopId == myShopId())`.
+
+**Hai truy vấn client phải sửa kèm** (đã soát toàn bộ 20 chỗ truy vấn `users`;
+các chỗ còn lại đều là `.doc(uid)` hoặc đã lọc `shopId`):
+1. `advanced_chat_view` lấy avatar bằng `where(FieldPath.documentId, whereIn:)`
+   — truy vấn collection không kèm `shopId` thì Firestore không chứng minh được
+   là hợp lệ ⇒ bị từ chối cả mẻ. Đổi sang đọc **từng document** (được đánh giá
+   theo từng doc nên vẫn chạy); mỗi mẻ tối đa 10 người, lại có cache.
+2. `notification_service` dọn token FCM trùng bằng `where('fcmToken', ==)` không
+   lọc shop. Đã thêm `where('shopId', ==, shopId)`.
+   **GIỚI HẠN đã biết:** chỉ dọn được token trùng trong CÙNG shop; máy dùng chung
+   giữa hai shop khác nhau thì token cũ còn ở doc của tài khoản shop kia. Muốn
+   dọn triệt để phải làm ở Cloud Function (chạy quyền admin, không vướng rules).
+
+Cả hai đều đã nằm trong `try/catch` từ trước nên bản app CŨ đang cài ngoài thị
+trường chỉ **suy giảm nhẹ** (avatar chat về chữ cái đầu), không crash.
+
+**Nghiệm thu máy thật:** máy 1 (`m@m.com`, chủ shop) mở *Quản lý nhân viên* →
+liệt kê đúng 3 thành viên shop M (`n@n.com` Nhân viên, `websync3@huluca.vn` Chủ
+shop, `m@m.com`); **không có `permission-denied`** trên cả 2 máy.
 
 ### 🟡 AR-03 — Mã hoá dữ liệu gần như không có tác dụng ⚠️ GHI NHẬN, KHÔNG SỬA
 

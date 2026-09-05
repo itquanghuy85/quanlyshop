@@ -588,8 +588,15 @@ class NotificationService {
 
       // Check for duplicate tokens with better error handling
       try {
+        // Lọc thêm theo shopId: firestore.rules nay chỉ cho đọc `users` cùng
+        // shop, truy vấn không có `where('shopId', ...)` sẽ bị từ chối cả mẻ.
+        // GIỚI HẠN đã biết: chỉ dọn được token trùng trong CÙNG shop. Máy dùng
+        // chung giữa hai shop khác nhau thì token cũ còn nằm ở doc của tài khoản
+        // shop kia — muốn dọn triệt để phải làm ở Cloud Function (chạy quyền
+        // admin, không vướng rules).
         final existingTokens = await _db
             .collection('users')
+            .where('shopId', isEqualTo: shopId)
             .where('fcmToken', isEqualTo: token)
             .get();
 

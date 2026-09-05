@@ -315,8 +315,22 @@ service cloud.firestore {
 
     // ═══════════ 2.1 USERS ═══════════
     match /users/{userId} {
-      // READ: Any authenticated user (for collaboration features)
-      allow read: if isAuth();
+      // READ: chỉ người CÙNG SHOP (+ chính mình, + super admin).
+      //
+      // Bản cũ là `if isAuth()` với chú thích "for collaboration features" —
+      // nhưng không giới hạn shop, nên bất kỳ ai đăng nhập cũng đọc/LIỆT KÊ
+      // được toàn bộ user của MỌI shop: email, tên, SỐ ĐIỆN THOẠI, ĐỊA CHỈ,
+      // vai trò, shopId và các cờ quyền. Đó là rò rỉ PII xuyên tenant.
+      //
+      // Lưu ý khi sửa client: truy vấn collection phải KÈM
+      // `where('shopId', isEqualTo: <shop của mình>)` thì Firestore mới chứng
+      // minh được là hợp lệ. Đọc từng doc (`.doc(uid).get()`) thì được đánh giá
+      // theo từng document nên vẫn chạy bình thường.
+      allow read: if isAuth() && (
+        isSuperAdmin() ||
+        uid() == userId ||
+        ('shopId' in resource.data && resource.data.shopId == myShopId())
+      );
       
       // CREATE: Own profile only, cannot self-assign admin roles
       // Allow 'owner' role ONLY when user creates their own profile (new signup)
