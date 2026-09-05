@@ -54,7 +54,19 @@ class ShopDeletionService {
     VoidCallback? onNavigateAway,
   }) async {
     debugPrint('🗑️ ShopDeletionService: Starting safe deletion of $shopId ($shopName)');
-    
+
+    // Tự kiểm quyền NGAY TẠI ĐÂY, không phó mặc caller.
+    // Đây là cửa vào của thao tác xoá sạch một shop; trước đây quyền chỉ do
+    // đúng một caller kiểm (shop_switcher_widget), thêm caller mới bất cẩn là
+    // mất lớp bảo vệ. Firestore rules vẫn chặn thật ở server, nhưng chặn sớm
+    // ở đây tránh việc đã huỷ subscription / điều hướng rồi mới thất bại.
+    if (!await canDeleteShop(shopId)) {
+      debugPrint('⛔ ShopDeletionService: không có quyền xoá shop $shopId');
+      return ShopDeletionResult.failure(
+        'Bạn không có quyền xóa cửa hàng này. Chỉ chủ shop hoặc super admin mới được xóa.',
+      );
+    }
+
     try {
       // STEP 1: Đánh dấu shop đang bị xóa (local)
       _deletingShopIds.add(shopId);

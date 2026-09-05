@@ -649,9 +649,30 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (!_hasAccess) {
-      return const Scaffold(
-        body: Center(
-          child: Text('Bạn không có quyền truy cập Super Admin Console.'),
+      // Phải có AppBar + nút quay lại: trước đây đây là màn CỤT — không thanh
+      // tiêu đề, không nút nào, người dùng chỉ thoát được bằng phím Back của hệ
+      // thống (đã gặp trên máy thật).
+      return Scaffold(
+        appBar: AppBar(title: const Text('Super Admin Console')),
+        body: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.lock_outline, size: 56, color: Colors.grey),
+              const SizedBox(height: 16),
+              const Text(
+                'Bạn không có quyền truy cập Super Admin Console.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: () => Navigator.of(context).maybePop(),
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Quay lại'),
+              ),
+            ],
+          ),
         ),
       );
     }

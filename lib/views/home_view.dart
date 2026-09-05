@@ -588,7 +588,16 @@ class _HomeViewState extends State<HomeView>
   bool _isSavingSupplier = false;
   bool _isSavingRequireSupplier = false;
 
-  final bool _isSuperAdmin = UserService.isCurrentUserSuperAdmin();
+  /// Đọc ĐỘNG, không cache vào field.
+  ///
+  /// Trước đây đây là `final bool _isSuperAdmin = UserService.isCurrentUserSuperAdmin();`
+  /// — field initializer chỉ chạy MỘT LẦN lúc dựng State. Quyền super admin lại
+  /// resolve muộn (claims về sau), nên nếu HomeView dựng trúng lúc chưa resolve
+  /// thì giá trị `false` bị đóng băng CẢ PHIÊN ⇒ các mục chỉ dành cho super
+  /// admin ("Trung tâm quản trị", "Kiểm tra kết nối", "Thống kê đọc/ghi") biến
+  /// mất dù quyền đã đúng. `isCurrentUserSuperAdmin()` chỉ đọc cache trong bộ
+  /// nhớ nên gọi trong build hoàn toàn rẻ.
+  bool get _isSuperAdmin => UserService.isCurrentUserSuperAdmin();
   final _settingsSearchController = TextEditingController();
   bool get hasFullAccess =>
       _isSuperAdmin || widget.role == 'owner' || widget.role == 'admin';

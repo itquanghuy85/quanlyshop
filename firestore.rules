@@ -163,9 +163,31 @@ service cloud.firestore {
     // ═══════════ 1.5 PROTECTED FIELDS ═══════════
     // Client CANNOT modify these - Cloud Functions only
     function changed(field) {
-      return field in resource.data && 
+      return field in resource.data &&
              field in request.resource.data &&
              request.resource.data[field] != resource.data[field];
+    }
+
+    // ⚠️ changed() trả FALSE khi doc CŨ chưa có field đó — nghĩa là nó chỉ chặn
+    // SỬA, không chặn THÊM MỚI. Với các field đặc quyền, "thêm mới" chính là
+    // đường leo thang: doc user tạo ra chỉ cần `email` (role là tuỳ chọn), sau
+    // đó tự update thêm `role: 'super_admin'` thì `changed('role')` = false nên
+    // lọt, rồi Cloud Function syncUserClaims cấp luôn claims isSuperAdmin=true.
+    // Dùng addedOrChanged() cho mọi field đặc quyền.
+    function addedOrChanged(field) {
+      return field in request.resource.data &&
+             (!(field in resource.data) ||
+              request.resource.data[field] != resource.data[field]);
+    }
+
+    // Client TUYỆT ĐỐI không được tự ghi vai trò đặc quyền cho bất kỳ ai.
+    // Chỉ super admin (claims đã ký server-side) mới được, phục vụ đúng luồng
+    // UserService.syncUserInfo ghi lại 'super_admin' cho chính họ.
+    function roleValueOK() {
+      return isSuperAdmin() ||
+             !('role' in request.resource.data) ||
+             request.resource.data.role in
+               ['user', 'employee', 'technician', 'manager', 'owner'];
     }
 
     // Các cờ khóa do Super Admin quản trị ở cấp shop.
@@ -181,13 +203,16 @@ service cloud.firestore {
     // Protected fields - nhưng owner có thể thay đổi role và shopId của nhân viên trong shop
     function protectedOK() {
       return isSuperAdmin() || (
-        // shopId: owner có thể gán/đổi shopId cho nhân viên
+        // shopId: owner có thể gán/đổi shopId cho nhân viên.
+        // Giữ changed() ở đây (không siết thành addedOrChanged) vì luồng đăng ký
+        // mới hợp lệ có bước THÊM shopId vào doc chưa có shopId.
         (!changed('shopId') || isOwner()) &&
-        !changed('isAdmin') &&
-        !changed('isSuperAdmin') &&
-        !changed('balance') &&
-        !changed('ownerUid') &&
-        !changed('claimsSyncedAt')
+        // Các field đặc quyền: chặn cả THÊM MỚI lẫn SỬA.
+        !addedOrChanged('isAdmin') &&
+        !addedOrChanged('isSuperAdmin') &&
+        !addedOrChanged('balance') &&
+        !addedOrChanged('ownerUid') &&
+        !addedOrChanged('claimsSyncedAt')
       );
     }
     
@@ -265,10 +290,11 @@ service cloud.firestore {
       
       // CREATE: Own profile only, cannot self-assign admin roles
       // Allow 'owner' role ONLY when user creates their own profile (new signup)
-      allow create: if isAuth() && 
+      allow create: if isAuth() &&
                        uid() == userId &&
                        has(['email']) &&
-                       (!('role' in request.resource.data) || 
+                       roleValueOK() &&
+                       (!('role' in request.resource.data) ||
                         request.resource.data.role in ['user', 'employee', 'technician', 'owner']);
       
       // UPDATE: Own profile OR manager/owner of same shop
@@ -290,6 +316,7 @@ service cloud.firestore {
                          !changed('allowManageStaff'))
                        ) &&
                        protectedOK() &&
+                       roleValueOK() &&
                        roleChangeOK();
       
       // DELETE: Soft delete only
