@@ -1,9 +1,12 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../data/db_helper.dart';
 import 'audit_service.dart';
+import 'event_bus.dart';
 import 'firestore_service.dart';
+import 'firestore_write_helper.dart';
 import 'sync_orchestrator.dart';
 import 'user_service.dart';
 
@@ -93,6 +96,9 @@ class KvDuplicateCleanupService {
   static final DBHelper _db = DBHelper();
 
   static const String _kvPrefix = 'KV:';
+
+  /// Dưới trần 500 thao tác/`WriteBatch` của Firestore, chừa biên an toàn.
+  static const int _batchSize = 400;
 
   /// Đọc các đơn mang mã `KV:` còn hiệu lực, gom theo mã hoá đơn.
   static Future<Map<String, List<Map<String, Object?>>>> _loadGroups() async {
@@ -190,38 +196,104 @@ class KvDuplicateCleanupService {
     var queued = 0;
     var failed = 0;
     var amount = 0;
+    var done = 0;
 
-    for (var i = 0; i < victims.length; i++) {
-      final v = victims[i];
-      final localId = v['id'] as int?;
-      final fid = (v['firestoreId'] as String?)?.trim();
-      try {
-        if (fid != null && fid.isNotEmpty) {
+    final fs = FirebaseFirestore.instance;
+    final db = await _db.database;
+
+    // Gộp lô thay vì gọi từng bản: mỗi `WriteBatch` là MỘT lượt mạng cho tới
+    // 500 thao tác. Đo thực tế 06/09/2026 trên shop thật: xoá từng bản chạy
+    // ~37 bản/phút ⇒ 2.181 bản mất ~47 phút; gộp lô còn vài lượt mạng.
+    for (var start = 0; start < victims.length; start += _batchSize) {
+      final chunk = victims.sublist(
+        start,
+        (start + _batchSize).clamp(0, victims.length),
+      );
+      final withFid = chunk
+          .where((v) => ((v['firestoreId'] as String?) ?? '').trim().isNotEmpty)
+          .toList();
+
+      var cloudOk = false;
+      if (withFid.isNotEmpty) {
+        try {
+          final batch = fs.batch();
+          for (final v in withFid) {
+            batch.set(
+              fs.collection('sales').doc((v['firestoreId'] as String).trim()),
+              {
+                'deleted': true,
+                'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
+              },
+              // merge: doc đã bị gỡ ở nơi khác thì `update` sẽ làm hỏng cả lô;
+              // `set(merge)` vẫn an toàn vì ta chỉ đánh dấu đã xoá.
+              SetOptions(merge: true),
+            );
+          }
+          await batch.commit();
+          deletedCloud += withFid.length;
+          cloudOk = true;
+        } catch (e) {
+          debugPrint('KvDuplicateCleanup: lô cloud lỗi, lùi về từng bản — $e');
+        }
+      } else {
+        cloudOk = true;
+      }
+
+      // Lô hỏng thì hạ xuống xoá lẻ để một document lỗi không kéo cả lô theo.
+      if (!cloudOk) {
+        for (final v in withFid) {
+          final fid = (v['firestoreId'] as String).trim();
           try {
             await FirestoreService.deleteSale(fid);
             deletedCloud++;
-          } catch (e) {
-            // Mất mạng / lỗi tạm thời: xếp hàng đợi để đồng bộ lại sau.
-            await SyncOrchestrator().enqueue(
-              entityType: SyncEntityType.sale,
-              entityId: localId ?? 0,
-              firestoreId: fid,
-              operation: SyncOperation.delete,
-              data: {'firestoreId': fid},
-            );
-            queued++;
+          } catch (_) {
+            try {
+              await SyncOrchestrator().enqueue(
+                entityType: SyncEntityType.sale,
+                entityId: (v['id'] as int?) ?? 0,
+                firestoreId: fid,
+                operation: SyncOperation.delete,
+                data: {'firestoreId': fid},
+              );
+              queued++;
+            } catch (e2) {
+              failed++;
+              debugPrint('KvDuplicateCleanup: bỏ qua $fid — $e2');
+            }
           }
         }
-        if (localId != null) {
-          await _db.deleteSale(localId);
-          deletedLocal++;
-        }
-        amount += (v['totalPrice'] as int?) ?? 0;
-      } catch (e) {
-        failed++;
-        debugPrint('KvDuplicateCleanup: bỏ qua bản ghi $localId — $e');
       }
-      onProgress?.call(i + 1, victims.length);
+
+      // Local: một câu DELETE cho cả lô thay vì mỗi bản một câu.
+      final ids = chunk
+          .map((v) => v['id'])
+          .whereType<int>()
+          .toList(growable: false);
+      if (ids.isNotEmpty) {
+        try {
+          final marks = List.filled(ids.length, '?').join(',');
+          deletedLocal += await db.rawDelete(
+            'DELETE FROM sales WHERE id IN ($marks)',
+            ids,
+          );
+        } catch (e) {
+          failed += ids.length;
+          debugPrint('KvDuplicateCleanup: xoá local lô lỗi — $e');
+        }
+      }
+
+      amount += chunk.fold<int>(
+        0,
+        (acc, v) => acc + ((v['totalPrice'] as int?) ?? 0),
+      );
+      done += chunk.length;
+      onProgress?.call(done, victims.length);
+    }
+
+    if (deletedLocal > 0) {
+      try {
+        EventBus().emit('sales_changed');
+      } catch (_) {}
     }
 
     var backfilled = 0;

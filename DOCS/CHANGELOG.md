@@ -127,6 +127,25 @@ vuốt ngang mới thấy. **Sửa:** tách thành widget `_KvDuplicatePanel` v�
 nghĩa vì đây là dọn đơn bán. Nút đổi thành `ElevatedButton` đỏ, rộng hết dòng.
 Gỡ bản inline khỏi `_FinanceCleanupTab` để khỏi phải bảo trì hai nơi.
 
+### Dọn trùng quá chậm — gộp lô Firestore
+
+Chủ shop chạy thật báo "dọn lâu quá". Đo trên máy: **~25–37 bản/phút** ⇒ 2.181
+bản mất **~50–70 phút**. Nguyên nhân: mỗi bản là **một lượt gọi mạng riêng**
+(`FirestoreService.deleteSale` → 1 `update`, chạy tuần tự `await`).
+
+**Sửa:** `apply()` nay gom **400 thao tác / `WriteBatch`** (trần Firestore là
+500, chừa biên) — cả lô chỉ tốn MỘT lượt mạng; local cũng gộp thành một câu
+`DELETE ... WHERE id IN (...)` thay vì mỗi bản một câu. 2.181 bản còn ~6 lô.
+- Dùng `set(..., merge: true)` chứ không `update`: document đã bị gỡ ở nơi khác
+  sẽ làm **hỏng cả lô** nếu dùng `update`, trong khi `set(merge)` vẫn an toàn vì
+  ta chỉ đánh dấu `deleted: true`.
+- Lô nào commit lỗi thì **tự hạ xuống xoá lẻ** từng bản, hỏng tiếp thì đẩy vào
+  hàng đợi `SyncOrchestrator` — một document lỗi không kéo cả lô theo.
+
+**Ngắt giữa chừng an toàn:** mỗi bản độc lập, bản đã xoá vẫn xoá. Thực tế đã
+ngắt lượt chậm ở 716/2245 để đổi sang bản gộp lô, lần quét lại đếm đúng 1.529
+bản còn lại, không mất và không xoá nhầm gì.
+
 ### Tab TÀI CHÍNH quay vòng vĩnh viễn
 
 Chủ shop mở đúng tab TÀI CHÍNH thì gặp **vòng xoay không bao giờ dứt**. Nguyên
