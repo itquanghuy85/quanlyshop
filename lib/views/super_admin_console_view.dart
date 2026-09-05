@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../services/claims_service.dart';
 import '../services/firestore_service.dart';
@@ -683,10 +684,21 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        final navigator = Navigator.of(context);
         final exit = await _confirmExit();
-        if (!exit) return;
-        navigator.pop();
+        if (!exit || !mounted) return;
+        final navigator = Navigator.of(context);
+        // Console có HAI đường vào:
+        //  • main.dart (AuthGate) trả thẳng làm widget GỐC khi super admin đăng
+        //    nhập — dưới nó KHÔNG còn route nào.
+        //  • home_view push từ Cài đặt → có route để quay về.
+        // Trước đây luôn gọi navigator.pop(): ở đường gốc nó xoá route DUY NHẤT,
+        // Navigator thành rỗng ⇒ MÀN HÌNH ĐEN mà app vẫn chạy (đã tái hiện trên
+        // máy thật: MainActivity còn focus, tiến trình còn sống, không render gì).
+        if (navigator.canPop()) {
+          navigator.pop();
+        } else {
+          await SystemNavigator.pop();
+        }
       },
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,

@@ -4,6 +4,40 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-05j] - fix(super admin) BẤM THOÁT RA MÀN HÌNH ĐEN, APP KHÔNG TẮT
+
+**Chủ shop báo:** "khi tôi bấm thoát ứng dụng thì chỉ có màn hình đen chứ ko
+thoát app". Đã **tái hiện được trên máy thật** (Oppo CPH2239, tài khoản super
+admin): sau khi bấm *Thoát Console*, `dumpsys window` cho thấy MainActivity vẫn
+đang focus, tiến trình vẫn sống, `uiautomator dump` rỗng — engine chạy nhưng
+**không render gì**.
+
+**Nguyên nhân** — `super_admin_console_view.dart`:
+```dart
+onPopInvokedWithResult: (didPop, _) async {
+  ...
+  navigator.pop();      // ← pop cái gì?
+}
+```
+`SuperAdminConsoleView` có **hai đường vào**:
+- `main.dart` (AuthGate) trả **thẳng làm widget GỐC** khi super admin đăng nhập
+  — dưới nó KHÔNG còn route nào;
+- `home_view` push từ Cài đặt — có route để quay về.
+
+Code luôn gọi `navigator.pop()`. Ở đường gốc, nó **xoá route DUY NHẤT** ⇒
+Navigator rỗng ⇒ màn hình đen mà app vẫn chạy. Lỗi chỉ xuất hiện với tài khoản
+super admin, nên tài khoản chủ shop thường không gặp (đã đối chiếu: máy 1 với
+`m@m.com` bấm thoát vẫn về launcher bình thường).
+
+**Sửa:** phân biệt hai đường — `navigator.canPop()` thì `pop()` (quay lại Cài
+đặt), không thì `SystemNavigator.pop()` (thoát app), giống cách `home_view` vẫn
+làm.
+
+**Nghiệm thu máy thật:** bấm Thoát → focus chuyển sang
+`com.oppo.launcher.Launcher`, app thoát hẳn. `flutter analyze` 0 lỗi/cảnh báo.
+
+---
+
 ## [2026-09-05i] - fix(đơn sửa) MẤT THÔNG BÁO NHẬN MÁY + ĐƠN TỰ TỤT VỀ "TIẾP NHẬN"
 
 **Chủ shop báo (05/09, kèm ảnh chat nội bộ + danh sách đơn):** đơn IPHONE 11 —
