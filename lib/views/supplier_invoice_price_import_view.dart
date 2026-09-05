@@ -212,21 +212,30 @@ class _SupplierInvoicePriceImportViewState
       final canCommit = !p.isEmpty &&
           !(p.newItems.isEmpty &&
               _policy == CatalogExistingPolicy.skip);
+      // Chia đôi đều: để nút phải `flex: 2` thì nút trái bị bóp, chữ "Chọn
+      // file khác" vỡ thành 2 dòng trên máy màn hẹp.
       return Row(
         children: [
           Expanded(
             child: OutlinedButton(
               onPressed: _busy ? null : _pickAndPreview,
-              child: const Text('Chọn file khác'),
+              child: const Text(
+                'Chọn file khác',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
           const SizedBox(width: 10),
           Expanded(
-            flex: 2,
             child: FilledButton.icon(
               onPressed: (_busy || !canCommit) ? null : _commit,
-              icon: const Icon(Icons.save_alt),
-              label: Text('Nhập ${p.totalItems} mặt hàng'),
+              icon: const Icon(Icons.save_alt, size: 18),
+              label: Text(
+                'Nhập ${p.totalItems} mặt hàng',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
         ],

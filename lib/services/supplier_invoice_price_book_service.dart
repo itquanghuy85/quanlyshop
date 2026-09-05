@@ -410,7 +410,7 @@ CUỐI CÙNG, hãy trả lời tôi bằng một báo cáo ngắn gồm: tổng 
       return Excel.decodeBytes(bytes);
     } catch (_) {
       try {
-        return Excel.decodeBytes(_normalizeOoxmlRelTargets(bytes));
+        return Excel.decodeBytes(_repairOpenpyxlWorkbook(bytes));
       } catch (e) {
         errors.add(
           'File Excel không đọc được: $e\n'
@@ -532,6 +532,10 @@ CUỐI CÙNG, hãy trả lời tôi bằng một báo cáo ngắn gồm: tổng 
     }
     return out;
   }
+
+  /// Chỉ dùng cho unit test: chạy đúng bước giải mã file của app.
+  @visibleForTesting
+  static Excel? debugDecode(Uint8List bytes) => _decode(bytes, <String>[]);
 
   /// Chỉ dùng cho unit test: đọc 1 sheet mà không cần Firebase/SQLite
   /// (`preview` phải truy vấn danh mục hiện có nên không test thuần được).
@@ -866,28 +870,59 @@ CUỐI CÙNG, hãy trả lời tôi bằng một báo cáo ngắn gồm: tổng 
     );
   }
 
-  /// Sửa Target của quan hệ worksheet trong "xl/_rels/workbook.xml.rels" từ
-  /// đường dẫn tuyệt đối ("/xl/worksheets/…") sang tương đối — gói `excel`
-  /// luôn tự ghép tiền tố "xl/" nên Target tuyệt đối làm nó tìm sai file.
-  /// Đây là kiểu file Python/openpyxl sinh ra, mà AI hay dùng để tạo .xlsx.
-  static Uint8List _normalizeOoxmlRelTargets(Uint8List bytes) {
+  /// Vá lại file .xlsx do **Python/openpyxl** sinh ra để gói `excel` đọc được.
+  ///
+  /// Đây KHÔNG phải trường hợp biên: ChatGPT Code Interpreter dùng openpyxl,
+  /// nên gần như mọi file người dùng nhờ AI tạo đều rơi vào đây. Cả hai lỗi
+  /// dưới đây đều làm `Excel.decodeBytes` ném thẳng, không có cách bắt riêng.
+  ///
+  /// **Lỗi 1 — Target tuyệt đối.** openpyxl ghi
+  /// `Target="/xl/worksheets/sheet1.xml"` trong `xl/_rels/workbook.xml.rels`,
+  /// mà gói `excel` luôn tự ghép tiền tố `xl/` nên tìm sai đường dẫn ⇒
+  /// *"Null check operator used on a null value"*.
+  ///
+  /// **Lỗi 2 — ô inline string RỖNG.** openpyxl ghi ô chuỗi rỗng thành thẻ tự
+  /// đóng `<c r="M2" t="inlineStr"/>` (không có `<is>`, không có `<t>`), còn
+  /// `excel` thì làm `node.findAllElements('t').first` ⇒ *"Bad state: No
+  /// element"* (parse.dart:630). Ô rỗng là chuyện BẮT BUỘC XẢY RA với tính
+  /// năng này — prompt của app yêu cầu để trống cột "Giá thu khách".
+  /// Cách vá: bỏ thuộc tính `t="inlineStr"` ở đúng những ô không có `<t>`, để
+  /// nhánh mặc định của gói xử lý (nhánh đó đã kiểm tra null đàng hoàng).
+  static Uint8List _repairOpenpyxlWorkbook(Uint8List bytes) {
     try {
       final archive = ZipDecoder().decodeBytes(bytes);
+      final patched = <String, List<int>>{};
+
+      // Lỗi 1 — chỉ ở file rels của workbook.
       final relsFile = archive.findFile('xl/_rels/workbook.xml.rels');
-      if (relsFile == null) return bytes;
-      final xmlStr = utf8.decode(relsFile.content as List<int>);
-      final fixed = xmlStr
-          .replaceAll('Target="/xl/', 'Target="')
-          .replaceAll('Target="/', 'Target="');
-      if (fixed == xmlStr) return bytes;
+      if (relsFile != null) {
+        final xmlStr = utf8.decode(relsFile.content as List<int>);
+        final fixed = xmlStr
+            .replaceAll('Target="/xl/', 'Target="')
+            .replaceAll('Target="/', 'Target="');
+        if (fixed != xmlStr) {
+          patched['xl/_rels/workbook.xml.rels'] = utf8.encode(fixed);
+        }
+      }
+
+      // Lỗi 2 — mọi worksheet.
+      for (final f in archive.files) {
+        if (!f.name.startsWith('xl/worksheets/') ||
+            !f.name.endsWith('.xml')) {
+          continue;
+        }
+        final xmlStr = utf8.decode(f.content as List<int>);
+        final fixed = _stripEmptyInlineStrCells(xmlStr);
+        if (fixed != xmlStr) patched[f.name] = utf8.encode(fixed);
+      }
+
+      if (patched.isEmpty) return bytes;
 
       final newArchive = Archive();
       for (final f in archive.files) {
-        if (f.name == 'xl/_rels/workbook.xml.rels') {
-          final data = utf8.encode(fixed);
-          newArchive.addFile(
-            ArchiveFile('xl/_rels/workbook.xml.rels', data.length, data),
-          );
+        final data = patched[f.name];
+        if (data != null) {
+          newArchive.addFile(ArchiveFile(f.name, data.length, data));
         } else {
           newArchive.addFile(f);
         }
@@ -897,5 +932,29 @@ CUỐI CÙNG, hãy trả lời tôi bằng một báo cáo ngắn gồm: tổng 
     } catch (_) {
       return bytes;
     }
+  }
+
+  /// Bỏ `t="inlineStr"` khỏi các ô KHÔNG có `<t>` (ô chuỗi rỗng). Giữ nguyên
+  /// mọi ô inline string có nội dung thật.
+  @visibleForTesting
+  static String stripEmptyInlineStrCellsForTest(String xml) =>
+      _stripEmptyInlineStrCells(xml);
+
+  static String _stripEmptyInlineStrCells(String xml) {
+    // Dạng 1: thẻ tự đóng — `<c r="M2" t="inlineStr"/>`
+    var out = xml.replaceAllMapped(
+      RegExp(r'<c\b([^>]*?)\st="inlineStr"([^>]*?)/>'),
+      (m) => '<c${m.group(1)}${m.group(2)}/>',
+    );
+    // Dạng 2: có cặp đóng/mở nhưng bên trong không hề có `<t`
+    out = out.replaceAllMapped(
+      RegExp(r'<c\b([^>]*?)\st="inlineStr"([^>]*?)>(.*?)</c>', dotAll: true),
+      (m) {
+        final inner = m.group(3) ?? '';
+        if (inner.contains('<t')) return m.group(0)!;
+        return '<c${m.group(1)}${m.group(2)}>$inner</c>';
+      },
+    );
+    return out;
   }
 }

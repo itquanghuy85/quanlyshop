@@ -4,6 +4,55 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-05d] - fix(bảng giá NCC) LỖI CHẶN: không đọc được file do ChatGPT tạo
+
+**Phát hiện khi chạy nốt các kịch bản kiểm thử còn thiếu.**
+
+Cả tính năng dựng trên tiền đề "nhờ ChatGPT tạo file Excel", mà ChatGPT Code
+Interpreter dùng **openpyxl** — và app **không đọc được** file openpyxl. Hai lỗi
+chồng nhau, gói `excel` ném thẳng ở cả hai:
+
+1. **Target tuyệt đối.** openpyxl ghi `Target="/xl/worksheets/sheet1.xml"` trong
+   `workbook.xml.rels`; gói `excel` luôn tự ghép tiền tố `xl/` ⇒ tìm sai đường
+   dẫn ⇒ *"Null check operator used on a null value"*. (Đợt `[2026-09-04e]` đã
+   vá lỗi này cho luồng Kho phụ tùng, nhưng chưa đủ — xem lỗi 2.)
+2. **Ô inline string RỖNG.** openpyxl ghi ô chuỗi rỗng thành thẻ tự đóng
+   `<c r="M2" t="inlineStr"/>` (không `<is>`, không `<t>`), còn `excel` gọi
+   `node.findAllElements('t').first` (parse.dart:630) ⇒ *"Bad state: No
+   element"*. **Ô rỗng là chuyện BẮT BUỘC xảy ra** vì chính prompt của app yêu
+   cầu để trống cột "Giá thu khách" ⇒ mọi file AI tạo đúng hướng dẫn đều hỏng.
+
+`_normalizeOoxmlRelTargets` đổi thành `_repairOpenpyxlWorkbook`: vá cả rels lẫn
+mọi worksheet, bỏ `t="inlineStr"` ở đúng các ô không có `<t>` để nhánh mặc định
+của gói xử lý (nhánh đó đã kiểm null đàng hoàng). Giữ nguyên ô có nội dung.
+
+Kèm sửa nút "Chọn file khác" bị vỡ 2 dòng (nút phải để `flex: 2` bóp nút trái).
+
+**Kiểm thử — chạy nốt các kịch bản bắt buộc còn thiếu, trên máy thật:**
+
+| Kịch bản | Kết quả |
+|---|---|
+| File do openpyxl tạo | Đọc được (trước đây hỏng hoàn toàn) |
+| Cùng mặt hàng ở 2 hoá đơn khác giá | gần nhất **200.000** (HĐ mới hơn), **BQ gia quyền 116.667** = (100k×10+200k×2)/12, min 100.000, max 200.000, 2 lần nhập |
+| Hai mặt hàng khác model | "Màn hình Test" ra **2 mục riêng** A54/A74, khoá khác nhau |
+| Tiền `"310.000"` / `"310,000"` / `"310.000 đ"` | đều ra **310000** |
+| Tiền `"1.250.000đ"` | ra **1250000** |
+| Dòng thiếu tên / thiếu giá vốn / SL âm | đếm đúng **1 / 1 / 1**, dòng hợp lệ 9 |
+| File thiếu cột bắt buộc | Báo rõ *"thiếu cột Tên mặt hàng, Giá vốn — đã bỏ qua sheet này"*, nút Nhập bị vô hiệu hoá |
+| Màn Tuỳ chỉnh | Hết "Báo cáo hoạt động hôm nay"; có đủ 3 thẻ mới Khám phá / Mẹo / Cộng đồng |
+| Xoay ngang | Thẻ bảng giá xếp **2 cột/hàng** đúng `ResponsiveGrid` |
+
+`test/openpyxl_compat_test.dart` (MỚI, 6 test) + fixture file openpyxl thật.
+`flutter analyze` 0 lỗi; `flutter test` **+550 −8** (8 lỗi có sẵn).
+
+**Chưa test được:** (a) **In** hoá đơn từng tab — không có máy in; (b) bố cục
+người dùng đã tuỳ chỉnh được giữ qua nâng cấp — thử trên máy nhưng **không kết
+luận được** vì `loadConfig` ưu tiên bản trên cloud (đã ở v4) nên đè bản local
+tôi dựng; logic gộp vẫn được 11 unit test phủ trực tiếp. (c) Tắt "Lời chào" để
+xem 2 banner tiền còn không — không ép được điều kiện hiện banner.
+
+---
+
 ## [2026-09-05c] - fix(bảng giá NCC) 3 lỗi phát hiện khi nghiệm thu máy thật
 
 **Nghiệm thu Oppo CPH2203, tài khoản `m@m.com` (shop "M").**
