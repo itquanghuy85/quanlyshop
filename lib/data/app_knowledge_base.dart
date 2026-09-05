@@ -1215,8 +1215,8 @@ class AppKnowledgeBase {
             '30 ngày / Tùy chọn.',
         '**Tổng quan** — đọc từ trên xuống theo dòng chảy tiền: Dòng tiền (tiền '
             'thật vào/ra) → Doanh thu → Chi phí → Lợi nhuận → So với kỳ trước.',
-        '**Sổ giao dịch** — có 2 cách xem, bấm nút để đổi: *Giao dịch tiền* '
-            '(các khoản thu/chi thật) và *Nhật ký thao tác* (ai đã làm gì).',
+        '**Sổ giao dịch** — có 2 cách xem, bấm nút để đổi: "Giao dịch tiền" '
+            '(các khoản thu/chi thật) và "Nhật ký thao tác" (ai đã làm gì).',
         '**Công nợ** — chuyển giữa Phải thu / Phải trả.',
         '**Báo cáo** — báo cáo ngày chi tiết, lãi theo tháng, dịch vụ bán chạy, '
             'nhóm khách hàng.',

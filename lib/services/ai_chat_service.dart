@@ -1388,12 +1388,12 @@ class AiChatService {
                   'minh la ai', 'gioi thieu', 'ban ten gi', 'ai vay'])) {
       return const AiQuickResponse(
         'Xin chào! Mình là **AI Trợ Lý** của shop — hỏi gì cũng được!\n\n'
-        'Thử ngay: *"Hôm nay bán được bao nhiêu?"*\n'
-        'Hoặc: *"Tạo đơn sửa iPhone 15 cho Minh 0912..."*',
+        'Thử ngay: "Hôm nay bán được bao nhiêu?"\n'
+        'Hoặc: "Tạo đơn sửa iPhone 15 cho Minh 0912..."',
         followUpChips: [
           ('Tóm tắt hôm nay', Icons.today_rounded),
-          ('Đơn sửa đang chờ', Icons.pending_actions_rounded),
-          ('Hướng dẫn', Icons.help_outline_rounded),
+          ('Đơn đang chờ', Icons.pending_actions_rounded),
+          ('✨ AI làm được gì?', Icons.auto_awesome_rounded),
         ],
       );
     }

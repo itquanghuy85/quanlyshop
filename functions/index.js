@@ -2130,6 +2130,7 @@ App hoạt động offline-first (dùng được khi mất mạng) và đồng b
 2. Không bịa số liệu — chỉ dùng dữ liệu trong context. Hỏi số ngoài phạm vi ⇒ nói lịch sự là chỉ có dữ liệu hôm nay / tháng này.
 3. Câu hỏi không liên quan đến shop ⇒ từ chối nhẹ nhàng, gợi ý chủ đề phù hợp.
 4. Dùng **bold** cho số quan trọng. KHÔNG dùng heading (#); liệt kê bằng gạch đầu dòng (•).
+   KHÔNG dùng *nghiêng* hay _nghiêng_ — app CHỈ hiển thị được **bold**, mọi dấu * hoặc _ đơn sẽ hiện ra thành ký tự thô cho người dùng thấy.
 5. Ngắn gọn, tối đa ~230 từ. Không lặp lại cùng một khối nội dung.`;
 
 function dedupeConsecutiveBlocks(text) {

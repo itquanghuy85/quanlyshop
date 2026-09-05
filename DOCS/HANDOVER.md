@@ -51,8 +51,17 @@ hiện thêm 4 lỗi và đã sửa hết trong cùng đợt:
   Đã bỏ khỏi text mới; vài quick-answer cũ khác vẫn còn, chưa đụng.
 · **Chip theo tab gần như không hiện** vì `_sendWelcome` set `_contextChips` rồi
   giữ mãi ⇒ đổi tab nay xoá `_contextChips`.
-**⚠️ `functions` CHƯA deploy lại** — 3 trigger vẫn nằm trên cloud nhưng đang chết
-sẵn nên không gây hại; chạy `firebase deploy --only functions` để dọn hẳn.
+**⚠️ CHỦ SHOP CẦN TỰ CHẠY 1 LỆNH** — xoá 3 trigger chết khỏi cloud (lệnh bị
+classifier của môi trường agent chặn, giống việc truy vấn Firestore production):
+```
+firebase functions:delete notifyNewRepair notifyNewChat notifyStatusChange \
+  --region asia-southeast1 --force --project huyaka-1809
+```
+Đã đối chiếu `functions:list`: cloud có đúng 21 hàm của nguồn + 3 trigger đã gỡ +
+3 hàm Firebase Extension (`ext-delete-user-data-*`, us-central1, KHÔNG thuộc repo)
+⇒ **không cần deploy lại cả 21 hàm**. Chưa chạy cũng không hại: 3 hàm đó ném
+`TypeError` rồi thoát. Prompt `CHAT_SYSTEM_PROMPT` vừa thêm 1 dòng cấm `*nghiêng*`
+thì **cần deploy mới có hiệu lực**.
 
 **📍 NÚT DỌN TRÙNG ĐÃ CHUYỂN SANG TAB "ĐƠN BÁN" (`[2026-09-06a]`).** Trước đặt ở
 tab TÀI CHÍNH — tab thứ 5 của `TabBar isScrollable: true` nên **bị khuất mép
