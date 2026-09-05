@@ -479,6 +479,7 @@ class _SaleTabState extends State<_SaleTab> {
     if (_loading) return const Center(child: CircularProgressIndicator());
     return Column(
       children: [
+        const _KvDuplicatePanel(),
         _searchField(_searchCtrl, 'Tìm theo sản phẩm/khách/SĐT...', _filter),
         Expanded(
           child: _filtered.isEmpty
@@ -522,6 +523,174 @@ class _SaleTabState extends State<_SaleTab> {
             onKeepBooks: () => _execute(false),
           ),
       ],
+    );
+  }
+}
+
+/// Panel dọn đơn bán KiotViet bị nhập TRÙNG.
+///
+/// Đặt ở tab ĐƠN BÁN chứ không phải tab TÀI CHÍNH: TabBar ở màn này để
+/// `isScrollable: true`, TÀI CHÍNH là tab thứ 5 nên **bị khuất khỏi màn hình
+/// điện thoại**, chủ shop không tìm ra nút (phản hồi 06/09/2026).
+class _KvDuplicatePanel extends StatefulWidget {
+  const _KvDuplicatePanel();
+
+  @override
+  State<_KvDuplicatePanel> createState() => _KvDuplicatePanelState();
+}
+
+class _KvDuplicatePanelState extends State<_KvDuplicatePanel> {
+  KvDuplicateReport? _report;
+  bool _running = false;
+  String _progress = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final r = await KvDuplicateCleanupService.scan();
+      if (mounted) setState(() => _report = r);
+    } catch (e) {
+      debugPrint('_KvDuplicatePanel.scan: $e');
+    }
+  }
+
+  Future<void> _clean() async {
+    final r = _report;
+    if (r == null || r.isClean || _running) return;
+    final months = r.extraByMonth.keys;
+    final proceed = await _confirmSummary(
+      context,
+      title: 'Dọn ${r.extraRecords} đơn bán KiotViet trùng',
+      lines: [
+        '${r.kvRecords} bản ghi mang mã KV nhưng chỉ có ${r.invoiceCodes} hoá '
+            'đơn thật ⇒ thừa ${r.extraRecords} bản.',
+        'Doanh thu đang bị cộng lặp '
+            '${MoneyUtils.formatCurrency(r.inflatedAmount)}đ.',
+        if (months.isNotEmpty) 'Trải từ ${months.first} đến ${months.last}.',
+        'Giữ bản ghi cũ nhất của mỗi hoá đơn, xoá các bản còn lại ở CẢ máy này '
+            'lẫn trên cloud (máy khác sẽ tự gỡ theo).',
+        'KHÔNG đụng tới công nợ, bút toán hay tồn kho.',
+      ],
+      withReversal: false,
+    );
+    if (proceed != true || !mounted || !await _confirmPassword(context)) return;
+
+    setState(() {
+      _running = true;
+      _progress = 'Đang dọn…';
+    });
+    try {
+      final out = await KvDuplicateCleanupService.apply(
+        onProgress: (done, total) {
+          if (!mounted) return;
+          if (done % 25 == 0 || done == total) {
+            setState(() => _progress = 'Đang dọn $done/$total…');
+          }
+        },
+      );
+      if (!mounted) return;
+      NotificationService.showSnackBar(
+        '✅ Đã dọn ${out.deletedLocal} bản trùng • gỡ cloud ${out.deletedCloud}'
+        '${out.queuedForRetry > 0 ? ' • chờ mạng ${out.queuedForRetry}' : ''}'
+        '${out.failed > 0 ? ' • lỗi ${out.failed}' : ''}',
+        color: out.failed > 0 ? Colors.orange : Colors.green,
+      );
+    } catch (e) {
+      if (mounted) {
+        NotificationService.showSnackBar('Lỗi dọn trùng: $e', color: Colors.red);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _running = false;
+          _progress = '';
+        });
+      }
+      await _load();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = _report;
+    if (r == null || r.isClean) return const SizedBox.shrink();
+    return Card(
+      margin: const EdgeInsets.fromLTRB(10, 10, 10, 4),
+      color: Colors.red.shade50,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.red.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.copy_all, color: Colors.red, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Đơn bán KiotViet TRÙNG: ${r.extraRecords} bản',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Colors.red,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${r.kvRecords} bản ghi / ${r.invoiceCodes} hoá đơn thật',
+              style: const TextStyle(fontSize: 12),
+            ),
+            Text(
+              'Doanh thu bị thổi: '
+              '${MoneyUtils.formatCurrency(r.inflatedAmount)}đ',
+              style: const TextStyle(fontSize: 12),
+            ),
+            if (r.missingShopId > 0)
+              Text(
+                'Thiếu shopId ở máy này: ${r.missingShopId} đơn',
+                style: const TextStyle(fontSize: 12),
+              ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.error,
+                  foregroundColor: Colors.white,
+                ),
+                icon: _running
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.cleaning_services, size: 18),
+                label: Text(
+                  _running
+                      ? (_progress.isEmpty ? 'Đang dọn…' : _progress)
+                      : 'DỌN ${r.extraRecords} BẢN TRÙNG',
+                ),
+                onPressed: _running ? null : _clean,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1132,9 +1301,6 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
   List<Map<String, dynamic>> _stockMismatch = [];
   List<Map<String, dynamic>> _voidedIntents = [];
   List<Map<String, dynamic>> _misbookedVoids = [];
-  KvDuplicateReport? _kvReport;
-  bool _kvRunning = false;
-  String _kvProgress = '';
   bool _loading = true;
 
   @override
@@ -1155,10 +1321,8 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
     final voided =
         await DataReconciliationService.findVoidedTxnPaymentIntents();
     final misVoids = await DataReconciliationService.findMisbookedVoids();
-    final kv = await KvDuplicateCleanupService.scan();
     if (!mounted) return;
     setState(() {
-      _kvReport = kv;
       _orphans = orphans;
       _zeroDebts = zeros;
       _orphanRetItems = orphanRet;
@@ -1198,63 +1362,6 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
   }
 
   int _mi(Map m, String k) => (m[k] as num?)?.toInt() ?? 0;
-
-  /// Dọn đơn bán KiotViet bị nhập trùng (xem [KvDuplicateCleanupService]).
-  Future<void> _cleanKvDuplicates() async {
-    final r = _kvReport;
-    if (r == null || r.isClean || _kvRunning) return;
-    final months = r.extraByMonth.keys;
-    final proceed = await _confirmSummary(
-      context,
-      title: 'Dọn ${r.extraRecords} đơn bán KiotViet trùng',
-      lines: [
-        '${r.kvRecords} bản ghi mang mã KV nhưng chỉ có ${r.invoiceCodes} hoá '
-            'đơn thật ⇒ thừa ${r.extraRecords} bản.',
-        'Doanh thu đang bị cộng lặp ${MoneyUtils.formatCurrency(r.inflatedAmount)}đ.',
-        if (months.isNotEmpty)
-          'Trải từ ${months.first} đến ${months.last}.',
-        'Giữ bản ghi cũ nhất của mỗi hoá đơn, xoá các bản còn lại ở CẢ máy này '
-            'lẫn trên cloud (máy khác sẽ tự gỡ theo).',
-        'KHÔNG đụng tới công nợ, bút toán hay tồn kho.',
-      ],
-      withReversal: false,
-    );
-    if (proceed != true || !mounted || !await _confirmPassword(context)) return;
-
-    setState(() {
-      _kvRunning = true;
-      _kvProgress = 'Đang dọn…';
-    });
-    try {
-      final out = await KvDuplicateCleanupService.apply(
-        onProgress: (done, total) {
-          if (!mounted) return;
-          if (done % 25 == 0 || done == total) {
-            setState(() => _kvProgress = 'Đang dọn $done/$total…');
-          }
-        },
-      );
-      if (!mounted) return;
-      NotificationService.showSnackBar(
-        '✅ Đã dọn ${out.deletedLocal} bản trùng • gỡ cloud ${out.deletedCloud}'
-        '${out.queuedForRetry > 0 ? ' • chờ mạng ${out.queuedForRetry}' : ''}'
-        '${out.failed > 0 ? ' • lỗi ${out.failed}' : ''}',
-        color: out.failed > 0 ? Colors.orange : Colors.green,
-      );
-    } catch (e) {
-      if (mounted) {
-        NotificationService.showSnackBar('Lỗi dọn trùng: $e', color: Colors.red);
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _kvRunning = false;
-          _kvProgress = '';
-        });
-      }
-      await _load();
-    }
-  }
 
   Future<void> _cleanRetItem(Map<String, dynamic> it) async {
     final proceed = await _confirmSummary(
@@ -1405,52 +1512,13 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
         _orphanExpFal.isEmpty &&
         _stockMismatch.isEmpty &&
         _voidedIntents.isEmpty &&
-        _misbookedVoids.isEmpty &&
-        (_kvReport?.isClean ?? true);
+        _misbookedVoids.isEmpty;
     if (nothing) {
       return _emptyState('Không phát hiện dữ liệu tài chính cần dọn 👍');
     }
-    final kv = _kvReport;
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
-        if (kv != null && !kv.isClean) ...[
-          _sectionHeader(
-            'Đơn bán KiotViet TRÙNG (${kv.extraRecords})',
-            'Cùng một mã hoá đơn có nhiều bản ghi — do import ở 2 máy sinh 2 doc '
-                'id khác nhau. Doanh thu đang bị cộng lặp.',
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${kv.kvRecords} bản ghi / ${kv.invoiceCodes} hoá đơn thật\n'
-                  'Doanh thu bị thổi: ${MoneyUtils.formatCurrency(kv.inflatedAmount)}đ'
-                  '${kv.missingShopId > 0 ? '\nThiếu shopId ở máy này: ${kv.missingShopId} đơn' : ''}',
-                  style: const TextStyle(fontSize: 12),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  icon: _kvRunning
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.cleaning_services, size: 18),
-                  label: Text(
-                    _kvRunning
-                        ? (_kvProgress.isEmpty ? 'Đang dọn…' : _kvProgress)
-                        : 'Dọn ${kv.extraRecords} bản trùng',
-                  ),
-                  onPressed: _kvRunning ? null : _cleanKvDuplicates,
-                ),
-              ],
-            ),
-          ),
-        ],
         if (_orphanRetItems.isNotEmpty) ...[
           _sectionHeader(
             'Item trả hàng mồ côi (${_orphanRetItems.length})',

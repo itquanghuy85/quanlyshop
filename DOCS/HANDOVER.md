@@ -9,6 +9,22 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-05  
 
+**📍 NÚT DỌN TRÙNG ĐÃ CHUYỂN SANG TAB "ĐƠN BÁN" (`[2026-09-06a]`).** Trước đặt ở
+tab TÀI CHÍNH — tab thứ 5 của `TabBar isScrollable: true` nên **bị khuất mép
+phải màn hình**, chủ shop không tìm ra. Nay là widget `_KvDuplicatePanel` nằm
+ngay đầu tab **ĐƠN BÁN**. Đường đi: **Cài đặt → Công cụ điều chỉnh dữ liệu →
+tab ĐƠN BÁN** → thẻ đỏ ở trên cùng.
+**✅ ĐÃ SOÁT TRÙNG TOÀN BỘ BẢNG:** chỉ `sales` bị trùng (2.245). NCC, khách
+hàng, sản phẩm, đơn sửa, công nợ, phiếu nhập, thu chi, payment_intents,
+cash_closings, nhật ký tài chính — **0 trùng theo `firestoreId`**. Hợp lý: chỉ
+đường đẩy đơn bán mới nhét `s.id` cục bộ vào doc id.
+**⚠️ 2 nghi vấn KHÔNG kết luận được:** (a) 15 cụm sản phẩm cùng SKU + cùng IMEI
+— nhưng cột `imei` chỉ lưu **4 số cuối** (đã chứng minh số `7352` xuất hiện ở 3
+SKU khác nhau) và giá vốn lệch nhau ⇒ nhiều khả năng là 2 lô nhập, phải đối
+chiếu IMEI đầy đủ bên KiotViet mới chốt được; (b) `CÓC SẠC ANKER 30W`, `ESIM`,
+`DÂY SẠC` mỗi thứ có 2 bản ghi song song (1 của app, 1 của KiotViet) khác hẳn
+giá/vốn ⇒ **tồn kho bị chia đôi**, gộp hay không là quyết định nghiệp vụ.
+
 **🔴 KIOTVIET NHẬP TRÙNG — THỔI DOANH THU 35,6 TỶ (`[2026-09-05l]`). CHƯA DỌN XONG.**
 Đối soát tài chính trên shop THẬT (HULUCA STORE, `huy@huluca.com`, Oppo CPH2203):
 **6.218 bản ghi mang mã `KV:` nhưng chỉ có 3.973 hoá đơn thật ⇒ thừa 2.245 bản**,

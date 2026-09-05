@@ -4,6 +4,53 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-06a] - fix(UI) NÚT DỌN TRÙNG BỊ KHUẤT + SOÁT TRÙNG TOÀN BỘ BẢNG
+
+**Chủ shop báo:** "tôi không thấy chỗ dọn đơn từ kiotviet trùng".
+
+**Nguyên nhân:** panel đặt ở tab **TÀI CHÍNH** — tab thứ 5 của `TabBar` có
+`isScrollable: true`, nên **bị khuất khỏi mép phải màn hình điện thoại**, phải
+vuốt ngang mới thấy. **Sửa:** tách thành widget `_KvDuplicatePanel` và đưa lên
+**đầu tab ĐƠN BÁN** (tab thứ 2, luôn nhìn thấy) — cũng đúng chỗ về mặt ngữ
+nghĩa vì đây là dọn đơn bán. Nút đổi thành `ElevatedButton` đỏ, rộng hết dòng.
+Gỡ bản inline khỏi `_FinanceCleanupTab` để khỏi phải bảo trì hai nơi.
+
+### Soát trùng TOÀN BỘ các bảng (theo yêu cầu "các mục khác có bị trùng không")
+
+Đối chiếu trên DB thật của HULUCA STORE, khoá `firestoreId`:
+
+| Bảng | Nhóm trùng | Bản thừa | Kết luận |
+|---|---|---|---|
+| **sales** | — | **2.245** | 🔴 trùng (đã có công cụ dọn) |
+| suppliers (NCC) | 0 | 0 | ✅ sạch |
+| customers | 0 | 0 | ✅ sạch |
+| products | 0 | 0 | ✅ sạch |
+| repairs | 0 | 0 | ✅ sạch |
+| debts · debt_payments | 0 | 0 | ✅ sạch |
+| import_orders · import_order_items | 0 | 0 | ✅ sạch |
+| expenses · payment_intents · cash_closings | 0 | 0 | ✅ sạch |
+| financial_activity_log | 0 | 0 | ✅ sạch |
+
+**Chỉ `sales` bị trùng** — đúng như phân tích ở `[2026-09-05l]`: chỉ đường đẩy
+đơn bán mới nhét `s.id` (số thứ tự SQLite từng máy) vào doc id. Sản phẩm dùng
+khoá tổng hợp không có id cục bộ nên không dính.
+
+### Hai nghi vấn KHÔNG kết luận được (cố ý không tự sửa)
+
+- **Sản phẩm cùng SKU + cùng IMEI (15 cụm, 17 dòng).** Cột `imei` chỉ lưu **4
+  số cuối** (399/821 sản phẩm dài đúng 4 ký tự) nên **không đủ làm khoá duy
+  nhất** — đã chứng minh: 4 số `7352` xuất hiện ở **3 SKU khác nhau**. Thêm nữa
+  giá vốn giữa các dòng lệch nhau (13.800.000 vs 12.700.000) ⇒ nhiều khả năng
+  là **hai lô nhập khác nhau**, không phải bản trùng. Muốn chốt phải đối chiếu
+  IMEI đầy đủ bên KiotViet hoặc kiểm kho thực tế.
+- **Cùng tên nhưng là hai bản ghi song song** — `CÓC SẠC ANKER 30W` (KiotViet:
+  sl 158, vốn 280.000, bán 590.000 / app tự tạo: sl 914, vốn 115.000, bán
+  380.000), `ESIM` (92 / 0), `DÂY SẠC` (97 / 94). Đây KHÔNG phải import hai lần
+  mà là **hàng đã có sẵn trong app rồi KiotViet nhập vào tạo bản thứ hai** ⇒
+  tồn kho bị chia đôi. Gộp hay không là quyết định nghiệp vụ của chủ shop.
+
+---
+
 ## [2026-09-05l] - fix(KiotViet) HOÁ ĐƠN NHẬP TRÙNG THỔI DOANH THU 35,6 TỶ
 
 **Phát hiện khi đối soát số liệu tài chính trên shop thật (HULUCA STORE).**
