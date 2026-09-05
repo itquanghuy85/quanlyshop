@@ -4,6 +4,74 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-05b] - refactor(trang chủ + tài chính) dọn bố cục theo audit UX
+
+**Chưa tăng version. Cấu hình dashboard v3 → v4.**
+
+### Trang chủ — 3 lỗi thật
+
+1. **Công tắc chết:** bật "Hoạt động hôm nay" trong Tuỳ chỉnh không hiện gì —
+   `case todayActivity` trong `_buildModularDashboard` là case RỖNG. Thẻ chỉ vẽ
+   ở nhánh dự phòng lúc config chưa tải, nên nó **loé lên rồi biến mất**.
+2. **Ẩn "Lời chào" là mất luôn cảnh báo tiền:** 2 banner "Cần thanh toán" và
+   "Giao dịch ngân hàng" bị gắn cứng trong `case greeting`. Nay tách ra ngoài
+   vòng lặp, luôn ở trên cùng, không phụ thuộc thẻ trang trí.
+3. **`dailyReport` đã bỏ nhưng vẫn là một công tắc** trong màn Tuỳ chỉnh. Nay
+   lọc bỏ khi tải (`isRetired`); GIỮ giá trị enum để config cũ đã lưu không bị
+   `fromJson` hiểu nhầm thành `greeting` rồi sinh ra 2 thẻ Lời chào.
+
+### Trang chủ — bố cục
+
+- 3 thẻ trước đây **không tắt được** (Khám phá, Mẹo hôm nay, Cộng đồng) nay là
+  loại thẻ thật trong hệ thống Tuỳ chỉnh — bật/tắt/sắp xếp như mọi thẻ khác.
+- Bỏ nút "Tuỳ chỉnh dashboard" chiếm dòng đầu tiên (lối vào đã có sẵn ở tab
+  Cài đặt → "Tuỳ chỉnh dashboard", và long-press trên Trang chủ).
+- **Thứ tự mặc định v4:** việc gấp → việc hay làm → số liệu → xã giao. Bản v3
+  đặt Chat và Hoạt động gần đây TRƯỚC Thao tác nhanh.
+- Nhánh dự phòng lúc đang tải rút còn 4 thẻ gấp nhất — trước vẽ gần hết rồi
+  nhảy sắp xếp lại khi config tải xong, nhìn như app lỗi.
+- **KHÔNG đạp lên bố cục người dùng đã tự sắp:** chỉ ai còn đúng y mẫu mặc định
+  cũ (v2 hoặc v3) mới được nâng lên mặc định v4; ai đã tuỳ chỉnh thì giữ nguyên
+  thứ tự + trạng thái bật/tắt, thẻ mới nối vào cuối.
+
+### Tài chính — lỗi số liệu
+
+**Tab Công nợ phớt lờ bộ lọc kỳ nhưng vẫn hiện thanh chọn kỳ.**
+`getDebtsForFinanceSnapshot()` không lọc ngày (đúng — công nợ là SỐ DƯ, không
+phải phát sinh trong kỳ), nhưng thanh 4 chip kỳ vẫn hiện với "Hôm nay" đang
+sáng ⇒ người xem tưởng con số là của kỳ đang chọn. Nay thay bằng nhãn rõ ràng
+*"Toàn bộ công nợ chưa tất toán — không theo kỳ đang chọn"*.
+
+### Tài chính — gộp tab 5 → 4
+
+- "Giao dịch" + "Nhật ký" → **"Sổ giao dịch"**, bên trong có nút chuyển
+  *Giao dịch tiền* / *Nhật ký thao tác*. **KHÔNG trộn 2 nguồn dữ liệu** (thu/chi
+  thật vs ai-làm-gì) — chỉ gộp chỗ vào và đặt tên người dùng hiểu được.
+- Giữ "Báo cáo" làm tab (lệch với đề xuất audit ban đầu là đưa vào menu ⋮ —
+  đây là nơi chủ shop xem hằng ngày, đưa vào menu là bước lùi).
+- **Tổng quan sắp lại theo dòng chảy tiền:** Dòng tiền → Doanh thu → Chi phí →
+  Lợi nhuận → So sánh kỳ. Bản cũ đặt Lợi nhuận TRƯỚC Doanh thu và Dòng tiền.
+- Bỏ khối "Công nợ nhanh" khỏi Tổng quan (tab Công nợ ngay bên cạnh). Giữ khối
+  Sổ quỹ vì Sổ quỹ không có tab riêng ở màn này.
+- **Sửa bẫy chỉ số tab:** `_t3()` đã bị bỏ nhưng `_t4()` vẫn nằm ở index 3, và
+  in/xuất Excel dùng số trần (`index == 4`). Sau khi gộp tab, xuất ở tab Báo cáo
+  sẽ chạy nhầm hàm xuất Nhật ký. Nay dùng hằng có tên (`_tabOverview`,
+  `_tabLedger`, `_tabDebt`, `_tabReport`) + đổi tên `_t0..._t5` thành
+  `_overviewBody` / `_txListBody` / `_debtBody` / `_journalBody` / `_reportBody`.
+
+**Đính chính audit:** mục "2 nút chi nhánh luôn hiện" trong audit là SAI — cả 2
+nút đã được cờ `_enableMultiBranch` chặn sẵn. Không sửa gì.
+
+**Test:** `flutter analyze` **0 lỗi**. `flutter test` **+544 −8** (8 lỗi có sẵn
+từ trước). Test mới `test/dashboard_config_migration_test.dart` **11/11 PASS** —
+phủ đúng chỗ rủi ro nhất: người đã tuỳ chỉnh không bị mất thứ tự/trạng thái,
+thẻ mới được nối vào, thẻ đã bỏ bị lọc, `order` liên tục không hổng, phân quyền
+tài chính. `flutter build apk --debug` OK.
+
+**⚠️ CHƯA nghiệm thu máy thật.**
+
+---
+
 ## [2026-09-05a] - feat(bảng giá) "Bảng giá từ hoá đơn NCC" — danh mục giá đồng bộ đám mây
 
 **Chưa tăng version. DB v109 → v110.**

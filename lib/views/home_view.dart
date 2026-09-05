@@ -3409,25 +3409,23 @@ class _HomeViewState extends State<HomeView>
   List<Widget> _buildModularDashboard() {
     // If config not loaded yet, show lightweight defaults (no greeting/finance)
     if (!_dashboardConfigLoaded || _dashboardConfigs.isEmpty) {
+      // Giu that GON va cung thu tu uu tien voi bo cuc that: chi nhung thu
+      // gap + hay dung. Truoc day nhanh nay ve gan het cac the, nen luc config
+      // tai xong man hinh nhay mot cai va sap xep lai — nhin nhu app loi.
       return [
-        _buildDiscoveryCard(),
-        _buildTodayActivityDashboardCard(),
         _buildPendingPaymentBanner(),
         _buildBankNotifBanner(),
-        _buildChatCard(),
-        _buildHomeCommunityQuickCard(),
         _buildUnifiedShortcuts(),
         _buildAlerts(),
-        _buildUserGuideShortcut(),
       ];
     }
 
     final widgets = <Widget>[];
 
-    // Customize button at top
-    widgets.add(_buildCustomizeDashboardButton());
-    widgets.add(_buildDiscoveryCard());
-    widgets.add(_buildTipOfDayLine());
+    // Banner tien nong LUON o tren cung, khong phu thuoc the "Loi chao" bat hay
+    // tat — day la canh bao tien bac, khong phai trang tri.
+    widgets.add(_buildPendingPaymentBanner());
+    widgets.add(_buildBankNotifBanner());
 
     for (final config in _dashboardConfigs) {
       if (!config.visible) continue;
@@ -3441,9 +3439,10 @@ class _HomeViewState extends State<HomeView>
 
       switch (config.type) {
         case DashboardCardType.greeting:
+          // 2 banner tien nong DA DUOC tach ra ngoai vong lap (xem ben tren) —
+          // truoc day gan cung o day nen an "Loi chao" (thu trang tri) la mat
+          // luon canh bao "Can thanh toan" va "Giao dich ngan hang".
           widgets.add(_buildGreetingCard());
-          widgets.add(_buildPendingPaymentBanner());
-          widgets.add(_buildBankNotifBanner());
           break;
         case DashboardCardType.actionRequired:
           final canRepair =
@@ -3557,15 +3556,26 @@ class _HomeViewState extends State<HomeView>
           widgets.add(_buildFinanceShortcuts());
           break;
         case DashboardCardType.todayActivity:
-          // Today's operational activity card
+          // Truoc day case nay RONG: bat cong tac trong man Tuy chinh khong he
+          // hien gi, the chi loe len o nhanh du phong luc config chua tai xong
+          // roi bien mat — nhin nhu app loi.
+          widgets.add(_buildTodayActivityDashboardCard());
+          break;
+        case DashboardCardType.discovery:
+          widgets.add(_buildDiscoveryCard());
+          break;
+        case DashboardCardType.tipOfDay:
+          widgets.add(_buildTipOfDayLine());
+          break;
+        case DashboardCardType.community:
+          widgets.add(_buildHomeCommunityQuickCard());
           break;
         case DashboardCardType.dailyReport:
-          // Removed from Home.
+          // Da bo khoi Trang chu; cau hinh cu con luu thi da bi loc o
+          // DashboardConfigService truoc khi toi day.
           break;
       }
     }
-
-    widgets.add(_buildHomeCommunityQuickCard());
 
     return widgets;
   }
@@ -3598,43 +3608,6 @@ class _HomeViewState extends State<HomeView>
     }
   }
 
-  /// Compact button to open dashboard customization
-  Widget _buildCustomizeDashboardButton() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
-        onTap: _openDashboardSettings,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.dashboard_customize,
-                size: 14,
-                color: Colors.grey.shade600,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'Tùy chỉnh giao diện Home',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   /// Widget lời chào người dùng - hiển thị tên và vai trò
   Widget _buildGreetingCard() {

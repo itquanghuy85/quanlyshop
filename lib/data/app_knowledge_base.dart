@@ -1186,24 +1186,42 @@ class AppKnowledgeBase {
     ),
     KbEntry(
       id: 'finance-v2',
-      title: 'Tài chính (tổng quan 5 tab)',
+      title: 'Tài chính (4 tab)',
       menuPath: 'Trang chủ → Tài chính',
       whatItDoes:
-          'Màn tài chính chính: tổng quan dòng tiền, thu, chi, công nợ, báo cáo '
-          '— theo khoảng thời gian chọn được, xuất Excel.',
+          'Màn tài chính chính: tổng quan dòng tiền, sổ giao dịch, công nợ, '
+          'báo cáo — theo khoảng thời gian chọn được, in và xuất Excel.',
       whenToUse: 'Xem sức khoẻ tài chính shop theo tuần / tháng / kỳ tuỳ chọn.',
       steps: [
-        'Vào Tài chính, chọn khoảng thời gian.',
-        'Chuyển giữa các tab: Tổng quan / Thu / Chi / Công nợ / Báo cáo.',
+        'Vào Tài chính, chọn khoảng thời gian bằng các chip Hôm nay / 7 ngày / '
+            '30 ngày / Tùy chọn.',
+        '**Tổng quan** — đọc từ trên xuống theo dòng chảy tiền: Dòng tiền (tiền '
+            'thật vào/ra) → Doanh thu → Chi phí → Lợi nhuận → So với kỳ trước.',
+        '**Sổ giao dịch** — có 2 cách xem, bấm nút để đổi: *Giao dịch tiền* '
+            '(các khoản thu/chi thật) và *Nhật ký thao tác* (ai đã làm gì).',
+        '**Công nợ** — chuyển giữa Phải thu / Phải trả.',
+        '**Báo cáo** — báo cáo ngày chi tiết, lãi theo tháng, dịch vụ bán chạy, '
+            'nhóm khách hàng.',
+        'Menu ⋯ góc trên: Đối soát tiền về, In, Xuất Excel, Tải lại. In/Xuất '
+            'chạy theo ĐÚNG tab (và đúng cách xem) bạn đang mở.',
         'Bấm ⓘ ở góc để xem giải thích khái niệm.',
       ],
       notes: [
         'Các số ở đây là DÒNG TIỀN (tiền đã thu / đã chi), không phải lợi nhuận kế toán.',
+        'Tab **Công nợ KHÔNG theo khoảng thời gian đang chọn** — nợ là số dư '
+            'còn lại tới hiện tại, không phải phát sinh trong kỳ. Vì vậy tab '
+            'này hiện nhãn "Toàn bộ công nợ chưa tất toán" thay cho thanh chọn '
+            'kỳ.',
+        '"Giao dịch tiền" khác "Nhật ký thao tác": cái đầu là tiền thật đã '
+            'vào/ra, cái sau là lịch sử thao tác của nhân viên (kể cả thao tác '
+            'không sinh ra tiền).',
       ],
       terms: ['dong-tien', 'don-tich'],
       sampleQuestions: [
         'màn tài chính có gì',
         'xem thu chi tháng này',
+        'sao công nợ không đổi khi chọn hôm nay',
+        'giao dịch và nhật ký khác gì nhau',
       ],
       tags: ['tai chinh', 'finance', 'thu chi', 'tong quan', 'dong tien'],
       audience: ['owner', 'manager'],
@@ -1359,6 +1377,47 @@ class AppKnowledgeBase {
       ],
       tags: ['dashboard', 'the so lieu', 'trang chu', 'dong tien hom nay'],
       audience: ['owner', 'manager'],
+    ),
+    KbEntry(
+      id: 'home-customize',
+      title: 'Sắp xếp lại Trang chủ (bật/tắt & đổi thứ tự thẻ)',
+      menuPath:
+          'Cài đặt → Tuỳ chỉnh dashboard  (hoặc NHẤN GIỮ vào vùng trống của '
+          'Trang chủ)',
+      whatItDoes:
+          'Chọn thẻ nào hiện trên Trang chủ và sắp thứ tự trên dưới. Mỗi người '
+          'dùng có bố cục riêng, đồng bộ theo tài khoản nên đổi máy vẫn giữ.',
+      whenToUse:
+          'Khi Trang chủ có thứ bạn không dùng tới, hoặc muốn kéo thứ hay dùng '
+          'lên trên cùng.',
+      steps: [
+        'Vào Cài đặt → "Tuỳ chỉnh dashboard".',
+        'Gạt công tắc để bật/tắt từng thẻ.',
+        'Kéo để đổi thứ tự.',
+        'Lưu — Trang chủ đổi ngay.',
+      ],
+      notes: [
+        'Thứ tự mặc định đi theo: việc gấp (Cần xử lý) → việc hay làm (Thao '
+            'tác nhanh) → số liệu → chat/cộng đồng.',
+        'Nếu bạn ĐÃ tự sắp xếp Trang chủ, các bản cập nhật sau sẽ GIỮ NGUYÊN bố '
+            'cục của bạn; thẻ mới của bản cập nhật được thêm vào cuối danh sách '
+            '(nhớ vào đây kéo lên nếu muốn dùng).',
+        'Các thẻ tài chính chỉ hiện với người có quyền xem doanh thu.',
+        'Banner "Cần thanh toán" và "Giao dịch ngân hàng" LUÔN ở trên cùng, '
+            'không tắt được — đây là cảnh báo tiền bạc.',
+      ],
+      sampleQuestions: [
+        'tắt bớt thẻ ở trang chủ',
+        'sắp xếp lại trang chủ',
+        'trang chủ nhiều thứ quá',
+        'sao trang chủ tự đổi thứ tự',
+        'bật lại thẻ đã tắt',
+      ],
+      tags: [
+        'tuy chinh trang chu', 'sap xep the', 'dashboard', 'bat tat the',
+        'thu tu trang chu', 'customize home',
+      ],
+      audience: ['all'],
     ),
 
     // ===== HỆ THỐNG =====

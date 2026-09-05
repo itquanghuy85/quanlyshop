@@ -76,13 +76,22 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   static const int _timelinePageSize = 20;
   static const double _tabStripHeight = 48;
 
+  /// 4 tab. Ban cu co 5, tach rieng "Giao dich" va "Nhat ky" — hai danh sach
+  /// deu la "nhung gi da xay ra voi tien", ten tieng Viet khong phan biet duoc
+  /// voi nguoi khong lam ke toan. Nay gop lam mot tab "So giao dich", ben trong
+  /// co nut chuyen giua hai cach xem.
   static const List<String> _financeTabs = <String>[
     'Tổng quan',
-    'Giao dịch',
+    'Sổ giao dịch',
     'Công nợ',
-    'Nhật ký',
     'Báo cáo',
   ];
+
+  /// Chi so tab — dat ten de khong con viet so tran nhu `index == 4`.
+  static const int _tabOverview = 0;
+  static const int _tabLedger = 1;
+  static const int _tabDebt = 2;
+  static const int _tabReport = 3;
 
   late TabController _tabController;
   final FinanceV2DataService _service = FinanceV2DataService();
@@ -102,6 +111,9 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   String _txQuery = '';
   final String _txPm = '';
   bool _showRec = true;
+
+  /// Tab "Sổ giao dịch": false = Giao dịch tiền, true = Nhật ký thao tác.
+  bool _ledgerShowJournal = false;
   final String _tlSrc = 'ALL';
   final String _tlDir = 'ALL';
   String _tlQ = '';
@@ -118,7 +130,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: _financeTabs.length, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _maybeShowFinanceGuide();
     });
@@ -309,11 +321,6 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     _tabController.animateTo(1);
   }
 
-  void _goDebt(bool r) {
-    setState(() => _showRec = r);
-    _tabController.animateTo(2);
-  }
-
   Future<void> _openTL(_TLEntry e) async {
     if (e.type == 'REPAIR') {
       final ref = e.referenceId ?? '';
@@ -423,6 +430,102 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     );
   }
 
+  /// Nhãn thay cho thanh chọn kỳ ở tab Công nợ.
+  ///
+  /// Công nợ là **số dư tại thời điểm hiện tại**, không phải phát sinh trong
+  /// kỳ — nên chọn "Hôm nay / 7 ngày" ở đây là vô nghĩa. Trước đây vẫn hiện
+  /// thanh chip (chip đang sáng) trong khi danh sách nợ lấy toàn bộ mọi thời
+  /// kỳ, khiến người xem tưởng con số là của kỳ đang chọn.
+  Widget _debtScopeNote() {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEF1F7))),
+      ),
+      padding: EdgeInsets.fromLTRB(_hPad, 12, _hPad, 12),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.all_inclusive_rounded,
+            size: 15,
+            color: FinanceV2Theme.accent,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Toàn bộ công nợ chưa tất toán — không theo kỳ đang chọn',
+              style: FinanceV2Theme.meta,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Tab "Sổ giao dịch" — gộp 2 tab cũ, chuyển qua lại bằng nút phân đoạn.
+  ///
+  /// KHÔNG trộn 2 nguồn dữ liệu vào một danh sách: "Giao dịch tiền" là các
+  /// khoản thu/chi thật (`s.transactions`), còn "Nhật ký thao tác" là ai đã
+  /// làm gì (`_timelineCache`, có thể lùi về audit log). Trộn lại sẽ sai bản
+  /// chất; ở đây chỉ gộp CHỖ VÀO và đặt tên cho người dùng hiểu được.
+  Widget _tLedgerBody() {
+    return Column(
+      children: [
+        Container(
+          color: AppColors.surface,
+          padding: EdgeInsets.fromLTRB(_hPad, 8, _hPad, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: _ledgerModeButton(
+                  label: 'Giao dịch tiền',
+                  selected: !_ledgerShowJournal,
+                  onTap: () => setState(() => _ledgerShowJournal = false),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _ledgerModeButton(
+                  label: 'Nhật ký thao tác',
+                  selected: _ledgerShowJournal,
+                  onTap: () => setState(() => _ledgerShowJournal = true),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(child: _ledgerShowJournal ? _journalBody() : _txListBody()),
+      ],
+    );
+  }
+
+  Widget _ledgerModeButton({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 8),
+        decoration: BoxDecoration(
+          color: selected ? FinanceV2Theme.accent : const Color(0xFFF0F3F9),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: FinanceV2Theme.meta.copyWith(
+            color: selected ? AppColors.surface : FinanceV2Theme.subInk,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _modeChip(String label, bool selected, VoidCallback onTap) {
     return ChoiceChip(
       label: Text(
@@ -450,12 +553,19 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   void _exFromTab() {
     final s = _snap;
     if (s == null) return;
+    // Dung hang co ten thay vi so tran: tab da gop tu 5 xuong 4, viet so tran
+    // la lech nghia ma khong co gi bao.
     final idx = _tabController.index;
     switch (idx) {
-      case 0:
+      case _tabOverview:
         _exOverview(s);
         break;
-      case 1:
+      case _tabLedger:
+        // Tab "So giao dich" co 2 cach xem — xuat dung cai dang mo.
+        if (_ledgerShowJournal) {
+          _exTL(_timeline(s));
+          break;
+        }
         var tx = s.transactions.toList();
         if (_txFilter == 'IN') {
           tx = tx.where((t) => t.isIncome).toList();
@@ -468,13 +578,10 @@ class _FinanceV2ViewState extends State<FinanceV2View>
           tx = tx.where((t) => (t.paymentMethod ?? '') == _txPm).toList();
         _exTx(tx);
         break;
-      case 2:
+      case _tabDebt:
         _exDebt(_showRec ? s.receivables : s.payables);
         break;
-      case 3:
-        _exTL(_timeline(s));
-        break;
-      case 4:
+      case _tabReport:
         _exDailyReportPhone(s);
         break;
       default:
@@ -683,7 +790,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final bluetoothPrinter = printerConfig['bluetoothPrinter'];
     final wifiIp = printerConfig['wifiIp'] as String?;
 
-    final lines = _tabController.index == 4
+    final lines = _tabController.index == _tabReport
         ? await _buildDetailedDailyPrintLines(s)
         : await _buildPrintLinesForTab(s, _tabController.index);
     final ok = await UnifiedPrinterService.printTextReceipt(
@@ -724,7 +831,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     b.writeln('[C]${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}');
     b.writeln('');
 
-    if (idx == 0 || idx == 4) {
+    if (idx == _tabOverview || idx == _tabReport) {
       b.writeln('[L][B]TONG QUAN');
       b.writeln('Thu vao : ${_cmp(s.totalIn)}');
       b.writeln('Chi ra  : ${_cmp(s.totalOut)}');
@@ -735,7 +842,9 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       b.writeln('');
     }
 
-    if (idx == 1) {
+    // Tab "So giao dich": in danh sach giao dich tien, hoac nhat ky thao tac,
+    // tuy cach xem dang mo.
+    if (idx == _tabLedger && !_ledgerShowJournal) {
       b.writeln('[L][B]GIAO DICH');
       var tx = s.transactions.toList();
       if (_txFilter == 'IN') {
@@ -761,7 +870,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       b.writeln('');
     }
 
-    if (idx == 2) {
+    if (idx == _tabDebt) {
       b.writeln('[L][B]CONG NO');
       final items = _showRec ? s.receivables : s.payables;
       for (final d in items.take(20)) {
@@ -773,7 +882,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       b.writeln('');
     }
 
-    if (idx == 3) {
+    if (idx == _tabLedger && _ledgerShowJournal) {
       b.writeln('[L][B]NHAT KY');
       final ents = _timelineCache;
       for (final e in ents.take(25)) {
@@ -794,7 +903,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       b.writeln('');
     }
 
-    if (idx == 4) {
+    if (idx == _tabReport) {
       b.writeln('[L][B]BAO CAO NHANH');
       b.writeln('Doanh thu BH: ${_cmp(s.incomeFromSales)}');
       b.writeln('Doanh thu SC: ${_cmp(s.incomeFromRepairs)}');
@@ -1212,14 +1321,21 @@ class _FinanceV2ViewState extends State<FinanceV2View>
               children: [
                 AnimatedBuilder(
                   animation: _tabController,
-                  builder: (_, __) => _tabController.index == 4
-                      ? const SizedBox.shrink()
-                      : _sharedBar(),
+                  builder: (_, __) {
+                    final i = _tabController.index;
+                    // Cong no la SO DU tai thoi diem hien tai, khong phai phat
+                    // sinh trong ky — truoc day van hien thanh chon ky voi chip
+                    // "Hom nay" sang, trong khi danh sach no lay TOAN BO moi
+                    // thoi ky. Nguoi dung khong the biet con so thuoc ky nao.
+                    if (i == _tabDebt) return _debtScopeNote();
+                    if (i == _tabReport) return const SizedBox.shrink();
+                    return _sharedBar();
+                  },
                 ),
                 Expanded(
                   child: TabBarView(
                     controller: _tabController,
-                    children: [_t0(), _t1(), _t2(), _t4(), _t5()],
+                    children: [_overviewBody(), _tLedgerBody(), _debtBody(), _reportBody()],
                   ),
                 ),
               ],
@@ -1228,7 +1344,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   }
 
   // TAB 0
-  Widget _t0() {
+  Widget _overviewBody() {
     final s = _snap;
     if (s == null) return _empty('Không có dữ liệu');
     return ResponsiveCenter(
@@ -1238,29 +1354,35 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
+            // Thứ tự đi từ TIỀN THẬT tới KẾT LUẬN. Bản cũ đặt Lợi nhuận TRƯỚC
+            // Doanh thu và Dòng tiền — tức đưa kết luận ra trước dữ liệu tạo ra
+            // nó, người đọc không lần được số ở đâu mà có.
             _hero(s),
             const SizedBox(height: 8),
             _alerts(s),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: _hPad),
-              child: Column(
-                children: [
-                  _cashQuickSection(s),
-                  const SizedBox(height: 8),
-                  _debtQuickSection(s),
-                ],
-              ),
-            ),
             const SizedBox(height: 12),
-            _compSection(s),
-            const SizedBox(height: 12),
-            _profitSection(s),
-            const SizedBox(height: 12),
-            _incomeSection(s),
-            const SizedBox(height: 12),
+            // 1. Tiền thật vào/ra.
             _cfSection(s),
             const SizedBox(height: 12),
+            // 2. Doanh thu (gồm cả bán chịu — chưa chắc đã có tiền).
+            _incomeSection(s),
+            const SizedBox(height: 12),
+            // 3. Chi phí.
             _expCatSection(s),
+            const SizedBox(height: 12),
+            // 4. Kết luận: lãi/lỗ.
+            _profitSection(s),
+            const SizedBox(height: 12),
+            // 5. So với kỳ trước.
+            _compSection(s),
+            const SizedBox(height: 12),
+            // Lối tắt sang Sổ quỹ — GIỮ, vì Sổ quỹ không có tab riêng ở đây.
+            // Khối "Công nợ nhanh" đã BỎ: tab Công nợ nằm ngay bên cạnh, để cả
+            // hai chỗ chỉ khiến người dùng không biết đâu là chỗ chính.
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: _hPad),
+              child: _cashQuickSection(s),
+            ),
             const SizedBox(height: 12),
             _snapCard(s),
             const SizedBox(height: 24),
@@ -1303,48 +1425,6 @@ class _FinanceV2ViewState extends State<FinanceV2View>
                   FinanceV2Theme.negative,
                   Icons.arrow_upward_rounded,
                   () => _goTx('OUT'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _debtQuickSection(FinanceV2Snapshot s) {
-    return Container(
-      decoration: FinanceV2Theme.elevatedPanel(),
-      padding: EdgeInsets.all(_cardPad),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionTitle(
-            '3) Công nợ',
-            'Công nợ = khoản chưa thu từ khách hoặc chưa trả cho nhà cung cấp.',
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _kpi(
-                  'Nợ phải thu',
-                  s.receivableTotal,
-                  null,
-                  FinanceV2Theme.warn,
-                  Icons.people_alt_rounded,
-                  () => _goDebt(true),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _kpi(
-                  'Nợ phải trả',
-                  s.payableTotal,
-                  null,
-                  FinanceV2Theme.negative,
-                  Icons.store_mall_directory_rounded,
-                  () => _goDebt(false),
                 ),
               ),
             ],
@@ -2182,7 +2262,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   }
 
   // TAB 1
-  Widget _t1() {
+  Widget _txListBody() {
     final s = _snap;
     if (s == null) return _empty('Không có dữ liệu');
     var tx = s.transactions.toList();
@@ -2432,7 +2512,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   }
 
   // TAB 2
-  Widget _t2() {
+  Widget _debtBody() {
     final s = _snap;
     if (s == null) return _empty('Không có dữ liệu');
     final items = _showRec ? s.receivables : s.payables;
@@ -2687,7 +2767,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   );
 
   // TAB 4
-  Widget _t4() {
+  Widget _journalBody() {
     final s = _snap;
     if (s == null) return _empty('Không có dữ liệu');
     final all = _timelineCache;
@@ -4773,7 +4853,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   }
 
   // TAB 5 - Báo cáo ngày (embedded in Finance tabs)
-  Widget _t5() {
+  Widget _reportBody() {
     return FinanceV2DailyReportView(
       embeddedInTab: true,
       appendedChildrenBuilder: (startDate, endDate) => [

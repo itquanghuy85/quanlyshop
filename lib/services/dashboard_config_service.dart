@@ -17,7 +17,11 @@ enum DashboardCardType {
   alerts, // Cảnh báo (bảo hành, HSD)
   userGuide, // Hướng dẫn sử dụng
   financeShortcuts, // Truy cập nhanh tài chính (Sổ quỹ/Công nợ/Thu chi)
-  dailyReport, // Deprecated – replaced by Finance V2 Báo cáo tab
+  discovery, // Khám phá ứng dụng (checklist cho người mới)
+  tipOfDay, // Mẹo hôm nay
+  community, // Cộng đồng
+  dailyReport, // ĐÃ BỎ — giữ lại giá trị enum để config cũ đã lưu không bị
+  // `fromJson` hiểu nhầm thành `greeting` rồi sinh ra 2 thẻ Lời chào.
 }
 
 /// Config for a single dashboard card
@@ -74,6 +78,12 @@ class DashboardCardConfig {
         return 'Hướng dẫn sử dụng';
       case DashboardCardType.financeShortcuts:
         return 'Truy cập nhanh tài chính';
+      case DashboardCardType.discovery:
+        return 'Khám phá ứng dụng';
+      case DashboardCardType.tipOfDay:
+        return 'Mẹo hôm nay';
+      case DashboardCardType.community:
+        return 'Cộng đồng';
       case DashboardCardType.dailyReport:
         return 'Báo cáo hoạt động hôm nay';
     }
@@ -104,6 +114,12 @@ class DashboardCardConfig {
         return 'Lối tắt đến hướng dẫn';
       case DashboardCardType.financeShortcuts:
         return 'Sổ quỹ, Công nợ, Thu chi';
+      case DashboardCardType.discovery:
+        return 'Danh sách việc nên thử để dùng hết tính năng';
+      case DashboardCardType.tipOfDay:
+        return 'Một mẹo dùng app, đổi theo ngày';
+      case DashboardCardType.community:
+        return 'Hỏi đáp, mua bán với các cửa hàng khác';
       case DashboardCardType.dailyReport:
         return 'Tổng hợp bán hàng, sửa chữa, thu chi trong ngày';
     }
@@ -134,6 +150,12 @@ class DashboardCardConfig {
         return Icons.menu_book;
       case DashboardCardType.financeShortcuts:
         return Icons.account_balance;
+      case DashboardCardType.discovery:
+        return Icons.explore_outlined;
+      case DashboardCardType.tipOfDay:
+        return Icons.lightbulb_outline;
+      case DashboardCardType.community:
+        return Icons.groups_outlined;
       case DashboardCardType.dailyReport:
         return Icons.summarize;
     }
@@ -164,6 +186,12 @@ class DashboardCardConfig {
         return Colors.blue;
       case DashboardCardType.financeShortcuts:
         return Colors.indigo;
+      case DashboardCardType.discovery:
+        return Colors.deepPurple;
+      case DashboardCardType.tipOfDay:
+        return Colors.amber;
+      case DashboardCardType.community:
+        return Colors.pink;
       case DashboardCardType.dailyReport:
         return const Color(0xFF1565C0);
     }
@@ -176,6 +204,14 @@ class DashboardCardConfig {
         type == DashboardCardType.financeShortcuts ||
         type == DashboardCardType.dailyReport;
   }
+
+  /// Thẻ đã bỏ khỏi Trang chủ — KHÔNG vẽ, KHÔNG hiện trong màn Tuỳ chỉnh.
+  ///
+  /// Giá trị enum vẫn giữ (xem chú thích ở [DashboardCardType.dailyReport]),
+  /// nhưng người dùng nào từng lưu nó trong cấu hình sẽ được lọc bỏ khi tải —
+  /// trước đây nó vẫn chiếm một dòng công tắc trong màn Tuỳ chỉnh mà bật lên
+  /// thì chẳng có gì hiện ra.
+  bool get isRetired => type == DashboardCardType.dailyReport;
 }
 
 /// Service to manage dashboard layout configuration
@@ -184,7 +220,7 @@ class DashboardConfigService {
   static const String _prefsVersionKey = 'dashboard_config_version_v1';
   static const String _cloudField = 'dashboardConfigV3';
   static const String _cloudVersionField = 'dashboardConfigVersionV1';
-  static const int _schemaVersion = 3;
+  static const int _schemaVersion = 4;
 
   static DocumentReference<Map<String, dynamic>>? _userDocRef() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -192,8 +228,54 @@ class DashboardConfigService {
     return FirebaseFirestore.instance.collection('users').doc(uid);
   }
 
-  /// Get default layout based on role
+  /// Bố cục mặc định (v4).
+  ///
+  /// Nguyên tắc sắp xếp: **việc gấp → việc hay làm → số liệu → xã giao**.
+  /// Bản v3 trước đây đặt Chat và Hoạt động gần đây TRƯỚC Thao tác nhanh —
+  /// người ta mở app để làm việc, không phải để đọc chat.
+  ///
+  /// Chỉ áp cho người dùng MỚI và người chưa từng tuỳ chỉnh; ai đã tự sắp lại
+  /// Trang chủ thì `_migrateDashboardConfigs` giữ nguyên thứ tự của họ và chỉ
+  /// nối thêm các thẻ mới vào cuối.
   static List<DashboardCardConfig> getDefaultLayout({
+    required String role,
+    required bool isSuperAdmin,
+  }) {
+    final isOwnerOrAdmin = role == 'owner' || role == 'admin' || isSuperAdmin;
+    final canViewFinanceByDefault = isOwnerOrAdmin;
+
+    var order = 0;
+    DashboardCardConfig at(DashboardCardType type, bool visible) =>
+        DashboardCardConfig(type: type, visible: visible, order: order++);
+
+    return [
+      // 1. Việc gấp trước tiên.
+      at(DashboardCardType.actionRequired, true),
+      // 2. Việc làm hằng ngày.
+      at(DashboardCardType.quickActions, true),
+      // 3. Số liệu (chỉ người có quyền xem tài chính).
+      at(DashboardCardType.financeDetail, canViewFinanceByDefault),
+      at(DashboardCardType.financeShortcuts, canViewFinanceByDefault),
+      at(DashboardCardType.todayActivity, true),
+      // 4. Cảnh báo & lịch sử.
+      at(DashboardCardType.alerts, true),
+      at(DashboardCardType.activityFeed, true),
+      // 5. Xã giao & hướng dẫn — cuối cùng.
+      at(DashboardCardType.community, true),
+      at(DashboardCardType.discovery, true),
+      at(DashboardCardType.tipOfDay, true),
+      // Mặc định TẮT — bật được trong màn Tuỳ chỉnh.
+      at(DashboardCardType.chat, false),
+      at(DashboardCardType.greeting, false),
+      at(DashboardCardType.financeSummary, false),
+      at(DashboardCardType.userGuide, false),
+    ];
+  }
+
+  /// Bố cục mặc định của bản v3 — CHỈ dùng để nhận diện "người dùng chưa
+  /// từng tuỳ chỉnh". Ai còn đúng y bố cục này sẽ được nâng lên mặc định v4;
+  /// ai đã tự sắp lại thì giữ nguyên thứ tự của họ.
+  static List<DashboardCardConfig> _getV3DefaultLayout({
     required String role,
     required bool isSuperAdmin,
   }) {
@@ -370,13 +452,16 @@ class DashboardConfigService {
     required bool isSuperAdmin,
   }) {
     final defaults = getDefaultLayout(role: role, isSuperAdmin: isSuperAdmin);
-    final legacyDefaults = _getLegacyDefaultLayout(
-      role: role,
-      isSuperAdmin: isSuperAdmin,
-    );
 
+    // Ai con DUNG Y bo cuc mac dinh cua mot ban cu = chua tung tuy chinh => nang
+    // thang len mac dinh moi. Ai da tu sap lai thi roi xuong nhanh gop ben duoi
+    // va GIU NGUYEN thu tu cua ho — tuyet doi khong dap len cong suc nguoi dung.
+    final oldTemplates = <List<DashboardCardConfig>>[
+      _getV3DefaultLayout(role: role, isSuperAdmin: isSuperAdmin),
+      _getLegacyDefaultLayout(role: role, isSuperAdmin: isSuperAdmin),
+    ];
     if (savedVersion < _schemaVersion &&
-        _matchesDashboardTemplate(configs, legacyDefaults)) {
+        oldTemplates.any((t) => _matchesDashboardTemplate(configs, t))) {
       return (configs: _cloneDashboardConfigs(defaults), migrated: true);
     }
 
@@ -415,12 +500,47 @@ class DashboardConfigService {
       migrated = true;
     }
 
+    // Bo han the da ngung dung khoi cau hinh — truoc day no van nam trong man
+    // Tuy chinh duoi dang mot cong tac bat len chang co gi hien ra.
+    final beforeRetiredFilter = ordered.length;
+    ordered.removeWhere((c) => c.isRetired);
+    if (ordered.length != beforeRetiredFilter) migrated = true;
+
     for (int i = 0; i < ordered.length; i++) {
       ordered[i].order = i;
     }
 
     return (configs: ordered, migrated: migrated);
   }
+
+  /// Chỉ dùng cho unit test: chạy thẳng bước gộp/nâng cấp cấu hình mà không
+  /// cần SharedPreferences hay Firestore. Đây là logic đụng vào BỐ CỤC NGƯỜI
+  /// DÙNG ĐÃ TỰ SẮP nên phải test được.
+  @visibleForTesting
+  static ({List<DashboardCardConfig> configs, bool migrated}) debugMigrate({
+    required List<DashboardCardConfig> configs,
+    required int savedVersion,
+    required String role,
+    required bool isSuperAdmin,
+  }) =>
+      _migrateDashboardConfigs(
+        configs: configs,
+        savedVersion: savedVersion,
+        role: role,
+        isSuperAdmin: isSuperAdmin,
+      );
+
+  /// Bố cục mặc định của bản v3 — chỉ dùng cho test đối chiếu.
+  @visibleForTesting
+  static List<DashboardCardConfig> debugV3Layout({
+    required String role,
+    required bool isSuperAdmin,
+  }) =>
+      _getV3DefaultLayout(role: role, isSuperAdmin: isSuperAdmin);
+
+  /// Số hiệu phiên bản cấu hình hiện tại — dùng cho test.
+  @visibleForTesting
+  static int get debugSchemaVersion => _schemaVersion;
 
   static Future<void> _writeLocalConfig(
     List<DashboardCardConfig> configs,
