@@ -10,6 +10,7 @@ import '../services/first_time_guide_service.dart';
 import '../services/sync_service.dart';
 import '../services/event_bus.dart';
 import '../services/storage_service.dart';
+import '../services/user_service.dart';
 import '../core/utils/money_utils.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
@@ -673,7 +674,13 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
                   if (value?.trim().isEmpty == true) {
                     return 'Vui lòng nhập số điện thoại';
                   }
-                  return null;
+                  // Dùng CHUNG một luật với mọi màn khác (9-12 chữ số).
+                  // Trước đây màn này chỉ kiểm rỗng nên lưu được số rác
+                  // (ví dụ "12") rồi đẩy thẳng lên cloud.
+                  return UserService.validatePhone(
+                    value ?? '',
+                    AppLocalizations.of(context)!,
+                  );
                 },
               ),
               const SizedBox(height: 8),

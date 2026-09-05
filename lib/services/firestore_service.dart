@@ -326,9 +326,13 @@ class FirestoreService {
   static Future<String?> addRepair(Repair r) async {
     try {
       // --- MONEY VALIDATION ---
+      // allowZero: giống upsertRepair bên dưới — đơn sửa MỚI gần như luôn có
+      // cost=0 (chưa ghi nhận phụ tùng) và có thể có price=0 (bảo hành / báo
+      // giá sau). Thiếu allowZero thì hàm này trả null và KHÔNG ghi lên cloud,
+      // đơn chỉ lên được nhờ hàng đợi sync — mất đường dự phòng.
       try {
-        MoneyValidationService.validateAmount(r.price);
-        MoneyValidationService.validateAmount(r.cost);
+        MoneyValidationService.validateAmount(r.price, allowZero: true);
+        MoneyValidationService.validateAmount(r.cost, allowZero: true);
       } catch (e) {
         debugPrint('❌ addRepair: MoneyValidationService failed: $e');
         return null;
@@ -520,9 +524,11 @@ class FirestoreService {
   static Future<String?> addProduct(Product p) async {
     try {
       // --- MONEY VALIDATION ---
+      // allowZero: kho cho phép hàng CHƯA định giá bán (price=0) và
+      // shop_settings.allowPendingCost cho phép nhập giá vốn sau (cost=0).
       try {
-        MoneyValidationService.validateAmount(p.price);
-        MoneyValidationService.validateAmount(p.cost);
+        MoneyValidationService.validateAmount(p.price, allowZero: true);
+        MoneyValidationService.validateAmount(p.cost, allowZero: true);
       } catch (e) {
         debugPrint('❌ addProduct: MoneyValidationService failed: $e');
         return null;
@@ -547,9 +553,11 @@ class FirestoreService {
     if (p.firestoreId == null) return;
     try {
       // --- MONEY VALIDATION ---
+      // allowZero: xem addProduct — hàng chưa định giá / chưa có giá vốn là
+      // trạng thái hợp lệ, chặn ở đây làm bản cập nhật không lên được cloud.
       try {
-        MoneyValidationService.validateAmount(p.price);
-        MoneyValidationService.validateAmount(p.cost);
+        MoneyValidationService.validateAmount(p.price, allowZero: true);
+        MoneyValidationService.validateAmount(p.cost, allowZero: true);
       } catch (e) {
         debugPrint('❌ updateProductCloud: MoneyValidationService failed: $e');
         return;

@@ -23,6 +23,7 @@ Chỉ mục **các tài liệu thực sự tồn tại** trong repo (đã dọn 
 | **DOCS/DEEPSEEK_AI_SETUP.md** | Cấu hình AI (chat assistant / repair AI) | Đổi provider / endpoint AI |
 | **DOCS/store_metadata.md** | Metadata store (What's New, mô tả) | Trước mỗi lần lên store |
 | **DOCS/release_notes_YYYY-MM-DD.md** | Ghi chú phát hành từng đợt | Mỗi đợt build lên store |
+| **DOCS/QA_FULL_REGRESSION_2026-09-05.md** | Kiểm thử toàn diện trước khi lên Store: môi trường, kết quả từng nhóm A–O, lỗi đã sửa / còn lại, dữ liệu test & mức độ dọn dẹp, đường dẫn APK/AAB | Mỗi đợt kiểm thử toàn diện trước phát hành |
 
 ### Từ điển NLP (dữ liệu, dùng bởi `repair_vocabulary_service.dart` khi build từ điển)
 

@@ -4,6 +4,56 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-05f] - fix(validate + sync) 3 lỗi tìm ra khi kiểm thử toàn diện
+
+**Đợt kiểm thử toàn diện trước khi lên Store** (2 máy Oppo thật, FFI/SQLite,
+Firestore đa thiết bị, build release). Báo cáo đầy đủ:
+`docs/QA_FULL_REGRESSION_2026-09-05.md`.
+
+**1. Ô SĐT khách hàng không kiểm tra định dạng** — `customer_management_view.dart`.
+Validator chỉ kiểm rỗng, không gọi `UserService.validatePhone` (9–12 chữ số) như
+mọi màn khác (đơn sửa, đơn bán, NCC/đối tác, chi tiết đơn sửa). Lưu được khách có
+SĐT `12` **và đẩy thẳng lên cloud** (bằng chứng: `customer_1788588413208`,
+`phone=12`, `isSynced=1`). Vi phạm CLAUDE.md §5. Nay validator gọi hàm dùng chung
+⇒ máy thật báo đỏ "Số điện thoại phải từ 9-12 chữ số", không lưu.
+
+**2. `addRepair` từ chối đơn sửa có `cost=0`** — `firestore_service.dart`.
+`MoneyValidationService.validateAmount` thiếu `allowZero: true` nên đơn sửa MỚI
+(gần như luôn `cost=0` vì chưa ghi phụ tùng; `price=0` khi bảo hành) làm hàm trả
+`null` và **không ghi thẳng lên Firestore**. Logcat máy thật lúc tạo đơn:
+`❌ addRepair: MoneyValidationService failed: ...amountZero` →
+`ℹ️ Skipped repair chat/push because repair is local-only...`. Đơn vẫn lên cloud
+nhờ hàng đợi sync (không mất dữ liệu) nhưng đường ghi dự phòng coi như chết.
+`upsertRepair` ngay bên dưới vốn đã `allowZero: true` kèm đúng chú thích đó — nay
+`addRepair` khớp lại.
+
+**3. `addProduct` / `updateProductCloud` cùng lỗi** — `firestore_service.dart`.
+Kho cho phép hàng **chưa định giá** (`price=0`, UI hiện "⚠ Chưa định giá") và
+`shop_settings.allowPendingCost=1` cho phép nhập giá vốn sau (`cost=0`). Đã thêm
+`allowZero: true` cho cả hai hàm.
+
+**CÒN LẠI — chưa sửa, cần quyết:** xoá khách hàng báo "Đã xóa khách hàng" (toast
+xanh) nhưng khách quay lại. `FirestoreService.deleteCustomerById` tìm document
+trên cloud bằng `.where('id', ...)` với **id autoincrement của SQLite máy đó**
+thay vì `firestoreId`; không khớp document nào thì vòng `for` không chạy mà hàm
+vẫn `return true`. Hậu quả: bản ghi bị `syncCustomersFromCloud` upsert đè lại sau
+~40 giây, và máy thứ hai không hề biết đã xoá. Xem mục BUG-04 của báo cáo.
+
+**Phân quyền giá vốn (CLAUDE.md §9) — nghiệm thu lại nhánh NHÂN VIÊN, ĐẠT cả 2
+tầng.** Máy 2 đăng nhập `n@n.com` (`role=employee`): giao diện Bảng giá ra **0
+lần** chữ "Vốn"/"Lãi" (chủ shop cùng dòng đó thấy `Thu 500.000đ · Vốn 333.333đ ·
+Lãi 166.667đ`); **file Excel xuất ra** cũng sạch — sheet Sửa chữa/Bán hàng **10
+cột → 8** (cắt `Giá vốn ĐX`, `Giá vốn NY`), sheet Bảng giá NCC **15 cột → 9**
+(cắt 4 cột giá vốn + `Nhà cung cấp` + `Ngày hoá đơn gần nhất`), toàn file 0 chuỗi
+chứa "vốn". Giá thu khách vẫn giữ nguyên ⇒ nhân viên vẫn tra báo giá được.
+
+**Test:** `flutter analyze lib` **0 error / 0 warning** (1308 info, y như trước).
+`flutter test` **+550 / −8** — đúng 8 lỗi đã có sẵn, không phát sinh hồi quy.
+`flutter build apk --release` và `flutter build appbundle --release` đều xanh.
+Máy thật: nghiệm thu lại đúng ca đã fail (SĐT `12` nay bị chặn).
+
+---
+
 ## [2026-09-05e] - feat(bảng giá NCC) hướng dẫn tìm file Excel trên iPhone/iPad
 
 **Điểm tắc thật của iOS.** Trên iPhone, bấm "Tải xuống" trong ChatGPT KHÔNG
