@@ -152,6 +152,25 @@
 
 ---
 
+### 11. Ghi đơn sửa lên cloud — BẮT BUỘC qua guard
+- **Mọi đường ghi `repairs` lên Firestore** phải gọi
+  `SyncOrchestrator.applyRepairCloudGuards(data, cloudData)` trước khi ghi:
+  `_handleCreate`, `_handleUpdate` (sync_orchestrator) và
+  `syncRepairData` / `syncAllToCloud` (sync_service).
+- **Không dùng `.set()` không merge** cho `repairs` — ghi đè nguyên document sẽ
+  xoá sạch field mà bản local không có (`repairedBy`, `finishedAt`, …).
+- **Lý do:** sự cố 2026-09-05 — một máy còn giữ bản chụp lúc TẠO đơn
+  (`isSynced=0`) đẩy lên, làm đơn đang "Chờ duyệt giao" tụt về "Tiếp nhận" và
+  mất tên KTV trên toàn shop. Xem `docs/CHANGELOG.md` mục `[2026-09-05i]`.
+- **Bẫy:** `_normalizeRepairStatus` trả về **1 = "Tiếp nhận"** khi thiếu/không
+  đọc được status. Tuyệt đối không dùng giá trị đoán này để ghi đè trạng thái
+  thật trên cloud cho payload một phần.
+- **Thông báo tạo đơn:** chat/push "ĐƠN MỚI" phải căn cứ **document trên cloud**,
+  không căn cứ bộ đếm của `syncAll()` (`skipped` / `failed` do món khác trong
+  hàng đợi đều làm mất thông báo).
+
+---
+
 ## IV. WORKFLOW PHÁT TRIỂN
 
 ### Chạy Ứng Dụng

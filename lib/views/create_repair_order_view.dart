@@ -903,9 +903,14 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         }
       }
 
-      // Xác nhận tồn tại thật sự trên cloud trước khi bắn chat/push.
-      // Chỉ kiểm tra khi đã xác định là có mạng để tránh treo.
-      if (syncedToCloud) {
+      // Xác nhận tồn tại THẬT SỰ trên cloud trước khi bắn chat/push.
+      // LUÔN kiểm tra khi có mạng — KHÔNG chỉ khi hàng đợi báo thành công:
+      // syncAll() trả về "skipped" khi đang có lượt sync khác chạy, và
+      // failed>0 có thể do MÓN KHÁC trong hàng đợi lỗi, trong khi đơn này vẫn
+      // lên cloud bình thường. Dựa vào bộ đếm hàng đợi làm mất hẳn thông báo
+      // "nhận máy" của các đơn đó (đơn có ảnh còn bị bỏ qua cả đường ghi thẳng
+      // Firestore bên trên nên gần như chắc chắn mất tin).
+      if (!syncResult.noNetwork) {
         try {
           final cloudDoc = await FirestoreService.getRepairDoc(
             r.firestoreId!,
@@ -913,7 +918,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
           syncedToCloud = cloudDoc.exists;
           if (!syncedToCloud) {
             debugPrint(
-              '⚠️ Repair sync not confirmed on cloud, keep local queue and skip chat/push',
+              '⚠️ Repair sync not confirmed on cloud, keep local queue and notify later',
             );
           }
         } catch (e) {
@@ -1047,42 +1052,16 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       }
 
       if (syncedToCloud) {
-        // Đẩy chat nhóm khi đơn sửa đã có trên cloud để thiết bị khác thấy ngay.
-        try {
-          final chatUser = FirebaseAuth.instance.currentUser;
-          final repairKey = rWithCloudId.firestoreId!;
-          final summary =
-              'ĐƠN SỬA - ${r.customerName} - ${r.phone} - ${r.model} - ${MoneyUtils.formatCurrency(r.price)} đ';
-          final msg = '🔧 ĐƠN MỚI: $summary';
-          await FirestoreService.sendChat(
-            message: msg,
-            senderId: chatUser?.uid ?? 'guest',
-            senderName: chatUser?.email?.split('@').first.toUpperCase() ?? 'NV',
-            linkedType: 'repair',
-            linkedKey: repairKey,
-            linkedSummary: summary,
-          );
-        } catch (e) {
-          debugPrint('Failed to send repair chat notification: $e');
-        }
-
-        // Trigger new order push notification after cloud sync success.
-        try {
-          await NotificationService.sendNewOrderNotification(
-            rWithCloudId.firestoreId!,
-            r.customerName,
-            r.price,
-            model: r.model,
-            phone: r.phone,
-          );
-        } catch (e) {
-          debugPrint('Failed to send new order notification: $e');
-          // Don't fail the repair creation if notification fails
-        }
+        await _sendRepairCreatedNotifications(rWithCloudId);
       } else {
+        // Đơn chưa lên cloud (mất mạng / ảnh đang upload / hàng đợi bận).
+        // KHÔNG bỏ luôn thông báo như trước: theo dõi nền, đơn lên cloud lúc
+        // nào thì bắn chat + push lúc đó. Trước đây tin "nhận máy" mất hẳn nên
+        // chủ shop chỉ thấy đơn khi nhân viên báo "sửa xong".
         debugPrint(
-          'ℹ️ Skipped repair chat/push because repair is local-only and not synced to cloud yet',
+          'ℹ️ Đơn sửa chưa lên cloud — hẹn bắn chat/push khi đồng bộ xong',
         );
+        unawaited(_notifyRepairWhenSynced(rWithCloudId));
       }
 
       // Update customer stats (tổng số lần sửa chữa)
@@ -1107,6 +1086,77 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  /// Bắn chat nội bộ + push "đơn mới" cho đơn sửa vừa tạo.
+  /// Không dùng context/setState để gọi được cả khi màn hình đã đóng.
+  Future<void> _sendRepairCreatedNotifications(Repair repair) async {
+    final repairKey = repair.firestoreId;
+    if (repairKey == null || repairKey.isEmpty) return;
+
+    final summary =
+        'ĐƠN SỬA - ${repair.customerName} - ${repair.phone} - ${repair.model} - ${MoneyUtils.formatCurrency(repair.price)} đ';
+
+    // Đẩy chat nhóm khi đơn sửa đã có trên cloud để thiết bị khác thấy ngay.
+    try {
+      final chatUser = FirebaseAuth.instance.currentUser;
+      await FirestoreService.sendChat(
+        message: '🔧 ĐƠN MỚI: $summary',
+        senderId: chatUser?.uid ?? 'guest',
+        senderName: chatUser?.email?.split('@').first.toUpperCase() ?? 'NV',
+        linkedType: 'repair',
+        linkedKey: repairKey,
+        linkedSummary: summary,
+      );
+    } catch (e) {
+      debugPrint('Failed to send repair chat notification: $e');
+    }
+
+    try {
+      await NotificationService.sendNewOrderNotification(
+        repairKey,
+        repair.customerName,
+        repair.price,
+        model: repair.model,
+        phone: repair.phone,
+      );
+    } catch (e) {
+      debugPrint('Failed to send new order notification: $e');
+      // Don't fail the repair creation if notification fails
+    }
+  }
+
+  /// Đơn tạo lúc mạng chập chờn / ảnh chưa upload xong sẽ lên cloud trễ.
+  /// Theo dõi tối đa ~2 phút, đơn có mặt trên cloud là bắn thông báo đúng 1 lần.
+  Future<void> _notifyRepairWhenSynced(Repair repair) async {
+    final firestoreId = repair.firestoreId;
+    if (firestoreId == null || firestoreId.isEmpty) return;
+
+    const attempts = 8;
+    const gap = Duration(seconds: 15);
+
+    for (var i = 0; i < attempts; i++) {
+      await Future.delayed(gap);
+      try {
+        final result = await SyncOrchestrator().syncAll();
+        if (result.noNetwork) continue;
+
+        final doc = await FirestoreService.getRepairDoc(
+          firestoreId,
+        ).timeout(const Duration(seconds: 6));
+        if (!doc.exists) continue;
+
+        await _sendRepairCreatedNotifications(repair);
+        debugPrint('✅ Đã bắn thông báo nhận máy (trễ) cho $firestoreId');
+        return;
+      } catch (e) {
+        debugPrint('⚠️ Chờ đơn $firestoreId lên cloud để báo: $e');
+      }
+    }
+
+    debugPrint(
+      '⚠️ Hết thời gian chờ — chưa bắn được thông báo nhận máy cho $firestoreId',
+    );
   }
 
   Future<void> _onlySave() async {

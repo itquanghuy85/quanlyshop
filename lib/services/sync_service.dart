@@ -3273,6 +3273,33 @@ class SyncService {
   }
 
   /// Sync repair data immediately after repair status changes
+  /// Chặn đẩy bản local CŨ đè lên tiến trình mới hơn của cloud khi push hàng
+  /// loạt. Cùng luật với SyncOrchestrator (đơn "đã giao" là trạng thái cuối +
+  /// bản local chưa từng sửa sau bản cloud thì không được hạ cấp trạng thái).
+  static Future<void> _guardRepairPayloadWithCloud(
+    String docId,
+    Map<String, dynamic> data,
+  ) async {
+    // Local đã ở trạng thái cuối (đã giao) thì không có gì để bảo vệ.
+    if (_normalizeRepairStatusValue(data['status']) >= 4) return;
+    try {
+      final snap = await _db
+          .collection('repairs')
+          .doc(docId)
+          .get()
+          .timeout(const Duration(seconds: 10));
+      final cloud = snap.data();
+      if (cloud == null) return;
+      SyncOrchestrator.applyRepairCloudGuards(
+        data,
+        cloud,
+        logId: 'repairs/$docId',
+      );
+    } catch (e) {
+      debugPrint('⚠️ SYNC: guard repair $docId lỗi: $e');
+    }
+  }
+
   /// Targets: repairs table only - much faster than syncAllToCloud()
   /// Ensures status updates (chờ duyệt, giao máy, etc.) sync to other devices immediately
   static Future<void> syncRepairData() async {
@@ -3333,6 +3360,7 @@ class SyncService {
 
           final docId =
               r.firestoreId ?? "repair_${r.createdAt}_${r.phone}_${r.id ?? 0}";
+          await _guardRepairPayloadWithCloud(docId, data);
           batch.set(
             _db.collection('repairs').doc(docId),
             data,
@@ -3507,6 +3535,7 @@ class SyncService {
             final docId =
                 r.firestoreId ??
                 "repair_${r.createdAt}_${r.phone}_${r.id ?? 0}";
+            await _guardRepairPayloadWithCloud(docId, data);
             repairBatch.set(
               _db.collection('repairs').doc(docId),
               data,

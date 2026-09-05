@@ -4,6 +4,68 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-05i] - fix(đơn sửa) MẤT THÔNG BÁO NHẬN MÁY + ĐƠN TỰ TỤT VỀ "TIẾP NHẬN"
+
+**Chủ shop báo (05/09, kèm ảnh chat nội bộ + danh sách đơn):** đơn IPHONE 11 —
+BÉ THẮM tạo lúc 15:11 **không hề có tin "🔧 ĐƠN MỚI"** trong chat nội bộ, chỉ
+thấy "SỬA XONG" và "YÊU CẦU DUYỆT GIAO" lúc 15:12; tới lúc chủ shop mở ra sửa
+giá vốn để duyệt giao thì đơn lại nằm ở trạng thái **TIẾP NHẬN** kèm nhãn
+**"Chưa có KTV"**. Các đơn khác bình thường.
+
+**Lỗi 1 — thông báo "nhận máy" bị bỏ hẳn, không phải bị trễ.**
+`create_repair_order_view.dart:866` quyết định bắn chat + push bằng bộ đếm của
+hàng đợi: `failed == 0 && success > 0`. Ba tình huống rất thường gặp làm cờ này
+`false` **dù đơn vẫn lên cloud ngay sau đó**: (a) đang có một lượt `syncAll()`
+khác chạy ⇒ trả về `skipped` với `success = 0`; (b) **món khác** trong hàng đợi
+lỗi ⇒ `failed > 0`; (c) ảnh chưa upload xong ⇒ item create ném lỗi để retry. Tệ
+hơn: đường dự phòng ghi thẳng Firestore ngay bên dưới **tự bỏ qua khi đơn có
+ảnh** (`hasLocalOnlyImagePath`) — đúng trường hợp đơn IPHONE 11 (2 ảnh) — nên
+tin "nhận máy" mất vĩnh viễn, trong khi chat "SỬA XONG"
+(`repair_detail_view.dart:1431`) và "YÊU CẦU DUYỆT GIAO" (dòng 1774) gửi vô điều
+kiện ⇒ khớp đúng những gì chủ shop thấy.
+**Sửa:** luôn xác nhận document trên cloud (nguồn sự thật) thay vì tin bộ đếm
+hàng đợi; đơn chưa lên cloud thì **hẹn bắn lại** — `_notifyRepairWhenSynced()`
+theo dõi tối đa ~2 phút, đơn có mặt trên cloud là gửi chat + push đúng một lần.
+
+**Lỗi 2 — bản chụp lúc TẠO đơn ghi đè tiến trình mới hơn trên cloud.**
+Nhãn "Chưa có KTV" là bằng chứng: `repairedBy` bị **xoá trắng**, mà bước "Sửa
+xong" luôn ghi trường này (`repair_detail_view.dart:1330`) ⇒ đơn không chỉ sai
+trạng thái mà bị **ghi đè nguyên document** bằng bản chụp lúc tạo đơn. Máy còn
+giữ bản local cũ + `isSynced=0` (đúng hệ quả của Lỗi 1) đẩy lên qua 3 đường,
+không đường nào chặn hạ cấp trạng thái: `SyncOrchestrator._handleCreate` dùng
+`.set()` **không merge** (xoá sạch field cloud) và **không có guard**; guard của
+`_handleUpdate` chỉ chặn khi cloud **đã ở status 4**, nên đơn đang "Chờ duyệt
+giao" (status 3) hoàn toàn không được bảo vệ; `SyncService.syncRepairData` /
+`syncAllToCloud` đẩy nguyên `toMap()` local. Thêm một bẫy khuếch đại:
+`_normalizeRepairStatus` trả về **1 = "Tiếp nhận"** cho mọi giá trị status
+thiếu/lạ, biến lỗi dữ liệu thành "đơn quay về tiếp nhận".
+**Sửa:** một luật chung `SyncOrchestrator.applyRepairCloudGuards()` cho mọi
+đường ghi — (1) cloud "đã giao" (4) là trạng thái cuối; (2) cloud đang ở trạng
+thái CAO HƠN mà bản local **chưa hề được sửa sau bản cloud đó** (so `lastCaredAt`)
+thì gỡ nhóm field tiến trình (`status`, `pendingDeliveryApproval`, `repairedBy`,
+`finishedAt`, `deliveredAt`, `requestedDeliveryPrice`, …) khỏi payload, **vẫn
+đồng bộ các thay đổi khác** (ghi chú, linh kiện, giá vốn). Hạ cấp CÓ CHỦ ĐÍCH
+(quản lý chuyển đơn "Sửa xong" → "Đang sửa") luôn kèm `lastCaredAt` mới hơn nên
+không bị chặn. Kèm theo: `_handleCreate` chuyển sang `set(..., merge: true)` +
+gọi guard; `_normalizeRepairPayloadForCloud` **không tự sinh** status cho payload
+thiếu status; `_asInt` đọc được cả `Timestamp`.
+
+**Kiểm chứng:** test mới `test/repair_progress_guard_test.dart` (4 ca: bản chụp
+lúc tạo đơn không hạ cấp được đơn chờ duyệt giao · hạ cấp có chủ đích vẫn đi qua ·
+cloud "đã giao" là trạng thái cuối · cloud không mới hơn thì giữ nguyên payload).
+`flutter analyze` 3 file thay đổi: **0 error**.
+
+**⚠️ CHƯA NGHIỆM THU MÁY THẬT / CHƯA ĐỌC ĐƯỢC DOC THẬT.** Cần: (a) đọc document
+`repairs` của đơn BÉ THẮM trên Firestore để chốt đường ghi đè nào đã chạy (bị
+chặn quyền trong phiên làm việc); (b) diễn lại 2 máy: máy A tạo đơn có ảnh khi
+mạng yếu → máy B "Sửa xong" + gửi duyệt giao → máy A online lại, xác nhận đơn
+**không** tụt về Tiếp nhận và chat "ĐƠN MỚI" vẫn tới.
+
+**Files:** `lib/services/sync_orchestrator.dart`, `lib/services/sync_service.dart`,
+`lib/views/create_repair_order_view.dart`, `test/repair_progress_guard_test.dart`.
+
+---
+
 ## [2026-09-05h] - fix(super admin) KHÔI PHỤC QUYỀN SUPER ADMIN (3 lỗi chồng nhau)
 
 **Hồi quy chủ dự án báo:** "trước khi đăng nhập vào tk super admin thì sẽ vào

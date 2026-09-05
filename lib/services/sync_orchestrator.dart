@@ -179,6 +179,7 @@ class SyncOrchestrator {
 
   static int _asInt(dynamic value) {
     if (value == null) return 0;
+    if (value is Timestamp) return value.millisecondsSinceEpoch;
     if (value is int) return value;
     if (value is num) return value.toInt();
     if (value is DateTime) return value.millisecondsSinceEpoch;
@@ -239,6 +240,7 @@ class SyncOrchestrator {
   }
 
   static void _normalizeRepairPayloadForCloud(Map<String, dynamic> data) {
+    final hasStatus = data['status'] != null;
     var status = _normalizeRepairStatus(data['status']);
     final createdAt = _asInt(data['createdAt']);
     final finishedAt = _asInt(data['finishedAt']);
@@ -248,6 +250,13 @@ class SyncOrchestrator {
 
     if (deliveredAt > 0 && status < 4) {
       status = 4;
+    }
+
+    // Payload không mang 'status' (patch một phần) và cũng không có mốc giao
+    // máy → KHÔNG tự sinh trạng thái. `_normalizeRepairStatus` mặc định trả về
+    // 1 = "Tiếp nhận", ghi giá trị bịa đó lên cloud là làm đơn tụt trạng thái.
+    if (!hasStatus && status < 4) {
+      return;
     }
 
     if (status == 4) {
@@ -263,6 +272,112 @@ class SyncOrchestrator {
     }
 
     data['status'] = status;
+  }
+
+  /// Nhóm field mô tả TIẾN TRÌNH đơn sửa (trạng thái + người thực hiện + các
+  /// mốc thời gian). Khi bản local rõ ràng cũ hơn bản trên cloud thì nhóm này
+  /// KHÔNG được đẩy lên: một máy còn giữ bản chụp lúc TẠO đơn (chưa kịp sync)
+  /// từng xoá sạch "Sửa xong / KTV / Chờ duyệt giao" của cả shop, làm đơn tự
+  /// tụt về "Tiếp nhận".
+  static const List<String> _repairProgressFields = [
+    'status',
+    'statusFlow',
+    'pendingDeliveryApproval',
+    'requestedDeliveryPrice',
+    'finishedAt',
+    'deliveredAt',
+    'repairedBy',
+    'repairedByUid',
+    'deliveredBy',
+    'deliveredByUid',
+    'lastCaredAt',
+  ];
+
+  /// Gỡ nhóm field tiến trình khỏi [data] khi cloud đang ở trạng thái CAO HƠN
+  /// và bản local chưa hề được sửa sau bản cloud đó (so bằng `lastCaredAt` —
+  /// mốc do chính máy tạo ra thay đổi ghi xuống).
+  ///
+  /// Hạ cấp trạng thái CÓ CHỦ ĐÍCH (quản lý chuyển đơn từ "Sửa xong" về "Đang
+  /// sửa") luôn kèm `lastCaredAt` mới hơn nên không bị chặn.
+  static bool stripStaleRepairProgress(
+    Map<String, dynamic> data,
+    Map<String, dynamic> cloud,
+  ) {
+    final cloudStatus = _normalizeRepairStatus(cloud['status']);
+    final localStatus = _normalizeRepairStatus(data['status']);
+    if (cloudStatus <= localStatus) return false;
+
+    final localTouchedAt = _asInt(data['lastCaredAt']);
+    final cloudTouchedAt = _asInt(cloud['lastCaredAt']);
+    if (localTouchedAt > 0 && localTouchedAt >= cloudTouchedAt) return false;
+
+    for (final field in _repairProgressFields) {
+      data.remove(field);
+    }
+    return true;
+  }
+
+  /// Áp các luật bảo vệ tiến trình đơn sửa lên [data] dựa trên bản [cloud].
+  /// Hàm thuần (không I/O) để mọi đường ghi cloud dùng chung một luật.
+  /// Trả về true nếu đã gỡ bớt field khỏi payload.
+  static bool applyRepairCloudGuards(
+    Map<String, dynamic> data,
+    Map<String, dynamic> cloud, {
+    String logId = 'repairs',
+  }) {
+    final localStatus = _normalizeRepairStatus(data['status']);
+    final cloudStatus = _normalizeRepairStatus(cloud['status']);
+    final cloudPending = _asBool(cloud['pendingDeliveryApproval']);
+
+    // KHÔNG ĐẢO NGƯỢC "ĐÃ GIAO": nếu payload local đang < 4 mà bản trên cloud
+    // đã ở trạng thái 4 (đã giao, không còn chờ duyệt) thì bỏ các field trạng
+    // thái giao khỏi merge — vẫn đồng bộ các thay đổi khác (ghi chú, linh
+    // kiện, giá vốn). Chặn kịch bản máy chưa nhận status 4 push đè status 3
+    // lên cloud rồi "hủy giao" toàn hệ thống.
+    if (localStatus < 4 && cloudStatus >= 4 && !cloudPending) {
+      data.remove('status');
+      data.remove('deliveredAt');
+      data.remove('deliveredBy');
+      data.remove('deliveredByUid');
+      data.remove('pendingDeliveryApproval');
+      debugPrint(
+        '🛡️ Guard: $logId cloud ĐÃ GIAO (4) — giữ trạng thái cloud, '
+        'chỉ merge các field khác (local status $localStatus)',
+      );
+      return true;
+    }
+
+    if (stripStaleRepairProgress(data, cloud)) {
+      debugPrint(
+        '🛡️ Guard: $logId bản local CŨ HƠN cloud '
+        '(local status $localStatus < cloud $cloudStatus) — giữ tiến trình trên cloud',
+      );
+      return true;
+    }
+
+    return false;
+  }
+
+  /// Đọc bản trên cloud và gỡ khỏi [data] những field không được phép ghi đè.
+  /// Dùng chung cho cả create (lần thử lại có thể gặp doc ĐÃ tồn tại và đã
+  /// được máy khác cập nhật tiếp) lẫn update.
+  Future<void> _guardRepairPayloadWithCloud(
+    String collection,
+    String firestoreId,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final snap = await _withCloudWriteTimeout(
+        _firestore.collection(collection).doc(firestoreId).get(),
+        'delivery_guard_$collection/$firestoreId',
+      );
+      final cloud = snap.data();
+      if (cloud == null) return;
+
+      applyRepairCloudGuards(data, cloud, logId: '$collection/$firestoreId');
+    } catch (e) {
+      debugPrint('⚠️ SyncOrchestrator repair guard read failed: $e');
+    }
   }
 
   Future<void> _normalizeRepairImagePathsForCloud(
@@ -677,8 +792,24 @@ class SyncOrchestrator {
     if (existingFirestoreId != null && existingFirestoreId.isNotEmpty) {
       // Set document với ID đã có sẵn
       data.remove('firestoreId'); // Không lưu field này, dùng document ID
+
+      // Lần THỬ LẠI của một create có thể gặp doc ĐÃ tồn tại trên cloud (lần
+      // trước ghi được nhưng phản hồi lỗi/timeout) và máy khác đã cập nhật tiếp.
+      // Ghi đè nguyên document bằng bản chụp lúc tạo đơn sẽ xoá sạch tiến trình
+      // → phải qua guard, và luôn dùng merge thay vì set() ghi đè toàn bộ.
+      if (item.entityType == SyncEntityType.repair) {
+        await _guardRepairPayloadWithCloud(
+          collection,
+          existingFirestoreId,
+          data,
+        );
+      }
+
       await _withCloudWriteTimeout(
-        _firestore.collection(collection).doc(existingFirestoreId).set(data),
+        _firestore
+            .collection(collection)
+            .doc(existingFirestoreId)
+            .set(data, SetOptions(merge: true)),
         'create_$collection/$existingFirestoreId',
       );
       debugPrint(
@@ -729,37 +860,15 @@ class SyncOrchestrator {
       _normalizeRepairPayloadForCloud(data);
       await _normalizeRepairImagePathsForCloud(data);
 
-      // KHÔNG ĐẢO NGƯỢC "ĐÃ GIAO": nếu payload local đang < 4 mà bản trên cloud
-      // đã ở trạng thái 4 (đã giao, không còn chờ duyệt) thì bỏ các field trạng
-      // thái giao khỏi merge — vẫn đồng bộ các thay đổi khác (ghi chú, linh kiện,
-      // giá vốn). Chặn kịch bản máy chưa nhận status 4 push đè status 3 lên cloud
-      // rồi "hủy giao" toàn hệ thống.
+      // Không cho payload local ghi đè tiến trình mới hơn trên cloud
+      // (đã giao / sửa xong / chờ duyệt giao).
       final localStatus = _normalizeRepairStatus(data['status']);
       if (localStatus < 4 && item.firestoreId != null) {
-        try {
-          final snap = await _withCloudWriteTimeout(
-            _firestore.collection(collection).doc(item.firestoreId).get(),
-            'delivery_guard_$collection/${item.firestoreId}',
-          );
-          final cloud = snap.data();
-          if (cloud != null) {
-            final cloudStatus = _normalizeRepairStatus(cloud['status']);
-            final cloudPending = _asBool(cloud['pendingDeliveryApproval']);
-            if (cloudStatus >= 4 && !cloudPending) {
-              data.remove('status');
-              data.remove('deliveredAt');
-              data.remove('deliveredBy');
-              data.remove('deliveredByUid');
-              data.remove('pendingDeliveryApproval');
-              debugPrint(
-                '🛡️ SyncOrchestrator: repairs/${item.firestoreId} cloud ĐÃ GIAO (4) '
-                '— giữ trạng thái cloud, chỉ merge các field khác (local status $localStatus)',
-              );
-            }
-          }
-        } catch (e) {
-          debugPrint('⚠️ SyncOrchestrator delivery-guard read failed: $e');
-        }
+        await _guardRepairPayloadWithCloud(
+          collection,
+          item.firestoreId!,
+          data,
+        );
       }
     }
 
