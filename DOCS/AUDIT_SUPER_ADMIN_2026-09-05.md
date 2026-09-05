@@ -357,14 +357,20 @@ nhân viên đăng nhập lại), (c) có mã mời hợp lệ chưa dùng đún
 (`hasValidInvite`), (d) super admin. Kèm sửa client: `useInviteCode` ghi thêm
 `joinInviteCode` để rules xác minh được.
 
-### 🟠 AR-05 — `invites` đọc được bởi mọi user đăng nhập ⚠️ CHƯA VÁ
+### 🟠 AR-05 — `invites` đọc được bởi mọi user đăng nhập ✅ ĐÃ VÁ + DEPLOY
 
 `allow read: if isAuth()` không kèm ràng buộc nào ⇒ liệt kê được **toàn bộ mã
-mời của mọi shop**, mỗi mã chứa `shopId` + `role`. Sau khi vá AR-04 thì không
-còn dùng để chiếm shop được nữa (mã phải chưa dùng và rules kiểm đúng shop),
-nhưng vẫn là rò rỉ thông tin + cho phép **dùng trộm mã mời của shop khác**.
-Đề xuất: `allow read` chỉ cho `belongsTo(resource.data.shopId)`, còn việc đổi mã
-khi đăng ký thì chuyển sang Cloud Function.
+mời của mọi shop**, mỗi mã chứa `shopId` + `role` ⇒ vừa lộ danh sách shop, vừa
+**dùng trộm được mã mời của shop khác**.
+
+**Vá:** tách `get` khỏi `list`.
+```
+allow get:  if isAuth();   // phải BIẾT ĐÚNG MÃ (doc id chính là mã mời)
+allow list: if false;      // cấm liệt kê hẳn
+```
+Người được mời chưa thuộc shop nên vẫn cần `get` để đổi mã — giữ nguyên. Còn
+`list` thì app **không dùng ở đâu cả** (đã soát: chỉ `.doc(code)` get/set/update
+trong `UserService`), nên cấm không phá gì.
 
 ### 🟠 AR-06 — `users` đọc được toàn bộ, xuyên shop ✅ ĐÃ VÁ + DEPLOY
 
@@ -412,10 +418,21 @@ chế — chừng nào khoá còn suy ra được từ APK thì vá IV chỉ ch�
 mà không có APK. Muốn giải quyết tận gốc phải đổi kiến trúc khoá (server/KMS),
 nên làm thành một đợt riêng có kế hoạch migration.
 
-### 🟡 AR-07 — `chat_online` / `chat_typing` đọc chéo shop (LOW)
+### 🟡 AR-07 — `chat_online` / `chat_typing` đọc chéo shop ✅ ĐÃ VÁ + DEPLOY
 
 `allow read: if isAuth()` ⇒ thấy trạng thái online/đang gõ của người thuộc shop
 khác. Độ nhạy thấp nhưng vẫn là rò rỉ xuyên tenant.
+
+**Vá:** `allow read: if isAuth() && docInMyShop()`. An toàn vì doc id đã là
+`${shopId}_${uid}`, doc có sẵn field `shopId`, và client **vốn đã** truy vấn kèm
+`where('shopId', isEqualTo: shopId)` (`chat_service.dart:612` và `:658`).
+
+⚠️ **Giới hạn nghiệm thu:** thẻ *Chat nhóm* bị **vô hiệu hoá** trên shop test
+(xám, không bật được trong Tuỳ chỉnh Dashboard) nên **không mở được màn chat để
+thử trên máy thật**. Cơ sở tin cậy hiện tại là ở mức đọc mã: hai truy vấn đã lọc
+`shopId`, và `docInMyShop()` chính là helper mà hàng chục rule đọc khác trong
+cùng file đang dùng với truy vấn lọc `shopId`. Sau khi deploy, khởi động lại cả
+2 máy đều **không có `permission-denied`**.
 
 ### ✅ Không phải lỗi
 

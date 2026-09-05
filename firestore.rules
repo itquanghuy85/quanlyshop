@@ -470,8 +470,17 @@ service cloud.firestore {
 
     // ═══════════ 2.3 INVITES ═══════════
     match /invites/{inviteCode} {
-      // READ: Any authenticated (to validate invite code)
-      allow read: if isAuth();
+      // GET: bất kỳ ai đăng nhập — nhưng phải BIẾT ĐÚNG MÃ, vì doc id chính là
+      // mã mời. Cần vậy để người được mời (chưa thuộc shop) đổi mã được.
+      allow get: if isAuth();
+
+      // LIST: cấm hẳn.
+      // Bản cũ để `allow read: if isAuth()` nên bất kỳ ai đăng nhập cũng LIỆT KÊ
+      // được TOÀN BỘ mã mời của MỌI shop, mỗi mã chứa sẵn `shopId` + `role`
+      // ⇒ vừa lộ danh sách shop, vừa dùng trộm được mã mời của shop khác.
+      // App không có chỗ nào liệt kê invites (đã soát: chỉ .doc(code)
+      // get/set/update trong UserService), nên cấm list không phá gì.
+      allow list: if false;
       
       // CREATE: Manager+ only
       allow create: if isAuth() && 
@@ -1137,7 +1146,10 @@ service cloud.firestore {
 
     // ═══════════ 8.3 CHAT_ONLINE (presence) ═══════════
     match /chat_online/{onlineId} {
-      allow read: if isAuth();
+      // Chỉ trong cùng shop. Bản cũ `if isAuth()` cho thấy trạng thái online của
+      // người thuộc shop khác. Doc có sẵn field `shopId` và client vẫn luôn truy
+      // vấn kèm where('shopId', ...) nên siết lại không phá gì.
+      allow read: if isAuth() && docInMyShop();
       
       // CREATE/UPDATE: User can set their own online status
       allow create, update: if isAuth() && 
@@ -1149,7 +1161,8 @@ service cloud.firestore {
 
     // ═══════════ 8.4 CHAT_TYPING (presence) ═══════════
     match /chat_typing/{typingId} {
-      allow read: if isAuth();
+      // Chỉ trong cùng shop — xem ghi chú ở chat_online.
+      allow read: if isAuth() && docInMyShop();
       
       // CREATE/UPDATE: User can set their own typing status  
       allow create, update: if isAuth() && 
