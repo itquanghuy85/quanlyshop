@@ -687,10 +687,27 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         debugPrint(
           '⚡ _getRoleAfterSync: Using cached mobile session role=$cachedRole, shopId=$cachedShopId',
         );
+        // ⚠️ KHÔNG được trả `isSuperAdmin: false` cứng ở đây.
+        // Đường tắt này chạy cho MỌI lần mở app sau lần đăng nhập đầu (đã có
+        // auth cache). Trả false cứng nghĩa là super admin chỉ vào được Console
+        // đúng LẦN ĐẦU, từ lần thứ hai trở đi luôn rơi vào shop thường như một
+        // người dùng bình thường — đúng hồi quy chủ dự án báo.
+        // getClaimsFromToken() không forceRefresh nên chỉ đọc ID token đã cache
+        // sẵn trên máy, không tốn vòng mạng ⇒ giữ nguyên tính "nhanh".
+        bool cachedIsSuperAdmin = false;
+        try {
+          final claims = await ClaimsService().getClaimsFromToken();
+          cachedIsSuperAdmin =
+              claims?['isSuperAdmin'] == true ||
+              claims?['role'] == 'super_admin';
+        } catch (e) {
+          debugPrint('⚠️ _getRoleAfterSync: đọc claims ở fast path lỗi: $e');
+        }
+        UserService.setCurrentUserSuperAdmin(cachedIsSuperAdmin, uid: uid);
         await _initWarrantyReminderOnce();
         _startBackgroundUserWarmup(uid, email);
         PerfMonitor.stop('_getRoleAfterSync');
-        return {'role': cachedRole, 'isSuperAdmin': false};
+        return {'role': cachedRole, 'isSuperAdmin': cachedIsSuperAdmin};
       }
     }
 
