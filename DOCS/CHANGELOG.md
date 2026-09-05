@@ -66,10 +66,28 @@ Lịch sử tất cả thay đổi từng phiên bản.
 - "Kết nối KiotViet" hiện trong nhóm Dữ liệu & Hệ thống.
 - `flutter analyze` — 0 error, 0 warning (chỉ còn info lint có sẵn từ trước).
 
-### Còn để lại (cần chủ shop quyết)
+### Dọn nốt (chủ shop duyệt xoá) + công cụ nội bộ theo email
 
-- `lib/views/settings_view.dart` vẫn nằm đó, **không ai gọi**. Xoá được an toàn
-  (0 tham chiếu) nhưng là thay đổi riêng, chưa làm trong lần này.
+- **Đã xoá `lib/views/settings_view.dart`** (1699 dòng, 0 tham chiếu). Trước khi
+  xoá đã đối chiếu từng tính năng chỉ có trong file này:
+  - "Đẩy dữ liệu KiotViet lên Cloud" → **không mất**, `forceResyncKiotVietData()`
+    vẫn gọi được từ `kiotviet_import_view.dart` (vào qua Sao lưu & Khôi phục).
+  - "Nhận kho từ Cloud" → **mất biến thể xoá-rồi-tải**: nút này xoá sạch bảng
+    `products` của shop trước rồi mới `downloadAllFromCloud(force: true)`, nhằm
+    dọn cả sản phẩm đã xoá cứng trên cloud. "Tải từ Cloud" ở Trung tâm đồng bộ
+    chỉ upsert nên **không xoá được bản ghi thừa ở local**. Nếu cần dùng lại thì
+    lấy từ lịch sử git (`git show 7ae7b20b:lib/views/settings_view.dart`).
+  - "Xoá trắng shop", PIN super admin, nhật ký truy cập, phân quyền nhân viên
+    → đều đã có ở Super Admin Console / tab Nhân viên, không mất gì.
+- **Công cụ nội bộ mở theo email** — thêm `lib/utils/internal_tools.dart`:
+  `InternalTools.visibleFor(email, isSuperAdmin, isDebugBuild)`. Bản phát hành
+  hiện "Giám sát Firestore Read" cho super admin **và** `huy@huluca.com`.
+  ⚠️ Lớp này **chỉ điều khiển hiển thị, không phải cơ chế bảo mật** — quyền thật
+  vẫn do custom claims + `firestore.rules` (CLAUDE.md mục III.1), nên không được
+  dùng nó để gác tính năng có tác động dữ liệu.
+  Kèm `test/internal_tools_test.dart` (7 ca): email nội bộ thấy; hoa/thường +
+  khoảng trắng vẫn khớp; chủ shop thường không thấy; email rỗng/null không thấy;
+  `huy@huluca.com.vn` và `xhuy@huluca.com` **không lọt**; super admin luôn thấy.
 
 ---
 

@@ -131,6 +131,7 @@ import '../widgets/ai_command_bar.dart';
 import '../services/payment_request_service.dart';
 import '../widgets/app_cached_image.dart';
 import '../utils/app_info.dart';
+import '../utils/internal_tools.dart';
 import 'category_management_view.dart';
 import 'kiotviet_settings_view.dart';
 
@@ -6594,8 +6595,12 @@ class _HomeViewState extends State<HomeView>
               keywords: 'firebase read write chi phí',
               onTap: () => _fadePush(context, const FirebaseRwStatsView()),
             ),
-          // Công cụ nội bộ — không hiện cho chủ shop trên bản phát hành.
-          if (kDebugMode || _isSuperAdmin)
+          // Công cụ nội bộ — bản phát hành chỉ hiện cho super admin và các
+          // email nội bộ khai trong InternalTools (không hiện cho chủ shop).
+          if (InternalTools.visibleFor(
+            email: FirebaseAuth.instance.currentUser?.email,
+            isSuperAdmin: _isSuperAdmin,
+          ))
             _SettingsItem(
               group: 'system',
               title: 'Giám sát Firestore Read',

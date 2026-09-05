@@ -35,10 +35,18 @@ thêm 2 mục cho 2 màn hình vừa nối lại.
 **Kho hàng → Cho phép nhập giá vốn sau** (công tắc — trước tìm không ra),
 Giao diện & Ngôn ngữ, Dữ liệu & Hệ thống; "Kết nối KiotViet" hiện đúng chỗ;
 chân trang hiện phiên bản. `flutter analyze` 0 error 0 warning.
-· **🔶 Còn để lại (chờ chủ shop quyết):** `lib/views/settings_view.dart` vẫn nằm
-đó và **không ai gọi** — xoá được an toàn (0 tham chiếu), chưa xoá trong lần này.
-`StaffPermissionsView` cũng chỉ có ở file chết nhưng KHÔNG mất tính năng (phân
-quyền đã có trong tab Nhân viên → chọn nhân viên).
+· **🗑️ Đã xoá `lib/views/settings_view.dart`** (chủ shop duyệt). Đối chiếu trước
+khi xoá: "Đẩy KiotViet lên Cloud" KHÔNG mất (còn ở `kiotviet_import_view`);
+PIN/nhật ký super admin, xoá trắng shop, phân quyền nhân viên đều đã có chỗ khác.
+**Mất đúng 1 thứ:** biến thể "Nhận kho từ Cloud" kiểu **xoá sạch `products` của
+shop rồi mới tải lại** — "Tải từ Cloud" ở Trung tâm đồng bộ chỉ upsert nên không
+dọn được bản ghi thừa ở local. Cần thì lấy lại từ
+`git show 7ae7b20b:lib/views/settings_view.dart`.
+· **🔧 Công cụ nội bộ mở theo email** — `lib/utils/internal_tools.dart`. Bản phát
+hành hiện "Giám sát Firestore Read" cho super admin **và `huy@huluca.com`**.
+⚠️ **Chỉ là hiển thị, KHÔNG phải bảo mật** — quyền thật vẫn do custom claims +
+`firestore.rules`; đừng dùng lớp này gác tính năng có tác động dữ liệu.
+`test/internal_tools_test.dart` 7/7 PASS (có ca chống lọt `huy@huluca.com.vn`).
 
 **🔧 ĐƠN SỬA — MẤT THÔNG BÁO NHẬN MÁY + ĐƠN TỰ TỤT VỀ "TIẾP NHẬN" (`[2026-09-05i]`).**
 Chủ shop báo 05/09: đơn IPHONE 11 (BÉ THẮM, tạo 15:11) không có tin "ĐƠN MỚI" trong chat nội bộ — chỉ thấy "SỬA XONG"/"YÊU CẦU DUYỆT GIAO" lúc 15:12 — rồi đơn quay về **TIẾP NHẬN** kèm **"Chưa có KTV"**.
