@@ -1301,6 +1301,7 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
   List<Map<String, dynamic>> _stockMismatch = [];
   List<Map<String, dynamic>> _voidedIntents = [];
   List<Map<String, dynamic>> _misbookedVoids = [];
+  final List<String> _loadErrors = [];
   bool _loading = true;
 
   @override
@@ -1309,30 +1310,61 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
     _load();
   }
 
+  /// Một truy vấn hỏng KHÔNG được làm kẹt cả tab.
+  ///
+  /// Trước đây 8 lệnh quét chạy trần: chỉ cần một lệnh ném lỗi là `_loading`
+  /// không bao giờ về false ⇒ tab quay vòng vĩnh viễn (chủ shop gặp 06/09/2026
+  /// trên shop có 6.485 đơn bán). Nay mỗi lệnh tự nuốt lỗi trả về danh sách
+  /// rỗng, và `finally` luôn tắt vòng xoay.
+  Future<List<Map<String, dynamic>>> _safe(
+    String label,
+    Future<List<Map<String, dynamic>>> Function() run,
+  ) async {
+    try {
+      return await run();
+    } catch (e) {
+      debugPrint('DataReconciliation._load[$label]: $e');
+      _loadErrors.add(label);
+      return const [];
+    }
+  }
+
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final orphans = await DataReconciliationService.findOrphanDebtPayments();
-    final zeros = await DataReconciliationService.findZeroAmountCustomerDebts();
-    final orphanRet = await DataReconciliationService.findOrphanSalesReturnItems();
-    final foreignRet =
-        await DataReconciliationService.findForeignShopSalesReturnItems();
-    final orphanExp = await DataReconciliationService.findOrphanExpenseActivity();
-    final stockMis = await DataReconciliationService.findStockStatusMismatch();
-    final voided =
-        await DataReconciliationService.findVoidedTxnPaymentIntents();
-    final misVoids = await DataReconciliationService.findMisbookedVoids();
-    if (!mounted) return;
     setState(() {
-      _orphans = orphans;
-      _zeroDebts = zeros;
-      _orphanRetItems = orphanRet;
-      _foreignRetItems = foreignRet;
-      _orphanExpFal = orphanExp;
-      _stockMismatch = stockMis;
-      _voidedIntents = voided;
-      _misbookedVoids = misVoids;
-      _loading = false;
+      _loading = true;
+      _loadErrors.clear();
     });
+    try {
+      final orphans = await _safe('nợ mồ côi',
+          DataReconciliationService.findOrphanDebtPayments);
+      final zeros = await _safe('nợ 0đ',
+          DataReconciliationService.findZeroAmountCustomerDebts);
+      final orphanRet = await _safe('item trả hàng mồ côi',
+          DataReconciliationService.findOrphanSalesReturnItems);
+      final foreignRet = await _safe('item trả hàng shop khác',
+          DataReconciliationService.findForeignShopSalesReturnItems);
+      final orphanExp = await _safe('khoản chi ma',
+          DataReconciliationService.findOrphanExpenseActivity);
+      final stockMis = await _safe('lệch trạng thái kho',
+          DataReconciliationService.findStockStatusMismatch);
+      final voided = await _safe('payment intent đã huỷ',
+          DataReconciliationService.findVoidedTxnPaymentIntents);
+      final misVoids = await _safe('biên độ VOID',
+          DataReconciliationService.findMisbookedVoids);
+      if (!mounted) return;
+      setState(() {
+        _orphans = orphans;
+        _zeroDebts = zeros;
+        _orphanRetItems = orphanRet;
+        _foreignRetItems = foreignRet;
+        _orphanExpFal = orphanExp;
+        _stockMismatch = stockMis;
+        _voidedIntents = voided;
+        _misbookedVoids = misVoids;
+      });
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   Future<void> _fixMisVoid(Map<String, dynamic> v) async {
@@ -1514,7 +1546,12 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
         _voidedIntents.isEmpty &&
         _misbookedVoids.isEmpty;
     if (nothing) {
-      return _emptyState('Không phát hiện dữ liệu tài chính cần dọn 👍');
+      return _emptyState(
+        _loadErrors.isEmpty
+            ? 'Không phát hiện dữ liệu tài chính cần dọn 👍'
+            : 'Không phát hiện gì, nhưng có mục quét lỗi: '
+                '${_loadErrors.join(", ")}',
+      );
     }
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),

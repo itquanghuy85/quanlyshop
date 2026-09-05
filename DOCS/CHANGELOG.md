@@ -15,6 +15,17 @@ vuốt ngang mới thấy. **Sửa:** tách thành widget `_KvDuplicatePanel` v�
 nghĩa vì đây là dọn đơn bán. Nút đổi thành `ElevatedButton` đỏ, rộng hết dòng.
 Gỡ bản inline khỏi `_FinanceCleanupTab` để khỏi phải bảo trì hai nơi.
 
+### Tab TÀI CHÍNH quay vòng vĩnh viễn
+
+Chủ shop mở đúng tab TÀI CHÍNH thì gặp **vòng xoay không bao giờ dứt**. Nguyên
+nhân: `_FinanceCleanupTab._load()` chạy 8 lệnh quét **trần, không try/catch** —
+chỉ cần một lệnh ném lỗi là `_loading` không bao giờ về `false`. Trên shop có
+6.485 đơn bán / 821 sản phẩm thì xác suất này là thật.
+
+**Sửa:** mỗi lệnh bọc qua `_safe(label, run)` — lỗi thì ghi nhãn vào
+`_loadErrors` và trả danh sách rỗng thay vì làm sập cả tab; `finally` luôn tắt
+vòng xoay. Màn hình trống nay nói rõ mục nào quét lỗi thay vì im lặng.
+
 ### Soát trùng TOÀN BỘ các bảng (theo yêu cầu "các mục khác có bị trùng không")
 
 Đối chiếu trên DB thật của HULUCA STORE, khoá `firestoreId`:
