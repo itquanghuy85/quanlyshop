@@ -821,6 +821,40 @@ service cloud.firestore {
       allow delete: if isAuth() && docInMyShopForDelete() && isManager();
     }
 
+    // ═══════════ 5.x PRICE_CATALOG_ITEMS ═══════════
+    // Danh mục giá "Bảng giá từ hoá đơn NCC".
+    //
+    // READ cho mọi nhân viên trong shop: nhân viên CẦN đọc để tra Giá thu
+    // khách khi báo giá. Việc che Giá vốn làm ở tầng ứng dụng
+    // (PriceCatalogService xoá hẳn trường giá vốn khỏi dữ liệu trả về khi
+    // không có quyền) — rules không tách được theo từng trường.
+    //
+    // GHI chỉ quản lý trở lên: đây là dữ liệu giá vốn hàng loạt.
+    match /price_catalog_items/{itemId} {
+      allow read: if isAuth() && docInMyShop();
+
+      allow create: if isAuth() &&
+                       isManager() &&
+                       newDocInMyShop() &&
+                       has(['importKey', 'itemName', 'shopId']) &&
+                       str('importKey', 1, 400) &&
+                       str('itemName', 1, 300) &&
+                       numGte0('lastCost') &&
+                       numGte0('customerPrice');
+
+      // `optNum` chứ không `numGte0`: nhánh xoá mềm / cập nhật một phần có
+      // thể không gửi kèm các trường giá, `numGte0` sẽ chặn nhầm và làm kẹt
+      // hàng đợi đồng bộ.
+      allow update: if isAuth() &&
+                       isManager() &&
+                       docInMyShop() &&
+                       shopIdLocked() &&
+                       optNum('lastCost') &&
+                       optNum('customerPrice');
+
+      allow delete: if isAuth() && docInMyShopForDelete() && isManager();
+    }
+
     // ┌──────────────────────────────────────────────────────────────────┐
     // │                   SECTION 6: REPAIR PARTNERS                     │
     // │   Collections: repair_partners, repair_partner_payments,         │

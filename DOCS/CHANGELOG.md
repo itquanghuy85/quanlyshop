@@ -4,6 +4,59 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-05c] - fix(bảng giá NCC) 3 lỗi phát hiện khi nghiệm thu máy thật
+
+**Nghiệm thu Oppo CPH2203, tài khoản `m@m.com` (shop "M").**
+
+1. **CHẶN ĐỒNG BỘ — `firestore.rules` thiếu collection mới.** Danh mục giá ghi
+   được xuống SQLite nhưng đẩy lên Firestore thì `permission-denied`, 5 bản ghi
+   kẹt hàng đợi ⇒ **không bao giờ đồng bộ sang máy khác**, đúng thứ yêu cầu bắt
+   buộc. Đã thêm rule cho `price_catalog_items`: READ cho mọi nhân viên trong
+   shop (nhân viên CẦN đọc để tra Giá thu khách; việc che Giá vốn làm ở tầng
+   ứng dụng vì rules không tách được theo trường), GHI chỉ quản lý trở lên.
+   Nhánh update dùng `optNum` chứ không `numGte0` — xoá mềm/cập nhật một phần
+   có thể không gửi kèm trường giá, `numGte0` sẽ chặn nhầm và làm kẹt hàng đợi.
+   **Đã `firebase deploy --only firestore:rules`.** Unit test và `analyze`
+   không thể bắt được loại lỗi này.
+
+2. **Màn hướng dẫn TRẮNG TRƠN.** `ResponsiveBody` bọc `Center`, mà `Center`
+   giãn hết chiều cao khả dụng — đặt trong `bottomNavigationBar` (chỗ đáng lẽ
+   chỉ cao bằng nội dung) làm thanh dưới chiếm trọn màn hình, ép thân màn còn 0
+   chiều cao ⇒ mất sạch phần hướng dẫn, chỉ còn cái nút nằm giữa màn trắng.
+   Thay bằng `Center(heightFactor: 1)`. Lỗi do chính đợt responsive
+   `[2026-09-05?]` gây ra, chỉ lộ ra khi nhìn màn hình thật.
+
+3. **Mũi tên sơ đồ 4 bước rơi lại cuối dòng.** `Wrap` tách mũi tên khỏi mục đi
+   sau nó khi xuống dòng, thành ra "→" trỏ vào khoảng trống. Gộp mũi tên + mục
+   vào cùng một phần tử `Wrap`.
+
+**Kết quả nghiệm thu máy thật — ĐẠT:**
+- Migration **v109→v110** trên DB có dữ liệu thật: sạch, 0 exception, 28 cột,
+  2 index, dữ liệu cũ nguyên vẹn (9 đơn sửa, 13 SP, 15 công nợ, 18 chi phí).
+- Cấu hình Trang chủ **v3→v4** áp đúng: 14 thẻ, thứ tự Cần xử lý → Thao tác
+  nhanh → Dòng tiền; 3 thẻ mới có mặt; `dailyReport` đã lọc bỏ.
+- **"Hoạt động hôm nay" hiện thật** (công tắc chết đã hết).
+- Tài chính đúng **4 tab**; tab Công nợ hiện nhãn "Toàn bộ công nợ chưa tất
+  toán" thay cho chip kỳ; nút chuyển Giao dịch tiền / Nhật ký thao tác chạy.
+- **In/Xuất Excel đúng cho cả 4 đường** sau khi đổi chỉ số tab:
+  `giao_dich_*.xlsx` · `nhat_ky_chi_tiet_*.xlsx` · `phai_thu_*.xlsx` ·
+  `BaoCaoNgay_*.xlsx`.
+- File mẫu HD014650: 4 sheet, 23 cột, 5 dòng, **tổng 3.120.000** khớp hoá đơn.
+- Nhập lần 1: 5 dòng hợp lệ / 5 mặt hàng mới / 5 chưa có giá thu khách / **2
+  cần kiểm tra** (đúng 2 dòng nhiều model).
+- **Nhập LẠI cùng file:** 0 mặt hàng mới, 5 cập nhật, **5 dòng trùng** → DB vẫn
+  **5 mặt hàng (không phải 10)**, mỗi mặt hàng vẫn "1 lần nhập đã ghi nhận",
+  bình quân KHÔNG đổi.
+- Bảng giá hiện "**Chưa thiết lập giá thu khách**" + Vốn/loại/NCC/ngày nhập.
+- Đặt giá thu khách 1.500.000 → lưu đúng, lãi 600.000.
+- Sau khi deploy rules: hàng đợi trống, cả 5 bản ghi `isSynced=1`.
+
+**Còn lại chưa nghiệm thu:** tài khoản NHÂN VIÊN (không có `allowViewCostPrice`)
+chưa test trên máy — logic che giá vốn mới chỉ có unit test. Và chưa test 2 máy
+cùng lúc để thấy dữ liệu hiện sang máy thứ hai.
+
+---
+
 ## [2026-09-05b] - refactor(trang chủ + tài chính) dọn bố cục theo audit UX
 
 **Chưa tăng version. Cấu hình dashboard v3 → v4.**

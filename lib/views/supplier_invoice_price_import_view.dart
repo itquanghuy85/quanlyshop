@@ -174,12 +174,25 @@ class _SupplierInvoicePriceImportViewState
             ),
         ],
       ),
+      // KHÔNG dùng ResponsiveBody ở đây: nó bọc `Center`, mà `Center` giãn hết
+      // chiều cao khả dụng — đặt trong `bottomNavigationBar` (chỗ đáng lẽ chỉ
+      // cao bằng nội dung) làm thanh dưới chiếm trọn màn hình, ép thân màn còn
+      // 0 chiều cao ⇒ toàn bộ phần hướng dẫn biến mất, chỉ còn cái nút nằm
+      // giữa màn trắng. `heightFactor: 1` bắt nó ôm sát chiều cao của nút.
       bottomNavigationBar: SafeArea(
-        child: ResponsiveBody(
-          maxWidth: _maxContentWidth,
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(14, isShort ? 4 : 6, 14, isShort ? 6 : 10),
-            child: _bottomButton(),
+        child: Center(
+          heightFactor: 1,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _maxContentWidth),
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                14,
+                isShort ? 4 : 6,
+                14,
+                isShort ? 6 : 10,
+              ),
+              child: _bottomButton(),
+            ),
           ),
         ),
       ),
@@ -414,40 +427,50 @@ class _SupplierInvoicePriceImportViewState
               spacing: 4,
               runSpacing: 10,
               children: [
-                for (var i = 0; i < steps.length; i++) ...[
-                  if (i > 0)
-                    Icon(
-                      Icons.arrow_forward_rounded,
-                      size: 16,
-                      color: Colors.indigo.shade300,
-                    ),
-                  SizedBox(
-                    width: 72,
-                    child: Column(
-                      children: [
-                        CircleAvatar(
-                          radius: 18,
-                          backgroundColor: Colors.white,
+                // Mũi tên đi KÈM mục phía sau nó trong cùng một phần tử Wrap.
+                // Nếu để mũi tên là phần tử riêng, khi xuống dòng nó bị bỏ lại
+                // cuối dòng trên và trỏ vào khoảng trống.
+                for (var i = 0; i < steps.length; i++)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (i > 0)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 2),
                           child: Icon(
-                            steps[i].$1,
-                            size: 18,
-                            color: Colors.indigo.shade700,
+                            Icons.arrow_forward_rounded,
+                            size: 16,
+                            color: Colors.indigo.shade300,
                           ),
                         ),
-                        const SizedBox(height: 5),
-                        Text(
-                          steps[i].$2,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 10,
-                            height: 1.25,
-                            color: Colors.indigo.shade900,
-                          ),
+                      SizedBox(
+                        width: 72,
+                        child: Column(
+                          children: [
+                            CircleAvatar(
+                              radius: 18,
+                              backgroundColor: Colors.white,
+                              child: Icon(
+                                steps[i].$1,
+                                size: 18,
+                                color: Colors.indigo.shade700,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              steps[i].$2,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 10,
+                                height: 1.25,
+                                color: Colors.indigo.shade900,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
               ],
             ),
           ],
