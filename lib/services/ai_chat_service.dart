@@ -76,6 +76,13 @@ class AiChatStats {
   /// Trong [repairsPending], số đơn đã tồn từ hôm trước trở về trước.
   final int repairsOverdue;
 
+  /// Trong [repairsPending]: còn phải làm (status 1–2). Cùng định nghĩa với thẻ
+  /// "CẦN XỬ LÝ" ở Trang chủ để hai nơi không đá nhau.
+  final int repairsInProgress;
+
+  /// Trong [repairsPending]: đã sửa xong, chờ khách đến lấy (status 3).
+  final int repairsAwaitingPickup;
+
   // Stock
   final int stockCount;
   final int stockQuantity;
@@ -132,6 +139,8 @@ class AiChatStats {
     this.repairsToday = 0,
     this.repairsPending = 0,
     this.repairsOverdue = 0,
+    this.repairsInProgress = 0,
+    this.repairsAwaitingPickup = 0,
     this.stockCount = 0,
     this.stockQuantity = 0,
     this.stockCapital = 0,
@@ -174,6 +183,8 @@ class AiChatStats {
         'repairsToday': repairsToday,
         'repairsPending': repairsPending,
         'repairsOverdue': repairsOverdue,
+        'repairsInProgress': repairsInProgress,
+        'repairsAwaitingPickup': repairsAwaitingPickup,
         'stockCount': stockCount,
         'stockQuantity': stockQuantity,
         'stockCapital': stockCapital,
@@ -400,6 +411,8 @@ class AiChatService {
       repairsToday: repairs.length,
       repairsPending: pending,
       repairsOverdue: pendingOverdue,
+      repairsInProgress: pendingCounts['inProgress'] ?? 0,
+      repairsAwaitingPickup: pendingCounts['awaitingPickup'] ?? 0,
       pendingRepairSummaries: pendingRepairSummaries,
       stockCount: inventory['totalItems'] ?? 0,
       stockQuantity: inventory['totalQty'] ?? 0,
@@ -621,7 +634,7 @@ class AiChatService {
         _has(n, ['bao nhieu do', 'duoc bao nhieu', 'ban duoc chua', 'co gi chua'])) {
       final buf = StringBuffer('Hôm nay: bán **${stats.salesToday} đơn** '
           '(${AiChatService.fmt(stats.saleRevenueToday)})');
-      if (stats.repairsPending > 0) buf.write(', **${stats.repairsPending} đơn sửa** chờ');
+      if (stats.repairsPending > 0) buf.write(', **${stats.repairsPending} đơn sửa** chưa giao');
       buf.write('.');
       return AiQuickResponse(
         buf.toString(),
@@ -765,7 +778,7 @@ class AiChatService {
       final buf = StringBuffer(ok
           ? 'Hôm nay ổn! '
           : 'Có một số điểm cần chú ý: ');
-      if (stats.repairsPending > 0) buf.write('**${stats.repairsPending} đơn sửa** đang chờ. ');
+      if (stats.repairsPending > 0) buf.write('**${stats.repairsPending} đơn sửa** chưa giao. ');
       if (stats.debtReceivable > 0) buf.write('Nợ phải thu: **${AiChatService.fmt(stats.debtReceivable)}**. ');
       buf.write('Doanh thu hôm nay: **${AiChatService.fmt(stats.revenueToday)}**.');
       return AiQuickResponse(
@@ -784,7 +797,7 @@ class AiChatService {
         '${stats.repairsToday} đơn sửa · '
         'DT ${AiChatService.fmt(stats.revenueToday)} · '
         'LN ${AiChatService.fmt(stats.profitToday)}'
-        '${stats.repairsPending > 0 ? ' · ⏳ ${stats.repairsPending} chờ' : ''}',
+        '${stats.repairsPending > 0 ? ' · ⏳ ${stats.repairsPending} chưa giao' : ''}',
         followUpChips: const [
           ('Chi tiết', Icons.info_outline_rounded),
           ('Tháng này', Icons.calendar_month_rounded),
@@ -800,22 +813,24 @@ class AiChatService {
                   // nên người dùng không có đường nào thấy được năng lực của AI.
                   'lam duoc gi', 'lam duoc nhung gi', 'lam nhung gi', 'giup duoc gi',
                   'kha nang', 'biet lam gi', 'co the lam gi'])) {
+      // Lưu ý: `_buildMsgText` của bong bóng chat CHỈ hiểu `**đậm**`. Dùng
+      // `*nghiêng*` hay `_nghiêng_` sẽ hiện ra dấu sao/gạch dưới thô.
       return const AiQuickResponse(
         'Mình không chỉ trả lời — mình **làm hộ** được luôn. '
         'Bấm nút 🎤 để nói thay vì gõ.\n\n'
         '**🛠️ LÀM HỘ BẠN** (mình mở sẵn form, điền sẵn nội dung)\n'
-        '• *"Tạo đơn sửa iPhone 15 Pro thay màn cho Minh 0912345678"*\n'
-        '• *"Tạo đơn bán Samsung A55 giá 6 triệu"*\n'
-        '• *"Nhập kho mới 10 pin iPhone 13"*\n\n'
+        '• "Tạo đơn sửa iPhone 15 Pro thay màn cho Minh 0912345678"\n'
+        '• "Tạo đơn bán Samsung A55 giá 6 triệu"\n'
+        '• "Nhập kho mới 10 pin iPhone 13"\n\n'
         '**📊 TRA SỐ LIỆU** (trả lời ngay, không cần mạng)\n'
-        '• *"Hôm nay bán được bao nhiêu?"* · *"Lợi nhuận tháng này?"*\n'
-        '• *"Đơn nào đang chờ?"* · *"Tồn kho linh kiện"*\n'
-        '• *"Ai nợ nhiều nhất?"* · *"Khách Minh nợ bao nhiêu?"*\n\n'
+        '• "Hôm nay bán được bao nhiêu?" · "Lợi nhuận tháng này?"\n'
+        '• "Đơn nào đang chờ?" · "Tồn kho linh kiện"\n'
+        '• "Ai nợ nhiều nhất?" · "Khách Minh nợ bao nhiêu?"\n\n'
         '**📂 MỞ NHANH MÀN HÌNH**\n'
-        '• *"Mở đơn sửa gần nhất"* · *"Xem công nợ"* · *"Vào kho hàng"*\n\n'
+        '• "Mở đơn sửa gần nhất" · "Xem công nợ" · "Vào kho hàng"\n\n'
         '**📚 CHỈ CÁCH LÀM** (hỏi bất kỳ tính năng nào của app)\n'
-        '• *"Làm sao chốt quỹ?"* · *"Miễn nợ ở đâu?"*\n'
-        '• *"Trả góp ngân hàng là gì?"*\n\n'
+        '• "Làm sao chốt quỹ?" · "Miễn nợ ở đâu?"\n'
+        '• "Trả góp ngân hàng là gì?"\n\n'
         'Bấm **📚 Tất cả tính năng** để xem toàn bộ danh mục.',
         followUpChips: [
           ('Tạo đơn sửa', Icons.build_circle_rounded),
@@ -835,7 +850,7 @@ class AiChatService {
       }
       buf.writeln('• Tổng doanh thu: **${fmt(stats.revenueToday)}** | LN: **${fmt(stats.profitToday)}**');
       if (stats.repairsPending > 0) {
-        buf.writeln('• Đơn sửa đang chờ: **${stats.repairsPending} đơn**');
+        buf.writeln('• Đơn sửa chưa giao: **${stats.repairsPending} đơn**');
       }
       return AiQuickResponse(
         buf.toString(),
@@ -885,11 +900,20 @@ class AiChatService {
           .take(5)
           .map((s) => '• $s')
           .join('\n');
+      final breakdown = <String>[
+        if (stats.repairsInProgress > 0) '${stats.repairsInProgress} đang xử lý',
+        if (stats.repairsAwaitingPickup > 0)
+          '${stats.repairsAwaitingPickup} xong chờ khách lấy',
+      ];
       final overdueNote = stats.repairsOverdue > 0
           ? '\n\n⚠️ Trong đó **${stats.repairsOverdue} đơn** tồn từ hôm trước.'
           : '';
+      // "Chưa giao" chứ không phải "chờ xử lý" — xem ghi chú ở
+      // DBHelper.getPendingRepairCounts.
       return AiQuickResponse(
-        'Đang có **${stats.repairsPending} đơn** chờ xử lý:\n$pending$overdueNote',
+        'Đang có **${stats.repairsPending} đơn** chưa giao'
+        '${breakdown.isEmpty ? '' : ' (${breakdown.join(' · ')})'}:\n'
+        '$pending$overdueNote',
         actions: const [_kOpenLatestRepairAction],
         followUpChips: const [
           ('Tạo đơn sửa mới', Icons.add_circle_outline_rounded),
@@ -972,7 +996,7 @@ class AiChatService {
       buf.writeln('• Bán hàng: **${stats.salesToday} đơn** — ${fmt(stats.saleRevenueToday)}');
       buf.writeln('• Sửa chữa giao: **${stats.deliveredRepairsToday} đơn** — ${fmt(stats.repairRevenueToday)}');
       buf.writeln('• Doanh thu: **${fmt(stats.revenueToday)}** | LN: **${fmt(stats.profitToday)}**');
-      buf.writeln('• Đơn sửa chờ xử lý: **${stats.repairsPending} đơn**');
+      buf.writeln('• Đơn sửa chưa giao: **${stats.repairsPending} đơn**');
       buf.writeln();
       buf.writeln('**Tháng này:**');
       buf.writeln('• Bán hàng: **${stats.salesThisMonth} đơn** (${fmt(stats.saleRevenueThisMonth)})');
@@ -1058,7 +1082,7 @@ class AiChatService {
     if (_has(n, ['sua chua hom nay', 'don sua hom nay', 'so don sua hom nay'])) {
       return AiQuickResponse(
         'Hôm nay nhận **${stats.repairsToday} đơn sửa**. '
-        'Đã giao: **${stats.deliveredRepairsToday}**, đang chờ: **${stats.repairsPending}**. '
+        'Đã giao: **${stats.deliveredRepairsToday}**, chưa giao: **${stats.repairsPending}**. '
         'Doanh thu sửa chữa: **${fmt(stats.repairRevenueToday)}**.',
         actions: const [_kOpenLatestRepairAction],
         followUpChips: const [
@@ -1075,7 +1099,7 @@ class AiChatService {
       if (stats.revenueToday == 0 && stats.salesToday == 0 && stats.deliveredRepairsToday == 0) {
         return AiQuickResponse(
           'Hôm nay chưa có doanh thu — chưa có đơn bán hoặc đơn sửa nào hoàn thành.\n'
-          '${stats.repairsPending > 0 ? "Đang có **${stats.repairsPending} đơn sửa** chờ xử lý." : ""}',
+          '${stats.repairsPending > 0 ? "Đang có **${stats.repairsPending} đơn sửa** chưa giao." : ""}',
           followUpChips: const [
             ('Tạo đơn bán', Icons.point_of_sale_rounded),
             ('Tạo đơn sửa', Icons.build_circle_rounded),
@@ -1190,7 +1214,7 @@ class AiChatService {
       final answer = StringBuffer(
           'Hôm nay nhận **${stats.repairsToday} đơn sửa** mới. '
           'Đã giao: **${stats.deliveredRepairsToday} đơn**, '
-          'đang chờ: **${stats.repairsPending} đơn**.');
+          'chưa giao: **${stats.repairsPending} đơn**.');
       if (stats.repairsPending > 0) {
         final pending = stats.repairSummaries
             .where((s) =>
@@ -1414,7 +1438,7 @@ class AiChatService {
       return AiQuickResponse(
         'Hôm nay:\n'
         '• Bán hàng: **${stats.salesToday} đơn**\n'
-        '• Sửa chữa nhận: **${stats.repairsToday} đơn** (chờ: ${stats.repairsPending}, đã giao: ${stats.deliveredRepairsToday})',
+        '• Sửa chữa nhận: **${stats.repairsToday} đơn** (chưa giao: ${stats.repairsPending}, đã giao: ${stats.deliveredRepairsToday})',
         followUpChips: const [
           ('Tháng này', Icons.calendar_month_rounded),
           ('Chi tiết đơn sửa', Icons.list_alt_rounded),

@@ -17,7 +17,9 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 /// Bản sao 1:1 câu SQL trong `DBHelper.getPendingRepairCounts` (nhánh có shopId).
 const _countsSql =
     'SELECT COUNT(*) AS total, '
-    'SUM(CASE WHEN createdAt < ? THEN 1 ELSE 0 END) AS overdue '
+    'SUM(CASE WHEN createdAt < ? THEN 1 ELSE 0 END) AS overdue, '
+    'SUM(CASE WHEN status IN (1, 2) THEN 1 ELSE 0 END) AS inProgress, '
+    'SUM(CASE WHEN status = 3 THEN 1 ELSE 0 END) AS awaitingPickup '
     'FROM repairs WHERE status < 4 AND (deleted = 0 OR deleted IS NULL) '
     'AND (shopId = ? OR shopId IS NULL)';
 
@@ -104,6 +106,12 @@ void main() {
     expect((row['total'] as num).toInt(), 4);
     // r2 + r3 + r7 tạo trước 00:00 hôm nay
     expect((row['overdue'] as num).toInt(), 3);
+
+    // Tách nhóm để AI khỏi gọi máy đã sửa xong là "đang chờ xử lý":
+    // r1 (status 1) + r2 (status 2) + r7 (status 1) còn phải làm…
+    expect((row['inProgress'] as num).toInt(), 3);
+    // …r3 (status 3) đã xong, chỉ chờ khách tới lấy.
+    expect((row['awaitingPickup'] as num).toInt(), 1);
   });
 
   test('CHỨNG MINH lỗi cũ: lọc theo ngày tạo chỉ thấy 1/4 đơn đang chờ', () async {

@@ -5366,17 +5366,25 @@ class DBHelper {
   }
 
   /// Đếm đơn sửa CHƯA GIAO (status < 4) trên toàn bộ lịch sử, không giới hạn
-  /// theo ngày tạo. Trả về `{'total': n, 'overdue': m}` với `overdue` là số đơn
-  /// tồn từ trước [dayStartMs] (tức đã qua ít nhất một ngày mà vẫn chưa giao).
+  /// theo ngày tạo. Trả về:
+  ///   • `total`          — tổng đơn chưa giao (máy còn trong tiệm)
+  ///   • `overdue`        — trong đó, số đơn tồn từ trước [dayStartMs]
+  ///   • `inProgress`     — status 1–2: còn phải làm (cùng định nghĩa với thẻ
+  ///                        "CẦN XỬ LÝ" ở Trang chủ, `dashboard_cards.dart`)
+  ///   • `awaitingPickup` — status 3: đã sửa xong, chờ khách đến lấy
   ///
   /// Dùng cho AI Trợ Lý: câu "đơn đang chờ" phải tính cả đơn của những hôm
-  /// trước, không chỉ đơn tạo trong ngày.
+  /// trước, không chỉ đơn tạo trong ngày. Tách `inProgress`/`awaitingPickup` để
+  /// AI khỏi nói "đang chờ xử lý" cho cả máy đã sửa xong — nói vậy sẽ mâu thuẫn
+  /// với con số ở Trang chủ.
   Future<Map<String, int>> getPendingRepairCounts(int dayStartMs) async {
     final db = await database;
     final shopId = await _getScopedShopId('getPendingRepairCounts');
     const base =
         'SELECT COUNT(*) AS total, '
-        'SUM(CASE WHEN createdAt < ? THEN 1 ELSE 0 END) AS overdue '
+        'SUM(CASE WHEN createdAt < ? THEN 1 ELSE 0 END) AS overdue, '
+        'SUM(CASE WHEN status IN (1, 2) THEN 1 ELSE 0 END) AS inProgress, '
+        'SUM(CASE WHEN status = 3 THEN 1 ELSE 0 END) AS awaitingPickup '
         'FROM repairs WHERE status < 4 AND (deleted = 0 OR deleted IS NULL)';
     final List<Map<String, Object?>> rows;
     if (shopId != null && shopId.isNotEmpty) {
@@ -5391,6 +5399,8 @@ class DBHelper {
     return {
       'total': (row['total'] as num?)?.toInt() ?? 0,
       'overdue': (row['overdue'] as num?)?.toInt() ?? 0,
+      'inProgress': (row['inProgress'] as num?)?.toInt() ?? 0,
+      'awaitingPickup': (row['awaitingPickup'] as num?)?.toInt() ?? 0,
     };
   }
 

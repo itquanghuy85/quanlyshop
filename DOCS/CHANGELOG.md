@@ -103,15 +103,52 @@ kê cũng lọc từ `repairSummaries` (cũng chỉ trong ngày). Con số này 
 nay không còn ai gửi — đóng luôn đường rò. Topic `all_users` (broadcast của super
 admin) **giữ nguyên**.
 
+### 6. Nghiệm thu máy thật (Oppo CPH2203, shop HULUCA STORE) — phát hiện thêm 3 lỗi
+
+**a) Số "đơn đang chờ" của AI đá nhau với Trang chủ.** Trang chủ báo **1 đơn sửa
+chờ xử lý**, AI báo **8**. Đối chiếu: `dashboard_cards.dart` đếm
+`status IN (1,2)` (việc thợ còn phải làm), còn truy vấn mới đếm `status < 4`
+(máy còn trong tiệm) — gộp cả **7 máy đã sửa xong đang chờ khách tới lấy**.
+Con số 8 đúng, nhưng **chữ "đang chờ xử lý" thì sai**.
+**Sửa:** `getPendingRepairCounts` trả thêm `inProgress` (1–2) + `awaitingPickup`
+(3); mọi câu chữ đổi **"chờ xử lý" → "chưa giao"** (9 dòng trong
+`ai_chat_service.dart` + 3 dòng lời chào). AI nay nói:
+*"Đang có 8 đơn chưa giao (1 đang xử lý · 7 xong chờ khách lấy)"* — khớp Trang chủ.
+**Giá trị thực tế đo được:** 7 máy đã sửa xong tồn **1–4 ngày** chưa ai lấy;
+trước khi sửa AI báo **0 đơn** vì không đơn nào tạo trong ngày.
+
+**b) 🐛 Thanh nhập của bong bóng AI bị thanh điều hướng che** (chủ shop báo:
+*"thanh nhập ký tự bị che dưới màn hình khó bấm vào"*). Panel neo `bottom: 0`
+của **toàn màn hình** nên đáy nằm dưới thanh 3 nút, mà `_buildInput` chỉ trừ
+`mq.viewInsets.bottom` (bàn phím), **không trừ `mq.padding.bottom`**.
+**Sửa:** cộng cả `mq.padding.bottom` — Flutter tự đưa giá trị này về 0 khi bàn
+phím mở nên không bị đệm thừa. Ảnh chụp trước/sau xác nhận mic + ô nhập + nút
+gửi đã hiện đủ.
+
+**c) Dấu `*nghiêng*` hiện ra ký tự thô.** `_buildMsgText` **chỉ** hiểu
+`**đậm**`, nên `*"..."*` và `_"..."_` hiển thị nguyên dấu sao/gạch dưới. Đã bỏ
+khỏi câu trả lời năng lực + tin nhắn sau lời chào (kèm chú thích cảnh báo tại
+chỗ). **Còn tồn đọng:** vài câu quick-answer cũ khác vẫn dùng `*...*` — chưa
+đụng tới trong đợt này.
+
+**d) Chip theo tab gần như không bao giờ hiện.** `_sendWelcome` set
+`_contextChips` ngay lúc mở bong bóng và giá trị đó nằm lại tới câu trả lời có
+`followUpChips` kế tiếp ⇒ bộ chip mặc định theo tab bị che vĩnh viễn.
+**Sửa:** đổi tab thì **xoá** `_contextChips` để thanh chip quay về gợi ý của tab
+mới.
+
+
 ### Files
 
 `lib/widgets/ai_chat_overlay.dart` · `lib/services/ai_chat_service.dart` ·
 `lib/data/db_helper.dart` · `lib/data/app_knowledge_base.dart` ·
-`lib/services/notification_service.dart` · `functions/index.js`
+`lib/services/notification_service.dart` · `functions/index.js` ·
+`test/ai_pending_repairs_test.dart` (MỚI)
 
-**Kiểm chứng:** `flutter analyze` **0 error** (không phát sinh issue nào ở file
-đã sửa) · `node --check functions/index.js` OK · `flutter test` xem mục Trạng
-thái. **Chưa nghiệm thu trên máy thật.**
+**Kiểm chứng:** `flutter analyze` **0 error** · `node --check functions/index.js`
+OK · `flutter test` **+576 −8** (8 lỗi có sẵn: kiotviet, payroll lock, quick
+input) · 4 test FFI mới chạy ĐÚNG câu SQL trên SQLite thật · **đã nghiệm thu**
+trên Oppo CPH2203 với dữ liệu shop thật (xem mục 6).
 
 ---
 

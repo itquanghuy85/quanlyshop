@@ -198,11 +198,16 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     });
   }
 
-  /// Tab đang mở đổi → đổi bộ chip gợi ý mặc định (chỉ khi đang không có chip
-  /// ngữ cảnh của câu trả lời trước).
+  /// Tab đang mở đổi → **xoá** chip ngữ cảnh của câu trả lời cũ để thanh chip
+  /// quay về bộ gợi ý của tab mới.
+  ///
+  /// Nếu chỉ `setState` khi `_contextChips` rỗng thì chip theo tab gần như
+  /// không bao giờ hiện được: `_sendWelcome` set `_contextChips` ngay lúc mở
+  /// bong bóng, và giá trị đó nằm lại cho tới câu trả lời có `followUpChips`
+  /// tiếp theo.
   void _onScreenContextChanged() {
-    if (!mounted || _contextChips.isNotEmpty) return;
-    setState(() {});
+    if (!mounted) return;
+    setState(() => _contextChips = []);
   }
 
   Future<void> _checkBriefingPending() async {
@@ -418,7 +423,17 @@ class _AiChatOverlayState extends State<AiChatOverlay>
     if (isFirstToday && (stats.repairsPending > 0 || (_canViewFinance && stats.debtReceivable > 0))) {
       final buf = StringBuffer('Chào buổi mới! Điểm cần lưu ý hôm nay:\n');
       if (stats.repairsPending > 0) {
-        buf.writeln('• **${stats.repairsPending} đơn sửa** đang chờ xử lý');
+        // Nói "chưa giao" chứ KHÔNG nói "đang chờ xử lý": con số này gồm cả máy
+        // đã sửa xong đang chờ khách lấy. Thẻ "CẦN XỬ LÝ" ở Trang chủ chỉ đếm
+        // status 1–2, nói khác đi là hai nơi đá nhau.
+        final parts = <String>[
+          if (stats.repairsInProgress > 0)
+            '${stats.repairsInProgress} đang xử lý',
+          if (stats.repairsAwaitingPickup > 0)
+            '${stats.repairsAwaitingPickup} xong chờ khách lấy',
+        ];
+        buf.writeln('• **${stats.repairsPending} đơn sửa** chưa giao'
+            '${parts.isEmpty ? '' : ' (${parts.join(' · ')})'}');
       }
       if (stats.repairsOverdue > 0) {
         buf.writeln(
@@ -436,14 +451,14 @@ class _AiChatOverlayState extends State<AiChatOverlay>
       _addAI(
         'Chào bạn! Hôm nay bán được **${stats.salesToday} đơn**, '
         'doanh thu **${_fmtStats(stats.revenueToday)}**'
-        '${stats.repairsPending > 0 ? ", còn **${stats.repairsPending} đơn sửa** chờ xử lý" : ""}. '
+        '${stats.repairsPending > 0 ? ", còn **${stats.repairsPending} đơn sửa** chưa giao" : ""}. '
         'Bạn muốn biết thêm gì?',
       );
     } else {
       _addAI(
         'Chào bạn! Hôm nay có **${stats.salesToday} đơn bán**, '
         '**${stats.repairsToday} đơn sửa**'
-        '${stats.repairsPending > 0 ? ", **${stats.repairsPending} đơn** đang chờ xử lý" : ""}. '
+        '${stats.repairsPending > 0 ? ", **${stats.repairsPending} đơn** chưa giao" : ""}. '
         'Bạn muốn biết thêm gì?',
       );
     }
@@ -456,11 +471,12 @@ class _AiChatOverlayState extends State<AiChatOverlay>
           .inDays;
       final samples = AppKnowledgeBase.sampleQuestionSpread(3, seed: daySeed);
       if (samples.isNotEmpty && mounted) {
+        // `_buildMsgText` chỉ hiểu `**đậm**` — dấu `*` / `_` sẽ hiện ra thô.
         _addAI(
-          'Mình **làm hộ** được chứ không chỉ trả lời: *"Tạo đơn sửa iPhone 13 '
-          'thay màn cho Minh"*, *"Nhập kho mới 10 pin"*, *"Mở đơn sửa gần nhất"*.\n\n'
+          'Mình **làm hộ** được chứ không chỉ trả lời: "Tạo đơn sửa iPhone 13 '
+          'thay màn cho Minh", "Nhập kho mới 10 pin", "Mở đơn sửa gần nhất".\n\n'
           'Hoặc hỏi **cách dùng bất kỳ tính năng nào**:\n'
-          '${samples.map((s) => '• _"$s"_').join('\n')}',
+          '${samples.map((s) => '• "$s"').join('\n')}',
         );
         setState(() {
           _contextChips = [
@@ -1437,7 +1453,17 @@ class _AiChatOverlayState extends State<AiChatOverlay>
 
   Widget _buildInput(MediaQueryData mq) {
     return Container(
-      padding: EdgeInsets.fromLTRB(12, 8, 12, 8 + mq.viewInsets.bottom),
+      // Panel neo `bottom: 0` của TOÀN màn hình nên đáy của nó nằm DƯỚI thanh
+      // điều hướng hệ thống. Trước đây chỉ trừ `viewInsets` (bàn phím) ⇒ trên
+      // máy có thanh 3 nút, cả hàng nhập bị thanh đó che, rất khó bấm.
+      // `mq.padding.bottom` tự về 0 khi bàn phím mở (Flutter đã trừ viewInsets),
+      // nên cộng cả hai không bị đệm thừa.
+      padding: EdgeInsets.fromLTRB(
+        12,
+        8,
+        12,
+        8 + mq.viewInsets.bottom + mq.padding.bottom,
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: PopupTheme.borderDark)),

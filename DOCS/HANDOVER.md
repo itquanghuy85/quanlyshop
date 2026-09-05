@@ -36,7 +36,23 @@ sửa cho chạy lại nguyên trạng là **rò tên khách + SĐT + model + gi
 khác**. Và client vốn đã gửi đủ cả 3 loại qua `sendShopNotification` ⇒ hồi sinh sẽ
 **thông báo trùng 2 lần**. **Xử lý: gỡ hẳn 3 trigger** + bỏ `subscribeToTopic('staff')'
 ở client (topic nay không còn ai gửi). Topic `all_users` giữ nguyên.
-**Chưa nghiệm thu máy thật; functions CHƯA deploy lại.**
+**✅ ĐÃ NGHIỆM THU máy thật (Oppo CPH2203, dữ liệu shop HULUCA STORE)** — phát
+hiện thêm 4 lỗi và đã sửa hết trong cùng đợt:
+· **Số đơn đá nhau:** Trang chủ báo *1 đơn sửa chờ xử lý*, AI báo *8*. Trang chủ
+  đếm `status IN (1,2)`, AI đếm `status < 4` — chênh **7 máy đã sửa xong chờ
+  khách lấy**. Số 8 đúng nhưng CHỮ sai ⇒ tách thêm `inProgress`/`awaitingPickup`,
+  đổi toàn bộ *"chờ xử lý"* → *"chưa giao"* (9 dòng + 3 lời chào). AI nay nói
+  *"8 đơn chưa giao (1 đang xử lý · 7 xong chờ khách lấy)"*.
+  **Đo được trên dữ liệu thật: 7 máy sửa xong tồn 1–4 ngày chưa ai lấy** — trước
+  khi sửa AI báo **0 đơn** vì không đơn nào tạo trong ngày.
+· **Thanh nhập bị thanh điều hướng che** (chủ shop báo): panel neo `bottom: 0`
+  toàn màn hình mà `_buildInput` chỉ trừ `viewInsets`, thiếu `padding.bottom`.
+· **Dấu `*nghiêng*` hiện ra ký tự thô** — `_buildMsgText` chỉ hiểu `**đậm**`.
+  Đã bỏ khỏi text mới; vài quick-answer cũ khác vẫn còn, chưa đụng.
+· **Chip theo tab gần như không hiện** vì `_sendWelcome` set `_contextChips` rồi
+  giữ mãi ⇒ đổi tab nay xoá `_contextChips`.
+**⚠️ `functions` CHƯA deploy lại** — 3 trigger vẫn nằm trên cloud nhưng đang chết
+sẵn nên không gây hại; chạy `firebase deploy --only functions` để dọn hẳn.
 
 **📍 NÚT DỌN TRÙNG ĐÃ CHUYỂN SANG TAB "ĐƠN BÁN" (`[2026-09-06a]`).** Trước đặt ở
 tab TÀI CHÍNH — tab thứ 5 của `TabBar isScrollable: true` nên **bị khuất mép
