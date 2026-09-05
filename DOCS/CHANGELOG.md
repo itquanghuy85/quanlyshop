@@ -4,6 +4,53 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-05g] - fix(khách hàng) XOÁ KHÁCH BÁO THÀNH CÔNG KHỐNG — v3.5.1+555
+
+**Đóng nốt BUG-04 của đợt kiểm thử toàn diện** (`DOCS/QA_FULL_REGRESSION_2026-09-05.md`).
+Nâng version **3.5.0+554 → 3.5.1+555**.
+
+**Triệu chứng:** bấm Xoá khách hàng → toast xanh *"Đã xóa khách hàng"*, nhưng
+khách vẫn nằm trong danh sách; xoá lại vẫn "thành công"; máy thứ hai không hề
+biết có lệnh xoá.
+
+**Nguyên nhân (2 tầng):**
+1. `FirestoreService.deleteCustomerById` tìm document trên cloud bằng
+   `.where('id', isEqualTo: customerId)` — mà `customerId` là **id autoincrement
+   của SQLite MÁY ĐÓ**, không phải `firestoreId`. Document `customers` lại được
+   tạo bằng `.doc(firestoreId)` (xem `addCustomer`), nên câu truy vấn này gần
+   như không khớp gì. Không khớp thì vòng `for` không chạy lần nào — **nhưng hàm
+   vẫn `return true`** ⇒ giao diện báo thành công.
+   *(Đo được: cùng một khách có id cục bộ **25** trên máy 1 và **52** trên máy 2
+   ⇒ id cục bộ vốn không dùng để tra cloud được.)*
+2. Cloud vẫn `deleted=false` ⇒ `syncCustomersFromCloud` upsert đè thẳng xuống
+   local sau ~40 giây, xoá sạch cờ `deleted=1` vừa ghi (bằng chứng: `updatedAt`
+   của bản ghi bị trả về đúng mốc lúc TẠO khách, không phải lúc xoá).
+
+**Sửa:**
+- Thêm `FirestoreService.deleteCustomerByFirestoreId(String)` — xoá mềm đúng
+  document bằng `.doc(firestoreId)`, giống hệt cách `updateCustomer` vẫn làm.
+- `deleteCustomerById(int)` giữ lại làm dự phòng cho bản ghi chưa có
+  `firestoreId`, nhưng **trả về `false` khi không khớp document nào** thay vì
+  báo thành công khống.
+- `CustomerService.deleteCustomer` tra `firestoreId` trước khi xoá, đánh dấu
+  `isSynced=0` (bản ghi bẩn) rồi chỉ đặt lại `isSynced=1` khi cloud xoá xong;
+  **trả về `false` nếu cloud không xoá được**. Khách chưa từng lên cloud
+  (`firestoreId` rỗng) thì xoá cục bộ là đủ ⇒ vẫn `true`.
+- `DBHelper.getCustomerById(int)` (mới) để lấy `firestoreId` từ id cục bộ.
+- `customer_management_view` trước đây **bỏ qua hoàn toàn** kết quả xoá (không
+  báo gì) — nay hiện SnackBar xanh/đỏ theo đúng kết quả thật.
+
+**Nghiệm thu máy thật (đúng ca đã fail):** xoá lại chính khách trước đó xoá 3
+lần không được → `deleted=1`, `isSynced=1`, `updatedAt` nhảy đúng mốc xoá; **vẫn
+`deleted=1` sau 2 chu kỳ `syncCustomersFromCloud`** (trước đây bật lại `0` trong
+~40 giây); **máy 2 bản ghi biến mất hẳn** khỏi cả DB lẫn danh sách (trước đây vẫn
+còn nguyên). Toast xanh nay nói đúng sự thật.
+
+**Test:** `flutter analyze lib` **0 error / 0 warning**; `flutter test`
+**+550 / −8** (đúng 8 lỗi có sẵn, không hồi quy); build APK + AAB release xanh.
+
+---
+
 ## [2026-09-05f] - fix(validate + sync) 3 lỗi tìm ra khi kiểm thử toàn diện
 
 **Đợt kiểm thử toàn diện trước khi lên Store** (2 máy Oppo thật, FFI/SQLite,

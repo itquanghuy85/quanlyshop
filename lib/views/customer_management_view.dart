@@ -288,8 +288,21 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
     );
 
     if (confirmed == true) {
-      await _customerService.deleteCustomer(customer.id!);
+      final ok = await _customerService.deleteCustomer(customer.id!);
       _loadCustomers();
+      // Báo đúng kết quả: xoá hụt trên cloud thì khách sẽ hiện về sau lần sync
+      // tới, im lặng ở đây là đánh lừa người dùng.
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ok
+                ? 'Đã xóa khách hàng'
+                : 'Xóa khách hàng thất bại — vui lòng kiểm tra kết nối rồi thử lại',
+          ),
+          backgroundColor: ok ? Colors.green : Colors.red,
+        ),
+      );
     }
   }
 

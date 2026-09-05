@@ -11486,6 +11486,20 @@ class DBHelper {
     );
   }
 
+  /// Đọc 1 khách theo id cục bộ. Cần cho luồng xoá: phải lấy `firestoreId` thì
+  /// mới xoá đúng document trên cloud (id cục bộ là autoincrement của MÁY NÀY,
+  /// không dùng để tra cloud được).
+  Future<Map<String, dynamic>?> getCustomerById(int id) async {
+    final db = await database;
+    final rows = await db.query(
+      'customers',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    return rows.isEmpty ? null : rows.first;
+  }
+
   // =====================================================
   // === SALES RETURNS METHODS (CHỈ THÊM MỚI - v60) ===
   // =====================================================

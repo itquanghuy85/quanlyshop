@@ -81,16 +81,39 @@ class CustomerService {
     return false;
   }
 
+  /// Xoá mềm khách hàng — cục bộ VÀ trên cloud.
+  ///
+  /// Phải xoá được trên cloud thì mới thật sự xoá: `syncCustomersFromCloud`
+  /// upsert đè thẳng dữ liệu cloud xuống local, nên nếu document trên cloud vẫn
+  /// `deleted=false` thì khách sẽ hiện về sau vài chục giây (và máy khác không
+  /// hề biết đã xoá). Vì vậy hàm này tra `firestoreId` rồi xoá đúng document,
+  /// và **trả về false khi cloud không xoá được** thay vì báo thành công khống.
   Future<bool> deleteCustomer(int customerId) async {
+    final row = await db.getCustomerById(customerId);
+    final firestoreId = (row?['firestoreId'] as String?)?.trim() ?? '';
+
     final result = await db.updateCustomer(customerId, {
       'deleted': 1,
       'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      // Đánh dấu bẩn để các đường đồng bộ khác còn biết bản ghi này cần đẩy lên.
+      'isSynced': 0,
     });
-    if (result > 0) {
-      EventBus().emit('customers_changed');
-      await FirestoreService.deleteCustomerById(customerId);
+    if (result == 0) return false;
+    EventBus().emit('customers_changed');
+
+    // Khách chưa từng lên cloud thì không có gì để xoá ở đó — coi như xong.
+    if (firestoreId.isEmpty) return true;
+
+    final cloudOk = await FirestoreService.deleteCustomerByFirestoreId(
+      firestoreId,
+    );
+    if (cloudOk) {
+      await db.updateCustomer(customerId, {'isSynced': 1});
       return true;
     }
+
+    // Cloud không xoá được ⇒ lần sync tới khách sẽ hiện về. Trả sự thật để
+    // giao diện báo thất bại thay vì toast xanh đánh lừa người dùng.
     return false;
   }
 

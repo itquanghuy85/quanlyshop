@@ -3,10 +3,10 @@
 **Phạm vi:** Flutter test/FFI · Android thật (ADB, 2 máy) · SQLite + WAL/SHM ·
 Firebase/Firestore + đồng bộ nhiều thiết bị · build release.
 
-**Kết luận:** ⚠️ **READY WITH KNOWN ISSUES** — không có lỗi mất tiền / mất dữ
-liệu / lộ giá vốn / crash. Phân quyền giá vốn (CLAUDE.md §9) đã nghiệm thu
-**cả nhánh nhân viên** trên máy thật, đạt ở cả UI lẫn file Excel xuất ra (§5b).
-Còn **1 lỗi chưa sửa** (xoá khách hàng — BUG-04) cần chủ dự án quyết.
+**Kết luận:** ✅ **READY FOR STORE** (v3.5.1+555) — không có lỗi mất tiền / mất
+dữ liệu / lộ giá vốn / crash. Cả **4 lỗi** tìm được đều đã sửa và nghiệm thu lại
+trên máy thật. Phân quyền giá vốn (CLAUDE.md §9) đạt ở cả UI lẫn file Excel xuất
+ra (§5b). Phần còn lại chỉ là ghi nhận cải thiện (§5), không chặn phát hành.
 
 ---
 
@@ -17,7 +17,7 @@ Còn **1 lỗi chưa sửa** (xoá khách hàng — BUG-04) cần chủ dự án
 | Flutter / Dart | 3.41.4 stable (ff37bef603) / Dart 3.11.1 |
 | Nhánh · commit gốc | `master` · `cfc1b89f` |
 | Package | `com.huluca.shopmanager` |
-| versionName+Code | `3.5.0` (+554) — khớp `pubspec.yaml 3.5.0+554` |
+| versionName+Code | kiểm thử trên `3.5.0` (+554); **phát hành `3.5.1+555`** sau khi sửa 4 lỗi |
 | Firebase project | `huyaka-1809` |
 | Tài khoản test | `m@m.com` · shop **M** · role `owner` · shopId `geqXPHQJ3nT6XkMbeh6JswTdGbr2` |
 | Máy 1 | Oppo **CPH2203**, Android 13 (`NJR8W86LKRVW7DHQ`) |
@@ -90,9 +90,9 @@ Top lint (info, không chặn): `deprecated_member_use` 618 · `prefer_const_con
 
 ---
 
-## 4. LỖI CÒN LẠI (CHƯA SỬA)
+## 4. BUG-04 — Xoá khách hàng báo THÀNH CÔNG nhưng khách quay lại ✅ ĐÃ SỬA
 
-### BUG-04 — Xoá khách hàng báo THÀNH CÔNG nhưng khách quay lại 🔴 MEDIUM-HIGH
+### Triệu chứng & nguyên nhân
 * **File:** `lib/services/firestore_service.dart:1652-1674` (`deleteCustomerById`),
   `lib/services/customer_service.dart:84-95`.
 * **Nguyên nhân:** `deleteCustomerById` tìm document trên cloud bằng
@@ -109,9 +109,26 @@ Top lint (info, không chặn): `deprecated_member_use` 618 · `prefer_const_con
 * **Bằng chứng:** ảnh `del1_s.png` (toast xanh + hàng vẫn hiện);
   log lặp `syncCustomersFromCloud: Đã upsert customer TÉT_FULL_20260905_KH1 (customer_1788588413208)`;
   đối chiếu DB 2 máy.
-* **Đề xuất sửa (cần chủ dự án duyệt vì đụng lệnh xoá trên cloud):** tìm document
-  theo `firestoreId` (`.doc(firestoreId)`) thay cho `id`; và `return false` khi
-  không khớp document nào để giao diện báo đúng sự thật.
+* **Chứng cứ id cục bộ không portable:** cùng một khách có id **25** trên máy 1
+  và **52** trên máy 2.
+
+### Đã sửa (v3.5.1+555)
+* `FirestoreService.deleteCustomerByFirestoreId(String)` **(mới)** — xoá mềm
+  đúng document bằng `.doc(firestoreId)`, giống hệt `updateCustomer`.
+* `deleteCustomerById(int)` giữ làm dự phòng nhưng **trả `false` khi không khớp
+  document nào** thay vì báo thành công khống.
+* `CustomerService.deleteCustomer` tra `firestoreId` trước, đánh dấu
+  `isSynced=0`, chỉ đặt lại `1` khi cloud xoá xong, **trả `false` nếu cloud
+  hụt**. Khách chưa từng lên cloud thì xoá cục bộ là đủ.
+* `DBHelper.getCustomerById(int)` **(mới)**.
+* `customer_management_view` trước đây **bỏ qua hoàn toàn** kết quả xoá — nay
+  hiện SnackBar xanh/đỏ đúng kết quả thật.
+
+### Nghiệm thu lại đúng ca đã fail
+* Máy 1: khách trước đó xoá 3 lần không được → nay `deleted=1`, `isSynced=1`,
+  `updatedAt` nhảy đúng mốc xoá, **vẫn `deleted=1` sau 2 chu kỳ
+  `syncCustomersFromCloud`** (trước bật lại `0` trong ~40s).
+* Máy 2: **bản ghi biến mất hẳn** khỏi cả DB lẫn danh sách (trước vẫn còn).
 
 ---
 
@@ -182,7 +199,7 @@ Toàn file nhân viên: **0 chuỗi nào chứa "vốn"**, và không có tên N
 | B. Tự động / FFI | **PASS** | analyze 0 error; test +550/−8 (8 lỗi cũ) |
 | C. Đăng nhập, quyền, điều hướng | **PASS** | 7 tab đáy render đủ; role `Chủ shop`; hướng dẫn lần đầu hiện đúng 1 lần |
 | D. Trang chủ / hướng dẫn / AI | **PASS** | dashboard, Trung tâm hướng dẫn, bảng AI mở bình thường |
-| E. Khách hàng / NCC / đối tác | **FAIL→FIXED (BUG-01)** + **FAIL (BUG-04)** | tạo/sửa/tìm OK; xoá lỗi |
+| E. Khách hàng / NCC / đối tác | **PASS** (sau khi sửa BUG-01 + BUG-04) | tạo/sửa/tìm OK; xoá nay dính thật, lan truyền sang máy 2, và báo đúng kết quả |
 | F. Kho / nhập kho / tồn kho / SP | **PASS** | lưu tạm → hàng chờ → xác nhận: SP id=27 qty 10, `import_orders` id=18 tổng 1.000.000, nợ NCC id=31, `supplier_import_history` id=41 — khớp hết |
 | G. Đơn sửa chữa | **PASS** | tạo (600.000) → XONG (status 1→3, `finishedAt`) → GIAO (status 4, `deliveredAt`) → sổ quỹ +600.000 TIỀN MẶT |
 | H. Bán hàng | **PASS** | bán 2×150.000, cọc 100.000, CÔNG NỢ: `totalPrice` 300.000 / `totalCost` 200.000, tồn 10→8, nợ 300.000 (đã trả 100.000), sổ quỹ +100.000 |
@@ -230,18 +247,16 @@ sẽ lệch với cloud và hỏng trạng thái đồng bộ — rủi ro cao h
 
 | Tệp | Đường dẫn |
 |---|---|
-| APK release | `build/app/outputs/flutter-apk/app-release.apk` |
-| AAB release (nộp Store) | `build/app/outputs/bundle/release/app-release.aab` |
+| APK release (v3.5.1+555) | `build/app/outputs/flutter-apk/app-release.apk` |
+| AAB release (nộp Store, v3.5.1+555) | `build/app/outputs/bundle/release/app-release.aab` |
 | Excel bảng giá xuất thử | `/storage/emulated/0/Download/BangGia_20260905.xlsx` (máy 1) |
 | Báo cáo này | `docs/QA_FULL_REGRESSION_2026-09-05.md` |
 
 ---
 
-## 9. KHUYẾN NGHỊ TRƯỚC KHI LÊN STORE
+## 9. KHUYẾN NGHỊ CÒN LẠI (không chặn phát hành)
 
-1. **Quyết BUG-04** (xoá khách hàng) — lỗi người dùng nhìn thấy trực tiếp và bị
-   báo sai là đã thành công. Nên sửa trước khi phát hành.
-2. Cân nhắc OBS-01: thêm `financial_activity_log` (và các bảng tiền khác) vào
+1. Cân nhắc OBS-01: thêm `financial_activity_log` (và các bảng tiền khác) vào
    realtime, hoặc cho `downloadAllFromCloud` chạy `force: true` khi app trở lại
    foreground, để hai máy không lệch số.
 3. Dọn 8 test đỏ có sẵn: 3 test cần khởi tạo Firebase giả lập, 1 test cần bỏ

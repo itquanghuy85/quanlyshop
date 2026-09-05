@@ -1649,22 +1649,54 @@ class FirestoreService {
     }
   }
 
+  /// Xoá mềm khách trên cloud theo ĐÚNG document id.
+  ///
+  /// Document của `customers` được tạo bằng `.doc(firestoreId)` (xem
+  /// [addCustomer]), nên đây là đường tra duy nhất chắc chắn đúng — giống hệt
+  /// cách [updateCustomer] vẫn làm.
+  static Future<bool> deleteCustomerByFirestoreId(String firestoreId) async {
+    if (firestoreId.isEmpty) return false;
+    try {
+      await _db.collection('customers').doc(firestoreId).update({
+        'deleted': true,
+        'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
+      });
+      EventBus().emit('customers_changed');
+      return true;
+    } catch (e) {
+      debugPrint('Firestore deleteCustomerByFirestoreId error: $e');
+      return false;
+    }
+  }
+
+  /// Đường CŨ: tra document theo `id` autoincrement của SQLite.
+  ///
+  /// Giữ lại làm dự phòng cho bản ghi chưa có `firestoreId`, nhưng KHÔNG còn
+  /// báo thành công khống: trước đây không khớp document nào thì vòng `for`
+  /// không chạy lần nào mà hàm vẫn `return true` ⇒ giao diện báo "Đã xóa khách
+  /// hàng" trong khi cloud vẫn `deleted=false`, rồi `syncCustomersFromCloud`
+  /// upsert đè lại và khách hiện về. Nay trả về đúng số document đã cập nhật.
   static Future<bool> deleteCustomerById(int customerId) async {
     try {
       final shopId = await UserService.getCurrentShopId();
-      await _db
+      final snapshot = await _db
           .collection('customers')
           .where('shopId', isEqualTo: shopId)
           .where('id', isEqualTo: customerId)
-          .get()
-          .then((snapshot) {
-            for (var doc in snapshot.docs) {
-              doc.reference.update({
-                'deleted': true,
-                'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-              });
-            }
-          });
+          .get();
+      if (snapshot.docs.isEmpty) {
+        debugPrint(
+          'Firestore deleteCustomerById: không khớp document nào cho id=$customerId '
+          '(shopId=$shopId) — bản ghi này cần xoá theo firestoreId',
+        );
+        return false;
+      }
+      for (final doc in snapshot.docs) {
+        await doc.reference.update({
+          'deleted': true,
+          'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
+        });
+      }
       EventBus().emit('customers_changed');
       return true;
     } catch (e) {
