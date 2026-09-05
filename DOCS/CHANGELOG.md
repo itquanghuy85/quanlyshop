@@ -4,6 +4,68 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-05h] - fix(super admin) KHÔI PHỤC QUYỀN SUPER ADMIN (3 lỗi chồng nhau)
+
+**Hồi quy chủ dự án báo:** "trước khi đăng nhập vào tk super admin thì sẽ vào
+thẳng trang super admin, sau đó chọn shop mới vào như hiện tại" — nay không vào
+được nữa. Audit đầy đủ: `DOCS/AUDIT_SUPER_ADMIN_2026-09-05.md`.
+
+Truy ra **3 lỗi chồng nhau**, phải sửa đủ cả 3 mới hết:
+
+**1. SA-09 — app TỰ THU HỒI quyền super admin mỗi lần đăng nhập.**
+`user_service.dart:1161` trong `syncUserInfo`:
+```dart
+final resolvedRole = isSuperAdmin ? 'admin' : ...;   // ← ghi xuống Firestore
+```
+Vòng lặp tự huỷ: đặt `users/{uid}.role = "super_admin"` → Cloud Function cấp
+claims `isSuperAdmin: true` → lần đăng nhập sau app thấy `isSuperAdmin == true`
+nên ghi **`role: 'admin'`** ngược xuống → `buildCustomClaims()` tính
+`("admin" === "super_admin")` = **false** → thu hồi claims. Sửa tay trên
+Firestore Console bao nhiêu lần cũng vô ích. Bắt được đúng chuỗi trên máy thật:
+claims `role=super_admin` lúc 15:30:58 → `role=admin` lúc 15:37:20.
+*Gốc rễ:* `getUserRole()` **map** claims `super_admin` → `'admin'` làm tên vai
+trò *app-level*; dòng 1161 dùng chính tên app-level đó để **ghi Firestore**, nơi
+Cloud Function lại đòi đúng chuỗi `'super_admin'`. Sửa bằng cách tách
+`persistedRole` (ghi Firestore) khỏi `resolvedRole` (tên app-level, giữ nguyên
+`'admin'` để không đụng mọi nhánh `role == 'admin'` sẵn có).
+
+**2. SA-10 — fast-path AuthGate trả `isSuperAdmin: false` CỨNG.**
+`main.dart:692`, đường tắt "cached mobile session" chạy cho **mọi lần mở app sau
+lần đăng nhập đầu**, không hề đọc claims mà cứ trả `false`. Nên super admin chỉ
+vào được Console đúng LẦN ĐẦU; từ lần thứ hai luôn rơi vào shop thường. Sửa: đọc
+claims ngay trong đường tắt (`getClaimsFromToken()` không `forceRefresh` nên chỉ
+đọc ID token đã cache trên máy — không tốn vòng mạng, giữ nguyên tính "nhanh") +
+gọi `setCurrentUserSuperAdmin()`.
+*(`_fastMobileBootstrap` cũng trả `false` cứng nhưng là **dead code**, không có
+caller — để nguyên.)*
+
+**3. SA-08 — `_isSuperAdmin` của HomeView chỉ tính MỘT LẦN** (`home_view.dart:591`,
+field initializer) trong khi quyền resolve muộn ⇒ 3 mục dành riêng super admin có
+thể biến mất cả phiên. **Ghi nhận, chưa sửa** (SA-10 đã làm nhẹ hẳn triệu chứng).
+
+**Nghiệm thu máy thật (Oppo CPH2239, `admin@huluca.com`):** mở app → vào **thẳng
+SUPER ADMIN CONSOLE**; Dashboard 147 shop / 146 hoạt động / 159 user / 1 shop bị
+khoá; tab Shops lọc ACTIVE/LOCKED/đã xoá; tab Users lọc theo vai trò + tìm email
+trùng; tab Logs ghi thật (`super_admin_login`, `pin_verified`); **4 vòng khởi
+động liên tiếp, có lần `syncUserInfo` chạy, quyền không bị thu hồi**. Trước khi
+vá thì rơi vào Trang chủ với badge "NHÂN VIÊN".
+
+**CÒN LẠI — 2 lỗi bảo mật cổng PIN chưa sửa:**
+- **SA-03 (MEDIUM-HIGH):** cổng PIN **bị vượt hoàn toàn trên máy mới / sau khi
+  xoá app data** — `isPinSetup()` chỉ đọc SharedPreferences, trong khi
+  `verifyPin()` đã có nhánh đọc `pinHash` từ Firestore. Màn Cài đặt còn báo
+  "Chưa thiết lập PIN" dù nhật ký có `pin_verified` ngày 18–19/08.
+- **SA-02 (MEDIUM):** PIN băm bằng **1 vòng sha256 + salt hằng số dùng chung**,
+  PIN 4–6 chữ số ⇒ không gian khoá ~1,11 triệu, một bảng tra dựng sẵn phá được
+  PIN của bất kỳ super admin nào.
+
+**Chưa chạy (cố ý):** khoá/xoá shop trên production (147 shop thật), idle guard
+30 phút, đổi `_adminSelectedShopId`.
+
+**Test:** `flutter analyze lib` **0 error / 0 warning** cả 2 lần vá.
+
+---
+
 ## [2026-09-05g] - fix(khách hàng) XOÁ KHÁCH BÁO THÀNH CÔNG KHỐNG — v3.5.1+555
 
 **Đóng nốt BUG-04 của đợt kiểm thử toàn diện** (`DOCS/QA_FULL_REGRESSION_2026-09-05.md`).
