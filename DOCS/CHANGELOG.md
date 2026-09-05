@@ -4,6 +4,75 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-05k] - refactor(cài đặt) DỌN TRANG CÀI ĐẶT + NỐI LẠI 2 MÀN HÌNH BỊ MẤT
+
+**Yêu cầu:** "audit trang cài đặt làm cho nó chuyên nghiệp".
+
+### Phát hiện khi audit
+
+1. **`lib/views/settings_view.dart` (1699 dòng) là CODE CHẾT** — không file nào
+   tham chiếu tới `SettingsView`. Trang Cài đặt thật là
+   `home_view.dart::_buildSettingsTab()`. Hậu quả: hai màn hình chỉ được mở từ
+   file chết này **không còn đường vào trong app**:
+   - `CategoryManagementView` (Danh mục sản phẩm) — 0 tham chiếu ngoài file chết;
+   - `KiotVietSettingsView` (khai báo Client ID/Secret) — 0 tham chiếu ngoài file
+     chết. (Nhập file KiotViet vẫn vào được qua Sao lưu & Khôi phục.)
+   `StaffPermissionsView` cũng chỉ có ở file chết nhưng **không mất tính năng** —
+   phân quyền đã có sẵn trong tab Nhân viên → chọn nhân viên.
+2. **Ô tìm kiếm không thấy 3 công tắc kho hàng** (giá vốn sau, hiện NCC, bắt buộc
+   NCC) vì chúng nằm ngoài danh sách `allItems` — gõ "giá vốn" ra "không tìm
+   thấy". Tìm kiếm cũng không bỏ dấu nên gõ "gia von" không ra gì.
+3. **Kết quả tìm kiếm mất ngữ cảnh** — trả về danh sách phẳng, không tiêu đề nhóm.
+4. **Giao diện thiếu chuyên nghiệp:** mỗi dòng là một thẻ pastel riêng và
+   **tiêu đề tô màu theo icon** (tím, xanh lá, cam, đỏ…) ⇒ rối mắt, chữ đỏ/cam
+   dễ bị đọc nhầm thành cảnh báo.
+5. **Không hiển thị phiên bản app** ở bất kỳ đâu trong Cài đặt — hỗ trợ không
+   hỏi được người dùng đang chạy bản nào.
+6. **Công cụ nội bộ `🔬 Firestore Audit Monitor` hiện cho MỌI chủ shop** trên bản
+   release (điều kiện `kDebugMode || hasFullAccess`).
+7. **`app_knowledge_base.dart` chỉ sai đường dẫn menu:** `roles-permissions` ghi
+   "Cài đặt → Nhân viên → Phân quyền" (không tồn tại), `backup-restore` ghi
+   "Sao lưu / Khôi phục" (tên thật dùng dấu &).
+
+### Đã sửa — `lib/views/home_view.dart`
+
+- **Một đường vẽ duy nhất.** Bỏ nhánh render riêng cho search; mọi mục (kể cả
+  công tắc) nằm trong `allItems`, lọc rồi gom nhóm ⇒ kết quả tìm kiếm **giữ
+  nguyên tiêu đề nhóm**.
+- `_SettingsItem` thêm `keywords` (từ khoá ẩn phục vụ tìm kiếm), `builder` (mục
+  tự vẽ — dùng cho công tắc) và `matches()` chạy trên chỉ mục đã bỏ dấu.
+- **Tìm kiếm bỏ dấu** (`_foldVi`): gõ "gia von" ra "Cho phép nhập giá vốn sau".
+- **Giao diện gom nhóm chuẩn:** mỗi nhóm là MỘT thẻ nền trắng viền mảnh, các
+  dòng ngăn bằng divider; tiêu đề dùng màu chữ trung tính `AppColors.textPrimary`,
+  màu thương hiệu chỉ còn ở ô icon 36×36. 3 công tắc chuyển từ `CheckboxListTile`
+  sang `SwitchListTile` cho đúng quy ước trang cài đặt.
+- **Nối lại 2 màn hình bị mất:** "Danh mục sản phẩm" (nhóm Cửa hàng) và
+  "Kết nối KiotViet" (nhóm Dữ liệu & Hệ thống) — chỉ chủ shop/quản trị.
+- **Chân trang phiên bản** `Phiên bản x.y.z (build n)`, chạm để copy.
+- **Công cụ nội bộ** đổi điều kiện thành `kDebugMode || _isSuperAdmin`, bỏ emoji
+  khỏi tiêu đề.
+
+### Đã sửa — `lib/data/app_knowledge_base.dart`
+
+- Sửa `menuPath` của `roles-permissions` và `backup-restore` cho khớp app thật.
+- Thêm 2 mục `product-categories` và `kiotviet-connect` cho 2 màn hình vừa nối lại.
+
+### Nghiệm thu máy thật (Oppo CPH2203, debug build)
+
+- Trang Cài đặt render đúng kiểu nhóm mới, không lỗi bố cục.
+- Gõ "gia" (không dấu) ⇒ ra nhóm **Kho hàng → Cho phép nhập giá vốn sau** (công
+  tắc, trước đây tìm không ra), **Giao diện & Ngôn ngữ**, **Dữ liệu & Hệ thống**.
+- Chân trang hiện "Phiên bản 3.5.1 (build 555)".
+- "Kết nối KiotViet" hiện trong nhóm Dữ liệu & Hệ thống.
+- `flutter analyze` — 0 error, 0 warning (chỉ còn info lint có sẵn từ trước).
+
+### Còn để lại (cần chủ shop quyết)
+
+- `lib/views/settings_view.dart` vẫn nằm đó, **không ai gọi**. Xoá được an toàn
+  (0 tham chiếu) nhưng là thay đổi riêng, chưa làm trong lần này.
+
+---
+
 ## [2026-09-05j] - fix(super admin) BẤM THOÁT RA MÀN HÌNH ĐEN, APP KHÔNG TẮT
 
 **Chủ shop báo:** "khi tôi bấm thoát ứng dụng thì chỉ có màn hình đen chứ ko

@@ -9,6 +9,37 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-05  
 
+**🧹 TRANG CÀI ĐẶT — DỌN GIAO DIỆN + NỐI LẠI 2 MÀN HÌNH BỊ MẤT (`[2026-09-05k]`).**
+Audit theo yêu cầu "làm cho nó chuyên nghiệp". Phát hiện lớn nhất:
+**`lib/views/settings_view.dart` (1699 dòng) là code chết** — 0 tham chiếu tới
+`SettingsView`; trang Cài đặt thật là `home_view.dart::_buildSettingsTab()`.
+Vì file chết là nơi DUY NHẤT mở 2 màn hình sau, chúng **mất hẳn đường vào app**:
+`CategoryManagementView` (Danh mục sản phẩm) và `KiotVietSettingsView` (khai báo
+Client ID/Secret KiotViet) — **đã nối lại vào trang Cài đặt**.
+· **Tìm kiếm:** trước đây không thấy 3 công tắc kho hàng (gõ "giá vốn" ra "không
+tìm thấy") và không bỏ dấu. Nay mọi mục kể cả công tắc đều nằm trong danh sách
+lọc, có `keywords` ẩn, và **so khớp sau khi bỏ dấu** — gõ "gia von" ra đúng mục.
+Kết quả tìm kiếm **giữ tiêu đề nhóm** thay vì đổ danh sách phẳng.
+· **Giao diện:** bỏ kiểu "mỗi dòng một thẻ pastel + tiêu đề tô màu theo icon"
+(chữ đỏ/cam dễ đọc nhầm thành cảnh báo) → mỗi nhóm là MỘT thẻ trắng viền mảnh,
+tiêu đề màu trung tính, màu thương hiệu chỉ còn ở ô icon. 3 công tắc kho hàng
+đổi `CheckboxListTile` → `SwitchListTile`.
+· **Thêm chân trang phiên bản** (`Phiên bản 3.5.1 (build 555)`, chạm để copy) —
+trước đây Cài đặt không hiển thị phiên bản ở bất kỳ đâu.
+· **Công cụ nội bộ "Firestore Audit Monitor"** trước hiện cho **mọi chủ shop**
+trên bản release (`kDebugMode || hasFullAccess`) → nay `kDebugMode || _isSuperAdmin`.
+· **`app_knowledge_base.dart`:** sửa 2 `menuPath` sai (`roles-permissions` trỏ
+"Cài đặt → Nhân viên → Phân quyền" không tồn tại; `backup-restore` sai tên mục),
+thêm 2 mục cho 2 màn hình vừa nối lại.
+· **✅ Nghiệm thu máy thật (CPH2203):** bố cục nhóm mới đúng; gõ "gia" ra nhóm
+**Kho hàng → Cho phép nhập giá vốn sau** (công tắc — trước tìm không ra),
+Giao diện & Ngôn ngữ, Dữ liệu & Hệ thống; "Kết nối KiotViet" hiện đúng chỗ;
+chân trang hiện phiên bản. `flutter analyze` 0 error 0 warning.
+· **🔶 Còn để lại (chờ chủ shop quyết):** `lib/views/settings_view.dart` vẫn nằm
+đó và **không ai gọi** — xoá được an toàn (0 tham chiếu), chưa xoá trong lần này.
+`StaffPermissionsView` cũng chỉ có ở file chết nhưng KHÔNG mất tính năng (phân
+quyền đã có trong tab Nhân viên → chọn nhân viên).
+
 **🔧 ĐƠN SỬA — MẤT THÔNG BÁO NHẬN MÁY + ĐƠN TỰ TỤT VỀ "TIẾP NHẬN" (`[2026-09-05i]`).**
 Chủ shop báo 05/09: đơn IPHONE 11 (BÉ THẮM, tạo 15:11) không có tin "ĐƠN MỚI" trong chat nội bộ — chỉ thấy "SỬA XONG"/"YÊU CẦU DUYỆT GIAO" lúc 15:12 — rồi đơn quay về **TIẾP NHẬN** kèm **"Chưa có KTV"**.
 · **Lỗi 1:** chat + push lúc tạo đơn bị chặn bởi bộ đếm hàng đợi (`create_repair_order_view.dart:866`) — `syncAll()` trả `skipped` khi đang có lượt sync khác, hoặc `failed>0` vì **món khác** trong hàng đợi; đường dự phòng ghi thẳng Firestore lại **tự bỏ qua đơn có ảnh** ⇒ mất tin vĩnh viễn. **Đã sửa:** xác nhận doc trên cloud thay vì tin bộ đếm + `_notifyRepairWhenSynced()` hẹn bắn lại trong ~2 phút.

@@ -1440,15 +1440,54 @@ class AppKnowledgeBase {
 
     // ===== HỆ THỐNG =====
     KbEntry(
+      id: 'product-categories',
+      title: 'Danh mục sản phẩm',
+      menuPath: 'Cài đặt → Cửa hàng → Danh mục sản phẩm',
+      whatItDoes:
+          'Quản lý danh sách nhóm hàng dùng chung cho kho, bán hàng và báo '
+          'cáo: thêm, sửa, xoá, bật/tắt từng danh mục.',
+      whenToUse:
+          'Khi mở thêm ngành hàng mới, hoặc muốn gộp/ẩn nhóm hàng không dùng.',
+      steps: [
+        'Vào Cài đặt → Cửa hàng → Danh mục sản phẩm.',
+        'Bấm + để thêm, hoặc chạm vào một danh mục để sửa.',
+        'Lưu — danh mục áp dụng ngay cho toàn shop.',
+      ],
+      notes: [
+        'Danh mục dùng chung theo shop, đồng bộ sang mọi máy trong cùng shop.',
+      ],
+      tags: ['danh muc', 'nhom hang', 'category', 'nganh hang'],
+      audience: ['owner', 'manager'],
+    ),
+    KbEntry(
+      id: 'kiotviet-connect',
+      title: 'Kết nối KiotViet',
+      menuPath: 'Cài đặt → Dữ liệu & Hệ thống → Kết nối KiotViet',
+      whatItDoes:
+          'Khai báo Client ID / Client Secret và mã gian hàng để lấy dữ liệu '
+          'sản phẩm, đơn hàng từ KiotViet về app.',
+      whenToUse: 'Khi shop đang dùng KiotViet và muốn đồng bộ sang HULUCA.',
+      steps: [
+        'Vào Cài đặt → Dữ liệu & Hệ thống → Kết nối KiotViet.',
+        'Nhập Client ID, Client Secret, mã gian hàng (retailer).',
+        'Bấm kết nối và chờ đồng bộ xong.',
+      ],
+      notes: [
+        'Nhập file KiotViet thủ công nằm ở Cài đặt → Sao lưu & Khôi phục.',
+      ],
+      tags: ['kiotviet', 'dong bo', 'api', 'client id', 'client secret'],
+      audience: ['owner', 'manager'],
+    ),
+    KbEntry(
       id: 'roles-permissions',
       title: 'Phân quyền nhân viên',
-      menuPath: 'Cài đặt → Nhân viên → Phân quyền',
+      menuPath: 'Nhân viên → chọn nhân viên → Phân quyền',
       whatItDoes:
           'Gán vai trò và bật/tắt từng quyền chi tiết cho nhân viên (xem giá '
           'vốn, xem doanh thu, sửa đơn, xoá…).',
       whenToUse: 'Khi thêm nhân viên mới hoặc điều chỉnh quyền.',
       steps: [
-        'Vào Phân quyền, chọn nhân viên.',
+        'Mở tab Nhân viên, chọn nhân viên cần sửa quyền.',
         'Chọn vai trò (chủ shop / quản lý / kỹ thuật / bán hàng).',
         'Bật/tắt quyền chi tiết nếu cần, lưu.',
       ],
@@ -1512,12 +1551,12 @@ class AppKnowledgeBase {
     KbEntry(
       id: 'backup-restore',
       title: 'Sao lưu & Khôi phục',
-      menuPath: 'Cài đặt → Dữ liệu & Hệ thống → Sao lưu / Khôi phục',
+      menuPath: 'Cài đặt → Dữ liệu & Hệ thống → Sao lưu & Khôi phục',
       whatItDoes:
           'Tạo bản sao dữ liệu shop và khôi phục lại khi cần (đổi máy, sự cố).',
       whenToUse: 'Trước khi đổi thiết bị hoặc khi nghi mất dữ liệu.',
       steps: [
-        'Vào Sao lưu / Khôi phục.',
+        'Vào Sao lưu & Khôi phục.',
         'Bấm Sao lưu để tạo bản mới.',
         'Khi cần: chọn bản và Khôi phục (ghi đè dữ liệu hiện tại).',
       ],

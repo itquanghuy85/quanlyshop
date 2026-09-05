@@ -130,6 +130,9 @@ import '../widgets/quick_action/quick_action_controller.dart';
 import '../widgets/ai_command_bar.dart';
 import '../services/payment_request_service.dart';
 import '../widgets/app_cached_image.dart';
+import '../utils/app_info.dart';
+import 'category_management_view.dart';
+import 'kiotviet_settings_view.dart';
 
 class HomeView extends StatefulWidget {
   final String role;
@@ -195,13 +198,48 @@ class _HomeShopReadScope {
   List<Object?> get breakdownRecordCountArgs => coreRecordCountArgs;
 }
 
+/// Bảng bỏ dấu tiếng Việt cho ô tìm kiếm trang Cài đặt.
+final Map<String, String> _viFoldMap = () {
+  const groups = <String, String>{
+    'a': 'àáảãạăắằẳẵặâấầẩẫậ',
+    'e': 'èéẻẽẹêếềểễệ',
+    'i': 'ìíỉĩị',
+    'o': 'òóỏõọôốồổỗộơớờởỡợ',
+    'u': 'ùúủũụưứừửữự',
+    'y': 'ỳýỷỹỵ',
+    'd': 'đ',
+  };
+  final map = <String, String>{};
+  groups.forEach((plain, accented) {
+    for (final ch in accented.split('')) {
+      map[ch] = plain;
+    }
+  });
+  return map;
+}();
+
+/// Hạ chữ thường + bỏ dấu để gõ "gia von" vẫn tìm ra "giá vốn".
+String _foldVi(String input) {
+  final buffer = StringBuffer();
+  for (final ch in input.toLowerCase().split('')) {
+    buffer.write(_viFoldMap[ch] ?? ch);
+  }
+  return buffer.toString();
+}
+
+/// Một mục trong trang Cài đặt.
+///
+/// [builder] khác null ⇒ mục tự vẽ (dùng cho công tắc); ngược lại vẽ dòng điều
+/// hướng chuẩn từ [onTap]. [keywords] chỉ phục vụ tìm kiếm, không hiển thị.
 class _SettingsItem {
   final String group;
   final String title;
   final String? subtitle;
   final IconData icon;
   final Color color;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final String? keywords;
+  final Widget Function(BuildContext context)? builder;
 
   _SettingsItem({
     required this.group,
@@ -209,8 +247,18 @@ class _SettingsItem {
     this.subtitle,
     required this.icon,
     required this.color,
-    required this.onTap,
+    this.onTap,
+    this.keywords,
+    this.builder,
   });
+
+  late final String _searchIndex = _foldVi(
+    '$title ${subtitle ?? ''} ${keywords ?? ''}',
+  );
+
+  /// [foldedQuery] phải đi qua [_foldVi] trước khi gọi.
+  bool matches(String foldedQuery) =>
+      foldedQuery.isEmpty || _searchIndex.contains(foldedQuery);
 }
 
 class _HomeViewState extends State<HomeView>
@@ -599,6 +647,14 @@ class _HomeViewState extends State<HomeView>
   /// nhớ nên gọi trong build hoàn toàn rẻ.
   bool get _isSuperAdmin => UserService.isCurrentUserSuperAdmin();
   final _settingsSearchController = TextEditingController();
+  final Future<String> _appVersionLabel = _loadAppVersionLabel();
+
+  static Future<String> _loadAppVersionLabel() async {
+    final version = await AppInfo.getVersion();
+    final build = await AppInfo.getBuildNumber();
+    return 'Phiên bản $version (build $build)';
+  }
+
   bool get hasFullAccess =>
       _isSuperAdmin || widget.role == 'owner' || widget.role == 'admin';
   String get _effectiveRole {
@@ -6224,11 +6280,17 @@ class _HomeViewState extends State<HomeView>
     );
   }
 
+  /// Trang Cài đặt.
+  ///
+  /// Mọi mục — kể cả công tắc — đều nằm trong `allItems` để ô tìm kiếm bắt
+  /// được, và kết quả tìm kiếm vẫn giữ tiêu đề nhóm nên người dùng không mất
+  /// ngữ cảnh. Chỉ có MỘT đường vẽ danh sách (không tách nhánh search/browse).
   Widget _buildSettingsTab() {
     return StatefulBuilder(
       builder: (ctx, rebuild) {
         final loc = AppLocalizations.of(ctx)!;
-        final query = _settingsSearchController.text.trim().toLowerCase();
+        final query = _foldVi(_settingsSearchController.text.trim());
+        final searching = query.isNotEmpty;
         final langLabel = _currentLocale.languageCode == 'en'
             ? loc.english
             : loc.vietnamese;
@@ -6242,6 +6304,7 @@ class _HomeViewState extends State<HomeView>
               subtitle: loc.shopSettingsDescription,
               icon: Icons.store_rounded,
               color: Colors.blue,
+              keywords: 'tên cửa hàng logo địa chỉ ảnh bìa hotline',
               onTap: () => _fadePush(context, const ShopSettingsView()),
             ),
           if (hasFullAccess)
@@ -6251,27 +6314,108 @@ class _HomeViewState extends State<HomeView>
               subtitle: 'Tài khoản NH hiện trên biên nhận đơn bán',
               icon: Icons.qr_code_2_rounded,
               color: Colors.green,
+              keywords: 'ngân hàng số tài khoản vietqr thanh toán',
               onTap: () => _fadePush(context, const BankQrSettingsView()),
             ),
-          if (hasFullAccess &&
-              BankNotificationService.instance.isSupported)
+          if (hasFullAccess && BankNotificationService.instance.isSupported)
             _SettingsItem(
               group: 'shop',
               title: 'Đọc thông báo ngân hàng',
               subtitle: 'Tự nhận diện tiền vào / ra để gợi ý đối soát',
               icon: Icons.notifications_active_rounded,
               color: Colors.blueGrey,
+              keywords: 'biến động số dư sms đối soát',
               onTap: () =>
                   _fadePush(context, const BankNotificationSettingsView()),
+            ),
+          if (hasFullAccess)
+            _SettingsItem(
+              group: 'shop',
+              title: 'Danh mục sản phẩm',
+              subtitle: 'Thêm, sửa, xoá nhóm hàng dùng chung toàn shop',
+              icon: Icons.category_rounded,
+              color: Colors.indigo,
+              keywords: 'nhóm hàng ngành hàng phân loại category',
+              onTap: () => _fadePush(context, const CategoryManagementView()),
             ),
           _SettingsItem(
             group: 'shop',
             title: 'Tuỳ chỉnh dashboard',
             subtitle: 'Chọn thẻ hiển thị và thứ tự trang chủ',
             icon: Icons.dashboard_customize_rounded,
-            color: Colors.indigo,
+            color: Colors.deepPurple,
+            keywords: 'trang chủ thẻ widget bố cục',
             onTap: _openDashboardSettings,
           ),
+
+          // === Kho hàng (công tắc) ===
+          if (hasFullAccess) ...[
+            _SettingsItem(
+              group: 'inventory',
+              title: 'Cho phép nhập giá vốn sau',
+              subtitle: _allowPendingCost
+                  ? 'Có thể bỏ qua giá vốn, nhập sau'
+                  : 'Bắt buộc nhập giá vốn > 0 khi xác nhận nhập kho',
+              icon: Icons.inventory_2_outlined,
+              color: Colors.teal,
+              keywords: 'giá vốn nhập kho bắt buộc cost',
+              builder: (_) => _settingsToggleRow(
+                icon: Icons.inventory_2_outlined,
+                color: Colors.teal,
+                title: 'Cho phép nhập giá vốn sau',
+                subtitle: _allowPendingCost
+                    ? 'Có thể bỏ qua giá vốn, nhập sau'
+                    : 'Bắt buộc nhập giá vốn > 0 khi xác nhận nhập kho',
+                value: _allowPendingCost,
+                saving: _isSavingPendingCost,
+                onChanged: _saveAllowPendingCost,
+              ),
+            ),
+            _SettingsItem(
+              group: 'inventory',
+              title: 'Hiển thị nhà cung cấp (NCC)',
+              subtitle: _enableSupplier
+                  ? 'Có thể chọn và theo dõi NCC trên từng đơn nhập'
+                  : 'Ẩn tính năng chọn nhà cung cấp khi nhập kho',
+              icon: Icons.local_shipping_outlined,
+              color: Colors.indigo,
+              keywords: 'nhà cung cấp ncc supplier nhập kho',
+              builder: (_) => _settingsToggleRow(
+                icon: Icons.local_shipping_outlined,
+                color: Colors.indigo,
+                title: 'Hiển thị nhà cung cấp (NCC)',
+                subtitle: _enableSupplier
+                    ? 'Có thể chọn và theo dõi NCC trên từng đơn nhập'
+                    : 'Ẩn tính năng chọn nhà cung cấp khi nhập kho',
+                value: _enableSupplier,
+                saving: _isSavingSupplier,
+                onChanged: _saveEnableSupplier,
+              ),
+            ),
+            if (_enableSupplier)
+              _SettingsItem(
+                group: 'inventory',
+                title: 'Bắt buộc chọn NCC khi nhập kho',
+                subtitle: _requireSupplier
+                    ? 'Phải chọn NCC mới xác nhận được nhập kho'
+                    : 'NCC không bắt buộc — có thể bỏ qua',
+                icon: Icons.rule_rounded,
+                color: Colors.deepOrange,
+                keywords: 'nhà cung cấp ncc bắt buộc nhập kho',
+                builder: (_) => _settingsToggleRow(
+                  icon: Icons.rule_rounded,
+                  color: Colors.deepOrange,
+                  title: 'Bắt buộc chọn NCC khi nhập kho',
+                  subtitle: _requireSupplier
+                      ? 'Phải chọn NCC mới xác nhận được nhập kho'
+                      : 'NCC không bắt buộc — có thể bỏ qua',
+                  value: _requireSupplier,
+                  saving: _isSavingRequireSupplier,
+                  onChanged: _saveRequireSupplier,
+                ),
+              ),
+          ],
+
           // === Giao diện & Ngôn ngữ ===
           _SettingsItem(
             group: 'interface',
@@ -6279,8 +6423,10 @@ class _HomeViewState extends State<HomeView>
             subtitle: '$langLabel — ${loc.languageAndInterface}',
             icon: Icons.language_rounded,
             color: AppColors.primary,
+            keywords: 'ngôn ngữ tiếng việt english language',
             onTap: _showLanguageSheet,
           ),
+
           // === Thiết bị & In ấn ===
           _SettingsItem(
             group: 'device',
@@ -6288,6 +6434,7 @@ class _HomeViewState extends State<HomeView>
             subtitle: loc.printerSettingsDescription,
             icon: Icons.print_rounded,
             color: AppColors.success,
+            keywords: 'máy in bluetooth nhiệt hoá đơn k80 k58',
             onTap: () => _fadePush(context, const PrinterSettingsView()),
           ),
           _SettingsItem(
@@ -6296,8 +6443,10 @@ class _HomeViewState extends State<HomeView>
             subtitle: 'Thiết kế và tuỳ chỉnh mẫu tem in',
             icon: Icons.label_rounded,
             color: Colors.teal,
+            keywords: 'tem nhãn barcode mã vạch in tem',
             onTap: () => _fadePush(context, const LabelSettingsView()),
           ),
+
           // === Nhân sự & Chấm công ===
           if (hasFullAccess)
             _SettingsItem(
@@ -6306,6 +6455,7 @@ class _HomeViewState extends State<HomeView>
               subtitle: 'Cấu hình bảng lương, phụ cấp và khấu trừ',
               icon: Icons.payments_rounded,
               color: Colors.orange,
+              keywords: 'lương thưởng kpi hoa hồng phụ cấp khấu trừ',
               onTap: () => _fadePush(context, const HRSalarySettingsView()),
             ),
           if (hasFullAccess)
@@ -6315,8 +6465,10 @@ class _HomeViewState extends State<HomeView>
               subtitle: 'Quản lý ca làm, giờ mở/đóng cửa',
               icon: Icons.schedule_rounded,
               color: Colors.indigo,
+              keywords: 'ca làm chấm công giờ mở cửa đóng cửa',
               onTap: () => _fadePush(context, const WorkScheduleSettingsView()),
             ),
+
           // === Thông báo ===
           _SettingsItem(
             group: 'notifications',
@@ -6324,8 +6476,10 @@ class _HomeViewState extends State<HomeView>
             subtitle: loc.notificationSettingsDescription,
             icon: Icons.notifications_rounded,
             color: const Color(0xFF9C27B0),
+            keywords: 'âm thanh rung push notification nhắc việc',
             onTap: () => _fadePush(context, const NotificationSettingsView()),
           ),
+
           // === Hướng dẫn ===
           _SettingsItem(
             group: 'help',
@@ -6333,6 +6487,7 @@ class _HomeViewState extends State<HomeView>
             subtitle: 'Hướng dẫn sử dụng từng tính năng',
             icon: Icons.help_outline_rounded,
             color: Colors.teal,
+            keywords: 'hướng dẫn trợ giúp cách dùng',
             onTap: () =>
                 _fadePush(context, UserGuideView(userRole: widget.role)),
           ),
@@ -6342,6 +6497,7 @@ class _HomeViewState extends State<HomeView>
             subtitle: loc.aboutDeveloperDescription,
             icon: Icons.info_outline_rounded,
             color: AppColors.secondary,
+            keywords: 'giới thiệu liên hệ nhà phát triển',
             onTap: () => _fadePush(context, const AboutDeveloperView()),
           ),
           _SettingsItem(
@@ -6352,6 +6508,7 @@ class _HomeViewState extends State<HomeView>
             color: Colors.deepPurple,
             onTap: () => _fadePush(context, const OtherAppsView()),
           ),
+
           // === Dữ liệu & Hệ thống (admin) ===
           if (hasFullAccess)
             _SettingsItem(
@@ -6360,6 +6517,7 @@ class _HomeViewState extends State<HomeView>
               subtitle: 'Lịch sử thao tác và thay đổi dữ liệu',
               icon: Icons.history_rounded,
               color: Colors.blueGrey,
+              keywords: 'audit log lịch sử ai sửa',
               onTap: () => _fadePush(context, const AuditLogView()),
             ),
           if (hasFullAccess)
@@ -6369,6 +6527,7 @@ class _HomeViewState extends State<HomeView>
               subtitle: 'Export/import dữ liệu local, nhập từ KiotViet',
               icon: Icons.backup_outlined,
               color: Colors.blueGrey,
+              keywords: 'backup restore sao lưu khôi phục kiotviet',
               onTap: () => _fadePush(context, const BackupRestoreView()),
             ),
           if (hasFullAccess)
@@ -6377,9 +6536,20 @@ class _HomeViewState extends State<HomeView>
               title: 'Nhập / Xuất dữ liệu',
               subtitle:
                   'Xuất & nhập Excel: sửa chữa, bán hàng, kho, khách, NCC',
-              icon: Icons.import_export,
+              icon: Icons.import_export_rounded,
               color: Colors.green,
+              keywords: 'excel xuất file nhập file import export',
               onTap: () => _fadePush(context, const ImportExportView()),
+            ),
+          if (hasFullAccess)
+            _SettingsItem(
+              group: 'system',
+              title: 'Kết nối KiotViet',
+              subtitle: 'Khai báo Client ID / Secret và đồng bộ dữ liệu',
+              icon: Icons.storefront_rounded,
+              color: Colors.orange,
+              keywords: 'kiotviet api đồng bộ client id secret',
+              onTap: () => _fadePush(context, const KiotVietSettingsView()),
             ),
           if (hasFullAccess)
             _SettingsItem(
@@ -6389,6 +6559,7 @@ class _HomeViewState extends State<HomeView>
                   'Dọn đơn dư thừa, miễn nợ, sửa kho — có kèm hoàn tài chính',
               icon: Icons.build_circle_outlined,
               color: Colors.deepOrange,
+              keywords: 'đối soát dọn dữ liệu miễn nợ sửa kho',
               onTap: () => _fadePush(context, const DataReconciliationView()),
             ),
           if (_isSuperAdmin)
@@ -6398,6 +6569,7 @@ class _HomeViewState extends State<HomeView>
               subtitle: loc.adminCenterDescription,
               icon: Icons.admin_panel_settings_rounded,
               color: AppColors.error,
+              keywords: 'super admin console quản trị',
               onTap: () =>
                   _fadePush(context, const admin_view.SuperAdminConsoleView()),
             ),
@@ -6408,6 +6580,7 @@ class _HomeViewState extends State<HomeView>
               subtitle: 'Kiểm tra Firestore và độ trễ mạng',
               icon: Icons.network_check_rounded,
               color: Colors.purple,
+              keywords: 'ping mạng firestore độ trễ',
               onTap: () =>
                   _fadePush(context, const FirestoreConnectivityTestView()),
             ),
@@ -6418,48 +6591,44 @@ class _HomeViewState extends State<HomeView>
               subtitle: 'Phân tích số lần đọc/ghi Firebase',
               icon: Icons.bar_chart_rounded,
               color: Colors.deepOrange,
+              keywords: 'firebase read write chi phí',
               onTap: () => _fadePush(context, const FirebaseRwStatsView()),
             ),
-          // Developer tool: hiển thị cho owner/admin để debug Firestore reads
-          if (kDebugMode || hasFullAccess)
+          // Công cụ nội bộ — không hiện cho chủ shop trên bản phát hành.
+          if (kDebugMode || _isSuperAdmin)
             _SettingsItem(
               group: 'system',
-              title: '🔬 Firestore Audit Monitor',
-              subtitle:
-                  'Dev tool: theo dõi Firestore Read theo collection/service',
+              title: 'Giám sát Firestore Read',
+              subtitle: 'Công cụ nội bộ: theo dõi read theo collection/service',
               icon: Icons.manage_search_rounded,
               color: const Color(0xFF6C63FF),
               onTap: () => _fadePush(context, const FirestoreAuditDashboard()),
             ),
         ];
 
-        final filtered = query.isEmpty
-            ? allItems
-            : allItems
-                  .where(
-                    (item) =>
-                        item.title.toLowerCase().contains(query) ||
-                        (item.subtitle?.toLowerCase().contains(query) ?? false),
-                  )
-                  .toList();
+        const groupTitles = <String, String>{
+          'shop': 'Cửa hàng',
+          'inventory': 'Kho hàng',
+          'interface': 'Giao diện & Ngôn ngữ',
+          'device': 'Thiết bị & In ấn',
+          'staff': 'Nhân sự & Chấm công',
+          'notifications': 'Thông báo',
+          'help': 'Hướng dẫn',
+          'system': 'Dữ liệu & Hệ thống',
+        };
 
-        List<Widget> buildGroup(String groupId, String groupTitle) {
-          final items = (query.isEmpty ? allItems : filtered)
-              .where((i) => i.group == groupId)
+        final sections = <Widget>[];
+        var matchCount = 0;
+        for (final entry in groupTitles.entries) {
+          final items = allItems
+              .where((i) => i.group == entry.key && i.matches(query))
               .toList();
-          if (items.isEmpty) return [];
-          return [
-            _buildSectionHeader(groupTitle),
-            ...items.map(
-              (item) => _tabMenuItem(
-                item.title,
-                item.icon,
-                item.color,
-                item.onTap,
-                subtitle: item.subtitle,
-              ),
-            ),
-          ];
+          if (items.isEmpty) continue;
+          matchCount += items.length;
+          sections
+            ..add(_buildSectionHeader(entry.value))
+            ..add(_settingsGroupCard(items))
+            ..add(const SizedBox(height: 14));
         }
 
         return Scaffold(
@@ -6471,18 +6640,20 @@ class _HomeViewState extends State<HomeView>
                 vertical: 10,
               ),
               children: [
-                // Search bar
+                // Ô tìm kiếm — bỏ dấu, nên gõ "gia von" vẫn ra "giá vốn".
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: TextField(
                     controller: _settingsSearchController,
                     onChanged: (_) => rebuild(() {}),
+                    textInputAction: TextInputAction.search,
                     decoration: InputDecoration(
                       hintText: 'Tìm cài đặt...',
                       prefixIcon: const Icon(Icons.search, size: 20),
-                      suffixIcon: query.isNotEmpty
+                      suffixIcon: searching
                           ? IconButton(
                               icon: const Icon(Icons.clear, size: 18),
+                              tooltip: 'Xoá tìm kiếm',
                               onPressed: () {
                                 _settingsSearchController.clear();
                                 rebuild(() {});
@@ -6497,45 +6668,12 @@ class _HomeViewState extends State<HomeView>
                         borderRadius: BorderRadius.circular(10),
                       ),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: AppColors.surface,
                     ),
                   ),
                 ),
 
-                if (query.isNotEmpty) ...[
-                  // Search results
-                  if (filtered.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 32),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.search_off_rounded,
-                            size: 48,
-                            color: Colors.grey.shade300,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Không tìm thấy cài đặt nào',
-                            style: AppTextStyles.body1.copyWith(
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  else
-                    ...filtered.map(
-                      (item) => _tabMenuItem(
-                        item.title,
-                        item.icon,
-                        item.color,
-                        item.onTap,
-                        subtitle: item.subtitle,
-                      ),
-                    ),
-                ] else ...[
-                  // Account & shop switcher
+                if (!searching) ...[
                   ShopSwitcherWidget(
                     onShopChanged: () {
                       _loadStats();
@@ -6545,171 +6683,184 @@ class _HomeViewState extends State<HomeView>
                   ),
                   _buildHomeAccountCard(),
                   const SizedBox(height: 16),
+                ],
 
-                  // Grouped sections
-                  ...buildGroup('shop', 'Cửa hàng'),
-
-                  // Toggles kho hàng — chỉ admin/owner
-                  if (hasFullAccess) ...[
-                    _buildSectionHeader('Kho hàng'),
-                    CheckboxListTile(
-                      value: _allowPendingCost,
-                      onChanged: _isSavingPendingCost
-                          ? null
-                          : (v) => _saveAllowPendingCost(v ?? false),
-                      activeColor: Colors.teal,
-                      checkboxShape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      secondary: _isSavingPendingCost
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.teal,
-                              ),
-                            )
-                          : Icon(
-                              Icons.inventory_2_outlined,
-                              color: _allowPendingCost
-                                  ? Colors.teal
-                                  : Colors.grey,
-                              size: 24,
-                            ),
-                      title: const Text(
-                        'Cho phép nhập giá vốn sau',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
+                if (searching && matchCount == 0)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 32),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.search_off_rounded,
+                          size: 48,
+                          color: Colors.grey.shade300,
                         ),
-                      ),
-                      subtitle: Text(
-                        _allowPendingCost
-                            ? 'Có thể bỏ qua giá vốn, nhập sau'
-                            : 'Bắt buộc nhập giá vốn > 0 khi xác nhận nhập kho',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: _allowPendingCost
-                              ? Colors.teal
-                              : Colors.grey.shade600,
-                        ),
-                      ),
-                      controlAffinity: ListTileControlAffinity.trailing,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                    ),
-                    CheckboxListTile(
-                      value: _enableSupplier,
-                      onChanged: _isSavingSupplier
-                          ? null
-                          : (v) => _saveEnableSupplier(v ?? true),
-                      activeColor: Colors.indigo,
-                      checkboxShape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      secondary: _isSavingSupplier
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.indigo,
-                              ),
-                            )
-                          : Icon(
-                              Icons.local_shipping_outlined,
-                              color: _enableSupplier
-                                  ? Colors.indigo
-                                  : Colors.grey,
-                              size: 24,
-                            ),
-                      title: const Text(
-                        'Hiển thị nhà cung cấp (NCC)',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                      subtitle: Text(
-                        _enableSupplier
-                            ? 'Có thể chọn và theo dõi NCC trên từng đơn nhập'
-                            : 'Ẩn tính năng chọn nhà cung cấp khi nhập kho',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: _enableSupplier
-                              ? Colors.indigo
-                              : Colors.grey.shade600,
-                        ),
-                      ),
-                      controlAffinity: ListTileControlAffinity.trailing,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                    ),
-                    if (_enableSupplier)
-                      CheckboxListTile(
-                        value: _requireSupplier,
-                        onChanged: _isSavingRequireSupplier
-                            ? null
-                            : (v) => _saveRequireSupplier(v ?? true),
-                        activeColor: Colors.deepOrange,
-                        checkboxShape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        secondary: _isSavingRequireSupplier
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.deepOrange,
-                                ),
-                              )
-                            : Icon(
-                                Icons.rule_rounded,
-                                color: _requireSupplier
-                                    ? Colors.deepOrange
-                                    : Colors.grey,
-                                size: 24,
-                              ),
-                        title: const Text(
-                          'Bắt buộc chọn NCC khi nhập kho',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
+                        const SizedBox(height: 8),
+                        Text(
+                          'Không tìm thấy cài đặt nào',
+                          style: AppTextStyles.body1.copyWith(
+                            color: AppColors.textSecondary,
                           ),
                         ),
-                        subtitle: Text(
-                          _requireSupplier
-                              ? 'Phải chọn NCC mới xác nhận được nhập kho'
-                              : 'NCC không bắt buộc — có thể bỏ qua',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: _requireSupplier
-                                ? Colors.deepOrange
-                                : Colors.grey.shade600,
-                          ),
-                        ),
-                        controlAffinity: ListTileControlAffinity.trailing,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                        ),
-                      ),
-                  ],
+                      ],
+                    ),
+                  )
+                else
+                  ...sections,
 
-                  ...buildGroup('interface', 'Giao diện & Ngôn ngữ'),
-                  ...buildGroup('device', 'Thiết bị & In ấn'),
-                  if (hasFullAccess)
-                    ...buildGroup('staff', 'Nhân sự & Chấm công'),
-                  ...buildGroup('notifications', 'Thông báo'),
-                  ...buildGroup('help', 'Hướng dẫn'),
-                  if (hasFullAccess || _isSuperAdmin)
-                    ...buildGroup('system', 'Dữ liệu & Hệ thống'),
-
-                  const SizedBox(height: 12),
+                if (!searching) ...[
                   _buildSyncHealthStatusCard(),
+                  const SizedBox(height: 16),
+                  _buildAppVersionFooter(),
                 ],
 
                 const SizedBox(height: 30),
               ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Thẻ gom nhóm: nền trắng, viền mảnh, các dòng ngăn bằng divider — thay cho
+  /// kiểu mỗi dòng một thẻ pastel + tiêu đề nhiều màu (rối mắt, khó đọc).
+  Widget _settingsGroupCard(List<_SettingsItem> items) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.divider),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (var i = 0; i < items.length; i++) ...[
+            if (i > 0) const Divider(height: 1, thickness: 1, indent: 60),
+            items[i].builder?.call(context) ?? _settingsNavRow(items[i]),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _settingsNavRow(_SettingsItem item) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      minVerticalPadding: 8,
+      leading: _settingsIconChip(item.icon, item.color),
+      title: Text(
+        item.title,
+        style: AppTextStyles.body1.copyWith(
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+      ),
+      subtitle: item.subtitle == null
+          ? null
+          : Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                item.subtitle!,
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+      trailing: const Icon(
+        Icons.chevron_right_rounded,
+        size: 22,
+        color: AppColors.textHint,
+      ),
+      onTap: item.onTap,
+    );
+  }
+
+  Widget _settingsToggleRow({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required bool saving,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return SwitchListTile(
+      value: value,
+      onChanged: saving ? null : onChanged,
+      activeThumbColor: color,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      secondary: saving
+          ? SizedBox(
+              width: 36,
+              height: 36,
+              child: Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: color,
+                  ),
+                ),
+              ),
+            )
+          : _settingsIconChip(icon, value ? color : AppColors.textDisabled),
+      title: Text(
+        title,
+        style: AppTextStyles.body1.copyWith(
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+      ),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 2),
+        child: Text(
+          subtitle,
+          style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+        ),
+      ),
+    );
+  }
+
+  Widget _settingsIconChip(IconData icon, Color color) {
+    return Container(
+      width: 36,
+      height: 36,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Icon(icon, color: color, size: 20),
+    );
+  }
+
+  /// Chân trang phiên bản — chạm để copy, tiện khi báo lỗi cho hỗ trợ.
+  Widget _buildAppVersionFooter() {
+    return FutureBuilder<String>(
+      future: _appVersionLabel,
+      builder: (context, snap) {
+        final label = snap.data;
+        return Center(
+          child: TextButton(
+            onPressed: label == null
+                ? null
+                : () {
+                    Clipboard.setData(ClipboardData(text: label));
+                    NotificationService.showSnackBar(
+                      'Đã sao chép: $label',
+                      color: Colors.blueGrey,
+                    );
+                  },
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              label ?? 'Đang lấy phiên bản…',
+              style: AppTextStyles.caption.copyWith(color: AppColors.textHint),
             ),
           ),
         );
