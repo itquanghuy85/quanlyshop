@@ -80,9 +80,29 @@
 ## III. CÁC NGUYÊN TẮC QUAN TRỌNG
 
 ### 1. Admin Detection
-- **Super-admin email:** `admin@huluca.com` (hardcoded trong `UserService._isSuperAdmin`)
-- **Quyền hạn:** Super-admin vô hạn truy cập toàn bộ dữ liệu không cần `shopId` filtering
-- **Cách kiểm tra:** `UserService.getUserRole(uid)` kiểm tra email đầu tiên, sau đó Firestore
+- **Nguồn sự thật DUY NHẤT: Firebase custom claims.** KHÔNG còn kiểm email hardcode
+  (`main.dart` ghi rõ *"dựa trên custom claims, không dùng email hardcode"*).
+  Mọi nơi đều so cùng một điều kiện:
+  `claims['isSuperAdmin'] == true || claims['role'] == 'super_admin'`.
+- **Claims do Cloud Function cấp:** `functions/index.js` → `buildCustomClaims()` đặt
+  `isSuperAdmin = (users/{uid}.role === "super_admin")`. Muốn cấp/thu quyền super
+  admin thì **sửa field `role` của doc `users/{uid}`**, trigger `syncUserClaims`
+  tự cấp lại claims. `VALID_ROLES` = owner | manager | employee | technician | user | super_admin.
+- **⚠️ BẪY ĐẶT TÊN:** `UserService.getUserRole()` **map claims `super_admin` → trả
+  về `'admin'`** (tên role app-level). Nghĩa là `'admin'` trong app ≠ `'admin'`
+  dưới Firestore. Ghi `role: "admin"` xuống `users/{uid}` sẽ khiến
+  `isSuperAdmin=false` và **super admin mất sạch quyền** — xem
+  `docs/AUDIT_SUPER_ADMIN_2026-09-05.md` mục SA-01. Tuyệt đối KHÔNG "sửa" bằng
+  cách coi `role=='admin'` là super admin: `getCurrentUserPermissions` cấp full
+  quyền cho `role=admin`, đó là vai trò của chủ shop/quản lý.
+- **`UserService._isSuperAdmin(user)`** chỉ đọc cache trong bộ nhớ
+  (`_cachedIsSuperAdmin && _cachedIsSuperAdminUid == user.uid`) — cache này do các
+  đường trên set sau khi đọc claims, và bị xoá trong `clearCache()` khi đăng xuất.
+- **Quyền hạn:** super admin KHÔNG bypass `shopId` ở tầng dữ liệu. Cách hoạt động là
+  **chọn shop** → `getShopIdSync()` trả `_adminSelectedShopId`, mọi truy vấn vẫn lọc
+  theo `shopId` như người thường (`firestore_service.dart` có 0 tham chiếu `isSuperAdmin`).
+- **Server luôn kiểm lại:** `firestore.rules` → `isSuperAdmin()` chỉ đọc
+  `request.auth.token` (~30 chỗ dùng). Client bị sửa cũng không qua được.
 
 ### 2. Service-First Access
 - **Quy tắc:** Tất cả Firestore reads/writes phải thông qua service classes
