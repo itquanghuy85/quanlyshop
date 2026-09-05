@@ -9,6 +9,45 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-05  
 
+**🔴 KIOTVIET NHẬP TRÙNG — THỔI DOANH THU 35,6 TỶ (`[2026-09-05l]`). CHƯA DỌN XONG.**
+Đối soát tài chính trên shop THẬT (HULUCA STORE, `huy@huluca.com`, Oppo CPH2203):
+**6.218 bản ghi mang mã `KV:` nhưng chỉ có 3.973 hoá đơn thật ⇒ thừa 2.245 bản**,
+doanh thu bị cộng lặp **35.606.189.000đ**. Riêng năm 2026: app hiện 25,8 tỷ,
+thực tế **15,4 tỷ (+68%)**. Trải 01/2025 → 06/2026. Cả 2.245 cặp đều
+`isSynced=1` ⇒ **đã lên cloud, mọi máy của shop đang thấy số sai**.
+· **Gốc rễ** `sync_service.dart:3619` — doc id `sale_<soldAt>_<phone>_<s.id>` mà
+`s.id` là **số thứ tự SQLite riêng từng máy** ⇒ cùng hoá đơn import ở 2 máy ra 2
+doc id ⇒ 2 document Firestore. Đo được đúng cặp `..._1745` / `..._8463` giống hệt
+nhau tới từng mili giây. *Cùng họ lỗi với sự cố xoá khách `[2026-09-05g]`.*
+· **Đã vá gốc:** `KiotVietExcelImportService.kvSaleDocId()` sinh doc id tất định
+`kv_<shopId>_<mã HĐ>` — import lại ở máy nào cũng ghi đè đúng document cũ.
+· **Đã có công cụ dọn:** `KvDuplicateCleanupService` + giao diện ở
+**Cài đặt → Công cụ điều chỉnh dữ liệu → tab TÀI CHÍNH**. Giữ bản `id` nhỏ nhất,
+cloud xoá mềm, local xoá hẳn, không đụng công nợ/bút toán/kho.
+`test/kv_duplicate_cleanup_test.dart` 11/11 PASS (SQLite ffi thật).
+· **🔴 VIỆC CÒN LẠI — CHỦ SHOP PHẢI TỰ BẤM:** nút dọn đòi
+`reauthenticateWithCredential` bằng **mật khẩu đăng nhập**, AI không có và không
+được hỏi. File phục hồi đã đặt sẵn trên máy:
+`/sdcard/Download/kv_rollback_manifest.json` (630 KB, đủ 2.245 `firestoreId` sẽ
+xoá + bản giữ lại). Khôi phục = đặt `deleted=false` cho các id trong đó.
+· **🔴 6.218/6.485 đơn `totalCost = 0`** ⇒ mọi "lợi nhuận" ở kỳ có KiotViet đều
+BẰNG doanh thu, vô nghĩa. File Excel KiotViet không có cột giá vốn.
+· **🟡 Tháng 3/2026 nhập thiếu**: 48 bản = 24 hoá đơn thật (T2: 272, T4: 360),
+chỉ 11 ngày có phát sinh ⇒ **cần file Excel KiotViet tháng 3/2026 để nhập bù**.
+· **🟡 `SaleOrder` thiếu trường `shopId`** ⇒ bản tải từ cloud luôn ghi NULL
+(6.425/6.485 dòng). Vô hại hiện tại vì truy vấn dùng `(shopId = ? OR shopId IS
+NULL)` và **cloud đã có shopId đúng**. CỐ Ý CHƯA SỬA (đụng toàn bộ đường tiền).
+· **✅ Phần ĐÚNG đã kiểm chứng:** dòng tiền hôm nay 66.18 Tr khớp chính xác từng
+đồng; tháng 9/2026 + 30 ngày gần đây không có bản trùng; 101 dòng
+`financial_activity_log` của shop test bị lọc đúng, không lọt báo cáo;
+**Firebase read ~1.857/ngày/máy, 100% listener ⇒ ~19% hạn mức free với 5 máy —
+KHÔNG nhiều.**
+· **⚠️ Máy chủ shop đang chạy bản DEBUG** (do phiên kiểm thử này cài đè). Bản
+debug chậm hơn và hiện công cụ nội bộ cho mọi người. Muốn về bản release phải
+GỠ app (chữ ký khác) ⇒ mất dữ liệu local chưa sync — chờ đồng bộ báo 100% rồi
+hãy làm. Máy cũng đang bật `svc power stayon true`, tắt bằng
+`adb shell svc power stayon false`.
+
 **🧹 TRANG CÀI ĐẶT — DỌN GIAO DIỆN + NỐI LẠI 2 MÀN HÌNH BỊ MẤT (`[2026-09-05k]`).**
 Audit theo yêu cầu "làm cho nó chuyên nghiệp". Phát hiện lớn nhất:
 **`lib/views/settings_view.dart` (1699 dòng) là code chết** — 0 tham chiếu tới

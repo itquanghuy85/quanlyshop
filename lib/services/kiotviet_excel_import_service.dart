@@ -159,6 +159,23 @@ class KvImportResult {
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 class KiotVietExcelImportService {
+  /// Doc id Firestore TẤT ĐỊNH cho một hoá đơn KiotViet.
+  ///
+  /// Trước đây id do `sync_service` sinh là `sale_<soldAt>_<phone>_<s.id>`,
+  /// trong đó `s.id` là số thứ tự SQLite **của riêng từng máy**. Cùng một hoá
+  /// đơn import ở hai máy ⇒ hai doc id ⇒ hai document trên cloud ⇒ mọi máy tải
+  /// về hai bản (sự cố 2026-09-05: 2.245 hoá đơn trùng, thổi doanh thu 35,6 tỷ).
+  ///
+  /// Khoá theo mã hoá đơn nên import lại ở bất kỳ máy nào cũng ghi đè đúng
+  /// document cũ. Có `shopId` vì `sales` là collection dùng chung mọi shop.
+  static String kvSaleDocId(String shopId, String invoiceCode) {
+    final safeShop = shopId.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_');
+    final safeCode = invoiceCode
+        .trim()
+        .replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+    return 'kv_${safeShop}_$safeCode';
+  }
+
   static final _db = DBHelper();
 
   // ── Auto-detect ──────────────────────────────────────────────────────────
@@ -483,6 +500,11 @@ class KiotVietExcelImportService {
           };
 
           // Include shopId if column exists (added via migration)
+          // Bản MỚI dùng doc id tất định để import lại ở máy khác không đẻ
+          // thêm document. Bản CŨ giữ nguyên firestoreId sẵn có, đổi sẽ bỏ rơi
+          // document đang có trên cloud.
+          if (dup.isEmpty) map['firestoreId'] = kvSaleDocId(shopId, invoiceCode);
+
           try {
             map['shopId'] = shopId;
             if (dup.isNotEmpty && overwriteExisting) {
@@ -724,6 +746,9 @@ class KiotVietExcelImportService {
           'isSynced': 0,
           'deleted': 0,
         };
+
+        // Xem ghi chú ở nhánh import bảng kê phía trên.
+        if (dup.isEmpty) map['firestoreId'] = kvSaleDocId(shopId, invoiceCode);
 
         try {
           map['shopId'] = shopId;

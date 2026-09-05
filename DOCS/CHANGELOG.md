@@ -4,6 +4,102 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-05l] - fix(KiotViet) HOÁ ĐƠN NHẬP TRÙNG THỔI DOANH THU 35,6 TỶ
+
+**Phát hiện khi đối soát số liệu tài chính trên shop thật (HULUCA STORE).**
+
+### Đo được trên máy chủ shop (Oppo CPH2203, `huy@huluca.com`)
+
+| | |
+|---|---|
+| Bản ghi mang mã `KV:` | **6.218** |
+| Hoá đơn KiotViet THẬT | **3.973** |
+| Bản ghi thừa | **2.245** |
+| Doanh thu bị cộng lặp | **35.606.189.000 đ** |
+| Riêng năm 2026 | app hiện 25,8 tỷ — thực tế **15,4 tỷ** (+68%) |
+
+Trải từ 01/2025 → 06/2026. Cả 2.245 cặp đều `isSynced=1` ⇒ **đã lên cloud**,
+mọi máy của shop đều đang thấy số sai.
+
+### Gốc rễ — `sync_service.dart:3619`
+
+```dart
+final docId = s.firestoreId ?? "sale_${s.soldAt}_${s.phone}_${s.id ?? 0}";
+```
+
+`s.id` là **số thứ tự SQLite của riêng từng máy**. Cùng một hoá đơn import ở
+hai máy ⇒ hai doc id ⇒ **hai document trên Firestore** ⇒ mọi máy tải về hai bản.
+Đo được đúng cặp: `sale_1767627673970_0968704453_**1745**` và `..._**8463**` —
+giống hệt nhau từ khách, SĐT, sản phẩm tới từng mili giây.
+
+*Cùng họ lỗi với sự cố xoá khách `[2026-09-05g]`: dùng id cục bộ để tra cloud.*
+
+Chống trùng sẵn có của importer (`notes = 'KV:<mã>'`) chỉ chặn được **trên máy
+đang import**, nên máy thứ hai có DB local trống vẫn tạo bản mới. Hai hàm dọn
+trùng cũng bó tay: `cleanDuplicateData` gộp theo `firestoreId` (hai bản khác
+id), `cleanupCloudShadowDuplicates` chỉ xoá bản `firestoreId` rỗng.
+
+### Đã sửa
+
+**1. Vá gốc — `kiotviet_excel_import_service.dart`**
+Thêm `kvSaleDocId(shopId, invoiceCode)` sinh doc id **tất định**
+`kv_<shopId>_<mã HĐ>`, gán ngay lúc import cho bản MỚI (bản cũ giữ nguyên
+`firestoreId` để không bỏ rơi document đang có). Import lại ở bất kỳ máy nào
+cũng ghi đè đúng document cũ. Có `shopId` vì `sales` là collection dùng chung
+mọi shop.
+
+**2. Công cụ dọn — `lib/services/kv_duplicate_cleanup_service.dart` (mới)**
+- `scan()` — quét thử, KHÔNG sửa gì: số bản thừa, tiền thổi phồng, phân bố theo
+  tháng, số đơn thiếu `shopId`.
+- `apply()` — giữ bản `id` nhỏ nhất mỗi hoá đơn; cloud xoá MỀM
+  (`deleted: true`, CLAUDE.md III.10) để máy khác tự gỡ theo, local xoá hẳn;
+  mất mạng thì đẩy vào hàng đợi `SyncOrchestrator`. **Không đụng công nợ / bút
+  toán / tồn kho** — bản trùng là bản ghi ma do đồng bộ đẻ ra, chưa từng sinh
+  sổ sách riêng. Ghi **một** bản kiểm toán tổng, không ghi từng dòng (tránh đẻ
+  thêm hàng nghìn lượt ghi Firestore chỉ để log dọn rác).
+
+**3. Giao diện** — Cài đặt → Công cụ điều chỉnh dữ liệu → tab **TÀI CHÍNH**.
+Hiện số liệu quét trước, bấm dọn phải qua hộp xác nhận **và mật khẩu đăng nhập**
+(`reauthenticateWithCredential`) như mọi thao tác nguy hiểm khác ở màn này.
+
+**4. Test — `test/kv_duplicate_cleanup_test.dart` (11 ca, PASS)**
+`kvSaleDocId` tất định / hai máy ra cùng id / hai shop không đụng id / giữ dấu
+chấm `HD007168.02` / bỏ `/` và khoảng trắng. Trên SQLite thật (ffi): đúng hình
+dạng cặp trùng đo được ngoài production, hoá đơn không trùng không bị đụng, bản
+đã xoá mềm không bị tính lại (chạy lần 2 an toàn), đơn app tự tạo không lọt
+diện dọn, nhóm 3 bản xoá 2 giữ 1, tiền thổi phồng = tổng bản thừa.
+
+### Kiểm chứng phần ĐÚNG (không phải lỗi)
+
+- **Dòng tiền hôm nay 66.18 Tr khớp chính xác** DB: 20.390.000 + 340.000 +
+  11.390.000 + 50.000 + 120.000 + 33.890.000. Đơn trả góp 4.990.000 đúng là
+  không cộng (NH chưa tất toán).
+- Tháng 9/2026 và 30 ngày gần đây **không có bản trùng** — số liệu sạch.
+- 101 dòng `financial_activity_log` của shop test (`geqXPHQ…`) còn sót trong máy
+  nhưng **bị lọc đúng** bởi `(shopId = ? OR shopId IS NULL)`, không lọt báo cáo.
+- Firebase read **~1.857 read/ngày/máy** (2.551 read / 33 giờ), 100% từ listener
+  ⇒ ~19% hạn mức free với 5 máy. **Không nhiều.**
+
+### CÒN LẠI — chưa xong
+
+- 🔴 **Chưa chạy dọn trên dữ liệu thật.** Bước cuối đòi mật khẩu đăng nhập của
+  chủ shop nên phải do chủ shop tự bấm. Đã tạo sẵn file phục hồi
+  `/sdcard/Download/kv_rollback_manifest.json` (630 KB) liệt kê đủ 2.245
+  `firestoreId` sẽ bị xoá + bản giữ lại của từng hoá đơn.
+- 🔴 **6.218/6.485 đơn có `totalCost = 0`** (mọi đơn KiotViet). Mọi con số "lợi
+  nhuận" ở kỳ có dữ liệu KiotViet đều **bằng doanh thu**, vô nghĩa. File Excel
+  KiotViet không có cột giá vốn ⇒ cần nguồn giá vốn riêng.
+- 🟡 **`SaleOrder` không có trường `shopId`** ⇒ bản tải từ cloud về luôn ghi
+  `shopId = NULL` (6.425/6.485 dòng). Hiện vô hại vì truy vấn dùng
+  `(shopId = ? OR shopId IS NULL)`, và **bản trên cloud đã có `shopId` đúng**
+  (`syncAllToCloud` gán `data['shopId']`). CỐ Ý CHƯA SỬA: thêm trường vào model
+  đụng toàn bộ đường tiền, rủi ro hồi quy cao hơn lợi ích hiện tại.
+- 🟡 **Tháng 3/2026 nhập thiếu**: chỉ 48 bản = 24 hoá đơn thật, trong khi T2 có
+  272 và T4 có 360; chỉ 11 ngày trong tháng có phát sinh. Cần file Excel
+  KiotViet tháng 3/2026 để nhập bù — **không thể tự dựng lại**.
+
+---
+
 ## [2026-09-05k] - refactor(cài đặt) DỌN TRANG CÀI ĐẶT + NỐI LẠI 2 MÀN HÌNH BỊ MẤT
 
 **Yêu cầu:** "audit trang cài đặt làm cho nó chuyên nghiệp".
