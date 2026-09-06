@@ -40,7 +40,14 @@ import 'money_reconcile_view.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class DebtView extends StatefulWidget {
-  const DebtView({super.key});
+  /// Tab mở sẵn: 0 = Phải thu (khách nợ), 1 = Phải trả (shop nợ).
+  ///
+  /// Mặc định 0 như trước. Có tham số này để chỗ nào biết rõ đang nói tới loại
+  /// nợ nào thì mở thẳng đúng tab — bấm dòng "Công nợ phải TRẢ mới" ở Trang chủ
+  /// mà rơi vào tab "Phải THU" thì người dùng tưởng bấm nhầm.
+  final int initialTab;
+
+  const DebtView({super.key, this.initialTab = 0});
   @override
   State<DebtView> createState() => _DebtViewState();
 }
@@ -111,16 +118,22 @@ class _DebtViewState extends State<DebtView>
       if (mounted) {
         setState(() {
           _shopSettings = settings;
-          _tabController = TabController(length: 2, vsync: this)
-            ..addListener(_onTabChanged);
+          _tabController = TabController(
+            length: 2,
+            vsync: this,
+            initialIndex: widget.initialTab.clamp(0, 1),
+          )..addListener(_onTabChanged);
         });
       }
     } catch (e) {
       debugPrint('Error loading shop settings: $e');
       if (mounted) {
         setState(() {
-          _tabController = TabController(length: 2, vsync: this)
-            ..addListener(_onTabChanged);
+          _tabController = TabController(
+            length: 2,
+            vsync: this,
+            initialIndex: widget.initialTab.clamp(0, 1),
+          )..addListener(_onTabChanged);
         });
       }
     }

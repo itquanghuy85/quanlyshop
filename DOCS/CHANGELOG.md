@@ -4,6 +4,131 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-06k] - fix(hoạt động) BẤM DÒNG HOẠT ĐỘNG KHÔNG ĐI ĐÂU + feat(đơn sửa) GIÁ THAM KHẢO KHI NHẬP GIÁ
+
+Chủ shop báo: *"ở hoạt động hôm nay có 1 số hoạt động bấm vào không thể đi đến
+xem chi tiết"* và *"khi nhập giá vốn hoặc vào sửa giá vốn giá thu khách cho đơn
+sửa: làm cho hiện giá tham khảo"*.
+
+---
+
+### A. Bấm dòng hoạt động không mở được gì
+
+Có **BA** danh sách hoạt động, mỗi cái tự viết một đoạn `switch` riêng và mỗi
+đoạn hiểu được một tập loại khác nhau:
+
+| Nơi | Trước |
+|---|---|
+| `ActivityFeedCard` — "HOẠT ĐỘNG HÔM NAY" (Trang chủ) | chỉ mở `sale`, `repair` |
+| `RecentActivityView` — "HOẠT ĐỘNG GẦN ĐÂY" (nút *Xem tất cả*) | **không dòng nào bấm được** |
+| `main.dart` — điều hướng thông báo đẩy | chỉ `sale`, `repair` |
+
+**Liệt kê đủ 7 loại dòng của "HOẠT ĐỘNG HÔM NAY" và tình trạng cũ:**
+
+| # | Loại | Mã tham chiếu | Bấm được? |
+|---|---|---|---|
+| 1 | Bán hàng (`sale`) | ✅ | ✅ |
+| 2 | Nhận sửa / Sửa xong / Giao máy (`repair`) | ✅ | ✅ |
+| 3 | Thu / Chi (`expense`) | ✅ có sẵn | ❌ **chết** |
+| 4 | Thu nợ KH / Trả nợ NCC (`debt_payment`) | ❌ **không hề gán** | ❌ chết |
+| 5 | Trả NCC (`supplier_payment`) | ❌ không gán | ❌ chết |
+| 6 | TT đối tác (`partner_payment`) | ❌ không gán | ❌ chết |
+| 7 | Công nợ mới (`debt`) | ✅ có sẵn | ❌ **chết** |
+
+⇒ **5/7 loại bấm vào đứng im**, mà nhìn cũng không biết dòng nào bấm được vì
+mũi tên `>` chỉ hiện cho 2 loại đầu.
+
+Riêng "HOẠT ĐỘNG GẦN ĐÂY" thì tệ hơn: model `RecentActivityItem` **không có
+trường tham chiếu nào**, dù bảng gốc vốn đã đủ dữ liệu
+(`financial_activity_log.referenceType/referenceId`, `audit_logs.targetType/targetId`).
+
+#### Sửa
+
+Thêm `lib/services/activity_navigator.dart` — **một bảng đích duy nhất** dùng
+chung cho mọi danh sách hoạt động, thay vì bản sao thứ tư:
+
+- `sale` · `repair` · `parts_payment`→đơn sửa · `expense` (mở đúng tab THU/CHI)
+  · `debt` / `debt_payment` / `repair_debt` (mở đúng tab **Phải thu / Phải trả**)
+  · `supplier_payment`→chi tiết NCC · `partner_payment` /
+  `repair_partner_service`→chi tiết đối tác · `payment_request`.
+- `canOpen()` và `open()` đọc **cùng một bảng** ⇒ không bao giờ có cảnh hiện mũi
+  tên mà bấm không đi đâu, hoặc mở được mà không hiện mũi tên.
+- **Tra hai kiểu mã:** `financial_activity_log.referenceId` là *firestoreId*
+  nhưng `audit_logs.targetId` lại là *id nội bộ*. Tra firestoreId trước, không
+  thấy thì rơi về khoá SQLite — không có bước này thì **mọi dòng đến từ nhật ký
+  hệ thống đều bấm không ra gì**.
+- **Tra không ra thì báo**, không im lặng: *"Không tìm thấy đơn sửa để mở — có
+  thể máy chưa đồng bộ xong."* Bản cũ `return` trống nên người dùng tưởng app đơ.
+- Ghi rõ những loại **cố ý chưa mở được** (`stock_entry`, `purchase_order`,
+  `reconcile_reversal`, `payment_intent_failed`) để lần sau khỏi tưởng bỏ sót.
+
+Kèm theo:
+- `dashboard_cards`: gán mã tham chiếu còn thiếu cho 3 loại (4,5,6), thêm
+  `partnerId` vào truy vấn `repair_partner_payments`, mang theo `expenseMode`
+  (THU/CHI) và cờ `payable`.
+- `recent_activity_service`: `RecentActivityItem` mang thêm
+  `referenceType`/`referenceId`; nhận cả cặp `targetType/targetId` lẫn
+  `entityType/entityId` của `audit_logs`.
+- `recent_activity_view`: dòng bấm được + hiện mũi tên `>` **chỉ khi mở được**.
+- `DebtView` thêm `initialTab` (mặc định 0, không đổi hành vi cũ) để bấm
+  *"Công nợ phải TRẢ mới"* không rơi vào tab *"Phải THU"*.
+
+---
+
+### B. Giá tham khảo khi nhập / sửa giá đơn sửa
+
+Màn **TẠO** đơn sửa đã hiện giá đề xuất từ lâu, nhưng **ba hộp thoại nhập giá
+sau đó thì không** — vào là một ô trống, phải tự nhớ hoặc thoát ra mở Bảng giá.
+
+Thêm thẻ **GIÁ THAM KHẢO** vào cả ba, dùng chung nguồn với Bảng giá
+(`PriceBookService.resolveRepair` — ưu tiên giá GHIM của chủ shop, không có thì
+lấy trung vị lịch sử **cùng máy + cùng lỗi**):
+
+1. `_editFinancials` — hộp thoại *TÀI CHÍNH ĐƠN SỬA* (thu khách + giá vốn)
+2. `_submitForDeliveryApproval` — *gửi yêu cầu duyệt giao* (chỉ thu khách)
+3. `_approveDelivery` — *duyệt giao máy* giao trong ngày (thu khách + giá vốn)
+
+- Mỗi dòng có nút **Dùng** điền thẳng vào ô bên dưới — gõ tay là chỗ dễ nhầm
+  một số 0.
+- Ghi rõ nguồn: *"Giá niêm yết (chủ shop đã ghim)"* hoặc *"Trung vị N đơn cũ ·
+  <độ tin cậy>"*.
+- Chưa có dữ liệu thì nói thẳng *"Chưa có giá tham khảo cho ... — đơn đầu tiên
+  của loại này"*, không để khoảng trắng khiến người dùng tưởng app chưa tải xong.
+- **Dòng giá vốn chỉ hiện khi có quyền xem giá vốn** — CLAUDE.md §9.
+- Hộp thoại bọc `SingleChildScrollView` để bàn phím số bật lên không tràn.
+
+### Files
+
+- `lib/services/activity_navigator.dart` (mới)
+- `lib/services/recent_activity_service.dart`
+- `lib/views/recent_activity_view.dart`
+- `lib/views/repair_detail_view.dart`
+- `lib/views/debt_view.dart`
+- `lib/widgets/dashboard_cards.dart`
+
+### Nghiệm thu
+
+`flutter analyze lib/`: **0 error**. `flutter test`: 614 pass / 8 fail — 8 fail
+là **các fail có sẵn** đã đối chiếu ở `[2026-09-06i]`, không phát sinh mới.
+
+**✅ Máy thật CPH2203 (HULUCA STORE):**
+- "HOẠT ĐỘNG HÔM NAY": dòng *Công nợ phải trả mới* nay có mũi tên `>`, bấm mở
+  màn Công nợ **đúng tab "Phải trả"** ✅
+- "HOẠT ĐỘNG GẦN ĐÂY": *DUYỆT GIAO MÁY* mở đúng chi tiết đơn sửa IPHONE 11 ✅;
+  các dòng không mở được (*Attendance checkin*, *Price catalog nhập kho*) đúng
+  là **không có** mũi tên ✅
+- Dòng trỏ tới bản ghi đã bị xoá hiện đúng thông báo cam thay vì đứng im ✅ —
+  đối chiếu thẳng SQLite trên máy: **21/23** tham chiếu repair/sale trong 24h
+  tra ra bản ghi, 2 cái còn lại đúng là đã bị xoá khỏi bảng `repairs`.
+- Đơn sửa *IPHONE 15PLUS · THAY MÀN*: thẻ giá tham khảo hiện `Thu khách
+  1.800.000 / Giá vốn 1.400.000 · Trung vị 2 đơn cũ · Dữ liệu quá ít`; xoá trắng
+  ô giá vốn rồi bấm **Dùng** → điền lại đúng `1.400.000` ✅
+- Đơn *IPAD GEN 4 · MỞ ICLOUD* (chưa có lịch sử): hiện đúng *"Chưa có giá tham
+  khảo … đơn đầu tiên của loại này"* ✅
+- **logcat: 0 `RenderFlex overflowed`, 0 exception.**
+
+---
+
 ## [2026-09-06j] - fix(tài chính) TAB TIỀN: DANH SÁCH GIAO DỊCH CHỈ HIỆN 1-2 DÒNG
 
 Chủ shop nghiệm thu `[2026-09-06i]`: *"list giao dịch hơi nhỏ chỉ hiện được 1 2

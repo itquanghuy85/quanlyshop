@@ -911,6 +911,13 @@ class AppKnowledgeBase {
         'Khi tạo đơn sửa: nếu "model · lỗi" có giá ghim, thẻ "GIÁ NIÊM YẾT" hiện '
             'lên và tự điền vào ô giá (nếu đang trống). Nhập giá lệch >35% so với '
             'giá niêm yết/giá thường gặp → có cảnh báo.',
+        'Trong đơn sửa, MỌI hộp thoại nhập giá đều hiện thẻ **GIÁ THAM KHẢO** '
+            'cho đúng "model · lỗi" đó: TÀI CHÍNH ĐƠN SỬA (nút Sửa ở khối Tài '
+            'chính), Gửi yêu cầu duyệt giao, và Duyệt giao máy. Mỗi dòng có nút '
+            '**Dùng** để điền thẳng vào ô. Thẻ ghi rõ nguồn: "Giá niêm yết (chủ '
+            'shop đã ghim)" hoặc "Trung vị N đơn cũ". Chưa có dữ liệu thì báo '
+            '"đơn đầu tiên của loại này". Dòng **giá vốn tham khảo chỉ hiện khi '
+            'có quyền xem giá vốn**.',
         'Hệ số mùa vụ chỉ áp cho GIÁ ĐỀ XUẤT, không đụng giá đã ghim.',
         'Giá ghim & hệ số mùa vụ lưu theo máy (chưa đồng bộ giữa các thiết bị).',
         'Nhóm hãng của dòng phụ tùng tự nhận diện từ tên (quét mọi từ, vd '

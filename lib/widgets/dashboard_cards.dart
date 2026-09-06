@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../data/db_helper.dart';
 import '../core/utils/money_utils.dart';
+import '../services/activity_navigator.dart';
 import '../services/reminder_service.dart';
-import '../views/repair_detail_view.dart';
-import '../views/sale_detail_view.dart';
 
 /// Thẻ "CẦN XỬ LÝ" ở Trang chủ.
 ///
@@ -463,6 +462,7 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
                 'amount',
                 'paidAt',
                 'paymentMethod',
+                'partnerId',
                 'partnerName',
                 'note',
               ],
@@ -622,6 +622,7 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
             timestamp: at,
             referenceType: 'expense',
             referenceId: fid,
+            expenseMode: isIncome ? 'THU' : 'CHI',
           ),
         );
       }
@@ -658,6 +659,8 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
             amountColor: isShopOwes ? Colors.deepOrange : Colors.cyan,
             timestamp: at,
             referenceType: 'debt_payment',
+            referenceId: d['firestoreId'] as String?,
+            payable: isShopOwes,
           ),
         );
       }
@@ -677,6 +680,8 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
             amountColor: Colors.brown,
             timestamp: at,
             referenceType: 'supplier_payment',
+            referenceId: sp['firestoreId'] as String?,
+            localId: (sp['supplierId'] as num?)?.toInt(),
           ),
         );
       }
@@ -695,6 +700,8 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
             amountColor: Colors.indigo,
             timestamp: at,
             referenceType: 'partner_payment',
+            referenceId: rp['firestoreId'] as String?,
+            localId: (rp['partnerId'] as num?)?.toInt(),
           ),
         );
       }
@@ -720,6 +727,7 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
             timestamp: at,
             referenceType: 'debt',
             referenceId: dbt['firestoreId'] as String?,
+            payable: isShopOwes,
           ),
         );
       }
@@ -836,37 +844,21 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
     );
   }
 
+  /// Mở chi tiết của một dòng hoạt động.
+  ///
+  /// Trước đây hàm này chỉ biết `sale` và `repair`, và khi tra không ra bản ghi
+  /// thì `return` im lặng — bấm vào như không có gì. Nay đẩy hết sang
+  /// [ActivityNavigator] để tất cả danh sách hoạt động dùng chung một bảng đích
+  /// và cùng báo rõ khi không mở được.
   Future<void> _navigateToDetail(_ActivityItem item) async {
-    if (item.referenceId == null || item.referenceId!.isEmpty) return;
-    final db = DBHelper();
-    try {
-      switch (item.referenceType) {
-        case 'sale':
-          final sale = await db.getSaleByFirestoreId(item.referenceId!);
-          if (sale != null && mounted) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => SaleDetailView(sale: sale)),
-            );
-          }
-          break;
-        case 'repair':
-          final repair = await db.getRepairByFirestoreId(item.referenceId!);
-          if (repair != null && mounted) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => RepairDetailView(repair: repair),
-              ),
-            );
-          }
-          break;
-        default:
-          break;
-      }
-    } catch (e) {
-      debugPrint('ActivityFeedCard: Navigation error: $e');
-    }
+    await ActivityNavigator.open(
+      context,
+      type: item.referenceType,
+      firestoreId: item.referenceId,
+      localId: item.localId,
+      expenseMode: item.expenseMode,
+      payable: item.payable,
+    );
   }
 
   Widget _buildActivityRow(_ActivityItem item) {
@@ -876,10 +868,11 @@ class _ActivityFeedCardState extends State<ActivityFeedCard> {
           ).format(DateTime.fromMillisecondsSinceEpoch(item.timestamp))
         : '';
 
-    final canNavigate =
-        item.referenceId != null &&
-        item.referenceId!.isNotEmpty &&
-        (item.referenceType == 'sale' || item.referenceType == 'repair');
+    final canNavigate = ActivityNavigator.canOpen(
+      type: item.referenceType,
+      firestoreId: item.referenceId,
+      localId: item.localId,
+    );
 
     return InkWell(
       onTap: canNavigate ? () => _navigateToDetail(item) : null,
@@ -974,6 +967,16 @@ class _ActivityItem {
   final String? referenceType;
   final String? referenceId;
 
+  /// Khoá SQLite của nhà cung cấp / đối tác sửa chữa — hai màn chi tiết đó
+  /// nhận vào cả object nên phải tra theo id nội bộ, không dùng firestoreId.
+  final int? localId;
+
+  /// `'THU'` / `'CHI'` để màn Thu Chi mở đúng tab.
+  final String? expenseMode;
+
+  /// Khoản này là SHOP NỢ (phải trả) — để màn Công nợ mở đúng tab.
+  final bool payable;
+
   const _ActivityItem({
     required this.icon,
     required this.color,
@@ -984,5 +987,8 @@ class _ActivityItem {
     required this.timestamp,
     this.referenceType,
     this.referenceId,
+    this.localId,
+    this.expenseMode,
+    this.payable = false,
   });
 }

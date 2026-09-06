@@ -20,6 +20,8 @@ import '../models/repair_service_model.dart';
 import '../models/part_used_detail_model.dart';
 import '../models/product_model.dart';
 import '../services/pricing_engine_service.dart';
+import '../services/price_book_service.dart';
+import '../models/price_book_models.dart';
 import 'similar_repair_history_view.dart';
 import '../models/repair_partner_model.dart';
 import '../models/payment_intent_model.dart';
@@ -1546,6 +1548,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     final priceCtrl = TextEditingController(
       text: CurrencyTextField.formatDisplay(_displayedChargePrice(r)),
     );
+    // Giá tham khảo cho đúng máy + lỗi này — xem `_priceRefCard`.
+    final priceRef = await _resolveRepairPriceRef();
+    if (!mounted) return;
 
     final confirm = await showDialog<bool>(
       context: context,
@@ -1584,6 +1589,15 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     ),
                   ),
                   const SizedBox(height: 16),
+                  _priceRefCard(
+                    priceRef,
+                    // Hộp thoại này chỉ nhập GIÁ THU KHÁCH, không có ô giá vốn.
+                    showCost: false,
+                    onUsePrice: (v) => setS(
+                      () => priceCtrl.text = CurrencyTextField.formatDisplay(v),
+                    ),
+                    onUseCost: (_) {},
+                  ),
                   CurrencyTextField(
                     controller: priceCtrl,
                     label: dialogLoc.chargeCustomerVnd,
@@ -1865,6 +1879,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     final costCtrl = TextEditingController(
       text: CurrencyTextField.formatDisplay(r.cost),
     );
+    // Giá tham khảo cho đúng máy + lỗi này — xem `_priceRefCard`.
+    final priceRef = await _resolveRepairPriceRef();
+    if (!mounted) return;
 
     final confirm = await showDialog<bool>(
       context: context,
@@ -1915,6 +1932,18 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                   ),
                   const SizedBox(height: 12),
                   if (_isDeliverySameDay) ...[
+                    _priceRefCard(
+                      priceRef,
+                      // Ô giá vốn chỉ hiện khi có quyền xem giá vốn — CLAUDE.md §9.
+                      showCost: _canViewCostPrice,
+                      onUsePrice: (v) => setS(
+                        () => priceCtrl.text =
+                            CurrencyTextField.formatDisplay(v),
+                      ),
+                      onUseCost: (v) => setS(
+                        () => costCtrl.text = CurrencyTextField.formatDisplay(v),
+                      ),
+                    ),
                     CurrencyTextField(
                       controller: priceCtrl,
                       label: dialogLoc.chargeCustomerVnd,
@@ -3432,6 +3461,192 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     await _selectPartsFromInventory(skipWarning: true);
   }
 
+  /// Giá tham khảo cho đúng máy + lỗi của đơn sửa này.
+  ///
+  /// Dùng chung nguồn với màn TẠO đơn sửa và màn Bảng giá
+  /// (`PriceBookService.resolveRepair`): ưu tiên giá GHIM của chủ shop, không
+  /// có thì lấy trung vị lịch sử các đơn cùng máy + cùng lỗi.
+  Future<PriceResolution> _resolveRepairPriceRef() async {
+    final model = r.model.trim();
+    if (model.isEmpty) return const PriceResolution();
+    try {
+      return await PriceBookService.resolveRepair(
+        model: model,
+        issue: r.issue.trim().isEmpty ? null : r.issue.trim(),
+      );
+    } catch (e) {
+      // Không có giá tham khảo thì hộp thoại vẫn phải mở được như thường.
+      debugPrint('RepairDetail._resolveRepairPriceRef: $e');
+      return const PriceResolution();
+    }
+  }
+
+  /// Thẻ "Giá tham khảo" trong hộp thoại TÀI CHÍNH ĐƠN SỬA.
+  ///
+  /// Mỗi dòng có nút **Dùng** để điền thẳng vào ô bên dưới — mục đích là khỏi
+  /// phải nhớ số rồi gõ tay, gõ tay là chỗ dễ nhầm một số 0.
+  ///
+  /// [showCost] đi theo `canEditCost` (đã gồm quyền xem giá vốn) — CLAUDE.md §9:
+  /// không có quyền thì KHÔNG được thấy dòng giá vốn tham khảo.
+  Widget _priceRefCard(
+    PriceResolution ref, {
+    required bool showCost,
+    required ValueChanged<int> onUsePrice,
+    required ValueChanged<int> onUseCost,
+  }) {
+    final refPrice = ref.price ?? 0;
+    final refCost = ref.cost ?? 0;
+    final hasPrice = refPrice > 0;
+    final hasCost = showCost && refCost > 0;
+
+    final what = [
+      r.model.trim(),
+      if (r.issue.trim().isNotEmpty) r.issue.trim(),
+    ].where((e) => e.isNotEmpty).join(' · ');
+
+    // Không có gì để tham khảo thì nói thẳng, đừng để một khoảng trắng khiến
+    // người dùng tưởng app chưa tải xong.
+    if (!hasPrice && !hasCost) {
+      return Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline, size: 15, color: Colors.grey.shade500),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                what.isEmpty
+                    ? 'Chưa có giá tham khảo.'
+                    : 'Chưa có giá tham khảo cho "$what" — đơn đầu tiên của loại này.',
+                style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final pinned = ref.isPinned;
+    final accent = pinned ? Colors.indigo : Colors.teal;
+    final sourceLabel = pinned
+        ? 'Giá niêm yết (chủ shop đã ghim)'
+        : ref.sampleCount > 0
+            ? 'Trung vị ${ref.sampleCount} đơn cũ'
+                '${ref.confidenceLabel.isNotEmpty ? ' · ${ref.confidenceLabel}' : ''}'
+            : 'Từ lịch sử đơn cũ';
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: accent.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: accent.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                pinned ? Icons.sell_rounded : Icons.insights_rounded,
+                size: 15,
+                color: accent.shade700,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'GIÁ THAM KHẢO',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: accent.shade700,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (what.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              what,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 11, color: accent.shade700),
+            ),
+          ],
+          const SizedBox(height: 6),
+          if (hasPrice)
+            _priceRefLine(
+              label: 'Thu khách',
+              amount: refPrice,
+              color: Colors.green.shade800,
+              onUse: () => onUsePrice(refPrice),
+            ),
+          if (hasCost)
+            _priceRefLine(
+              label: 'Giá vốn',
+              amount: refCost,
+              color: Colors.deepOrange.shade700,
+              onUse: () => onUseCost(refCost),
+            ),
+          const SizedBox(height: 2),
+          Text(
+            sourceLabel,
+            style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _priceRefLine({
+    required String label,
+    required int amount,
+    required Color color,
+    required VoidCallback onUse,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 76,
+            child: Text(label, style: const TextStyle(fontSize: 12)),
+          ),
+          Expanded(
+            child: Text(
+              MoneyUtils.formatVND(amount),
+              style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: onUse,
+            style: TextButton.styleFrom(
+              minimumSize: const Size(48, 30),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+            ),
+            child: const Text('Dùng', style: TextStyle(fontSize: 12.5)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _editFinancials() async {
     if (!_ensureCanEditRepairCharge()) {
       return;
@@ -3459,6 +3674,16 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     bool noCost = r.cost == 0 &&
         r.costRecordedAt != null &&
         (r.costRecordedAt ?? 0) > 0;
+
+    // Giá tham khảo cho ĐÚNG máy + lỗi này, tra trước khi mở hộp thoại.
+    //
+    // Màn TẠO đơn sửa đã hiện giá đề xuất từ lâu, nhưng hộp thoại SỬA giá thì
+    // chưa — vào đây là một ô trống, phải tự nhớ hoặc thoát ra mở Bảng giá.
+    // Tra ở đây (SharedPreferences + SQLite, không gọi mạng) nên chỉ tốn một
+    // nhịp trước khi hộp thoại hiện ra.
+    final priceRef = await _resolveRepairPriceRef();
+    if (!mounted) return;
+
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) {
@@ -3468,9 +3693,21 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             title: Text(dialogLoc.repairOrderFinance),
             content: Form(
               key: formKey,
-              child: Column(
+              child: SingleChildScrollView(
+                child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  _priceRefCard(
+                    priceRef,
+                    showCost: canEditCost,
+                    onUsePrice: (v) => setDialogState(
+                      () => priceC.text = CurrencyTextField.formatDisplay(v),
+                    ),
+                    onUseCost: (v) => setDialogState(() {
+                      noCost = false;
+                      costC.text = CurrencyTextField.formatDisplay(v);
+                    }),
+                  ),
                   CurrencyTextField(
                     controller: priceC,
                     label: dialogLoc.chargeCustomerVnd,
@@ -3509,6 +3746,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     ),
                   ],
                 ],
+              ),
               ),
             ),
             actions: [

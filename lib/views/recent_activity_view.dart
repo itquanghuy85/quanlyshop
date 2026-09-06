@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../core/utils/money_utils.dart';
+import '../services/activity_navigator.dart';
 import '../services/event_bus.dart';
 import '../services/recent_activity_service.dart';
 import '../widgets/custom_app_bar.dart';
@@ -271,10 +272,24 @@ class _RecentActivityViewState extends State<RecentActivityView> {
   Widget _buildItemCard(RecentActivityItem item) {
     final icon = _iconFor(item);
     final color = _colorFor(item);
+    // Bản cũ không dòng nào bấm được vì model không mang mã tham chiếu. Nay
+    // `RecentActivityItem` đã có referenceType/referenceId nên dùng chung
+    // [ActivityNavigator] với "HOẠT ĐỘNG HÔM NAY" ở Trang chủ.
+    final canOpen = ActivityNavigator.canOpen(
+      type: item.referenceType,
+      firestoreId: item.referenceId,
+    );
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
+        onTap: canOpen
+            ? () => ActivityNavigator.open(
+                context,
+                type: item.referenceType,
+                firestoreId: item.referenceId,
+              )
+            : null,
         leading: CircleAvatar(
           backgroundColor: color.withOpacity(0.12),
           child: Icon(icon, color: color, size: 20),
@@ -298,16 +313,30 @@ class _RecentActivityViewState extends State<RecentActivityView> {
             ),
           ],
         ),
-        trailing: item.amount != null
-            ? Text(
-                _amountLabel(item),
-                style: TextStyle(
-                  color: _amountColor(item),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
-              )
-            : null,
+        // Mũi tên ">" chỉ hiện đúng khi dòng đó mở được — không có nó thì
+        // người dùng phải bấm thử từng dòng mới biết dòng nào đi được đâu.
+        trailing: (item.amount == null && !canOpen)
+            ? null
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (item.amount != null)
+                    Text(
+                      _amountLabel(item),
+                      style: TextStyle(
+                        color: _amountColor(item),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  if (canOpen)
+                    Icon(
+                      Icons.chevron_right,
+                      size: 18,
+                      color: Colors.grey.shade400,
+                    ),
+                ],
+              ),
       ),
     );
   }

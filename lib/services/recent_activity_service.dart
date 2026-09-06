@@ -20,6 +20,16 @@ class RecentActivityItem {
   final String? direction;
   final String? status;
 
+  /// Loại đối tượng gốc của dòng này (`sale`, `repair`, `expense`, `debt`…) và
+  /// mã của nó — để bấm vào mở được màn chi tiết.
+  ///
+  /// Trước đây model KHÔNG mang hai trường này, nên cả màn "HOẠT ĐỘNG GẦN ĐÂY"
+  /// không có dòng nào bấm được, dù dữ liệu gốc (`financial_activity_log`
+  /// có `referenceType`/`referenceId`, `audit_logs` có `targetType`/`targetId`)
+  /// vốn đã đủ để mở.
+  final String? referenceType;
+  final String? referenceId;
+
   const RecentActivityItem({
     required this.id,
     required this.source,
@@ -30,6 +40,8 @@ class RecentActivityItem {
     required this.amount,
     required this.direction,
     required this.status,
+    this.referenceType,
+    this.referenceId,
   });
 }
 
@@ -85,6 +97,8 @@ class RecentActivityService {
             amount: _toNullableInt(row['amount']),
             direction: row['direction']?.toString(),
             status: null,
+            referenceType: row['referenceType']?.toString(),
+            referenceId: row['referenceId']?.toString(),
           ),
         );
       }
@@ -141,6 +155,11 @@ class RecentActivityService {
             amount: null,
             direction: null,
             status: null,
+            // `audit_logs` ghi cả cặp cũ (targetType/targetId) lẫn cặp mới
+            // (entityType/entityId) tuỳ chỗ ghi — nhận cả hai.
+            referenceType:
+                (row['targetType'] ?? row['entityType'])?.toString(),
+            referenceId: (row['targetId'] ?? row['entityId'])?.toString(),
           ),
         );
       }

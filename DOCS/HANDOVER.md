@@ -9,6 +9,39 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-06  
 
+**🔗 VÁ: BẤM DÒNG HOẠT ĐỘNG KHÔNG ĐI ĐÂU + GIÁ THAM KHẢO CHO ĐƠN SỬA (`[2026-09-06k]`).**
+Chủ shop báo 2 việc. (1) "HOẠT ĐỘNG HÔM NAY" có **5/7 loại dòng bấm vào đứng
+im** — chi phí, thu/trả nợ, trả NCC, TT đối tác, công nợ mới; ba loại trong đó
+còn **không hề được gán mã tham chiếu**. Màn "HOẠT ĐỘNG GẦN ĐÂY" (nút *Xem tất
+cả*) thì **không dòng nào bấm được**, vì model `RecentActivityItem` không mang
+trường tham chiếu nào — dù bảng gốc vốn đã đủ dữ liệu.
+· **Sửa:** thêm `lib/services/activity_navigator.dart` — **một bảng đích duy
+nhất** cho mọi danh sách hoạt động (trước đó có 3 đoạn `switch` riêng, mỗi đoạn
+hiểu một tập loại khác nhau, kể cả bộ điều hướng thông báo đẩy trong
+`main.dart`). `canOpen()` và `open()` đọc cùng bảng ⇒ mũi tên ">" hiện đúng
+bằng số dòng thật sự mở được.
+· **Bẫy đã xử lý:** `financial_activity_log.referenceId` là *firestoreId* nhưng
+`audit_logs.targetId` là *id nội bộ* — tra firestoreId trước rồi rơi về khoá
+SQLite; không có bước này thì mọi dòng đến từ nhật ký hệ thống đều bấm không ra
+gì. Tra không ra thì **báo snackbar**, không im lặng như bản cũ.
+· `DebtView` thêm `initialTab` để bấm "Công nợ phải TRẢ mới" không rơi vào tab
+"Phải THU".
+· (2) **Giá tham khảo** thêm vào **cả 3** hộp thoại nhập giá đơn sửa
+(`_editFinancials`, `_submitForDeliveryApproval`, `_approveDelivery`) — trước
+chỉ màn TẠO đơn mới có. Dùng chung `PriceBookService.resolveRepair` (ưu tiên giá
+GHIM, không có thì trung vị cùng máy + cùng lỗi), có nút **Dùng** điền thẳng vào
+ô. **Dòng giá vốn chỉ hiện khi có quyền xem giá vốn** (CLAUDE.md §9).
+· **✅ Nghiệm thu máy thật CPH2203:** Công nợ phải trả mới → mở đúng tab Phải
+trả ✅ · DUYỆT GIAO MÁY ở màn Gần đây → mở đúng đơn sửa ✅ · dòng không mở được
+đúng là không có mũi tên ✅ · dòng trỏ tới bản ghi đã xoá hiện snackbar cam thay
+vì đứng im ✅ (đối chiếu SQLite trên máy: **21/23** tham chiếu 24h tra ra bản
+ghi, 2 cái kia đã bị xoá thật) · thẻ giá tham khảo `1.800.000 / 1.400.000 ·
+Trung vị 2 đơn cũ`, bấm **Dùng** điền đúng ✅ · đơn chưa có lịch sử hiện đúng
+"Chưa có giá tham khảo… đơn đầu tiên của loại này" ✅ · logcat 0 overflow,
+0 exception.
+· `flutter analyze lib/` 0 error. `flutter test` 614 pass / 8 fail — đúng 8 fail
+có sẵn, không phát sinh mới.
+
 **📏 VÁ TIẾP: DANH SÁCH GIAO DỊCH CHỈ HIỆN 1-2 DÒNG (`[2026-09-06j]`).**
 Chủ shop nghiệm thu bản `i` báo "list giao dịch hơi nhỏ chỉ hiện được 1 2 giao
 dịch rất khó quan sát". Đo lại: `Column` + `Expanded` khiến phần đầu chiếm chỗ
