@@ -77,10 +77,14 @@ ghi chú đúng y hệt, chỉ là không ai gọi) cho cả kỳ hiện tại l
 đổi**. Chênh đúng 59,66 triệu. Test 8/8 PASS, `flutter test` +584 −8.
 · **⚠️ Nút "30 ngày" KHÔNG lỗi** — `subtract(days: 29)` + `end = hôm nay` là đúng
 30 ngày kể cả hôm nay. Từng tưởng nhầm là lệch 1 ngày, đừng "sửa".
-· **⚠️ Chưa kiểm chứng được đồng bộ xoá sang máy khác:** máy CPH2239 đang đăng
-nhập **shop khác** (`xrlYBx9g…`, 0 đơn bán), không dùng đối chứng được. Code thì
-đã xác nhận đúng: `sync_service.dart:1218` thấy `deleted == true` là gọi
-`deleteSaleByFirestoreId`, và `sales` nằm trong danh sách listener realtime.
+· **✅ ĐÃ KIỂM CHỨNG ĐỒNG BỘ XOÁ SANG MÁY KHÁC (06/09/2026).** Đăng nhập
+`huy@huluca.com` trên máy 2 (Oppo CPH2239) — máy này **tải mới hoàn toàn từ
+Firestore**, không dính dữ liệu cũ. Kết quả khớp máy 1 **từng đồng**:
+**4.240 đơn bán · KV 3.973/3.973 (thừa = 0) · doanh thu 64.210.963.000đ**
+(2024: 23.638.219.000 · 2025: 25.182.160.000 · 2026: 15.390.584.000).
+⇒ Cloud đã sạch thật, không phải chỉ sạch ở máy đã dọn. Cơ chế:
+`sync_service.dart:1218` thấy `deleted == true` là gọi `deleteSaleByFirestoreId`,
+và `sales` nằm trong danh sách listener realtime.
 
 **✅ ĐÃ DỌN XONG 2.245 ĐƠN KIOTVIET TRÙNG — NGHIỆM THU 06/09/2026.**
 Chủ shop tự bấm nút (bước cuối đòi mật khẩu đăng nhập). Đối chiếu CSDL thật
