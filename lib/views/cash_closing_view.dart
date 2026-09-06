@@ -121,7 +121,9 @@ class _CashClosingViewState extends State<CashClosingView>
     );
     _loadShopSettings();
     _loadAllData();
-    _refreshHistory();
+    // Gán thẳng, KHÔNG gọi `_refreshHistory()`: trong `initState` chưa được
+    // phép `setState`.
+    _historyFuture = _loadHistoryClosings();
     _initRealTimeSync();
     if (!widget.showOnlyTransactions) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -3025,13 +3027,20 @@ class _CashClosingViewState extends State<CashClosingView>
   static const int _historyLimit = 365;
 
   /// Nạp lại danh sách lịch sử chốt quỹ (gọi sau khi chốt quỹ / nhận sync).
+  ///
+  /// KHÔNG dùng `setState(() => _historyFuture = future)`: biểu thức gán trả về
+  /// chính `Future` vừa gán, mà `setState` khẳng định callback phải trả `void`
+  /// ⇒ màn hình chết cờ đỏ ngay khi mở. Phải dùng thân hàm `{ }`.
+  /// Cũng KHÔNG gọi hàm này trong `initState` — xem `initState`.
   void _refreshHistory() {
     final future = _loadHistoryClosings();
-    if (mounted) {
-      setState(() => _historyFuture = future);
-    } else {
+    if (!mounted) {
       _historyFuture = future;
+      return;
     }
+    setState(() {
+      _historyFuture = future;
+    });
   }
 
   /// Load history from Firestore first, fallback to local DB

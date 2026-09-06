@@ -9,6 +9,32 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-06  
 
+**✅ ĐÃ NGHIỆM THU 2 MÁY THẬT ĐỢT AUDIT CHỐT QUỸ (`[2026-09-06g]`).**
+Máy test (CPH2239, shop M) chạy đủ luồng ghi; máy chủ shop (CPH2203, HULUCA
+STORE — 4.243 đơn bán, 1.342 đơn KẾT HỢP) **chỉ đọc**, xác nhận không ghi gì
+(cash_closings vẫn 14 dòng, sales vẫn 4.243).
+· **Bắt được 1 crash do chính bản vá f gây ra:** mở Sổ quỹ là màn đỏ chết —
+`setState(() => _historyFuture = future)` dùng arrow nên closure **trả về
+Future**, lại còn gọi trong `initState`. `flutter analyze` không bắt được (assert
+lúc chạy). Đã vá + soát hết `setState(() => …)` còn lại trong 4 file sửa đợt này.
+· **Kết quả nghiệm thu:** sắp xếp + hiện ngày ✅ · tab Lịch sử 0 lần gọi lại
+Firestore sau 7 vòng chuyển tab ✅ · lệch quỹ lưu đúng và dựng lại được kỳ vọng ✅
+· 14 bản ghi chốt quỹ cũ hiện ổ khoá xám, KHÔNG bịa "Khớp quỹ" ✅ · gõ `6000000`
+ra `6.000.000` + chênh lệch đúng ✅ · Excel `30082026_06092026` ngày đúng từng
+dòng ✅ · đơn KẾT HỢP 4tr TM + 6tr CK vào đúng 2 quỹ ✅ · thẻ CẦN XỬ LÝ khớp
+trang Nhắc nhở trên cả 2 máy ✅.
+· **⚠️ Số của shop sẽ đổi sau bản vá:** 1.342 đơn KẾT HỢP trong lịch sử, tổng
+phần tiền mặt **8,44 tỷ** trước nay bị ghi vào ngân hàng. Kỳ đang mở (từ 02/09)
+lệch **17tr**: tiền mặt +17tr, ngân hàng −17tr so với app hiển thị hôm qua. Đây
+là con số ĐÚNG, không phải lỗi mới.
+
+**❓ CẦN CHỦ SHOP QUYẾT — màn "LỊCH SỬ TÀI CHÍNH" là UI chết.**
+`CashClosingView.showOnlyTransactions` / `initialTab` **chưa từng được truyền**
+ở bất kỳ đâu (cả 5 nơi đều `const CashClosingView()`). Cả màn hình có ô tìm
+kiếm giao dịch, bộ lọc theo loại, chọn khoảng ngày — đã viết xong và chạy được
+nhưng **không có nút nào mở ra**. Chọn: (a) mở lối vào (thêm 1 nút ở Sổ quỹ hoặc
+Tài chính) hay (b) xoá hẳn cho gọn.
+
 **🧹 ĐÃ DỌN XONG 9 ĐIỂM TỒN CỦA AUDIT CHỐT QUỸ (`[2026-09-06f]`) — DB v111.**
 Sắp xếp giao dịch nay theo mốc thời gian THẬT (`timestamp`) chứ không so chuỗi
 `"HH:mm"`, thẻ hiện `dd/MM HH:mm` khi gộp nhiều ngày; tổng Thu/Chi theo đúng bộ
@@ -20,10 +46,7 @@ dối "khớp quỹ"); ô "Thực tế" dùng formatter tiền chuẩn của d�
 `CashClosingNotifier`** (359 dòng): API chặn giao dịch không nơi nào gọi, nhánh
 thông báo không bao giờ chạy, phần sync trùng `sync_service` mục 19 — mà vẫn
 poll Firestore ở 5 sự kiện.
-**⚠️ CHƯA nghiệm thu máy thật.** Cần kiểm trên máy: (a) chốt quỹ có lệch → mở
-tab Lịch sử phải thấy dòng "Lệch: …" + ghi chú; (b) gõ `6.000.000` vào ô Thực tế
-phải ra đúng 6 triệu; (c) khi có ngày chưa chốt, tab Giao dịch phải hiện ngày
-trên từng dòng và sắp đúng thứ tự; (d) xuất Excel phải đủ mọi ngày trong khoảng.
+**✅ ĐÃ nghiệm thu máy thật** — xem `[2026-09-06g]`.
 **Lưu ý nâng cấp:** DB lên **v111** — máy cũ chạy migration `ALTER TABLE
 cash_closings ADD COLUMN cashDiff/bankDiff` (đã test trên SQLite thật, chạy 2
 lần không nổ).

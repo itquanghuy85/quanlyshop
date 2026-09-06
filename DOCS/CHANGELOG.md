@@ -71,6 +71,65 @@ Sửa giá dịch vụ `EK` từ 500.000 → 350.000 trên đơn #1048:
 
 ---
 
+## [2026-09-06g] - fix(chốt quỹ) VÁ CRASH MÀN SỔ QUỸ + NGHIỆM THU 2 MÁY THẬT
+
+### Crash do chính bản vá `[2026-09-06f]` gây ra — đã vá
+
+Mở Sổ quỹ là **màn đỏ chết ngay**:
+> setState() callback argument returned a Future. The setState() method on
+> _CashClosingViewState (lifecycle state: created, ticker inactive) …
+
+Hai lỗi chồng nhau trong `_refreshHistory()`:
+1. `setState(() => _historyFuture = future)` — biểu thức gán **trả về chính
+   `Future` vừa gán**, mà `setState` khẳng định callback phải trả `void`.
+2. Hàm này lại được gọi trong `initState`, nơi chưa được phép `setState`.
+
+Sửa: dùng thân hàm `{ }` cho `setState`, và `initState` gán thẳng
+`_historyFuture = _loadHistoryClosings();`.
+
+**`flutter analyze` KHÔNG bắt được** (assert lúc chạy) — chỉ lộ ra khi mở app
+trên máy thật. Đã soát toàn bộ `setState(() => …)` còn lại trong 4 file sửa đợt
+này: tất cả đều gán bool/int/String, không phải Future.
+
+### Nghiệm thu 2 máy thật
+
+| # | Hạng mục | Kết quả |
+|---|---|---|
+| 1 | Sắp xếp + hiện ngày khi gộp nhiều ngày | ✅ thẻ hiện `06/09 15:58`, `05/09 13:23`, `05/09 09:49`, `31/08 10:51` — đúng thứ tự thời gian thật (sắp theo chuỗi giờ sẽ đẩy `31/08 10:51` lên trên `05/09 09:49`) |
+| 3 | Tab Lịch sử hết gọi Firestore trong `build()` | ✅ 4 vòng chuyển tab trên máy test + 3 vòng trên máy thật = **0** lần nạp lại |
+| 4 | Lưu lệch quỹ | ✅ DB: `cashStart=4.010.000, expectedCashDelta=-3.425.096 ⇒ kỳ vọng 584.904`, `cashDiff=5.415.096`; thẻ Lịch sử hiện "Lệch: +5.415 Tr TM • +0 CK" |
+| 4b | Bản ghi CŨ giữ NULL | ✅ 14 lần chốt quỹ cũ trên shop thật hiện **ổ khoá xám**, KHÔNG hiện "Khớp quỹ" |
+| 5 | Ô "Thực tế" định dạng nghìn | ✅ điền sẵn `584.904` / `22.780.000`; gõ `6000000` → `6.000.000`, Chênh lệch `+5.415 Tr` (lỗi cũ ra 0) |
+| 7 | Xuất Excel đúng khoảng ngày | ✅ `so_quy_giao_dich_30082026_06092026.xlsx`, cột Ngày đúng theo TỪNG dòng (06/09, 05/09, 04/09, 31/08…), đủ 14 giao dịch |
+| B | Đơn KẾT HỢP tách đúng quỹ | ✅ đơn 10tr (4tr TM + 6tr CK): log `cashIn=4000000, bankIn=6000000`; Sổ quỹ tiền mặt `-3.415 Tr → 584.904` (+4tr), ngân hàng `16.78 → 22.78 Tr` (+6tr) |
+| A | Gộp CẦN XỬ LÝ ↔ Nhắc nhở | ✅ máy test `CẦN XỬ LÝ (19)` = 9+3+3+2+1+1 khớp trang Nhắc nhở; máy thật `CẦN XỬ LÝ (86)`; hết dòng "N việc cần xử lý" trỏ vòng |
+
+Máy thật (HULUCA STORE) chỉ ĐỌC: `cash_closings` vẫn 14 dòng, `sales` vẫn 4.243
+— không ghi gì.
+
+### Đo tác động thật của lỗi KẾT HỢP (shop HULUCA STORE)
+
+**1.342 đơn** KẾT HỢP trong toàn bộ lịch sử, tổng phần tiền mặt **8.436.512.000đ**
+— trước bản vá toàn bộ số này bị ghi nhận vào **ngân hàng**. Riêng kỳ đang mở
+(từ 02/09) có 1 đơn 17.000.000đ tiền mặt bị đẩy sang ngân hàng.
+⚠️ Sau bản vá, số kỳ vọng của kỳ hiện tại đổi: tiền mặt **+17tr**, ngân hàng
+**−17tr** so với những gì app hiển thị hôm qua. Đây là con số ĐÚNG.
+
+### Phát hiện thêm (CHƯA xử lý — cần quyết định)
+
+`CashClosingView.showOnlyTransactions` và `initialTab` **chưa từng được truyền
+`true`/khác 0 ở bất kỳ đâu** (5 nơi tạo `CashClosingView` đều dùng
+`const CashClosingView()`). Nghĩa là cả màn **"LỊCH SỬ TÀI CHÍNH"** — ô tìm
+kiếm, bộ lọc theo loại giao dịch, chọn khoảng ngày — là **UI chết, không có lối
+vào**. Bản vá "tổng Thu/Chi theo bộ lọc" (mục 2 của `[2026-09-06f]`) là đúng
+nhưng nằm trong màn này nên chưa kiểm được qua giao diện.
+Cần chủ shop quyết: **mở lối vào** (màn đã chạy được, chỉ thiếu nút) hay **xoá**.
+
+### Files
+- `lib/views/cash_closing_view.dart` — vá `_refreshHistory` + `initState`
+
+---
+
 ## [2026-09-06f] - fix(đơn sửa) KHÔNG CHỌN ĐƯỢC PHỤ TÙNG
 
 **Chủ shop báo:** *"lỗi không chọn được phụ tùng đơn sửa"*.
