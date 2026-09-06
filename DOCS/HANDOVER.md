@@ -9,6 +9,22 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-06  
 
+**🔍 ĐÃ MỞ LỐI VÀO MÀN "LỊCH SỬ TÀI CHÍNH" (`[2026-09-06h]`).**
+Chủ shop chọn (a). Nút **kính lúp "Tìm giao dịch"** trên thanh tiêu đề Sổ quỹ →
+màn tìm kiếm / lọc theo loại / chọn khoảng ngày. Đặt vào đúng ô nút lịch cũ vì
+nút đó **trùng y hệt** chip ngày trên tiêu đề (cùng gọi `_pickDate`) — không
+phải chen thêm icon vào thanh đã chật. Thêm `initialDate` để giữ nguyên ngày
+đang xem; bỏ `initialTab` (cũng là tham số chết).
+· **Vá trước khi mở:** bộ lọc trong màn này dùng đúng kiểu gọi đã gây crash
+`_dependents.isEmpty` ở 3 chỗ khác (setState lên state cha + pop trong cùng
+callback). Viết lại: sheet chỉ `pop` kèm kết quả, state cha đổi sau khi sheet
+đóng hẳn.
+· **✅ ĐÃ nghiệm thu máy test:** lọc "Bán hàng" → `13 giao dịch · Thu 18.2 Tr`
+đổi đúng thành `1 giao dịch · Thu 10 Tr · Chi 0` (đây là mục 2 của
+`[2026-09-06f]` mà trước nay không kiểm được vì màn không có lối vào); xoá lọc
+không crash; tìm "PHAM" ra đúng 1 dòng; chọn khoảng `01/09 - 05/09` đúng 5 giao
+dịch; chip ngày ở Sổ quỹ vẫn mở lịch bình thường.
+
 **✅ ĐÃ NGHIỆM THU 2 MÁY THẬT ĐỢT AUDIT CHỐT QUỸ (`[2026-09-06g]`).**
 Máy test (CPH2239, shop M) chạy đủ luồng ghi; máy chủ shop (CPH2203, HULUCA
 STORE — 4.243 đơn bán, 1.342 đơn KẾT HỢP) **chỉ đọc**, xác nhận không ghi gì
@@ -27,13 +43,6 @@ trang Nhắc nhở trên cả 2 máy ✅.
 phần tiền mặt **8,44 tỷ** trước nay bị ghi vào ngân hàng. Kỳ đang mở (từ 02/09)
 lệch **17tr**: tiền mặt +17tr, ngân hàng −17tr so với app hiển thị hôm qua. Đây
 là con số ĐÚNG, không phải lỗi mới.
-
-**❓ CẦN CHỦ SHOP QUYẾT — màn "LỊCH SỬ TÀI CHÍNH" là UI chết.**
-`CashClosingView.showOnlyTransactions` / `initialTab` **chưa từng được truyền**
-ở bất kỳ đâu (cả 5 nơi đều `const CashClosingView()`). Cả màn hình có ô tìm
-kiếm giao dịch, bộ lọc theo loại, chọn khoảng ngày — đã viết xong và chạy được
-nhưng **không có nút nào mở ra**. Chọn: (a) mở lối vào (thêm 1 nút ở Sổ quỹ hoặc
-Tài chính) hay (b) xoá hẳn cho gọn.
 
 **🧹 ĐÃ DỌN XONG 9 ĐIỂM TỒN CỦA AUDIT CHỐT QUỸ (`[2026-09-06f]`) — DB v111.**
 Sắp xếp giao dịch nay theo mốc thời gian THẬT (`timestamp`) chứ không so chuỗi

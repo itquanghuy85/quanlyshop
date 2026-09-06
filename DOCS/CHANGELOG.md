@@ -4,6 +4,54 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-06h] - feat(sổ quỹ) MỞ LỐI VÀO MÀN "LỊCH SỬ TÀI CHÍNH" (đang chết)
+
+Chủ shop chọn phương án (a) sau phát hiện ở `[2026-09-06g]`.
+
+### Vấn đề
+
+`CashClosingView.showOnlyTransactions` chưa từng được truyền `true` ở bất kỳ
+đâu (5 nơi tạo `CashClosingView` đều dùng `const CashClosingView()`) ⇒ toàn bộ
+màn **"LỊCH SỬ TÀI CHÍNH"** — ô tìm kiếm giao dịch, bộ lọc theo loại, chọn
+khoảng ngày — đã viết xong, chạy được, nhưng **không nút nào mở ra**.
+
+### Lối vào
+
+Đặt vào đúng ô của nút lịch cũ trên thanh tiêu đề Sổ quỹ: nút đó gọi `_pickDate`
+— **trùng y hệt chip ngày ngay trên tiêu đề**, bỏ đi không mất chức năng nào.
+Nhờ vậy không phải chen thêm icon thứ 5 vào thanh vốn đã chật.
+
+- 🔍 **Tìm giao dịch** → `CashClosingView(showOnlyTransactions: true,
+  initialDate: _selectedDate)` — giữ nguyên ngày đang xem ở Sổ quỹ.
+- Thêm tham số `initialDate`; **bỏ `initialTab`** (cũng là tham số chết).
+
+### Vá trước khi mở cho người dùng
+
+Màn này chưa từng chạy thật nên code trong đó chưa được kiểm chứng. Bộ lọc dùng
+đúng kiểu gọi đã gây crash `_dependents.isEmpty` ở 3 chỗ khác: `setSheetState` +
+`setState` lên state CHA + `unfocus` + `Navigator.pop` trong cùng một callback.
+Viết lại: sheet chỉ `pop` kèm **kết quả**, state cha đổi sau khi sheet đóng hẳn;
+bỏ tiêu điểm ô tìm kiếm TRƯỚC khi mở sheet; bỏ luôn `StatefulBuilder` không cần.
+
+### Nghiệm thu máy thật (máy test, shop "M")
+
+| Hạng mục | Kết quả |
+|---|---|
+| Nút "Tìm giao dịch" | ✅ có trên thanh tiêu đề Sổ quỹ |
+| Mở màn, kế thừa ngày | ✅ `LỊCH SỬ TÀI CHÍNH · 30/08 - 06/09/2026 (chưa chốt quỹ)` |
+| **Tổng theo bộ lọc** (mục 2 của `[2026-09-06f]`, trước nay không kiểm được) | ✅ trước lọc `13 giao dịch · Thu 18.2 Tr · Chi 14.35 Tr` → lọc "Bán hàng" `GIAO DỊCH ĐÃ LỌC · 1 giao dịch · Thu 10 Tr · Chi 0` |
+| Xoá bộ lọc | ✅ về lại 13 giao dịch, **không** crash `_dependents` |
+| Ô tìm kiếm | ✅ gõ "PHAM" → 1 giao dịch, tổng Thu 600.000 theo đúng kết quả tìm |
+| Chọn khoảng ngày | ✅ `01/09 - 05/09/2026`, 5 giao dịch, sắp đúng thứ tự thời gian |
+| Chip ngày ở Sổ quỹ | ✅ vẫn mở lịch bình thường sau khi bỏ nút trùng |
+
+### Files
+- `lib/views/cash_closing_view.dart` — lối vào + `initialDate` + bỏ `initialTab`
+  + viết lại `_showTxFilterSheet`
+- `lib/data/app_knowledge_base.dart` — thêm mục `so-quy-tim-giao-dich`
+
+---
+
 ## [2026-09-06g] - fix(đơn sửa) SỬA DỊCH VỤ LÀM MẤT ĐỐI TÁC ⇒ MẤT CÔNG NỢ
 
 **Chủ shop báo:** *"thanh toán dịch vụ bằng công nợ không thấy ghi nợ, chỉ thấy

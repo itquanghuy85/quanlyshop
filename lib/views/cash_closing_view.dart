@@ -44,12 +44,18 @@ bool _isCustomerOwesDebt(String? debtType) {
 
 /// Trang chốt quỹ chuyên nghiệp - Thiết kế lại hoàn toàn
 class CashClosingView extends StatefulWidget {
-  final int initialTab;
+  /// `true` = mở màn "LỊCH SỬ TÀI CHÍNH": chỉ danh sách giao dịch, kèm ô tìm
+  /// kiếm, bộ lọc theo loại và chọn khoảng ngày.
   final bool showOnlyTransactions;
+
+  /// Ngày mở màn (mặc định hôm nay). Dùng khi mở màn tìm giao dịch từ Sổ quỹ
+  /// để giữ nguyên ngày người dùng đang xem.
+  final DateTime? initialDate;
+
   const CashClosingView({
     super.key,
-    this.initialTab = 0,
     this.showOnlyTransactions = false,
+    this.initialDate,
   });
 
   @override
@@ -112,12 +118,12 @@ class _CashClosingViewState extends State<CashClosingView>
   void initState() {
     super.initState();
     _checkPermission();
+    // PHẢI đặt trước `_loadAllData()` bên dưới — hàm đó bound truy vấn theo
+    // `_selectedDate`.
+    if (widget.initialDate != null) _selectedDate = widget.initialDate!;
     _tabController = TabController(
       length: widget.showOnlyTransactions ? 1 : 4,
       vsync: this,
-      initialIndex: widget.showOnlyTransactions
-          ? 0
-          : widget.initialTab.clamp(0, 3),
     );
     _loadShopSettings();
     _loadAllData();
@@ -1125,9 +1131,16 @@ class _CashClosingViewState extends State<CashClosingView>
           onPressed: _exportCashClosingExcel,
           splashRadius: 18,
         ),
+        // LỐI VÀO màn "LỊCH SỬ TÀI CHÍNH" (tìm kiếm + lọc + chọn khoảng ngày).
+        // Trước 2026-09-06 màn đó đã viết xong nhưng KHÔNG chỗ nào mở ra được
+        // (`showOnlyTransactions` chưa từng được truyền `true`).
+        //
+        // Đặt vào đúng ô của nút lịch cũ: nút đó gọi `_pickDate`, TRÙNG y hệt
+        // chip ngày ngay trên tiêu đề — bỏ đi không mất chức năng nào.
         IconButton(
-          icon: const Icon(Icons.calendar_month, size: 20, color: Colors.white),
-          onPressed: _pickDate,
+          tooltip: 'Tìm giao dịch',
+          icon: const Icon(Icons.manage_search, size: 22, color: Colors.white),
+          onPressed: _openTransactionSearch,
           splashRadius: 18,
         ),
       ],
@@ -1184,6 +1197,20 @@ class _CashClosingViewState extends State<CashClosingView>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Mở màn "LỊCH SỬ TÀI CHÍNH" — tìm kiếm / lọc giao dịch, giữ nguyên ngày
+  /// đang xem ở Sổ quỹ.
+  void _openTransactionSearch() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CashClosingView(
+          showOnlyTransactions: true,
+          initialDate: _selectedDate,
+        ),
       ),
     );
   }
@@ -2748,7 +2775,16 @@ class _CashClosingViewState extends State<CashClosingView>
 
   // ─── TRANSACTION FILTER SHEET ──────────────────────────────
 
-  void _showTxFilterSheet() {
+  /// Bộ lọc theo loại giao dịch.
+  ///
+  /// Sheet KHÔNG tự `setState` lên state cha rồi mới `pop`: đó đúng là kiểu gọi
+  /// đã gây crash `_dependents.isEmpty` ở 3 chỗ khác trong app (xem
+  /// `docs/CHANGELOG.md`). Ở đây sheet chỉ `pop` kèm KẾT QUẢ, state cha đổi sau
+  /// khi sheet đã đóng hẳn.
+  ///
+  /// Quy ước kết quả: `null` = người dùng vuốt đóng, không đổi gì;
+  /// `''` = bỏ lọc (Tất cả); còn lại = mã loại giao dịch.
+  Future<void> _showTxFilterSheet() async {
     final types = <Map<String, String>>[
       {'value': '', 'label': 'Tất cả'},
       {'value': 'sale', 'label': '🛒 Bán hàng'},
@@ -2766,97 +2802,90 @@ class _CashClosingViewState extends State<CashClosingView>
       {'value': 'debt_pay', 'label': '💸 Trả nợ'},
     ];
 
-    showModalBottomSheet(
+    // Bỏ tiêu điểm ô tìm kiếm TRƯỚC khi mở sheet — không để bàn phím bị đóng
+    // giữa lúc sheet đang dựng/gỡ.
+    FocusManager.instance.primaryFocus?.unfocus();
+    final current = _txTypeFilter;
+
+    final result = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) {
-          return Padding(
-            // Đọc từ `context` ngoài (không phải `ctx`) để tránh crash
-            // _dependents.isEmpty khi pop.
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.paddingOf(context).bottom,
-            ),
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.paddingOf(ctx).bottom,
+        ),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
               ),
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(2),
+              const SizedBox(height: 12),
+              Text(
+                'Lọc theo loại giao dịch',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: AppTextStyles.headline4.fontSize,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: types.map((t) {
+                  final val = t['value']!;
+                  final selected =
+                      (val.isEmpty && current == null) || val == current;
+                  return ChoiceChip(
+                    label: Text(
+                      t['label']!,
+                      style: TextStyle(
+                        fontSize: AppTextStyles.body1.fontSize,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Lọc theo loại giao dịch',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: AppTextStyles.headline4.fontSize,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: types.map((t) {
-                      final val = t['value']!;
-                      final selected =
-                          (val.isEmpty && _txTypeFilter == null) ||
-                          val == _txTypeFilter;
-                      return ChoiceChip(
-                        label: Text(
-                          t['label']!,
-                          style: TextStyle(
-                            fontSize: AppTextStyles.body1.fontSize,
-                          ),
-                        ),
-                        selected: selected,
-                        selectedColor: Colors.indigo.shade100,
-                        onSelected: (_) {
-                          setSheetState(() {});
-                          setState(() {
-                            _txTypeFilter = val.isEmpty ? null : val;
-                          });
-                          FocusManager.instance.primaryFocus?.unfocus();
-                          Navigator.pop(ctx);
-                        },
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 16),
-                  if (_txTypeFilter != null)
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          setState(() => _txTypeFilter = null);
-                          FocusManager.instance.primaryFocus?.unfocus();
-                          Navigator.pop(ctx);
-                        },
-                        icon: const Icon(Icons.clear_all, size: 18),
-                        label: const Text('Xóa bộ lọc'),
-                      ),
-                    ),
-                ],
+                    selected: selected,
+                    selectedColor: Colors.indigo.shade100,
+                    onSelected: (_) => Navigator.pop(ctx, val),
+                  );
+                }).toList(),
               ),
-            ),
-          );
-        },
+              const SizedBox(height: 16),
+              if (current != null)
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.pop(ctx, ''),
+                    icon: const Icon(Icons.clear_all, size: 18),
+                    label: const Text('Xóa bộ lọc'),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
+
+    if (!mounted || result == null) return;
+    final next = result.isEmpty ? null : result;
+    if (next == _txTypeFilter) return;
+    setState(() => _txTypeFilter = next);
   }
+
 
   // ─── TRANSACTIONS TAB ───────────────────────────────────────
 

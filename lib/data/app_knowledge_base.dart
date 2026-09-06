@@ -1344,6 +1344,45 @@ class AppKnowledgeBase {
 
     // ===== TRANG CHỦ / DASHBOARD =====
     KbEntry(
+      id: 'so-quy-tim-giao-dich',
+      title: 'Tìm giao dịch trong Sổ quỹ (Lịch sử tài chính)',
+      menuPath: 'Trang chủ → Sổ quỹ → biểu tượng kính lúp trên thanh tiêu đề',
+      whatItDoes:
+          'Xem TẤT CẢ giao dịch thu/chi trong một khoảng ngày tuỳ chọn, có ô '
+          'tìm theo tên khách / nội dung / ghi chú và bộ lọc theo loại giao '
+          'dịch (bán hàng, sửa chữa, thu nợ, nhập hàng, trả NCC…).',
+      whenToUse:
+          'Khi chốt quỹ bị lệch và cần dò xem thiếu/thừa ở giao dịch nào, hoặc '
+          'khi cần tra lại một khoản đã thu/chi mà không nhớ ngày.',
+      steps: [
+        'Mở Sổ quỹ → bấm biểu tượng kính lúp (🔍) ở thanh tiêu đề.',
+        'Gõ tên khách / nội dung vào ô tìm kiếm ở trên cùng.',
+        'Bấm biểu tượng phễu để lọc theo loại giao dịch.',
+        'Bấm biểu tượng lịch để chọn KHOẢNG ngày (từ ngày — đến ngày).',
+      ],
+      notes: [
+        'Số "Thu / Chi" trên đầu danh sách tính theo đúng những gì đang lọc, '
+            'không phải tổng của mọi loại.',
+        'Khi danh sách trải nhiều ngày, mỗi dòng hiện cả ngày lẫn giờ.',
+        'Bấm một dòng bán hàng / sửa chữa để mở thẳng đơn gốc.',
+      ],
+      terms: ['chot-quy', 'lech-quy', 'dong-tien'],
+      sampleQuestions: [
+        'tìm giao dịch trong sổ quỹ ở đâu',
+        'lọc giao dịch theo loại',
+        'xem thu chi theo khoảng ngày',
+        'quỹ lệch tìm giao dịch nào',
+      ],
+      tags: [
+        'tim giao dich',
+        'loc giao dich',
+        'lich su tai chinh',
+        'so quy',
+        'khoang ngay',
+      ],
+      audience: ['owner', 'manager'],
+    ),
+    KbEntry(
       id: 'home-action-required',
       title: 'Khung "CẦN XỬ LÝ" ở Trang chủ (= trang Nhắc nhở)',
       menuPath: 'Trang chủ → CẦN XỬ LÝ (bấm tiêu đề để mở trang Nhắc nhở)',
