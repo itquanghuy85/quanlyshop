@@ -47,6 +47,16 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
   // nhuận. `_snapshot` (FinanceV2) chỉ dùng cho DÒNG TIỀN + Công nợ.
   DailyFinancialAnalysis? _analysis;
   bool _loading = true;
+
+  /// Quyền xem giá vốn (`allowViewCostPrice`, super-admin luôn true).
+  ///
+  /// CLAUDE.md §9: giá vốn phải chặn ở CẢ giao diện lẫn dữ liệu xuất ra. Màn
+  /// này trước đây không kiểm quyền một chỗ nào — vào được là thấy Vốn bán
+  /// hàng / Vốn sửa chữa / Lợi nhuận, in được và xuất được cả cột "Giá vốn"
+  /// và "% lãi" của từng đơn.
+  ///
+  /// Mặc định `false` cho tới khi đọc xong quyền.
+  bool _canViewCost = false;
   _ReportRangeMode _rangeMode = _ReportRangeMode.day;
   final DBHelper _db = DBHelper();
   Map<String, _StaffAttendanceStats> _attendanceByUser = <String, _StaffAttendanceStats>{};
@@ -71,6 +81,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
   @override
   void initState() {
     super.initState();
+    _loadCostPermission();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _maybeShowGuide();
     });
@@ -78,11 +89,24 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
       event == EventBus.shopChanged ||
       event == EventBus.financialChanged ||
       event == EventBus.syncComplete
-    ).listen((_) {
+    ).listen((event) {
       if (!mounted) return;
+      // Quyền gắn theo shop → đổi shop phải đọc lại.
+      if (event == EventBus.shopChanged) _loadCostPermission();
       _loadReport();
     });
     _loadReport();
+  }
+
+  Future<void> _loadCostPermission() async {
+    try {
+      final allowed = await UserService.canViewCostPrice();
+      if (!mounted) return;
+      setState(() => _canViewCost = allowed);
+    } catch (e) {
+      // Lỗi đọc quyền ⇒ giữ `false`. Không bao giờ rơi về `true`.
+      debugPrint('FinanceV2DailyReport _loadCostPermission error: $e');
+    }
   }
 
   Future<void> _maybeShowGuide() async {
@@ -643,8 +667,12 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
       ['shop_id', (shopId == null || shopId.isEmpty) ? 'N/A' : shopId, 'Mã cửa hàng'],
       ['period_label', _rangeLabel, 'Kỳ báo cáo'],
       ['total_revenue', totalRevenue, 'Doanh thu (accrual) = bán + sửa + tất toán + thu khác — không phụ thuộc đã thu tiền'],
-      ['total_cost', totalCost, 'Giá vốn (accrual) + chi phí vận hành'],
-      ['total_profit', totalProfit, 'Lợi nhuận (accrual) = doanh thu − giá vốn − chi phí, cho phép âm'],
+      // CLAUDE.md §9 — không có quyền xem giá vốn thì file xuất ra cũng không
+      // được mang theo giá vốn / lợi nhuận.
+      if (_canViewCost) ...[
+        ['total_cost', totalCost, 'Giá vốn (accrual) + chi phí vận hành'],
+        ['total_profit', totalProfit, 'Lợi nhuận (accrual) = doanh thu − giá vốn − chi phí, cho phép âm'],
+      ],
       ['cash_in', analysis.cashIn, 'Tiền mặt vào'],
       ['cash_out', analysis.cashOut, 'Tiền mặt ra'],
       ['net_cash', analysis.cashIn - analysis.cashOut, 'Dòng tiền mặt ròng'],
@@ -693,13 +721,17 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
 
     final breakdownRows = <List<dynamic>>[
       ...s.topExpenseCategories.map((c) => <dynamic>['expense_category', c.label, c.amount]),
+      // CLAUDE.md §9: hai cột vốn/lãi của TỪNG giao dịch chỉ ghi ra khi có
+      // quyền. Để trống chứ không bỏ cột, để số cột luôn khớp `colHeaders`;
+      // cũng không ghi 0 vì 0 là một giá trị giá vốn hợp lệ, đọc vào sẽ tưởng
+      // hàng đó thật sự không có vốn.
       ...s.transactions.map((tx) => <dynamic>[
             FinanceV2ExcelExport.fmtDateTime(tx.createdAt),
             tx.type,
             tx.isIncome ? 'IN' : 'OUT',
             tx.amount,
-            tx.costAmount ?? 0,
-            tx.grossProfit ?? 0,
+            _canViewCost ? (tx.costAmount ?? 0) : '',
+            _canViewCost ? (tx.grossProfit ?? 0) : '',
             tx.paymentMethod ?? '',
             tx.referenceId ?? '',
             tx.title,
@@ -935,7 +967,10 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     lines.writeln('Doanh thu:  ${MoneyUtils.formatCompactCurrency(s.totalIn)}d');
     lines.writeln('Chi phi:    ${MoneyUtils.formatCompactCurrency(s.totalOut)}d');
     lines.writeln('Rong so quy:  ${MoneyUtils.formatCompactCurrency(s.netCashflow)}d');
-    lines.writeln('Loi nhuan thuc:  ${MoneyUtils.formatCompactCurrency(s.grossProfitTotal - s.operatingExpenseOut)}d');
+    // CLAUDE.md §9 — "lợi nhuận thực" = lãi gộp − chi phí, để lộ giá vốn.
+    if (_canViewCost) {
+      lines.writeln('Loi nhuan thuc:  ${MoneyUtils.formatCompactCurrency(s.grossProfitTotal - s.operatingExpenseOut)}d');
+    }
     lines.writeln('Giao dich:  ${s.transactionCount}');
     lines.writeln('');
 
@@ -1057,8 +1092,12 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     }
 
     // Luồng tiền cuối
-    // Lãi gộp / vốn
-    if (s.grossProfitTotal != 0 || s.cogsFromSales != 0 || s.cogsFromRepairs != 0) {
+    // Lãi gộp / vốn — CLAUDE.md §9: bản in cũng phải theo quyền, tờ giấy in ra
+    // còn đi xa hơn màn hình.
+    if (_canViewCost &&
+        (s.grossProfitTotal != 0 ||
+            s.cogsFromSales != 0 ||
+            s.cogsFromRepairs != 0)) {
       lines.writeln('[C][B]--- VON & LAI GOT ---');
       if (s.cogsFromSales > 0) {
         lines.writeln('Von ban hang: ${MoneyUtils.formatCompactCurrency(s.cogsFromSales)}d');
@@ -1091,7 +1130,9 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
 
     lines.writeln('[C]================================');
     lines.writeln('[C][B]RONG SO QUY: ${MoneyUtils.formatCompactCurrency(s.netCashflow)}d');
-    lines.writeln('[C][B]LOI NHUAN THUC: ${MoneyUtils.formatCompactCurrency(s.grossProfitTotal - s.operatingExpenseOut)}d');
+    if (_canViewCost) {
+      lines.writeln('[C][B]LOI NHUAN THUC: ${MoneyUtils.formatCompactCurrency(s.grossProfitTotal - s.operatingExpenseOut)}d');
+    }
     lines.writeln('[C]================================');
     lines.writeln('');
     lines.writeln('[C]In luc ${DateFormat('HH:mm dd/MM/yyyy').format(DateTime.now())}');
@@ -1117,7 +1158,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
   // ──────────────────────────────────────────────────────────────────────────
 
   Future<void> _exportDetailedReport() async {
-    if (_snapshot == null) return;
+    if (_snapshot == null || !_canViewCost) return;
     final range = _resolveRange();
     final start = range.$1;
     final end = range.$2;
@@ -1434,7 +1475,9 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
   // ──────────────────────────────────────────────────────────────────────────
 
   Future<void> _printDetailedReport() async {
-    if (_snapshot == null) return;
+    // Hàng rào thứ hai sau việc giấu nút — không dựa vào giao diện để giữ
+    // dữ liệu giá vốn.
+    if (_snapshot == null || !_canViewCost) return;
 
     final printerConfig = await showPrinterSelectionDialog(context);
     if (printerConfig == null) return;
@@ -1712,7 +1755,10 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
               icon: const Icon(Icons.print_rounded),
               tooltip: 'In báo cáo',
             ),
-          if (_snapshot != null)
+          // "In chi tiết" và "Excel chi tiết" in giá vốn + % lãi của TỪNG đơn
+          // bán. Không có quyền xem giá vốn thì giấu hẳn nút, thay vì lọc từng
+          // cột — lọc sót một cột là lộ. CLAUDE.md §9.
+          if (_snapshot != null && _canViewCost)
             IconButton(
               onPressed: _printDetailedReport,
               icon: const Icon(Icons.receipt_long_rounded),
@@ -1724,7 +1770,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
               icon: const Icon(Icons.download_rounded),
               tooltip: 'Xuất Excel',
             ),
-          if (_snapshot != null)
+          if (_snapshot != null && _canViewCost)
             IconButton(
               onPressed: _exportDetailedReport,
               icon: const Icon(Icons.table_chart_rounded),
@@ -1947,9 +1993,15 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
             _metricRow(context, 'Doanh thu bán hàng', a.saleIncome + a.settlementIncome, AppColors.success),
             _metricRow(context, 'Doanh thu sửa chữa', a.repairIncome, AppColors.info),
             _metricRow(context, 'Thu khác', a.miscIncome, AppColors.primary),
-            _metricRow(context, 'Giá vốn', a.saleCost + a.repairCost, Colors.deepOrange),
-            _metricRow(context, 'Chi phí vận hành', a.expenseOut, AppColors.error),
-            _metricRow(context, 'Lợi nhuận', a.netProfit, a.netProfit >= 0 ? AppColors.success : AppColors.error),
+            // CLAUDE.md §9 — "Giá vốn" là giá vốn, còn "Lợi nhuận" thì từ
+            // `doanh thu − chi phí − lợi nhuận` là suy ngược ra giá vốn, nên
+            // hai dòng phải đi cùng nhau.
+            if (_canViewCost) ...[
+              _metricRow(context, 'Giá vốn', a.saleCost + a.repairCost, Colors.deepOrange),
+              _metricRow(context, 'Chi phí vận hành', a.expenseOut, AppColors.error),
+              _metricRow(context, 'Lợi nhuận', a.netProfit, a.netProfit >= 0 ? AppColors.success : AppColors.error),
+            ] else
+              _metricRow(context, 'Chi phí vận hành', a.expenseOut, AppColors.error),
           ],
           _groupHeader(context, 'DÒNG TIỀN (cash)'),
           _metricRow(context, 'Tổng thu (dòng tiền)', _snapshot!.totalIn, Colors.indigo),
@@ -2083,15 +2135,18 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
             footerText: 'So với kỳ trước: $netDeltaText',
             footerColor: netDelta >= 0 ? AppColors.success : AppColors.error,
           ),
-          const SizedBox(width: 12),
-          _buildStatCard(
-            context: context,
-            label: 'Lợi nhuận (kết quả KD)',
-            value: MoneyUtils.formatCompactCurrency(realProfit),
-            color: realProfit >= 0 ? AppColors.success : AppColors.error,
-            footerText: 'Doanh thu − giá vốn − chi phí (accrual)',
-            footerColor: AppColors.textSecondary,
-          ),
+          // CLAUDE.md §9 — lợi nhuận để lộ giá vốn (doanh thu − chi phí − lãi).
+          if (_canViewCost) ...[
+            const SizedBox(width: 12),
+            _buildStatCard(
+              context: context,
+              label: 'Lợi nhuận (kết quả KD)',
+              value: MoneyUtils.formatCompactCurrency(realProfit),
+              color: realProfit >= 0 ? AppColors.success : AppColors.error,
+              footerText: 'Doanh thu − giá vốn − chi phí (accrual)',
+              footerColor: AppColors.textSecondary,
+            ),
+          ],
           const SizedBox(width: 12),
           _buildStatCard(
             context: context,
@@ -2308,6 +2363,8 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
   Widget _buildCapitalAndGrossProfit(BuildContext context) {
     final a = _analysis;
     if (a == null) return const SizedBox.shrink();
+    // CLAUDE.md §9 — cả khối này là giá vốn & lãi.
+    if (!_canViewCost) return const SizedBox.shrink();
     // Kết quả kinh doanh (accrual): ghi đủ giá bán + đủ giá vốn ngay khi bán,
     // kể cả đơn công nợ chưa thu tiền. Lỗ được phép âm.
     final saleProfit = a.saleProfit;

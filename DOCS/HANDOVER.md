@@ -9,6 +9,44 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-06  
 
+**🧭 TAB TÀI CHÍNH LÀM LẠI: 4 TAB → 3 TAB "TIỀN / LÃI / NỢ" (`[2026-09-06i]`).**
+Chủ shop báo màn tài chính "khó theo dõi". Nguyên nhân đo được, không phải cảm
+giác: con số ở tab này còn chi tiết của nó ở tab kia; khối **"Lãi gộp (phần đã
+thu)" bị vẽ HAI LẦN** cùng tên khác cách trình bày; mục `2)` nằm **trên** mục
+`1)`; 4 nhãn tab bị bóp cụt (`Tổng q… / Sổ gia…`); **hai bộ chọn kỳ không đồng
+bộ** (chip Hôm nay/7/30 ngày vs lịch riêng của tab Báo cáo); header đổi chiều
+cao theo tab nên nội dung giật; thẻ "Tóm tắt kỳ" rỗng chỉ in `Kỳ: Hôm nay`.
+· **Nay:** *Tiền* (dải tổng Vào/Ra/Còn lại **bấm được để lọc** + danh sách ngay
+dưới + Ghi thu/Ghi chi/Chốt quỹ) · *Lãi* (Cơ cấu thu → Chi theo danh mục → Lãi
+gộp dạng thác nước → So với kỳ trước) · *Nợ* (giữ nguyên). Thanh chọn kỳ lên
+header, **một bộ duy nhất, chiều cao hằng số**. **Báo cáo ra khỏi tab**, thành
+màn riêng (`embeddedInTab: false`) ⇒ lấy lại đủ 5 nút In / In chi tiết / Xuất
+Excel / Excel chi tiết / Tải lại vốn bị nuốt khi nhúng làm tab.
+· **🔒 VÁ VI PHẠM CLAUDE.md §9:** trước đây cả `finance_v2/` có **0 tham chiếu**
+tới `canViewCostPrice()` — ai vào được tab Tài chính (chỉ cần `allowViewRevenue`)
+là thấy Vốn BH/Vốn SC/Lợi nhuận và xuất được Excel có cột "Giá vốn", "% lãi"
+**từng đơn bán**. Nay chặn 2 tầng ở cả `finance_v2_view` lẫn
+`finance_v2_daily_report_view`: ẩn UI + bỏ cột khi xuất + bỏ dòng khi in + giấu
+hẳn nút "Xuất báo cáo ngày" / "In chi tiết" / "Excel chi tiết", mỗi nút kèm
+hàng rào thứ hai trong chính hàm xử lý.
+· **Sổ quỹ — chỉ vá NHÃN, không đụng công thức:** tab Thu/Chi cộng gộp mọi ngày
+chưa chốt quỹ nhưng đầu màn chỉ hiện một ngày, nên "TỔNG THU 162.9 Tr" trông
+như tiền riêng hôm đó trong khi tab Tài chính báo 46.44 Tr. Thêm `_scopeSuffix`
+→ `36 giao dịch · gộp 02/09 → 06/09 (chưa chốt quỹ)`.
+· **✅ ĐÃ NGHIỆM THU 2 MÁY THẬT:** CPH2203 (HULUCA STORE, 1080×2400) — nhãn tab
+đủ chữ, header không giật khi lướt 3 tab, chip Chi → đúng 1 giao dịch và ô
+"Tiền ra" sáng theo, chip Nhật ký → 11 mục, đang xem nhật ký mà bấm ô "Tiền vào"
+thì quay về danh sách + lọc Thu, Ghi thu/Chốt quỹ/Báo cáo đầy đủ mở đúng màn.
+CPH2239 (shop M, 720×1600, dữ liệu khác hẳn: Tiền ra = 0) — layout không vỡ.
+**logcat 2 máy: 0 `RenderFlex overflowed`, 0 exception.**
+· **Số đã khớp giữa các màn:** tab Tiền `46.44 Tr` = tab Lãi `31.49 + 14.95` =
+Báo cáo đầy đủ `46.44 Tr`; `Tổng lãi gộp 13.65 Tr` khớp cả hai nơi.
+· **⚠️ CHƯA KIỂM ĐƯỢC:** nhánh **không có quyền xem giá vốn** — cả 2 tài khoản
+test đều là chủ shop. Cần một tài khoản nhân viên tắt `allowViewCostPrice` để
+nghiệm thu nốt phần ẩn vốn.
+· `flutter analyze` 0 error / 0 warning. `flutter test` 606 pass / 8 fail —
+8 fail **có sẵn từ trước**, đã dựng `git worktree` tại HEAD chạy lại ra `-8` y hệt.
+
 **🔍 ĐÃ MỞ LỐI VÀO MÀN "LỊCH SỬ TÀI CHÍNH" (`[2026-09-06h]`).**
 Chủ shop chọn (a). Nút **kính lúp "Tìm giao dịch"** trên thanh tiêu đề Sổ quỹ →
 màn tìm kiếm / lọc theo loại / chọn khoảng ngày. Đặt vào đúng ô nút lịch cũ vì

@@ -4,6 +4,154 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-06i] - refactor(tài chính) TAB TÀI CHÍNH: 4 TAB → 3 TAB "TIỀN / LÃI / NỢ" + CHẶN GIÁ VỐN
+
+Chủ shop báo *"coi tab tài chính toàn bộ, nên làm lại như nào cho dễ theo dõi
+chứ cảm giác thấy khó khó"*. Soi trên máy thật (CPH2203) thì cái "khó" là có
+thật và đo được, không phải cảm giác.
+
+### Vì sao khó theo dõi
+
+1. **Con số và chi tiết của nó ở HAI tab khác nhau.** Tab *Tổng quan* hiện
+   "Tiền thu vào 42tr", muốn biết 42tr gồm đơn nào phải sang tab *Sổ giao dịch*.
+2. **"Lãi gộp (phần đã thu)" được vẽ HAI LẦN trên cùng một trang**, cách nhau
+   chừng một màn cuộn, cùng tên nhưng khác cách trình bày: một lần trong
+   `_profitSection` (2 cột Vốn BH / Vốn SC), một lần nữa trong `_compSection`
+   (3 cột, thêm Vốn tổng / Lãi tổng + % so kỳ trước). Đọc vào tưởng hai bộ số.
+3. **Đánh số ngược.** Mục `2) Lãi gộp` được vẽ **TRÊN** mục `1) Tiền (cash)`
+   trong `ListView`, còn "Dòng tiền (cashflow)" không số thì nằm trên cả hai.
+4. **Nhãn 4 tab bị bóp cụt** thành `Tổng q… / Sổ gia… / Công… / Báo c…` — do
+   nhét nút ❓ và ⋯ vào cùng hàng với `TabBar` không cuộn (đo trên 1080px).
+5. **Hai bộ chọn kỳ trong một màn, không đồng bộ.** 3 tab đầu dùng chip
+   *Hôm nay / 7 ngày / 30 ngày*, riêng tab *Báo cáo* có lịch *Theo ngày / tháng
+   / năm* riêng. Chọn "30 ngày" rồi sang Báo cáo là về lại hôm nay, không báo gì.
+6. **Header đổi chiều cao theo tab** (tab Công nợ thay thanh chip bằng dòng ghi
+   chú, tab Báo cáo ẩn hẳn) ⇒ nội dung giật lên xuống khi lướt tab.
+7. **Thẻ "Tóm tắt kỳ" rỗng** — chỉ in đúng chữ `Kỳ: Hôm nay`, nút copy cũng chỉ
+   chép chừng đó.
+8. **% so kỳ trước gây nhiễu**: `+1650%`, `-93%` nằm cạnh nhau vì kỳ trước gần 0.
+9. **Tab Báo cáo trùng lặp 3 tab kia** (15 khối, trong đó dòng tiền / danh sách
+   giao dịch / công nợ / chi theo danh mục đều đã có sẵn ở tab 1-2-3), lại còn
+   nuốt mất 5 nút riêng của nó vì bị nhúng làm tab (`embeddedInTab: true`).
+10. **`finance_v2/` có 0 tham chiếu tới quyền xem giá vốn** — vi phạm CLAUDE.md
+    §9. Ai vào được tab Tài chính (chỉ cần `allowViewRevenue`) là thấy Vốn BH /
+    Vốn SC / Lợi nhuận, in được và xuất Excel được cả cột "Giá vốn", "% lãi"
+    của **từng đơn bán**.
+
+> **Đính chính một chẩn đoán sai giữa chừng:** ban đầu tôi cho rằng số lệch giữa
+> tab Tổng quan (41.04 Tr) và tab Báo cáo (42.84 Tr) là do một bên lấy
+> `end = DateTime.now()` còn bên kia lấy `23:59:59`. **Sai** —
+> `FinanceV2DataService.loadSnapshot` tự chuẩn hoá `rangeEnd` về 23:59:59 nên
+> hai mốc là một. Số lệch vì **mỗi tab tự gọi `loadSnapshot` tại một thời điểm
+> khác nhau** (shop đang chạy, máy kia đẩy đơn mới lên giữa hai lần chụp).
+
+### Cấu trúc mới — 3 tab, mỗi tab một câu hỏi
+
+| Tab | Trả lời câu | Gồm |
+|---|---|---|
+| **Tiền** | hôm nay thu/chi bao nhiêu, gồm giao dịch nào | dải tổng Vào/Ra/Còn lại + thanh tỉ lệ + 3 nút Ghi thu / Ghi chi / Chốt quỹ + hàng lọc + danh sách |
+| **Lãi** | bán/sửa xong còn lại bao nhiêu | Cơ cấu thu → Chi theo danh mục → Lãi gộp (thác nước) → So với kỳ trước → lối vào Báo cáo đầy đủ |
+| **Nợ** | ai nợ mình, mình nợ ai | Phải thu / Phải trả + tuổi nợ (giữ nguyên) |
+
+- **Thanh chọn kỳ lên header**, một bộ duy nhất, chiều cao header là hằng số
+  (`_periodBarHeight + _tabStripHeight`) ⇒ hết giật khi lướt tab. `TabBar` được
+  trọn chiều ngang ⇒ nhãn hiện đủ chữ.
+- **Dải tổng bấm được**: bấm ô *Tiền vào* / *Tiền ra* lọc luôn danh sách ngay
+  dưới, không nhảy tab. Ô đang lọc được tô viền.
+- **Hàng lọc một dòng**: `Tất cả / Thu / Chi | Nhật ký thao tác`. Trước đây bộ
+  lọc Thu/Chi **không có nút nào** — chỉ đặt được gián tiếp bằng cách bấm thẻ
+  KPI ở tab khác, và không có cách nào bỏ lọc.
+- **Báo cáo ra khỏi tab**, thành màn riêng mở từ tab Lãi hoặc menu ⋯
+  (`embeddedInTab: false`) ⇒ lấy lại đủ 5 nút In / In chi tiết / Xuất Excel /
+  Excel chi tiết / Tải lại, và hết cảnh hai bộ chọn kỳ đá nhau.
+- Menu ⋯: Báo cáo đầy đủ · Đối soát tiền về · In tab đang xem · Xuất Excel tab
+  đang xem · Xuất báo cáo ngày · Tải lại.
+
+### Chặn giá vốn (CLAUDE.md §9) — cả 2 file finance_v2
+
+`UserService.canViewCostPrice()` đọc trong `initState`, đọc lại khi
+`EventBus.shopChanged` (quyền gắn theo shop). Mặc định `false`, lỗi đọc quyền
+**không** rơi về `true`.
+
+- `finance_v2_view`: ẩn khối Vốn & lãi gộp ở tab Lãi; bỏ cột vốn/lãi khi xuất
+  Excel; bỏ dòng vốn/lãi khi in; **giấu hẳn** mục menu "Xuất báo cáo ngày"
+  (file đó có cột "Giá vốn" + "% lãi" của từng đơn) kèm hàng rào thứ hai trong
+  `_onToolbarAction`.
+- `finance_v2_daily_report_view`: ẩn khối "Vốn & lãi gộp", thẻ "Lợi nhuận (kết
+  quả KD)", 2 dòng "Giá vốn"/"Lợi nhuận" trong Tổng hợp toàn app; bỏ
+  `total_cost`/`total_profit` khi xuất Excel; bỏ khối `VON & LAI GOT` và dòng
+  `LOI NHUAN THUC` khi in; **giấu 2 nút "In chi tiết" / "Excel chi tiết"** kèm
+  hàng rào thứ hai trong chính hai hàm đó.
+- Cờ `_costPermissionResolved`: trong lúc chưa đọc xong quyền thì giấu **cả**
+  phần vốn lẫn dòng "bạn không có quyền", nếu không chủ shop mở tab Lãi sẽ thấy
+  dòng "không có quyền" loé lên một nhịp — đọc vào tưởng vừa bị tước quyền.
+
+### Sổ quỹ — vá nhãn, KHÔNG đụng công thức
+
+`_buildIncomeTab` / `_buildExpenseTab` chạy vòng lặp từ `_analysisStartDate` tới
+`_selectedDate`, tức cộng gộp mọi ngày **chưa chốt quỹ**; nhưng đầu màn chỉ hiện
+MỘT ngày. Thành ra "TỔNG THU +162.9 Tr" trông như tiền của riêng hôm đó, trong
+khi tab Tài chính cùng ngày báo 46.44 Tr. Hai số đều đúng, chỉ là khác khoảng
+ngày — và trước đây không có gì nói ra điều đó.
+
+Thêm `_scopeSuffix`: `36 giao dịch · gộp 02/09 → 06/09 (chưa chốt quỹ)`.
+**Không đổi một dòng logic tính tiền nào.**
+
+### Dọn code
+
+Xoá hẳn (không phải comment lại): `_hero`, `_qc`, `_cfSection`, `_snapCard`,
+`_kpi`, `_cashQuickSection`, `_sharedBar`, `_debtScopeNote`, `_tLedgerBody`,
+`_ledgerModeButton`, `_overviewBody`, `_cardPad`, và
+`_buildDetailedDailyPrintLines` (trùng y hệt `_printDetailedReport` của màn Báo
+cáo — đã đối chiếu từng mục CO CAU THU / DON BAN HANG / VON & LAI / KY XAC NHAN).
+Gom bộ lọc giao dịch bị chép 3 nơi (`_txListBody`, `_exFromTab`,
+`_buildPrintLinesForTab`) về `_filteredTx()`.
+
+`_goTx` bỏ số trần `animateTo(1)` → dùng hằng `_tabCash`, và tự tắt chế độ nhật
+ký (trước đây bấm ô Thu/Chi trong lúc xem nhật ký thì lọc được đặt nhưng màn
+hình vẫn hiện nhật ký — bấm mà như không có gì xảy ra).
+
+### Files
+
+- `lib/finance_v2/finance_v2_view.dart` (4.930 → 4.760 dòng)
+- `lib/finance_v2/finance_v2_daily_report_view.dart`
+- `lib/views/cash_closing_view.dart` (chỉ thêm `_scopeSuffix` + 2 chỗ dùng)
+- `lib/data/app_knowledge_base.dart` (mục `finance-v2` + `finance-daily-report`)
+
+### Nghiệm thu
+
+`flutter analyze`: **0 error, 0 warning** toàn `lib/`.
+`flutter test`: 606 pass / 8 fail — **8 fail này có sẵn từ trước**, đã dựng
+`git worktree` tại HEAD chạy lại đúng 4 file đó và cũng ra `-8` y hệt
+(db_payroll_lock, kiotviet_product_analyze, kiotviet_settings_view ×4,
+quick_input_sync — đều lỗi `No Firebase App '[DEFAULT]'`, không liên quan).
+
+**✅ Đã nghiệm thu 2 máy thật:**
+- **CPH2203 (HULUCA STORE, 1080×2400)** — 3 nhãn tab hiện đủ chữ ✅ · header
+  không đổi chiều cao khi lướt 3 tab ✅ · chip "Chi" → đúng 1 giao dịch
+  `Nhập kho -28 Tr`, ô "Tiền ra" sáng theo ✅ · chip "Nhật ký thao tác" → 11 mục,
+  ô tìm kiếm đổi thành "Tìm trong nhật ký..." ✅ · đang xem nhật ký mà bấm ô
+  "Tiền vào" → quay về danh sách + lọc Thu (10 giao dịch) ✅ · Ghi thu mở đúng
+  dialog "GHI CHÉP THU PHÁT SINH" ✅ · Chốt quỹ mở Sổ quỹ ✅ · Báo cáo đầy đủ mở
+  toàn màn hình, đủ 5 nút trên AppBar ✅
+- **CPH2239 (shop M, 720×1600)** — dữ liệu khác hẳn (Tiền ra = 0, không có chi
+  theo danh mục): layout không vỡ, thác nước `10 Tr − 100.000 = 9.9 Tr` ✅
+- **logcat 2 máy: 0 `RenderFlex overflowed`, 0 exception.**
+
+**Số đã khớp nhau giữa các màn** (cùng ngày 06/09, cùng máy):
+tab Tiền `Tiền vào 46.44 Tr` = tab Lãi `31.49 + 14.95 = 46.44` =
+Báo cáo đầy đủ `Tiền vào 46.44 Tr`; `Tổng lãi gộp 13.65 Tr` khớp cả tab Lãi lẫn
+Báo cáo.
+
+### Chưa kiểm được
+
+Nhánh **không có quyền xem giá vốn** chưa chạy trên máy thật — cả 2 tài khoản
+test đều là chủ shop (`canViewCostPrice() == true`, đã xác nhận vì Vốn hiện ra).
+Nhánh này chỉ là `if/else` đã qua `flutter analyze`, nhưng **cần một tài khoản
+nhân viên tắt `allowViewCostPrice` để nghiệm thu nốt.**
+
+---
+
 ## [2026-09-06h] - feat(sổ quỹ) MỞ LỐI VÀO MÀN "LỊCH SỬ TÀI CHÍNH" (đang chết)
 
 Chủ shop chọn phương án (a) sau phát hiện ở `[2026-09-06g]`.

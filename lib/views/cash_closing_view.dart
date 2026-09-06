@@ -897,6 +897,18 @@ class _CashClosingViewState extends State<CashClosingView>
     }
   }
 
+  /// Hậu tố nói rõ hai tab Thu / Chi đang cộng những NGÀY NÀO.
+  ///
+  /// `_buildIncomeTab` / `_buildExpenseTab` chạy vòng lặp từ `_analysisStartDate`
+  /// tới `_selectedDate`, tức có thể cộng gộp nhiều ngày chưa chốt quỹ. Nhưng
+  /// đầu màn chỉ hiện MỘT ngày (`06/09/2026`), nên "TỔNG THU 159 Tr" trông như
+  /// tiền của riêng hôm đó — trong khi tab Tài chính cùng ngày báo 42 Tr.
+  /// Hai con số đều đúng, chỉ là khác khoảng ngày, và trước đây không có gì
+  /// nói ra điều đó.
+  String get _scopeSuffix => _hasUnclosedGap
+      ? ' · gộp ${DateFormat('dd/MM').format(_analysisStartDate)} → ${DateFormat('dd/MM').format(_selectedDate)} (chưa chốt quỹ)'
+      : ' · ngày ${DateFormat('dd/MM').format(_selectedDate)}';
+
   /// true nếu đang gộp thêm (các) ngày trước đó chưa chốt quỹ vào ngày đang
   /// xem (khác ngày thường, khi hôm qua đã chốt quỹ thì luôn false).
   bool get _hasUnclosedGap =>
@@ -2100,7 +2112,7 @@ class _CashClosingViewState extends State<CashClosingView>
                         ),
                       ),
                       Text(
-                        '${incomeList.length} giao dịch',
+                        '${incomeList.length} giao dịch$_scopeSuffix',
                         style: TextStyle(
                           color: Colors.green.shade600,
                           fontSize: AppTextStyles.caption.fontSize,
@@ -2243,7 +2255,7 @@ class _CashClosingViewState extends State<CashClosingView>
                         ),
                       ),
                       Text(
-                        '${expenseList.length} giao dịch',
+                        '${expenseList.length} giao dịch$_scopeSuffix',
                         style: TextStyle(
                           color: Colors.red.shade600,
                           fontSize: AppTextStyles.caption.fontSize,

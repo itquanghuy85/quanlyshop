@@ -143,7 +143,16 @@
 - **Quyền:** `UserService.canViewCostPrice()` (`allowViewCostPrice`; super-admin luôn true)
 - **Quy tắc:** chặn ở CẢ UI lẫn tầng service — service phải **xoá trường giá vốn khỏi dữ liệu trả về**, không chỉ ẩn trên giao diện. Xuất Excel cũng phải bỏ cột giá vốn.
 - **Không bao giờ** lấy giá vốn thay cho giá thu khách khi chưa đặt giá — hiển thị "Chưa thiết lập giá thu khách".
-- Tham khảo: `PriceCatalogService.buildRows/lookup`, `PriceBookService.exportToExcel`
+- **In ra giấy cũng phải chặn** — tờ giấy còn đi xa hơn màn hình. Khi thiếu quyền
+  thì bỏ luôn dòng vốn/lãi khỏi lệnh in, và **giấu hẳn** những nút xuất/in mà
+  bản chất là báo cáo giá vốn (thay vì lọc từng cột — lọc sót một cột là lộ),
+  kèm một hàng rào thứ hai ngay trong hàm xử lý, không dựa vào việc đã giấu nút.
+- **Ẩn cả lợi nhuận / lãi gộp**, không chỉ cột "giá vốn": từ
+  `doanh thu − chi phí − lợi nhuận` là suy ngược ra giá vốn.
+- Mặc định `false` cho tới khi đọc xong quyền, và lỗi đọc quyền **không** được
+  rơi về `true`. Đọc lại khi `EventBus.shopChanged` vì quyền gắn theo shop.
+- Tham khảo: `PriceCatalogService.buildRows/lookup`, `PriceBookService.exportToExcel`,
+  `finance_v2_view._canViewCost`, `finance_v2_daily_report_view._canViewCost`
 
 ### 10. Soft Deletes
 - **Firestore:** Update với `deleted: true` + `updatedAt: serverTimestamp()`

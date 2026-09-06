@@ -1183,16 +1183,19 @@ class AppKnowledgeBase {
     ),
     KbEntry(
       id: 'finance-daily-report',
-      title: 'Báo cáo ngày',
-      menuPath: 'Trang chủ → Tài chính → Báo cáo ngày',
+      title: 'Báo cáo đầy đủ (báo cáo ngày)',
+      menuPath: 'Trang chủ → Tài chính → tab Lãi → Báo cáo đầy đủ '
+          '(hoặc menu ⋯ → Báo cáo đầy đủ)',
       whatItDoes:
-          'Tổng hợp một ngày: doanh thu / giá vốn / lợi nhuận (dồn tích) và '
-          'tiền vào / tiền ra (dòng tiền), xuất Excel được.',
+          'Tổng hợp một ngày / tháng / năm: doanh thu / giá vốn / lợi nhuận '
+          '(dồn tích) và tiền vào / tiền ra (dòng tiền), in và xuất Excel được.',
       whenToUse: 'Xem nhanh kết quả một ngày cụ thể hoặc đối chiếu.',
       steps: [
-        'Vào Báo cáo ngày, chọn ngày.',
+        'Vào Tài chính → tab **Lãi** → cuối trang bấm "Báo cáo đầy đủ". '
+            'Hoặc menu ⋯ → "Báo cáo đầy đủ".',
+        'Chọn ngày, rồi chọn Theo ngày / Theo tháng / Theo năm / Kỳ.',
         'Xem 2 khối: KẾT QUẢ KINH DOANH (accrual) và DÒNG TIỀN (cash).',
-        'Bấm xuất Excel nếu cần lưu.',
+        'Trên AppBar có nút In, In chi tiết, Xuất Excel, Excel chi tiết.',
       ],
       terms: ['dong-tien', 'don-tich'],
       sampleQuestions: [
@@ -1204,35 +1207,41 @@ class AppKnowledgeBase {
     ),
     KbEntry(
       id: 'finance-v2',
-      title: 'Tài chính (4 tab)',
+      title: 'Tài chính (3 tab: Tiền / Lãi / Nợ)',
       menuPath: 'Trang chủ → Tài chính',
       whatItDoes:
-          'Màn tài chính chính: tổng quan dòng tiền, sổ giao dịch, công nợ, '
-          'báo cáo — theo khoảng thời gian chọn được, in và xuất Excel.',
-      whenToUse: 'Xem sức khoẻ tài chính shop theo tuần / tháng / kỳ tuỳ chọn.',
+          'Màn tài chính chính, chia theo 3 câu hỏi: TIỀN (thu/chi hôm nay gồm '
+          'những giao dịch nào), LÃI (bán/sửa xong còn lại bao nhiêu), NỢ (ai '
+          'nợ mình, mình nợ ai). In và xuất Excel ở menu ⋯.',
+      whenToUse: 'Xem sức khoẻ tài chính shop theo ngày / tuần / tháng / kỳ tuỳ chọn.',
       steps: [
-        'Vào Tài chính, chọn khoảng thời gian bằng các chip Hôm nay / 7 ngày / '
-            '30 ngày / Tùy chọn.',
-        '**Tổng quan** — đọc từ trên xuống theo dòng chảy tiền: Dòng tiền (tiền '
-            'thật vào/ra) → Doanh thu → Chi phí → Lợi nhuận → So với kỳ trước.',
-        '**Sổ giao dịch** — có 2 cách xem, bấm nút để đổi: "Giao dịch tiền" '
-            '(các khoản thu/chi thật) và "Nhật ký thao tác" (ai đã làm gì).',
-        '**Công nợ** — chuyển giữa Phải thu / Phải trả.',
-        '**Báo cáo** — báo cáo ngày chi tiết, lãi theo tháng, dịch vụ bán chạy, '
-            'nhóm khách hàng.',
-        'Menu ⋯ góc trên: Đối soát tiền về, In, Xuất Excel, Tải lại. In/Xuất '
-            'chạy theo ĐÚNG tab (và đúng cách xem) bạn đang mở.',
+        'Vào Tài chính. Thanh chọn kỳ nằm TRÊN CÙNG (Hôm nay / 7 ngày / 30 '
+            'ngày / Tùy chọn) và dùng chung cho cả 3 tab.',
+        '**Tiền** — dải tổng Tiền vào / Tiền ra / Còn lại nằm ngay trên danh '
+            'sách giao dịch. Bấm ô "Tiền vào" hoặc "Tiền ra" là lọc luôn danh '
+            'sách bên dưới. Hàng chip: Tất cả / Thu / Chi / Nhật ký thao tác. '
+            'Có sẵn 3 nút Ghi thu / Ghi chi / Chốt quỹ.',
+        '**Lãi** — Cơ cấu tiền thu vào → Chi tiêu theo danh mục → Lãi gộp '
+            '(doanh thu đã thu − vốn = lãi) → So với kỳ trước → lối vào "Báo '
+            'cáo đầy đủ".',
+        '**Nợ** — chuyển giữa Phải thu / Phải trả, có phân nhóm tuổi nợ.',
+        'Menu ⋯ góc trên: Báo cáo đầy đủ, Đối soát tiền về, In tab đang xem, '
+            'Xuất Excel tab đang xem, Xuất báo cáo ngày, Tải lại.',
         'Bấm ⓘ ở góc để xem giải thích khái niệm.',
       ],
       notes: [
         'Các số ở đây là DÒNG TIỀN (tiền đã thu / đã chi), không phải lợi nhuận kế toán.',
-        'Tab **Công nợ KHÔNG theo khoảng thời gian đang chọn** — nợ là số dư '
-            'còn lại tới hiện tại, không phải phát sinh trong kỳ. Vì vậy tab '
-            'này hiện nhãn "Toàn bộ công nợ chưa tất toán" thay cho thanh chọn '
-            'kỳ.',
+        'Tab **Nợ KHÔNG theo khoảng thời gian đang chọn** — nợ là số dư còn lại '
+            'tới hiện tại, không phải phát sinh trong kỳ. Vì vậy tab này có '
+            'dòng nhắc "Toàn bộ công nợ chưa tất toán — không theo kỳ đang chọn".',
         '"Giao dịch tiền" khác "Nhật ký thao tác": cái đầu là tiền thật đã '
             'vào/ra, cái sau là lịch sử thao tác của nhân viên (kể cả thao tác '
-            'không sinh ra tiền).',
+            'không sinh ra tiền). Đổi bằng chip cuối hàng lọc ở tab Tiền.',
+        '**Báo cáo đầy đủ** là màn RIÊNG (mở từ tab Lãi hoặc menu ⋯), có bộ '
+            'chọn kỳ riêng theo ngày / tháng / năm — cố ý tách ra để không đá '
+            'nhau với thanh chọn kỳ chung.',
+        'Không có quyền xem giá vốn (`allowViewCostPrice`) thì phần Vốn & lãi '
+            'gộp bị ẩn, và các file in / Excel xuất ra cũng không có cột giá vốn.',
       ],
       terms: ['dong-tien', 'don-tich'],
       sampleQuestions: [
@@ -1240,8 +1249,11 @@ class AppKnowledgeBase {
         'xem thu chi tháng này',
         'sao công nợ không đổi khi chọn hôm nay',
         'giao dịch và nhật ký khác gì nhau',
+        'báo cáo đầy đủ ở đâu',
       ],
-      tags: ['tai chinh', 'finance', 'thu chi', 'tong quan', 'dong tien'],
+      tags: [
+        'tai chinh', 'finance', 'thu chi', 'tien', 'lai', 'no', 'dong tien',
+      ],
       audience: ['owner', 'manager'],
     ),
     KbEntry(
