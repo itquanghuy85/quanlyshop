@@ -372,7 +372,9 @@ class CurrentShopService {
     try {
       final db = DBHelper();
       await db.clearAllData();
-      debugPrint('CurrentShopService: Local cache cleared');
+      // Bắt buộc đi kèm: xem ghi chú ở `main.dart` / [2026-09-06d].
+      await SyncService.resetSyncTimestamps();
+      debugPrint('CurrentShopService: Local cache + sync cursors cleared');
     } catch (e) {
       debugPrint('CurrentShopService _clearLocalCache error: $e');
     }

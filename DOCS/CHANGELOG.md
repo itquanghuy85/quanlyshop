@@ -4,6 +4,71 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-06d] - fix(đồng bộ) XOÁ DỮ LIỆU LOCAL MÀ GIỮ CON TRỎ ⇒ MẤT DỮ LIỆU VĨNH VIỄN
+
+**Chủ shop báo:** "2 máy số liệu khác nhau".
+
+### Đo được trên 2 máy thật (HULUCA STORE)
+
+Chỉ đếm bản ghi **đúng shop**:
+
+| Bảng | Máy 1 trước | Máy 2 trước | Đúng (cloud) |
+|---|---|---|---|
+| Phiếu nhập | **71** | 59 | **3.036** |
+| Nhật ký tài chính | **0** | 0 | **2.011** |
+| Bảng giá NCC | 32 | 33 | **140** |
+| Khách hàng | 5.377 | 5.374 | **5.560** |
+
+Máy chủ shop dùng hằng ngày chỉ có **71/3.036 phiếu nhập** và **0/2.011 dòng
+nhật ký tài chính**. Đơn bán / đơn sửa / sản phẩm thì đủ.
+
+### Gốc rễ
+
+`SyncService` dùng con trỏ tăng dần `rtCursor_<collection>_<shopId>` — listener
+chỉ lấy document có `updatedAt > cursor`. `resetSyncTimestamps()` xoá đúng các
+con trỏ này, **nhưng 4/5 chỗ xoá dữ liệu local lại không gọi nó**:
+
+| Nơi xoá `clearAllData()` | Reset con trỏ? |
+|---|---|
+| `shop_selector_view.dart:238` | ✅ có |
+| `main.dart:973` (đổi shop/user lúc khởi động) | ❌ **không** |
+| `current_shop_service.dart:374` (chuyển shop) | ❌ **không** |
+| `home_view.dart:3219` (đăng xuất) | ❌ **không** |
+| `home_view.dart:7368` (đăng xuất) | ❌ **không** |
+
+⇒ Xoá sạch dữ liệu nhưng giữ con trỏ ⇒ **mọi bản ghi cũ hơn con trỏ không bao
+giờ tải lại được**. Máy càng đổi tài khoản / đăng xuất nhiều thì càng rỗng, mà
+**không có dấu hiệu gì báo cho người dùng biết**.
+
+Đo được trên máy 2: `rtCursor_import_orders` = 30/08, `rtCursor_customers` =
+04/06 — trong khi dữ liệu local đã bị xoá sạch từ trước đó.
+
+### Sửa
+
+Thêm `await SyncService.resetSyncTimestamps();` ngay sau `clearAllData()` ở cả
+4 chỗ còn thiếu, kèm ghi chú tại chỗ để không ai gỡ ra.
+
+### Nghiệm thu 2 máy thật
+
+Chạy **Trung tâm đồng bộ → Khởi động lại Realtime** (đường có sẵn, gọi
+`forceReinitializeSync` → `resetSyncTimestamps` → tải lại) trên cả 2 máy.
+Sau đó **14/15 bảng khớp tuyệt đối**: phiếu nhập **3.036 = 3.036**, nhật ký tài
+chính **2.011 = 2.011**, khách **5.560 = 5.560**, bảng giá NCC **140 = 140**,
+đơn bán **4.240 = 4.240**, doanh thu **64.210.963.000đ** hai máy như nhau.
+(`import_order_items` còn lệch vì máy 2 đang tải tiếp.)
+
+### 🔴 Hai vấn đề GHI NHẬN, CHƯA SỬA
+
+1. **Kiểm tra đồng bộ báo sai an toàn.** Trung tâm đồng bộ hiện *"Local 13128 |
+   Cloud 13129 — 1 bản ghi chưa khớp"* trên **cả hai máy**, trong khi máy 1
+   thiếu **2.965 phiếu nhập + 2.011 dòng nhật ký tài chính**. Phép đếm không soi
+   các bảng này ⇒ **cho cảm giác an toàn giả**.
+2. **Rác dữ liệu shop khác còn trên cả 2 máy**: 101 dòng `financial_activity_log`,
+   18–19 `import_orders`, 13 `price_catalog_items` mang `shopId` của shop test.
+   Không lọt báo cáo (truy vấn lọc theo `shopId`) nhưng nên dọn.
+
+---
+
 ## [2026-09-06c] - fix(tài chính) BỎ SÓT TIỀN TẤT TOÁN NGÂN HÀNG
 
 Phát hiện khi đối chiếu màn Tài chính với CSDL sau đợt dọn trùng KiotViet.

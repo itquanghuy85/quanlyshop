@@ -63,6 +63,33 @@ us-central1) nguyên vẹn. Chọn `functions:delete` thay vì `deploy --only fu
 **⚠️ Còn 1 việc chờ deploy:** `CHAT_SYSTEM_PROMPT` vừa thêm dòng cấm `*nghiêng*` —
 chỉ có hiệu lực sau `firebase deploy --only functions`.
 
+**🔴 XOÁ DỮ LIỆU LOCAL MÀ GIỮ CON TRỎ ⇒ MẤT DỮ LIỆU VĨNH VIỄN (`[2026-09-06d]`).**
+Chủ shop báo "2 máy số liệu khác nhau". Đo thật: **máy chủ shop chỉ có 71/3.036
+phiếu nhập và 0/2.011 dòng nhật ký tài chính**; máy 2 có 59/3.036. Đơn bán, đơn
+sửa, sản phẩm thì đủ.
+· **Gốc rễ:** listener dùng con trỏ `rtCursor_<collection>_<shopId>` (chỉ lấy
+`updatedAt > cursor`). `resetSyncTimestamps()` xoá đúng con trỏ, **nhưng 4/5 chỗ
+`clearAllData()` không gọi nó**: `main.dart:973`, `current_shop_service.dart:374`,
+`home_view.dart:3219` và `:7368`. Chỉ `shop_selector_view.dart:238` làm đúng.
+Xoá sạch local mà giữ con trỏ ⇒ **bản ghi cũ hơn con trỏ không bao giờ về nữa**,
+và KHÔNG có dấu hiệu nào báo người dùng.
+· **Đã sửa:** thêm `resetSyncTimestamps()` sau `clearAllData()` ở cả 4 chỗ.
+· **✅ Nghiệm thu 2 máy:** chạy Trung tâm đồng bộ → **Khởi động lại Realtime** trên
+cả hai. Sau đó **14/15 bảng khớp tuyệt đối**: phiếu nhập 3.036 = 3.036, nhật ký
+tài chính 2.011 = 2.011, khách 5.560 = 5.560, bảng giá NCC 140 = 140, đơn bán
+4.240 = 4.240, doanh thu **64.210.963.000đ** hai máy như nhau.
+· **🔴 CHƯA SỬA — kiểm tra đồng bộ báo SAI AN TOÀN:** Trung tâm đồng bộ hiện
+"Local 13128 | Cloud 13129 — 1 bản ghi chưa khớp" trên **cả 2 máy**, trong khi
+máy 1 đang thiếu 2.965 phiếu nhập + 2.011 dòng nhật ký. Phép đếm không soi các
+bảng đó ⇒ cảm giác an toàn giả. **Nếu chỉ nhìn màn này thì không bao giờ phát
+hiện được sự cố vừa rồi.**
+· **🟡 CHƯA SỬA — rác shop khác trên cả 2 máy:** 101 `financial_activity_log`,
+18–19 `import_orders`, 13 `price_catalog_items` mang `shopId` shop test. Không
+lọt báo cáo (truy vấn lọc `shopId`) nhưng nên dọn.
+· **⚠️ Số liệu tài chính đo TRƯỚC 06/09 là trên dữ liệu THIẾU.** Các con số đã
+nghiệm thu ở `[2026-09-06c]` (thu bán hàng 1,64 Tỷ…) tính khi máy 1 mới có 71
+phiếu nhập ⇒ **phần chi/nhập hàng khi đó chưa đầy đủ**, cần đo lại.
+
 **✅ VÁ BỎ SÓT TIỀN TẤT TOÁN NGÂN HÀNG (`[2026-09-06c]`) — NGHIỆM THU MÁY THẬT.**
 Màn Tài chính tính tiền đơn trả góp là `downPayment + settlementAmount` nhưng chỉ
 duyệt đơn **bán trong kỳ** ⇒ sai 2 chiều: bán trong kỳ mà NH trả sau kỳ thì **ghi

@@ -971,7 +971,12 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         '⚠️ Shop hoặc User thay đổi: shop=$lastShopId->$currentShopId, user=$lastUserId->$currentUserId. Xóa local data cũ...',
       );
       await DBHelper().clearAllData();
-      debugPrint('✅ Đã xóa local data cũ');
+      // Xoá dữ liệu local mà GIỮ con trỏ đồng bộ thì bản ghi cũ hơn con trỏ
+      // KHÔNG BAO GIỜ tải lại được (listener chỉ lấy updatedAt > cursor).
+      // Sự cố 06/09/2026: máy 2 sau khi đổi tài khoản qua lại chỉ còn 59/89
+      // phiếu nhập, lệch 224,55 triệu. Xem [2026-09-06d].
+      await SyncService.resetSyncTimestamps();
+      debugPrint('✅ Đã xóa local data cũ + reset con trỏ đồng bộ');
     }
 
     // Luôn dọn dữ liệu khác shop để tránh lộ chéo tenant trong các phiên chuyển đổi tài khoản.

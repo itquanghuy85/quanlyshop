@@ -3217,6 +3217,8 @@ class _HomeViewState extends State<HomeView>
     } catch (_) {}
     try {
       await DBHelper().clearAllData();
+      // Bắt buộc đi kèm: xem ghi chú ở `main.dart` / [2026-09-06d].
+      await SyncService.resetSyncTimestamps();
     } catch (_) {}
     try {
       await FirebaseAuth.instance.signOut();
@@ -7366,6 +7368,8 @@ class _HomeViewState extends State<HomeView>
       } catch (_) {}
       try {
         await DBHelper().clearAllData();
+        // Bắt buộc đi kèm: xem ghi chú ở `main.dart` / [2026-09-06d].
+        await SyncService.resetSyncTimestamps();
       } catch (_) {}
       try {
         await FirebaseAuth.instance.signOut();
