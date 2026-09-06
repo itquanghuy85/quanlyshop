@@ -4,6 +4,62 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-06c] - fix(tài chính) BỎ SÓT TIỀN TẤT TOÁN NGÂN HÀNG
+
+Phát hiện khi đối chiếu màn Tài chính với CSDL sau đợt dọn trùng KiotViet.
+
+### Lỗi
+
+`finance_v2_data_service.dart` tính tiền thu của đơn trả góp là
+`downPayment + settlementAmount`, nhưng chỉ duyệt **danh sách đơn bán trong kỳ**
+(`getSalesByDateRange` bound theo `soldAt`). Sai **cả hai chiều**:
+
+- đơn **bán TRONG kỳ**, ngân hàng trả tiền **SAU kỳ** ⇒ **ghi nhận SỚM** (tiền
+  chưa về đã tính vào dòng tiền);
+- đơn **bán TRƯỚC kỳ**, ngân hàng trả tiền **TRONG kỳ** ⇒ **BỎ SÓT** (tiền về
+  thật mà không vào báo cáo).
+
+**Đo trên shop thật 06/09/2026, cửa sổ 30 ngày: bỏ sót 59.660.000đ** — 5 đơn bán
+đầu tháng 8, ngân hàng trả ngày 19/08 (PHẠM PHONG LƯU 17,59tr · PHÙNG NHỰT SƠN
+15,59tr · PHẠM KHÁNH ANH THƯ 15,39tr · NGUYỄN VĂN QUANG 5,59tr · PHẠM HẢI LƯỢNG
+5,5tr).
+
+Đáng nói: `db_helper.dart` **đã có sẵn** `getInstallmentSalesSettledBetween()`
+viết đúng cho việc này, kèm ghi chú *"KHÔNG lọc theo soldAt, vì đơn thường bán
+từ trước rất lâu"* — nhưng màn Tài chính không gọi.
+
+### Sửa
+
+- Thêm `FinanceV2DataService.installmentCashIn(sale, startMs, endMs)`: **cọc
+  tính theo ngày BÁN, tất toán tính theo ngày NHẬN TIỀN** — mỗi khoản vào đúng
+  kỳ tiền thật về.
+- `loadSnapshot` nạp thêm `getInstallmentSalesSettledBetween()` cho **cả kỳ hiện
+  tại lẫn kỳ trước**, gộp vào danh sách đơn (khử trùng theo `firestoreId`, rơi
+  về `id` khi chưa đồng bộ).
+
+### Nghiệm thu máy thật (Oppo CPH2203, HULUCA STORE)
+
+| Chỉ số 30 ngày | Trước | Sau |
+|---|---|---|
+| Thu từ bán hàng | 1,58 Tỷ | **1,64 Tỷ** |
+| Tổng tiền vào | 1,687 Tỷ | **1,746 Tỷ** |
+| Dòng tiền ròng | 1,16 Tỷ | **1,22 Tỷ** |
+| Tiền ra | 526,4 Tr | 526,4 Tr *(không đổi)* |
+| Thu sửa chữa | 105,6 Tr | 105,6 Tr *(không đổi)* |
+
+Chênh lệch đúng bằng **59,66 triệu** đã tính ở trên.
+`test/installment_settlement_cash_basis_test.dart` **8/8 PASS**; `flutter test`
+**+584 −8** (đúng 8 lỗi có sẵn, không hồi quy); `flutter analyze lib test`
+0 error 0 warning.
+
+### KHÔNG phải lỗi (đã kiểm rồi bỏ)
+
+Nút **"30 ngày"** dùng `subtract(days: 29)` với `end = hôm nay` — **đúng 30 ngày
+kể cả hôm nay** (08/08 → 06/09). Ban đầu tưởng lệch 1 ngày, kiểm lại thì không.
+Ghi ra đây để lần sau khỏi "sửa" nhầm.
+
+---
+
 ## [2026-09-06b] - feat(AI) LỘ NĂNG LỰC AI + BẢN TIN ĐẦU NGÀY · fix ĐẾM ĐƠN CHỜ SAI · gỡ 3 TRIGGER THÔNG BÁO CHẾT
 
 **Chủ shop báo:** *"AI chat đang có ít card gợi ý, chỉ chú tâm vào hướng dẫn sử

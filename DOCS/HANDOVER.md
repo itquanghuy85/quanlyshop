@@ -63,6 +63,25 @@ us-central1) nguyên vẹn. Chọn `functions:delete` thay vì `deploy --only fu
 **⚠️ Còn 1 việc chờ deploy:** `CHAT_SYSTEM_PROMPT` vừa thêm dòng cấm `*nghiêng*` —
 chỉ có hiệu lực sau `firebase deploy --only functions`.
 
+**✅ VÁ BỎ SÓT TIỀN TẤT TOÁN NGÂN HÀNG (`[2026-09-06c]`) — NGHIỆM THU MÁY THẬT.**
+Màn Tài chính tính tiền đơn trả góp là `downPayment + settlementAmount` nhưng chỉ
+duyệt đơn **bán trong kỳ** ⇒ sai 2 chiều: bán trong kỳ mà NH trả sau kỳ thì **ghi
+sớm**; bán trước kỳ mà NH trả trong kỳ thì **bỏ sót**. Đo thật: cửa sổ 30 ngày
+**bỏ sót 59.660.000đ** (5 đơn đầu tháng 8, NH trả 19/08).
+· **Sửa:** `FinanceV2DataService.installmentCashIn()` — cọc theo ngày BÁN, tất
+toán theo ngày NHẬN TIỀN; `loadSnapshot` nạp thêm
+`getInstallmentSalesSettledBetween()` (hàm này ĐÃ CÓ SẴN trong `db_helper` với
+ghi chú đúng y hệt, chỉ là không ai gọi) cho cả kỳ hiện tại lẫn kỳ trước.
+· **Nghiệm thu CPH2203:** thu bán hàng 1,58 Tỷ → **1,64 Tỷ**; tiền vào 1,687 →
+**1,746 Tỷ**; dòng tiền ròng 1,16 → **1,22 Tỷ**; tiền ra và thu sửa chữa **không
+đổi**. Chênh đúng 59,66 triệu. Test 8/8 PASS, `flutter test` +584 −8.
+· **⚠️ Nút "30 ngày" KHÔNG lỗi** — `subtract(days: 29)` + `end = hôm nay` là đúng
+30 ngày kể cả hôm nay. Từng tưởng nhầm là lệch 1 ngày, đừng "sửa".
+· **⚠️ Chưa kiểm chứng được đồng bộ xoá sang máy khác:** máy CPH2239 đang đăng
+nhập **shop khác** (`xrlYBx9g…`, 0 đơn bán), không dùng đối chứng được. Code thì
+đã xác nhận đúng: `sync_service.dart:1218` thấy `deleted == true` là gọi
+`deleteSaleByFirestoreId`, và `sales` nằm trong danh sách listener realtime.
+
 **✅ ĐÃ DỌN XONG 2.245 ĐƠN KIOTVIET TRÙNG — NGHIỆM THU 06/09/2026.**
 Chủ shop tự bấm nút (bước cuối đòi mật khẩu đăng nhập). Đối chiếu CSDL thật
 sau khi dọn, **khớp chính xác kỳ vọng**:
