@@ -20,6 +20,7 @@ import '../services/event_bus.dart';
 import '../services/daily_financial_analysis_service.dart';
 import '../services/firestore_write_helper.dart';
 import '../utils/money_utils.dart';
+import '../utils/transaction_sort.dart';
 import '../utils/excel_export_helper.dart';
 import '../widgets/custom_app_bar.dart';
 import 'sale_detail_view.dart';
@@ -101,6 +102,12 @@ class _CashClosingViewState extends State<CashClosingView>
   DateTime? _txEndDate; // null = single date, set = date range
   bool _hasPermission = false;
 
+  /// Future của tab Lịch sử. PHẢI giữ ở state, KHÔNG tạo trong `build()`:
+  /// `FutureBuilder(future: _loadHistoryClosings())` tạo future mới mỗi lần
+  /// rebuild ⇒ mỗi lần gõ ô tìm kiếm / nhận event đồng bộ lại bắn thêm 1 truy
+  /// vấn Firestore và nháy spinner. Chỉ nạp lại khi lịch sử thật sự đổi.
+  Future<List<Map<String, dynamic>>>? _historyFuture;
+
   @override
   void initState() {
     super.initState();
@@ -114,6 +121,7 @@ class _CashClosingViewState extends State<CashClosingView>
     );
     _loadShopSettings();
     _loadAllData();
+    _refreshHistory();
     _initRealTimeSync();
     if (!widget.showOnlyTransactions) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -219,6 +227,7 @@ class _CashClosingViewState extends State<CashClosingView>
         debugPrint(
           '💰 [CashClosingView] Nhận event "$event" → debounce reload local DB',
         );
+        if (event == 'cash_closings_changed') _refreshHistory();
         _scheduleReload();
       }
     });
@@ -1179,12 +1188,23 @@ class _CashClosingViewState extends State<CashClosingView>
 
   Future<void> _exportCashClosingExcel() async {
     try {
-      final incomeList = _getIncomeTransactions(_selectedDate);
-      final expenseList = _getExpenseTransactions(_selectedDate);
+      // Phải xuất ĐÚNG khoảng ngày màn hình đang hiển thị. Trước đây luôn chỉ
+      // xuất `_selectedDate` nên khi đang gộp khoảng chưa chốt quỹ (hoặc người
+      // dùng tự chọn khoảng ngày), file Excel thiếu hẳn các ngày còn lại mà
+      // vẫn mang tên "sổ quỹ" — số trên màn hình và trong file không khớp.
+      final start = _txEndDate != null ? _selectedDate : _analysisStartDate;
+      final end = _txEndDate ?? _selectedDate;
+      final incomeList = <Map<String, dynamic>>[];
+      final expenseList = <Map<String, dynamic>>[];
+      for (var d = start; !d.isAfter(end); d = d.add(const Duration(days: 1))) {
+        incomeList.addAll(_getIncomeTransactions(d));
+        expenseList.addAll(_getExpenseTransactions(d));
+      }
 
       await ExcelExportHelper.exportCashClosingTransactions(
         context,
-        selectedDate: _selectedDate,
+        selectedDate: start,
+        endDate: end,
         incomeList: incomeList,
         expenseList: expenseList,
       );
@@ -1881,6 +1901,7 @@ class _CashClosingViewState extends State<CashClosingView>
             backgroundColor: Colors.indigo,
           ),
         );
+        _refreshHistory();
         await _loadAllData();
       }
     } catch (e, stackTrace) {
@@ -1971,6 +1992,10 @@ class _CashClosingViewState extends State<CashClosingView>
     );
   }
 
+  /// Số tiền kèm dấu (+/−) — dùng cho lệch quỹ.
+  static String _signedMoney(int value) =>
+      '${value >= 0 ? '+' : '−'}${MoneyUtils.formatCompactCurrency(value.abs())}';
+
   String _formatTime(dynamic timestamp) {
     if (timestamp == null) return '';
     return DateFormat(
@@ -1989,6 +2014,10 @@ class _CashClosingViewState extends State<CashClosingView>
     ) {
       incomeList.addAll(_getIncomeTransactions(d));
     }
+    // Vòng lặp nối từng NGÀY nên danh sách ra là "khối theo ngày tăng dần,
+    // trong mỗi khối mới nhất trước" — phải sắp lại toàn cục thì mới đúng thứ
+    // tự thời gian.
+    incomeList.sort(byTimeDesc);
     final totalIncome = incomeList.fold<int>(
       0,
       (sum, t) => sum + (t['amount'] as int),
@@ -2130,6 +2159,8 @@ class _CashClosingViewState extends State<CashClosingView>
     ) {
       expenseList.addAll(_getExpenseTransactions(d));
     }
+    // Sắp lại toàn cục sau khi gộp nhiều ngày — xem `_buildIncomeTab`.
+    expenseList.sort(byTimeDesc);
     final totalExpense = expenseList.fold<int>(
       0,
       (sum, t) => sum + (t['amount'] as int),
@@ -2258,8 +2289,17 @@ class _CashClosingViewState extends State<CashClosingView>
     );
   }
 
+  /// true khi danh sách đang trải trên nhiều ngày → thẻ giao dịch phải hiện
+  /// cả NGÀY, nếu không người xem không biết dòng nào thuộc ngày nào.
+  bool get _txSpansMultipleDays => _txEndDate != null || _hasUnclosedGap;
+
   Widget _transactionCard(Map<String, dynamic> t, bool isIncome) {
     final color = isIncome ? Colors.green : Colors.red;
+    final ts = txTimestamp(t);
+    final timeLabel = _txSpansMultipleDays && ts > 0
+        ? '${DateFormat('dd/MM').format(DateTime.fromMillisecondsSinceEpoch(ts))} '
+              '${t['time'] as String? ?? ''}'
+        : (t['time'] as String? ?? '');
     final type = t['type'] as String? ?? '';
     final payMethod = t['paymentMethod'] as String? ?? '';
     final isCash = payMethod == 'TIỀN MẶT';
@@ -2335,10 +2375,13 @@ class _CashClosingViewState extends State<CashClosingView>
                           ),
                           const SizedBox(width: 3),
                           Text(
-                            t['time'] as String? ?? '',
+                            timeLabel,
                             style: TextStyle(
                               fontSize: AppTextStyles.caption.fontSize,
                               color: Colors.grey.shade500,
+                              fontWeight: _txSpansMultipleDays
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
                             ),
                           ),
                           if (note != null) ...[
@@ -2638,6 +2681,14 @@ class _CashClosingViewState extends State<CashClosingView>
                 'Người liên quan',
                 t['customerName'] as String,
               ),
+            if (txTimestamp(t) > 0)
+              _detailRow(
+                Icons.schedule_rounded,
+                'Thời gian',
+                DateFormat('HH:mm • dd/MM/yyyy').format(
+                  DateTime.fromMillisecondsSinceEpoch(txTimestamp(t)),
+                ),
+              ),
             if ((t['detail'] as String? ?? '').isNotEmpty)
               _detailRow(
                 Icons.description_outlined,
@@ -2833,10 +2884,8 @@ class _CashClosingViewState extends State<CashClosingView>
     for (final t in expenseList) {
       allTransactions.add({...t, '_isIncome': false});
     }
-    // Sort by time descending
-    allTransactions.sort(
-      (a, b) => (b['time'] as String).compareTo(a['time'] as String),
-    );
+    // Sort theo thời gian thực (không phải chuỗi "HH:mm")
+    allTransactions.sort(byTimeDesc);
 
     // Apply type filter
     if (_txTypeFilter != null) {
@@ -2860,11 +2909,19 @@ class _CashClosingViewState extends State<CashClosingView>
       }).toList();
     }
 
-    final totalIn = incomeList.fold<int>(0, (s, t) => s + (t['amount'] as int));
-    final totalOut = expenseList.fold<int>(
-      0,
-      (s, t) => s + (t['amount'] as int),
-    );
+    // Tổng phải tính TRÊN danh sách đã lọc/tìm kiếm — nếu không, lọc "Bán
+    // hàng" chỉ đổi số DÒNG còn số TIỀN vẫn là tổng của tất cả loại.
+    var totalIn = 0;
+    var totalOut = 0;
+    for (final t in allTransactions) {
+      final amount = t['amount'] as int? ?? 0;
+      if (t['_isIncome'] == true) {
+        totalIn += amount;
+      } else {
+        totalOut += amount;
+      }
+    }
+    final isFiltered = _txTypeFilter != null || _txSearchQuery.isNotEmpty;
 
     return Column(
       children: [
@@ -2889,7 +2946,7 @@ class _CashClosingViewState extends State<CashClosingView>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'TẤT CẢ GIAO DỊCH',
+                        isFiltered ? 'GIAO DỊCH ĐÃ LỌC' : 'TẤT CẢ GIAO DỊCH',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.indigo.shade800,
@@ -2962,6 +3019,21 @@ class _CashClosingViewState extends State<CashClosingView>
     );
   }
 
+  /// Số kỳ chốt quỹ tối đa nạp cho tab Lịch sử (~1 năm).
+  /// Trước đây truy vấn KHÔNG giới hạn: shop chạy vài năm là mỗi lần mở tab
+  /// tải về toàn bộ lịch sử.
+  static const int _historyLimit = 365;
+
+  /// Nạp lại danh sách lịch sử chốt quỹ (gọi sau khi chốt quỹ / nhận sync).
+  void _refreshHistory() {
+    final future = _loadHistoryClosings();
+    if (mounted) {
+      setState(() => _historyFuture = future);
+    } else {
+      _historyFuture = future;
+    }
+  }
+
   /// Load history from Firestore first, fallback to local DB
   Future<List<Map<String, dynamic>>> _loadHistoryClosings() async {
     try {
@@ -2972,6 +3044,7 @@ class _CashClosingViewState extends State<CashClosingView>
             .collection('cash_closings')
             .where('shopId', isEqualTo: shopId)
             .orderBy('dateKey', descending: true)
+            .limit(_historyLimit)
             .get();
         if (snap.docs.isNotEmpty) {
           final firestoreClosings = snap.docs
@@ -3002,31 +3075,40 @@ class _CashClosingViewState extends State<CashClosingView>
   }
 
   Widget _buildHistoryTab() {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _loadHistoryClosings(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final closings = snapshot.data!;
-        if (closings.isEmpty) {
-          return const Center(child: Text("Chưa có lịch sử chốt quỹ"));
-        }
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Text(
-              "LỊCH SỬ CHỐT QUỸ",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: AppTextStyles.headline4.fontSize,
+    return RefreshIndicator(
+      onRefresh: () async => _refreshHistory(),
+      child: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _historyFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting ||
+              !snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final closings = snapshot.data!;
+          if (closings.isEmpty) {
+            return ListView(
+              children: const [
+                SizedBox(height: 120),
+                Center(child: Text("Chưa có lịch sử chốt quỹ")),
+              ],
+            );
+          }
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Text(
+                "LỊCH SỬ CHỐT QUỸ",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: AppTextStyles.headline4.fontSize,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            ...closings.map((c) => _historyCard(c)),
-          ],
-        );
-      },
+              const SizedBox(height: 12),
+              ...closings.map((c) => _historyCard(c)),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -3034,13 +3116,36 @@ class _CashClosingViewState extends State<CashClosingView>
     final dateKey = c['dateKey'] as String? ?? '';
     final cashEnd = c['cashEnd'] as int? ?? 0;
     final bankEnd = c['bankEnd'] as int? ?? 0;
+    final note = (c['note'] as String? ?? '').trim();
+
+    // NULL = bản ghi chốt trước DB v111, KHÔNG biết lệch bao nhiêu. Phải phân
+    // biệt rõ với 0 = đã chốt và khớp, nếu không là nói dối về số liệu.
+    final cashDiff = (c['cashDiff'] as num?)?.toInt();
+    final bankDiff = (c['bankDiff'] as num?)?.toInt();
+    final hasDiffInfo = cashDiff != null || bankDiff != null;
+    final totalDiff = (cashDiff ?? 0) + (bankDiff ?? 0);
+    final isBalanced = hasDiffInfo && totalDiff == 0;
+
+    String dateLabel = dateKey;
+    try {
+      dateLabel = DateFormat(
+        'dd/MM/yyyy',
+      ).format(DateFormat('yyyy-MM-dd').parse(dateKey));
+    } catch (_) {}
+
+    final accent = !hasDiffInfo
+        ? Colors.grey
+        : isBalanced
+        ? Colors.green
+        : Colors.orange;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.green.withOpacity(0.2)),
+        border: Border.all(color: accent.withOpacity(0.25)),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -3051,12 +3156,16 @@ class _CashClosingViewState extends State<CashClosingView>
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.green.shade50,
+                  color: accent.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(9),
                 ),
-                child: const Icon(
-                  Icons.check_circle,
-                  color: Colors.green,
+                child: Icon(
+                  !hasDiffInfo
+                      ? Icons.lock_clock_rounded
+                      : isBalanced
+                      ? Icons.check_circle
+                      : Icons.warning_amber_rounded,
+                  color: accent,
                   size: 20,
                 ),
               ),
@@ -3066,7 +3175,7 @@ class _CashClosingViewState extends State<CashClosingView>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      dateKey,
+                      dateLabel,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 2),
@@ -3079,6 +3188,42 @@ class _CashClosingViewState extends State<CashClosingView>
                         color: Colors.black54,
                       ),
                     ),
+                    if (hasDiffInfo && !isBalanced) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        'Lệch: '
+                        '${_signedMoney(cashDiff ?? 0)} TM'
+                        ' • ${_signedMoney(bankDiff ?? 0)} CK',
+                        style: TextStyle(
+                          fontSize: AppTextStyles.body1.fontSize,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.orange.shade800,
+                        ),
+                      ),
+                    ] else if (hasDiffInfo) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        'Khớp quỹ',
+                        style: TextStyle(
+                          fontSize: AppTextStyles.body1.fontSize,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green.shade700,
+                        ),
+                      ),
+                    ],
+                    if (note.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        note,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: AppTextStyles.caption.fontSize,
+                          fontStyle: FontStyle.italic,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -3094,7 +3239,9 @@ class _CashClosingViewState extends State<CashClosingView>
                       MoneyUtils.formatCompactCurrency(cashEnd + bankEnd),
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.green,
+                        color: accent == Colors.grey
+                            ? Colors.blueGrey
+                            : accent,
                         fontSize: AppTextStyles.headline3.fontSize,
                       ),
                     ),
@@ -3109,8 +3256,16 @@ class _CashClosingViewState extends State<CashClosingView>
   }
 
   void _showClosingDialog(int expectedCash, int expectedBank) {
-    cashEndCtrl.text = expectedCash.toString();
-    bankEndCtrl.text = expectedBank.toString();
+    // Điền sẵn số KỲ VỌNG đã định dạng nghìn. Nếu kỳ vọng âm (dữ liệu đang
+    // sai ở đâu đó) thì điền 0 để người chốt phải tự gõ số ĐẾM ĐƯỢC —
+    // `MoneyInputFormatter` không giữ dấu trừ, điền số âm vào sẽ bị lật dấu
+    // âm thầm thành số dương.
+    cashEndCtrl.text = MoneyUtils.formatCurrency(
+      expectedCash < 0 ? 0 : expectedCash,
+    );
+    bankEndCtrl.text = MoneyUtils.formatCurrency(
+      expectedBank < 0 ? 0 : expectedBank,
+    );
     noteCtrl.clear();
     bool isSavingClosing = false;
     showAppBottomSheet(
@@ -3119,8 +3274,8 @@ class _CashClosingViewState extends State<CashClosingView>
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
-          final actualCash = int.tryParse(cashEndCtrl.text) ?? 0;
-          final actualBank = int.tryParse(bankEndCtrl.text) ?? 0;
+          final actualCash = MoneyUtils.parseCurrency(cashEndCtrl.text);
+          final actualBank = MoneyUtils.parseCurrency(bankEndCtrl.text);
           final cashDiff = actualCash - expectedCash;
           final bankDiff = actualBank - expectedBank;
           final hasDiff = cashDiff != 0 || bankDiff != 0;
@@ -3218,7 +3373,17 @@ class _CashClosingViewState extends State<CashClosingView>
                               : () async {
                                   setModalState(() => isSavingClosing = true);
                                   try {
-                                    await _saveClosing();
+                                    // Chỉ đóng khi LƯU THẬT SỰ thành công —
+                                    // trước đây mọi trường hợp bị từ chối
+                                    // (không phải hôm nay / đã chốt / thiếu
+                                    // shopId) vẫn đóng sheet như đã chốt xong.
+                                    final saved = await _saveClosing();
+                                    if (!saved) {
+                                      setModalState(
+                                        () => isSavingClosing = false,
+                                      );
+                                      return;
+                                    }
                                     if (mounted) Navigator.pop(ctx);
                                   } catch (e) {
                                     setModalState(
@@ -3305,9 +3470,14 @@ class _CashClosingViewState extends State<CashClosingView>
           TextField(
             controller: ctrl,
             keyboardType: TextInputType.number,
+            // Định dạng nghìn ngay khi gõ, dùng đúng formatter chuẩn của dự án.
+            // Trước đây ô này không có formatter và `_saveClosing` dùng
+            // `int.tryParse` thẳng ⇒ gõ/dán "6.000.000" ra 0 rồi chốt luôn.
+            inputFormatters: [MoneyUtils.currencyInputFormatter()],
             onChanged: (_) => onChanged(),
             decoration: InputDecoration(
               labelText: "Thực tế",
+              suffixText: 'đ',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -3346,7 +3516,9 @@ class _CashClosingViewState extends State<CashClosingView>
     );
   }
 
-  Future<void> _saveClosing() async {
+  /// Lưu chốt quỹ. Trả `true` khi ghi thành công, `false` khi bị từ chối
+  /// (đã hiện snackbar lý do) — caller dựa vào đó để quyết định đóng sheet.
+  Future<bool> _saveClosing() async {
     try {
       final isToday = _isSameDay(
         DateTime.now().millisecondsSinceEpoch,
@@ -3361,7 +3533,7 @@ class _CashClosingViewState extends State<CashClosingView>
             ),
           );
         }
-        return;
+        return false;
       }
 
       if (_todayClosing != null) {
@@ -3373,7 +3545,7 @@ class _CashClosingViewState extends State<CashClosingView>
             ),
           );
         }
-        return;
+        return false;
       }
 
       final analysis = _analyzeTransactions(_analysisStartDate, _selectedDate);
@@ -3381,9 +3553,11 @@ class _CashClosingViewState extends State<CashClosingView>
       final openingBank = _previousDayClosing?['bankEnd'] as int? ?? 0;
       final expectedCash = openingCash + analysis.cashIn - analysis.cashOut;
       final expectedBank = openingBank + analysis.bankIn - analysis.bankOut;
-      final actualCash = int.tryParse(cashEndCtrl.text) ?? 0;
-      final actualBank = int.tryParse(bankEndCtrl.text) ?? 0;
-      final hasDiff = actualCash != expectedCash || actualBank != expectedBank;
+      final actualCash = MoneyUtils.parseCurrency(cashEndCtrl.text);
+      final actualBank = MoneyUtils.parseCurrency(bankEndCtrl.text);
+      final cashDiff = actualCash - expectedCash;
+      final bankDiff = actualBank - expectedBank;
+      final hasDiff = cashDiff != 0 || bankDiff != 0;
       if (hasDiff && noteCtrl.text.trim().isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -3393,7 +3567,7 @@ class _CashClosingViewState extends State<CashClosingView>
             ),
           );
         }
-        return;
+        return false;
       }
 
       final dateKey = DateFormat('yyyy-MM-dd').format(_selectedDate);
@@ -3415,7 +3589,7 @@ class _CashClosingViewState extends State<CashClosingView>
             ),
           );
         }
-        return;
+        return false;
       }
 
       // Identity cố định NGAY TỪ ĐẦU (kể cả khi lưu offline): mọi dòng local đều
@@ -3423,8 +3597,18 @@ class _CashClosingViewState extends State<CashClosingView>
       final closingFid = 'closing_${shopId}_$dateKey';
       final localData = {
         'dateKey': dateKey,
+        // Số dư đầu kỳ + biến động kỳ vọng: KHÔNG có 2 nhóm này thì sau khi
+        // chốt xong không còn cách nào tính lại "kỳ vọng bao nhiêu" nữa.
+        'cashStart': openingCash,
+        'bankStart': openingBank,
+        'expectedCashDelta': analysis.cashIn - analysis.cashOut,
+        'expectedBankDelta': analysis.bankIn - analysis.bankOut,
         'cashEnd': actualCash,
         'bankEnd': actualBank,
+        // LỆCH QUỸ — lý do tồn tại của màn hình này. Trước đây không lưu ⇒
+        // lịch sử chỉ còn số cuối kỳ, không tra lại được ngày nào lệch.
+        'cashDiff': cashDiff,
+        'bankDiff': bankDiff,
         'note': noteCtrl.text.trim(),
         'createdAt': now,
         'closedAt': now,
@@ -3497,8 +3681,10 @@ class _CashClosingViewState extends State<CashClosingView>
             backgroundColor: Colors.green,
           ),
         );
+        _refreshHistory();
         await _loadAllData();
       }
+      return true;
     } catch (e) {
       debugPrint('Error saving closing: $e');
       if (mounted) {
@@ -3506,6 +3692,7 @@ class _CashClosingViewState extends State<CashClosingView>
           SnackBar(content: Text("❌ Lỗi: $e"), backgroundColor: Colors.red),
         );
       }
+      return false;
     }
   }
 
@@ -3536,6 +3723,7 @@ class _CashClosingViewState extends State<CashClosingView>
         'time': DateFormat(
           'HH:mm',
         ).format(DateTime.fromMillisecondsSinceEpoch(s.soldAt)),
+        'timestamp': s.soldAt,
         'amount': saleAmount,
         'saleOrder': s,
         'note': s.isInstallment ? 'Trả góp - Đặt cọc' : null,
@@ -3568,6 +3756,7 @@ class _CashClosingViewState extends State<CashClosingView>
           'time': DateFormat('HH:mm').format(
             DateTime.fromMillisecondsSinceEpoch(s.settlementReceivedAt!),
           ),
+          'timestamp': s.settlementReceivedAt!,
           'amount': actualAmount,
           'saleOrder': s,
           'note': 'Trả góp - Nhận tiền từ NH',
@@ -3594,6 +3783,7 @@ class _CashClosingViewState extends State<CashClosingView>
           'time': DateFormat(
             'HH:mm',
           ).format(DateTime.fromMillisecondsSinceEpoch(r.deliveredAt!)),
+          'timestamp': r.deliveredAt!,
           'amount': r.price,
           'repair': r,
         });
@@ -3622,6 +3812,7 @@ class _CashClosingViewState extends State<CashClosingView>
         'time': DateFormat(
           'HH:mm',
         ).format(DateTime.fromMillisecondsSinceEpoch(p['paidAt'] as int)),
+        'timestamp': p['paidAt'] as int,
         'amount': p['amount'] as int? ?? 0,
         'rawData': p,
       });
@@ -3644,12 +3835,13 @@ class _CashClosingViewState extends State<CashClosingView>
         'time': DateFormat(
           'HH:mm',
         ).format(DateTime.fromMillisecondsSinceEpoch(expenseDate)),
+        'timestamp': expenseDate,
         'amount': e['amount'] as int? ?? 0,
         'rawData': e,
       });
     }
 
-    list.sort((a, b) => (b['time'] as String).compareTo(a['time'] as String));
+    list.sort(byTimeDesc);
     return list;
   }
 
@@ -3696,6 +3888,7 @@ class _CashClosingViewState extends State<CashClosingView>
         'time': DateFormat(
           'HH:mm',
         ).format(DateTime.fromMillisecondsSinceEpoch(expenseDate)),
+        'timestamp': expenseDate,
         'amount': amount,
         'rawData': e,
       });
@@ -3728,6 +3921,7 @@ class _CashClosingViewState extends State<CashClosingView>
             (imp['importDate'] ?? imp['createdAt'] ?? 0) as int,
           ),
         ),
+        'timestamp': (imp['importDate'] ?? imp['createdAt'] ?? 0) as int,
         'amount': amount,
         'rawData': imp,
       });
@@ -3746,6 +3940,7 @@ class _CashClosingViewState extends State<CashClosingView>
         'time': DateFormat('HH:mm').format(
           DateTime.fromMillisecondsSinceEpoch((pay['paidAt'] ?? 0) as int),
         ),
+        'timestamp': (pay['paidAt'] ?? 0) as int,
         'amount': (pay['amount'] ?? 0) as int,
         'rawData': pay,
       });
@@ -3769,6 +3964,7 @@ class _CashClosingViewState extends State<CashClosingView>
           'time': DateFormat('HH:mm').format(
             DateTime.fromMillisecondsSinceEpoch((pay['paidAt'] ?? 0) as int),
           ),
+          'timestamp': (pay['paidAt'] ?? 0) as int,
           'amount': (pay['amount'] ?? 0) as int,
           'rawData': pay,
         });
@@ -3797,6 +3993,7 @@ class _CashClosingViewState extends State<CashClosingView>
           'time': DateFormat(
             'HH:mm',
           ).format(DateTime.fromMillisecondsSinceEpoch(r.costRecordedAt!)),
+          'timestamp': r.costRecordedAt!,
           'amount': recordedAmount,
           'rawData': r.toMap(),
         });
@@ -3823,6 +4020,7 @@ class _CashClosingViewState extends State<CashClosingView>
         'time': DateFormat(
           'HH:mm',
         ).format(DateTime.fromMillisecondsSinceEpoch(returnDate)),
+        'timestamp': returnDate,
         'amount': amount,
         'rawData': ret,
       });
@@ -3852,11 +4050,12 @@ class _CashClosingViewState extends State<CashClosingView>
         'time': DateFormat(
           'HH:mm',
         ).format(DateTime.fromMillisecondsSinceEpoch(p['paidAt'] as int)),
+        'timestamp': p['paidAt'] as int,
         'amount': p['amount'] as int? ?? 0,
         'rawData': p,
       });
     }
-    list.sort((a, b) => (b['time'] as String).compareTo(a['time'] as String));
+    list.sort(byTimeDesc);
     return list;
   }
 

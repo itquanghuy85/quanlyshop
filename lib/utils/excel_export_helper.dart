@@ -23,6 +23,7 @@ import '../models/inventory_check_model.dart';
 import '../services/import_order_service.dart';
 import '../services/user_service.dart';
 import 'money_utils.dart';
+import 'transaction_sort.dart';
 
 /// Utility class for exporting data to Excel (.xlsx) files.
 /// Supports date-range filtering and Vietnamese column headers.
@@ -1557,9 +1558,16 @@ class ExcelExportHelper {
   //  13. EXPORT CASH CLOSING TRANSACTIONS (SỔ QUỸ)
   // ──────────────────────────────────────────────
 
+  /// Xuất giao dịch Sổ quỹ.
+  ///
+  /// [selectedDate] là ngày ĐẦU khoảng, [endDate] là ngày CUỐI (bỏ trống = 1
+  /// ngày). Cột "Ngày" lấy theo mốc thời gian của TỪNG dòng chứ không đóng
+  /// cứng theo [selectedDate] — màn hình có thể đang gộp nhiều ngày chưa chốt
+  /// quỹ, đóng cứng là mọi dòng đều mang sai ngày.
   static Future<void> exportCashClosingTransactions(
     BuildContext context, {
     required DateTime selectedDate,
+    DateTime? endDate,
     required List<Map<String, dynamic>> incomeList,
     required List<Map<String, dynamic>> expenseList,
   }) async {
@@ -1587,11 +1595,12 @@ class ExcelExportHelper {
     for (final t in expenseList) {
       all.add({...t, '_isIncome': false});
     }
-    all.sort((a, b) => (b['time'] as String).compareTo(a['time'] as String));
+    // Sắp theo mốc thời gian thật (dùng chung với màn Sổ quỹ).
+    all.sort(byTimeDesc);
 
     int totalIn = 0;
     int totalOut = 0;
-    final dateStr = DateFormat('dd/MM/yyyy').format(selectedDate);
+    final fallbackDateStr = DateFormat('dd/MM/yyyy').format(selectedDate);
 
     for (int i = 0; i < all.length; i++) {
       final t = all[i];
@@ -1607,9 +1616,16 @@ class ExcelExportHelper {
         totalOut += amount;
       }
 
+      final ts = txTimestamp(t);
+      final rowDate = ts > 0
+          ? DateFormat(
+              'dd/MM/yyyy',
+            ).format(DateTime.fromMillisecondsSinceEpoch(ts))
+          : fallbackDateStr;
+
       _writeRow(sheet, i + 1, [
         i + 1,
-        dateStr,
+        rowDate,
         t['time']?.toString() ?? '',
         isIncome ? 'THU' : 'CHI',
         t['title']?.toString() ?? '',
@@ -1641,15 +1657,16 @@ class ExcelExportHelper {
       excel.delete('Sheet1');
     }
 
+    final rangeEnd = endDate ?? selectedDate;
     final startOfDay = DateTime(
       selectedDate.year,
       selectedDate.month,
       selectedDate.day,
     ).millisecondsSinceEpoch;
     final endOfDay = DateTime(
-      selectedDate.year,
-      selectedDate.month,
-      selectedDate.day,
+      rangeEnd.year,
+      rangeEnd.month,
+      rangeEnd.day,
       23,
       59,
       59,

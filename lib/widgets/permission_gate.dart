@@ -58,8 +58,15 @@ class PermissionGate extends StatelessWidget {
   bool _hasAccess() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return false;
-    // Super admin always has access
-    if (user.email == 'admin@huluca.com') return true;
+    // Super admin luôn có quyền.
+    //
+    // Nguồn sự thật DUY NHẤT là Firebase custom claims (CLAUDE.md mục III.1).
+    // Trước đây chỗ này so email cứng `admin@huluca.com` — tức là quyền cao
+    // nhất của hệ thống được cấp dựa trên một chuỗi email, không phải claim đã
+    // được Cloud Function ký. `isCurrentUserSuperAdmin()` đọc claims đã cache;
+    // lúc chưa cache xong thì nhánh `perms == null` bên dưới vẫn cho qua nên
+    // super admin không bị chặn oan.
+    if (UserService.isCurrentUserSuperAdmin()) return true;
 
     final perms = UserService.getCurrentUserPermissionsSync();
     if (perms == null) {
@@ -87,7 +94,8 @@ extension PermissionGateCheck on PermissionGate {
 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return false;
-    if (user.email == 'admin@huluca.com') return true;
+    // Xem ghi chú ở `_hasAccess`: chỉ tin custom claims, không tin email.
+    if (UserService.isCurrentUserSuperAdmin()) return true;
 
     final perms = UserService.getCurrentUserPermissionsSync();
     if (perms == null) return true; // Not loaded yet — allow

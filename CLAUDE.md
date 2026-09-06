@@ -68,7 +68,7 @@
 | **Auth** | `lib/services/user_service.dart` | Quản lý quyền, role, shopId |
 | **Firestore** | `lib/services/firestore_service.dart` | Tất cả tương tác với Firestore |
 | **Sync** | `lib/services/sync_service.dart` | Real-time subscriptions, offline-first |
-| **Local DB** | `lib/data/db_helper.dart` | SQLite schema v110, upsert patterns |
+| **Local DB** | `lib/data/db_helper.dart` | SQLite schema v111, upsert patterns |
 | **Bảng giá** | `lib/services/price_book_service.dart` | Giá đề xuất + giá GHIM (SharedPreferences, theo máy) |
 | **Danh mục giá NCC** | `lib/services/price_catalog_service.dart` | Bảng giá từ hoá đơn NCC — SQLite + Firestore theo `shopId` |
 | **Payments** | `lib/services/payment_intent_service.dart` | Xử lý thanh toán |
@@ -214,7 +214,7 @@ flutter test integration_test/
 
 ### Database
 - **Local DB path:** `repair_shop_v22.db`
-- **Schema version:** 110
+- **Schema version:** 111
 - **Location:** `lib/data/db_helper.dart`
 
 ---
@@ -319,7 +319,7 @@ try {
 - **Phiên bản:** 1.x (develop)
 - **Build Status:** ✓ Passing
 - **Analyze Status:** ✓ No errors
-- **Database:** SQLite v110
+- **Database:** SQLite v111
 - **Firebase:** Integrated (Auth, Firestore, Storage, Functions)
 - **KiotViet:** Integrated (API sync)
 - **Payments:** Integrated (PaymentIntentService)

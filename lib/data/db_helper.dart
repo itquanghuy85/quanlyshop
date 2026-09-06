@@ -631,7 +631,7 @@ class DBHelper {
 
     final db = await openDatabase(
       path,
-      version: 110,
+      version: 111,
       onConfigure: (db) async {
         try {
           await db.execute('PRAGMA foreign_keys = ON');
@@ -700,7 +700,7 @@ class DBHelper {
           'CREATE TABLE IF NOT EXISTS repair_partner_payments(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, partnerId INTEGER, partnerFirestoreId TEXT, partnerName TEXT, amount INTEGER, paidAt INTEGER, paymentMethod TEXT, note TEXT, shopId TEXT, isSynced INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0, updatedAt INTEGER)',
         );
         await db.execute(
-          'CREATE TABLE IF NOT EXISTS cash_closings(id INTEGER PRIMARY KEY AUTOINCREMENT, dateKey TEXT UNIQUE, cashStart INTEGER DEFAULT 0, bankStart INTEGER DEFAULT 0, cashEnd INTEGER DEFAULT 0, bankEnd INTEGER DEFAULT 0, expectedCashDelta INTEGER DEFAULT 0, expectedBankDelta INTEGER DEFAULT 0, note TEXT, createdAt INTEGER)',
+          'CREATE TABLE IF NOT EXISTS cash_closings(id INTEGER PRIMARY KEY AUTOINCREMENT, dateKey TEXT UNIQUE, cashStart INTEGER DEFAULT 0, bankStart INTEGER DEFAULT 0, cashEnd INTEGER DEFAULT 0, bankEnd INTEGER DEFAULT 0, expectedCashDelta INTEGER DEFAULT 0, expectedBankDelta INTEGER DEFAULT 0, cashDiff INTEGER, bankDiff INTEGER, note TEXT, createdAt INTEGER)',
         );
         await db.execute(
           'CREATE TABLE IF NOT EXISTS payroll_settings(id INTEGER PRIMARY KEY AUTOINCREMENT, baseSalary INTEGER DEFAULT 0, saleCommPercent REAL DEFAULT 1.0, saleCommType TEXT DEFAULT "percent", saleCommTier1Max REAL DEFAULT 10000000, saleCommTier1Value REAL DEFAULT 20000, saleCommTier2Max REAL DEFAULT 50000000, saleCommTier2Value REAL DEFAULT 50000, saleCommTier3Value REAL DEFAULT 100000, repairProfitPercent REAL DEFAULT 10.0, repairCommType TEXT DEFAULT "percent", transportAllowance REAL DEFAULT 0, mealAllowance REAL DEFAULT 0, phoneAllowance REAL DEFAULT 0, otherAllowance REAL DEFAULT 0, otherAllowanceNote TEXT, targetBonus REAL DEFAULT 0, monthlyTarget REAL DEFAULT 0, updatedAt INTEGER)',
@@ -2517,6 +2517,32 @@ class DBHelper {
             debugPrint('DB upgrade v110: created price_catalog_items table');
           } catch (e) {
             debugPrint('DB upgrade error (v110 price_catalog_items): $e');
+          }
+        }
+        if (oldV < 111) {
+          // Lưu LỆCH QUỸ của mỗi lần chốt.
+          //
+          // `_saveClosing` trước đây chỉ ghi cashEnd/bankEnd (số ĐẾM ĐƯỢC) mà
+          // không ghi số KỲ VỌNG, nên sau khi chốt xong không còn cách nào tra
+          // lại ngày nào lệch bao nhiêu — trong khi lệch quỹ chính là thứ màn
+          // hình này sinh ra để phát hiện.
+          //
+          // KHÔNG đặt DEFAULT: NULL = bản ghi chốt trước v111 (không biết lệch),
+          // khác hẳn với 0 = đã chốt và khớp đúng. Nếu để DEFAULT 0 thì mọi
+          // bản ghi cũ sẽ hiện "khớp quỹ" — một lời nói dối về dữ liệu tài chính.
+          for (final col in const ['cashDiff', 'bankDiff']) {
+            try {
+              final cols = await db.rawQuery('PRAGMA table_info(cash_closings)');
+              final exists = cols.any((c) => (c['name'] as String?) == col);
+              if (!exists) {
+                await db.execute(
+                  'ALTER TABLE cash_closings ADD COLUMN $col INTEGER',
+                );
+                debugPrint('DB upgrade v111: added $col to cash_closings');
+              }
+            } catch (e) {
+              debugPrint('DB upgrade error (v111 cash_closings.$col): $e');
+            }
           }
         }
         if (oldV < 26) {

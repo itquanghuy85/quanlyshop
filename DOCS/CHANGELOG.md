@@ -4,6 +4,110 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-06f] - fix(chốt quỹ) DỌN 9 ĐIỂM CÒN TỒN SAU AUDIT (DB v111)
+
+Xử lý nốt danh sách tồn của `[2026-09-06e]`.
+
+### 1. Gộp nhiều ngày → danh sách giao dịch sắp SAI và không rõ ngày
+
+Mọi chỗ sắp xếp giao dịch đều so **chuỗi `"HH:mm"`**. Trong 1 ngày thì vô hại,
+nhưng màn hình này thường xuyên gộp nhiều ngày (khoảng chưa chốt quỹ, hoặc tự
+chọn khoảng ngày) ⇒ `"09:00"` của hôm kia đứng trên `"08:00"` của hôm nay, mà
+thẻ giao dịch **chỉ in giờ** nên không cách nào biết dòng nào của ngày nào.
+
+- Mỗi dòng giao dịch nay mang thêm `timestamp` (ms tuyệt đối) — 12 chỗ tạo dòng.
+- `lib/utils/transaction_sort.dart` (mới): `txTimestamp` / `byTimeDesc` dùng
+  chung cho tab Tổng/Thu/Chi/Giao dịch **và** xuất Excel.
+- Tab Thu / Chi trước đây còn nối từng ngày rồi **không sắp lại** ⇒ ra "khối
+  theo ngày tăng dần, trong mỗi khối mới nhất trước".
+- Thẻ giao dịch hiện `dd/MM HH:mm` khi danh sách trải nhiều ngày; sheet chi tiết
+  thêm dòng "Thời gian" đầy đủ.
+
+### 2. Tổng Thu/Chi ở tab Giao dịch không theo bộ lọc
+
+Lọc "Bán hàng" thì số DÒNG đổi nhưng số TIỀN vẫn là tổng của mọi loại. Nay tổng
+tính trên danh sách đã lọc/tìm kiếm, tiêu đề đổi thành "GIAO DỊCH ĐÃ LỌC".
+
+### 3. Tab Lịch sử gọi Firestore trong `build()`
+
+`FutureBuilder(future: _loadHistoryClosings())` tạo future MỚI mỗi lần rebuild
+⇒ mỗi lần gõ ô tìm kiếm / nhận event đồng bộ lại bắn thêm 1 truy vấn
+`cash_closings` (**không `limit`**) và nháy spinner. Nay future giữ ở state, chỉ
+nạp lại khi chốt quỹ / nhận `cash_closings_changed` / kéo refresh; thêm
+`limit(365)`.
+
+### 4. LỆCH QUỸ không được lưu — **DB v111**
+
+`_saveClosing` chỉ ghi `cashEnd`/`bankEnd` (số ĐẾM ĐƯỢC), không ghi số KỲ VỌNG
+⇒ chốt xong là **mất dấu vĩnh viễn ngày nào lệch bao nhiêu**, đúng thứ mà màn
+hình này sinh ra để phát hiện. Nay ghi đủ `cashStart` / `bankStart` /
+`expectedCashDelta` / `expectedBankDelta` + 2 cột mới `cashDiff` / `bankDiff`.
+
+**`cashDiff`/`bankDiff` CỐ TÌNH không có `DEFAULT`**: `NULL` = bản ghi chốt
+trước v111 (không biết lệch), khác hẳn `0` = đã chốt và khớp. Để `DEFAULT 0` thì
+mọi lần chốt cũ sẽ hiện "Khớp quỹ" — nói dối về số liệu tài chính.
+
+Thẻ Lịch sử nay hiện lệch quỹ + ghi chú, đổi màu/biểu tượng theo trạng thái
+(xám = không có thông tin lệch, xanh = khớp, cam = lệch), ngày theo `dd/MM/yyyy`.
+
+### 5. Ô "Thực tế" không định dạng số
+
+Điền sẵn số thô `6000000`, không có `inputFormatters`, và `_saveClosing` dùng
+`int.tryParse` thẳng ⇒ gõ/dán `6.000.000` ra **0** rồi chốt luôn — trong khi ô
+"Số dư đầu kỳ" ngay cạnh lại có định dạng. Nay dùng `MoneyUtils
+.currencyInputFormatter()` + `MoneyUtils.parseCurrency` (formatter chuẩn của dự
+án). Kỳ vọng âm thì điền sẵn 0 vì formatter không giữ dấu trừ — điền số âm vào
+sẽ bị lật dấu âm thầm.
+
+### 6. Gỡ `CashClosingNotifier` (359 dòng)
+
+- `isDateLocked` / `canPerformTransaction` (mục đích cả service: chặn giao dịch
+  ngày đã chốt) — **không nơi nào gọi**;
+- `_saveClosing` không bao giờ ghi `isLocked` ⇒ nhánh thông báo khoá quỹ
+  (`wasLocked != isLocked`) **không bao giờ chạy**; mà `_saveClosing` vốn đã tự
+  gửi `sendCloudNotification`;
+- `_syncToLocalDb` trùng hoàn toàn với `sync_service.dart` mục 19 (đã subscribe
+  real-time `cash_closings` → `upsertCashClosing`, cùng phạm vi quyền
+  `_isManagerLike`);
+- nhưng vẫn poll Firestore (`limit 7`) ở `init` + `dataRefresh` +
+  `sync_now_completed` + `app_resumed` + `cash_closings_changed`, khởi tạo 3 chỗ
+  trong `main.dart`.
+
+⇒ Xoá hẳn file + 3 lời gọi. Không mất chức năng nào đang chạy.
+
+### 7. Xuất Excel sổ quỹ chỉ xuất 1 ngày
+
+Luôn dùng `_selectedDate` nên khi màn đang gộp khoảng chưa chốt quỹ, file thiếu
+hẳn các ngày còn lại mà vẫn mang tên "sổ quỹ"; cột "Ngày" còn đóng cứng 1 giá
+trị cho MỌI dòng. Nay nhận `endDate`, lấy ngày theo `timestamp` của từng dòng.
+
+### 8. Bấm "XÁC NHẬN CHỐT" bị từ chối vẫn đóng sheet như thành công
+
+`_saveClosing` trả `void` và `return` khi từ chối (không phải hôm nay / đã chốt
+/ thiếu ghi chú / thiếu shopId) ⇒ sheet vẫn đóng. Nay trả `Future<bool>`, chỉ
+đóng khi lưu thật.
+
+### 9. `permission_gate.dart` cấp quyền theo email cứng
+
+2 chỗ `user.email == 'admin@huluca.com'` → quyền cao nhất hệ thống dựa trên một
+chuỗi email chứ không phải claim đã ký, trái CLAUDE.md mục III.1. Đổi sang
+`UserService.isCurrentUserSuperAdmin()` (đọc custom claims).
+
+### Files
+- `lib/utils/transaction_sort.dart` — **mới**
+- `lib/views/cash_closing_view.dart` — 1,2,3,4,5,7,8
+- `lib/utils/excel_export_helper.dart` — 1,7
+- `lib/data/db_helper.dart` — **DB v110 → v111** (cash_closings.cashDiff/bankDiff)
+- `lib/services/cash_closing_notifier.dart` — **xoá**
+- `lib/main.dart` — bỏ 3 lời gọi + import
+- `lib/widgets/permission_gate.dart` — 9
+- `lib/data/app_knowledge_base.dart` — sửa id thuật ngữ `cong-no` (không tồn tại)
+  thành `cong-no-phai-thu` / `cong-no-phai-tra` (lỗi lọt ở `[2026-09-06e]`)
+- `test/cash_closing_audit_test.dart` — **mới**, 11 case (migration FFI trên
+  SQLite thật + sắp xếp nhiều ngày + parse ô tiền)
+
+---
+
 ## [2026-09-06e] - refactor(nhắc việc) GỘP "CẦN XỬ LÝ" VÀO "NHẮC NHỞ" + fix(sổ quỹ) ĐƠN "KẾT HỢP" DỒN HẾT VÀO NGÂN HÀNG
 
 **Chủ shop báo:** *"việc cần xử lý (nhắc nhở) với cần xử lý lại bị trùng tính năng"* + yêu cầu audit toàn bộ trang Chốt quỹ.

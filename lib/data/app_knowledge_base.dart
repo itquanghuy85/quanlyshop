@@ -1370,7 +1370,13 @@ class AppKnowledgeBase {
             'nợ đổi sang màu đỏ "Cần xử lý ngay" và ghi thêm "N quá hạn".',
         'Việc nào không có quyền xem thì không hiện.',
       ],
-      terms: ['gia-von-don-sua', 'tra-gop-nh', 'chot-quy', 'cong-no'],
+      terms: [
+        'gia-von-don-sua',
+        'tra-gop-nh',
+        'chot-quy',
+        'cong-no-phai-thu',
+        'cong-no-phai-tra',
+      ],
       sampleQuestions: [
         'khung cần xử lý là gì',
         'trang nhắc nhở ở đâu',

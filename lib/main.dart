@@ -28,7 +28,6 @@ import 'services/storage_service.dart'; // For retrying pending uploads
 import 'services/sync_health_check.dart'; // Kiểm tra sync health
 import 'services/bank_notification_service.dart';
 import 'services/sync_orchestrator.dart'; // Quản lý đồng bộ local -> cloud
-import 'services/cash_closing_notifier.dart'; // Realtime notify chốt quỹ
 import 'services/claims_service.dart'; // Custom claims management
 import 'services/payment_intent_service.dart'; // Payment intents management
 import 'services/current_shop_service.dart'; // Multi-shop support
@@ -585,7 +584,6 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
             '⏸️ Background warmup: skip full download on mobile startup (realtime sync will bootstrap local DB)',
           );
           await _initSyncOrchestrator();
-          await CashClosingNotifier.instance.init();
           await PaymentIntentService.initialize();
         } catch (e) {
           debugPrint('⚠️ background app services sync failed: $e');
@@ -847,7 +845,6 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         Future.microtask(() async {
           try {
             await _initSyncOrchestrator();
-            await CashClosingNotifier.instance.init();
             await PaymentIntentService.initialize();
 
             // Retry any pending image uploads on startup (Fix #3)
@@ -879,7 +876,6 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
               '⏸️ MOBILE startup: skip full download to avoid overlap with realtime sync',
             );
             await _initSyncOrchestrator();
-            await CashClosingNotifier.instance.init();
             await PaymentIntentService.initialize();
 
             // Retry any pending image uploads on startup (Fix #3)

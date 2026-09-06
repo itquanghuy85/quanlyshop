@@ -40,7 +40,7 @@ Integration points and files to inspect first
 - `lib/services/user_service.dart` — role logic, shopId caching, validation.
 - `lib/services/firestore_service.dart` — Firestore CRUD with shopId filtering.
 - `lib/services/sync_service.dart` — real-time subscriptions to local DB.
-- `lib/data/db_helper.dart` — SQLite schema (version 110), upsert/delete patterns.
+- `lib/data/db_helper.dart` — SQLite schema (version 111), upsert/delete patterns.
 - `lib/models/` — data structures (e.g., `Repair` with status enum 1-4).
 - `pubspec.yaml` — Firebase packages, `sqflite`, `flutter_local_notifications`, printer libs (`print_bluetooth_thermal`, `esc_pos_printer`).
 
