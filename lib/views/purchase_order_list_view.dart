@@ -9,6 +9,7 @@ import 'create_purchase_order_view.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../widgets/custom_app_bar.dart';
+import '../utils/vietnamese_utils.dart';
 
 class PurchaseOrderListView extends StatefulWidget {
   const PurchaseOrderListView({super.key});
@@ -101,11 +102,14 @@ class _PurchaseOrderListViewState extends State<PurchaseOrderListView> {
   }
 
   List<PurchaseOrder> get _filteredOrders {
-    if (searchCtrl.text.isEmpty) return _orders;
-    return _orders.where((order) =>
-      order.orderCode.toLowerCase().contains(searchCtrl.text.toLowerCase()) ||
-      order.supplierName.toLowerCase().contains(searchCtrl.text.toLowerCase())
-    ).toList();
+    final q = searchCtrl.text.trim();
+    if (q.isEmpty) return _orders;
+    // So khớp KHÔNG DẤU + không phân biệt hoa/thường.
+    return _orders
+        .where((order) =>
+            VietnameseUtils.containsVietnamese(order.orderCode, q) ||
+            VietnameseUtils.containsVietnamese(order.supplierName, q))
+        .toList();
   }
 
   Widget _buildStatusChip(String status) {

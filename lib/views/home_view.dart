@@ -4470,6 +4470,12 @@ class _HomeViewState extends State<HomeView>
             context,
             MaterialPageRoute(builder: (_) => const ImportHistoryView()),
           );
+        // Hai hàm mở này tự đẩy route trên `rootNavigator` (giống khối "TRUY
+        // CẬP NHANH TÀI CHÍNH" đang gọi), nên KHÔNG bọc `_pushRoute`.
+        case ShortcutType.moneyReconcile:
+          return () => openMoneyReconcile(context);
+        case ShortcutType.priceBook:
+          return () => openPriceBook(context);
       }
     }
 

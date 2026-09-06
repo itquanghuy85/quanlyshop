@@ -19,6 +19,7 @@ import 'inventory_view.dart';
 import '../widgets/custom_app_bar.dart';
 import 'package:intl/intl.dart';
 import '../utils/money_utils.dart';
+import '../utils/vietnamese_utils.dart';
 
 /// Danh sách hàng chờ xác nhận (DRAFT)
 class PendingStockListView extends StatefulWidget {
@@ -210,17 +211,19 @@ class _PendingStockListViewState extends State<PendingStockListView> {
 
     // Filter by search query
     if (_searchQuery.isNotEmpty) {
-      final query = _searchQuery.toLowerCase();
+      // So khớp KHÔNG DẤU + không phân biệt hoa/thường.
+      final query = _searchQuery;
+      bool hit(String? s) => VietnameseUtils.containsVietnamese(s ?? '', query);
       result = result.where((e) {
         if (e.items.isEmpty) return false;
         final item = e.items.first;
         // Search in name, brand, model, IMEI, SKU
-        return item.name.toLowerCase().contains(query) ||
-            (item.brand?.toLowerCase().contains(query) ?? false) ||
-            (item.model?.toLowerCase().contains(query) ?? false) ||
-            (item.imei?.toLowerCase().contains(query) ?? false) ||
-            (item.sku?.toLowerCase().contains(query) ?? false) ||
-            (e.supplierName?.toLowerCase().contains(query) ?? false);
+        return hit(item.name) ||
+            hit(item.brand) ||
+            hit(item.model) ||
+            hit(item.imei) ||
+            hit(item.sku) ||
+            hit(e.supplierName);
       }).toList();
     }
 

@@ -13,6 +13,7 @@ import '../services/kv_duplicate_cleanup_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/money_utils.dart';
 import '../widgets/custom_app_bar.dart';
+import '../utils/vietnamese_utils.dart';
 
 /// Công cụ điều chỉnh dữ liệu — dùng để dọn đơn sửa/đơn bán dư thừa
 /// (dữ liệu test/nhập nhầm), miễn nợ, và chỉnh số lượng kho/linh kiện.
@@ -294,9 +295,10 @@ class _RepairTabState extends State<_RepairTab> {
           ? _all
           : _all
                 .where(
+                  // So khớp KHÔNG DẤU + không phân biệt hoa/thường.
                   (r) =>
-                      r.model.toLowerCase().contains(q) ||
-                      r.customerName.toLowerCase().contains(q) ||
+                      VietnameseUtils.containsVietnamese(r.model, q) ||
+                      VietnameseUtils.containsVietnamese(r.customerName, q) ||
                       r.phone.contains(q),
                 )
                 .toList();
@@ -430,9 +432,13 @@ class _SaleTabState extends State<_SaleTab> {
           ? _all
           : _all
                 .where(
+                  // So khớp KHÔNG DẤU + không phân biệt hoa/thường.
                   (s) =>
-                      s.productNamesDisplay.toLowerCase().contains(q) ||
-                      s.customerName.toLowerCase().contains(q) ||
+                      VietnameseUtils.containsVietnamese(
+                        s.productNamesDisplay,
+                        q,
+                      ) ||
+                      VietnameseUtils.containsVietnamese(s.customerName, q) ||
                       s.phone.contains(q),
                 )
                 .toList();

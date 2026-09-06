@@ -4,6 +4,123 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-06l] - feat(trang chủ) 2 LỐI TẮT MỚI · feat(tìm kiếm) THANH TÌM TẠI CHỖ + KHÔNG DẤU TOÀN APP · chore(release) 3.5.0+556
+
+Ba việc chủ shop yêu cầu trong một đợt.
+
+---
+
+### A. Thao tác nhanh: thêm "Đối soát tiền" và "Bảng giá"
+
+Thêm 2 loại lối tắt `moneyReconcile` và `priceBook` vào `ShortcutType`, kèm nhãn
+/ icon / màu / quyền (`allowViewRevenue` — cả hai đều lộ số tiền của shop).
+Màu lấy đúng màu hai mục này đang dùng ở khối "TRUY CẬP NHANH TÀI CHÍNH" để một
+chức năng không đổi màu tuỳ chỗ đặt.
+
+**Người đã tự sắp lối tắt không bị mất sắp xếp.** `_schemaVersion` 4 → 5;
+`_migrateShortcutConfigs` giữ nguyên thứ tự + trạng thái ẩn/hiện cũ và **nối
+thêm** loại mới theo cờ `visible` của bảng mặc định. Hai mục này nằm trong
+`priorityOrder` nên được nối ở trạng thái **HIỆN** — không phải vào "Sửa" bật
+tay.
+
+Hai hàm mở (`openMoneyReconcile`, `openPriceBook`) tự đẩy route trên
+`rootNavigator` nên KHÔNG bọc thêm `_pushRoute`.
+
+---
+
+### B. Tìm kiếm: bỏ hộp thoại, dùng thanh tìm tại chỗ + không dấu toàn app
+
+#### Vấn đề
+
+Màn **NCC / Đối tác sửa chữa** dùng kiểu tìm kiếm riêng: một nút 🔍 trên thanh
+tiêu đề mở ra hộp thoại *"Tìm kiếm nhà cung cấp"* với ba nút **Xóa / Hủy / Áp
+dụng**. Kiểu này:
+
+- bắt bấm 3 lần mới lọc được 1 lần;
+- gõ xong **không thấy kết quả đổi** cho tới khi bấm "Áp dụng";
+- hộp thoại đóng là **giấu luôn từ khoá đang lọc** — nhìn danh sách không biết
+  vì sao thiếu bản ghi;
+- so khớp bằng `toUpperCase().contains` nên **gõ thiếu dấu là mất kết quả**.
+
+#### Sửa
+
+Thêm `lib/widgets/inline_search_bar.dart` — thanh tìm dựng theo đúng thanh ở
+"DANH SÁCH ĐIỆN THOẠI" (cao 42, bo góc 12, nền trắng, icon kính lúp đầu dòng,
+nút ✕ xoá) để mọi màn tìm kiếm nhìn và dùng giống hệt nhau.
+
+- **NCC & Đối tác** (`supplier_list_view`): bỏ nút 🔍 + hộp thoại, đặt thanh tìm
+  ngay đầu mỗi tab, **nằm ngoài vùng cuộn** nên cuộn danh sách không trôi mất.
+  Gõ tới đâu lọc tới đó.
+- Cùng cách cho `partner_management_view` (bản trùng, hiện chưa nối route) —
+  để không còn hai kiểu tìm kiếm khác nhau trong mã nguồn.
+
+#### Không dấu + không phân biệt hoa/thường — rà hết các màn còn sót
+
+`[2026-09-04a]` đã quét một lượt nhưng còn sót. Đợt này chuyển nốt sang
+`VietnameseUtils.containsVietnamese`:
+
+| Màn | Trường tìm |
+|---|---|
+| NCC (`supplier_list_view`) | tên, SĐT, ghi chú |
+| Đối tác sửa chữa (`supplier_list_view`) | tên, SĐT, ghi chú |
+| Quản lý đối tác (`partner_management_view`) | dùng chung `_containsText` |
+| Nhật ký tài chính (`financial_activity_log_view`) | 8 trường |
+| Công cụ dọn dữ liệu (`data_reconciliation_view`) | đơn sửa + đơn bán |
+| Hàng chờ xác nhận (`pending_stock_list_view`) | tên, hãng, model, IMEI, SKU, NCC |
+| Vị trí lưu kho (`storage_location_view`) | mã, tên, kho, tầng, kệ |
+| Đơn nhập hàng (`purchase_order_list_view`) | mã đơn, tên NCC |
+| Biến thể (`fashion/variant_management_view`) | tên SP |
+| Chọn khách ở Yêu cầu đóng tiền (`payment_request_chat_view`) | tên, SĐT, địa chỉ |
+
+Đã soát và **cố ý bỏ qua**: `validated_text_field`, `safe_stream_builder`,
+`staff_list_view` (so chuỗi lỗi `permission denied`), `shop_settings_view`,
+`kiotviet_settings_view` — đều không phải tìm kiếm danh sách cho người dùng.
+`salvage_phone_view` đã dùng `VietnameseUtils` sẵn (chỉ còn `locationCode` so
+thẳng — mã kho không có dấu nên tương đương).
+
+---
+
+### C. Lên phiên bản 3.5.0 (556) chuẩn bị phát hành
+
+`pubspec.yaml`: `3.5.1+555` → **`3.5.0+556`**.
+
+> ⚠️ Chủ shop ghi "3.5.0 (155)" — **155 < 545 (bản đang live) nên Play Console
+> sẽ từ chối tệp**, số build bắt buộc tăng. Đã hỏi lại và chốt **556** (cao hơn
+> mọi build từng đóng gói: 545 live, 546–555 nội bộ).
+
+Thêm `DOCS/release_notes_2026-09-06.md` — ghi chú cập nhật cho người dùng, tổng
+hợp toàn bộ tính năng mới kể từ bản store 3.4.0 (545) ngày 17/08, gồm:
+bản đầy đủ theo 8 nhóm + **bản rút gọn 491 ký tự** vừa khung "What's new" của
+Play (giới hạn 500) + checklist trước khi upload.
+
+### Files
+
+- `lib/services/dashboard_config_service.dart`, `lib/views/home_view.dart`
+- `lib/widgets/inline_search_bar.dart` (mới)
+- `lib/views/supplier_list_view.dart`, `lib/views/partner_management_view.dart`
+- `lib/views/financial_activity_log_view.dart`, `lib/views/data_reconciliation_view.dart`,
+  `lib/views/pending_stock_list_view.dart`, `lib/views/storage_location_view.dart`,
+  `lib/views/purchase_order_list_view.dart`, `lib/views/payment_request_chat_view.dart`,
+  `lib/views/fashion/variant_management_view.dart`
+- `lib/data/app_knowledge_base.dart` (đường dẫn menu 2 tính năng)
+- `pubspec.yaml`, `DOCS/release_notes_2026-09-06.md`
+
+### Nghiệm thu
+
+`flutter analyze lib/` **0 error**. `flutter test` 614 pass / 8 fail — đúng 8
+fail có sẵn, không phát sinh mới.
+
+**✅ Máy thật CPH2203:**
+- "Đối soát tiền" và "Bảng giá" xuất hiện trong THAO TÁC NHANH, **giữ nguyên**
+  11 lối tắt chủ shop đã tự sắp trước đó ✅ nhãn hiện đủ chữ, không bị cắt ✅
+- Màn NCC: nút 🔍 trên thanh tiêu đề **đã biến mất**, thanh tìm nằm ngay dưới
+  tab ✅ gõ `lam` (không dấu, chữ thường) → lọc ngay ra **ANH LÂM THÁI** và
+  **LÂM PK** ✅ nút ✕ xoá hiện đúng lúc ✅
+- Tab Đối tác sửa chữa: gõ `ngoc` → **LK NGỌC QUÝ** ✅
+- **logcat: 0 `RenderFlex overflowed`, 0 exception.**
+
+---
+
 ## [2026-09-06k] - fix(hoạt động) BẤM DÒNG HOẠT ĐỘNG KHÔNG ĐI ĐÂU + feat(đơn sửa) GIÁ THAM KHẢO KHI NHẬP GIÁ
 
 Chủ shop báo: *"ở hoạt động hôm nay có 1 số hoạt động bấm vào không thể đi đến

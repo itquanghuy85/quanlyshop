@@ -737,6 +737,8 @@ enum ShortcutType {
   paymentRequest, // Yêu cầu đóng tiền
   dailyReport, // BC hoạt động ngày
   importHistory, // Lịch sử nhập kho
+  moneyReconcile, // Đối soát tiền về
+  priceBook, // Bảng giá
 }
 
 /// Config for a single shortcut item
@@ -829,6 +831,10 @@ class ShortcutConfig {
         return 'BC ngày';
       case ShortcutType.importHistory:
         return 'LS nhập kho';
+      case ShortcutType.moneyReconcile:
+        return 'Đối soát tiền';
+      case ShortcutType.priceBook:
+        return 'Bảng giá';
     }
   }
 
@@ -893,6 +899,10 @@ class ShortcutConfig {
         return Icons.summarize;
       case ShortcutType.importHistory:
         return Icons.history_edu;
+      case ShortcutType.moneyReconcile:
+        return Icons.fact_check_outlined;
+      case ShortcutType.priceBook:
+        return Icons.sell_outlined;
     }
   }
 
@@ -957,6 +967,12 @@ class ShortcutConfig {
         return const Color(0xFF1565C0);
       case ShortcutType.importHistory:
         return const Color(0xFF00897B); // Colors.teal.shade600
+      // Giữ nguyên màu hai mục này đang dùng ở khối "TRUY CẬP NHANH TÀI CHÍNH"
+      // để cùng một chức năng không đổi màu tuỳ chỗ đặt.
+      case ShortcutType.moneyReconcile:
+        return Colors.indigo;
+      case ShortcutType.priceBook:
+        return Colors.deepPurple;
     }
   }
 
@@ -995,6 +1011,10 @@ class ShortcutConfig {
       case ShortcutType.financialReport:
       case ShortcutType.activityLog:
       case ShortcutType.dailyReport:
+      // Đối soát tiền về GHI nhận tiền vào sổ; Bảng giá hiện giá bán/giá vốn.
+      // Cả hai đều là số tiền của shop nên đi cùng quyền xem doanh thu.
+      case ShortcutType.moneyReconcile:
+      case ShortcutType.priceBook:
         return 'allowViewRevenue';
       case ShortcutType.attendance:
         return 'allowViewAttendance';
@@ -1025,7 +1045,14 @@ class ShortcutConfigService {
   static const String _prefsVersionKey = 'shortcut_config_version_v1';
   static const String _cloudField = 'shortcutConfigV1';
   static const String _cloudVersionField = 'shortcutConfigVersionV1';
-  static const int _schemaVersion = 4;
+  // v5: thêm "Đối soát tiền" và "Bảng giá".
+  //
+  // `_migrateShortcutConfigs` giữ nguyên thứ tự và trạng thái ẩn/hiện người
+  // dùng đã tự sắp, chỉ NỐI THÊM những loại mới vào cuối theo đúng cờ `visible`
+  // của bảng mặc định. Hai mục này nằm trong `priorityOrder` nên với người đã
+  // tuỳ biến lối tắt, chúng được nối thêm ở trạng thái HIỆN — không phải vào
+  // "Sửa" bật tay, mà cũng không xoá mất sắp xếp cũ của họ.
+  static const int _schemaVersion = 5;
 
   /// Get default shortcuts - keep core operations + expose key new features.
   static List<ShortcutConfig> getDefaultShortcuts() {
@@ -1037,6 +1064,8 @@ class ShortcutConfigService {
       ShortcutType.repairCreate,
       ShortcutType.attendance,
       ShortcutType.activityLog,
+      ShortcutType.moneyReconcile,
+      ShortcutType.priceBook,
     ];
     final visibleDefaults = priorityOrder.toSet();
     final defaults = <ShortcutConfig>[];

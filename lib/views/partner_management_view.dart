@@ -23,6 +23,8 @@ import '../constants/partner_constants.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../l10n/app_localizations.dart';
+import '../utils/vietnamese_utils.dart';
+import '../widgets/inline_search_bar.dart';
 import 'repair_partner_detail_view.dart';
 import 'supplier_detail_view.dart';
 
@@ -54,6 +56,8 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
   bool _canViewCostPrice = false;
   String _partnerSearchQuery = '';
   String _supplierSearchQuery = '';
+  final _partnerSearchCtrl = TextEditingController();
+  final _supplierSearchCtrl = TextEditingController();
   String _partnerFilter = 'all';
   String _supplierFilter = 'all';
 
@@ -70,6 +74,8 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
   @override
   void dispose() {
     _tabController.dispose();
+    _partnerSearchCtrl.dispose();
+    _supplierSearchCtrl.dispose();
     super.dispose();
   }
 
@@ -84,9 +90,10 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
   String _normalizeKey(String input) => input.trim().toUpperCase();
 
   bool _containsText(String source, String query) {
-    final normalizedQuery = query.trim().toLowerCase();
+    final normalizedQuery = query.trim();
     if (normalizedQuery.isEmpty) return true;
-    return source.toLowerCase().contains(normalizedQuery);
+    // So khớp KHÔNG DẤU + không phân biệt hoa/thường.
+    return VietnameseUtils.containsVietnamese(source, normalizedQuery);
   }
 
   int _remainingDebtByName(String personName) {
@@ -265,54 +272,6 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
     }
   }
 
-  Future<void> _openTopBarSearchDialog() async {
-    final isSupplier = _isSupplierTopTab;
-    final controller = TextEditingController(
-      text: isSupplier ? _supplierSearchQuery : _partnerSearchQuery,
-    );
-
-    final keyword = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          isSupplier ? 'Tìm kiếm nhà cung cấp' : 'Tìm kiếm đối tác sửa chữa',
-        ),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Nhập tên, SĐT hoặc từ khóa...',
-            prefixIcon: Icon(Icons.search),
-          ),
-          onSubmitted: (value) => Navigator.pop(ctx, value),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, ''),
-            child: const Text('Xóa'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Hủy'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('Áp dụng'),
-          ),
-        ],
-      ),
-    );
-
-    if (keyword == null || !mounted) return;
-    setState(() {
-      if (isSupplier) {
-        _supplierSearchQuery = keyword.trim();
-      } else {
-        _partnerSearchQuery = keyword.trim();
-      }
-    });
-  }
-
   Future<void> _loadData() async {
     setState(() => _loading = true);
     try {
@@ -456,13 +415,8 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
           ],
         ),
         actions: [
-          IconButton(
-            tooltip: _isSupplierTopTab
-                ? 'Tìm kiếm nhà cung cấp'
-                : 'Tìm kiếm đối tác sửa chữa',
-            onPressed: _openTopBarSearchDialog,
-            icon: const Icon(Icons.search),
-          ),
+          // Nút 🔍 mở hộp thoại "Tìm kiếm…" đã BỎ — thay bằng thanh tìm ngay
+          // đầu mỗi tab, gõ tới đâu lọc tới đó (xem `InlineSearchBar`).
           PopupMenuButton<String>(
             tooltip: 'Lọc: $_activeFilterLabel',
             onSelected: (value) {
@@ -523,6 +477,11 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
       length: 4,
       child: Column(
         children: [
+          InlineSearchBar(
+            controller: _partnerSearchCtrl,
+            hintText: 'Tìm đối tác theo tên, SĐT, ghi chú...',
+            onChanged: (v) => setState(() => _partnerSearchQuery = v),
+          ),
           const TabBar(
             labelStyle: TextStyle(fontSize: AppTextStyles.h4),
             tabs: [
@@ -552,6 +511,11 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
       length: 5,
       child: Column(
         children: [
+          InlineSearchBar(
+            controller: _supplierSearchCtrl,
+            hintText: 'Tìm NCC theo tên, SĐT, ghi chú...',
+            onChanged: (v) => setState(() => _supplierSearchQuery = v),
+          ),
           const TabBar(
             labelStyle: TextStyle(fontSize: AppTextStyles.h4),
             tabs: [

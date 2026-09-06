@@ -9,6 +9,7 @@ import '../theme/app_text_styles.dart';
 import '../utils/excel_export_helper.dart';
 import '../services/user_service.dart';
 import '../services/event_bus.dart';
+import '../utils/vietnamese_utils.dart';
 
 /// Trang theo dõi nhật ký tài chính
 /// Chỉ xem, không sửa - có tìm kiếm
@@ -308,16 +309,19 @@ class _FinancialActivityLogViewState extends State<FinancialActivityLogView> {
 
   List<FinancialActivity> get _filteredActivities {
     if (_searchQuery.isEmpty) return _activities;
-    final query = _searchQuery.toLowerCase();
+    // So khớp KHÔNG DẤU + không phân biệt hoa/thường: gõ "nguyen" ra
+    // "NGUYỄN". `toLowerCase().contains` chỉ bỏ được hoa/thường.
+    final query = _searchQuery;
+    bool hit(String? s) => VietnameseUtils.containsVietnamese(s ?? '', query);
     return _activities.where((activity) {
-      return activity.activityType.toLowerCase().contains(query) ||
-          activity.activityTypeName.toLowerCase().contains(query) ||
-          activity.title.toLowerCase().contains(query) ||
-          (activity.description ?? '').toLowerCase().contains(query) ||
-          (activity.createdBy ?? '').toLowerCase().contains(query) ||
-          (activity.customerName ?? '').toLowerCase().contains(query) ||
-          (activity.referenceType ?? '').toLowerCase().contains(query) ||
-          (activity.referenceId ?? '').toLowerCase().contains(query);
+      return hit(activity.activityType) ||
+          hit(activity.activityTypeName) ||
+          hit(activity.title) ||
+          hit(activity.description) ||
+          hit(activity.createdBy) ||
+          hit(activity.customerName) ||
+          hit(activity.referenceType) ||
+          hit(activity.referenceId);
     }).toList();
   }
 

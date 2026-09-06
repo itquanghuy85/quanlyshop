@@ -864,9 +864,9 @@ class AppKnowledgeBase {
       id: 'price-book',
       title: 'Bảng giá (giá đề xuất + giá niêm yết)',
       menuPath:
-          'Trang chủ → TRUY CẬP NHANH TÀI CHÍNH → Bảng giá  (hoặc tab Sửa '
-          'chữa → "Bảng giá sửa chữa", tab Bán hàng → "Bảng giá bán hàng" — '
-          'vào đúng tab tương ứng)',
+          'Trang chủ → THAO TÁC NHANH → "Bảng giá"  (hoặc Trang chủ → TRUY CẬP '
+          'NHANH TÀI CHÍNH → Bảng giá; hoặc tab Sửa chữa → "Bảng giá sửa '
+          'chữa", tab Bán hàng → "Bảng giá bán hàng" — vào đúng tab tương ứng)',
       whatItDoes:
           'Tổng hợp giá đề xuất (trung vị lịch sử) cho từng "model · lỗi" (sửa '
           'chữa) và từng model/biến thể (bán hàng). Chủ shop có thể GHIM giá '
@@ -1040,8 +1040,9 @@ class AppKnowledgeBase {
       id: 'money-reconcile',
       title: 'Đối soát tiền về',
       menuPath:
-          'Trang chủ → TRUY CẬP NHANH TÀI CHÍNH → Đối soát tiền về  (cũng có ở '
-          'Sổ quỹ, Công nợ, Tài chính, tab Bán hàng)',
+          'Trang chủ → THAO TÁC NHANH → "Đối soát tiền"  (hoặc Trang chủ → '
+          'TRUY CẬP NHANH TÀI CHÍNH → Đối soát tiền về; cũng có ở Sổ quỹ, '
+          'Công nợ, Tài chính, tab Bán hàng)',
       whatItDoes:
           'Nhập số tiền vừa nhận (hoặc vừa chuyển đi) → app tự tìm đơn trả góp '
           'ngân hàng chưa tất toán hoặc khoản công nợ có số tiền khớp → chọn và '

@@ -16,6 +16,7 @@ import 'inventory_detail_view.dart';
 import 'repair_detail_view.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import '../utils/vietnamese_utils.dart';
 
 /// Full CRUD screen for managing storage locations — Light Premium Business design.
 class StorageLocationView extends StatefulWidget {
@@ -95,14 +96,15 @@ class _StorageLocationViewState extends State<StorageLocationView> {
     if (_search.isEmpty) {
       _filtered = List.from(_locations);
     } else {
-      final q = _search.toLowerCase();
+      // So khớp KHÔNG DẤU + không phân biệt hoa/thường.
+      bool hit(String? s) => VietnameseUtils.containsVietnamese(s ?? '', _search);
       _filtered = _locations
           .where((l) =>
-              l.code.toLowerCase().contains(q) ||
-              l.name.toLowerCase().contains(q) ||
-              (l.warehouse?.toLowerCase().contains(q) ?? false) ||
-              (l.floor?.toLowerCase().contains(q) ?? false) ||
-              (l.shelf?.toLowerCase().contains(q) ?? false))
+              hit(l.code) ||
+              hit(l.name) ||
+              hit(l.warehouse) ||
+              hit(l.floor) ||
+              hit(l.shelf))
           .toList();
     }
   }

@@ -2371,15 +2371,16 @@ class _CustomerSearchDialogState extends State<_CustomerSearchDialog> {
   }
 
   void _filter(String query) {
-    final q = query.toLowerCase().trim();
+    final q = query.trim();
     setState(() {
       if (q.isEmpty) {
         _filtered = _allCustomers;
       } else {
+        // So khớp KHÔNG DẤU + không phân biệt hoa/thường.
         _filtered = _allCustomers.where((c) {
-          return c.name.toLowerCase().contains(q) ||
+          return VietnameseUtils.containsVietnamese(c.name, q) ||
               c.phone.contains(q) ||
-              (c.address?.toLowerCase().contains(q) ?? false);
+              VietnameseUtils.containsVietnamese(c.address ?? '', q);
         }).toList();
       }
     });

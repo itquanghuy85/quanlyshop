@@ -31,6 +31,8 @@ import '../widgets/responsive_wrapper.dart';
 import '../widgets/entity_avatar.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/debt_payment_sheet.dart';
+import '../widgets/inline_search_bar.dart';
+import '../utils/vietnamese_utils.dart';
 
 class SupplierListView extends StatefulWidget {
   const SupplierListView({super.key});
@@ -360,13 +362,16 @@ class _SupplierListViewState extends State<SupplierListView>
   }
 
   List<_PartnerCardData> _applyPartnerFilters() {
-    final query = _partnerSearchCtrl.text.trim().toUpperCase();
+    // So khớp KHÔNG DẤU và không phân biệt hoa/thường: gõ "an sang" phải ra
+    // "ANH SANG SMARTPHONE". Bản cũ `toUpperCase().contains` chỉ bỏ được phân
+    // biệt hoa/thường, còn dấu thì gõ sai một dấu là mất kết quả.
+    final query = _partnerSearchCtrl.text.trim();
     List<_PartnerCardData> list = _partners.where((item) {
       final matchesSearch =
           query.isEmpty ||
-          item.partner.name.toUpperCase().contains(query) ||
-          (item.partner.phone ?? '').toUpperCase().contains(query) ||
-          (item.partner.note ?? '').toUpperCase().contains(query);
+          VietnameseUtils.containsVietnamese(item.partner.name, query) ||
+          VietnameseUtils.containsVietnamese(item.partner.phone ?? '', query) ||
+          VietnameseUtils.containsVietnamese(item.partner.note ?? '', query);
       final matchesActive = !_filterPartnerActive || item.partner.active;
       final matchesInactive = !_filterPartnerInactive || !item.partner.active;
       final matchesOwing = !_filterPartnerOwing || item.remain > 0;
@@ -384,13 +389,14 @@ class _SupplierListViewState extends State<SupplierListView>
   }
 
   List<_SupplierCardData> _applyFilters() {
-    final query = _searchCtrl.text.trim().toUpperCase();
+    // Không dấu + không phân biệt hoa/thường — xem `_applyPartnerFilters`.
+    final query = _searchCtrl.text.trim();
     List<_SupplierCardData> list = _items.where((item) {
       final matchesSearch =
           query.isEmpty ||
-          item.supplier.name.toUpperCase().contains(query) ||
-          (item.supplier.phone ?? '').toUpperCase().contains(query) ||
-          (item.supplier.note ?? '').toUpperCase().contains(query);
+          VietnameseUtils.containsVietnamese(item.supplier.name, query) ||
+          VietnameseUtils.containsVietnamese(item.supplier.phone ?? '', query) ||
+          VietnameseUtils.containsVietnamese(item.supplier.note ?? '', query);
       final matchesDebt = !_filterDebt || item.remain > 0;
       final matchesSettled = !_filterSettled || item.remain <= 0;
       final matchesOverdue = !_filterOverdue || item.isOverdue;
@@ -482,54 +488,6 @@ class _SupplierListViewState extends State<SupplierListView>
     });
   }
 
-  Future<void> _openTopSearchDialog() async {
-    final isSupplier = _isSupplierTab;
-    final controller = TextEditingController(
-      text: isSupplier ? _searchCtrl.text : _partnerSearchCtrl.text,
-    );
-
-    final keyword = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          isSupplier ? 'Tìm kiếm nhà cung cấp' : 'Tìm kiếm đối tác sửa chữa',
-        ),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.search),
-            hintText: 'Nhập tên, SĐT hoặc ghi chú...',
-          ),
-          onSubmitted: (value) => Navigator.pop(ctx, value),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, ''),
-            child: const Text('Xóa'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Hủy'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('Áp dụng'),
-          ),
-        ],
-      ),
-    );
-
-    if (keyword == null || !mounted) return;
-    setState(() {
-      if (isSupplier) {
-        _searchCtrl.text = keyword.trim();
-      } else {
-        _partnerSearchCtrl.text = keyword.trim();
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -541,13 +499,8 @@ class _SupplierListViewState extends State<SupplierListView>
             ? '${_items.length} NCC • ${_partners.length} đối tác'
             : '${_items.length} nhà cung cấp',
         actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            tooltip: _isSupplierTab
-                ? 'Tìm kiếm nhà cung cấp'
-                : 'Tìm kiếm đối tác sửa chữa',
-            onPressed: _openTopSearchDialog,
-          ),
+          // Nút 🔍 mở hộp thoại "Tìm kiếm…" (Xóa / Hủy / Áp dụng) đã BỎ — thay
+          // bằng thanh tìm ngay đầu mỗi tab, gõ tới đâu lọc tới đó.
           PopupMenuButton<String>(
             tooltip: 'Lọc: $_activeTopFilterLabel',
             onSelected: (value) {
@@ -644,6 +597,20 @@ class _SupplierListViewState extends State<SupplierListView>
 
   Widget _buildSupplierTab() {
     final filtered = _applyFilters();
+    // Thanh tìm nằm NGOÀI vùng cuộn để cuộn danh sách không làm nó trôi mất.
+    return Column(
+      children: [
+        InlineSearchBar(
+          controller: _searchCtrl,
+          hintText: 'Tìm NCC theo tên, SĐT, ghi chú...',
+          onChanged: (_) => setState(() {}),
+        ),
+        Expanded(child: _buildSupplierList(filtered)),
+      ],
+    );
+  }
+
+  Widget _buildSupplierList(List<_SupplierCardData> filtered) {
     return _loading
         ? const Center(child: CircularProgressIndicator())
         : RefreshIndicator(
@@ -673,6 +640,19 @@ class _SupplierListViewState extends State<SupplierListView>
 
   Widget _buildPartnerTab() {
     final filtered = _applyPartnerFilters();
+    return Column(
+      children: [
+        InlineSearchBar(
+          controller: _partnerSearchCtrl,
+          hintText: 'Tìm đối tác theo tên, SĐT, ghi chú...',
+          onChanged: (_) => setState(() {}),
+        ),
+        Expanded(child: _buildPartnerList(filtered)),
+      ],
+    );
+  }
+
+  Widget _buildPartnerList(List<_PartnerCardData> filtered) {
     return _partnerLoading
         ? const Center(child: CircularProgressIndicator())
         : RefreshIndicator(

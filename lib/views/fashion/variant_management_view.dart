@@ -9,6 +9,7 @@ import '../../services/variant_service.dart';
 import '../../services/category_service.dart';
 import '../../services/business_type_helper.dart';
 import '../../data/db_helper.dart';
+import '../../utils/vietnamese_utils.dart';
 
 /// Màn hình quản lý phân loại sản phẩm (size, color)
 /// Module Thời trang - Phase 3 Multi-Industry
@@ -872,7 +873,8 @@ class _ProductSelectorSheetState extends State<_ProductSelectorSheet> {
   List<Product> get _filteredProducts {
     if (_searchQuery.isEmpty) return _products;
     return _products
-        .where((p) => p.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+        // So khớp KHÔNG DẤU + không phân biệt hoa/thường.
+        .where((p) => VietnameseUtils.containsVietnamese(p.name, _searchQuery))
         .toList();
   }
 

@@ -6,8 +6,33 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ## ⚡ Trạng thái hiện tại
 
-**Version:** 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
+**Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-06  
+
+**🚀 CHUẨN BỊ PHÁT HÀNH 3.5.0 (556) + 2 LỐI TẮT MỚI + TÌM KIẾM TẠI CHỖ (`[2026-09-06l]`).**
+· **Thao tác nhanh** thêm **Đối soát tiền** và **Bảng giá**. Nâng
+`ShortcutConfigService._schemaVersion` 4→5; migration **giữ nguyên** thứ tự và
+ẩn/hiện người dùng đã tự sắp, chỉ NỐI THÊM 2 mục mới ở trạng thái HIỆN — không
+ai bị mất sắp xếp cũ.
+· **Tìm kiếm:** thêm `lib/widgets/inline_search_bar.dart` dựng theo đúng thanh
+tìm ở "DANH SÁCH ĐIỆN THOẠI". Màn **NCC / Đối tác** bỏ hẳn nút 🔍 + hộp thoại
+*Xóa/Hủy/Áp dụng* (bấm 3 lần mới lọc 1 lần, đóng xong giấu luôn từ khoá đang
+lọc) → thanh tìm tại chỗ, gõ tới đâu lọc tới đó, đặt NGOÀI vùng cuộn.
+· **Không dấu + không phân biệt hoa/thường:** `[2026-09-04a]` quét sót, đợt này
+chuyển nốt **10 màn** sang `VietnameseUtils.containsVietnamese` (NCC, Đối tác,
+Nhật ký tài chính, Công cụ dọn dữ liệu, Hàng chờ XN, Vị trí lưu kho, Đơn nhập
+hàng, Biến thể, chọn khách ở Yêu cầu đóng tiền). Danh sách các chỗ **cố ý bỏ
+qua** ghi trong CHANGELOG.
+· **⚠️ VERSION:** chủ shop ghi "3.5.0 (155)" nhưng **155 < 545 đang live** →
+Play Console sẽ chặn. Đã hỏi lại, chốt **`3.5.0+556`** (cao hơn mọi build đã
+dùng). `pubspec.yaml` đã đổi.
+· **Ghi chú cập nhật cho người dùng:** `DOCS/release_notes_2026-09-06.md` — tổng
+hợp tính năng mới kể từ 3.4.0 (17/08) theo 8 nhóm, kèm **bản rút gọn 491 ký tự**
+vừa khung "What's new" của Play (giới hạn 500) và checklist trước khi upload.
+· **✅ Nghiệm thu máy thật CPH2203:** 2 lối tắt lên đúng chỗ, 11 lối tắt cũ giữ
+nguyên ✅ · màn NCC hết nút 🔍, gõ `lam` không dấu ra ngay ANH LÂM THÁI + LÂM PK
+✅ · tab Đối tác gõ `ngoc` ra LK NGỌC QUÝ ✅ · logcat 0 overflow, 0 exception.
+· `flutter analyze lib/` 0 error · `flutter test` 614 pass / 8 fail có sẵn.
 
 **🔗 VÁ: BẤM DÒNG HOẠT ĐỘNG KHÔNG ĐI ĐÂU + GIÁ THAM KHẢO CHO ĐƠN SỬA (`[2026-09-06k]`).**
 Chủ shop báo 2 việc. (1) "HOẠT ĐỘNG HÔM NAY" có **5/7 loại dòng bấm vào đứng
