@@ -4,6 +4,45 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-06f] - fix(đơn sửa) KHÔNG CHỌN ĐƯỢC PHỤ TÙNG
+
+**Chủ shop báo:** *"lỗi không chọn được phụ tùng đơn sửa"*.
+
+### Gốc rễ — ép kiểu cứng làm sập cả hàm
+
+`repair_parts.supplierId` khai là `INTEGER`, nhưng SQLite **không cưỡng chế kiểu**
+và đường đồng bộ từ cloud có ghi vào đây **firestoreId dạng chuỗi**. Trên máy chủ
+shop, phụ tùng **"DÂY NGUỒN"** mang `supplierId = 'supplier_1781189222071'`.
+
+`DBHelper.getAllPartsUnified()` gom nhà cung cấp bằng:
+```dart
+if (p['supplierId'] != null) p['supplierId'] as int,   // ← ném lỗi
+```
+Chỉ cần MỘT phụ tùng như vậy là **cả hàm ném `TypeError`** ⇒ danh sách linh kiện
+rỗng ⇒ `repair_detail_view` không mở được hộp thoại chọn phụ tùng. Không phải
+"bấm không ăn" mà là **hàm nạp dữ liệu chết trước khi kịp mở**.
+
+**Sửa:** nhận cả hai dạng khoá — số thì tra theo `suppliers.id`, chuỗi thì tra
+theo `suppliers.firestoreId`, chuỗi-số thì `int.tryParse`. Không còn ép kiểu cứng.
+
+### Vá kèm — bỏ sót linh kiện tạo bằng hằng số hiện hành
+
+Cùng hàm đó gọi `getProductsByType('LINH KIỆN')` (chuỗi tiếng Việt cũ), mà
+`_typeWhereClause` **chỉ khớp cả hai dạng khi nhận khoá ASCII `'LINH_KIEN'`** —
+truyền chuỗi tiếng Việt sẽ rơi vào nhánh mặc định `type = ?`. Nghĩa là mọi linh
+kiện tạo bằng hằng số hiện hành (`ProductConstants` dùng `'LINH_KIEN'`) **không
+bao giờ hiện trong hộp chọn**. Đã đổi sang `'LINH_KIEN'`.
+*(Shop hiện chưa có sản phẩm loại này nên chưa phát tác — vá trước khi thành lỗi thật.)*
+
+### Nghiệm thu máy thật (Oppo CPH2203)
+
+Mở đơn sửa → **Phụ tùng**: hộp thoại mở bình thường, hiện đủ 6 phụ tùng kèm tên
+NCC ("TÔN APPLE"), món hết hàng hiện "HẾT HÀNG", bấm **+** chọn được (thẻ chuyển
+xanh, nút bật thành **XÁC NHẬN (1)**). Đã bấm Huỷ, không đụng dữ liệu đơn thật.
+`flutter analyze lib test` 0 error 0 warning.
+
+---
+
 ## [2026-09-06e] - refactor(đồng bộ) TRUNG TÂM ĐỒNG BỘ: 8 NÚT CÒN 3 + VÁ 2 LỖI GỐC
 
 **Chủ shop báo:** *"trang đồng bộ dữ liệu gom lại nhiều mục trùng hoặc gần giống

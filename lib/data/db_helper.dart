@@ -6519,22 +6519,61 @@ class DBHelper {
     // 2 khoá đó ⇒ NCC luôn rỗng khi ghi vào PartUsedDetail, kể cả khi phụ
     // tùng đã có NCC trong Kho phụ tùng).
     final oldParts = await getAllParts();
-    final supplierIds = <int>{
-      for (final p in oldParts)
-        if (p['supplierId'] != null) p['supplierId'] as int,
-    };
-    final supplierNameById = <int, String>{};
-    if (supplierIds.isNotEmpty) {
-      final suppliers = await getSuppliers();
-      for (final s in suppliers) {
-        final id = s['id'] as int?;
-        if (id != null && supplierIds.contains(id)) {
-          supplierNameById[id] = (s['name'] as String?)?.trim() ?? '';
+
+    // `repair_parts.supplierId` khai là INTEGER nhưng SQLite không ép kiểu, và
+    // đường đồng bộ từ cloud có ghi vào đây **firestoreId dạng chuỗi**
+    // (vd 'supplier_1781189222071'). Bản cũ ép `p['supplierId'] as int` nên chỉ
+    // cần MỘT phụ tùng như vậy là cả hàm ném lỗi ⇒ danh sách linh kiện rỗng ⇒
+    // **hộp thoại chọn phụ tùng của đơn sửa không mở được** (sự cố 06/09/2026,
+    // phụ tùng "DÂY NGUỒN"). Nay nhận cả hai dạng khoá.
+    final supplierIntIds = <int>{};
+    final supplierTextIds = <String>{};
+    for (final p in oldParts) {
+      final raw = p['supplierId'];
+      if (raw == null) continue;
+      if (raw is int) {
+        supplierIntIds.add(raw);
+      } else {
+        final asText = raw.toString().trim();
+        if (asText.isEmpty) continue;
+        final parsed = int.tryParse(asText);
+        if (parsed != null) {
+          supplierIntIds.add(parsed);
+        } else {
+          supplierTextIds.add(asText);
         }
       }
     }
+
+    final supplierNameByIntId = <int, String>{};
+    final supplierNameByTextId = <String, String>{};
+    if (supplierIntIds.isNotEmpty || supplierTextIds.isNotEmpty) {
+      final suppliers = await getSuppliers();
+      for (final s in suppliers) {
+        final name = (s['name'] as String?)?.trim() ?? '';
+        final id = s['id'] as int?;
+        if (id != null && supplierIntIds.contains(id)) {
+          supplierNameByIntId[id] = name;
+        }
+        final fid = (s['firestoreId'] as String?)?.trim();
+        if (fid != null && fid.isNotEmpty && supplierTextIds.contains(fid)) {
+          supplierNameByTextId[fid] = name;
+        }
+      }
+    }
+
     for (var p in oldParts) {
-      final supplierId = p['supplierId'] as int?;
+      final raw = p['supplierId'];
+      String? supplierName;
+      if (raw is int) {
+        supplierName = supplierNameByIntId[raw];
+      } else if (raw != null) {
+        final asText = raw.toString().trim();
+        final parsed = int.tryParse(asText);
+        supplierName = parsed != null
+            ? supplierNameByIntId[parsed]
+            : supplierNameByTextId[asText];
+      }
       result.add({
         'id': p['id'],
         'source': 'repair_parts', // Đánh dấu nguồn
@@ -6543,13 +6582,17 @@ class DBHelper {
         'quantity': p['quantity'] ?? 0,
         'cost': p['cost'] ?? 0,
         'price': p['price'] ?? 0,
-        'supplierId': supplierId,
-        'supplier': supplierId != null ? supplierNameById[supplierId] : null,
+        'supplierId': raw,
+        'supplier': supplierName,
       });
     }
 
     // 2. Lấy từ bảng products với type = 'LINH KIỆN' (kho mới)
-    final newParts = await getProductsByType('LINH KIỆN', inStockOnly: true);
+    // Phải truyền khoá ASCII: `_typeWhereClause` chỉ khớp CẢ hai dạng
+    // ('LINH_KIEN' lẫn 'LINH KIỆN') khi nhận 'LINH_KIEN'. Truyền chuỗi tiếng
+    // Việt sẽ rơi vào nhánh mặc định ⇒ bỏ sót mọi linh kiện tạo bằng hằng số
+    // hiện hành `ProductConstants` (= 'LINH_KIEN').
+    final newParts = await getProductsByType('LINH_KIEN', inStockOnly: true);
     for (var p in newParts) {
       result.add({
         'id': p.id,
