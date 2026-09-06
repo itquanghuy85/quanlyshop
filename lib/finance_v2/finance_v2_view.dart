@@ -11,6 +11,7 @@ import '../services/first_time_guide_service.dart';
 import '../models/sale_order_model.dart';
 import '../models/repair_model.dart';
 import '../utils/money_utils.dart';
+import '../utils/vietnamese_utils.dart';
 import '../views/cash_closing_view.dart';
 import '../views/debt_view.dart';
 import '../views/expense_view.dart';
@@ -2382,9 +2383,13 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final s = _snap;
     if (s == null) return _empty('Không có dữ liệu');
     final items = _showRec ? s.receivables : s.payables;
-    final debtPageMax = _maxPage(items.length, _debtPageSize);
+    // GOM THEO NGƯỜI. Bản cũ mỗi khoản một dòng nên "LK THẢO LỢI" hiện 5-6
+    // dòng liền nhau, 43 khoản trải 3 trang — nhìn không ra tổng nợ của ai là
+    // bao nhiêu, mà bấm dòng nào cũng chỉ mở lại đúng màn Công nợ.
+    final groups = _groupDebts(items);
+    final debtPageMax = _maxPage(groups.length, _debtPageSize);
     final debtPageNow = _debtPage.clamp(1, debtPageMax);
-    final debtView = _slicePage(items, debtPageNow, _debtPageSize);
+    final debtView = _slicePage(groups, debtPageNow, _debtPageSize);
     final total = _showRec ? s.receivableTotal : s.payableTotal;
     return ResponsiveCenter(
       child: Column(
@@ -2529,7 +2534,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
               children: [
                 Expanded(
                   child: Text(
-                    '${items.length} khoản • Trang $debtPageNow/$debtPageMax · Tổng: ${_full(total)}',
+                    '${groups.length} người • ${items.length} khoản • Trang $debtPageNow/$debtPageMax · Tổng: ${_full(total)}',
                     style: FinanceV2Theme.meta,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -2560,14 +2565,14 @@ class _FinanceV2ViewState extends State<FinanceV2View>
                     itemCount: debtView.length,
                     separatorBuilder: (_, __) =>
                         const Divider(height: 1, indent: 60),
-                    itemBuilder: (_, i) => _debtRow(debtView[i]),
+                    itemBuilder: (_, i) => _debtGroupRow(debtView[i]),
                   ),
           ),
           _pager(
-            total: items.length,
+            total: groups.length,
             page: debtPageNow,
             pageSize: _debtPageSize,
-            unit: 'khoản',
+            unit: 'người',
             onChanged: (p) {
               setState(() => _debtPage = p);
             },
@@ -2577,21 +2582,65 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     );
   }
 
-  Widget _debtRow(FinanceV2DebtItem d) {
-    final pct = d.total > 0 ? d.paid / d.total : 0.0;
-    final age = DateTime.now()
-        .difference(DateTime.fromMillisecondsSinceEpoch(d.createdAt))
-        .inDays;
+  /// Gom các khoản nợ lẻ về từng NGƯỜI (khách / NCC / đối tác sửa chữa).
+  ///
+  /// Gom theo tên đã chuẩn hoá (bỏ dấu, thường hoá) chứ không theo `id`: cùng
+  /// một nhà cung cấp nhưng mỗi lần nhập hàng lại sinh một bản ghi nợ riêng,
+  /// nên chỉ có tên là thứ nối chúng lại được. Bản ghi nào không có tên thì
+  /// vào chung nhóm "Không rõ" thay vì mỗi cái một dòng.
+  List<_DebtGroup> _groupDebts(List<FinanceV2DebtItem> items) {
+    final map = <String, _DebtGroup>{};
+    for (final d in items) {
+      final rawName = d.name.trim().isEmpty ? 'Không rõ' : d.name.trim();
+      final key = VietnameseUtils.normalize(rawName);
+      final g = map.putIfAbsent(
+        key,
+        () => _DebtGroup(name: rawName, avatarUrl: d.avatarUrl, phone: d.phone),
+      );
+      g.items.add(d);
+      g.remaining += d.remaining;
+      g.total += d.total;
+      g.paid += d.paid;
+      if (d.createdAt > 0 &&
+          (g.oldestAt == 0 || d.createdAt < g.oldestAt)) {
+        g.oldestAt = d.createdAt;
+      }
+      // Vài bản ghi thiếu ảnh/SĐT — lấy được từ bản ghi nào thì lấy.
+      g.avatarUrl ??= d.avatarUrl;
+      g.phone ??= d.phone;
+    }
+    final list = map.values.toList()
+      ..sort((a, b) => b.remaining.compareTo(a.remaining));
+    // Trong mỗi người, khoản mới nhất lên trước.
+    for (final g in list) {
+      g.items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    }
+    return list;
+  }
+
+  /// Một dòng = MỘT NGƯỜI, hiện tổng còn nợ và số khoản. Bấm để xem chi tiết
+  /// từng khoản (nợ vì việc gì, bao nhiêu, lúc nào).
+  Widget _debtGroupRow(_DebtGroup g) {
+    final color = _showRec ? FinanceV2Theme.warn : FinanceV2Theme.negative;
+    final age = g.oldestAt > 0
+        ? DateTime.now()
+              .difference(DateTime.fromMillisecondsSinceEpoch(g.oldestAt))
+              .inDays
+        : 0;
+    final pct = g.total > 0 ? g.paid / g.total : 0.0;
     return ListTile(
+      dense: true,
+      visualDensity: const VisualDensity(vertical: -1),
+      contentPadding: EdgeInsets.symmetric(horizontal: _hPad, vertical: 2),
       leading: EntityAvatar(
-        imageUrl: d.avatarUrl,
-        name: d.name,
-        radius: 20,
+        imageUrl: g.avatarUrl,
+        name: g.name,
+        radius: 18,
         tappableToView: false,
       ),
       title: Text(
-        d.name,
-        style: FinanceV2Theme.bodyMd,
+        g.name,
+        style: FinanceV2Theme.bodyMd.copyWith(fontWeight: FontWeight.w600),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -2599,8 +2648,12 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Còn lại: ${_cmp(d.remaining)} . $age ngày',
+            '${g.items.length} khoản'
+            '${g.paid > 0 ? ' · đã trả ${_cmp(g.paid)}' : ''}'
+            '${age > 0 ? ' · lâu nhất $age ngày' : ''}',
             style: FinanceV2Theme.micro,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 3),
           ClipRRect(
@@ -2609,23 +2662,266 @@ class _FinanceV2ViewState extends State<FinanceV2View>
               value: pct.clamp(0.0, 1.0),
               minHeight: 4,
               backgroundColor: const Color(0xFFEEF1F7),
-              valueColor: AlwaysStoppedAnimation(
-                _showRec ? FinanceV2Theme.warn : FinanceV2Theme.negative,
-              ),
+              valueColor: AlwaysStoppedAnimation(color),
             ),
           ),
         ],
       ),
-      trailing: Text(
-        _cmp(d.remaining),
-        style: FinanceV2Theme.bodyMd.copyWith(
-          fontWeight: FontWeight.w700,
-          color: _showRec ? FinanceV2Theme.warn : FinanceV2Theme.negative,
+      trailing: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Text(
+            _cmp(g.remaining),
+            style: FinanceV2Theme.amountMd.copyWith(
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+          const Icon(
+            Icons.chevron_right_rounded,
+            size: 16,
+            color: FinanceV2Theme.subInk,
+          ),
+        ],
+      ),
+      onTap: () => _showDebtGroupDetail(g),
+    );
+  }
+
+  /// Chi tiết nợ của một người: từng khoản nợ vì việc gì, bao nhiêu, lúc nào.
+  ///
+  /// Mở dạng bảng trượt ngay tại chỗ thay vì đẩy sang màn Công nợ — bản cũ bấm
+  /// dòng nào cũng nhảy sang màn Công nợ rồi phải tự tìm lại đúng người, thừa
+  /// mấy nhịp mà vẫn không thấy khoản nào của ai.
+  Future<void> _showDebtGroupDetail(_DebtGroup g) async {
+    final color = _showRec ? FinanceV2Theme.warn : FinanceV2Theme.negative;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (ctx, scrollCtrl) => Container(
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 38,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDDE3EF),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: Row(
+                  children: [
+                    EntityAvatar(
+                      imageUrl: g.avatarUrl,
+                      name: g.name,
+                      radius: 20,
+                      tappableToView: false,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            g.name,
+                            style: FinanceV2Theme.titleMd,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            '${_showRec ? "Khách còn nợ mình" : "Mình còn nợ"}'
+                            ' · ${g.items.length} khoản'
+                            '${(g.phone ?? '').isNotEmpty ? ' · ${g.phone}' : ''}',
+                            style: FinanceV2Theme.micro,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      _cmp(g.remaining),
+                      style: FinanceV2Theme.amountLg.copyWith(color: color),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: ListView.separated(
+                  controller: scrollCtrl,
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  itemCount: g.items.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (_, i) => _debtDetailRow(g.items[i], color),
+                ),
+              ),
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                DebtView(initialTab: _showRec ? 0 : 1),
+                          ),
+                        ).then((_) {
+                          if (mounted) _load();
+                        });
+                      },
+                      icon: Icon(
+                        _showRec
+                            ? Icons.call_received_rounded
+                            : Icons.call_made_rounded,
+                        size: 18,
+                      ),
+                      label: Text(
+                        _showRec ? 'Đi thu nợ' : 'Đi trả nợ',
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(44),
+                        backgroundColor: color,
+                        foregroundColor: AppColors.surface,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const DebtView()),
+    );
+  }
+
+  /// Một khoản nợ trong bảng chi tiết: nợ vì việc gì + số tiền + thời gian.
+  Widget _debtDetailRow(FinanceV2DebtItem d, Color color) {
+    final when = d.createdAt > 0
+        ? DateFormat(
+            'dd/MM/yyyy HH:mm',
+          ).format(DateTime.fromMillisecondsSinceEpoch(d.createdAt))
+        : '';
+    return Padding(
+      padding: EdgeInsets.fromLTRB(_hPad, 8, _hPad, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _debtSourceTag(d),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  // `note` là chỗ ghi "nợ vì việc gì" — nợ nhập linh kiện, nợ
+                  // mua máy, gửi sửa đối tác, vay… Không có thì nói rõ là
+                  // khoản tự tạo tay chứ đừng để trống.
+                  d.note ?? 'Khoản nợ tự tạo (không có mô tả)',
+                  style: FinanceV2Theme.bodySm,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _cmp(d.remaining),
+                style: FinanceV2Theme.bodyMd.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              const Icon(
+                Icons.schedule_rounded,
+                size: 12,
+                color: FinanceV2Theme.subInk,
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  '$when'
+                  '${d.paid > 0 ? '  ·  đã trả ${_cmp(d.paid)}/${_cmp(d.total)}' : ''}',
+                  style: FinanceV2Theme.caption,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Nhãn "nợ từ đâu", đoán từ ghi chú của khoản nợ.
+  ///
+  /// Công nợ trong app được sinh từ nhiều luồng khác nhau nhưng **không có cột
+  /// riêng ghi nguồn** — chỉ có `note` do từng luồng tự đặt. Nhận dạng theo
+  /// mấy cụm cố định mà các luồng đó đang ghi; không khớp thì để "Khác" chứ
+  /// không đoán bừa.
+  Widget _debtSourceTag(FinanceV2DebtItem d) {
+    final n = VietnameseUtils.normalize(d.note ?? '');
+    String label;
+    Color c;
+    if (n.contains('linh kien') || n.contains('von linh kien')) {
+      label = 'Linh kiện';
+      c = const Color(0xFF6A1B9A);
+    } else if (n.contains('gui sua') || n.contains('doi tac')) {
+      label = 'Gửi sửa';
+      c = const Color(0xFF00695C);
+    } else if (n.contains('no nhap') || n.contains('nhap hang')) {
+      label = 'Nhập hàng';
+      c = const Color(0xFF1565C0);
+    } else if (n.contains('mua may') || n.contains('ban hang')) {
+      label = 'Bán hàng';
+      c = const Color(0xFF2E7D32);
+    } else if (n.contains('sua chua') || n.contains('don sua')) {
+      label = 'Sửa chữa';
+      c = const Color(0xFFEF6C00);
+    } else if (n.contains('vay')) {
+      label = 'Vay';
+      c = const Color(0xFF4E342E);
+    } else {
+      label = 'Khác';
+      c = FinanceV2Theme.subInk;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: c.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: c.withValues(alpha: 0.35)),
+      ),
+      child: Text(
+        label,
+        style: FinanceV2Theme.caption.copyWith(
+          color: c,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -4852,4 +5148,20 @@ class _PinnedHeader extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(_PinnedHeader oldDelegate) =>
       oldDelegate.height != height || oldDelegate.child != child;
+}
+
+/// Tổng hợp nợ của MỘT người — dùng cho tab Nợ ở Tài chính.
+class _DebtGroup {
+  _DebtGroup({required this.name, this.avatarUrl, this.phone});
+
+  final String name;
+  String? avatarUrl;
+  String? phone;
+  final List<FinanceV2DebtItem> items = [];
+  int remaining = 0;
+  int total = 0;
+  int paid = 0;
+
+  /// Thời điểm của khoản nợ CŨ NHẤT — để hiện "lâu nhất N ngày".
+  int oldestAt = 0;
 }

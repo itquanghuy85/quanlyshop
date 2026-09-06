@@ -49,6 +49,8 @@ Dành để đăng lên Google Play (Play Console) và App Store (App Store Conn
 
 ### 🤝 Công nợ
 
+- **Tab Nợ gom theo từng người:** trước đây mỗi khoản nợ một dòng nên một nhà cung cấp hiện 5–6 dòng liền nhau (43 khoản trải 3 trang). Nay mỗi người **một dòng** kèm tổng nợ và số khoản — 43 khoản gom lại còn 10 người, xem hết trong một trang.
+- **Bấm vào là ra ngay chi tiết:** từng khoản nợ vì việc gì (nhập hàng, linh kiện, gửi sửa đối tác, bán hàng, vay…), số tiền bao nhiêu, phát sinh lúc nào — không phải mở lại màn Công nợ rồi tự đi tìm.
 - **Gộp nhiều đơn của một khách** thành một khoản nợ (bán sỉ), thu tiền tự phân bổ lần lượt từ đơn cũ nhất.
 - Thông báo cho cả shop khi có người **thu nợ / trả nợ / tạo nợ / miễn nợ**.
 
@@ -88,10 +90,10 @@ Dành để đăng lên Google Play (Play Console) và App Store (App Store Conn
 ```
 Bản cập nhật lớn nhất từ trước tới nay:
 
-💰 Tài chính chia lại 3 phần Tiền / Lãi / Nợ — số tiền và danh sách giao dịch nằm chung một màn, dễ theo dõi hơn hẳn.
-🏷️ Bảng giá tự động + giá niêm yết; giá tham khảo hiện ngay lúc nhập giá, bấm "Dùng" là xong.
+💰 Tài chính chia lại 3 phần Tiền / Lãi / Nợ — số tiền và danh sách giao dịch nằm chung một màn.
+🤝 Tab Nợ gom theo từng người, bấm ra ngay chi tiết nợ vì việc gì.
+🏷️ Bảng giá tự động + giá tham khảo ngay lúc nhập giá, bấm "Dùng" là xong.
 🏦 QR chuyển khoản VietQR + tự đọc thông báo ngân hàng (Android).
-🔧 Đơn đã giao vẫn sửa được. Công nợ gộp nhiều đơn.
 🏠 Hoạt động hôm nay: bấm dòng nào cũng mở được chi tiết.
 🔍 Tìm kiếm không dấu toàn app.
 🛠️ Sửa nhiều lỗi số liệu tài chính.

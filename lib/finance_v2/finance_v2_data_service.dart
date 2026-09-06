@@ -71,6 +71,12 @@ class FinanceV2DebtItem {
   final int createdAt;
   final String? phone;
 
+  /// Ghi chú của khoản nợ — chính là chỗ ghi "nợ từ đâu": *"Nợ nhập IPHONE
+  /// 15PROMAX…"*, *"Vốn linh kiện: …"*, *"Nợ mua máy: …"*. Trước đây snapshot
+  /// bỏ trường này, nên tab Nợ chỉ hiện được tên + số tiền, mở ra không biết
+  /// khoản đó phát sinh vì việc gì.
+  final String? note;
+
   const FinanceV2DebtItem({
     required this.id,
     required this.type,
@@ -81,6 +87,7 @@ class FinanceV2DebtItem {
     this.avatarUrl,
     required this.createdAt,
     this.phone,
+    this.note,
   });
 }
 
@@ -904,6 +911,9 @@ class FinanceV2DataService {
                 (d['personName'] ?? d['partnerName']).toString(),
               )],
         createdAt: _toInt(d['createdAt']),
+        note: (d['note'] ?? '').toString().trim().isEmpty
+            ? null
+            : (d['note'] ?? '').toString().trim(),
         phone: isPayable
             ? (supplierPhoneByName[_normalizeName(
                     (d['personName'] ?? d['partnerName']).toString(),

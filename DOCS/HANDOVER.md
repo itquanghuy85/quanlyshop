@@ -9,6 +9,23 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-06  
 
+**🤝 TAB NỢ: GOM NỢ THEO NGƯỜI + BẤM RA CHI TIẾT (`[2026-09-06m]`).**
+Chủ shop báo tab Nợ "mỗi khoản một dòng rất rối, bấm vào lại vào trang công nợ
+lần nữa". Đo thật: 43 khoản trải 3 trang, "LK THẢO LỢI" hiện 5-6 dòng liền nhau;
+bấm dòng nào cũng chỉ `push(DebtView())` rồi phải tự tìm lại người đó.
+· **Sửa:** `FinanceV2DebtItem` mang thêm `note` (chỗ ghi "nợ vì việc gì").
+`_groupDebts` gom theo **tên đã chuẩn hoá không dấu** — KHÔNG theo `id`, vì mỗi
+lần nhập hàng lại sinh một bản ghi nợ riêng cho cùng một NCC. Mỗi dòng = một
+người + tổng nợ + số khoản + khoản lâu nhất. Bấm → bảng trượt chi tiết **ngay
+tại chỗ**: nhãn nguồn (Nhập hàng/Linh kiện/Gửi sửa/Bán hàng/Sửa chữa/Vay/Khác),
+mô tả, số tiền, ngày giờ; cuối bảng có nút *Đi thu nợ / Đi trả nợ* mở đúng tab.
+· Nhãn nguồn **đoán từ `note`** vì công nợ không có cột riêng ghi nguồn — không
+khớp thì để "Khác", không đoán bừa.
+· **✅ Máy thật CPH2203:** Phải trả **43 khoản/3 trang → 10 người/1 trang** ✅ ·
+Phải thu "2 người • 2 khoản" ✅ · bấm LONG ZIN SG ra đúng *7 khoản · 131.6 Tr*,
+từng dòng có `[Nhập hàng]` + mô tả máy + 18.8 Tr + 28/08/2026 22:09 ✅ ·
+logcat 0 overflow, 0 exception.
+
 **🚀 CHUẨN BỊ PHÁT HÀNH 3.5.0 (556) + 2 LỐI TẮT MỚI + TÌM KIẾM TẠI CHỖ (`[2026-09-06l]`).**
 · **Thao tác nhanh** thêm **Đối soát tiền** và **Bảng giá**. Nâng
 `ShortcutConfigService._schemaVersion` 4→5; migration **giữ nguyên** thứ tự và

@@ -4,6 +4,60 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-06m] - feat(tài chính) TAB NỢ: GOM NỢ THEO NGƯỜI + BẤM RA CHI TIẾT "NỢ VÌ VIỆC GÌ"
+
+Chủ shop: *"mỗi một khoản nợ lại một dòng rất rối… bấm vào khoản nợ nào cũng lại
+vào trang công nợ lần nữa, rất nhiều thao tác"*.
+
+### Vấn đề (đo trên shop thật)
+
+- Tab **Nợ** liệt kê **mỗi khoản nợ một dòng**: "LK THẢO LỢI" hiện 5–6 dòng liền
+  nhau, "SANG SMARTPHONE" 3 dòng… → **43 khoản trải 3 trang**, không nhìn ra
+  tổng nợ của từng người là bao nhiêu.
+- Bấm dòng nào cũng chỉ `Navigator.push(DebtView())` — mở lại **đúng màn Công
+  nợ** rồi phải tự cuộn đi tìm lại người đó. Thao tác thừa mà không thêm thông
+  tin gì.
+- Không biết khoản nợ đó **phát sinh vì việc gì** (nhập hàng? linh kiện? gửi
+  sửa đối tác? vay?) vì snapshot không mang theo ghi chú của khoản nợ.
+
+### Sửa
+
+- `FinanceV2DebtItem` mang thêm **`note`** — chính là chỗ các luồng ghi "nợ vì
+  việc gì" (*"Nợ nhập IPHONE 15PROMAX…"*, *"Vốn linh kiện: …"*).
+- **Gom theo NGƯỜI** (`_groupDebts`): gom theo tên đã chuẩn hoá không dấu, KHÔNG
+  theo `id` — cùng một NCC nhưng mỗi lần nhập hàng lại sinh một bản ghi nợ
+  riêng, chỉ có tên là thứ nối chúng lại được. Sắp theo số nợ giảm dần.
+- Mỗi dòng = một người: tổng còn nợ, **số khoản**, đã trả bao nhiêu, khoản **lâu
+  nhất bao nhiêu ngày**.
+- Bấm → **bảng trượt chi tiết ngay tại chỗ**: từng khoản kèm nhãn nguồn
+  (Nhập hàng / Linh kiện / Gửi sửa / Bán hàng / Sửa chữa / Vay / Khác), mô tả
+  đầy đủ, **số tiền** và **ngày giờ phát sinh**. Cuối bảng có nút *Đi thu nợ* /
+  *Đi trả nợ* mở màn Công nợ **đúng tab** khi cần thao tác thật.
+- Nhãn nguồn đoán từ `note` vì công nợ **không có cột riêng ghi nguồn**; không
+  khớp cụm nào thì để "Khác" chứ không đoán bừa.
+
+### Files
+
+- `lib/finance_v2/finance_v2_data_service.dart` (thêm `note`)
+- `lib/finance_v2/finance_v2_view.dart` (`_groupDebts`, `_debtGroupRow`,
+  `_showDebtGroupDetail`, `_debtDetailRow`, `_debtSourceTag`, lớp `_DebtGroup`)
+- `DOCS/release_notes_2026-09-06.md` (bổ sung mục Công nợ; bản rút gọn 466 ký tự)
+
+### Nghiệm thu
+
+`flutter analyze lib/` **0 error** · `flutter test` 614 pass / 8 fail có sẵn.
+
+**✅ Máy thật CPH2203:**
+- Phải trả: **43 khoản / 3 trang → 10 người / 1 trang** ✅ mỗi dòng ghi
+  "7 khoản · lâu nhất 9 ngày", "3 khoản · đã trả 14.05 Tr" ✅
+- Phải thu: "2 người • 2 khoản" ✅
+- Bấm **LONG ZIN SG** → bảng chi tiết: *Mình còn nợ · 7 khoản · 0878011111 ·
+  131.6 Tr*, từng dòng có nhãn **[Nhập hàng]** + *"Nợ nhập IPHONE 15PROMAX 99
+  256GB TRẮNG x1 – 18.800.000đ"* + **18.8 Tr** + **28/08/2026 22:09** ✅
+- **logcat: 0 `RenderFlex overflowed`, 0 exception.**
+
+---
+
 ## [2026-09-06l] - feat(trang chủ) 2 LỐI TẮT MỚI · feat(tìm kiếm) THANH TÌM TẠI CHỖ + KHÔNG DẤU TOÀN APP · chore(release) 3.5.0+556
 
 Ba việc chủ shop yêu cầu trong một đợt.
