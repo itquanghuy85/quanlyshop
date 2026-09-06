@@ -26,6 +26,82 @@ class RepairPartnerService {
     return 'debt_partner_$normalized';
   }
 
+  /// Tìm đối tác của một dịch vụ trong danh sách đối tác của MÁY NÀY.
+  ///
+  /// `RepairService.partnerId` là **id SQLite cục bộ**, khác nhau giữa các máy
+  /// (cùng họ lỗi với sự cố nhân đôi đơn bán). Đo trên máy test 06/09/2026:
+  /// đối tác "SC" có id local **28**, nhưng dịch vụ lưu `partnerId = 1` (id của
+  /// máy tạo đơn) ⇒ **3/3 dịch vụ đều không khớp**, hộp "Sửa dịch vụ" hiện
+  /// "Không có đối tác"; lưu lại là **mất đối tác ⇒ mất luôn công nợ**.
+  ///
+  /// Thứ tự khớp: `partnerFirestoreId` (ổn định mọi máy) → `partnerId` (cục bộ)
+  /// → tên (phương án cuối cho dữ liệu cũ chưa có firestoreId).
+  /// Trả về `null` nếu không khớp — **không được đoán bừa lấy đối tác đầu danh
+  /// sách**, vì như thế là gán nhầm nợ cho người khác.
+  static T? findPartnerForService<T>({
+    required List<T> partners,
+    required String? Function(T) firestoreIdOf,
+    required int? Function(T) idOf,
+    required String Function(T) nameOf,
+    required String? servicePartnerFirestoreId,
+    required int? servicePartnerId,
+    required String? servicePartnerName,
+  }) {
+    final wantedFid = servicePartnerFirestoreId?.trim();
+    if (wantedFid != null && wantedFid.isNotEmpty) {
+      for (final p in partners) {
+        final fid = firestoreIdOf(p)?.trim();
+        if (fid != null && fid.isNotEmpty && fid == wantedFid) return p;
+      }
+    }
+    if (servicePartnerId != null) {
+      for (final p in partners) {
+        if (idOf(p) == servicePartnerId) return p;
+      }
+    }
+    final wantedName = servicePartnerName?.trim().toUpperCase();
+    if (wantedName != null && wantedName.isNotEmpty) {
+      for (final p in partners) {
+        if (nameOf(p).trim().toUpperCase() == wantedName) return p;
+      }
+    }
+    return null;
+  }
+
+  /// Khoá nợ đối tác **KHÔNG kèm giá** — định danh ổn định của
+  /// "một dịch vụ, của một đơn, với một đối tác".
+  ///
+  /// [buildPartnerDebtFirestoreId] nhét `partnerCost` vào mã, nên **sửa giá
+  /// dịch vụ là đổi luôn danh tính bản nợ**: nếu bước dọn bản cũ không chạy
+  /// trọn vẹn thì bản nợ giá cũ nằm lại vĩnh viễn còn bản giá mới không được
+  /// tạo. Đo được trên shop thật 06/09/2026: đơn #997 dịch vụ `EK 11PRM` giá
+  /// 300.000đ nhưng công nợ đối tác vẫn ghi 400.000đ.
+  ///
+  /// Với khoá này, đổi giá chỉ là **cập nhật `totalAmount`** của đúng bản nợ đó.
+  static String buildPartnerDebtStableId({
+    required String repairOrderId,
+    required String serviceFirestoreId,
+    required int partnerId,
+  }) {
+    final normalized = _normalizeTrackingKey(
+      'debt_${repairOrderId}_${serviceFirestoreId}_$partnerId',
+    );
+    return 'debt_partner_$normalized';
+  }
+
+  /// Tiền tố dùng để tìm MỌI biến thể nợ (kể cả mã cũ có kèm giá) của cùng
+  /// một dịch vụ — phục vụ dọn bản mồ côi.
+  static String buildPartnerDebtIdPrefix({
+    required String repairOrderId,
+    required String serviceFirestoreId,
+    required int partnerId,
+  }) =>
+      buildPartnerDebtStableId(
+        repairOrderId: repairOrderId,
+        serviceFirestoreId: serviceFirestoreId,
+        partnerId: partnerId,
+      );
+
   static String buildPartnerPaymentIdempotencyKey({
     required String repairOrderId,
     required String serviceFirestoreId,

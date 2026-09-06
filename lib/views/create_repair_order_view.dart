@@ -1313,13 +1313,19 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     );
     final partnerSearchCtrl = TextEditingController();
 
+    // `orElse: () => _partners.first` cũ là bẫy: không khớp thì im lặng gán
+    // ĐỐI TÁC ĐẦU DANH SÁCH ⇒ ghi nợ cho nhầm người. Nay khớp theo
+    // firestoreId → id cục bộ → tên, không khớp thì để trống.
     RepairPartner? selectedPartner;
-    if (editService != null &&
-        editService.partnerId != null &&
-        _partners.isNotEmpty) {
-      selectedPartner = _partners.firstWhere(
-        (p) => p.id == editService.partnerId,
-        orElse: () => _partners.first,
+    if (editService != null && _partners.isNotEmpty) {
+      selectedPartner = RepairPartnerService.findPartnerForService<RepairPartner>(
+        partners: _partners,
+        firestoreIdOf: (p) => p.firestoreId,
+        idOf: (p) => p.id,
+        nameOf: (p) => p.name,
+        servicePartnerFirestoreId: editService.partnerFirestoreId,
+        servicePartnerId: editService.partnerId,
+        servicePartnerName: editService.partnerName,
       );
     }
 

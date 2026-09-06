@@ -4,6 +4,73 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-06g] - fix(đơn sửa) SỬA DỊCH VỤ LÀM MẤT ĐỐI TÁC ⇒ MẤT CÔNG NỢ
+
+**Chủ shop báo:** *"thanh toán dịch vụ bằng công nợ không thấy ghi nợ, chỉ thấy
+ghi trong hoạt động gần đây"*.
+
+### Lỗi 1 (gốc rễ) — mở "Sửa dịch vụ" là mất đối tác
+
+`RepairService.partnerId` là **id SQLite CỤC BỘ**, khác nhau giữa các máy — cùng
+họ lỗi với sự cố nhân đôi đơn bán (`[2026-09-05l]`). Hộp thoại sửa dịch vụ khớp
+đối tác bằng `partner.id == editService.partnerId`, nên máy khác mở đơn ra là
+**không khớp**.
+
+Đo trên máy test: đối tác "SC" có id local **28**, nhưng dịch vụ lưu
+`partnerId = 1` (id của máy tạo đơn) ⇒ **3/3 dịch vụ đều không khớp**, hộp thoại
+hiện **"Không có đối tác"** và ẩn luôn ô *Phương thức TT đối tác*. Lưu lại là
+dịch vụ **mất đối tác** ⇒ `_createPartnerFinancialRecordsForService` thoát sớm
+tại `if (service.partnerId == null) return;` ⇒ **không ghi công nợ**, chỉ còn
+dòng trong nhật ký tài chính ("hoạt động gần đây") — đúng y triệu chứng chủ shop
+mô tả.
+
+**Sửa:** `RepairPartnerService.findPartnerForService()` khớp theo thứ tự
+`partnerFirestoreId` (ổn định mọi máy) → `partnerId` (cục bộ) → tên. Áp cho cả
+`repair_detail_view` và `create_repair_order_view`.
+
+**Sửa kèm 1 bẫy nguy hiểm hơn:** `create_repair_order_view` dùng
+`firstWhere(..., orElse: () => _partners.first)` — không khớp thì **im lặng gán
+đối tác ĐẦU DANH SÁCH**, tức **ghi nợ cho nhầm người**. Nay không khớp thì để
+trống.
+
+### Lỗi 2 — sửa giá dịch vụ, công nợ không đổi theo
+
+`buildPartnerDebtFirestoreId` **nhét giá vào mã nợ**
+(`..._<partnerId>_<cost>`), nên đổi giá là đổi luôn danh tính bản nợ: nếu bước
+dọn bản cũ không chạy trọn vẹn thì bản giá cũ nằm lại vĩnh viễn còn bản giá mới
+không được tạo. Đo trên shop thật: đơn #997 dịch vụ `EK 11PRM` giá **300.000đ**
+nhưng nợ đối tác vẫn **400.000đ**.
+
+**Sửa:**
+- Thêm `buildPartnerDebtStableId()` — mã chỉ gồm (đơn, dịch vụ, đối tác),
+  **không kèm giá**.
+- Ghi nợ đổi từ *tạo mới* sang **upsert**: có rồi thì cập nhật `totalAmount` +
+  ghi chú + tính lại `status` theo `paidAmount`, chưa có thì tạo.
+- Dọn bản cũ theo **tiền tố** (`DBHelper.getDebtsByFirestoreIdPrefix`) để bắt
+  mọi biến thể mã có kèm giá, và dọn bản trùng dư nếu có.
+
+### Nghiệm thu máy thật (máy test CPH2239, shop test)
+
+Sửa giá dịch vụ `EK` từ 500.000 → 350.000 trên đơn #1048:
+
+| | Trước | Sau |
+|---|---|---|
+| Hộp thoại | "Không có đối tác" | **SC + CÔNG NỢ** |
+| Số bản nợ còn hiệu lực | 1 bản **500.000** (mồ côi) | **1 bản duy nhất** |
+| Số tiền nợ | 500.000 ❌ | **350.000** ✅ |
+| Mã nợ | `..._1_500000` | `..._svc_..._28` (không kèm giá) |
+| `partnerId` trong dịch vụ | 1 (id máy khác) | **28** (tự sửa về id đúng) |
+
+`test/partner_debt_stable_id_test.dart` **14/14 PASS**;
+`flutter analyze lib test` 0 error 0 warning.
+
+### Còn lại
+
+Đơn #997 trên shop thật vẫn còn bản nợ 400.000 cũ (dịch vụ 300.000). Mở dịch vụ
+đó ra bấm **Cập nhật** một lần là tự chuẩn hoá theo mã mới.
+
+---
+
 ## [2026-09-06f] - fix(đơn sửa) KHÔNG CHỌN ĐƯỢC PHỤ TÙNG
 
 **Chủ shop báo:** *"lỗi không chọn được phụ tùng đơn sửa"*.

@@ -7994,6 +7994,23 @@ class DBHelper {
   Future<int> deleteDebtByFirestoreId(String fId) async => (await database)
       .delete('debts', where: 'firestoreId = ?', whereArgs: [fId]);
 
+  /// Mọi bản nợ có `firestoreId` bắt đầu bằng [prefix], còn hiệu lực.
+  ///
+  /// Dùng cho nợ đối tác: mã nợ CŨ có nhét giá vào đuôi nên sửa giá dịch vụ là
+  /// sinh mã khác; tìm theo tiền tố mới gom được mọi biến thể để cập nhật hoặc
+  /// dọn, không để lại bản mồ côi (xem `RepairPartnerService`).
+  Future<List<Map<String, dynamic>>> getDebtsByFirestoreIdPrefix(
+    String prefix,
+  ) async {
+    if (prefix.trim().isEmpty) return const [];
+    return (await database).query(
+      'debts',
+      where: "firestoreId LIKE ? AND (deleted IS NULL OR deleted = 0)",
+      whereArgs: ['$prefix%'],
+      orderBy: 'createdAt ASC',
+    );
+  }
+
   /// Lấy debt theo firestoreId - dùng cho conflict resolution
   Future<Map<String, dynamic>?> getDebtByFirestoreId(String firestoreId) async {
     final res = await (await database).query(

@@ -6055,16 +6055,20 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     );
     final availablePartners = List<RepairPartner>.from(_partners);
 
+    // Khớp theo firestoreId trước — `partnerId` là id SQLite CỤC BỘ nên máy
+    // khác mở đơn ra sẽ không khớp, hộp thoại hiện "Không có đối tác" và lưu
+    // lại là mất đối tác kèm mất công nợ. Xem RepairPartnerService.
     RepairPartner? selectedPartner;
-    if (editService != null &&
-        editService.partnerId != null &&
-        availablePartners.isNotEmpty) {
-      for (final partner in availablePartners) {
-        if (partner.id == editService.partnerId) {
-          selectedPartner = partner;
-          break;
-        }
-      }
+    if (editService != null && availablePartners.isNotEmpty) {
+      selectedPartner = RepairPartnerService.findPartnerForService<RepairPartner>(
+        partners: availablePartners,
+        firestoreIdOf: (p) => p.firestoreId,
+        idOf: (p) => p.id,
+        nameOf: (p) => p.name,
+        servicePartnerFirestoreId: editService.partnerFirestoreId,
+        servicePartnerId: editService.partnerId,
+        servicePartnerName: editService.partnerName,
+      );
     }
 
     // Phương thức thanh toán cho đối tác
@@ -6451,15 +6455,16 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     final repairOrderId = _repairOrderTrackingId();
     final serviceFirestoreId = service.firestoreId?.trim();
     if (serviceFirestoreId != null && serviceFirestoreId.isNotEmpty) {
-      final stableDebtId = RepairPartnerService.buildPartnerDebtFirestoreId(
+      // Dọn theo TIỀN TỐ để bắt cả bản mã mới (không kèm giá) lẫn mọi bản mã
+      // cũ có kèm giá — trước đây chỉ dò đúng một mức giá nên đổi giá xong là
+      // bỏ lại bản nợ mồ côi.
+      final prefix = RepairPartnerService.buildPartnerDebtIdPrefix(
         repairOrderId: repairOrderId,
         serviceFirestoreId: serviceFirestoreId,
         partnerId: service.partnerId!,
-        partnerCost: service.cost,
       );
-      final stableDebt = await db.getDebtByFirestoreId(stableDebtId);
-      if (stableDebt != null) {
-        await _deleteDebtSnapshot(stableDebt);
+      for (final row in await db.getDebtsByFirestoreIdPrefix(prefix)) {
+        await _deleteDebtSnapshot(Map<String, dynamic>.from(row));
       }
     }
 
@@ -6647,18 +6652,57 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     }
 
     try {
-      final debtFId = RepairPartnerService.buildPartnerDebtFirestoreId(
+      // Mã nợ KHÔNG kèm giá: sửa giá dịch vụ là CẬP NHẬT đúng bản nợ này, không
+      // đẻ bản mới rồi bỏ lại bản cũ mồ côi (sự cố đơn #997: dịch vụ 300.000đ
+      // nhưng nợ vẫn 400.000đ). Xem `RepairPartnerService.buildPartnerDebtStableId`.
+      final stableDebtId = RepairPartnerService.buildPartnerDebtStableId(
         repairOrderId: repairOrderId,
         serviceFirestoreId: serviceFirestoreId,
         partnerId: service.partnerId!,
-        partnerCost: service.cost,
       );
-      // Guard chống nhân đôi: nếu debt đã tồn tại với cùng firestoreId thì bỏ qua
-      final existingDebt = await db.getDebtByFirestoreId(debtFId);
-      if (existingDebt != null) {
-        debugPrint('ℹ️ Partner debt đã tồn tại, bỏ qua tạo trùng: $debtFId');
+
+      // Gom mọi biến thể của cùng dịch vụ: bản theo mã ổn định VÀ các bản cũ
+      // mang mã có kèm giá (tiền tố trùng nhau).
+      final variants = await db.getDebtsByFirestoreIdPrefix(stableDebtId);
+      final existing = variants.isNotEmpty ? variants.first : null;
+
+      if (existing != null) {
+        final currentAmount = (existing['totalAmount'] as num?)?.toInt() ?? 0;
+        final currentNote = (existing['note'] ?? '').toString();
+        if (currentAmount == service.cost && currentNote == trackingNote) {
+          debugPrint('ℹ️ Nợ đối tác đã đúng, không cần sửa: $stableDebtId');
+        } else {
+          final paid = (existing['paidAmount'] as num?)?.toInt() ?? 0;
+          final updated = Map<String, dynamic>.from(existing)
+            ..['totalAmount'] = service.cost
+            ..['note'] = trackingNote
+            ..['status'] = paid >= service.cost ? 'PAID' : 'ACTIVE'
+            ..['updatedAt'] = DateTime.now().millisecondsSinceEpoch
+            ..['isSynced'] = 0;
+          await db.updateDebt(updated);
+          final localId = existing['id'] as int?;
+          final fid = (existing['firestoreId'] ?? '').toString();
+          if (localId != null && fid.isNotEmpty) {
+            await SyncOrchestrator().enqueueDebt(
+              localId,
+              firestoreId: fid,
+              operation: SyncOperation.update,
+            );
+          }
+          debugPrint(
+            '🔁 Cập nhật nợ đối tác $fid: $currentAmount → ${service.cost}đ',
+          );
+        }
+
+        // Bản trùng còn lại (mã cũ khác giá) là rác — dọn để không cộng nợ 2 lần.
+        for (final dup in variants.skip(1)) {
+          await _deleteDebtSnapshot(Map<String, dynamic>.from(dup));
+          debugPrint('🧹 Dọn bản nợ đối tác trùng: ${dup['firestoreId']}');
+        }
+        EventBus().emit(EventBus.financialChanged);
         return;
       }
+
       await PaymentIntentService.createDebtRecord(
         debtType: 'SHOP_OWES',
         amount: service.cost,
@@ -6668,7 +6712,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         // Stable partner identity first; fall back to volatile local id.
         relatedPartId:
             service.partnerFirestoreId ?? service.partnerId?.toString() ?? '',
-        debtFirestoreId: debtFId,
+        debtFirestoreId: stableDebtId,
       );
       EventBus().emit(EventBus.financialChanged);
     } catch (e) {
