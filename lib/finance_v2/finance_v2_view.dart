@@ -14,6 +14,7 @@ import '../utils/money_utils.dart';
 import '../utils/vietnamese_utils.dart';
 import '../views/cash_closing_view.dart';
 import '../views/debt_view.dart';
+import '../widgets/debt_payment_sheet.dart';
 import '../views/expense_view.dart';
 import '../views/repair_detail_view.dart';
 import '../views/sale_detail_view.dart';
@@ -2767,7 +2768,8 @@ class _FinanceV2ViewState extends State<FinanceV2View>
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   itemCount: g.items.length,
                   separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (_, i) => _debtDetailRow(g.items[i], color),
+                  itemBuilder: (_, i) =>
+                      _debtDetailRow(g.items[i], color, ctx),
                 ),
               ),
               SafeArea(
@@ -2814,8 +2816,188 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     );
   }
 
+  /// Lấy lại bản ghi gốc trong bảng `debts` của một khoản trong snapshot.
+  ///
+  /// `FinanceV2DebtItem.id` là `firestoreId` khi đã đồng bộ, còn không thì là
+  /// khoá SQLite dạng chuỗi — thử cả hai. Cần bản ghi GỐC (đủ `type`,
+  /// `totalAmount`, `paidAmount`, `linkedId`…) vì `DebtPaymentSheet` nhận
+  /// nguyên map của bảng `debts`, và nó **chặn hẳn** khi thiếu `type` thay vì
+  /// đoán chiều thu/trả.
+  Future<Map<String, dynamic>?> _rawDebtOf(FinanceV2DebtItem d) async {
+    final id = d.id.trim();
+    if (id.isEmpty) return null;
+    final byFid = await _db.getDebtByFirestoreId(id);
+    if (byFid != null) return byFid;
+    final localId = int.tryParse(id);
+    if (localId == null) return null;
+    final rows = await (await _db.database).query(
+      'debts',
+      where: 'id = ?',
+      whereArgs: [localId],
+      limit: 1,
+    );
+    return rows.isEmpty ? null : rows.first;
+  }
+
+  /// Thu / trả một khoản nợ ngay trong bảng chi tiết.
+  ///
+  /// Dùng đúng `DebtPaymentSheet` mà màn Công nợ đang dùng — trả **toàn bộ hoặc
+  /// một phần**, ghi phiếu vào `debt_payments`, cập nhật `paidAmount` và xếp
+  /// hàng đồng bộ. KHÔNG viết lại luồng ghi nợ ở đây: công nợ đã có lịch sử
+  /// nhiều lần lệch số vì mỗi nơi tự ghi một kiểu (xem `[2026-08-30d]`).
+  Future<void> _payDebtItem(FinanceV2DebtItem d, BuildContext sheetCtx) async {
+    final raw = await _rawDebtOf(d);
+    if (!mounted) return;
+    if (raw == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Không tìm thấy khoản nợ này — có thể máy chưa đồng bộ xong.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    final paid = await DebtPaymentSheet.show(context, raw);
+    if (!mounted || !paid) return;
+    // Số của cả nhóm đổi sau khi trả ⇒ đóng ĐÚNG bảng chi tiết đang mở rồi nạp
+    // lại, thay vì để bảng đứng im với con số đã cũ. Dùng context của chính
+    // bảng đó, không dùng context của State — `Navigator.of(State.context)` là
+    // navigator ngoài, pop bằng nó dễ đóng nhầm màn khác.
+    if (sheetCtx.mounted) Navigator.of(sheetCtx).pop();
+    await _load();
+  }
+
+  /// Lịch sử các lần đã trả của một khoản nợ.
+  Future<void> _showDebtPaymentHistory(FinanceV2DebtItem d) async {
+    final raw = await _rawDebtOf(d);
+    if (!mounted) return;
+    final debtId = (raw?['id'] as num?)?.toInt();
+    final payments = debtId == null
+        ? const <Map<String, dynamic>>[]
+        : await _db.getDebtPayments(debtId);
+    if (!mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Lịch sử trả nợ', style: FinanceV2Theme.titleMd),
+              const SizedBox(height: 2),
+              Text(
+                d.note ?? d.name,
+                style: FinanceV2Theme.micro,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const Divider(height: 20),
+              if (payments.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text(
+                      'Chưa trả lần nào — còn nợ đủ ${_cmp(d.remaining)}.',
+                      style: FinanceV2Theme.bodySm,
+                    ),
+                  ),
+                )
+              else
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(ctx).size.height * 0.5,
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: payments.length,
+                    separatorBuilder: (_, __) => const Divider(height: 12),
+                    itemBuilder: (_, i) {
+                      final p = payments[i];
+                      final amt = _ti(p['amount']);
+                      final at = _ti(p['paidAt']);
+                      final method = (p['paymentMethod'] ?? '').toString();
+                      final note = (p['note'] ?? '').toString().trim();
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  at > 0
+                                      ? DateFormat('dd/MM/yyyy HH:mm').format(
+                                          DateTime.fromMillisecondsSinceEpoch(
+                                            at,
+                                          ),
+                                        )
+                                      : '—',
+                                  style: FinanceV2Theme.bodySm,
+                                ),
+                                if (method.isNotEmpty || note.isNotEmpty)
+                                  Text(
+                                    [
+                                      if (method.isNotEmpty) method,
+                                      if (note.isNotEmpty) note,
+                                    ].join(' · '),
+                                    style: FinanceV2Theme.caption,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            _cmp(amt),
+                            style: FinanceV2Theme.bodyMd.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: FinanceV2Theme.positive,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Đã trả ${_cmp(d.paid)} / ${_cmp(d.total)}',
+                      style: FinanceV2Theme.bodySm,
+                    ),
+                  ),
+                  Text(
+                    'Còn ${_cmp(d.remaining)}',
+                    style: FinanceV2Theme.bodyMd.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: _showRec
+                          ? FinanceV2Theme.warn
+                          : FinanceV2Theme.negative,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Một khoản nợ trong bảng chi tiết: nợ vì việc gì + số tiền + thời gian.
-  Widget _debtDetailRow(FinanceV2DebtItem d, Color color) {
+  Widget _debtDetailRow(
+    FinanceV2DebtItem d,
+    Color color,
+    BuildContext sheetCtx,
+  ) {
     final when = d.createdAt > 0
         ? DateFormat(
             'dd/MM/yyyy HH:mm',
@@ -2868,6 +3050,33 @@ class _FinanceV2ViewState extends State<FinanceV2View>
                   style: FinanceV2Theme.caption,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              // Thu/trả và xem lịch sử NGAY tại dòng này — không phải thoát ra
+              // màn Công nợ rồi tự tìm lại đúng khoản.
+              TextButton(
+                onPressed: () => _showDebtPaymentHistory(d),
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(0, 30),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                ),
+                child: const Text('Lịch sử', style: TextStyle(fontSize: 12)),
+              ),
+              ElevatedButton(
+                onPressed: () => _payDebtItem(d, sheetCtx),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(0, 30),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                  backgroundColor: color,
+                  foregroundColor: AppColors.surface,
+                ),
+                child: Text(
+                  _showRec ? 'Thu nợ' : 'Trả nợ',
+                  style: const TextStyle(fontSize: 12),
                 ),
               ),
             ],

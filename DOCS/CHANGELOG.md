@@ -4,6 +4,92 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-06n] - feat(công nợ) GOM NỢ THEO NGƯỜI + TRẢ GỘP MỘT CỤC (ĐỦ / MỘT PHẦN) + THU-TRẢ NGAY TRONG TAB NỢ
+
+Nối tiếp `[2026-09-06m]`. Chủ shop: *"bấm vào đó thanh toán toàn bộ hay 1 phần
+nợ có được không, ghi lịch sử trả luôn được không"* và *"trong list phải trả
+phải thu cũng nên gom theo nhà cc hay đối tác… thanh toán theo từng đơn hoặc
+thanh toán 1 cục đủ hoặc 1 phần tổng nợ"*.
+
+### A. Tab Nợ (Tài chính): thu/trả và xem lịch sử ngay tại chỗ
+
+Mỗi khoản trong bảng chi tiết nay có 2 nút:
+- **Lịch sử** — các lần đã trả của đúng khoản đó (ngày giờ, hình thức, ghi chú,
+  số tiền), kèm dòng tổng "đã trả X / Y · còn Z".
+- **Thu nợ / Trả nợ** — mở đúng `DebtPaymentSheet` mà màn Công nợ đang dùng, trả
+  **toàn bộ hoặc một phần**. Trả xong đóng bảng và nạp lại số.
+
+Bản ghi gốc lấy qua `_rawDebtOf`: thử `firestoreId` trước rồi rơi về khoá SQLite
+— `DebtPaymentSheet` cần nguyên map bảng `debts` và **chặn hẳn khi thiếu `type`**
+thay vì đoán chiều thu/trả.
+
+`_payDebtItem` nhận `BuildContext` của **chính bảng đang mở** để `pop` đúng nó;
+`Navigator.of(State.context)` là navigator ngoài, pop bằng nó dễ đóng nhầm màn.
+
+### B. Màn Công nợ: gom theo người + trả gộp
+
+- `_groupDebtsByPerson`: gom theo **tên chuẩn hoá không dấu** (không theo `id` —
+  mỗi lần nhập hàng lại sinh một bản ghi nợ riêng cho cùng một NCC).
+- Mỗi thẻ = một người: tổng còn nợ, số khoản, đã trả, khoản lâu nhất. Mở ra vẫn
+  là **đúng những thẻ khoản lẻ như cũ** (giữ nguyên "Lịch sử" / "Thanh toán nợ"
+  từng đơn — chủ shop yêu cầu giữ được cả hai cách).
+- Nhóm từ 2 khoản trở lên có nút **"Trả gộp cả N khoản" / "Thu gộp"**.
+- Chỉ tính `remaining` trên khoản CÒN hiệu lực — khoản đã tất toán vẫn nằm trong
+  nhóm khi bật "Hiện đã trả" nhưng không được cộng vào số còn nợ.
+
+### C. `BulkDebtPaymentService` — trả một cục, chia FIFO
+
+**KHÔNG tự viết logic ghi tiền.** Mỗi khoản vẫn đi qua đúng
+`PaymentIntentService.executePaymentDirect` mà `DebtPaymentSheet` dùng (kèm
+audit log, thông báo cả shop, `EventBus('debts_changed')`) — công nợ đã có lịch
+sử lệch số vì mỗi nơi tự ghi một kiểu, xem `[2026-08-30d]`. Service này chỉ thêm
+phần **chia tiền** và **báo cáo trung thực**:
+
+- `allocateFifo` — hàm thuần, chia theo **khoản cũ nhất trước**, không đụng DB,
+  không sửa list gốc.
+- Bảng xác nhận **hiện trước cách chia** (khoản nào nhận bao nhiêu, "hết nợ" hay
+  "còn lại") để người dùng không ký mù.
+- Nhập quá tổng nợ → cảnh báo và **chỉ ghi tối đa bằng tổng nợ**, không im lặng
+  nuốt phần thừa.
+- `execute` **dừng ngay khi một khoản hỏng**: chạy tiếp sẽ rải lỗi ra nhiều bản
+  ghi mà không lần được đã ghi tới đâu; dừng sớm thì phần đã ghi là một tiền tố
+  liên tục, đối chiếu lại được.
+- Hỏng giữa chừng ⇒ báo **"Đã ghi N/M khoản (X đ) rồi dừng: <lý do>"**, không
+  báo "thất bại" chung chung — tiền của mấy khoản đầu ĐÃ vào sổ thật.
+- Chặn lại lần cuối ngay trước khi ghi từng khoản (số dư có thể đã đổi do máy
+  khác vừa trả cùng khoản đó), và chặn khoản thiếu `type`.
+
+### Files
+
+- `lib/services/bulk_debt_payment_service.dart` (mới)
+- `lib/views/debt_view.dart` (`_groupDebtsByPerson`, `_debtGroupCard`,
+  `_openBulkPayment`, lớp `_PersonDebtGroup`)
+- `lib/finance_v2/finance_v2_view.dart` (`_rawDebtOf`, `_payDebtItem`,
+  `_showDebtPaymentHistory`, 2 nút trong `_debtDetailRow`)
+
+### Nghiệm thu
+
+`flutter analyze lib/` **0 error** · `flutter test` 614 pass / 8 fail có sẵn.
+
+**✅ Máy thật CPH2203 (shop thật — chỉ xem, KHÔNG ghi tiền):**
+- Màn Công nợ · Phải trả: gom còn **10 thẻ người**; mở LONG ZIN SG ra thấy nút
+  **"Trả gộp cả 7 khoản"** + 7 thẻ khoản lẻ vẫn đủ "Lịch sử" / "Thanh toán nợ" ✅
+- Bảng **TRẢ GỘP**: *LONG ZIN SG · 7 khoản · còn nợ 131.600.000đ*, chia đúng
+  7 × 18.8 Tr đều "hết nợ" ✅
+- Sửa số tiền thành **20.000.000** → chia lại đúng: 18.8 Tr **"hết nợ"** +
+  1.2 Tr **"còn lại"**, nút đổi thành "Trả 20 Tr" ✅ → bấm **Hủy**, không ghi.
+- Phải thu: 2 thẻ người, "1 khoản · đã trả 690.000 · lâu nhất 25 ngày" ✅
+- **logcat: 0 `RenderFlex overflowed`, 0 exception.**
+
+### Chưa kiểm được
+
+**Chưa chạy thật một lần trả gộp** — máy đang đăng nhập shop thật, ghi vào là
+tiền thật. Cần chạy trên tài khoản test (shop "M", máy CPH2239) trước khi lên
+store: trả gộp một phần → kiểm `debt_payments` sinh đúng N phiếu, `paidAmount`
+từng khoản khớp, Sổ quỹ ghi đúng một lần.
+
+---
+
 ## [2026-09-06m] - feat(tài chính) TAB NỢ: GOM NỢ THEO NGƯỜI + BẤM RA CHI TIẾT "NỢ VÌ VIỆC GÌ"
 
 Chủ shop: *"mỗi một khoản nợ lại một dòng rất rối… bấm vào khoản nợ nào cũng lại

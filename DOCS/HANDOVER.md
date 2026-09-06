@@ -9,6 +9,28 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-06  
 
+**💳 CÔNG NỢ: GOM THEO NGƯỜI + TRẢ GỘP MỘT CỤC (ĐỦ/MỘT PHẦN) (`[2026-09-06n]`).**
+· Tab Nợ (Tài chính): mỗi khoản có nút **Lịch sử** (các lần đã trả) và **Thu/Trả
+nợ** mở đúng `DebtPaymentSheet` — trả toàn bộ hoặc một phần ngay tại chỗ.
+· Màn **Công nợ** gom theo người (tên chuẩn hoá không dấu, KHÔNG theo `id`); mở
+thẻ ra vẫn là đúng các thẻ khoản lẻ cũ nên **giữ được cả hai cách trả**: từng
+đơn hoặc gộp. Nhóm ≥2 khoản có nút "Trả gộp cả N khoản".
+· **`BulkDebtPaymentService` (mới)** — KHÔNG tự viết logic ghi tiền: từng khoản
+vẫn qua `PaymentIntentService.executePaymentDirect` như `DebtPaymentSheet`.
+Service chỉ thêm `allocateFifo` (hàm thuần, cũ nhất trước) + báo cáo. Bảng xác
+nhận **hiện trước cách chia**; nhập quá tổng nợ thì cảnh báo và chỉ ghi tối đa
+bằng tổng nợ. `execute` **dừng ngay khi một khoản hỏng** và báo *"Đã ghi N/M
+khoản (X đ) rồi dừng: <lý do>"* — tiền mấy khoản đầu ĐÃ vào sổ thật, không được
+báo "thất bại" chung chung.
+· **✅ Máy thật CPH2203 (chỉ xem, KHÔNG ghi tiền):** Phải trả gom còn 10 thẻ
+người; LONG ZIN SG mở ra có nút "Trả gộp cả 7 khoản" + 7 thẻ lẻ vẫn đủ nút cũ ✅
+bảng trả gộp chia đúng 7×18.8 Tr "hết nợ" ✅ sửa thành 20.000.000 chia lại đúng
+18.8 Tr "hết nợ" + 1.2 Tr "còn lại" ✅ Phải thu 2 thẻ người ✅ logcat sạch.
+· **⚠️ CÒN NỢ NGHIỆM THU:** **chưa chạy thật một lần trả gộp** (máy đang ở shop
+thật). Cần chạy trên tài khoản test shop "M" (CPH2239): trả gộp một phần → kiểm
+`debt_payments` sinh đúng N phiếu, `paidAmount` từng khoản khớp, Sổ quỹ ghi đúng
+một lần. **Làm trước khi lên store.**
+
 **🤝 TAB NỢ: GOM NỢ THEO NGƯỜI + BẤM RA CHI TIẾT (`[2026-09-06m]`).**
 Chủ shop báo tab Nợ "mỗi khoản một dòng rất rối, bấm vào lại vào trang công nợ
 lần nữa". Đo thật: 43 khoản trải 3 trang, "LK THẢO LỢI" hiện 5-6 dòng liền nhau;

@@ -34,6 +34,9 @@ import 'repair_detail_view.dart';
 import 'repair_partner_detail_view.dart';
 import '../utils/excel_export_helper.dart';
 import '../utils/vietnamese_utils.dart';
+import '../constants/financial_constants.dart';
+import '../services/bulk_debt_payment_service.dart';
+import '../widgets/entity_avatar.dart';
 import '../widgets/export_date_filter_dialog.dart';
 import '../finance_v2/finance_v2_theme.dart';
 import 'money_reconcile_view.dart';
@@ -930,7 +933,8 @@ class _DebtViewState extends State<DebtView>
               // padding-bottom chừa chỗ cho nút "+" nổi, tránh che thẻ cuối
               padding: const EdgeInsets.only(bottom: 88),
               children: [
-                if (list.isNotEmpty) ..._buildSimpleDebtItems(list),
+                if (list.isNotEmpty)
+                  ..._buildSimpleDebtItems(list, isReceivable),
                 if (showPartnerSection && _partnerDebts.isNotEmpty)
                   ..._buildPartnerDebtItems(),
               ],
@@ -940,7 +944,10 @@ class _DebtViewState extends State<DebtView>
     );
   }
 
-  List<Widget> _buildSimpleDebtItems(List<Map<String, dynamic>> list) {
+  List<Widget> _buildSimpleDebtItems(
+    List<Map<String, dynamic>> list,
+    bool isReceivable,
+  ) {
     final l10n = AppLocalizations.of(context)!;
     final activeList = list.where(_isActiveDebt).toList();
     final totalRemain = activeList.fold(0, (sum, d) => sum + _remainingDebt(d));
@@ -993,15 +1000,392 @@ class _DebtViewState extends State<DebtView>
         padding: const EdgeInsets.symmetric(horizontal: 12),
         child: Column(
           children: [
-            for (int i = 0; i < list.length; i++)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: _debtCard(list[i], i + 1),
-              ),
+            // GOM THEO NGƯỜI. Bản cũ liệt kê mỗi khoản một thẻ nên cùng một
+            // nhà cung cấp hiện 2-6 thẻ liền nhau, không nhìn ra tổng nợ của
+            // ai là bao nhiêu và muốn trả hết cho một người phải bấm trả từng
+            // khoản. Mở thẻ ra vẫn là đúng những thẻ khoản lẻ như cũ.
+            for (final g in _groupDebtsByPerson(list))
+              _debtGroupCard(g, isReceivable),
           ],
         ),
       ),
     ];
+  }
+
+  /// Gom danh sách nợ lẻ về từng NGƯỜI (khách / NCC / đối tác).
+  ///
+  /// Gom theo **tên đã chuẩn hoá không dấu**, không theo `id`: mỗi lần nhập
+  /// hàng lại sinh một bản ghi nợ riêng cho cùng một nhà cung cấp, nên chỉ có
+  /// tên là thứ nối chúng lại được. Trong nhóm giữ nguyên thứ tự ưu tiên mà
+  /// danh sách gốc đã sắp (quá hạn lên trước).
+  List<_PersonDebtGroup> _groupDebtsByPerson(List<Map<String, dynamic>> list) {
+    final map = <String, _PersonDebtGroup>{};
+    for (final d in list) {
+      final name = _debtPersonName(d).trim();
+      final display = name.isEmpty ? 'Không rõ' : name;
+      final key = VietnameseUtils.normalize(display);
+      final g = map.putIfAbsent(
+        key,
+        () => _PersonDebtGroup(name: display, phone: _debtPhone(d)),
+      );
+      g.debts.add(d);
+      if (_isActiveDebt(d)) {
+        g.remaining += _remainingDebt(d);
+        g.activeCount++;
+      }
+      g.total += _toInt(d['totalAmount']);
+      g.paid += _toInt(d['paidAmount']);
+      final at = _toInt(d['createdAt']);
+      if (at > 0 && (g.oldestAt == 0 || at < g.oldestAt)) g.oldestAt = at;
+      if ((g.phone).trim().isEmpty) g.phone = _debtPhone(d);
+    }
+    final out = map.values.toList()
+      ..sort((a, b) => b.remaining.compareTo(a.remaining));
+    return out;
+  }
+
+  /// Thẻ gộp của MỘT người: tổng nợ + số khoản, mở ra là từng khoản như cũ.
+  ///
+  /// Bản cũ liệt kê thẳng mỗi khoản một thẻ nên "APPLE9H MR THI" hiện 2 thẻ
+  /// liền nhau, "ANH LÂM THÁI" 2 thẻ… nhìn không ra tổng nợ của ai là bao
+  /// nhiêu, và muốn trả hết cho một người thì phải bấm trả từng khoản một.
+  Widget _debtGroupCard(_PersonDebtGroup g, bool isReceivable) {
+    final color = isReceivable ? Colors.red.shade700 : Colors.blue.shade700;
+    final age = g.oldestAt > 0
+        ? DateTime.now()
+              .difference(DateTime.fromMillisecondsSinceEpoch(g.oldestAt))
+              .inDays
+        : 0;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 6),
+      clipBehavior: Clip.antiAlias,
+      child: Theme(
+        // ExpansionTile mặc định vẽ đường kẻ trên/dưới khi mở — bỏ cho gọn.
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+          childrenPadding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+          leading: EntityAvatar(
+            name: g.name,
+            radius: 18,
+            tappableToView: false,
+          ),
+          title: Text(
+            g.name,
+            style: AppTextStyles.body1.copyWith(fontWeight: FontWeight.bold),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(
+            '${g.activeCount} khoản'
+            '${g.paid > 0 ? ' · đã trả ${MoneyUtils.formatCompactCurrency(g.paid)}' : ''}'
+            '${age > 0 ? ' · lâu nhất $age ngày' : ''}',
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.onSurface.withOpacity(0.6),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                MoneyUtils.formatCompactCurrency(g.remaining),
+                style: AppTextStyles.body1.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              Text(
+                'còn nợ',
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.onSurface.withOpacity(0.5),
+                ),
+              ),
+            ],
+          ),
+          children: [
+            if (g.activeCount > 1 && g.remaining > 0)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 0, 4, 6),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _openBulkPayment(g, isReceivable),
+                    icon: Icon(
+                      isReceivable
+                          ? Icons.call_received_rounded
+                          : Icons.call_made_rounded,
+                      size: 16,
+                    ),
+                    label: Text(
+                      isReceivable
+                          ? 'Thu gộp cả ${g.activeCount} khoản'
+                          : 'Trả gộp cả ${g.activeCount} khoản',
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: color,
+                      side: BorderSide(color: color.withOpacity(0.5)),
+                      minimumSize: const Size.fromHeight(38),
+                    ),
+                  ),
+                ),
+              ),
+            for (int i = 0; i < g.debts.length; i++)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: _debtCard(g.debts[i], i + 1),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Thu / trả **một cục** cho tất cả khoản nợ của một người.
+  ///
+  /// Cho nhập **đủ hoặc một phần** tổng nợ; số tiền được chia FIFO (khoản cũ
+  /// nhất trước) và hiện bảng chia TRƯỚC khi xác nhận, để người dùng thấy tiền
+  /// sẽ vào những khoản nào chứ không ký mù.
+  Future<void> _openBulkPayment(
+    _PersonDebtGroup g,
+    bool isReceivable,
+  ) async {
+    final activeDebts = g.debts.where(_isActiveDebt).toList();
+    if (activeDebts.isEmpty) return;
+
+    final amountCtrl = TextEditingController(
+      text: MoneyUtils.formatCurrency(g.remaining),
+    );
+    var method = 'TIỀN MẶT';
+    final color = isReceivable ? Colors.red.shade700 : Colors.blue.shade700;
+
+    final confirmed = await showAppBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          final typed = MoneyUtils.parseCurrency(amountCtrl.text);
+          final over = typed > g.remaining;
+          final allocations = BulkDebtPaymentService.allocateFifo(
+            activeDebts,
+            typed > g.remaining ? g.remaining : typed,
+          );
+          return KeyboardAwarePadding(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    isReceivable ? 'THU GỘP CÔNG NỢ' : 'TRẢ GỘP CÔNG NỢ',
+                    style: AppTextStyles.body1.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  ),
+                  Text(
+                    '${g.name} · ${activeDebts.length} khoản · còn nợ '
+                    '${MoneyUtils.formatCurrency(g.remaining)}đ',
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.onSurface.withOpacity(0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  CurrencyTextField(
+                    controller: amountCtrl,
+                    label: 'Số tiền',
+                    onChanged: (_) => setSheet(() {}),
+                  ),
+                  if (over)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        'Số tiền vượt tổng nợ — sẽ chỉ ghi tối đa '
+                        '${MoneyUtils.formatCurrency(g.remaining)}đ.',
+                        style: AppTextStyles.caption.copyWith(
+                          color: Colors.orange.shade800,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      for (final m in const ['TIỀN MẶT', 'CHUYỂN KHOẢN'])
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text(m),
+                            selected: method == m,
+                            onSelected: (_) => setSheet(() => method = m),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Tiền vào các khoản (cũ nhất trước):',
+                    style: AppTextStyles.caption.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(ctx).size.height * 0.28,
+                    ),
+                    child: allocations.isEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: Text(
+                              'Nhập số tiền để xem cách chia.',
+                              style: AppTextStyles.caption.copyWith(
+                                color: AppColors.onSurface.withOpacity(0.5),
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: allocations.length,
+                            itemBuilder: (_, i) {
+                              final a = allocations[i];
+                              final note =
+                                  (a.debt['note'] ?? '').toString().trim();
+                              final done = a.amount >= a.remainingBefore;
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 3,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        note.isEmpty
+                                            ? 'Khoản ${i + 1}'
+                                            : note,
+                                        style: AppTextStyles.caption,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      MoneyUtils.formatCompactCurrency(
+                                        a.amount,
+                                      ),
+                                      style: AppTextStyles.caption.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: color,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      done ? 'hết nợ' : 'còn lại',
+                                      style: AppTextStyles.caption.copyWith(
+                                        color: done
+                                            ? Colors.green.shade700
+                                            : AppColors.onSurface.withOpacity(
+                                                0.5,
+                                              ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('Hủy'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: allocations.isEmpty
+                              ? null
+                              : () => Navigator.pop(ctx, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: color,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size.fromHeight(46),
+                          ),
+                          child: Text(
+                            '${isReceivable ? "Thu" : "Trả"} '
+                            '${MoneyUtils.formatCompactCurrency(allocations.fold<int>(0, (s, a) => s + a.amount))}',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final typed = MoneyUtils.parseCurrency(amountCtrl.text);
+    final allocations = BulkDebtPaymentService.allocateFifo(
+      activeDebts,
+      typed > g.remaining ? g.remaining : typed,
+    );
+    final result = await BulkDebtPaymentService.execute(
+      allocations: allocations,
+      paymentMethod: method == 'CHUYỂN KHOẢN'
+          ? PaymentMethod.transfer
+          : PaymentMethod.cash,
+      note: isReceivable ? 'Thu gộp công nợ' : 'Trả gộp công nợ',
+    );
+    if (!mounted) return;
+
+    if (result.success) {
+      NotificationService.showSnackBar(
+        '${isReceivable ? "Đã thu" : "Đã trả"} '
+        '${MoneyUtils.formatCurrency(result.paidTotal)}đ cho ${result.paidCount} khoản',
+        color: Colors.green,
+      );
+    } else if (result.partiallyApplied) {
+      // Trường hợp nguy hiểm nhất: tiền của mấy khoản đầu ĐÃ vào sổ thật.
+      // Phải nói rõ đã ghi tới đâu, không báo "thất bại" chung chung.
+      NotificationService.showSnackBar(
+        'Đã ghi ${result.paidCount}/${result.plannedCount} khoản '
+        '(${MoneyUtils.formatCurrency(result.paidTotal)}đ) rồi dừng: '
+        '${result.errorMessage}',
+        color: Colors.orange,
+      );
+    } else {
+      NotificationService.showSnackBar(
+        'Không ghi được: ${result.errorMessage}',
+        color: Colors.red,
+      );
+    }
+    await _refresh();
   }
 
   Widget _urgencyChip(String label, Color bg, Color fg, IconData icon) {
@@ -2801,4 +3185,21 @@ class _DebtChooserOption extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Tổng hợp công nợ của MỘT người trong màn Công nợ.
+class _PersonDebtGroup {
+  _PersonDebtGroup({required this.name, required this.phone});
+
+  final String name;
+  String phone;
+  final List<Map<String, dynamic>> debts = [];
+
+  /// Chỉ tính các khoản CÒN hiệu lực — khoản đã tất toán vẫn nằm trong `debts`
+  /// (khi bật "Hiện đã trả") nhưng không được cộng vào số còn nợ.
+  int remaining = 0;
+  int activeCount = 0;
+  int total = 0;
+  int paid = 0;
+  int oldestAt = 0;
 }
