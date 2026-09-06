@@ -195,7 +195,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
       _isRealtimeSyncActive = SyncService.isRealTimeSyncActive;
 
       // Load health check (quick)
-      _healthReport = await SyncHealthCheck.runFullCheck();
+      _healthReport = await SyncHealthCheck.runFullCheck(force: true);
 
       // Load Firestore connectivity diagnostics
       _firestoreConnectivityReport =
@@ -327,7 +327,20 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                           if (_domainReport?.hasOperationalAlerts ?? false)
                             const SizedBox(height: 16),
 
-                          // Main actions
+                          // ── THAO TÁC ──
+                          //
+                          // Trước 06/09/2026 màn này có 8 nút, phần lớn trùng
+                          // hoặc yếu hơn nhau:
+                          // • "Tải từ Cloud" chỉ gọi downloadAllFromCloud —
+                          //   KHÔNG xoá con trỏ đồng bộ nên bản ghi cũ hơn con
+                          //   trỏ không bao giờ về. Đã bỏ, gộp vào "Đồng bộ lại
+                          //   toàn bộ" (có reset con trỏ) vốn làm đúng việc đó.
+                          // • "SỬA TỰ ĐỘNG" chạy trên danh sách 17 bảng chép
+                          //   tay, thiếu 14 bảng ⇒ sửa xong vẫn thiếu dữ liệu
+                          //   mà báo là đã xong. Đã bỏ.
+                          // • "Kiểm tra kết nối Firestore" và "Thống kê Firebase
+                          //   Read/Write" trùng nguyên vẹn 2 mục trong
+                          //   Cài đặt → Dữ liệu & Hệ thống. Đã bỏ khỏi đây.
                           const Text(
                             'THAO TÁC ĐỒNG BỘ',
                             style: TextStyle(
@@ -339,47 +352,39 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                           const SizedBox(height: 8),
 
                           _buildActionTile(
-                            icon: Icons.cloud_download,
+                            icon: Icons.sync,
                             iconColor: Colors.blue,
-                            title: 'Tải từ Cloud',
-                            subtitle: 'Download dữ liệu từ đám mây về máy',
-                            onTap: _handleDownload,
+                            title: 'Đồng bộ lại toàn bộ',
+                            subtitle:
+                                'Xoá mốc đồng bộ và tải lại đủ dữ liệu từ cloud',
+                            onTap: _handleReinitializeSync,
                           ),
 
                           _buildActionTile(
                             icon: Icons.cloud_upload,
                             iconColor: Colors.green,
-                            title: 'Đẩy lên Cloud',
-                            subtitle: 'Upload dữ liệu chưa sync lên đám mây',
+                            title: 'Đẩy dữ liệu máy này lên cloud',
+                            subtitle:
+                                'Dùng khi máy này có đơn chưa lên — không xoá gì trên cloud',
                             onTap: _handleUpload,
                           ),
 
-                          _buildActionTile(
-                            icon: Icons.replay,
-                            iconColor: Colors.blue,
-                            title: 'Khởi động lại Realtime',
-                            subtitle:
-                                'Kết nối lại listener khi không nhận data',
-                            onTap: _handleReinitializeSync,
-                          ),
-
-                          // Auto fix button - shown when there are mismatches
-                          if (_healthReport != null &&
-                              !_healthReport!.isFullyHealthy)
+                          // Chỉ hiện khi thật sự có item lỗi trong hàng đợi.
+                          if (_syncQueueStats != null &&
+                              (_syncQueueStats!['failed'] ?? 0) > 0)
                             _buildActionTile(
-                              icon: Icons.auto_fix_high,
-                              iconColor: Colors.red,
-                              title: '🔧 SỬA TỰ ĐỘNG',
-                              subtitle:
-                                  'Tự động sửa ${_healthReport!.totalMismatches} bản ghi chưa khớp',
-                              onTap: _handleAutoFix,
+                              icon: Icons.refresh,
+                              iconColor: Colors.orange,
+                              title:
+                                  'Thử lại ${_syncQueueStats!['failed']} mục lỗi',
+                              subtitle: 'Đưa các mục sync thất bại về hàng đợi',
+                              onTap: _handleRetryFailed,
                             ),
 
                           const SizedBox(height: 16),
 
-                          // Advanced actions
                           const Text(
-                            'NÂNG CAO',
+                            'KIỂM TRA',
                             style: TextStyle(
                               fontSize: AppTextStyles.subtitle1Size,
                               fontWeight: FontWeight.bold,
@@ -392,41 +397,10 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                             icon: Icons.health_and_safety,
                             iconColor: Colors.teal,
                             title: 'Kiểm tra chi tiết',
-                            subtitle: 'So sánh từng bảng Local vs Cloud',
+                            subtitle:
+                                'So sánh từng bảng Local vs Cloud (đọc nhiều, chỉ dùng khi nghi ngờ)',
                             onTap: _handleDetailedCheck,
                           ),
-
-                          _buildActionTile(
-                            icon: Icons.wifi_find,
-                            iconColor: Colors.indigo,
-                            title: 'Kiểm tra kết nối Firestore',
-                            subtitle: _firestoreConnectivityReport == null
-                                ? 'Test mạng, auth và quyền đọc dữ liệu cloud'
-                                : _firestoreConnectivityReport!.summary,
-                            onTap: _handleOpenFirestoreConnectivityPage,
-                          ),
-
-                          _buildActionTile(
-                            icon: Icons.query_stats,
-                            iconColor: Colors.blueGrey,
-                            title: 'Thống kê Firebase Read/Write',
-                            subtitle:
-                                'Theo collection: cloud docs, realtime reads, write 24h',
-                            onTap: _handleOpenFirebaseStats,
-                          ),
-
-                          // Show retry action when there are failed items
-                          if (_syncQueueStats != null &&
-                              (_syncQueueStats!['failed'] ?? 0) > 0) ...[
-                            _buildActionTile(
-                              icon: Icons.refresh,
-                              iconColor: Colors.orange,
-                              title:
-                                  'Thử lại ${_syncQueueStats!['failed']} items lỗi',
-                              subtitle: 'Reset và sync lại các items bị failed',
-                              onTap: _handleRetryFailed,
-                            ),
-                          ],
 
                           const SizedBox(height: 32),
                         ],
@@ -908,37 +882,6 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
     );
   }
 
-  Future<void> _handleDownload() async {
-    final confirm = await _showConfirmDialog(
-      title: '📥 TẢI TỪ CLOUD',
-      message:
-          'Tải toàn bộ dữ liệu shop từ đám mây về máy này.\n\nDữ liệu local sẽ được cập nhật theo cloud.',
-      confirmText: 'TẢI XUỐNG',
-      confirmColor: Colors.blue,
-    );
-
-    if (confirm != true) return;
-
-    setState(() {
-      _isLoading = true;
-      _loadingMessage = 'Đang tải từ Cloud...';
-    });
-
-    try {
-      await SyncService.downloadAllFromCloud(force: true);
-      if (mounted) {
-        Navigator.pop(context);
-        NotificationService.showSnackBar(
-          '✅ Đã tải xong dữ liệu từ Cloud!',
-          color: Colors.green,
-        );
-      }
-    } catch (e) {
-      NotificationService.showSnackBar('❌ Lỗi: $e', color: Colors.red);
-      setState(() => _isLoading = false);
-    }
-  }
-
   Future<void> _handleUpload() async {
     final confirm = await _showConfirmDialog(
       title: '📤 ĐẨY LÊN CLOUD',
@@ -965,57 +908,6 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
           '✅ Đã đồng bộ lên Cloud!',
           color: Colors.green,
         );
-      }
-    } catch (e) {
-      NotificationService.showSnackBar('❌ Lỗi: $e', color: Colors.red);
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _handleAutoFix() async {
-    final confirm = await _showConfirmDialog(
-      title: '🔧 SỬA TỰ ĐỘNG',
-      message:
-          'Tự động sửa các bản ghi không khớp giữa Local và Cloud:\n\n'
-          '1. Upload dữ liệu local chưa sync\n'
-          '2. Download TẤT CẢ dữ liệu từ Cloud\n'
-          '3. Đánh dấu đã đồng bộ\n\n'
-          'Quá trình này có thể mất vài phút.',
-      confirmText: 'SỬA NGAY',
-      confirmColor: Colors.red,
-    );
-
-    if (confirm != true) return;
-
-    setState(() {
-      _isLoading = true;
-      _loadingMessage = 'Đang sửa tự động...';
-    });
-
-    try {
-      final fixedCount = await SyncHealthCheck.autoFix();
-
-      // Reload health report
-      _healthReport = await SyncHealthCheck.runFullCheck();
-      _domainReport = await SyncDomainReportService.buildReport(
-        healthReport: _healthReport,
-      );
-
-      if (mounted) {
-        setState(() => _isLoading = false);
-
-        final isFixed = _healthReport?.isFullyHealthy ?? false;
-        if (isFixed) {
-          NotificationService.showSnackBar(
-            '✅ Đã sửa xong! Tải $fixedCount bản ghi mới.',
-            color: Colors.green,
-          );
-        } else {
-          NotificationService.showSnackBar(
-            '⚠️ Đã xử lý $fixedCount bản ghi. Còn ${_healthReport?.totalMismatches ?? 0} chưa khớp.',
-            color: Colors.orange,
-          );
-        }
       }
     } catch (e) {
       NotificationService.showSnackBar('❌ Lỗi: $e', color: Colors.red);
@@ -1071,42 +963,6 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
     }
   }
 
-  Future<void> _handleFullSync() async {
-    final confirm = await _showConfirmDialog(
-      title: '🔄 ĐỒNG BỘ 2 CHIỀU',
-      message:
-          'Upload local lên cloud, sau đó download cloud về local.\n\nĐảm bảo dữ liệu 2 bên giống nhau.',
-      confirmText: 'ĐỒNG BỘ',
-      confirmColor: Colors.orange,
-    );
-
-    if (confirm != true) return;
-
-    setState(() {
-      _isLoading = true;
-      _loadingMessage = 'Bước 1: Upload...';
-    });
-
-    try {
-      await SyncService.syncAllToCloud(force: true);
-      await _orchestrator.syncAll();
-
-      setState(() => _loadingMessage = 'Bước 2: Download...');
-      await SyncService.downloadAllFromCloud(force: true);
-
-      if (mounted) {
-        Navigator.pop(context);
-        NotificationService.showSnackBar(
-          '✅ Đồng bộ 2 chiều hoàn tất!',
-          color: Colors.green,
-        );
-      }
-    } catch (e) {
-      NotificationService.showSnackBar('❌ Lỗi: $e', color: Colors.red);
-      setState(() => _isLoading = false);
-    }
-  }
-
   Future<void> _handleRetryFailed() async {
     final confirm = await _showConfirmDialog(
       title: '🔄 THỬ LẠI ITEMS LỖI',
@@ -1149,26 +1005,6 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
     }
   }
 
-  Future<void> _handleOpenFirebaseStats() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const FirebaseRwStatsView()),
-    );
-
-    if (!mounted) return;
-    await _loadInitialData();
-  }
-
-  Future<void> _handleOpenFirestoreConnectivityPage() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const FirestoreConnectivityTestView()),
-    );
-
-    if (!mounted) return;
-    await _loadInitialData();
-  }
-
   Future<void> _handleDetailedCheck() async {
     setState(() {
       _isLoading = true;
@@ -1176,7 +1012,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
     });
 
     try {
-      final report = await SyncHealthCheck.runFullCheck();
+      final report = await SyncHealthCheck.runFullCheck(force: true);
       if (mounted) {
         _healthReport = report;
         _domainReport = await SyncDomainReportService.buildReport(
@@ -1267,7 +1103,10 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
             ElevatedButton(
               onPressed: () async {
                 Navigator.pop(ctx);
-                await _handleFullSync();
+                // Trước đây gọi _handleFullSync (upload rồi download) — không
+                // xoá con trỏ nên vẫn thiếu bản ghi cũ. Dùng đường đồng bộ lại
+                // toàn bộ cho thống nhất với nút chính.
+                await _handleReinitializeSync();
               },
               child: const Text('SỬA LỖI'),
             ),

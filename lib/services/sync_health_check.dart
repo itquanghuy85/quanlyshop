@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../data/db_helper.dart';
+import 'sync_collections.dart';
 import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
 import '../models/product_model.dart';
@@ -116,8 +117,35 @@ class SyncHealthCheck {
   /// xoá mềm mà cloud còn sống) — dùng để flush hàng đợi sau khi kiểm tra.
   static int _cloudDeletePushedThisRun = 0;
 
-  /// Kiểm tra toàn bộ sync health
-  static Future<SyncHealthReport> runFullCheck() async {
+  static SyncHealthReport? _cachedReport;
+  static DateTime? _lastFullCheckAt;
+
+  /// Khoảng nghỉ tối thiểu giữa 2 lần kiểm tra TỰ ĐỘNG.
+  ///
+  /// Mỗi lần kiểm tra phải `.get()` TOÀN BỘ document của mọi collection (cần
+  /// id để đối chiếu, `count()` không thay được). Trên shop thật 06/09/2026 là
+  /// **hơn 13.000 document mỗi lần** — mà `main.dart` gọi lúc khởi động app và
+  /// mỗi lần app quay lại foreground, KHÔNG có throttle. Đó là chi phí đọc
+  /// Firestore lớn mà chủ shop không nhìn thấy (thống kê read chỉ đếm listener).
+  static const Duration _autoCheckCooldown = Duration(minutes: 30);
+
+  /// Kiểm tra toàn bộ sync health.
+  ///
+  /// [force] = true bỏ qua throttle — dùng cho nút bấm tay trong Trung tâm
+  /// đồng bộ. Đường gọi tự động (`main.dart`) để mặc định false.
+  static Future<SyncHealthReport> runFullCheck({bool force = false}) async {
+    final cached = _cachedReport;
+    final last = _lastFullCheckAt;
+    if (!force && cached != null && last != null) {
+      final elapsed = DateTime.now().difference(last);
+      if (elapsed < _autoCheckCooldown) {
+        debugPrint(
+          '⏸️ runFullCheck: dùng kết quả cách đây ${elapsed.inMinutes} phút '
+          '(còn ${(_autoCheckCooldown - elapsed).inMinutes} phút mới kiểm lại)',
+        );
+        return cached;
+      }
+    }
     debugPrint('🔍 Bắt đầu kiểm tra Sync Health...');
     _cloudDeletePushedThisRun = 0;
 
@@ -158,25 +186,7 @@ class SyncHealthCheck {
     int totalCloud = 0;
     int totalMismatches = 0;
 
-    const collections = [
-      'repairs',
-      'repair_parts',
-      'repair_partners',
-      'partner_repair_history',
-      'sales',
-      'salvage_phones',
-      'products',
-      'storage_locations',
-      'expenses',
-      'debts',
-      'debt_payments',
-      'payment_intents',
-      'payment_requests',
-      'attendance',
-      'customers',
-      'suppliers',
-      'quick_input_codes',
-    ];
+    const collections = SyncCollections.all;
 
     final allowedCollections =
         await SyncService.filterCollectionsForCurrentUser(collections);
@@ -241,7 +251,15 @@ class SyncHealthCheck {
       unawaited(SyncOrchestrator().syncAll());
     }
 
+    _cachedReport = report;
+    _lastFullCheckAt = DateTime.now();
     return report;
+  }
+
+  /// Xoá kết quả đã lưu — gọi khi đổi shop/tài khoản để lần sau kiểm lại thật.
+  static void invalidateCache() {
+    _cachedReport = null;
+    _lastFullCheckAt = null;
   }
 
   /// Kiểm tra một collection cụ thể
@@ -618,25 +636,7 @@ class SyncHealthCheck {
     }
 
     // Danh sách các collection cần sync
-    final collections = [
-      'repairs',
-      'repair_parts',
-      'repair_partners',
-      'partner_repair_history',
-      'sales',
-      'salvage_phones',
-      'products',
-      'storage_locations',
-      'expenses',
-      'debts',
-      'debt_payments',
-      'payment_intents',
-      'payment_requests',
-      'attendance',
-      'customers',
-      'suppliers',
-      'quick_input_codes',
-    ];
+    const collections = SyncCollections.all;
 
     for (var collection in collections) {
       try {
@@ -741,25 +741,7 @@ class SyncHealthCheck {
     final db = await _localDb.database;
 
     // Cập nhật isSynced = 1 cho tất cả records có firestoreId
-    final tables = [
-      'repairs',
-      'repair_parts',
-      'repair_partners',
-      'partner_repair_history',
-      'sales',
-      'salvage_phones',
-      'products',
-      'storage_locations',
-      'expenses',
-      'debts',
-      'debt_payments',
-      'payment_intents',
-      'payment_requests',
-      'attendance',
-      'customers',
-      'suppliers',
-      'quick_input_codes',
-    ];
+    const tables = SyncCollections.all;
 
     for (var table in tables) {
       try {

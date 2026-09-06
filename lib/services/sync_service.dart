@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/db_helper.dart';
+import 'sync_health_check.dart';
 import '../models/repair_model.dart';
 import '../models/product_model.dart';
 import '../models/sale_order_model.dart';
@@ -2958,6 +2959,8 @@ class SyncService {
     _lastDownloadTime = null;
     _realtimeCursorCache.clear();
     _incrementalRealtimeDisabled.clear();
+    // Đổi shop / dọn dữ liệu ⇒ kết quả kiểm tra cũ vô nghĩa.
+    SyncHealthCheck.invalidateCache();
     debugPrint('🔄 Reset ${keys.length} sync timestamps/cursors');
   }
 

@@ -4,6 +4,64 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-06e] - refactor(đồng bộ) TRUNG TÂM ĐỒNG BỘ: 8 NÚT CÒN 3 + VÁ 2 LỖI GỐC
+
+**Chủ shop báo:** *"trang đồng bộ dữ liệu gom lại nhiều mục trùng hoặc gần giống
+tính năng, nhiều tính năng không sử dụng được"*.
+
+### Gom nút: 8 → 3 (+1 nút chỉ hiện khi có lỗi)
+
+| Nút cũ | | Lý do |
+|---|---|---|
+| Tải từ Cloud | ❌ bỏ | Chỉ gọi `downloadAllFromCloud`, **không xoá con trỏ đồng bộ** ⇒ bản ghi cũ hơn con trỏ không bao giờ về. Đúng cơ chế đã làm máy chủ shop thiếu 2.965 phiếu nhập (`[2026-09-06d]`) |
+| 🔧 SỬA TỰ ĐỘNG | ❌ bỏ | Chạy trên danh sách **17 bảng chép tay**, thiếu 14 bảng ⇒ báo "đã sửa xong" trong khi vẫn thiếu dữ liệu — nguy hiểm hơn là không có nút |
+| Kiểm tra kết nối Firestore | ❌ bỏ | Trùng nguyên vẹn mục ở Cài đặt → Dữ liệu & Hệ thống |
+| Thống kê Firebase Read/Write | ❌ bỏ | Trùng nguyên vẹn mục ở Cài đặt |
+| ĐỒNG BỘ 2 CHIỀU (`_handleFullSync`) | ❌ xoá code chết | Chỉ gọi từ nút "SỬA LỖI" trong hộp thoại; đã trỏ sang `_handleReinitializeSync` |
+| Khởi động lại Realtime | ✅ đổi tên **"Đồng bộ lại toàn bộ"** | Đây mới là đường chữa thật (reset con trỏ + tải lại) |
+| Đẩy lên Cloud | ✅ đổi tên **"Đẩy dữ liệu máy này lên cloud"** | Có vai trò riêng |
+| Kiểm tra chi tiết | ✅ giữ, tách mục **KIỂM TRA** | Ghi rõ "đọc nhiều, chỉ dùng khi nghi ngờ" |
+| Thử lại N mục lỗi | ✅ giữ (chỉ hiện khi hàng đợi có lỗi) | |
+
+Gỡ 5 hàm chết: `_handleDownload`, `_handleAutoFix`, `_handleFullSync`,
+`_handleOpenFirebaseStats`, `_handleOpenFirestoreConnectivityPage`
+(1.528 → 1.367 dòng).
+
+### Lỗi gốc 1 — danh sách bảng chép tay 3 lần, thiếu 14 bảng
+
+`sync_health_check.dart` chép **cùng một danh sách 17 bảng ở 3 chỗ** (kiểm tra,
+sửa tự động, đánh dấu đã sync), trong khi realtime theo dõi 27 bảng. Vì thế màn
+hình báo *"1 bản ghi chưa khớp"* trong khi máy đang thiếu **2.965 phiếu nhập +
+2.011 dòng nhật ký tài chính** — các bảng đó đơn giản là **không được kiểm**.
+
+**Sửa:** thêm `lib/services/sync_collections.dart` — `SyncCollections.all`
+(**31 bảng**) là nguồn sự thật duy nhất, thay cả 3 chỗ chép tay.
+
+**Đo trên máy thật sau khi sửa:** phạm vi kiểm tra **13.128 → 28.618 bản ghi**,
+phát hiện **20 bản lệch** thay vì 1.
+
+### Lỗi gốc 2 — kiểm tra tự động đọc hơn 13.000 document mỗi lần, không throttle
+
+`runFullCheck` phải `.get()` **toàn bộ document của mọi bảng** (cần id để đối
+chiếu và tự khôi phục bản thiếu — `count()` không thay được), mà `main.dart` gọi
+**mỗi lần mở app VÀ mỗi lần app quay lại foreground**, không có throttle.
+
+**Sửa:** thêm nghỉ **30 phút** cho đường tự động (dùng lại kết quả gần nhất);
+nút bấm tay truyền `force: true` nên vẫn kiểm ngay. `resetSyncTimestamps()` gọi
+`SyncHealthCheck.invalidateCache()` để đổi shop là kiểm lại thật.
+
+⚠️ **Đính chính:** báo cáo `[2026-09-05l]` nói "Firebase read ~1.857/ngày —
+không nhiều". Con số đó **chỉ đếm listener**; phần đọc của kiểm tra sức khoẻ
+KHÔNG được ghi vào `firebase_read_stats` nên không nằm trong đó. Thực tế cao hơn.
+
+### Nghiệm thu máy thật (Oppo CPH2203)
+
+Trung tâm đồng bộ hiện đúng 3 nút (Đồng bộ lại toàn bộ · Đẩy dữ liệu máy này lên
+cloud · Kiểm tra chi tiết); nút "Thử lại mục lỗi" ẩn vì hàng đợi sạch.
+`flutter analyze lib test` 0 error 0 warning.
+
+---
+
 ## [2026-09-06f] - fix(chốt quỹ) DỌN 9 ĐIỂM CÒN TỒN SAU AUDIT (DB v111)
 
 Xử lý nốt danh sách tồn của `[2026-09-06e]`.
