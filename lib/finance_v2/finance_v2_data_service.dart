@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import '../data/db_helper.dart';
 import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
@@ -237,6 +238,51 @@ class FinanceV2DataService {
         category.contains('PURCHASE');
   }
 
+  /// Tiền THỰC NHẬN của một đơn trả góp rơi vào khoảng [startMs, endMs].
+  ///
+  /// Trước đây mọi nơi tính `downPayment + settlementAmount` trên danh sách đơn
+  /// **bound theo `soldAt`**, sai cả hai chiều:
+  /// - đơn bán TRONG kỳ nhưng ngân hàng trả tiền SAU kỳ ⇒ ghi nhận SỚM;
+  /// - đơn bán TRƯỚC kỳ, ngân hàng trả tiền TRONG kỳ ⇒ BỎ SÓT.
+  ///
+  /// Đo trên shop thật 06/09/2026: cửa sổ 30 ngày bỏ sót **59.660.000đ** của 5
+  /// đơn bán đầu tháng 8 mà ngân hàng trả ngày 19/08.
+  ///
+  /// Quy tắc đúng theo cash basis: cọc tính theo ngày BÁN, phần tất toán tính
+  /// theo ngày NHẬN TIỀN — mỗi khoản vào đúng kỳ tiền thật về.
+  @visibleForTesting
+  static int installmentCashIn(SaleOrder sale, int startMs, int endMs) {
+    var received = 0;
+    if (sale.soldAt >= startMs && sale.soldAt <= endMs) {
+      received += sale.downPayment;
+    }
+    final settledAt = sale.settlementReceivedAt;
+    if (settledAt != null && settledAt >= startMs && settledAt <= endMs) {
+      received += sale.settlementAmount;
+    }
+    return received;
+  }
+
+  /// Gộp đơn tất toán-trong-kỳ vào danh sách đơn bán-trong-kỳ, khử trùng theo
+  /// `firestoreId` (rơi về `id` khi chưa đồng bộ).
+  List<SaleOrder> _mergeSettlementSales(
+    List<SaleOrder> sales,
+    List<SaleOrder> settled,
+  ) {
+    if (settled.isEmpty) return sales;
+    String keyOf(SaleOrder s) {
+      final fid = (s.firestoreId ?? '').trim();
+      return fid.isNotEmpty ? fid : 'local_${s.id}';
+    }
+
+    final seen = sales.map(keyOf).toSet();
+    final merged = List<SaleOrder>.from(sales);
+    for (final s in settled) {
+      if (seen.add(keyOf(s))) merged.add(s);
+    }
+    return merged;
+  }
+
   Future<FinanceV2Snapshot> loadSnapshot({
     DateTime? start,
     DateTime? end,
@@ -295,6 +341,11 @@ class FinanceV2DataService {
     final debtsF = _db.getDebtsForFinanceSnapshot();
     final activitiesF = _db.getFinancialActivities(startDate: startMs, endDate: endMs, limit: 500);
     final costFundRepairsF = _db.getRepairsCostFundByDateRange(startMs, endMs);
+    // Đơn trả góp NHẬN tiền tất toán trong kỳ — có thể đã bán từ rất lâu nên
+    // không nằm trong `salesF` (bound theo soldAt). Xem `_installmentCashIn`.
+    final settledF = _db.getInstallmentSalesSettledBetween(startMs, endMs);
+    final previousSettledF =
+        _db.getInstallmentSalesSettledBetween(previousStartMs, previousEndMs);
     final previousSalesF = _db.getSalesByDateRange(previousStartMs, previousEndMs);
     final previousRepairsF = _db.getDeliveredRepairsByDateRange(previousStartMs, previousEndMs);
     final previousExpensesF = _db.getExpensesByDateRange(previousStartMs, previousEndMs);
@@ -305,7 +356,7 @@ class FinanceV2DataService {
     final customersF = _db.getCustomers();
 
     // Collect results (all DB work started above in parallel)
-    final sales = await salesF;
+    final sales = _mergeSettlementSales(await salesF, await settledF);
     final repairs = await repairsF;
     final expenses = await expensesF;
     final repairPartnerPayments = await repairPartnerPaymentsF;
@@ -315,7 +366,8 @@ class FinanceV2DataService {
     final debts = await debtsF;
     final activities = await activitiesF;
     final costFundRepairs = await costFundRepairsF;
-    final previousSales = await previousSalesF;
+    final previousSales =
+        _mergeSettlementSales(await previousSalesF, await previousSettledF);
     final previousRepairs = await previousRepairsF;
     final previousExpenses = await previousExpensesF;
     final previousRepairPartnerPayments = await previousRepairPartnerPaymentsF;
@@ -386,7 +438,7 @@ class FinanceV2DataService {
       final bool isKetHop = sale.paymentMethod.toUpperCase() == 'KẾT HỢP';
       final int actualPaid;
       if (sale.isInstallment) {
-        actualPaid = sale.downPayment + sale.settlementAmount;
+        actualPaid = installmentCashIn(sale, startMs, endMs);
       } else if (isCongNo) {
         actualPaid = 0;
       } else if (isKetHop && (sale.cashAmount + sale.transferAmount) > 0) {
@@ -722,7 +774,7 @@ class FinanceV2DataService {
       final bool prevIsKetHop = sale.paymentMethod.toUpperCase() == 'KẾT HỢP';
       final int actualPaid;
       if (sale.isInstallment) {
-        actualPaid = sale.downPayment + sale.settlementAmount;
+        actualPaid = installmentCashIn(sale, previousStartMs, previousEndMs);
       } else if (isCongNo) {
         actualPaid = 0;
       } else if (prevIsKetHop && (sale.cashAmount + sale.transferAmount) > 0) {
