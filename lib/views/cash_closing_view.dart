@@ -3876,6 +3876,11 @@ class _CashClosingViewState extends State<CashClosingView>
             'isInstallment': sale.isInstallment,
             'downPayment': sale.downPayment,
             'downPaymentMethod': sale.downPaymentMethod,
+            // BẮT BUỘC cho đơn KẾT HỢP: thiếu 2 cột này thì `analyze()` không
+            // tách được phần tiền mặt / phần chuyển khoản và dồn CẢ đơn vào
+            // `bankIn` (vì 'KẾT HỢP' != 'TIỀN MẶT') ⇒ chốt quỹ lệch cả 2 chiều.
+            'cashAmount': sale.cashAmount,
+            'transferAmount': sale.transferAmount,
           },
         )
         .toList();

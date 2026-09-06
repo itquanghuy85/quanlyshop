@@ -1345,24 +1345,48 @@ class AppKnowledgeBase {
     // ===== TRANG CHỦ / DASHBOARD =====
     KbEntry(
       id: 'home-action-required',
-      title: 'Khung "CẦN XỬ LÝ" ở Trang chủ',
-      menuPath: 'Trang chủ',
+      title: 'Khung "CẦN XỬ LÝ" ở Trang chủ (= trang Nhắc nhở)',
+      menuPath: 'Trang chủ → CẦN XỬ LÝ (bấm tiêu đề để mở trang Nhắc nhở)',
       whatItDoes:
-          'Nhắc các việc tồn đọng trong TUẦN NÀY: đơn sửa đã giao chưa ghi giá '
-          'vốn, tiền ngân hàng (trả góp) chưa tất toán, ngày chưa chốt quỹ…',
+          'Danh sách việc tồn đọng: đơn sửa chờ xử lý, chờ duyệt giao máy, giao '
+          'máy cho khách, công nợ (kèm số khoản quá hạn), phiếu nhập / đơn nhập '
+          '/ trả hàng chờ duyệt, yêu cầu đóng tiền, lệnh chi, ngày chưa chốt '
+          'quỹ, đơn sửa chưa ghi giá vốn, trả góp chưa tất toán, sắp hết bảo hành.',
       whenToUse: 'Mở app đầu ngày để biết cần làm gì.',
-      notes: [
-        'Chỉ đếm việc trong tuần này để không bị nhiễu bởi tồn đọng quá cũ.',
-        'Đơn sửa đã tích "không tốn giá vốn" không bị nhắc.',
-        'Bấm từng mục để mở danh sách đầy đủ.',
+      steps: [
+        'Trang chủ → khung "CẦN XỬ LÝ" hiện 5 việc gấp nhất.',
+        'Bấm "Xem tất cả" (hoặc ô "Nhắc nhở" ở Hoạt động hôm nay) để mở trang '
+            'Nhắc nhở đầy đủ, chia theo Cần xử lý ngay / Quan trọng / Chờ.',
+        'Bấm từng mục để mở đúng danh sách của việc đó.',
       ],
-      terms: ['gia-von-don-sua', 'tra-gop-nh', 'chot-quy'],
+      notes: [
+        'Khung "CẦN XỬ LÝ" và trang "Nhắc nhở" là CÙNG MỘT danh sách — khung ở '
+            'Trang chủ chỉ là bản rút gọn. Trước 2026-09-06 hai nơi đếm riêng '
+            'nên ra hai con số khác nhau cho cùng một việc.',
+        'Đơn sửa chờ xử lý = trạng thái Tiếp nhận + Đang sửa.',
+        'Giá vốn đơn sửa và trả góp chỉ đếm trong TUẦN NÀY để không nhiễu bởi '
+            'tồn đọng quá cũ; đơn đã tích "không tốn giá vốn" không bị nhắc.',
+        'Công nợ quá hạn (trên 30 ngày) không phải mục riêng — nó làm mục công '
+            'nợ đổi sang màu đỏ "Cần xử lý ngay" và ghi thêm "N quá hạn".',
+        'Việc nào không có quyền xem thì không hiện.',
+      ],
+      terms: ['gia-von-don-sua', 'tra-gop-nh', 'chot-quy', 'cong-no'],
       sampleQuestions: [
         'khung cần xử lý là gì',
+        'trang nhắc nhở ở đâu',
         'sao home báo đơn sửa chưa có giá vốn',
+        'cần xử lý với nhắc nhở khác gì nhau',
       ],
-      tags: ['can xu ly', 'trang chu', 'home', 'nhac viec', 'canh bao'],
-      audience: ['owner', 'manager'],
+      tags: [
+        'can xu ly',
+        'nhac nho',
+        'reminder',
+        'trang chu',
+        'home',
+        'nhac viec',
+        'canh bao',
+      ],
+      audience: ['all'],
     ),
     KbEntry(
       id: 'home-today-activity',

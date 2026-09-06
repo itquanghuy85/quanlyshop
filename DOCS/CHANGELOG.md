@@ -4,6 +4,77 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-06e] - refactor(nhắc việc) GỘP "CẦN XỬ LÝ" VÀO "NHẮC NHỞ" + fix(sổ quỹ) ĐƠN "KẾT HỢP" DỒN HẾT VÀO NGÂN HÀNG
+
+**Chủ shop báo:** *"việc cần xử lý (nhắc nhở) với cần xử lý lại bị trùng tính năng"* + yêu cầu audit toàn bộ trang Chốt quỹ.
+
+### A. Trùng tính năng "CẦN XỬ LÝ" ↔ "Nhắc nhở"
+
+Hai tính năng song song, mỗi bên tự đếm:
+
+| | Thẻ "CẦN XỬ LÝ" (`dashboard_cards.dart`) | Trang "Nhắc nhở" (`ReminderService`) |
+|---|---|---|
+| Nguồn số | ~9 câu SQL viết thẳng trong widget | service, có lọc `shopId` |
+| Đơn sửa chờ xử lý | `status IN (1,2)` | `status = 1` |
+| Hàng chờ nhập kho | `products.isPending` (kho tạm) | `stock_entries` status=draft (Firestore) |
+| Công nợ | chỉ khoản **quá hạn > 30 ngày** | **tất cả** khoản đang nợ |
+
+Hệ quả:
+1. Cùng một việc hiện **2 lần với 2 con số khác nhau**.
+2. Thẻ còn kèm dòng *"N việc cần xử lý"* **trỏ ngược sang chính trang Nhắc nhở** — khung tên "CẦN XỬ LÝ" chứa mục tên "cần xử lý".
+3. **"N hàng chờ xác nhận nhập kho" là số sai hẳn:** `products.isPending` = *sản phẩm kho tạm chưa có giá vốn*, còn màn hình mở ra là *danh sách phiếu nhập chờ duyệt* ⇒ số không bao giờ khớp danh sách.
+4. Các câu SQL của thẻ **không lọc `shopId`**.
+5. `_expiringProducts` (sản phẩm sắp hết HSD) **không bao giờ được gán** ⇒ mục HSD chưa từng hiển thị.
+6. Trang chủ gọi `getTotalReminderCount()` (chạy trọn bộ query) **cộng thêm** 9 query của thẻ ⇒ 2 lượt quét trùng mỗi lần load.
+
+**Đã gộp:** `ReminderService` là nguồn DUY NHẤT. Thẻ CẦN XỬ LÝ nay chỉ **vẽ** 5 việc gấp nhất của cùng danh sách + dòng "Xem tất cả".
+
+- `reminder_service.dart`: thêm 4 category `warrantyExpiring` / `unclosedCash` / `missingCostRepair` / `pendingInstallment` (đều lọc `shopId`); `_countRepairsNeedWork` đổi sang `status IN (1,2)` cho khớp màn hình nó mở ra; thêm cờ `enableRepair` / `enableWarranty` theo ngành nghề shop; thêm `totalCount()`.
+- **Không tách mục "công nợ quá hạn" riêng** — quá hạn là *tập con* của đang nợ, tách ra là đếm 1 khoản nợ thành 2 việc. Thay vào đó mục công nợ đổi sang mức "Cần xử lý ngay" và ghi thêm *"• N quá hạn"*.
+- **Thợ:** con số toàn shop nay loại đơn của chính thợ (`excludeUid`) vì thợ đã có mục riêng "Máy cần sửa" — trước đây 1 đơn bị đếm 2 lần trên badge.
+- **"Chưa chốt quỹ" tính là 1 việc**, không phải 1 việc/ngày, để badge không phình lên khi bỏ chốt quỹ lâu.
+- `ReminderNavigator` (mới, trong `reminders_view.dart`): khai báo đích đến của mỗi mục đúng MỘT chỗ cho cả Trang chủ lẫn trang Nhắc nhở.
+- Bỏ mục HSD chết và mục "hàng chờ xác nhận nhập kho" đếm sai; giữ mục nhập kho đúng của `ReminderService`.
+
+### B. fix(sổ quỹ): đơn "KẾT HỢP" dồn **toàn bộ** tiền vào ngân hàng
+
+`DailyFinancialAnalysisService.analyze()` có sẵn nhánh tách phần tiền mặt / phần
+chuyển khoản của đơn KẾT HỢP, nhưng nhánh chỉ chạy khi caller truyền
+`cashAmount` / `transferAmount`. **3/4 caller lược mất 2 cột đó** ⇒ nhánh KẾT HỢP
+là code chết, đơn rơi xuống nhánh mặc định, và vì `'KẾT HỢP' != 'TIỀN MẶT'` nên
+**cả đơn vào `bankIn`**:
+
+| Caller | Trước | Sau |
+|---|---|---|
+| `cash_closing_view._analyzeTransactions` | ❌ thiếu | ✅ |
+| `home_view._loadStats` (fSales) | ❌ thiếu | ✅ |
+| `monthly_profit_report_view` | ❌ thiếu | ✅ |
+| `finance_v2_daily_report_view` | ✅ (dùng `toMap()`) | ✅ |
+
+Hệ quả thực tế: bán 10tr kiểu 4tr tiền mặt + 6tr chuyển khoản → Sổ quỹ báo
+**tiền mặt +0đ, ngân hàng +10tr**. Chốt quỹ **lệch cả hai chiều** (thiếu tiền mặt,
+thừa ngân hàng) trong khi tab **Thu** lại hiện đúng 4tr+6tr ⇒ hai tab đá nhau.
+FinanceV2 thì đúng ⇒ Sổ quỹ vs FinanceV2 cũng đá nhau.
+
+Test hồi quy: `test/ket_hop_cash_split_test.dart` (5 case, có case chứng minh
+hành vi lỗi cũ).
+
+### Files
+- `lib/services/reminder_service.dart` — gộp toàn bộ phép đếm, +4 category, cờ ngành nghề, lọc shopId
+- `lib/views/reminders_view.dart` — `ReminderNavigator` dùng chung, nhận cờ ngành nghề
+- `lib/widgets/dashboard_cards.dart` — `ActionRequiredCard` từ StatefulWidget (~9 SQL) → StatelessWidget chỉ vẽ
+- `lib/views/home_view.dart` — load 1 lần danh sách reminder cho cả 2 nơi; +cột KẾT HỢP
+- `lib/views/cash_closing_view.dart`, `lib/views/monthly_profit_report_view.dart` — +cột KẾT HỢP
+- `lib/data/app_knowledge_base.dart` — viết lại mục `home-action-required`
+- `test/ket_hop_cash_split_test.dart` — mới
+
+### Còn tồn (audit Chốt quỹ — CHƯA sửa, xem HANDOVER)
+Tab Giao dịch sort chỉ theo `HH:mm` khi gộp nhiều ngày; tổng Thu/Chi ở header
+không theo bộ lọc; tab Lịch sử gọi Firestore trong `build()`; lệch quỹ không
+được lưu; `CashClosingNotifier.canPerformTransaction` chưa nơi nào gọi.
+
+---
+
 ## [2026-09-06d] - fix(đồng bộ) XOÁ DỮ LIỆU LOCAL MÀ GIỮ CON TRỎ ⇒ MẤT DỮ LIỆU VĨNH VIỄN
 
 **Chủ shop báo:** "2 máy số liệu khác nhau".

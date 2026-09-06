@@ -12,17 +12,30 @@ import 'sales_return_list_view.dart';
 import 'pending_stock_list_view.dart';
 import 'purchase_order_list_view.dart';
 import 'payment_request_chat_view.dart';
+import 'warranty_view.dart';
+import 'cash_closing_view.dart';
+import 'bank_installment_report_view.dart';
 import '../widgets/permission_gate.dart';
 
-/// Trang Nhắc nhở — hiển thị tất cả task cần xử lý theo role & quyền
+/// Trang Nhắc nhở — hiển thị tất cả task cần xử lý theo role & quyền.
+///
+/// Đây là danh sách DUY NHẤT cho "việc cần xử lý": thẻ "CẦN XỬ LÝ" ở Trang chủ
+/// chỉ là bản rút gọn của chính danh sách này (xem `ActionRequiredCard`).
 class RemindersView extends StatefulWidget {
   final String role;
   final Map<String, bool> permissions;
+
+  /// Cờ ngành nghề của shop — shop không làm sửa chữa / không bật bảo hành thì
+  /// không nhắc các việc tương ứng.
+  final bool enableRepair;
+  final bool enableWarranty;
 
   const RemindersView({
     super.key,
     required this.role,
     required this.permissions,
+    this.enableRepair = true,
+    this.enableWarranty = true,
   });
 
   @override
@@ -59,6 +72,8 @@ class _RemindersViewState extends State<RemindersView> {
       final reminders = await ReminderService.loadReminders(
         role: widget.role,
         permissions: widget.permissions,
+        enableRepair: widget.enableRepair,
+        enableWarranty: widget.enableWarranty,
       );
       if (mounted) {
         setState(() {
@@ -190,7 +205,7 @@ class _RemindersViewState extends State<RemindersView> {
 
   /// Summary card ở đầu trang
   Widget _buildSummaryHeader() {
-    final totalCount = _reminders.fold<int>(0, (s, r) => s + r.count);
+    final totalCount = ReminderService.totalCount(_reminders);
     final urgentCount = _reminders
         .where((r) => r.priority == ReminderPriority.urgent)
         .fold<int>(0, (s, r) => s + r.count);
@@ -422,32 +437,45 @@ class _RemindersViewState extends State<RemindersView> {
     );
   }
 
-  /// Navigate to relevant view based on reminder category
   void _onTapReminder(TaskReminder reminder) {
+    ReminderNavigator.open(
+      context,
+      reminder,
+      role: widget.role,
+    ).then((_) => _loadReminders());
+  }
+}
+
+/// Điều hướng chung cho một [TaskReminder].
+///
+/// Trang Nhắc nhở và thẻ "CẦN XỬ LÝ" ở Trang chủ giờ hiển thị CÙNG một danh
+/// sách reminder, nên đích đến của mỗi mục phải khai báo đúng MỘT chỗ — trước
+/// đây mỗi nơi tự nối route riêng nên cùng một việc lại mở ra hai màn khác nhau.
+class ReminderNavigator {
+  const ReminderNavigator._();
+
+  /// Mở màn hình tương ứng. Trả về future hoàn tất khi màn đó đóng lại
+  /// (hoặc hoàn tất ngay nếu thiếu quyền / không có đích).
+  static Future<void> open(
+    BuildContext context,
+    TaskReminder reminder, {
+    required String role,
+  }) async {
     Widget? targetView;
     String? requiredPermission;
 
     switch (reminder.category) {
       case ReminderCategory.repairApproval:
         requiredPermission = 'allowViewRepairs';
-        targetView = OrderListView(
-          role: widget.role,
-          statusFilter: const [3],
-        );
+        targetView = OrderListView(role: role, statusFilter: const [3]);
         break;
       case ReminderCategory.repairAssignment:
         requiredPermission = 'allowViewRepairs';
-        targetView = OrderListView(
-          role: widget.role,
-          statusFilter: const [1, 2],
-        );
+        targetView = OrderListView(role: role, statusFilter: const [1, 2]);
         break;
       case ReminderCategory.deliveryTask:
         requiredPermission = 'allowViewRepairs';
-        targetView = OrderListView(
-          role: widget.role,
-          statusFilter: const [3],
-        );
+        targetView = OrderListView(role: role, statusFilter: const [3]);
         break;
       case ReminderCategory.activeDebt:
         requiredPermission = 'allowViewDebts';
@@ -474,13 +502,34 @@ class _RemindersViewState extends State<RemindersView> {
         // No dedicated view — navigate to debt view which shows payment intents
         targetView = const DebtView();
         break;
+      case ReminderCategory.warrantyExpiring:
+        requiredPermission = 'allowViewWarranty';
+        targetView = const WarrantyView();
+        break;
+      case ReminderCategory.unclosedCash:
+        requiredPermission = 'allowViewRevenue';
+        targetView = const CashClosingView();
+        break;
+      case ReminderCategory.missingCostRepair:
+        requiredPermission = 'allowViewRepairs';
+        targetView = OrderListView(
+          role: role,
+          statusFilter: const [4],
+          filterMissingCost: true,
+        );
+        break;
+      case ReminderCategory.pendingInstallment:
+        requiredPermission = 'allowViewSales';
+        targetView = const BankInstallmentReportView();
+        break;
     }
 
     if (!PermissionGateCheck.check(context, requiredPermission)) return;
 
-    Navigator.push(
+    final view = targetView;
+    await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => targetView!),
-    ).then((_) => _loadReminders());
+      MaterialPageRoute(builder: (_) => view),
+    );
   }
 }

@@ -84,6 +84,9 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
             'isInstallment',
             'downPayment',
             'downPaymentMethod',
+            // KẾT HỢP: thiếu 2 cột này thì `analyze()` dồn cả đơn vào bankIn.
+            'cashAmount',
+            'transferAmount',
             'settlementReceivedAt',
             'settlementAmount',
             'loanAmount',

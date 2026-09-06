@@ -9,6 +9,48 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-06  
 
+**🔀 GỘP "CẦN XỬ LÝ" VÀO "NHẮC NHỞ" + FIX SỔ QUỸ ĐƠN "KẾT HỢP" (`[2026-09-06e]`).**
+Chủ shop báo hai tính năng trùng nhau. Đúng: thẻ "CẦN XỬ LÝ" ở Trang chủ tự chạy
+~9 câu SQL riêng (không lọc `shopId`) rồi còn kèm một dòng *"N việc cần xử lý"*
+**trỏ ngược sang chính trang Nhắc nhở**; hai bên đếm khác nhau cho cùng một việc
+(đơn sửa: thẻ `status IN (1,2)` vs service `status = 1`), và mục *"hàng chờ xác
+nhận nhập kho"* của thẻ đếm `products.isPending` (kho tạm) trong khi màn mở ra là
+danh sách phiếu `stock_entries` ⇒ **số không bao giờ khớp danh sách**. Nay
+`ReminderService` là nguồn DUY NHẤT, thẻ chỉ vẽ 5 việc gấp nhất + "Xem tất cả".
+Quá hạn công nợ **không tách mục riêng** (là tập con của đang nợ) mà nâng ưu tiên
++ ghi *"N quá hạn"*. Thợ không còn bị đếm 1 đơn thành 2 việc.
+· **Sổ quỹ — đơn KẾT HỢP dồn hết vào ngân hàng:** `analyze()` có nhánh tách tiền
+mặt/chuyển khoản nhưng 3/4 caller (Sổ quỹ, Trang chủ, Báo cáo tháng) lược mất cột
+`cashAmount`/`transferAmount` ⇒ nhánh chết, cả đơn vào `bankIn`. Bán 10tr (4tr TM
++ 6tr CK) → quỹ tiền mặt **+0đ**. Đã cấp đủ cột cho cả 3; test hồi quy 5 case.
+**⚠️ CHƯA nghiệm thu máy thật** — cần kiểm: Trang chủ hiện đúng 5 việc + "Xem tất
+cả"; bấm từng mục mở đúng màn; số ở thẻ = số ở trang Nhắc nhở; và một đơn KẾT HỢP
+mới phải cộng đúng vào quỹ tiền mặt.
+
+**📋 AUDIT TRANG CHỐT QUỸ — 6 việc CÒN TỒN (chưa sửa, cần chủ shop quyết):**
+1. **Tab Giao dịch / Thu / Chi khi gộp nhiều ngày**: sort chỉ theo chuỗi `HH:mm`
+   nên giao dịch các ngày khác nhau xen kẽ, mà thẻ giao dịch **không hiện ngày**
+   ⇒ không biết dòng nào của ngày nào. (`_buildTransactionsTab`, `_transactionCard`)
+2. **Tổng Thu/Chi ở header tab Giao dịch không theo bộ lọc**: lọc "Bán hàng" thì
+   số dòng đổi nhưng tổng tiền vẫn là tổng tất cả.
+3. **Tab Lịch sử gọi Firestore trong `build()`**: `FutureBuilder(future:
+   _loadHistoryClosings())` tạo mới mỗi lần rebuild, query `cash_closings`
+   **không `limit`** ⇒ tốn lượt đọc + nháy spinner.
+4. **Lệch quỹ không được lưu**: `_saveClosing` không ghi `cashStart`/`bankStart`/
+   `expectedCashDelta`/`expectedBankDelta` (cột đã có sẵn trong bảng) ⇒ lịch sử
+   chỉ còn số cuối kỳ, **không tra lại được ngày nào lệch bao nhiêu**.
+5. **Ô nhập "Thực tế" không định dạng số + không có `inputFormatters`**: điền sẵn
+   dạng thô `6000000`, và nếu gõ/dán `6.000.000` thì `int.tryParse` ra **0** —
+   trong khi ô "Số dư đầu kỳ" ngay cạnh lại có định dạng ⇒ dễ chốt nhầm.
+6. **`CashClosingNotifier` (359 dòng) làm việc thừa**: `isDateLocked` /
+   `canPerformTransaction` **không nơi nào gọi**, và `_saveClosing` không bao giờ
+   ghi `isLocked` nên thông báo khoá quỹ cũng không bao giờ bắn — nhưng service
+   vẫn poll Firestore ở 3 chỗ trong `main.dart`.
+Ngoài ra (nhỏ): xuất Excel sổ quỹ chỉ xuất **1 ngày** dù màn đang gộp khoảng chưa
+chốt quỹ; bấm "XÁC NHẬN CHỐT" khi bị từ chối vẫn đóng sheet như thành công;
+`permission_gate.dart:90` còn kiểm email cứng `admin@huluca.com` (trái quy tắc
+"chỉ dùng custom claims" ở CLAUDE.md).
+
 **🤖 AI TRỢ LÝ — LỘ NĂNG LỰC + BẢN TIN ĐẦU NGÀY (`[2026-09-06b]`).**
 Chủ shop báo AI "chỉ chú tâm hướng dẫn sử dụng". Nguyên nhân không phải AI yếu
 mà **không có đường nhìn thấy**: chip mặc định toàn câu hỏi số liệu, còn ngay sau

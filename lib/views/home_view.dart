@@ -580,7 +580,10 @@ class _HomeViewState extends State<HomeView>
   int unreadChatCount = 0;
   int _pendingPaymentRequestCount = 0; // Yêu cầu duyệt chờ xử lý
   StreamSubscription? _pendingPaymentSub;
-  int _totalReminderCount = 0; // Tổng số nhắc nhở
+  int _totalReminderCount = 0; // Tổng số việc cần xử lý (Σ count)
+  // Danh sách việc cần xử lý — nguồn DUY NHẤT cho cả thẻ "CẦN XỬ LÝ" trên
+  // dashboard lẫn trang Nhắc nhở, để hai nơi không đếm lệch nhau.
+  List<TaskReminder> _reminders = const [];
   String _latestChatMessage = ''; // Tin nhắn mới nhất
   String _latestChatSender = ''; // Người gửi tin mới nhất
   bool _showHomeCommunityCard = true;
@@ -2543,6 +2546,9 @@ class _HomeViewState extends State<HomeView>
             'isInstallment',
             'downPayment',
             'downPaymentMethod',
+            // KẾT HỢP: thiếu 2 cột này thì `analyze()` dồn cả đơn vào bankIn.
+            'cashAmount',
+            'transferAmount',
             'settlementReceivedAt',
             'settlementAmount',
             'loanAmount',
@@ -2836,14 +2842,42 @@ class _HomeViewState extends State<HomeView>
 
   Future<void> _loadReminderCount() async {
     try {
-      final count = await ReminderService.getTotalReminderCount(
+      final reminders = await ReminderService.loadReminders(
         role: widget.role,
         permissions: _permissions,
+        enableRepair: _enableRepair,
+        enableWarranty: _enableWarranty,
       );
-      if (mounted && count != _totalReminderCount) {
-        setState(() => _totalReminderCount = count);
-      }
+      final count = ReminderService.totalCount(reminders);
+      if (!mounted) return;
+      // So sánh cả danh sách: chỉ so tổng thì thẻ "CẦN XỬ LÝ" không đổi khi
+      // một việc xong và một việc khác phát sinh cùng lúc.
+      final sameList = reminders.length == _reminders.length &&
+          List.generate(reminders.length, (i) => i).every((i) =>
+              reminders[i].category == _reminders[i].category &&
+              reminders[i].subtitle == _reminders[i].subtitle &&
+              reminders[i].count == _reminders[i].count);
+      if (count == _totalReminderCount && sameList) return;
+      setState(() {
+        _totalReminderCount = count;
+        _reminders = reminders;
+      });
     } catch (e) {}
+  }
+
+  /// Mở trang Nhắc nhở đầy đủ.
+  void _openRemindersView() {
+    _pushRoute(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RemindersView(
+          role: widget.role,
+          permissions: _permissions,
+          enableRepair: _enableRepair,
+          enableWarranty: _enableWarranty,
+        ),
+      ),
+    ).then((_) => _loadReminderCount());
   }
 
   void _normalizeTimestampFields(Map<String, dynamic> data) {
@@ -3513,79 +3547,20 @@ class _HomeViewState extends State<HomeView>
           widgets.add(_buildGreetingCard());
           break;
         case DashboardCardType.actionRequired:
-          final canRepair =
-              hasFullAccess || _permissions['allowViewRepairs'] == true;
-          final canStock =
-              hasFullAccess || _permissions['allowViewInventory'] == true;
-          final canWarranty =
-              hasFullAccess || _permissions['allowViewWarranty'] == true;
+          // Thẻ này chỉ VẼ danh sách reminder đã load ở `_loadReminderCount`.
+          // Việc lọc theo quyền / ngành nghề nằm trong ReminderService, không
+          // lặp lại ở đây nữa (trước kia thẻ tự chạy SQL riêng ⇒ đếm lệch với
+          // trang Nhắc nhở, xem `dashboard_cards.dart`).
           widgets.add(
             ActionRequiredCard(
               key: const ValueKey('action_required'),
-              enableRepair: _enableRepair && canRepair,
-              enableWarranty: _enableWarranty && canWarranty,
-              enableExpiry: _enableExpiry && canStock,
-              onPendingRepairsTap: canRepair
-                  ? () => _pushRoute(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => OrderListView(
-                          role: widget.role,
-                          statusFilter: const [1, 2],
-                        ),
-                      ),
-                    )
-                  : null,
-              onPendingStockTap: canStock
-                  ? () => _pushRoute(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const PendingStockListView(),
-                      ),
-                    )
-                  : null,
-              onWarrantyTap: canWarranty
-                  ? () => _pushRoute(
-                      context,
-                      MaterialPageRoute(builder: (_) => const WarrantyView()),
-                    )
-                  : null,
-              reminderCount: _totalReminderCount,
-              onReminderTap: () => _pushRoute(
+              reminders: _reminders,
+              onTapReminder: (reminder) => ReminderNavigator.open(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => RemindersView(
-                    role: widget.role,
-                    permissions: _permissions,
-                  ),
-                ),
+                reminder,
+                role: widget.role,
               ).then((_) => _loadReminderCount()),
-              onOverdueDebtsTap: () => _pushRoute(
-                context,
-                MaterialPageRoute(builder: (_) => const DebtView()),
-              ),
-              onPendingInstallmentTap: () => _pushRoute(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const BankInstallmentReportView(),
-                ),
-              ),
-              onUnclosedCashTap: () => _pushRoute(
-                context,
-                MaterialPageRoute(builder: (_) => const CashClosingView()),
-              ),
-              onMissingCostRepairsTap: canRepair
-                  ? () => _pushRoute(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => OrderListView(
-                          role: widget.role,
-                          statusFilter: const [4],
-                          filterMissingCost: true,
-                        ),
-                      ),
-                    )
-                  : null,
+              onSeeAll: _openRemindersView,
             ),
           );
           break;
@@ -7443,7 +7418,7 @@ class _HomeViewState extends State<HomeView>
                   trailing: IconButton(
                     icon: const Icon(Icons.refresh, color: Colors.green),
                     onPressed: () {
-                      SyncHealthCheck.runFullCheck();
+                      SyncHealthCheck.runFullCheck(force: true);
                       NotificationService.showSnackBar(
                         loc.recheckingSync,
                         color: Colors.blue,
@@ -7816,13 +7791,7 @@ class _HomeViewState extends State<HomeView>
         color: _totalReminderCount > 0
             ? const Color(0xFFE65100)
             : AppColors.inactive,
-        onTap: () => _pushRoute(
-          context,
-          MaterialPageRoute(
-            builder: (_) =>
-                RemindersView(role: widget.role, permissions: _permissions),
-          ),
-        ).then((_) => _loadReminderCount()),
+        onTap: _openRemindersView,
       ),
     ];
   }

@@ -2,292 +2,53 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../data/db_helper.dart';
 import '../core/utils/money_utils.dart';
+import '../services/reminder_service.dart';
 import '../views/repair_detail_view.dart';
 import '../views/sale_detail_view.dart';
 
-/// "Cần xử lý" card - shows actionable items with counts
-class ActionRequiredCard extends StatefulWidget {
-  final bool enableRepair;
-  final bool enableWarranty;
-  final bool enableExpiry;
-  final VoidCallback? onPendingRepairsTap;
-  final VoidCallback? onPendingStockTap;
-  final VoidCallback? onWarrantyTap;
-  final VoidCallback? onExpiryTap;
-  final int reminderCount;
-  final VoidCallback? onReminderTap;
-  final VoidCallback? onOverdueDebtsTap;
-  final VoidCallback? onPendingInstallmentTap;
-  final VoidCallback? onUnclosedCashTap;
-  final VoidCallback? onMissingCostRepairsTap;
+/// Thẻ "CẦN XỬ LÝ" ở Trang chủ.
+///
+/// ĐÂY LÀ BẢN RÚT GỌN của trang Nhắc nhở ([RemindersView]) — cùng một danh
+/// sách [TaskReminder] do [ReminderService] dựng ra, không tự đếm gì thêm.
+///
+/// Trước 2026-09-06 thẻ này tự chạy ~9 câu SQL riêng để đếm việc, rồi còn kèm
+/// thêm một dòng "N việc cần xử lý" trỏ ngược sang trang Nhắc nhở. Hệ quả:
+///  - Cùng một việc hiện 2 lần với 2 con số khác nhau (đơn sửa chờ xử lý đếm
+///    status 1+2 ở thẻ nhưng chỉ status 1 ở trang Nhắc nhở).
+///  - "Hàng chờ xác nhận nhập kho" ở thẻ đếm `products.isPending` (kho tạm —
+///    sản phẩm chưa có giá vốn) trong khi màn mở ra lại là danh sách phiếu
+///    `stock_entries` status=draft ⇒ số không bao giờ khớp danh sách.
+///  - Các câu SQL của thẻ không lọc `shopId`.
+/// Nay mọi phép đếm nằm trong [ReminderService] (có lọc shopId), thẻ chỉ vẽ.
+class ActionRequiredCard extends StatelessWidget {
+  /// Danh sách đã load sẵn từ [ReminderService.loadReminders].
+  final List<TaskReminder> reminders;
+
+  /// Mở màn hình tương ứng cho 1 mục.
+  final void Function(TaskReminder reminder)? onTapReminder;
+
+  /// Mở trang Nhắc nhở đầy đủ.
+  final VoidCallback? onSeeAll;
+
+  /// Số mục tối đa hiển thị trên Trang chủ; phần còn lại gom vào dòng
+  /// "Xem tất cả".
+  final int maxItems;
 
   const ActionRequiredCard({
     super.key,
-    this.enableRepair = true,
-    this.enableWarranty = true,
-    this.enableExpiry = false,
-    this.onPendingRepairsTap,
-    this.onPendingStockTap,
-    this.onWarrantyTap,
-    this.onExpiryTap,
-    this.reminderCount = 0,
-    this.onReminderTap,
-    this.onOverdueDebtsTap,
-    this.onPendingInstallmentTap,
-    this.onUnclosedCashTap,
-    this.onMissingCostRepairsTap,
+    required this.reminders,
+    this.onTapReminder,
+    this.onSeeAll,
+    this.maxItems = 5,
   });
 
   @override
-  State<ActionRequiredCard> createState() => _ActionRequiredCardState();
-}
-
-class _ActionRequiredCardState extends State<ActionRequiredCard> {
-  int _pendingRepairs = 0;
-  int _pendingStock = 0;
-  int _expiringWarranty = 0;
-  int _expiringProducts = 0;
-  int _overdueDebts = 0;
-  int _pendingInstallments = 0;
-  int _pendingInstallmentAmount = 0; // Σ loanAmount+loanAmount2 đơn chưa tất toán
-  int _daysSinceClosing = 0;
-  int _missingCostRepairs = 0;
-  bool _loaded = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadCounts();
-  }
-
-  Future<void> _loadCounts() async {
-    try {
-      final db = await DBHelper().database;
-      final nowDt = DateTime.now();
-      final overdueDebtCutoffMs = nowDt
-          .subtract(const Duration(days: 30))
-          .millisecondsSinceEpoch;
-      // Đầu tuần này (Thứ 2, 00:00) — dùng cho các cảnh báo "trong tuần".
-      final startOfWeekMs = DateTime(nowDt.year, nowDt.month, nowDt.day)
-          .subtract(Duration(days: nowDt.weekday - 1))
-          .millisecondsSinceEpoch;
-      final results = await Future.wait([
-        db.rawQuery('SELECT COUNT(*) FROM repairs WHERE status IN (1, 2)'),
-        db.rawQuery('SELECT COUNT(*) FROM products WHERE isPending = 1'),
-        // Warranty expiring within 7 days
-        db.query(
-          'repairs',
-          columns: ['deliveredAt', 'warranty'],
-          where:
-              "deliveredAt IS NOT NULL AND warranty IS NOT NULL AND warranty != '' AND UPPER(warranty) != 'KO BH' AND status = 4",
-        ),
-        // Công nợ quá hạn (>30 ngày chưa trả hết) — cùng ngưỡng "quá hạn"
-        // đang dùng ở debt_view.dart để nhất quán khái niệm "khẩn cấp".
-        db.rawQuery(
-          'SELECT COUNT(*) FROM debts WHERE (deleted = 0 OR deleted IS NULL) '
-          'AND (totalAmount - paidAmount) > 0 AND createdAt < ?',
-          [overdueDebtCutoffMs],
-        ),
-        // Đơn bán trả góp NH TUẦN NÀY chưa được ngân hàng tất toán
-        db.rawQuery(
-          'SELECT COUNT(*) FROM sales WHERE isInstallment = 1 '
-          'AND settlementReceivedAt IS NULL '
-          'AND soldAt >= ? '
-          'AND (deleted IS NULL OR deleted != 1)',
-          [startOfWeekMs],
-        ),
-        // Lần chốt quỹ gần nhất (để tính số ngày chưa chốt)
-        db.rawQuery('SELECT MAX(dateKey) as lastKey FROM cash_closings'),
-        // Nếu chưa từng chốt quỹ lần nào, lấy ngày bán hàng sớm nhất làm mốc
-        db.rawQuery(
-          'SELECT MIN(soldAt) as firstSale FROM sales '
-          'WHERE (deleted IS NULL OR deleted != 1)',
-        ),
-        // Đơn sửa đã giao TUẦN NÀY nhưng CHƯA GHI NHẬN giá vốn.
-        // Chỉ tính khi cost = 0 VÀ chưa từng ghi nhận (costRecordedAt rỗng) —
-        // đơn đã đánh dấu "không tốn giá vốn" (costRecordedAt có giá trị,
-        // cost = 0) KHÔNG bị nhắc; đơn cost > 0 cũng không (đã có giá vốn).
-        db.rawQuery(
-          "SELECT COUNT(*) FROM repairs WHERE status = 4 "
-          "AND (cost IS NULL OR cost = 0) "
-          "AND (costRecordedAt IS NULL OR costRecordedAt = 0) "
-          "AND deliveredAt >= ? "
-          "AND (deleted IS NULL OR deleted != 1)",
-          [startOfWeekMs],
-        ),
-        // Tổng tiền NH chưa tất toán TUẦN NÀY (cùng điều kiện với đếm đơn ở trên)
-        db.rawQuery(
-          'SELECT COALESCE(SUM(loanAmount + loanAmount2), 0) AS total FROM sales '
-          'WHERE isInstallment = 1 AND settlementReceivedAt IS NULL '
-          'AND soldAt >= ? '
-          'AND (deleted IS NULL OR deleted != 1)',
-          [startOfWeekMs],
-        ),
-      ]);
-
-      final pendingR = (results[0].first.values.first as num?)?.toInt() ?? 0;
-      final pendingS = (results[1].first.values.first as num?)?.toInt() ?? 0;
-      final overdueDebts =
-          (results[3].first.values.first as num?)?.toInt() ?? 0;
-      final pendingInstallments =
-          (results[4].first.values.first as num?)?.toInt() ?? 0;
-      final missingCostRepairs =
-          (results[7].first.values.first as num?)?.toInt() ?? 0;
-      final pendingInstallmentAmount =
-          (results[8].first['total'] as num?)?.toInt() ?? 0;
-
-      // Số ngày chưa chốt quỹ: tính từ lần chốt gần nhất, hoặc từ ngày bán
-      // hàng đầu tiên nếu chưa từng chốt quỹ lần nào.
-      int daysSinceClosing = 0;
-      final lastClosingKey = results[5].first['lastKey'] as String?;
-      if (lastClosingKey != null && lastClosingKey.isNotEmpty) {
-        try {
-          final lastDate = DateFormat('yyyy-MM-dd').parse(lastClosingKey);
-          daysSinceClosing = DateTime.now().difference(lastDate).inDays;
-        } catch (_) {}
-      } else {
-        final firstSaleMs = (results[6].first['firstSale'] as num?)?.toInt();
-        if (firstSaleMs != null) {
-          final firstDate = DateTime.fromMillisecondsSinceEpoch(firstSaleMs);
-          daysSinceClosing = DateTime.now().difference(firstDate).inDays;
-        }
-      }
-
-      // Calculate expiring warranties
-      int expW = 0;
-      final now = DateTime.now();
-      for (final r in results[2]) {
-        final deliveredAt = (r['deliveredAt'] as num?)?.toInt();
-        final warranty = (r['warranty'] ?? '').toString();
-        if (deliveredAt == null) continue;
-        int m = int.tryParse(warranty.split(' ').first) ?? 0;
-        if (m > 0) {
-          DateTime d = DateTime.fromMillisecondsSinceEpoch(deliveredAt);
-          DateTime e = DateTime(d.year, d.month + m, d.day);
-          if (e.isAfter(now) && e.difference(now).inDays <= 7) expW++;
-        }
-      }
-
-      if (mounted) {
-        setState(() {
-          _pendingRepairs = pendingR;
-          _pendingStock = pendingS;
-          _expiringWarranty = expW;
-          _overdueDebts = overdueDebts;
-          _pendingInstallments = pendingInstallments;
-          _pendingInstallmentAmount = pendingInstallmentAmount;
-          _daysSinceClosing = daysSinceClosing;
-          _missingCostRepairs = missingCostRepairs;
-          _loaded = true;
-        });
-      }
-    } catch (e) {
-      debugPrint('ActionRequiredCard: Error loading counts: $e');
-      if (mounted) setState(() => _loaded = true);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (!_loaded) {
-      return _buildShimmer();
-    }
+    if (reminders.isEmpty) return const SizedBox.shrink();
 
-    final items = <_ActionItem>[];
-    if (widget.enableRepair && _pendingRepairs > 0) {
-      items.add(
-        _ActionItem(
-          icon: Icons.build_circle,
-          label: '$_pendingRepairs đơn sửa chờ xử lý',
-          color: Colors.blue,
-          onTap: widget.onPendingRepairsTap,
-        ),
-      );
-    }
-    if (_pendingStock > 0) {
-      items.add(
-        _ActionItem(
-          icon: Icons.pending_actions,
-          label: '$_pendingStock hàng chờ xác nhận nhập kho',
-          color: Colors.orange,
-          onTap: widget.onPendingStockTap,
-        ),
-      );
-    }
-    if (widget.enableWarranty && _expiringWarranty > 0) {
-      items.add(
-        _ActionItem(
-          icon: Icons.shield,
-          label: '$_expiringWarranty thiết bị sắp hết bảo hành',
-          color: Colors.amber.shade800,
-          onTap: widget.onWarrantyTap,
-        ),
-      );
-    }
-    if (widget.enableExpiry && _expiringProducts > 0) {
-      items.add(
-        _ActionItem(
-          icon: Icons.timer,
-          label: '$_expiringProducts sản phẩm sắp hết HSD',
-          color: Colors.red,
-          onTap: widget.onExpiryTap,
-        ),
-      );
-    }
-    if (_daysSinceClosing >= 2) {
-      items.add(
-        _ActionItem(
-          icon: Icons.point_of_sale,
-          label: 'Đã $_daysSinceClosing ngày chưa chốt quỹ',
-          color: Colors.deepOrange,
-          onTap: widget.onUnclosedCashTap,
-        ),
-      );
-    }
-    if (widget.enableRepair && _missingCostRepairs > 0) {
-      items.add(
-        _ActionItem(
-          icon: Icons.money_off,
-          label: '$_missingCostRepairs đơn sửa tuần này chưa có giá vốn',
-          color: Colors.purple.shade700,
-          onTap: widget.onMissingCostRepairsTap,
-        ),
-      );
-    }
-    if (_overdueDebts > 0) {
-      items.add(
-        _ActionItem(
-          icon: Icons.account_balance_wallet,
-          label: '$_overdueDebts công nợ quá hạn cần thu/trả',
-          color: Colors.red.shade700,
-          onTap: widget.onOverdueDebtsTap,
-        ),
-      );
-    }
-    if (_pendingInstallments > 0) {
-      items.add(
-        _ActionItem(
-          icon: Icons.account_balance,
-          label: _pendingInstallmentAmount > 0
-              ? 'Tiền NH tuần này chưa tất toán: ${MoneyUtils.formatVND(_pendingInstallmentAmount)} đ · $_pendingInstallments đơn'
-              : '$_pendingInstallments đơn trả góp tuần này chờ NH tất toán',
-          color: Colors.indigo,
-          onTap: widget.onPendingInstallmentTap,
-        ),
-      );
-    }
-    if (widget.reminderCount > 0) {
-      items.add(
-        _ActionItem(
-          icon: Icons.notifications_active_rounded,
-          label: '${widget.reminderCount} việc cần xử lý',
-          color: const Color(0xFFE65100),
-          onTap: widget.onReminderTap,
-        ),
-      );
-    }
-
-    if (items.isEmpty) return const SizedBox.shrink();
+    final shown = reminders.take(maxItems).toList();
+    final hiddenCount = reminders.length - shown.length;
+    final totalTasks = ReminderService.totalCount(reminders);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -300,29 +61,42 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.notification_important,
-                color: Colors.orange.shade700,
-                size: 18,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'CẦN XỬ LÝ (${items.length})',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.orange.shade800,
-                  fontSize: 13,
-                  letterSpacing: 0.5,
+          InkWell(
+            onTap: onSeeAll,
+            borderRadius: BorderRadius.circular(8),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.notification_important,
+                  color: Colors.orange.shade700,
+                  size: 18,
                 ),
-              ),
-            ],
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'CẦN XỬ LÝ ($totalTasks)',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange.shade800,
+                      fontSize: 13,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                if (onSeeAll != null)
+                  Icon(
+                    Icons.open_in_new_rounded,
+                    size: 14,
+                    color: Colors.orange.shade700,
+                  ),
+              ],
+            ),
           ),
           const SizedBox(height: 8),
-          ...items.map(
-            (item) => InkWell(
-              onTap: item.onTap,
+          ...shown.map((r) => _reminderRow(r)),
+          if (hiddenCount > 0)
+            InkWell(
+              onTap: onSeeAll,
               borderRadius: BorderRadius.circular(8),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
@@ -331,54 +105,104 @@ class _ActionRequiredCardState extends State<ActionRequiredCard> {
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: item.color.withOpacity(0.15),
+                        color: Colors.orange.shade100,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(item.icon, color: item.color, size: 16),
+                      child: Icon(
+                        Icons.more_horiz_rounded,
+                        color: Colors.orange.shade800,
+                        size: 16,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        item.label,
+                        'Xem tất cả — còn $hiddenCount việc khác',
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey.shade800,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.orange.shade800,
                         ),
                       ),
                     ),
                     Icon(
                       Icons.arrow_forward_ios,
                       size: 12,
-                      color: Colors.grey.shade400,
+                      color: Colors.orange.shade400,
                     ),
                   ],
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildShimmer() {
-    // Invisible placeholder while loading - no spinner to avoid visual noise
-    return const SizedBox.shrink();
+  Widget _reminderRow(TaskReminder r) {
+    // Ưu tiên `subtitle` vì nó đã kèm sẵn con số (vd "3 đơn sửa xong chờ duyệt
+    // giao") — giữ đúng cách diễn đạt của thẻ cũ, không lặp lại tiêu đề.
+    final label = r.subtitle.isNotEmpty ? r.subtitle : r.title;
+    return InkWell(
+      onTap: onTapReminder == null ? null : () => onTapReminder!(r),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: r.color.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(r.icon, color: r.color, size: 16),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade800,
+                    ),
+                  ),
+                  if (r.totalAmount != null && r.totalAmount! > 0)
+                    Text(
+                      '${MoneyUtils.formatVND(r.totalAmount!)} đ',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: r.color,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if (r.priority == ReminderPriority.urgent)
+              Container(
+                margin: const EdgeInsets.only(right: 6),
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFD32F2F),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 12,
+              color: Colors.grey.shade400,
+            ),
+          ],
+        ),
+      ),
+    );
   }
-}
-
-class _ActionItem {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback? onTap;
-  const _ActionItem({
-    required this.icon,
-    required this.label,
-    required this.color,
-    this.onTap,
-  });
 }
 
 /// Compact finance summary - shows Doanh thu / Lợi nhuận / Quỹ
