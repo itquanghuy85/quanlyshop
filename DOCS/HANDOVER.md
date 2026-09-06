@@ -9,6 +9,23 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-06  
 
+**📏 VÁ TIẾP: DANH SÁCH GIAO DỊCH CHỈ HIỆN 1-2 DÒNG (`[2026-09-06j]`).**
+Chủ shop nghiệm thu bản `i` báo "list giao dịch hơi nhỏ chỉ hiện được 1 2 giao
+dịch rất khó quan sát". Đo lại: `Column` + `Expanded` khiến phần đầu chiếm chỗ
+CỐ ĐỊNH, chỉ còn **~19% chiều cao màn** cho danh sách, mà mỗi dòng lại cao
+~100px vì có 3 dòng phụ.
+· **Sửa:** cả tab Tiền dùng **chung một `CustomScrollView`** — dải tổng + 3 nút
++ ô tìm cuộn đi được, **chỉ hàng lọc dính lại** (`SliverPersistentHeader` +
+`_PinnedHeader`). Thanh tỉ lệ vào/ra rút 32px + chú thích → vạch 8px. Dòng giao
+dịch gộp 3 dòng phụ còn 2 (huy hiệu TT nằm chung hàng với `NV/Mã`), **không bỏ
+thông tin nào**. Đổi bộ lọc thì kéo về đầu (`_scrollCashToTop`).
+· **Kết quả đo:** chưa cuộn 1-2 → **3 giao dịch**; cuộn một nhịp → **6-7 giao
+dịch**.
+· **✅ Nghiệm thu 2 máy:** CPH2203 — hàng lọc dính lại **vẫn bấm được**, đang
+cuộn sâu bấm "Thu" nhảy đúng về đầu, nhật ký cũng cuộn đúng, nút "Chốt quỹ" nay
+hiện đủ chữ (trước bị bong bóng ⚡ che). CPH2239 (720×1600) không vỡ layout.
+logcat 2 máy: 0 `RenderFlex overflowed`, 0 exception.
+
 **🧭 TAB TÀI CHÍNH LÀM LẠI: 4 TAB → 3 TAB "TIỀN / LÃI / NỢ" (`[2026-09-06i]`).**
 Chủ shop báo màn tài chính "khó theo dõi". Nguyên nhân đo được, không phải cảm
 giác: con số ở tab này còn chi tiết của nó ở tab kia; khối **"Lãi gộp (phần đã

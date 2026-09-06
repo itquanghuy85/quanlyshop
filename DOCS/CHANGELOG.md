@@ -4,6 +4,69 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-06j] - fix(tài chính) TAB TIỀN: DANH SÁCH GIAO DỊCH CHỈ HIỆN 1-2 DÒNG
+
+Chủ shop nghiệm thu `[2026-09-06i]`: *"list giao dịch hơi nhỏ chỉ hiện được 1 2
+giao dịch rất khó quan sát"*.
+
+### Vấn đề
+
+`_cashBody` dựng `Column[dải tổng, cảnh báo, hàng lọc, Expanded(danh sách)]` —
+phần đầu chiếm chỗ **cố định**, không cuộn đi được. Đo trên CPH2203
+(1080×2400): thanh hệ thống + AppBar + chọn kỳ + tab + dải tổng + thanh tỉ lệ +
+chú thích + 3 nút + hàng lọc + ô tìm + dòng đếm ăn hết, còn lại **~19% chiều cao
+màn cho danh sách**. Mỗi dòng giao dịch lại cao ~100px (3 dòng phụ) ⇒ nhìn được
+đúng 1-2 giao dịch, muốn xem tiếp phải cuộn trong một ô bé xíu.
+
+### Sửa
+
+**1. Cả tab Tiền dùng CHUNG một `CustomScrollView`.** Dải tổng + 3 nút Ghi thu /
+Ghi chi / Chốt quỹ + ô tìm kiếm cuộn đi được; **chỉ hàng lọc dính lại**
+(`SliverPersistentHeader(pinned: true)` + `_PinnedHeader`) vì đó là thứ bấm
+nhiều nhất. `_txListBody()` / `_journalBody()` đổi thành `_txSlivers()` /
+`_journalSlivers()` trả về `List<Widget>` sliver, bỏ `Expanded` bọc `ListView`.
+
+**2. Thanh tỉ lệ vào/ra rút từ 32px + hàng chú thích xuống một vạch 8px**, bỏ
+số in trong thanh và bỏ hàng `● Tiền vào ● Tiền ra`. Ba con số ngay trên đã ghi
+đủ số tiền và đã tô đúng màu — in lại là nói hai lần, mà tốn ~55px.
+
+**3. Dòng giao dịch gộp 3 dòng phụ còn 2.** Huy hiệu hình thức thanh toán và
+phần `NV: … · Mã: …` nay nằm CHUNG một hàng; `dense: true`, avatar 20→18.
+**Không bỏ thông tin nào.**
+
+**4. Đổi bộ lọc thì kéo về đầu** (`_scrollCashToTop`). Không có bước này thì
+đang cuộn sâu mà bấm "Thu" sẽ đứng nguyên giữa một danh sách vừa đổi hết nội
+dung, không biết mình đang ở đâu.
+
+Gom thêm dòng đếm + nút xuất Excel của hai danh sách về `_listMetaRow()`
+(trước bị chép 2 nơi). Xoá `_dot` (chỉ còn hàng chú thích cũ dùng tới).
+
+### Kết quả đo trên máy thật
+
+| | Trước | Sau |
+|---|---|---|
+| Chưa cuộn | 1-2 giao dịch | **3 giao dịch** |
+| Sau khi cuộn một nhịp | vẫn 1-2 | **6-7 giao dịch** |
+
+### Files
+
+- `lib/finance_v2/finance_v2_view.dart`
+
+### Nghiệm thu
+
+`flutter analyze` 0 error / 0 warning toàn `lib/`.
+
+**✅ 2 máy thật:**
+- **CPH2203 (1080×2400):** cuộn xuống dải tổng biến mất, hàng lọc dính lại và
+  **vẫn bấm được** (bấm "Tất cả" trên thanh dính → đổi danh sách đúng) ✅ ·
+  đang cuộn sâu bấm "Thu" → nhảy về đầu, ô "Tiền vào" sáng, 11 giao dịch ✅ ·
+  nhật ký thao tác cũng cuộn đúng, 6-7 mục/màn ✅ · nút "Chốt quỹ" nay hiện đủ
+  chữ, không còn bị bong bóng ⚡ che ✅
+- **CPH2239 (720×1600, shop M, 1 giao dịch):** layout không vỡ ✅
+- **logcat 2 máy: 0 `RenderFlex overflowed`, 0 exception.**
+
+---
+
 ## [2026-09-06i] - refactor(tài chính) TAB TÀI CHÍNH: 4 TAB → 3 TAB "TIỀN / LÃI / NỢ" + CHẶN GIÁ VỐN
 
 Chủ shop báo *"coi tab tài chính toàn bộ, nên làm lại như nào cho dễ theo dõi
