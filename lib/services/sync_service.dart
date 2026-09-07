@@ -284,8 +284,34 @@ class SyncService {
   /// Key prefix for storing last sync timestamps per collection in SharedPreferences
   static const _lastSyncPrefix = 'lastSync_';
   static const _realtimeCursorPrefix = 'rtCursor_';
+  /// Hạn mức riêng cho một số bảng khi poll.
+  ///
+  /// `_collectionPollLimit` mặc định là **20 doc/lượt**. Với bảng có con trỏ
+  /// tăng dần thì đủ, vì lượt sau đi tiếp từ chỗ dừng. Nhưng lượt ĐẦU của
+  /// `financial_activity_log` (chưa có con trỏ) chỉ lấy được 20 doc đầu theo
+  /// docId, và vì cursor chưa nhích nên lượt sau **lấy lại đúng 20 doc đó** —
+  /// phần còn lại không bao giờ về.
+  ///
+  /// Đo trên máy thật (Oppo A94, xoá app cài lại): cloud 106 dòng ⇒ local dừng
+  /// ở **17 dòng** và đứng im. Nhật ký tài chính là bảng nhỏ nên nâng hạn mức
+  /// lượt đầu là đủ; từ lượt sau con trỏ đã chạy nên chỉ tải phần mới.
+  static const Map<String, int> _collectionPollLimitOverrides = {
+    'financial_activity_log': 500,
+  };
+
+  static int _pollLimitFor(String collection) =>
+      _collectionPollLimitOverrides[collection] ?? _collectionPollLimit;
+
   static const Set<String> _incrementalRealtimeCollections = {
     'attendance',
+    // CỐ Ý KHÔNG có 'financial_activity_log' ở đây.
+    //
+    // Con trỏ tăng dần lọc bằng `where('updatedAt', isGreaterThan: …)`, mà
+    // Firestore **loại hẳn doc không có trường đó**. Nhật ký tài chính ghi bởi
+    // các bản app cũ không có `updatedAt` ⇒ bật tăng dần là những doc đó bị bỏ
+    // qua VĨNH VIỄN. Đã thử trên máy thật: bật lên là kẹt ở 20 dòng, tải mãi
+    // không thêm. Bảng này nhỏ nên cứ quét đủ theo `shopId` mỗi lượt, đổi lại
+    // là không sót dòng nào.
     'audit_logs',
     'cash_closings',
     'customers',
@@ -2611,6 +2637,47 @@ class SyncService {
     }
 
     // 28b. Đồng bộ PRICE CATALOG ITEMS (Danh mục giá từ hoá đơn NCC)
+    // NHẬT KÝ TÀI CHÍNH — thiếu đăng ký này là bảng KHÔNG BAO GIỜ về máy.
+    //
+    // 35 bảng khác đều có `_subscribeToCollection`, riêng `financial_activity_log`
+    // chỉ nằm trong danh sách của `downloadAllFromCloud` — mà hàm đó lúc đăng
+    // nhập **chỉ chạy trên WEB** (`main.dart`: nhánh mobile ghi thẳng *"skip full
+    // download to avoid overlap with realtime sync"*). Hậu quả trên Android/iOS:
+    // cài mới + đăng nhập ⇒ `financial_activity_log` local = **0 dòng** trong
+    // khi cloud có cả trăm, và Trung tâm đồng bộ báo "chưa khớp" mãi không hết.
+    //
+    // Đo trên máy thật (Oppo A94, xoá app cài lại, đăng nhập m@m.com):
+    // cloud 106 dòng ⇔ local 0 dòng.
+    //
+    // Đây KHÔNG phải báo động giả như `work_schedules`/`audit_logs` — nhật ký
+    // tài chính ghi từ máy khác thật sự không bao giờ hiện trên máy này.
+    try {
+      _subscribeToCollection(
+        collection: 'financial_activity_log',
+        shopId: shopId,
+        permissions: permissions,
+        role: role,
+        isSuperAdmin: isSuperAdmin,
+        onChanged: (data, docId) async {
+          try {
+            final db = DBHelper();
+            data['firestoreId'] = docId;
+            data['isSynced'] = 1;
+            _convertTimestampFields(data);
+            await db.upsertFinancialActivity(data);
+          } catch (e) {
+            debugPrint("Lỗi sync financial_activity_log $docId: $e");
+          }
+        },
+        onBatchDone: () {
+          onDataChanged();
+          EventBus().emit(EventBus.financialChanged);
+        },
+      );
+    } catch (e) {
+      debugPrint("Lỗi khởi tạo financial_activity_log sync: $e");
+    }
+
     try {
       _subscribeToCollection(
         collection: 'price_catalog_items',
@@ -2752,14 +2819,14 @@ class SyncService {
         final snapshot = await _getQueryWithTimeout(
           query: query,
           context: 'poll_$collection',
-          limit: _collectionPollLimit,
+          limit: _pollLimitFor(collection),
         );
         if (snapshot.docs.isEmpty) {
           return;
         }
 
         debugPrint(
-          "📥 Polled $collection: ${snapshot.docs.length} docs (limit=$_collectionPollLimit)",
+          "📥 Polled $collection: ${snapshot.docs.length} docs (limit=${_pollLimitFor(collection)})",
         );
 
         var maxCursorMs = 0;

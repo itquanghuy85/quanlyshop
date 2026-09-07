@@ -4,6 +4,79 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-07e] - fix(đồng bộ) NHẬT KÝ TÀI CHÍNH KHÔNG BAO GIỜ VỀ MÁY — 2 LỖI CHỒNG NHAU
+
+Chủ shop: *"tk m trên Oppo A94 xoá app chạy lại đăng nhập vào lại hiện 107 (nhật
+ký tài chính 106, lịch sử nhập kho 1)"*. Cài mới hoàn toàn mà vẫn lệch ⇒ **không
+phải dữ liệu shop cũ còn sót**. Truy tận gốc, ra **hai lỗi chồng nhau**.
+
+Đo mở màn trên máy vừa cài lại: `financial_activity_log` local = **0 dòng**,
+cloud = **106**.
+
+### Lỗi 1 — bảng này KHÔNG có ai đồng bộ nó trên mobile
+
+`financial_activity_log` chỉ nằm trong danh sách của `downloadAllFromCloud`.
+Mà hàm đó lúc đăng nhập **chỉ chạy trên WEB** — nhánh mobile trong `main.dart`
+ghi thẳng *"skip full download to avoid overlap with realtime sync"*.
+
+Và nó **không nằm trong 35 bảng** có `_subscribeToCollection`:
+
+```
+adjustment_entries attendance audit_logs cash_closings customers debt_payments
+debts employee_salary_settings expenses import_order_items import_orders
+leave_requests partner_repair_history payment_intents payment_requests
+price_catalog_items product_variants products purchase_orders quick_input_codes
+repair_partner_payments repair_partners repair_parts repairs sales
+sales_return_items sales_returns salvage_phones storage_locations
+supplier_import_history supplier_payments supplier_product_prices suppliers
+users work_schedules          ← 35 bảng, KHÔNG có financial_activity_log
+```
+
+⇒ Trên Android/iOS, **nhật ký tài chính ghi từ máy khác không bao giờ về máy
+này**. Không phải báo động giả như `work_schedules` / `audit_logs` — đây là dữ
+liệu thật bị thiếu.
+
+**Vá:** đăng ký `_subscribeToCollection('financial_activity_log')` như 35 bảng
+kia. Kết quả ngay: 0 → **17 dòng**.
+
+### Lỗi 2 — kẹt ở 20 dòng, không bao giờ tải tiếp
+
+`_collectionPollLimit = 20` doc/lượt. Với bảng có con trỏ tăng dần thì đủ vì
+lượt sau đi tiếp từ chỗ dừng. Nhưng bảng này **chưa có con trỏ**, mà truy vấn
+lại **không `orderBy`** ⇒ Firestore trả về đúng 20 doc đầu theo docId, lượt sau
+**lấy lại đúng 20 doc đó**. 86 dòng còn lại không bao giờ tới.
+
+**Vá:** thêm `_collectionPollLimitOverrides = {'financial_activity_log': 500}`.
+
+### Ngã rẽ sai đã thử và loại
+
+Ban đầu thêm luôn `financial_activity_log` vào `_incrementalRealtimeCollections`
+cho đỡ tốn lượt đọc. **Sai** — con trỏ lọc bằng
+`where('updatedAt', isGreaterThan: …)`, mà **Firestore loại hẳn doc không có
+trường đó**. Nhật ký ghi bởi các bản app cũ không có `updatedAt` ⇒ bật lên là
+những doc đó bị bỏ qua **vĩnh viễn**. Đo trên máy: bật vào là kẹt ở **20 dòng**,
+tải mãi không thêm. Đã bỏ ra và ghi rõ lý do ngay tại chỗ để lần sau không ai
+"tối ưu" lại.
+
+### Nghiệm thu — máy thật, đo từng bước
+
+Oppo A94 (CPH2203), xoá app cài lại, đăng nhập `m@m.com`:
+
+| Bước | `financial_activity_log` local |
+|---|---|
+| Trước khi vá | **0** / cloud 106 |
+| Sau vá lỗi 1 | 17 |
+| Sau khi thử con trỏ tăng dần *(ngã rẽ sai)* | 20 — kẹt |
+| **Sau vá lỗi 2 (bỏ con trỏ + nâng hạn mức)** | **106 / 106** ✅ |
+
+`flutter analyze lib/` **0 error**.
+
+### Files
+
+- `lib/services/sync_service.dart`
+
+---
+
 ## [2026-09-07d] - feat(công nợ) TRẢ GỘP NGAY TRONG TAB NỢ · fix(đồng bộ) NHẬT KÝ HỆ THỐNG ÁT MẤT TÍN HIỆU THẬT
 
 ### A. Rút ngắn thao tác trả nợ

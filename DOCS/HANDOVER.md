@@ -9,6 +9,26 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-06  
 
+**🩹 NHẬT KÝ TÀI CHÍNH KHÔNG BAO GIỜ VỀ MÁY — 2 LỖI CHỒNG NHAU (`[2026-09-07e]`).**
+Cài mới hoàn toàn + đăng nhập vẫn báo 107 chưa khớp (106 nhật ký TC + 1 LS nhập
+kho) ⇒ không phải dữ liệu sót. Đo: `financial_activity_log` local **0** / cloud
+**106**.
+· **Lỗi 1:** bảng này KHÔNG nằm trong 35 bảng có `_subscribeToCollection`, và
+`downloadAllFromCloud` lúc đăng nhập **chỉ chạy trên WEB** (mobile ghi thẳng
+*"skip full download"*). ⇒ trên Android/iOS nhật ký tài chính từ máy khác **không
+bao giờ về**. Đây là **dữ liệu thật bị thiếu**, không phải báo động giả. Vá:
+đăng ký `_subscribeToCollection`. → 17 dòng.
+· **Lỗi 2:** `_collectionPollLimit = 20` + truy vấn **không `orderBy`** + bảng
+chưa có con trỏ ⇒ mỗi lượt lấy lại đúng 20 doc đầu, 86 dòng còn lại không bao
+giờ tới. Vá: `_collectionPollLimitOverrides = {'financial_activity_log': 500}`.
+· **⚠️ NGÃ RẼ SAI đã loại — đừng "tối ưu" lại:** thêm bảng này vào
+`_incrementalRealtimeCollections` là **SAI**. Con trỏ lọc
+`where('updatedAt', isGreaterThan:)` mà Firestore **loại hẳn doc thiếu trường
+đó**; nhật ký ghi bởi bản app cũ không có `updatedAt` ⇒ bỏ qua vĩnh viễn. Đo
+trên máy: bật vào kẹt ở 20 dòng. Lý do đã ghi ngay tại chỗ trong code.
+· **✅ Nghiệm thu Oppo A94 (xoá app cài lại, m@m.com):** 0 → 17 → (ngã rẽ sai:
+kẹt 20) → **106/106**. `flutter analyze` 0 error.
+
 **⚡ TRẢ GỘP NGAY TRONG TAB NỢ + NHẬT KÝ HỆ THỐNG ÁT TÍN HIỆU (`[2026-09-07d]`).**
 · Tab Nợ: nút đáy đổi từ *"Đi thu/trả nợ"* (đẩy sang màn Công nợ rồi phải TỰ TÌM
 LẠI người đó, bấm thêm lần nữa — 3 nhịp) thành **"Thu/Trả gộp cả N khoản"** trả
