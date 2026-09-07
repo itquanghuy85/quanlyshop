@@ -267,6 +267,20 @@ class SyncHealthCheck {
     required String collection,
     required String shopId,
   }) async {
+    // Bảng không khớp bằng `firestoreId` thì bỏ qua hẳn — xem
+    // `_skipFirestoreIdComparison`. Trả về kết quả "0 lệch" thay vì một con số
+    // luôn sai; cũng tiết kiệm được một lượt đọc cả collection trên Firestore.
+    if (_skipFirestoreIdComparison.contains(collection)) {
+      return SyncCheckResult(
+        collection: collection,
+        localCount: 0,
+        cloudCount: 0,
+        localOnly: 0,
+        cloudOnly: 0,
+        matched: 0,
+        unsyncedLocal: 0,
+      );
+    }
     try {
       // Lấy dữ liệu từ cloud - chỉ dùng 1 where để tránh cần composite index
       // Filter deleted ở client side
@@ -504,6 +518,20 @@ class SyncHealthCheck {
       whereArgs: whereArgs.isEmpty ? null : whereArgs,
     );
   }
+
+  /// Những bảng KHÔNG khớp Local↔Cloud bằng `firestoreId`.
+  ///
+  /// `work_schedules` không có cột `firestoreId` (xem `db_helper` — khoá tự
+  /// nhiên là `userId UNIQUE`), và `sync_service` đồng bộ nó bằng cách bóc
+  /// `userId` ra từ docId dạng `staff_<userId>_<shopId>`. Đem so bằng
+  /// `firestoreId` thì **mọi dòng đều lệch cả hai chiều** ⇒ báo "chưa khớp"
+  /// vĩnh viễn, đồng bộ bao nhiêu lần cũng không hết. Đúng loại lỗi "số lệch
+  /// không bao giờ về 0" đã sửa ở `[2026-08-31c]`.
+  ///
+  /// Thà KHÔNG kiểm còn hơn báo một con số luôn sai: người dùng thấy "42 bản
+  /// ghi chưa khớp" sẽ đi bấm đồng bộ lại, tốn lượt đọc Firestore mà số vẫn y
+  /// nguyên.
+  static const Set<String> _skipFirestoreIdComparison = {'work_schedules'};
 
   static String? _firestoreIdFromRow(Map<String, dynamic> row) {
     final value = row['firestoreId']?.toString().trim();

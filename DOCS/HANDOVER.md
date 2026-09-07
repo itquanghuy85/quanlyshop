@@ -9,6 +9,25 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-06  
 
+**🎯 TRUY GỐC "42 BẢN GHI CHƯA KHỚP" — `work_schedules` LỆCH VĨNH VIỄN (`[2026-09-07b]`).**
+Khối mới thêm ở `[2026-09-07a]` chỉ ra thủ phạm ngay lần đầu mở: *Lịch làm việc
+↑8 ↓9* — chiếm 17/42 và **lệch CẢ HAI CHIỀU**, dấu hiệu "không khớp được khoá".
+· **Gốc:** `work_schedules` KHÔNG có cột `firestoreId` (`db_helper.dart:748`,
+khoá tự nhiên là `userId UNIQUE`); `sync_service` đồng bộ bằng cách bóc `userId`
+từ docId `staff_<userId>_<shopId>`. Nhưng `SyncHealthCheck` so bằng
+`firestoreId` cho MỌI bảng ⇒ cùng một dữ liệu bị đếm lệch hai lần, **đồng bộ bao
+nhiêu lần cũng không về 0**. Bằng chứng có sẵn trong logcat máy thật:
+`no such column: firestoreId … FROM work_schedules` lặp đúng 9 lần = số ↓9.
+· **Sửa:** `_skipFirestoreIdComparison = {'work_schedules'}` — trả 0-lệch ngay,
+KHÔNG đọc cloud (tiết kiệm luôn 1 lượt đọc collection). **Không đụng logic đồng
+bộ** của bảng đó, nó vẫn chạy đúng bằng `userId`.
+· **Còn 25 mục chưa kết luận:** Nhật ký hệ thống ↓13, Nhật ký tài chính ↑2 ↓8,
+Lịch sử nhập kho ↓1, Nhà cung cấp ↓1 — chưa có bằng chứng trực tiếp nên KHÔNG
+đoán. Ghi lại để đợt sau khỏi dò từ đầu.
+· **⚠️ Chưa mở được Trung tâm đồng bộ qua adb** (thử 5 lần, 2 máy, có
+`uiautomator dump`). **Chủ shop tự xác nhận:** mở Trung tâm đồng bộ → dòng
+"Lịch làm việc" phải BIẾN MẤT, tổng **42 → 25**.
+
 **🔎 NÓI RÕ "88 CẦN ĐỒNG BỘ" LÀ GÌ (`[2026-09-07a]`).**
 Chủ shop hỏi con số 88. Truy ra: Trung tâm đồng bộ có **hai** con số khác hẳn
 nhau, cả hai đều chỉ hiện số trần — huy hiệu đỏ trên icon ☁️ là `sync_queue`

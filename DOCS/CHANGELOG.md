@@ -4,6 +4,79 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-07b] - fix(đồng bộ) TRUY GỐC "42 BẢN GHI CHƯA KHỚP": `work_schedules` LỆCH VĨNH VIỄN
+
+Khối *"N BẢN GHI CHƯA KHỚP — Ở ĐÂU"* thêm ở `[2026-09-07a]` lập tức chỉ ra thủ
+phạm ngay lần đầu chủ shop mở:
+
+```
+42 BẢN GHI CHƯA KHỚP — Ở ĐÂU
+Lịch làm việc        ↑8  ↓9     ← 17/42, lệch CẢ HAI CHIỀU
+Nhật ký hệ thống         ↓13
+Nhật ký tài chính    ↑2  ↓8
+Lịch sử nhập kho         ↓1
+Nhà cung cấp             ↓1
+```
+
+### Gốc rễ
+
+`Lịch làm việc` lệch **cả hai chiều cùng lúc** — dấu hiệu kinh điển của "không
+khớp được khoá", không phải "thiếu dữ liệu".
+
+Bảng `work_schedules` **KHÔNG có cột `firestoreId`** (`db_helper.dart:748` —
+khoá tự nhiên là `userId TEXT UNIQUE`), và `sync_service` đồng bộ nó bằng cách
+**bóc `userId` ra từ docId** dạng `staff_<userId>_<shopId>`.
+
+Nhưng `SyncHealthCheck` so Local↔Cloud **bằng `firestoreId`** cho mọi bảng. Với
+bảng này thì:
+- mọi dòng local không có `firestoreId` ⇒ đếm vào `localOnly`;
+- mọi doc cloud không tìm được dòng local khớp ⇒ đếm vào `cloudOnly`.
+
+⇒ **Cùng một dữ liệu bị đếm lệch hai lần**, và **đồng bộ bao nhiêu lần cũng không
+bao giờ về 0**. Đúng loại lỗi "số lệch không bao giờ hết" đã sửa ở `[2026-08-31c]`.
+
+Bằng chứng trực tiếp có sẵn trong logcat máy thật từ trước:
+`⚠️ _getLocalRowByFirestoreId work_schedules/staff_…: DatabaseException(no such
+column: firestoreId … SELECT * FROM work_schedules WHERE firestoreId = ?)` — lặp
+lại 9 lần, đúng bằng số `↓9`.
+
+### Sửa
+
+Thêm `SyncHealthCheck._skipFirestoreIdComparison = {'work_schedules'}`. Bảng nào
+nằm trong đó thì `_checkCollection` trả kết quả 0-lệch ngay, **không đọc cloud**.
+
+Thà KHÔNG kiểm còn hơn báo một con số luôn sai: người dùng thấy "42 bản ghi chưa
+khớp" sẽ đi bấm "Đồng bộ lại toàn bộ", tốn cả một lượt đọc toàn bộ collection mà
+con số vẫn y nguyên. Bỏ qua cũng tiết kiệm luôn lượt đọc `work_schedules`.
+
+**KHÔNG đụng tới logic đồng bộ `work_schedules`** — nó vẫn chạy đúng bằng
+`userId` như trước; chỉ có phần *kiểm tra* là đang hỏi sai câu hỏi.
+
+### Còn lại 25 mục — chưa kết luận
+
+`Nhật ký hệ thống ↓13`, `Nhật ký tài chính ↑2 ↓8`, `Lịch sử nhập kho ↓1`,
+`Nhà cung cấp ↓1`. Chưa có bằng chứng trực tiếp nên **không đoán**. Nhật ký là
+bảng chỉ ghi thêm nên cloud nhiều hơn máy mới cài là bình thường; cần xem thêm
+mới kết luận được. Ghi ra đây để đợt sau không phải dò lại từ đầu.
+
+### Files
+
+- `lib/services/sync_health_check.dart`
+
+### Nghiệm thu
+
+`flutter analyze lib/` **0 error** · `flutter test` 614 pass / 8 fail có sẵn.
+
+**⚠️ CHƯA MỞ ĐƯỢC Trung tâm đồng bộ qua adb** để xem lại con số sau khi vá — đã
+thử 5 lần trên cả hai máy, kể cả lấy đúng toạ độ nút bằng `uiautomator dump`,
+bảng trượt không hiện. (Bấm tay thì mở bình thường — ảnh chủ shop gửi chứng minh
+khối mới hiển thị đúng.)
+
+**Cách chủ shop tự xác nhận:** mở Trung tâm đồng bộ → dòng **"Lịch làm việc"
+phải BIẾN MẤT** khỏi danh sách, tổng **42 → 25**.
+
+---
+
 ## [2026-09-07a] - feat(đồng bộ) NÓI RÕ "88 CẦN ĐỒNG BỘ" LÀ GÌ
 
 Chủ shop: *"tôi thấy có 88 cần đồng bộ là gì"*.
