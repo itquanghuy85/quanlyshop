@@ -183,9 +183,21 @@ class DBHelper {
   Future<String?> _resolveShopIdForRepairsBackfill(
     DatabaseExecutor executor,
   ) async {
-    final cachedShopId = UserService.getShopIdSync();
-    if (cachedShopId != null && cachedShopId.trim().isNotEmpty) {
-      return cachedShopId.trim();
+    // ⚠️ PHẢI bọc try/catch: `getShopIdSync()` đọc `FirebaseAuth.instance`, mà
+    // hàm này chạy trong đường MỞ DATABASE. Firebase chưa init / hỏng (thiếu
+    // Play Services, test thuần Dart…) là ném `[core/no-app]`, lỗi thoát ra
+    // ngoài làm **hỏng luôn việc mở DB cục bộ** — log thật:
+    // `error [core/no-app] ... during open, closing...`.
+    // DB offline-first không được phụ thuộc cứng vào Firebase: đây chỉ là bước
+    // đoán shopId để backfill, thiếu thì đã có sẵn hai đường lùi bên dưới
+    // (`getCurrentShopId()` rồi tới bảng `shop_settings`).
+    try {
+      final cachedShopId = UserService.getShopIdSync();
+      if (cachedShopId != null && cachedShopId.trim().isNotEmpty) {
+        return cachedShopId.trim();
+      }
+    } catch (_) {
+      // Bỏ qua, thử tiếp các đường lùi bên dưới.
     }
 
     try {

@@ -9,6 +9,20 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-06  
 
+**🔴 MỞ DATABASE CỤC BỘ CHẾT NẾU FIREBASE HỎNG (`[2026-09-07h]`).**
+`DBHelper._resolveShopIdForRepairsBackfill` gọi `UserService.getShopIdSync()`
+**không bọc try/catch** (lời gọi ngay dưới thì có). Hàm đó đọc
+`FirebaseAuth.instance` và chạy **trong đường MỞ DATABASE** ⇒ Firebase chưa init
+/ hỏng là ném `[core/no-app]`, hỏng luôn việc mở DB (`... during open,
+closing...`). Máy thật chưa gặp vì `main.dart` init Firebase trước, nhưng DB
+**offline-first không được phụ thuộc cứng vào Firebase**. Đã bọc try/catch.
+· Lộ ra từ việc soát 8 test đỏ → nay **619 pass / 1 skip / 2 fail**.
+· 2 test còn đỏ ở `kiotviet_settings_view_test`, chưa soát — không dính tiền
+nong / đồng bộ / công nợ.
+
+**📦 ĐÃ BUILD AAB `3.5.0+556`** — `build/app/outputs/bundle/release/app-release.aab`
+(79.7 MB), sẵn sàng lên Play Store.
+
 **✅ ĐÃ DEPLOY INDEX (`[2026-09-07g]`).** Thêm `(shopId, updatedAt)` cho
 **`price_catalog_items`** + **`payment_requests`** vào `firestore.indexes.json`
 và **đã đẩy lên `huyaka-1809`**. Đối chiếu trước khi đẩy: **0 index bị xoá**,

@@ -74,7 +74,14 @@ List<List<String>>? kvParseXlsx(Uint8List bytes) {
 
 void main() {
   test('analyze product file columns', () {
+    // File mau nam ngoai repo (thu muc rieng tren may nguoi viet test), nen
+    // may khac / CI khong co. Thieu file thi BO QUA, dung bao do: day la
+    // script khao sat cot file KiotViet, khong phai test kiem chung hanh vi.
     final file = File('D:/ảnh claude/DanhSachSanPham_KV30052026-112134-441.xlsx');
+    if (!file.existsSync()) {
+      markTestSkipped('Khong co file mau ${file.path} tren may nay');
+      return;
+    }
     final rows = kvParseXlsx(file.readAsBytesSync())!;
     print('Total rows: ${rows.length}');
     print('\n=== ALL HEADER COLUMNS ===');

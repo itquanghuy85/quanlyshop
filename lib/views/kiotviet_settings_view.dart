@@ -584,6 +584,10 @@ class _KiotVietSettingsViewState extends State<KiotVietSettingsView> {
               ),
               AppSpacing.gapMd,
               TextFormField(
+                // Man nay co 3 o nhap (Client ID / Client Secret / Ma cua
+                // hang). Key de test tro dung o ma cua hang thay vi
+                // `find.byType(TextFormField)` - cach cu vo ngay khi them o.
+                key: const ValueKey('kiotvietRetailerField'),
                 controller: _retailerController,
                 textInputAction: TextInputAction.done,
                 onFieldSubmitted: (_) => _handleConnect(),

@@ -92,7 +92,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Kết nối KiotViet'), findsWidgets);
-    expect(find.byType(TextFormField), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('kiotvietRetailerField')),
+      findsOneWidget,
+    );
     expect(find.text('Kết nối cửa hàng KiotViet'), findsOneWidget);
   });
 
@@ -109,7 +112,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-      find.byType(TextFormField),
+      find.byKey(const ValueKey('kiotvietRetailerField')),
       'https://HUYMOBILE.kiotviet.vn',
     );
     await tester.pumpAndSettle();
@@ -153,7 +156,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-      find.byType(TextFormField),
+      find.byKey(const ValueKey('kiotvietRetailerField')),
       'https://huymobile.kiotviet.vn',
     );
     await tester.tap(
@@ -182,7 +185,7 @@ void main() {
     await tester.pumpWidget(_buildTestApp(delegate));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextFormField), 'huymobile');
+    await tester.enterText(find.byKey(const ValueKey('kiotvietRetailerField')), 'huymobile');
     await tester.tap(
       find.widgetWithText(ElevatedButton, 'Kết nối KiotViet'),
     );

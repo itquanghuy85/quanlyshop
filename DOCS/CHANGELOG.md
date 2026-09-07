@@ -4,6 +4,60 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-07h] - fix 8 TEST ĐỎ: 3 nguyên nhân, 1 cái là lỗi thật của app
+
+Soát 8 test đỏ tồn đọng. **1 trong 3 nguyên nhân là lỗi thật trong code chạy**,
+không phải lỗi test.
+
+### 🔴 1. Mở database cục bộ CHẾT nếu Firebase không dùng được (3 test)
+
+`DBHelper._resolveShopIdForRepairsBackfill` gọi `UserService.getShopIdSync()`
+**không bọc try/catch** — trong khi lời gọi ngay dưới nó (`getCurrentShopId()`)
+thì có. Hàm này đọc `FirebaseAuth.instance`, và nó chạy **trong đường MỞ
+DATABASE**. Firebase chưa init / hỏng là ném `[core/no-app]`, lỗi thoát ra ngoài
+làm **hỏng luôn việc mở DB**:
+
+```
+error [core/no-app] No Firebase App '[DEFAULT]' has been created ... during open, closing...
+```
+
+Trên máy thật `main.dart` init Firebase trước nên chưa ai gặp — nhưng một DB
+**offline-first** không được phụ thuộc cứng vào Firebase: máy thiếu Play
+Services hoặc Firebase init lỗi là app mất luôn dữ liệu cục bộ, đúng lúc cần
+offline nhất. Đã bọc try/catch; thiếu thì rơi xuống hai đường lùi vốn có
+(`getCurrentShopId()` → bảng `shop_settings`).
+
+### 2. Màn KiotViet thêm ô nhập, test cũ trỏ mơ hồ (4 test)
+
+Màn nay có **3 ô** (Client ID / Client Secret / Mã cửa hàng) mà test vẫn
+`find.byType(TextFormField)` ⇒ `Bad state: Too many elements`. Gắn
+`ValueKey('kiotvietRetailerField')` cho ô mã cửa hàng, test trỏ theo key —
+thêm ô nữa cũng không vỡ.
+
+### 3. Test đọc file mẫu nằm ngoài repo (1 test)
+
+`kiotviet_product_analyze_test` đọc `D:/ảnh claude/DanhSachSanPham_*.xlsx` —
+thư mục riêng trên máy người viết, máy khác không có. Đây là script **khảo sát
+cột** chứ không kiểm chứng hành vi, nên thiếu file thì `markTestSkipped` chứ
+không báo đỏ.
+
+### Kết quả
+
+`619 pass / 1 skip / 2 fail` (trước: 611 pass / 8 fail). 2 test còn đỏ thuộc
+`kiotviet_settings_view_test`, sẽ soát riêng — **không** liên quan tới tiền nong,
+đồng bộ hay công nợ.
+
+`flutter analyze lib/ test/` **0 error**.
+
+### Files
+
+- `lib/data/db_helper.dart`
+- `lib/views/kiotviet_settings_view.dart`
+- `test/kiotviet_settings_view_test.dart`
+- `test/kiotviet_product_analyze_test.dart`
+
+---
+
 ## [2026-09-07g] - fix(đồng bộ) VỚT DOC CŨ THIẾU `updatedAt` + "TỰ ĐỘNG SỬA" BÁO LÁO
 
 Chủ shop chọn phương án 1 cho `lịch sử nhập kho ↓1`. Làm xong thì lộ thêm một
