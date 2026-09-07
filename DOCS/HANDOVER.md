@@ -9,6 +9,26 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-06  
 
+**⚡ TRẢ GỘP NGAY TRONG TAB NỢ + NHẬT KÝ HỆ THỐNG ÁT TÍN HIỆU (`[2026-09-07d]`).**
+· Tab Nợ: nút đáy đổi từ *"Đi thu/trả nợ"* (đẩy sang màn Công nợ rồi phải TỰ TÌM
+LẠI người đó, bấm thêm lần nữa — 3 nhịp) thành **"Thu/Trả gộp cả N khoản"** trả
+ngay tại chỗ. Bảng trả gộp tách ra `lib/widgets/bulk_debt_payment_sheet.dart`
+để hai màn dùng CHUNG, không lệch cách chia tiền lẫn cách báo lỗi. Trả từng
+khoản vẫn còn nguyên.
+· **Nhật ký hệ thống:** đăng nhập `m@m.com` vào máy trước dùng `huy@huluca.com`
+ra **272 chưa khớp (266 nhật ký hệ thống + 5 nhật ký tài chính)**. KHÔNG phải dữ
+liệu shop cũ sót — `_getActiveLocalRows` đã lọc `shopId`. Thật ra máy vừa đổi tk
+nên chưa tải hết lịch sử; mà `audit_logs` là bảng chỉ-ghi-thêm để chẩn đoán, tải
+hết về vô ích. Hậu quả: **266 dòng nuốt trọn 5 dòng tài chính thật**. Thêm
+`_skipUserFacingMismatch = {'audit_logs'}` — không tính vào con số nữa.
+· **✅ SỐ LIỆU CHỐT QUỸ ĐÚNG, KHÔNG NHÂN ĐÔI** (đối chiếu lần trả gộp thật
+11.5tr): `debt_payments` 4 phiếu = 11.500.000 · `financial_activity_log` 4 bút
+toán OUT = 11.500.000 · `expenses` **0 dòng** · tab Tiền hiện *Tiền ra 11.5 Tr,
+4 giao dịch*. `loadSnapshot` cộng từ `debt_payments` chứ không cộng từ activity
+log ⇒ không có đường nào nhân đôi.
+· ⚠️ Nút "Trả gộp" ở tab Nợ **chưa bấm thử trên máy** (hết token tuần) — nhưng
+gọi đúng bảng vừa chạy thật thành công ở màn Công nợ.
+
 **✅ ĐÃ TRẢ NỐT 2 VIỆC CÒN NỢ — CHẠY THẬT 2 MÁY (`[2026-09-07c]`).**
 Chủ shop đăng nhập 1 máy tài khoản CHỦ + 1 máy tài khoản NHÂN VIÊN cùng shop M.
 · **Trả gộp công nợ — GHI THẬT:** NCC TÉT A, 7 khoản / 14.980.000đ, trả một

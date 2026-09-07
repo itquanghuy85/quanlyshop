@@ -4,6 +4,72 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-07d] - feat(công nợ) TRẢ GỘP NGAY TRONG TAB NỢ · fix(đồng bộ) NHẬT KÝ HỆ THỐNG ÁT MẤT TÍN HIỆU THẬT
+
+### A. Rút ngắn thao tác trả nợ
+
+Chủ shop: *"ở tab Nợ bấm trả nợ lại qua trang Nợ rồi lại đi tìm nhà cung cấp đó,
+lại bấm trả nợ một lần nữa"* — **ba nhịp cho một việc**.
+
+Nút đáy bảng chi tiết nhóm ở tab Nợ đổi từ *"Đi thu/trả nợ"* (đẩy sang màn Công
+nợ) thành **"Thu/Trả gộp cả N khoản"** — trả ngay tại chỗ.
+
+Bảng trả gộp tách khỏi `debt_view` thành `lib/widgets/bulk_debt_payment_sheet.dart`
+để **hai nơi dùng chung một bảng**, không lệch nhau về cách chia tiền lẫn cách
+báo lỗi. Snapshot chỉ giữ bản tóm tắt nên `_payGroupBulk` tra lại bản ghi GỐC
+của từng khoản (`_rawDebtOf`) trước khi mở bảng — `BulkDebtPaymentSheet` cần đủ
+`type` để chặn khi không rõ chiều thu/trả.
+
+Trả từng khoản vẫn còn nguyên (nút *Thu nợ / Trả nợ* trên mỗi dòng), nên vẫn đủ
+cả hai cách.
+
+### B. Nhật ký hệ thống át mất tín hiệu thật
+
+Chủ shop đăng nhập `m@m.com` vào máy trước đó dùng `huy@huluca.com` ⇒ hiện
+**272 bản ghi chưa khớp: 266 nhật ký hệ thống + 5 nhật ký tài chính** và hỏi có
+phải dữ liệu shop cũ còn sót không.
+
+**Không phải.** `_getActiveLocalRows` đã lọc `shopId`; bản ghi của shop khác
+mang `shopId` khác nên bị loại từ đầu. Sự thật là máy vừa đổi tài khoản nên
+**chưa tải hết lịch sử nhật ký của shop mới**.
+
+Nhưng đó chính là vấn đề: `audit_logs` là bảng **chỉ-ghi-thêm, dùng để chẩn
+đoán**, không phải dữ liệu kinh doanh. Máy mới cài / vừa đổi tài khoản bao giờ
+cũng thiếu, mà tải hết về vừa tốn lượt đọc vừa chẳng để làm gì. Hậu quả đo được:
+**266 dòng nhật ký nuốt trọn 5 dòng nhật ký tài chính đứng cạnh** — con số ồn át
+mất tín hiệu thật.
+
+Thêm `_skipUserFacingMismatch = {'audit_logs'}`: không tính vào con số "cần đồng
+bộ" nữa. Thiếu nhật ký không làm sai một đồng nào; thiếu công nợ mới đáng lo.
+
+### Files
+
+- `lib/widgets/bulk_debt_payment_sheet.dart` (mới, tách từ `debt_view`)
+- `lib/views/debt_view.dart`, `lib/finance_v2/finance_v2_view.dart`
+- `lib/services/sync_health_check.dart`
+
+### Nghiệm thu — SỐ LIỆU CHỐT QUỸ ĐÚNG, KHÔNG NHÂN ĐÔI
+
+Đối chiếu lần trả gộp thật 11.500.000đ ở `[2026-09-07c]` trên shop M:
+
+```
+debt_payments hôm nay        : 4 phiếu · tổng 11.500.000
+financial_activity_log       : 4 bút toán SUPPLIER_DEBT · OUT · tổng 11.500.000
+expenses hôm nay             : 0 dòng      ← KHÔNG sinh chi phí trùng
+Tab Tiền                     : Tiền ra 11.5 Tr · 4 giao dịch
+```
+
+`loadSnapshot` cộng tiền ra từ `debt_payments`, không cộng từ
+`financial_activity_log`, nên **không có đường nào nhân đôi**. ✅
+
+`flutter analyze lib/` **0 error**.
+
+⚠️ Nút "Trả gộp" mới ở tab Nợ **chưa bấm thử trên máy** (hết hạn mức token
+tuần) — nhưng nó gọi đúng `BulkDebtPaymentSheet` vừa chạy thật thành công ở màn
+Công nợ, chỉ khác chỗ mở.
+
+---
+
 ## [2026-09-07c] - test(nghiệm thu) TRẢ GỘP CÔNG NỢ + NHÁNH KHÔNG CÓ QUYỀN GIÁ VỐN — CHẠY THẬT 2 MÁY
 
 Trả nốt hai việc còn nợ ở `[2026-09-06n]` và `[2026-09-06i]`. Chủ shop đã đăng

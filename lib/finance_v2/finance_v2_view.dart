@@ -15,6 +15,7 @@ import '../utils/vietnamese_utils.dart';
 import '../views/cash_closing_view.dart';
 import '../views/debt_view.dart';
 import '../widgets/debt_payment_sheet.dart';
+import '../widgets/bulk_debt_payment_sheet.dart';
 import '../views/expense_view.dart';
 import '../views/repair_detail_view.dart';
 import '../views/sale_detail_view.dart';
@@ -2778,19 +2779,12 @@ class _FinanceV2ViewState extends State<FinanceV2View>
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                   child: SizedBox(
                     width: double.infinity,
+                    // Trả GỘP ngay tại đây. Bản trước chỉ có nút "Đi thu/trả
+                    // nợ" đẩy sang màn Công nợ, rồi người dùng phải TỰ TÌM LẠI
+                    // đúng người đó và bấm trả thêm một lần nữa — ba nhịp cho
+                    // một việc.
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                DebtView(initialTab: _showRec ? 0 : 1),
-                          ),
-                        ).then((_) {
-                          if (mounted) _load();
-                        });
-                      },
+                      onPressed: () => _payGroupBulk(g, ctx),
                       icon: Icon(
                         _showRec
                             ? Icons.call_received_rounded
@@ -2798,7 +2792,9 @@ class _FinanceV2ViewState extends State<FinanceV2View>
                         size: 18,
                       ),
                       label: Text(
-                        _showRec ? 'Đi thu nợ' : 'Đi trả nợ',
+                        _showRec
+                            ? 'Thu gộp cả ${g.items.length} khoản'
+                            : 'Trả gộp cả ${g.items.length} khoản',
                       ),
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size.fromHeight(44),
@@ -2814,6 +2810,38 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         ),
       ),
     );
+  }
+
+  /// Thu / trả GỘP cho cả nhóm, ngay trong bảng chi tiết.
+  ///
+  /// Snapshot chỉ giữ bản tóm tắt nên phải tra lại bản ghi GỐC của từng khoản
+  /// (`_rawDebtOf`) — `BulkDebtPaymentSheet` cần đủ `type`, `totalAmount`,
+  /// `paidAmount` để chia tiền và để chặn khi không rõ chiều thu/trả.
+  Future<void> _payGroupBulk(_DebtGroup g, BuildContext sheetCtx) async {
+    final raws = <Map<String, dynamic>>[];
+    for (final d in g.items) {
+      final raw = await _rawDebtOf(d);
+      if (raw != null) raws.add(raw);
+    }
+    if (!mounted) return;
+    if (raws.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Không tìm thấy khoản nợ nào — có thể máy chưa đồng bộ xong.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    final paid = await BulkDebtPaymentSheet.show(
+      context,
+      personName: g.name,
+      debts: raws,
+      isReceivable: _showRec,
+    );
+    if (!mounted || !paid) return;
+    if (sheetCtx.mounted) Navigator.of(sheetCtx).pop();
+    await _load();
   }
 
   /// Lấy lại bản ghi gốc trong bảng `debts` của một khoản trong snapshot.

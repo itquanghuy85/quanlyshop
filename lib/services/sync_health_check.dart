@@ -270,7 +270,8 @@ class SyncHealthCheck {
     // Bảng không khớp bằng `firestoreId` thì bỏ qua hẳn — xem
     // `_skipFirestoreIdComparison`. Trả về kết quả "0 lệch" thay vì một con số
     // luôn sai; cũng tiết kiệm được một lượt đọc cả collection trên Firestore.
-    if (_skipFirestoreIdComparison.contains(collection)) {
+    if (_skipFirestoreIdComparison.contains(collection) ||
+        _skipUserFacingMismatch.contains(collection)) {
       return SyncCheckResult(
         collection: collection,
         localCount: 0,
@@ -532,6 +533,22 @@ class SyncHealthCheck {
   /// ghi chưa khớp" sẽ đi bấm đồng bộ lại, tốn lượt đọc Firestore mà số vẫn y
   /// nguyên.
   static const Set<String> _skipFirestoreIdComparison = {'work_schedules'};
+
+  /// Bảng KHÔNG tính vào con số "cần đồng bộ" cho người dùng.
+  ///
+  /// `audit_logs` là **nhật ký hệ thống chỉ-ghi-thêm**, dùng để chẩn đoán chứ
+  /// không phải dữ liệu kinh doanh. Máy vừa đổi tài khoản / mới cài chưa tải
+  /// hết lịch sử của shop là chuyện bình thường, mà tải hết về vừa tốn lượt đọc
+  /// vừa chẳng để làm gì.
+  ///
+  /// Đo trên máy thật: đổi từ `huy@huluca.com` sang `m@m.com` là hiện ngay
+  /// **266 dòng nhật ký hệ thống "chưa khớp"** — nuốt trọn 5 dòng nhật ký tài
+  /// chính đứng cạnh, tức **con số ồn át mất tín hiệu thật**. Thiếu nhật ký
+  /// không làm sai một đồng nào; thiếu công nợ mới đáng lo.
+  ///
+  /// (Không phải "dữ liệu shop cũ còn sót" — `_getActiveLocalRows` đã lọc
+  /// `shopId`, bản ghi của shop khác mang `shopId` khác nên bị loại từ đầu.)
+  static const Set<String> _skipUserFacingMismatch = {'audit_logs'};
 
   static String? _firestoreIdFromRow(Map<String, dynamic> row) {
     final value = row['firestoreId']?.toString().trim();

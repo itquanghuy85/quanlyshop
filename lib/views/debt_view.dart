@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/keyboard_aware_padding.dart';
+import '../widgets/bulk_debt_payment_sheet.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -34,8 +35,6 @@ import 'repair_detail_view.dart';
 import 'repair_partner_detail_view.dart';
 import '../utils/excel_export_helper.dart';
 import '../utils/vietnamese_utils.dart';
-import '../constants/financial_constants.dart';
-import '../services/bulk_debt_payment_service.dart';
 import '../widgets/entity_avatar.dart';
 import '../widgets/export_date_filter_dialog.dart';
 import '../finance_v2/finance_v2_theme.dart';
@@ -1148,245 +1147,22 @@ class _DebtViewState extends State<DebtView>
   /// Cho nhập **đủ hoặc một phần** tổng nợ; số tiền được chia FIFO (khoản cũ
   /// nhất trước) và hiện bảng chia TRƯỚC khi xác nhận, để người dùng thấy tiền
   /// sẽ vào những khoản nào chứ không ký mù.
+  /// Thu / trả GỘP cho một người — mở bảng dùng chung với tab Nợ ở Tài chính
+  /// (xem `BulkDebtPaymentSheet`), để hai nơi không lệch nhau về cách chia tiền
+  /// lẫn cách báo lỗi.
   Future<void> _openBulkPayment(
     _PersonDebtGroup g,
     bool isReceivable,
   ) async {
-    final activeDebts = g.debts.where(_isActiveDebt).toList();
-    if (activeDebts.isEmpty) return;
-
-    final amountCtrl = TextEditingController(
-      text: MoneyUtils.formatCurrency(g.remaining),
+    final paid = await BulkDebtPaymentSheet.show(
+      context,
+      personName: g.name,
+      debts: g.debts.where(_isActiveDebt).toList(),
+      isReceivable: isReceivable,
     );
-    var method = 'TIỀN MẶT';
-    final color = isReceivable ? Colors.red.shade700 : Colors.blue.shade700;
-
-    final confirmed = await showAppBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheet) {
-          final typed = MoneyUtils.parseCurrency(amountCtrl.text);
-          final over = typed > g.remaining;
-          final allocations = BulkDebtPaymentService.allocateFifo(
-            activeDebts,
-            typed > g.remaining ? g.remaining : typed,
-          );
-          return KeyboardAwarePadding(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    isReceivable ? 'THU GỘP CÔNG NỢ' : 'TRẢ GỘP CÔNG NỢ',
-                    style: AppTextStyles.body1.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
-                  ),
-                  Text(
-                    '${g.name} · ${activeDebts.length} khoản · còn nợ '
-                    '${MoneyUtils.formatCurrency(g.remaining)}đ',
-                    style: AppTextStyles.caption.copyWith(
-                      color: AppColors.onSurface.withOpacity(0.7),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  CurrencyTextField(
-                    controller: amountCtrl,
-                    label: 'Số tiền',
-                    onChanged: (_) => setSheet(() {}),
-                  ),
-                  if (over)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text(
-                        'Số tiền vượt tổng nợ — sẽ chỉ ghi tối đa '
-                        '${MoneyUtils.formatCurrency(g.remaining)}đ.',
-                        style: AppTextStyles.caption.copyWith(
-                          color: Colors.orange.shade800,
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      for (final m in const ['TIỀN MẶT', 'CHUYỂN KHOẢN'])
-                        Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: ChoiceChip(
-                            label: Text(m),
-                            selected: method == m,
-                            onSelected: (_) => setSheet(() => method = m),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Tiền vào các khoản (cũ nhất trước):',
-                    style: AppTextStyles.caption.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxHeight: MediaQuery.of(ctx).size.height * 0.28,
-                    ),
-                    child: allocations.isEmpty
-                        ? Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: Text(
-                              'Nhập số tiền để xem cách chia.',
-                              style: AppTextStyles.caption.copyWith(
-                                color: AppColors.onSurface.withOpacity(0.5),
-                              ),
-                            ),
-                          )
-                        : ListView.builder(
-                            shrinkWrap: true,
-                            itemCount: allocations.length,
-                            itemBuilder: (_, i) {
-                              final a = allocations[i];
-                              final note =
-                                  (a.debt['note'] ?? '').toString().trim();
-                              final done = a.amount >= a.remainingBefore;
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 3,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        note.isEmpty
-                                            ? 'Khoản ${i + 1}'
-                                            : note,
-                                        style: AppTextStyles.caption,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      MoneyUtils.formatCompactCurrency(
-                                        a.amount,
-                                      ),
-                                      style: AppTextStyles.caption.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: color,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      done ? 'hết nợ' : 'còn lại',
-                                      style: AppTextStyles.caption.copyWith(
-                                        color: done
-                                            ? Colors.green.shade700
-                                            : AppColors.onSurface.withOpacity(
-                                                0.5,
-                                              ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextButton(
-                          onPressed: () => Navigator.pop(ctx, false),
-                          child: const Text('Hủy'),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton(
-                          onPressed: allocations.isEmpty
-                              ? null
-                              : () => Navigator.pop(ctx, true),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: color,
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size.fromHeight(46),
-                          ),
-                          child: Text(
-                            '${isReceivable ? "Thu" : "Trả"} '
-                            '${MoneyUtils.formatCompactCurrency(allocations.fold<int>(0, (s, a) => s + a.amount))}',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-
-    if (confirmed != true || !mounted) return;
-
-    final typed = MoneyUtils.parseCurrency(amountCtrl.text);
-    final allocations = BulkDebtPaymentService.allocateFifo(
-      activeDebts,
-      typed > g.remaining ? g.remaining : typed,
-    );
-    final result = await BulkDebtPaymentService.execute(
-      allocations: allocations,
-      paymentMethod: method == 'CHUYỂN KHOẢN'
-          ? PaymentMethod.transfer
-          : PaymentMethod.cash,
-      note: isReceivable ? 'Thu gộp công nợ' : 'Trả gộp công nợ',
-    );
-    if (!mounted) return;
-
-    if (result.success) {
-      NotificationService.showSnackBar(
-        '${isReceivable ? "Đã thu" : "Đã trả"} '
-        '${MoneyUtils.formatCurrency(result.paidTotal)}đ cho ${result.paidCount} khoản',
-        color: Colors.green,
-      );
-    } else if (result.partiallyApplied) {
-      // Trường hợp nguy hiểm nhất: tiền của mấy khoản đầu ĐÃ vào sổ thật.
-      // Phải nói rõ đã ghi tới đâu, không báo "thất bại" chung chung.
-      NotificationService.showSnackBar(
-        'Đã ghi ${result.paidCount}/${result.plannedCount} khoản '
-        '(${MoneyUtils.formatCurrency(result.paidTotal)}đ) rồi dừng: '
-        '${result.errorMessage}',
-        color: Colors.orange,
-      );
-    } else {
-      NotificationService.showSnackBar(
-        'Không ghi được: ${result.errorMessage}',
-        color: Colors.red,
-      );
-    }
-    await _refresh();
+    if (paid && mounted) await _refresh();
   }
+
 
   Widget _urgencyChip(String label, Color bg, Color fg, IconData icon) {
     return Container(
