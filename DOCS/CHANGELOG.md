@@ -4,6 +4,66 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-07f] - fix(đồng bộ) 10 BẢNG KẸT VĨNH VIỄN Ở 20 DÒNG
+
+Truy tiếp `lịch sử nhập kho ↓1` thì lộ ra một lỗi **rộng hơn nhiều** lỗi đang
+tìm: local `supplier_import_history` đúng **20 dòng** — con số 20 tố cáo hạn mức
+`_collectionPollLimit`.
+
+### Vấn đề
+
+Hạn mức 20 doc/lượt **chỉ an toàn với bảng có con trỏ tăng dần** — lượt sau đi
+tiếp từ chỗ dừng nên trước sau gì cũng quét hết. Bảng **không có con trỏ** thì
+truy vấn không `orderBy`, Firestore trả đúng 20 doc đầu theo docId và **lượt nào
+cũng trả đúng 20 doc đó** ⇒ phần dư không bao giờ về.
+
+Soát toàn bộ: **10 bảng** đang dính —
+
+`adjustment_entries` · `employee_salary_settings` · `leave_requests` ·
+`partner_repair_history` · `product_variants` · `repair_partners` ·
+`storage_locations` · `supplier_product_prices` · `users` · `work_schedules`
+
+Shop nào có **hơn 20 đối tác sửa chữa / vị trí lưu kho / biến thể sản phẩm** là
+**âm thầm mất phần dư**, không báo lỗi gì. Chưa ai gặp vì các shop hiện tại còn
+ít, nhưng đây là quả bom hẹn giờ.
+
+### Sửa
+
+`_pollLimitFor` nay tự nhận: bảng **không có con trỏ ⇒ quét đủ**
+(`_uncursoredPollLimit = 500`, đều là bảng danh mục nhỏ); bảng có con trỏ giữ
+nguyên 20. Không phải liệt kê tay từng bảng nữa — thêm bảng mới cũng tự đúng.
+
+### Còn lại: `supplier_import_history ↓1` — CHƯA sửa, có lý do
+
+Bảng này **có** con trỏ nên không thuộc nhóm trên. 1 dòng lệch là do đúng cái
+bẫy đã gặp ở `[2026-09-07e]`: con trỏ lọc
+`where('updatedAt', isGreaterThan: …)` mà **Firestore loại hẳn doc thiếu trường
+đó**. Một phiếu nhập cũ ghi bởi bản app trước khi có `updatedAt` ⇒ con trỏ không
+bao giờ nhìn thấy.
+
+**Cố ý chưa sửa.** Hai cách đều có giá:
+1. Bỏ bảng này khỏi nhóm con trỏ ⇒ mỗi lượt poll quét lại toàn bộ lịch sử nhập
+   kho (shop thật đang có **148 phiếu**) — tốn lượt đọc Firestore thật.
+2. Cho lượt poll đầu sau mỗi lần mở app bỏ qua con trỏ ⇒ nhân lượt đọc cho
+   **cả 35 bảng** mỗi lần mở app.
+
+Cả hai đều là quyết định về **hoá đơn Firestore của chủ shop**, không phải chuyện
+kỹ thuật thuần — để chủ shop chọn. 1 dòng lịch sử nhập kho không làm sai đồng nào.
+
+### Nghiệm thu
+
+Oppo A94 sau khi vá: `financial_activity_log` **106/106**,
+`repair_partners` 2/2, `storage_locations` 2/2 — không còn bảng nào chạm trần 20.
+`supplier_import_history` vẫn 20 đúng như phân tích ở trên.
+
+`flutter analyze lib/` **0 error**.
+
+### Files
+
+- `lib/services/sync_service.dart`
+
+---
+
 ## [2026-09-07e] - fix(đồng bộ) NHẬT KÝ TÀI CHÍNH KHÔNG BAO GIỜ VỀ MÁY — 2 LỖI CHỒNG NHAU
 
 Chủ shop: *"tk m trên Oppo A94 xoá app chạy lại đăng nhập vào lại hiện 107 (nhật

@@ -9,6 +9,25 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-06  
 
+**💣 10 BẢNG KẸT VĨNH VIỄN Ở 20 DÒNG (`[2026-09-07f]`).**
+Truy `lịch sử nhập kho ↓1` thì lộ lỗi rộng hơn: hạn mức `_collectionPollLimit=20`
+chỉ an toàn với bảng CÓ con trỏ; bảng không con trỏ thì truy vấn không `orderBy`
+nên **lượt nào cũng trả đúng 20 doc đầu**, phần dư không bao giờ về. Soát ra
+**10 bảng** dính: `adjustment_entries`, `employee_salary_settings`,
+`leave_requests`, `partner_repair_history`, `product_variants`,
+`repair_partners`, `storage_locations`, `supplier_product_prices`, `users`,
+`work_schedules`. Shop có >20 đối tác / vị trí kho / biến thể là **âm thầm mất
+phần dư**. Chưa ai gặp vì shop hiện còn ít — bom hẹn giờ.
+· **Sửa:** `_pollLimitFor` tự nhận — không có con trỏ ⇒ quét đủ
+(`_uncursoredPollLimit = 500`); có con trỏ giữ 20. Thêm bảng mới cũng tự đúng.
+· **⏸️ `supplier_import_history ↓1` CỐ Ý CHƯA SỬA:** bảng này CÓ con trỏ; 1 dòng
+lệch do phiếu nhập cũ **thiếu `updatedAt`** nên Firestore loại khỏi truy vấn con
+trỏ. Hai cách sửa đều tốn lượt đọc thật (quét lại 148 phiếu mỗi lượt, hoặc bỏ
+con trỏ cho cả 35 bảng lượt đầu mỗi lần mở app) ⇒ là quyết định về **hoá đơn
+Firestore**, để chủ shop chọn. 1 dòng lịch sử nhập kho không sai đồng nào.
+· **✅ Nghiệm thu Oppo A94:** `financial_activity_log` 106/106, `repair_partners`
+2/2, `storage_locations` 2/2 — không bảng nào còn chạm trần 20.
+
 **🩹 NHẬT KÝ TÀI CHÍNH KHÔNG BAO GIỜ VỀ MÁY — 2 LỖI CHỒNG NHAU (`[2026-09-07e]`).**
 Cài mới hoàn toàn + đăng nhập vẫn báo 107 chưa khớp (106 nhật ký TC + 1 LS nhập
 kho) ⇒ không phải dữ liệu sót. Đo: `financial_activity_log` local **0** / cloud

@@ -299,8 +299,33 @@ class SyncService {
     'financial_activity_log': 500,
   };
 
-  static int _pollLimitFor(String collection) =>
-      _collectionPollLimitOverrides[collection] ?? _collectionPollLimit;
+  /// Hạn mức doc cho một lượt poll.
+  ///
+  /// Hạn mức 20 CHỈ an toàn với bảng có con trỏ tăng dần — lượt sau đi tiếp từ
+  /// chỗ dừng nên trước sau gì cũng quét hết. Bảng KHÔNG có con trỏ thì truy
+  /// vấn không `orderBy`, Firestore trả đúng 20 doc đầu theo docId và **lượt
+  /// nào cũng trả đúng 20 doc đó** ⇒ phần dư không bao giờ về.
+  ///
+  /// Soát toàn bộ thấy **10 bảng** đang dính: `adjustment_entries`,
+  /// `employee_salary_settings`, `leave_requests`, `partner_repair_history`,
+  /// `product_variants`, `repair_partners`, `storage_locations`,
+  /// `supplier_product_prices`, `users`, `work_schedules`. Shop nào có hơn 20
+  /// đối tác sửa chữa / vị trí lưu kho / biến thể là **âm thầm mất phần dư** —
+  /// không báo lỗi gì.
+  ///
+  /// Nên: bảng không có con trỏ thì quét đủ (đây đều là bảng danh mục nhỏ),
+  /// bảng có con trỏ giữ nguyên 20.
+  static int _pollLimitFor(String collection) {
+    final override = _collectionPollLimitOverrides[collection];
+    if (override != null) return override;
+    if (!_incrementalRealtimeCollections.contains(collection)) {
+      return _uncursoredPollLimit;
+    }
+    return _collectionPollLimit;
+  }
+
+  /// Hạn mức cho bảng không có con trỏ — phải đủ lớn để quét trọn bảng.
+  static const int _uncursoredPollLimit = 500;
 
   static const Set<String> _incrementalRealtimeCollections = {
     'attendance',
