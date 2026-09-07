@@ -4,6 +4,69 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-07a] - feat(đồng bộ) NÓI RÕ "88 CẦN ĐỒNG BỘ" LÀ GÌ
+
+Chủ shop: *"tôi thấy có 88 cần đồng bộ là gì"*.
+
+### Truy ra nguồn con số
+
+Trung tâm đồng bộ có **hai** con số khác hẳn nhau mà cả hai đều chỉ hiện mỗi
+con số trần:
+
+| Chỗ hiện | Nguồn | Ý nghĩa |
+|---|---|---|
+| Huy hiệu đỏ trên icon ☁️ | `sync_queue` (`pending` + `processing`) | Việc **máy này** làm mà chưa đẩy lên cloud |
+| Thẻ trạng thái: **"CẦN ĐỒNG BỘ · 88 bản ghi chưa khớp"** | `SyncHealthReport.totalMismatches` | So Local vs Cloud thấy lệch |
+
+Con số 88 chủ shop nhìn thấy là **cái thứ hai** — thẻ ghi đúng chữ *"CẦN ĐỒNG
+BỘ"* nên đọc thành "88 cần đồng bộ".
+
+`effectiveMismatchCount = cloudOnly + localOnly + pendingCreateLocal +
+pendingUpdateLocal` — tức **gộp cả hai chiều lệch vào một số**, trong khi hai
+chiều lại xử lý bằng **hai nút khác nhau**. Nhìn số 88 không biết bấm nút nào.
+
+### Sửa — thêm 2 khối giải thích
+
+**1. "N BẢN GHI CHƯA KHỚP — Ở ĐÂU"** (`_buildMismatchBreakdownCard`)
+Liệt kê từng bảng kèm chiều lệch, tên tiếng Việt thay cho tên bảng kỹ thuật:
+`↑` có ở máy này mà cloud chưa có · `↓` cloud có mà máy này chưa tải. Cuối khối
+nói thẳng bấm nút nào cho từng chiều, kèm câu trấn an *"Dữ liệu KHÔNG mất — chỉ
+là hai bên chưa khớp nhau."* Dữ liệu vốn đã có sẵn trong `SyncHealthReport.results`,
+chỉ là chưa hiện ra.
+
+**2. "ĐANG CHỜ ĐẨY LÊN CLOUD: N mục"** (`_buildPendingBreakdownCard`)
+Gom hàng đợi theo loại dữ liệu (`SyncOrchestrator.getPendingBreakdown` — hàm
+mới, chỉ đọc), kèm **thời điểm cũ nhất** và **số lần thử lại nhiều nhất**. Thử
+lại ≥2 lần thì khối đổi sang màu cam và đổi lời nhắc — phân biệt "mới xếp hàng,
+chờ chút là xong" với "kẹt lâu rồi, cần xử lý".
+
+Cả hai khối trả về `SizedBox.shrink()` khi không có gì ⇒ máy đồng bộ tốt thì màn
+hình không đổi.
+
+### Files
+
+- `lib/services/sync_orchestrator.dart` (`getPendingBreakdown`)
+- `lib/widgets/unified_sync_button.dart` (2 khối + 2 bảng nhãn tiếng Việt)
+
+### Nghiệm thu
+
+`flutter analyze lib/` **0 error** · `flutter test` 614 pass / 8 fail có sẵn.
+
+**⚠️ CHƯA XEM ĐƯỢC TRÊN MÁY THẬT.** Đã thử mở Trung tâm đồng bộ bằng adb trên cả
+hai máy (kể cả lấy đúng toạ độ nút qua `uiautomator dump`: bounds
+`[520,72][616,160]`) nhưng bảng trượt **không mở ra** — chưa rõ vì sao, không
+phải lỗi của code mới. Hai khối đều là widget thuần hiển thị và trả về
+`SizedBox.shrink()` khi rỗng nên không thể làm hỏng màn đang chạy, **nhưng phần
+hiển thị thật vẫn cần chủ shop mở Trung tâm đồng bộ xem giúp một lần.**
+
+Ghi chú thêm: `sync_queue` trên **cả hai máy test đều rỗng**. Nguyên nhân: SDK
+Firestore có sẵn bộ nhớ đệm ngoại tuyến nên lệnh ghi "thành công" ngay tại máy,
+`SyncOrchestrator` xoá luôn khỏi hàng đợi. Đã thử ghi khi TẮT MẠNG (ghi thu 50k
++ lưu đơn sửa) mà hàng đợi vẫn rỗng. Nghĩa là huy hiệu đỏ trên icon ☁️ hiếm khi
+lên số — càng chắc thêm 88 là con số "bản ghi chưa khớp".
+
+---
+
 ## [2026-09-06n] - feat(công nợ) GOM NỢ THEO NGƯỜI + TRẢ GỘP MỘT CỤC (ĐỦ / MỘT PHẦN) + THU-TRẢ NGAY TRONG TAB NỢ
 
 Nối tiếp `[2026-09-06m]`. Chủ shop: *"bấm vào đó thanh toán toàn bộ hay 1 phần

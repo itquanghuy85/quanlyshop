@@ -9,6 +9,26 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-06  
 
+**🔎 NÓI RÕ "88 CẦN ĐỒNG BỘ" LÀ GÌ (`[2026-09-07a]`).**
+Chủ shop hỏi con số 88. Truy ra: Trung tâm đồng bộ có **hai** con số khác hẳn
+nhau, cả hai đều chỉ hiện số trần — huy hiệu đỏ trên icon ☁️ là `sync_queue`
+(việc máy này chưa đẩy lên), còn thẻ trạng thái *"CẦN ĐỒNG BỘ · 88 bản ghi chưa
+khớp"* là `SyncHealthReport.totalMismatches` (so Local vs Cloud). **88 là cái
+thứ hai.** Tệ hơn: `effectiveMismatchCount` gộp CẢ HAI CHIỀU lệch vào một số,
+trong khi hai chiều xử lý bằng hai nút khác nhau ⇒ nhìn số không biết bấm nút nào.
+· **Sửa:** thêm khối *"N BẢN GHI CHƯA KHỚP — Ở ĐÂU"* liệt kê từng bảng kèm chiều
+lệch (↑ máy này có, cloud chưa · ↓ cloud có, máy này chưa tải), tên tiếng Việt,
+và nói thẳng bấm nút nào cho từng chiều. Thêm khối *"ĐANG CHỜ ĐẨY LÊN CLOUD"*
+gom hàng đợi theo loại + thời điểm cũ nhất + số lần thử lại
+(`SyncOrchestrator.getPendingBreakdown`, hàm mới chỉ đọc).
+· **⚠️ CHƯA XEM ĐƯỢC TRÊN MÁY THẬT:** mở Trung tâm đồng bộ bằng adb không ra
+bảng trượt trên cả 2 máy (đã lấy đúng toạ độ nút qua `uiautomator dump`). Hai
+khối là widget thuần, rỗng thì `SizedBox.shrink()` nên không hỏng màn cũ, nhưng
+**cần chủ shop mở xem giúp một lần**.
+· **Phát hiện phụ:** `sync_queue` trên cả 2 máy test đều RỖNG kể cả khi ghi lúc
+tắt mạng — SDK Firestore có bộ đệm ngoại tuyến nên lệnh ghi "thành công" ngay
+tại máy và orchestrator xoá luôn khỏi hàng đợi. Nên huy hiệu đỏ hiếm khi lên số.
+
 **💳 CÔNG NỢ: GOM THEO NGƯỜI + TRẢ GỘP MỘT CỤC (ĐỦ/MỘT PHẦN) (`[2026-09-06n]`).**
 · Tab Nợ (Tài chính): mỗi khoản có nút **Lịch sử** (các lần đã trả) và **Thu/Trả
 nợ** mở đúng `DebtPaymentSheet` — trả toàn bộ hoặc một phần ngay tại chỗ.

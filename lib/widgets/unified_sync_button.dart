@@ -12,6 +12,7 @@ import '../views/firestore_connectivity_test_view.dart';
 import '../views/firebase_rw_stats_view.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import 'package:intl/intl.dart';
 
 /// Widget hiển thị nút sync thống nhất trên AppBar
 /// Gom tất cả chức năng sync vào một nơi
@@ -157,6 +158,10 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
   SyncDomainReportSnapshot? _domainReport;
   Map<String, int>? _localStats;
   Map<String, int>? _syncQueueStats;
+
+  /// Chi tiết "đang chờ đẩy" gom theo loại dữ liệu — để Trung tâm đồng bộ nói
+  /// được 88 món đó LÀ GÌ, chứ không chỉ nêu con số.
+  List<Map<String, dynamic>> _pendingBreakdown = const [];
   bool _isRealtimeSyncActive = false;
 
   @override
@@ -190,6 +195,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
 
       // Load sync queue stats
       _syncQueueStats = await _orchestrator.getSyncStats();
+      _pendingBreakdown = await _orchestrator.getPendingBreakdown();
 
       // Check realtime sync status
       _isRealtimeSyncActive = SyncService.isRealTimeSyncActive;
@@ -341,6 +347,9 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                           // • "Kiểm tra kết nối Firestore" và "Thống kê Firebase
                           //   Read/Write" trùng nguyên vẹn 2 mục trong
                           //   Cài đặt → Dữ liệu & Hệ thống. Đã bỏ khỏi đây.
+                          _buildMismatchBreakdownCard(),
+                          _buildPendingBreakdownCard(),
+
                           const Text(
                             'THAO TÁC ĐỒNG BỘ',
                             style: TextStyle(
@@ -409,6 +418,358 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  /// Tên tiếng Việt của từng loại dữ liệu trong hàng đợi đồng bộ.
+  ///
+  /// `entityType` lưu trong `sync_queue` là tên enum (`repair`, `debtPayment`…)
+  /// — đọc thẳng lên màn hình thì người dùng không hiểu.
+  static const Map<String, String> _entityLabels = {
+    'repair': 'Đơn sửa',
+    'sale': 'Đơn bán',
+    'product': 'Sản phẩm',
+    'expense': 'Thu / chi',
+    'debt': 'Công nợ',
+    'customer': 'Khách hàng',
+    'supplier': 'Nhà cung cấp',
+    'attendance': 'Chấm công',
+    'repairPart': 'Phụ tùng đơn sửa',
+    'quickInputCode': 'Mã nhập nhanh',
+    'debtPayment': 'Phiếu thu/trả nợ',
+    'supplierPayment': 'Thanh toán NCC',
+    'partnerPayment': 'Thanh toán đối tác',
+    'repairPartner': 'Đối tác sửa chữa',
+    'auditLog': 'Nhật ký hệ thống',
+    'cashClosing': 'Chốt quỹ',
+    'adjustmentEntry': 'Bút toán điều chỉnh',
+    'purchaseOrder': 'Đơn nhập hàng',
+    'supplierImportHistory': 'Lịch sử nhập kho',
+    'salvagePhone': 'Máy xác',
+    'salesReturn': 'Trả hàng',
+    'salesReturnItem': 'Chi tiết trả hàng',
+    'priceCatalogItem': 'Bảng giá NCC',
+  };
+
+  static String _entityLabel(String raw) => _entityLabels[raw] ?? raw;
+
+  /// Khối "ĐANG CHỜ ĐẨY LÊN CLOUD" — nói rõ hàng đợi đang kẹt những gì.
+  ///
+  /// Trước đây màn này chỉ hiện con số trên huy hiệu đỏ ("88") mà không cho
+  /// biết 88 món đó là gì, nên không phân biệt được "88 dòng nhật ký lặt vặt"
+  /// với "88 đơn bán chưa lên cloud" — hai tình huống nghiêm trọng khác hẳn
+  /// nhau.
+  /// Tên tiếng Việt của từng bảng dữ liệu khi so Local vs Cloud.
+  static const Map<String, String> _collectionLabels = {
+    'repairs': 'Đơn sửa',
+    'sales': 'Đơn bán',
+    'products': 'Sản phẩm',
+    'expenses': 'Thu / chi',
+    'debts': 'Công nợ',
+    'debt_payments': 'Phiếu thu/trả nợ',
+    'customers': 'Khách hàng',
+    'suppliers': 'Nhà cung cấp',
+    'supplier_payments': 'Thanh toán NCC',
+    'repair_partners': 'Đối tác sửa chữa',
+    'repair_partner_payments': 'Thanh toán đối tác',
+    'attendance': 'Chấm công',
+    'audit_logs': 'Nhật ký hệ thống',
+    'cash_closings': 'Chốt quỹ',
+    'purchase_orders': 'Đơn nhập hàng',
+    'supplier_import_history': 'Lịch sử nhập kho',
+    'salvage_phones': 'Máy xác',
+    'sales_returns': 'Trả hàng',
+    'price_catalog_items': 'Bảng giá NCC',
+    'financial_activity_log': 'Nhật ký tài chính',
+    'quick_input_codes': 'Mã nhập nhanh',
+    'stock_entries': 'Phiếu nhập kho',
+    'adjustment_entries': 'Bút toán điều chỉnh',
+    'storage_locations': 'Vị trí lưu kho',
+    'work_schedules': 'Lịch làm việc',
+    'shop_settings': 'Cài đặt shop',
+  };
+
+  static String _collectionLabel(String raw) =>
+      _collectionLabels[raw] ?? raw;
+
+  /// Khối giải thích con số **"N bản ghi chưa khớp"** trên thẻ trạng thái.
+  ///
+  /// Thẻ trạng thái chỉ ghi *"CẦN ĐỒNG BỘ · 88 bản ghi chưa khớp"* — người dùng
+  /// không biết 88 đó là **bảng nào**, và quan trọng hơn là **lệch chiều nào**:
+  ///
+  /// - *Chưa lên cloud* — có ở máy này, cloud chưa có ⇒ máy khác chưa thấy.
+  /// - *Chưa về máy này* — cloud có, máy này chưa tải ⇒ mở ra thấy thiếu.
+  ///
+  /// Hai chiều đó xử lý bằng hai nút khác nhau ("Đẩy dữ liệu máy này lên cloud"
+  /// vs "Đồng bộ lại toàn bộ"), nên gộp làm một con số thì không biết bấm nút
+  /// nào. `SyncHealthReport.results` vốn đã có đủ số liệu, chỉ là chưa hiện ra.
+  Widget _buildMismatchBreakdownCard() {
+    final report = _healthReport;
+    if (report == null || report.isFullyHealthy) return const SizedBox.shrink();
+
+    final rows = report.results
+        .where((r) => r.effectiveMismatchCount > 0)
+        .toList()
+      ..sort(
+        (a, b) => b.effectiveMismatchCount.compareTo(a.effectiveMismatchCount),
+      );
+    if (rows.isEmpty) return const SizedBox.shrink();
+
+    final upTotal = rows.fold<int>(
+      0,
+      (s, r) => s + r.localOnly + r.pendingCreateLocal + r.pendingUpdateLocal,
+    );
+    final downTotal = rows.fold<int>(0, (s, r) => s + r.cloudOnly);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.compare_arrows_rounded,
+                size: 18,
+                color: Colors.orange.shade800,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '${report.totalMismatches} BẢN GHI CHƯA KHỚP — Ở ĐÂU',
+                  style: TextStyle(
+                    fontSize: AppTextStyles.subtitle1Size,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange.shade900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          for (final r in rows)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _collectionLabel(r.collection),
+                      style: TextStyle(fontSize: AppTextStyles.body1.fontSize),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (r.localOnly + r.pendingCreateLocal + r.pendingUpdateLocal >
+                      0) ...[
+                    Icon(
+                      Icons.arrow_upward_rounded,
+                      size: 12,
+                      color: Colors.blue.shade700,
+                    ),
+                    Text(
+                      '${r.localOnly + r.pendingCreateLocal + r.pendingUpdateLocal}',
+                      style: TextStyle(
+                        fontSize: AppTextStyles.body1.fontSize,
+                        color: Colors.blue.shade700,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  if (r.cloudOnly > 0) ...[
+                    Icon(
+                      Icons.arrow_downward_rounded,
+                      size: 12,
+                      color: Colors.teal.shade700,
+                    ),
+                    Text(
+                      '${r.cloudOnly}',
+                      style: TextStyle(
+                        fontSize: AppTextStyles.body1.fontSize,
+                        color: Colors.teal.shade700,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          const Divider(height: 16),
+          if (upTotal > 0)
+            Row(
+              children: [
+                Icon(
+                  Icons.arrow_upward_rounded,
+                  size: 13,
+                  color: Colors.blue.shade700,
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    '$upTotal mục có ở máy này mà cloud chưa có — bấm '
+                    '"Đẩy dữ liệu máy này lên cloud".',
+                    style: TextStyle(
+                      fontSize: AppTextStyles.caption.fontSize,
+                      color: Colors.grey.shade800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          if (downTotal > 0) ...[
+            if (upTotal > 0) const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(
+                  Icons.arrow_downward_rounded,
+                  size: 13,
+                  color: Colors.teal.shade700,
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    '$downTotal mục cloud có mà máy này chưa tải — bấm '
+                    '"Đồng bộ lại toàn bộ".',
+                    style: TextStyle(
+                      fontSize: AppTextStyles.caption.fontSize,
+                      color: Colors.grey.shade800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 6),
+          Text(
+            'Dữ liệu KHÔNG mất — chỉ là hai bên chưa khớp nhau.',
+            style: TextStyle(
+              fontSize: AppTextStyles.caption.fontSize,
+              color: Colors.grey.shade700,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPendingBreakdownCard() {
+    if (_pendingBreakdown.isEmpty) return const SizedBox.shrink();
+
+    final total = _pendingBreakdown.fold<int>(
+      0,
+      (s, e) => s + (e['count'] as int),
+    );
+    // Món cũ nhất còn kẹt + số lần thử lại nhiều nhất: hai dấu hiệu phân biệt
+    // "mới xếp hàng, chờ chút là xong" với "kẹt lâu rồi, cần xử lý".
+    final oldestAt = _pendingBreakdown
+        .map((e) => e['oldestAt'] as int)
+        .where((v) => v > 0)
+        .fold<int>(0, (a, b) => a == 0 || b < a ? b : a);
+    final maxRetry = _pendingBreakdown.fold<int>(
+      0,
+      (a, e) => (e['maxRetry'] as int) > a ? e['maxRetry'] as int : a,
+    );
+    final stuck = maxRetry >= 2;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: (stuck ? Colors.orange : Colors.blue).shade50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: (stuck ? Colors.orange : Colors.blue).shade200,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                stuck ? Icons.warning_amber_rounded : Icons.cloud_upload_outlined,
+                size: 18,
+                color: (stuck ? Colors.orange : Colors.blue).shade700,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'ĐANG CHỜ ĐẨY LÊN CLOUD: $total mục',
+                  style: TextStyle(
+                    fontSize: AppTextStyles.subtitle1Size,
+                    fontWeight: FontWeight.bold,
+                    color: (stuck ? Colors.orange : Colors.blue).shade800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          for (final e in _pendingBreakdown)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _entityLabel(e['entityType'] as String),
+                      style: TextStyle(fontSize: AppTextStyles.body1.fontSize),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if ((e['maxRetry'] as int) > 0) ...[
+                    Text(
+                      'thử lại ${e['maxRetry']} lần',
+                      style: TextStyle(
+                        fontSize: AppTextStyles.caption.fontSize,
+                        color: Colors.orange.shade800,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Text(
+                    '${e['count']}',
+                    style: TextStyle(
+                      fontSize: AppTextStyles.body1.fontSize,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (oldestAt > 0) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Cũ nhất: ${DateFormat('dd/MM HH:mm').format(DateTime.fromMillisecondsSinceEpoch(oldestAt))}',
+              style: TextStyle(
+                fontSize: AppTextStyles.caption.fontSize,
+                color: Colors.grey.shade700,
+              ),
+            ),
+          ],
+          const SizedBox(height: 6),
+          Text(
+            stuck
+                ? 'Đã thử lại nhiều lần mà chưa lên được — kiểm tra mạng rồi bấm '
+                      '"Đẩy dữ liệu máy này lên cloud" bên dưới.'
+                : 'Dữ liệu đã lưu an toàn trên máy, đang chờ đẩy lên. Có mạng là '
+                      'tự lên; muốn đẩy ngay thì bấm "Đẩy dữ liệu máy này lên cloud".',
+            style: TextStyle(
+              fontSize: AppTextStyles.caption.fontSize,
+              color: Colors.grey.shade700,
+            ),
+          ),
+        ],
       ),
     );
   }

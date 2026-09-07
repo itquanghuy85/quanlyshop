@@ -1187,6 +1187,38 @@ class SyncOrchestrator {
     };
   }
 
+  /// Chi tiết hàng đợi ĐANG CHỜ ĐẨY, gom theo loại dữ liệu.
+  ///
+  /// Trung tâm đồng bộ trước đây chỉ hiện đúng con số ("88") mà không nói 88
+  /// món đó là gì, nên người dùng không biết đang kẹt cái gì, có nghiêm trọng
+  /// không, hay chỉ là mấy dòng nhật ký lặt vặt.
+  ///
+  /// Trả về danh sách đã sắp theo số lượng giảm dần, mỗi phần tử:
+  /// `{entityType, count, maxRetry, oldestAt}`.
+  Future<List<Map<String, dynamic>>> getPendingBreakdown() async {
+    final db = await _db.database;
+    final rows = await db.rawQuery('''
+      SELECT entityType,
+             COUNT(*)         AS count,
+             MAX(retryCount)  AS maxRetry,
+             MIN(createdAt)   AS oldestAt
+      FROM sync_queue
+      WHERE status IN ('pending', 'processing')
+      GROUP BY entityType
+      ORDER BY count DESC
+    ''');
+    return rows
+        .map(
+          (r) => <String, dynamic>{
+            'entityType': (r['entityType'] ?? '').toString(),
+            'count': (r['count'] as num?)?.toInt() ?? 0,
+            'maxRetry': (r['maxRetry'] as num?)?.toInt() ?? 0,
+            'oldestAt': (r['oldestAt'] as num?)?.toInt() ?? 0,
+          },
+        )
+        .toList();
+  }
+
   // ============== CONVENIENCE METHODS ==============
 
   /// Enqueue a repair for sync
