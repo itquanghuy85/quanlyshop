@@ -100,9 +100,13 @@ Soát `firestore.indexes.json` thì `price_catalog_items` **không có mục nà
 `payment_requests` có index nhưng **không có `(shopId, updatedAt)`** — cả hai đều
 nằm trong `_incrementalRealtimeCollections`. Đã thêm hai index.
 
-> ⚠️ **CẦN DEPLOY:** `firebase deploy --only firestore:indexes`. Chưa deploy thì
-> hai bảng này vẫn chạy đường lùi (không con trỏ) — **vẫn đúng dữ liệu** nhờ mục
-> 3, chỉ tốn lượt đọc hơn. Không deploy cũng không mất dữ liệu.
+> ✅ **ĐÃ DEPLOY** (2026-09-07, `huyaka-1809`). Đối chiếu trước khi đẩy:
+> **0 index bị xoá**, đúng **2 index được tạo** — thuần thêm mới, không đụng
+> index nào đang chạy. Cloud **60 → 62 index**.
+>
+> Máy thật xác nhận theo đúng 3 chặng: *"chưa có index"* → *"index đang được
+> xây"* → **hết lỗi**. Trong suốt lúc index đang xây, dữ liệu **vẫn đúng**
+> (`price_catalog_items` 13/13) nhờ đường lùi ở mục 3 — đúng như thiết kế.
 
 ### Nghiệm thu — Oppo A94 (CPH2203), shop M
 

@@ -9,12 +9,17 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-06  
 
-**⚙️ CẦN DEPLOY INDEX (`[2026-09-07g]`).** `firestore.indexes.json` đã thêm
-`(shopId, updatedAt)` cho **`price_catalog_items`** và **`payment_requests`** —
-chạy `firebase deploy --only firestore:indexes` khi tiện. Chưa deploy thì hai
-bảng này chạy đường lùi không con trỏ: **vẫn đúng dữ liệu** (đã bịt ở mục dưới),
-chỉ tốn lượt đọc hơn. Log máy thật đang báo
-`failed-precondition ... requires an index` cho `price_catalog_items`.
+**✅ ĐÃ DEPLOY INDEX (`[2026-09-07g]`).** Thêm `(shopId, updatedAt)` cho
+**`price_catalog_items`** + **`payment_requests`** vào `firestore.indexes.json`
+và **đã đẩy lên `huyaka-1809`**. Đối chiếu trước khi đẩy: **0 index bị xoá**,
+đúng 2 index được tạo (cloud 60 → 62) — thuần thêm mới.
+· Máy thật xác nhận đủ 3 chặng: *"chưa có index"* → *"index đang được xây"* →
+**hết lỗi**, `price_catalog_items` 13/13, `Local 379 | Cloud 379 | Mismatches 0`.
+· 💡 **Cách đối chiếu an toàn trước mọi lần deploy index** (đáng lặp lại): chạy
+`firebase firestore:indexes` lấy bản trên cloud, so với `firestore.indexes.json`
+theo `(collection, danh sách field)`. Deploy **XOÁ** index có trên cloud mà thiếu
+trong file — nhiều index xưa nay tạo bằng link trong log chứ không qua file, nên
+không soát là **xoá nhầm index đang chạy**. Tuyệt đối không dùng `--force`.
 
 **🧭 HẠN MỨC POLL NAY THEO TRUY VẤN THẬT (`[2026-09-07g]`).** `[2026-09-07f]` chỉ
 bịt 1 trong 4 đường dẫn tới "truy vấn không con trỏ". Nguy hiểm nhất là **lượt
