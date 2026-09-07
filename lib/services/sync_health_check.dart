@@ -384,8 +384,7 @@ class SyncHealthCheck {
             data['isSynced'] = 1;
             data['deleted'] = data['deleted'] ?? 0;
             SyncService.convertTimestampFieldsPublic(data);
-            await _upsertToLocal(collection, data);
-            fixed++;
+            if (await _upsertToLocal(collection, data)) fixed++;
           } catch (e) {
             debugPrint('   ❌ Không xử lý được $docId: $e');
           }
@@ -717,7 +716,8 @@ class SyncHealthCheck {
 
           try {
             // Upsert tất cả - cả records mới lẫn records cần cập nhật isSynced
-            await _upsertToLocal(collection, data);
+            final wrote = await _upsertToLocal(collection, data);
+            if (!wrote) continue;
             if (!localIds.contains(doc.id)) {
               collectionFixed++;
               fixedCount++;
@@ -959,7 +959,19 @@ class SyncHealthCheck {
   }
 
   /// Upsert dữ liệu vào local DB
-  static Future<void> _upsertToLocal(
+  /// Ghi một doc cloud xuống local. Trả về **có ghi được thật hay không**.
+  ///
+  /// ⚠️ Trước đây hàm này trả `void` và `switch` **không có `default`**: bảng
+  /// nào chưa khai báo thì rơi ra ngoài, **không ghi gì cả**, mà nơi gọi vẫn
+  /// `fixed++` ⇒ màn "Tự động sửa" báo *"đã tải 1"* trong khi local không thêm
+  /// dòng nào, lần kiểm tra sau vẫn lệch y nguyên. Đã đo trên máy thật:
+  /// `supplier_import_history` báo `tải 1 / tổng 1` xong vẫn `local=20,
+  /// cloud=21`. Người dùng bấm "sửa" mãi mà số không giảm, không hiểu vì sao.
+  ///
+  /// Nay: khai báo đủ các bảng đã có hàm upsert trong `DbHelper`, và bảng nào
+  /// thật sự chưa hỗ trợ thì trả `false` + ghi log — **đếm trung thực**, thà
+  /// báo "chưa sửa được" còn hơn báo sửa rồi mà không sửa.
+  static Future<bool> _upsertToLocal(
     String collection,
     Map<String, dynamic> data,
   ) async {
@@ -1017,7 +1029,68 @@ class SyncHealthCheck {
       case 'payment_requests':
         await db.upsertPaymentRequest(data);
         break;
+      case 'supplier_import_history':
+        await db.upsertSupplierImportHistory(data);
+        break;
+      case 'financial_activity_log':
+        await db.upsertFinancialActivity(data);
+        break;
+      case 'audit_logs':
+        await db.upsertAuditLog(data);
+        break;
+      case 'cash_closings':
+        await db.upsertCashClosing(data);
+        break;
+      case 'purchase_orders':
+        await db.upsertPurchaseOrder(data);
+        break;
+      case 'adjustment_entries':
+        await db.upsertAdjustmentEntry(data);
+        break;
+      case 'price_catalog_items':
+        await db.upsertPriceCatalogItem(data);
+        break;
+      case 'sales_returns':
+        await db.upsertSalesReturn(data);
+        break;
+      case 'sales_return_items':
+        await db.upsertSalesReturnItem(data);
+        break;
+      case 'import_orders':
+        await db.upsertImportOrder(data);
+        break;
+      case 'import_order_items':
+        await db.upsertImportOrderItem(data);
+        break;
+      case 'product_categories':
+        await db.upsertProductCategory(data);
+        break;
+      case 'product_variants':
+        await db.upsertProductVariant(data);
+        break;
+      case 'supplier_payments':
+        await db.upsertSupplierPayment(data);
+        break;
+      case 'repair_partner_payments':
+        await db.upsertRepairPartnerPayment(data);
+        break;
+      case 'supplier_product_prices':
+        await db.upsertSupplierProductPrice(data);
+        break;
+      case 'employee_salary_settings':
+        await db.upsertEmployeeSalarySettings(data);
+        break;
+      default:
+        // `work_schedules` (upsert cần nhiều tham số, và bảng này vốn đã được
+        // loại khỏi phép so firestoreId) và mọi bảng thêm sau mà quên khai báo
+        // đều rơi vào đây. KHÔNG im lặng — im lặng chính là lỗi cũ.
+        debugPrint(
+          '   ⚠️ _upsertToLocal: chưa hỗ trợ bảng "$collection" — KHÔNG ghi '
+          'được xuống local (đừng tính là đã sửa)',
+        );
+        return false;
     }
+    return true;
   }
 
   /// Map collection → SyncEntityType (chỉ các collection có thể enqueue qua

@@ -4,6 +4,131 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-07g] - fix(đồng bộ) VỚT DOC CŨ THIẾU `updatedAt` + "TỰ ĐỘNG SỬA" BÁO LÁO
+
+Chủ shop chọn phương án 1 cho `lịch sử nhập kho ↓1`. Làm xong thì lộ thêm một
+lỗi nữa, nghiêm trọng hơn: nút **"Tự động sửa"** báo đã sửa trong khi **không
+sửa gì cả**.
+
+### 1. Vớt doc cũ thiếu `updatedAt` — quét trọn MỘT LẦN mỗi lần mở app
+
+Con trỏ tăng dần lọc `where('updatedAt', isGreaterThan: …)`, mà Firestore **loại
+hẳn doc không có trường đang lọc**. Doc ghi bởi bản app đời trước (chưa có
+`updatedAt`) vì thế **không bao giờ** lọt vào truy vấn con trỏ — và cũng không
+truy vấn ra được, vì Firestore không hỗ trợ lọc "thiếu trường X". Cách chữa duy
+nhất là **có lúc bỏ con trỏ ra mà quét đủ**.
+
+Chọn **một lần mỗi lần mở app** thay vì mọi lượt poll (phương án 1 nguyên bản):
+cùng kết quả, nhưng nhịp poll là 120 giây còn app không mở lại liên tục như vậy
+⇒ **rẻ hơn ~60 lần** về lượt đọc Firestore. Sau lượt quét đó con trỏ chạy tiếp
+như thường.
+
+- `_launchFullSweepCollections = {'supplier_import_history'}`
+- `_launchFullSweepDone` **chỉ giữ trong bộ nhớ** — mở app lần sau quét lại, đó
+  chính là điểm của cơ chế; `clear()` cùng cursor cache khi đổi shop / đăng xuất.
+- Chỉ đánh dấu "đã quét trọn" khi lượt đó trả về **ít hơn** hạn mức; trả về đúng
+  bằng hạn mức nghĩa là có thể còn sót ⇒ để lượt sau quét lại.
+
+### 2. 🔴 "Tự động sửa" báo đã tải nhưng KHÔNG ghi gì — 18 bảng
+
+`_upsertToLocal` trả `void` và `switch` **không có `default`**. Bảng nào chưa
+khai báo thì **rơi ra ngoài, không ghi một dòng nào**, trong khi nơi gọi vẫn
+`fixed++` ngay sau đó.
+
+Hậu quả người dùng thấy: bấm "Tự động sửa" → báo *"đã tải 1"* → kiểm tra lại vẫn
+lệch y nguyên → bấm nữa → vẫn thế. Không ai hiểu vì sao. Log máy thật:
+
+```
+🔧 Auto-fix: xử lý 1 bản ghi cloud thiếu ở local cho supplier_import_history...
+✅ supplier_import_history: tải 1, đẩy lệnh xoá 0 / tổng 1
+⚠️ supplier_import_history: local=20, cloud=21, unsynced=0   ← không đổi
+```
+
+Đây cũng chính là lý do `financial_activity_log` "sửa" mãi không hết ở
+`[2026-09-07e]`.
+
+**Sửa:** khai báo đủ **18 bảng** đã có sẵn hàm upsert trong `DbHelper` —
+`supplier_import_history`, `financial_activity_log`, `audit_logs`,
+`cash_closings`, `purchase_orders`, `adjustment_entries`, `price_catalog_items`,
+`sales_returns`, `sales_return_items`, `import_orders`, `import_order_items`,
+`product_categories`, `product_variants`, `supplier_payments`,
+`repair_partner_payments`, `supplier_product_prices`,
+`employee_salary_settings`. Hàm nay trả `bool`, có `default` **ghi log cảnh
+báo** thay vì im lặng, và nơi gọi **chỉ đếm khi ghi được thật**. Thà báo "chưa
+sửa được" còn hơn báo sửa rồi mà không sửa.
+
+### 3. Hạn mức poll nay theo TRUY VẤN THẬT, không theo danh sách khai báo
+
+Sửa xong mục 1 thì thấy cách tiếp cận "tra danh sách" vẫn hở. Có **bốn** đường
+dẫn tới "truy vấn không con trỏ", `[2026-09-07f]` mới bịt được đường đầu:
+
+1. Bảng không nằm trong `_incrementalRealtimeCollections` (10 bảng, đã bịt).
+2. **Lượt đầu tiên khi con trỏ còn 0** — máy mới cài, shop mới. Đây là đường
+   NGUY HIỂM NHẤT: lấy 20 doc bất kỳ rồi **đẩy con trỏ lên theo 20 doc đó** ⇒
+   mọi doc cũ hơn bị nhảy qua **vĩnh viễn**. Đúng cơ chế đã làm
+   `financial_activity_log` dừng ở 17/106 và đứng im.
+3. Firestore **thiếu composite index** ⇒ code tự lùi về không con trỏ
+   (`_incrementalRealtimeDisabled`) nhưng hạn mức vẫn 20 ⇒ kẹt.
+4. Lượt quét trọn đầu phiên ở mục 1.
+
+`_pollLimitFor(collection, shopId)` nay hỏi thẳng `_canUseIncrementalRealtime`
+— đúng cái điều kiện dùng để dựng truy vấn — nên cả bốn đường đều tự đúng.
+`_collectionPollLimitOverrides` thành thừa, đã bỏ.
+
+Nhân tiện: `[SYNC][FETCH] … limit=` trước đây **in cứng 20** dù thực tế khác,
+đọc log là hiểu sai. Nay in hạn mức thật.
+
+### 4. `product_categories` — poller riêng, dính y hệt lỗi con trỏ 0
+
+Nhóm hàng nằm ở subcollection `shops/{shopId}/product_categories` nên có
+**poller viết tay riêng**, không đi qua `_pollLimitFor`. Nó cũng `limit` cứng 20
+và cũng đẩy con trỏ theo 20 doc lấy được ⇒ shop có **hơn 20 nhóm hàng** thì
+phần dư mất vĩnh viễn. Đã áp cùng nguyên tắc.
+
+### 5. Thiếu composite index: `price_catalog_items` + `payment_requests`
+
+Log máy thật:
+
+```
+❌ Poll sync error in price_catalog_items: [cloud_firestore/failed-precondition]
+   The query requires an index.
+⚠️ Missing index for incremental poll price_catalog_items, next poll will
+   fallback without updatedAt cursor
+```
+
+Soát `firestore.indexes.json` thì `price_catalog_items` **không có mục nào**, và
+`payment_requests` có index nhưng **không có `(shopId, updatedAt)`** — cả hai đều
+nằm trong `_incrementalRealtimeCollections`. Đã thêm hai index.
+
+> ⚠️ **CẦN DEPLOY:** `firebase deploy --only firestore:indexes`. Chưa deploy thì
+> hai bảng này vẫn chạy đường lùi (không con trỏ) — **vẫn đúng dữ liệu** nhờ mục
+> 3, chỉ tốn lượt đọc hơn. Không deploy cũng không mất dữ liệu.
+
+### Nghiệm thu — Oppo A94 (CPH2203), shop M
+
+```
+📥 Polled supplier_import_history: 21 docs (limit=500)
+📥 Polled financial_activity_log:  106 docs (limit=500)
+📥 Polled audit_logs:               20 docs (limit=20)   ← có con trỏ, đúng 20
+📊 Sync Health Report:
+   Local: 379 | Cloud: 379 | Mismatches: 0
+```
+
+Local `supplier_import_history` **20 → 21/21**. `price_catalog_items` 13/13 kể
+cả khi đang chạy đường lùi thiếu index. Bảng có con trỏ vẫn giữ hạn mức 20 (không
+đội lượt đọc); bảng không con trỏ mới nhảy lên 500.
+
+`flutter analyze lib/` **0 error**. `flutter test` **614 pass / 8 fail** — 8 lỗi
+này **có sẵn từ trước**, đã đối chứng bằng `git stash` (y hệt 8 lỗi đó).
+
+### Files
+
+- `lib/services/sync_service.dart`
+- `lib/services/sync_health_check.dart`
+- `firestore.indexes.json`
+
+---
+
 ## [2026-09-07f] - fix(đồng bộ) 10 BẢNG KẸT VĨNH VIỄN Ở 20 DÒNG
 
 Truy tiếp `lịch sử nhập kho ↓1` thì lộ ra một lỗi **rộng hơn nhiều** lỗi đang

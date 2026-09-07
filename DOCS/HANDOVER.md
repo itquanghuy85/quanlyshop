@@ -9,6 +9,45 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-06  
 
+**⚙️ CẦN DEPLOY INDEX (`[2026-09-07g]`).** `firestore.indexes.json` đã thêm
+`(shopId, updatedAt)` cho **`price_catalog_items`** và **`payment_requests`** —
+chạy `firebase deploy --only firestore:indexes` khi tiện. Chưa deploy thì hai
+bảng này chạy đường lùi không con trỏ: **vẫn đúng dữ liệu** (đã bịt ở mục dưới),
+chỉ tốn lượt đọc hơn. Log máy thật đang báo
+`failed-precondition ... requires an index` cho `price_catalog_items`.
+
+**🧭 HẠN MỨC POLL NAY THEO TRUY VẤN THẬT (`[2026-09-07g]`).** `[2026-09-07f]` chỉ
+bịt 1 trong 4 đường dẫn tới "truy vấn không con trỏ". Nguy hiểm nhất là **lượt
+đầu khi con trỏ còn 0** (máy mới cài): lấy 20 doc bất kỳ rồi **đẩy con trỏ theo
+20 doc đó** ⇒ doc cũ hơn nhảy qua **vĩnh viễn** — đúng cơ chế làm
+`financial_activity_log` dừng ở 17/106. Nay `_pollLimitFor(collection, shopId)`
+hỏi thẳng `_canUseIncrementalRealtime` nên cả 4 đường tự đúng.
+· ⚠️ `product_categories` có **poller viết tay riêng** (subcollection
+`shops/{shopId}/…`) KHÔNG đi qua `_pollLimitFor` — đã vá tay cùng nguyên tắc.
+**Thêm poller riêng về sau phải nhớ điều này.**
+· `[SYNC][FETCH] … limit=` trước in cứng 20 dù thực tế khác — nay in số thật.
+
+**🔴 "TỰ ĐỘNG SỬA" BÁO ĐÃ SỬA MÀ KHÔNG SỬA GÌ — 18 BẢNG (`[2026-09-07g]`).**
+`SyncHealthCheck._upsertToLocal` trả `void`, `switch` **không có `default`** ⇒
+bảng chưa khai báo thì **rơi ra ngoài, không ghi dòng nào**, mà nơi gọi vẫn
+`fixed++`. Người dùng bấm "Tự động sửa" thấy báo *"đã tải 1"* rồi kiểm tra lại
+vẫn lệch y nguyên, bấm mãi không hết. Đây cũng là lý do
+`financial_activity_log` "sửa" hoài không xong ở `[2026-09-07e]`.
+· **Sửa:** khai báo đủ 18 bảng đã có hàm upsert trong `DbHelper`; hàm trả `bool`;
+`default` **ghi log cảnh báo** thay vì im lặng; nơi gọi **chỉ đếm khi ghi được
+thật**. ⚠️ Thêm bảng mới về sau **nhớ khai báo ở đây**, nếu không auto-fix sẽ bỏ
+qua (nay ít nhất có log, không còn im lặng).
+
+**✅ `supplier_import_history ↓1` ĐÃ XỬ LÝ XONG (`[2026-09-07g]`).**
+Chủ shop chọn phương án 1. Triển khai bản rẻ hơn: **quét trọn một lần mỗi lần mở
+app** (`_launchFullSweepCollections`) thay vì bỏ con trỏ ở mọi lượt poll — cùng
+kết quả, rẻ hơn ~60 lần vì nhịp poll là 120 giây. `_launchFullSweepDone` chỉ giữ
+trong RAM (mở app lần sau quét lại — đó là điểm của cơ chế), và chỉ đánh dấu
+xong khi lượt đó trả về **ít hơn** hạn mức.
+· **Nghiệm thu Oppo A94:** `📥 Polled supplier_import_history: 21 docs
+(limit=500)` ⇒ local **20 → 21/21**. `flutter test` 614 pass / 8 fail — 8 lỗi
+này có sẵn từ trước, đã đối chứng bằng `git stash`.
+
 **💣 10 BẢNG KẸT VĨNH VIỄN Ở 20 DÒNG (`[2026-09-07f]`).**
 Truy `lịch sử nhập kho ↓1` thì lộ lỗi rộng hơn: hạn mức `_collectionPollLimit=20`
 chỉ an toàn với bảng CÓ con trỏ; bảng không con trỏ thì truy vấn không `orderBy`

@@ -284,48 +284,71 @@ class SyncService {
   /// Key prefix for storing last sync timestamps per collection in SharedPreferences
   static const _lastSyncPrefix = 'lastSync_';
   static const _realtimeCursorPrefix = 'rtCursor_';
-  /// Hạn mức riêng cho một số bảng khi poll.
+  /// Hạn mức doc cho một lượt poll — quyết theo **truy vấn này có thật sự
+  /// dùng con trỏ hay không**, chứ không theo danh sách khai báo.
   ///
-  /// `_collectionPollLimit` mặc định là **20 doc/lượt**. Với bảng có con trỏ
-  /// tăng dần thì đủ, vì lượt sau đi tiếp từ chỗ dừng. Nhưng lượt ĐẦU của
-  /// `financial_activity_log` (chưa có con trỏ) chỉ lấy được 20 doc đầu theo
-  /// docId, và vì cursor chưa nhích nên lượt sau **lấy lại đúng 20 doc đó** —
-  /// phần còn lại không bao giờ về.
+  /// Hạn mức 20 CHỈ an toàn khi truy vấn có con trỏ tăng dần: lượt sau đi tiếp
+  /// từ chỗ dừng nên trước sau gì cũng quét hết. Truy vấn KHÔNG con trỏ thì
+  /// không `orderBy`, Firestore trả đúng 20 doc đầu theo docId và **lượt nào
+  /// cũng trả đúng 20 doc đó** ⇒ phần dư không bao giờ về.
   ///
-  /// Đo trên máy thật (Oppo A94, xoá app cài lại): cloud 106 dòng ⇒ local dừng
-  /// ở **17 dòng** và đứng im. Nhật ký tài chính là bảng nhỏ nên nâng hạn mức
-  /// lượt đầu là đủ; từ lượt sau con trỏ đã chạy nên chỉ tải phần mới.
-  static const Map<String, int> _collectionPollLimitOverrides = {
-    'financial_activity_log': 500,
-  };
-
-  /// Hạn mức doc cho một lượt poll.
+  /// Có **bốn** đường dẫn tới "không con trỏ", trước đây chỉ đường đầu được xử:
   ///
-  /// Hạn mức 20 CHỈ an toàn với bảng có con trỏ tăng dần — lượt sau đi tiếp từ
-  /// chỗ dừng nên trước sau gì cũng quét hết. Bảng KHÔNG có con trỏ thì truy
-  /// vấn không `orderBy`, Firestore trả đúng 20 doc đầu theo docId và **lượt
-  /// nào cũng trả đúng 20 doc đó** ⇒ phần dư không bao giờ về.
+  /// 1. Bảng không nằm trong `_incrementalRealtimeCollections` — soát ra **10
+  ///    bảng** đang kẹt ở 20: `adjustment_entries`, `employee_salary_settings`,
+  ///    `leave_requests`, `partner_repair_history`, `product_variants`,
+  ///    `repair_partners`, `storage_locations`, `supplier_product_prices`,
+  ///    `users`, `work_schedules`. Shop có hơn 20 đối tác sửa chữa / vị trí lưu
+  ///    kho / biến thể là **âm thầm mất phần dư**, không báo lỗi gì.
+  /// 2. **Lượt đầu tiên** khi con trỏ còn 0 (máy mới cài, shop mới). Đây là
+  ///    trường hợp NGUY HIỂM NHẤT: lấy 20 doc bất kỳ rồi **đẩy con trỏ lên
+  ///    theo 20 doc đó** ⇒ mọi doc cũ hơn bị nhảy qua VĨNH VIỄN. Đo trên máy
+  ///    thật: `financial_activity_log` cloud 106 dòng, local dừng ở 17 và đứng
+  ///    im.
+  /// 3. Firestore **thiếu composite index** `(shopId, updatedAt)` ⇒ code tự lùi
+  ///    về không con trỏ (`_incrementalRealtimeDisabled`) nhưng hạn mức vẫn 20
+  ///    ⇒ kẹt. Đang xảy ra thật với `price_catalog_items` (log máy thật:
+  ///    `failed-precondition ... requires an index`).
+  /// 4. Lượt quét trọn đầu phiên của `_launchFullSweepCollections`.
   ///
-  /// Soát toàn bộ thấy **10 bảng** đang dính: `adjustment_entries`,
-  /// `employee_salary_settings`, `leave_requests`, `partner_repair_history`,
-  /// `product_variants`, `repair_partners`, `storage_locations`,
-  /// `supplier_product_prices`, `users`, `work_schedules`. Shop nào có hơn 20
-  /// đối tác sửa chữa / vị trí lưu kho / biến thể là **âm thầm mất phần dư** —
-  /// không báo lỗi gì.
-  ///
-  /// Nên: bảng không có con trỏ thì quét đủ (đây đều là bảng danh mục nhỏ),
-  /// bảng có con trỏ giữ nguyên 20.
-  static int _pollLimitFor(String collection) {
-    final override = _collectionPollLimitOverrides[collection];
-    if (override != null) return override;
-    if (!_incrementalRealtimeCollections.contains(collection)) {
-      return _uncursoredPollLimit;
+  /// Nên hỏi thẳng `_canUseIncrementalRealtime` — đúng cái điều kiện dựng truy
+  /// vấn — thay vì đoán lại bằng danh sách.
+  static int _pollLimitFor(String collection, String? shopId) {
+    if (_canUseIncrementalRealtime(collection: collection, shopId: shopId)) {
+      return _collectionPollLimit;
     }
-    return _collectionPollLimit;
+    return _uncursoredPollLimit;
   }
 
-  /// Hạn mức cho bảng không có con trỏ — phải đủ lớn để quét trọn bảng.
+  /// Hạn mức cho lượt poll không có con trỏ — phải đủ lớn để quét trọn bảng.
   static const int _uncursoredPollLimit = 500;
+
+  /// Bảng cần **quét trọn một lần mỗi lần mở app**, sau đó mới dùng con trỏ.
+  ///
+  /// Vì sao cần: con trỏ tăng dần lọc `where('updatedAt', isGreaterThan: …)`,
+  /// mà Firestore **loại hẳn doc không có trường đang lọc**. Doc ghi bởi các
+  /// bản app đời trước (chưa có `updatedAt`) vì thế **không bao giờ** lọt vào
+  /// truy vấn con trỏ — kẹt vĩnh viễn, và cũng không truy vấn ra được vì
+  /// Firestore không hỗ trợ lọc "thiếu trường X".
+  ///
+  /// Đo trên máy thật: `supplier_import_history` cloud 21 / local 20, đúng 1
+  /// phiếu nhập cũ thiếu `updatedAt`.
+  ///
+  /// Cách chữa duy nhất là **có lúc bỏ con trỏ ra mà quét đủ**. Chọn "một lần
+  /// mỗi lần mở app" thay vì "mọi lượt poll": cùng kết quả (doc cũ chắc chắn về
+  /// máy) nhưng rẻ hơn ~60 lần, vì nhịp poll là 120 giây còn app không mở lại
+  /// liên tục như vậy. Sau lượt quét đó con trỏ chạy tiếp như thường.
+  static const Set<String> _launchFullSweepCollections = {
+    'supplier_import_history',
+  };
+
+  /// Bảng đã quét trọn xong trong lần mở app này. Cố ý **chỉ giữ trong bộ
+  /// nhớ** — mở app lần sau là quét lại, đó chính là điểm của cơ chế này.
+  static final Set<String> _launchFullSweepDone = <String>{};
+
+  static bool _needsLaunchFullSweep(String collection) =>
+      _launchFullSweepCollections.contains(collection) &&
+      !_launchFullSweepDone.contains(collection);
 
   static const Set<String> _incrementalRealtimeCollections = {
     'attendance',
@@ -382,11 +405,12 @@ class SyncService {
   static void _logCollectionFetch({
     required String collection,
     required String reason,
+    required int limit,
   }) {
     final next = (_collectionFetchCounts[collection] ?? 0) + 1;
     _collectionFetchCounts[collection] = next;
     debugPrint(
-      '[SYNC][FETCH] collection=$collection count=$next reason=$reason limit=$_collectionPollLimit',
+      '[SYNC][FETCH] collection=$collection count=$next reason=$reason limit=$limit',
     );
   }
 
@@ -710,6 +734,9 @@ class SyncService {
     if (shopId == null || shopId.isEmpty) return false;
     if (!_incrementalRealtimeCollections.contains(collection)) return false;
     if (_incrementalRealtimeDisabled.contains(collection)) return false;
+    // Lượt quét trọn đầu tiên của phiên phải BỎ con trỏ, nếu không thì đúng
+    // những doc thiếu `updatedAt` — thứ cần vớt — lại bị Firestore loại ra.
+    if (_needsLaunchFullSweep(collection)) return false;
 
     return _realtimeCursorMs(collection, shopId) > 0;
   }
@@ -2471,19 +2498,29 @@ class SyncService {
             if (isPolling) return;
             isPolling = true;
             try {
+              // Poller riêng của product_categories (subcollection
+              // `shops/{shopId}/product_categories`) nên KHÔNG đi qua
+              // `_pollLimitFor` — phải tự áp cùng nguyên tắc: chưa có con trỏ
+              // thì lượt này là quét trọn, hạn mức 20 sẽ lấy 20 doc bất kỳ rồi
+              // ĐẨY CON TRỎ qua chúng ⇒ nhóm hàng cũ mất vĩnh viễn.
+              final cursorMs = _realtimeCursorMs(
+                'product_categories',
+                currentShopId,
+              );
+              final pollLimit = cursorMs > 0
+                  ? _collectionPollLimit
+                  : _uncursoredPollLimit;
+
               _logCollectionFetch(
                 collection: 'product_categories',
                 reason: reason,
+                limit: pollLimit,
               );
               Query<Map<String, dynamic>> query = _db
                   .collection('shops')
                   .doc(currentShopId)
                   .collection('product_categories');
 
-              final cursorMs = _realtimeCursorMs(
-                'product_categories',
-                currentShopId,
-              );
               if (cursorMs > 0) {
                 query = query.where(
                   'updatedAt',
@@ -2494,7 +2531,7 @@ class SyncService {
               final snapshot = await _getQueryWithTimeout(
                 query: query,
                 context: 'product_categories_poll',
-                limit: _collectionPollLimit,
+                limit: pollLimit,
               );
               if (snapshot.docs.isEmpty) return;
 
@@ -2823,7 +2860,11 @@ class SyncService {
           return;
         }
 
-        _logCollectionFetch(collection: collection, reason: reason);
+        _logCollectionFetch(
+          collection: collection,
+          reason: reason,
+          limit: _pollLimitFor(collection, shopId),
+        );
 
         Query<Map<String, dynamic>> query = _db.collection(collection);
         if (shopId != null) {
@@ -2841,17 +2882,27 @@ class SyncService {
           }
         }
 
+        final pollLimit = _pollLimitFor(collection, shopId);
         final snapshot = await _getQueryWithTimeout(
           query: query,
           context: 'poll_$collection',
-          limit: _pollLimitFor(collection),
+          limit: pollLimit,
         );
+
+        // Đánh dấu ĐÃ quét trọn — chỉ khi lượt này thật sự quét hết. Trả về
+        // đúng bằng hạn mức nghĩa là có thể còn doc chưa lấy, để nguyên cho
+        // lượt sau quét lại.
+        if (_needsLaunchFullSweep(collection) &&
+            snapshot.docs.length < pollLimit) {
+          _launchFullSweepDone.add(collection);
+        }
+
         if (snapshot.docs.isEmpty) {
           return;
         }
 
         debugPrint(
-          "📥 Polled $collection: ${snapshot.docs.length} docs (limit=${_pollLimitFor(collection)})",
+          "📥 Polled $collection: ${snapshot.docs.length} docs (limit=$pollLimit)",
         );
 
         var maxCursorMs = 0;
@@ -3051,6 +3102,8 @@ class SyncService {
     _lastDownloadTime = null;
     _realtimeCursorCache.clear();
     _incrementalRealtimeDisabled.clear();
+    // Đổi shop / đăng xuất ⇒ dữ liệu shop mới chưa từng được quét trọn.
+    _launchFullSweepDone.clear();
     // Đổi shop / dọn dữ liệu ⇒ kết quả kiểm tra cũ vô nghĩa.
     SyncHealthCheck.invalidateCache();
     debugPrint('🔄 Reset ${keys.length} sync timestamps/cursors');
