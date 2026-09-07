@@ -4,6 +4,77 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-07c] - test(nghiệm thu) TRẢ GỘP CÔNG NỢ + NHÁNH KHÔNG CÓ QUYỀN GIÁ VỐN — CHẠY THẬT 2 MÁY
+
+Trả nốt hai việc còn nợ ở `[2026-09-06n]` và `[2026-09-06i]`. Chủ shop đã đăng
+nhập **1 máy tài khoản chủ + 1 máy tài khoản nhân viên** trên cùng shop M.
+
+### 1. Trả gộp công nợ — GHI THẬT, đối chiếu từng đồng
+
+Đối tượng: **NCC TÉT A**, 7 khoản còn nợ, tổng **14.980.000đ**.
+Trả **một phần: 11.500.000đ**, tiền mặt.
+
+Bảng xác nhận chia FIFO đúng như tính tay:
+
+| Khoản | Chia | Trạng thái |
+|---|---|---|
+| Nợ nhập IPHONE 15 128GB ĐỎ 99 | 11.210.000 | hết nợ |
+| Nhập Linh kiện LK TÉT 2B x1 | 70.000 | hết nợ |
+| Nhập thêm Linh kiện LK TÉT 2B x2 | 120.000 | hết nợ |
+| Vốn linh kiện HUY (IPHONE 8) | **100.000** | **còn lại** |
+
+**Đối chiếu SQLite sau khi ghi:**
+
+```
+id=184  12.000.000  đã trả 12.000.000  (+11.210.000)  còn 0
+id=177      70.000  đã trả     70.000  (+70.000)      còn 0
+id=181     120.000  đã trả    120.000  (+120.000)     còn 0
+id=183     180.000  đã trả    100.000  (+100.000)     còn 80.000   ← trả một phần
+id=178     200.000  đã trả          0  (+0)           còn 200.000  ← chưa tới lượt
+id=185   1.000.000  đã trả          0  (+0)           còn 1.000.000
+id=186   3.000.000  đã trả    800.000  (+0)           còn 2.200.000
+TỔNG CÒN NỢ = 3.480.000
+```
+
+- Sinh **đúng 4 phiếu** `debt_payments`, tổng **đúng 11.500.000**, ghi chú
+  *"Trả gộp công nợ"*, hình thức TIỀN MẶT ✅
+- `paidAmount` từng khoản cộng đúng phần được chia ✅
+- Khoản trả một phần còn đúng **80.000** ✅
+- Khoản **chưa tới lượt KHÔNG bị đụng** ✅
+- Giao diện tự cập nhật: *7 khoản · 14.98 Tr* → **4 khoản · 3.48 Tr**
+  (14.980.000 − 11.500.000 = 3.480.000) ✅
+
+### 2. Nhánh KHÔNG có quyền xem giá vốn (CLAUDE.md §9)
+
+Tài khoản nhân viên (không có `allowViewRevenue`, không có `allowViewCostPrice`):
+
+- **Tab Tài chính**: khoá hẳn — *"Chức năng bị khóa · Bạn không có quyền truy
+  cập tính năng này"* ✅
+- **Danh sách đơn sửa**: thẻ đơn chỉ còn `💰 500.000đ`, **mất hẳn chip
+  `Vốn 333.333đ` / `Lãi 166.667đ`** vốn hiện trên máy chủ shop ✅
+- **Chi tiết đơn sửa**: khối TÀI CHÍNH chỉ còn ô **GIÁ THU**, mất **LỢI NHUẬN**
+  và **GIÁ VỐN** ✅
+- **Hộp thoại TÀI CHÍNH ĐƠN SỬA** (code mới ở `[2026-09-06k]`): chỉ còn ô
+  *"Giá thu khách (VNĐ)"* — **không có ô "Giá vốn linh kiện"**, không có
+  checkbox *"Đơn này KHÔNG tốn giá vốn"* ✅. Thẻ giá tham khảo hiện đúng trạng
+  thái rỗng *"Chưa có giá tham khảo cho SAMSUNG · THAY MÀN"*, layout không vỡ ✅
+
+`logcat`: **0 `RenderFlex overflowed`**.
+
+### ⚠️ Bắt lại crash CŨ `_dependents.isEmpty` — repro #3 VẪN CÒN
+
+Trong lúc thao tác đã dính lại crash màn đỏ
+`'_dependents.isEmpty': is not true` (`framework.dart:6268`), đúng **repro #3**
+đã ghi nhận từ trước: ở **Danh sách đơn sửa**, mở hộp thoại *"Thêm thông tin
+khách hàng"* → bấm **Hủy** → bấm vào một thẻ đơn ⇒ chết.
+
+**KHÔNG phải do đợt sửa này** (không đụng `order_list_view._addCustomerToRepair`)
+và **chưa vá** — lỗi này đã thử nhiều cách ("đừng pop sớm", unfocus + delay) mà
+không dứt điểm; cần một phiên `flutter run` attach để bắt stack thật, đừng vá mù
+thêm. Ghi lại đây vì đây là lần đầu có **các bước tái hiện chắc chắn**.
+
+---
+
 ## [2026-09-07b] - fix(đồng bộ) TRUY GỐC "42 BẢN GHI CHƯA KHỚP": `work_schedules` LỆCH VĨNH VIỄN
 
 Khối *"N BẢN GHI CHƯA KHỚP — Ở ĐÂU"* thêm ở `[2026-09-07a]` lập tức chỉ ra thủ

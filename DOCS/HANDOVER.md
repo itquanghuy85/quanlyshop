@@ -9,6 +9,21 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-06  
 
+**✅ ĐÃ TRẢ NỐT 2 VIỆC CÒN NỢ — CHẠY THẬT 2 MÁY (`[2026-09-07c]`).**
+Chủ shop đăng nhập 1 máy tài khoản CHỦ + 1 máy tài khoản NHÂN VIÊN cùng shop M.
+· **Trả gộp công nợ — GHI THẬT:** NCC TÉT A, 7 khoản / 14.980.000đ, trả một
+phần 11.500.000đ. Sinh **đúng 4 phiếu** `debt_payments` tổng đúng 11.500.000;
+`paidAmount` từng khoản cộng đúng; khoản trả một phần còn đúng **80.000**;
+khoản chưa tới lượt KHÔNG bị đụng; UI tự về *4 khoản · 3.48 Tr*. Đã đối chiếu
+thẳng SQLite trên máy.
+· **Nhánh không có quyền giá vốn:** tab Tài chính khoá hẳn; thẻ đơn trong DS sửa
+mất chip `Vốn`/`Lãi`; chi tiết đơn chỉ còn ô GIÁ THU; **hộp thoại TÀI CHÍNH ĐƠN
+SỬA chỉ còn ô "Giá thu khách"**, mất ô giá vốn + checkbox. logcat 0 overflow.
+· **⚠️ BẮT LẠI CRASH CŨ `_dependents.isEmpty` — CÓ BƯỚC TÁI HIỆN CHẮC CHẮN:**
+Danh sách đơn sửa → mở hộp thoại *"Thêm thông tin khách hàng"* → bấm **Hủy** →
+bấm vào một thẻ đơn ⇒ **màn đỏ**. Đúng repro #3 đã biết, KHÔNG phải do đợt này,
+**chưa vá** — cần phiên `flutter run` attach bắt stack thật, đừng vá mù thêm.
+
 **🎯 TRUY GỐC "42 BẢN GHI CHƯA KHỚP" — `work_schedules` LỆCH VĨNH VIỄN (`[2026-09-07b]`).**
 Khối mới thêm ở `[2026-09-07a]` chỉ ra thủ phạm ngay lần đầu mở: *Lịch làm việc
 ↑8 ↓9* — chiếm 17/42 và **lệch CẢ HAI CHIỀU**, dấu hiệu "không khớp được khoá".
