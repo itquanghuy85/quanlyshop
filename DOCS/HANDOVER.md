@@ -22,8 +22,8 @@ phần dư**. Chưa ai gặp vì shop hiện còn ít — bom hẹn giờ.
 (`_uncursoredPollLimit = 500`); có con trỏ giữ 20. Thêm bảng mới cũng tự đúng.
 · **⏸️ `supplier_import_history ↓1` CỐ Ý CHƯA SỬA:** bảng này CÓ con trỏ; 1 dòng
 lệch do phiếu nhập cũ **thiếu `updatedAt`** nên Firestore loại khỏi truy vấn con
-trỏ. Hai cách sửa đều tốn lượt đọc thật (quét lại 148 phiếu mỗi lượt, hoặc bỏ
-con trỏ cho cả 35 bảng lượt đầu mỗi lần mở app) ⇒ là quyết định về **hoá đơn
+trỏ. Hai cách sửa đều tốn lượt đọc thật (quét lại toàn bộ phiếu nhập mỗi lượt,
+hoặc bỏ con trỏ cho cả 35 bảng ở lượt đầu mỗi lần mở app) ⇒ là quyết định về **hoá đơn
 Firestore**, để chủ shop chọn. 1 dòng lịch sử nhập kho không sai đồng nào.
 · **✅ Nghiệm thu Oppo A94:** `financial_activity_log` 106/106, `repair_partners`
 2/2, `storage_locations` 2/2 — không bảng nào còn chạm trần 20.

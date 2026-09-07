@@ -43,7 +43,7 @@ bao giờ nhìn thấy.
 
 **Cố ý chưa sửa.** Hai cách đều có giá:
 1. Bỏ bảng này khỏi nhóm con trỏ ⇒ mỗi lượt poll quét lại toàn bộ lịch sử nhập
-   kho (shop thật đang có **148 phiếu**) — tốn lượt đọc Firestore thật.
+   kho — tốn lượt đọc Firestore thật, tăng theo số phiếu shop đã nhập.
 2. Cho lượt poll đầu sau mỗi lần mở app bỏ qua con trỏ ⇒ nhân lượt đọc cho
    **cả 35 bảng** mỗi lần mở app.
 
