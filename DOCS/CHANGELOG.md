@@ -64,9 +64,26 @@ Tab Tiền                     : Tiền ra 11.5 Tr · 4 giao dịch
 
 `flutter analyze lib/` **0 error**.
 
-⚠️ Nút "Trả gộp" mới ở tab Nợ **chưa bấm thử trên máy** (hết hạn mức token
-tuần) — nhưng nó gọi đúng `BulkDebtPaymentSheet` vừa chạy thật thành công ở màn
-Công nợ, chỉ khác chỗ mở.
+**✅ Nút "Trả gộp" ở tab Nợ ĐÃ CHẠY THẬT trên máy** (shop M, CPH2239):
+
+- Bảng chi tiết nhóm hiện đúng nút **"Trả gộp cả 4 khoản"** thay cho *"Đi trả nợ"*.
+- Mở ra: *NCC TÉT A · 4 khoản · còn nợ 3.480.000đ*; chia FIFO đúng — khoản
+  **"Vốn linh kiện HUY" 80.000** (phần trả dở của lần trước, cũ nhất) **lên đầu**.
+- Sửa thành **300.000** → nút đổi đúng thành *"Trả 300.000"*, chia lại:
+  80.000 *(hết nợ)* + 220.000 *(còn lại)*.
+- Ghi thật xong, **bảng tự đóng và tab tự tải lại**: `4 khoản · 3.48 Tr` →
+  **`3 khoản · 3.18 Tr`**, tổng Phải trả `4.73 Tr` → **`4.43 Tr`**.
+
+Đối chiếu SQLite:
+
+```
+debt_payments mới : 2 phiếu · tổng 300.000
+  debtId=183  80.000 TIỀN MẶT   → debt 183: 180.000/180.000 · còn 0      (tất toán)
+  debtId=186 220.000 TIỀN MẶT   → debt 186: 1.020.000/3.000.000 · còn 1.980.000
+expenses trùng    : 0
+```
+
+Đúng từng đồng, khoản tất toán rụng khỏi nhóm, không sinh chi phí trùng. ✅
 
 ---
 

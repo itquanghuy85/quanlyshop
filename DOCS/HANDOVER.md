@@ -26,8 +26,11 @@ hết về vô ích. Hậu quả: **266 dòng nuốt trọn 5 dòng tài chính 
 toán OUT = 11.500.000 · `expenses` **0 dòng** · tab Tiền hiện *Tiền ra 11.5 Tr,
 4 giao dịch*. `loadSnapshot` cộng từ `debt_payments` chứ không cộng từ activity
 log ⇒ không có đường nào nhân đôi.
-· ⚠️ Nút "Trả gộp" ở tab Nợ **chưa bấm thử trên máy** (hết token tuần) — nhưng
-gọi đúng bảng vừa chạy thật thành công ở màn Công nợ.
+· **✅ Nút "Trả gộp" ở tab Nợ ĐÃ CHẠY THẬT** (shop M): NCC TÉT A 4 khoản/3.48 Tr,
+trả 300.000 → chia đúng 80.000 (hết nợ, là phần trả dở lần trước — FIFO đưa lên
+đầu) + 220.000 (còn lại); bảng tự đóng, tab tự tải lại về **3 khoản/3.18 Tr**,
+tổng Phải trả 4.73 → 4.43 Tr. SQLite: 2 phiếu tổng 300.000, debt 183 tất toán
+180.000/180.000, debt 186 còn 1.980.000, **0 chi phí trùng**.
 
 **✅ ĐÃ TRẢ NỐT 2 VIỆC CÒN NỢ — CHẠY THẬT 2 MÁY (`[2026-09-07c]`).**
 Chủ shop đăng nhập 1 máy tài khoản CHỦ + 1 máy tài khoản NHÂN VIÊN cùng shop M.
