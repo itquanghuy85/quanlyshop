@@ -276,7 +276,16 @@ class SyncService {
   // trễ (đơn mới/đổi trạng thái ở máy khác không thấy tới khi thoát app vào
   // lại). Cố tình KHÔNG áp dụng cho tất cả ~20 collection đang polling để
   // tránh đội read cost trở lại đúng thứ đợt tối ưu trước đã giảm.
-  static const Duration _periodicRepairsRefreshInterval = Duration(seconds: 45);
+  /// Lưới an toàn: poll lại `repairs` + `sales` theo nhịp chậm.
+  ///
+  /// Trước là **45 giây, chỉ cho `repairs`**. Nhịp đó vừa đắt vừa vẫn chậm:
+  /// Firestore tính tối thiểu 1 lượt đọc cho MỖI truy vấn kể cả khi không có
+  /// gì đổi ⇒ ~1.900 lượt đọc/ngày/máy để đổi lấy độ trễ tối đa 45 giây.
+  /// Nay việc "thấy đơn ngay" do listener realtime lo (xem
+  /// [_liveWindowCollections]), còn nhịp này chỉ còn là lưới an toàn cho
+  /// trường hợp listener chết lặng (thiếu index, mạng chập chờn, doc nằm ngoài
+  /// cửa sổ 3 ngày). 10 phút × 2 bảng ≈ 290 lượt đọc/ngày.
+  static const Duration _safetyNetRefreshInterval = Duration(minutes: 10);
   static const Duration _cloudReadTimeout = Duration(seconds: 20);
   static const Duration _cloudReadLogCooldown = Duration(seconds: 15);
   static DateTime? _lastCloudReadTimeoutLogAt;
@@ -340,6 +349,14 @@ class SyncService {
   /// liên tục như vậy. Sau lượt quét đó con trỏ chạy tiếp như thường.
   static const Set<String> _launchFullSweepCollections = {
     'supplier_import_history',
+    // `financial_activity_log`: bảng TỐN READ NHẤT toàn app. Đo trên máy thật
+    // 2026-09-09 (Firestore Audit, phiên 30 phút): **2.5K / 3.4K lượt đọc**
+    // — 73% hoá đơn Firestore — vì nó bị để ngoài nhóm con trỏ nên **mỗi lượt
+    // poll quét lại trọn 106 dòng**. Nay đi đúng cơ chế của
+    // `supplier_import_history`: quét trọn MỘT LẦN mỗi lần mở app (vớt doc cũ
+    // thiếu `updatedAt`), sau đó chạy con trỏ ⇒ ~106 lượt đọc/lần mở app thay
+    // vì ~106 mỗi 2 phút.
+    'financial_activity_log',
   };
 
   /// Bảng đã quét trọn xong trong lần mở app này. Cố ý **chỉ giữ trong bộ
@@ -352,14 +369,16 @@ class SyncService {
 
   static const Set<String> _incrementalRealtimeCollections = {
     'attendance',
-    // CỐ Ý KHÔNG có 'financial_activity_log' ở đây.
+    // 'financial_activity_log' TRƯỚC ĐÂY cố ý nằm ngoài đây: con trỏ lọc
+    // `where('updatedAt', isGreaterThan: …)` mà Firestore **loại hẳn doc thiếu
+    // trường đó**, nên doc ghi bởi bản app cũ bị bỏ qua vĩnh viễn (thử trên máy
+    // thật: kẹt ở 20 dòng). Cái giá của đường an toàn đó là **quét trọn 106
+    // dòng mỗi lượt poll** — đo được 2.5K/3.4K lượt đọc một phiên 30 phút.
     //
-    // Con trỏ tăng dần lọc bằng `where('updatedAt', isGreaterThan: …)`, mà
-    // Firestore **loại hẳn doc không có trường đó**. Nhật ký tài chính ghi bởi
-    // các bản app cũ không có `updatedAt` ⇒ bật tăng dần là những doc đó bị bỏ
-    // qua VĨNH VIỄN. Đã thử trên máy thật: bật lên là kẹt ở 20 dòng, tải mãi
-    // không thêm. Bảng này nhỏ nên cứ quét đủ theo `shopId` mỗi lượt, đổi lại
-    // là không sót dòng nào.
+    // Nay không phải chọn giữa "sót dòng" và "đắt" nữa: bảng này đã vào
+    // `_launchFullSweepCollections`, tức quét trọn một lần mỗi lần mở app (vớt
+    // hết doc thiếu `updatedAt`) rồi mới chạy con trỏ.
+    'financial_activity_log',
     'audit_logs',
     'cash_closings',
     'customers',
@@ -390,6 +409,34 @@ class SyncService {
   };
   static final Map<String, int> _realtimeCursorCache = <String, int>{};
   static final Set<String> _incrementalRealtimeDisabled = <String>{};
+
+  /// Bảng PHẢI thấy ngay thay đổi từ máy khác — đơn sửa và đơn bán.
+  ///
+  /// Vì sao cần: chat nội bộ dùng `snapshots()` thật nên tin nhắn "ĐÃ BÁN /
+  /// SỬA XONG" về tức thì, còn `repairs`/`sales` chỉ tải bằng get() poll ⇒
+  /// nhân viên máy khác tạo đơn xong, người ở nhà **thấy thông báo mà không
+  /// thấy đơn**. Riêng `sales` trước đây KHÔNG có nhịp nền nào: chỉ tải lúc mở
+  /// app / thoát ra vào lại / bấm đồng bộ ⇒ cứ để app mở là đơn bán không bao
+  /// giờ về.
+  ///
+  /// Vì sao listener lại RẺ HƠN poll: Firestore tính tối thiểu 1 lượt đọc cho
+  /// mỗi truy vấn, kể cả truy vấn rỗng. Nhịp 45 giây = ~1.900 lượt đọc/ngày/máy
+  /// cho dù cả ngày không ai đổi gì. Listener chỉ tính tiền theo doc **thật sự
+  /// thay đổi**, cộng một lần đọc cửa sổ lúc mở app.
+  static const Set<String> _liveWindowCollections = {'repairs', 'sales'};
+
+  /// Cửa sổ của listener: chỉ nghe doc có `updatedAt` trong 3 ngày gần nhất.
+  ///
+  /// Không nghe cả bảng vì mỗi lần nối lại listener là đọc lại toàn bộ tập kết
+  /// quả — shop có hàng nghìn đơn thì đắt. 3 ngày là đủ: doc cũ bị sửa cũng
+  /// được bump `updatedAt` nên **tự bước vào cửa sổ**; phần còn lại do lượt
+  /// poll (mở app / vào lại app / kéo làm mới) và lưới an toàn định kỳ lo.
+  ///
+  /// Cần index `(shopId, updatedAt)` — đã có sẵn cho cả `repairs` lẫn `sales`
+  /// trong `firestore.indexes.json`.
+  static const Duration _liveWindowSpan = Duration(days: 3);
+
+  static final Set<String> _liveWindowActive = <String>{};
 
   /// Check if real-time sync is initialized and active
   static bool get isRealTimeSyncActive =>
@@ -712,19 +759,26 @@ class SyncService {
     await prefs.setInt(key, normalizedMs);
   }
 
+  /// Con trỏ CHỈ được đẩy bằng `updatedAt` — đúng cái trường mà truy vấn lọc.
+  ///
+  /// 🔴 Trước đây lấy `max(updatedAt, createdAt, syncedAt)`. Đó là trộn HAI
+  /// ĐỒNG HỒ KHÁC NHAU: `updatedAt` do **máy chủ Firestore** ghi
+  /// (`FieldValue.serverTimestamp()`), còn `createdAt` của đơn sửa là **giờ
+  /// điện thoại người tạo đơn** (`RepairModel.toMap` ghi int ms cục bộ).
+  ///
+  /// Máy nào chạy nhanh hơn máy chủ Δ phút thì đơn nó tạo có
+  /// `createdAt = now + Δ`. Con trỏ nhảy lên mốc tương lai đó, rồi lượt sau lọc
+  /// `updatedAt > con trỏ` ⇒ **mọi đơn của máy khác ghi trong Δ phút kế tiếp bị
+  /// bỏ qua VĨNH VIỄN**, không lỗi, không log — đúng triệu chứng "có thông báo
+  /// mà không có đơn". Đây là lỗi ngầm nguy hiểm nhất vì nó tự khỏi rồi tự tái
+  /// phát theo độ lệch đồng hồ của từng máy trong shop.
+  ///
+  /// Doc thiếu `updatedAt` trả về 0 ⇒ không đẩy con trỏ. Đúng ý: doc đó vốn
+  /// không lọt vào truy vấn con trỏ được (Firestore loại doc thiếu trường lọc),
+  /// nên nó phải được vớt bằng lượt quét trọn, không phải bằng cách đẩy con trỏ
+  /// vượt qua chính nó.
   static int _extractRealtimeCursorMs(Map<String, dynamic> data) {
-    var maxMs = _getTimestamp(data['updatedAt']);
-    final createdAtMs = _getTimestamp(data['createdAt']);
-    final syncedAtMs = _getTimestamp(data['syncedAt']);
-
-    if (createdAtMs > maxMs) {
-      maxMs = createdAtMs;
-    }
-    if (syncedAtMs > maxMs) {
-      maxMs = syncedAtMs;
-    }
-
-    return _normalizeRealtimeCursorMs(maxMs);
+    return _normalizeRealtimeCursorMs(_getTimestamp(data['updatedAt']));
   }
 
   static bool _canUseIncrementalRealtime({
@@ -1654,19 +1708,19 @@ class SyncService {
         "deferred collections will load in 3s...",
       );
 
-      // Nhịp nền tự động fetch lại riêng "repairs" — bù cho việc collection
-      // này dùng controlled get() polling thay vì snapshots() realtime nên
-      // không thấy ngay đơn mới/đổi trạng thái từ thiết bị khác cho tới khi
-      // thoát app vào lại. Gọi thẳng refresher của riêng "repairs" (không
-      // dùng refreshCloudCollections() chung) để không kéo theo ~20 collection
-      // khác cũng đang polling, tránh đội read cost trở lại. Mỗi tick chỉ tải
-      // incremental (updatedAt > cursor cuối) nên rẻ; tự dừng khi đổi
-      // shop/đăng xuất qua cancelAllSubscriptions().
+      // Lưới an toàn cho ĐƠN SỬA + ĐƠN BÁN. Việc thấy đơn ngay đã do listener
+      // realtime lo; nhịp này chỉ để vớt trường hợp listener chết lặng và để
+      // kéo về doc nằm ngoài cửa sổ 3 ngày. Gọi thẳng refresher của từng bảng
+      // (không dùng refreshCloudCollections() chung) để không kéo theo ~20
+      // collection khác cũng đang polling. Tự dừng khi đổi shop / đăng xuất
+      // qua cancelAllSubscriptions().
       _pollingTimers.add(
-        Timer.periodic(_periodicRepairsRefreshInterval, (_) {
+        Timer.periodic(_safetyNetRefreshInterval, (_) {
           if (_currentShopId != shopId) return;
-          final refresher = _collectionRefreshers['repairs'];
-          if (refresher != null) unawaited(refresher());
+          for (final collection in _liveWindowCollections) {
+            final refresher = _collectionRefreshers[collection];
+            if (refresher != null) unawaited(refresher());
+          }
         }),
       );
 
@@ -2980,6 +3034,145 @@ class SyncService {
     _collectionRefreshers[collection] = () =>
         pollCollection(reason: 'manual_refresh');
     unawaited(pollCollection());
+
+    if (shopId != null &&
+        shopId.isNotEmpty &&
+        _liveWindowCollections.contains(collection)) {
+      _attachLiveWindowListener(
+        collection: collection,
+        shopId: shopId,
+        onChanged: onChanged,
+        onBatchDone: onBatchDone,
+      );
+    }
+  }
+
+  /// Listener realtime giới hạn theo cửa sổ thời gian — xem
+  /// [_liveWindowCollections] để biết vì sao cần và vì sao nó rẻ hơn poll.
+  ///
+  /// Poll vẫn giữ nguyên bên cạnh: listener lo phần MỚI (tức thì), poll lo phần
+  /// CŨ (doc ngoài cửa sổ, doc thiếu `updatedAt`, máy vừa offline dài ngày).
+  static void _attachLiveWindowListener({
+    required String collection,
+    required String shopId,
+    required Future<void> Function(Map<String, dynamic> data, String docId)
+    onChanged,
+    required VoidCallback onBatchDone,
+  }) {
+    // Chặn gắn trùng: init lại mà chưa cancelAllSubscriptions() thì hai
+    // listener cùng ghi một doc, vừa tốn read vừa đua nhau upsert.
+    if (_liveWindowActive.contains(collection)) {
+      debugPrint('⏭️ Live listener $collection đã chạy — bỏ qua gắn trùng');
+      return;
+    }
+
+    final windowStartMs = DateTime.now()
+        .subtract(_liveWindowSpan)
+        .millisecondsSinceEpoch;
+
+    final query = _db
+        .collection(collection)
+        .where('shopId', isEqualTo: shopId)
+        .where(
+          'updatedAt',
+          isGreaterThan: Timestamp.fromMillisecondsSinceEpoch(windowStartMs),
+        );
+
+    Future<void> handleSnapshot(
+      QuerySnapshot<Map<String, dynamic>> snapshot,
+    ) async {
+      final changes = snapshot.docChanges;
+      if (changes.isEmpty) return;
+
+      var maxCursorMs = 0;
+      var applied = 0;
+
+      for (final change in changes) {
+        // `removed` ở đây nghĩa là doc rời khỏi cửa sổ hoặc bị xoá cứng — xoá
+        // mềm thì `deleted: true` kèm `updatedAt` mới nên vẫn tới dạng
+        // added/modified và đi qua `onChanged` như thường.
+        if (change.type == DocumentChangeType.removed) continue;
+
+        // Bỏ qua ECHO GHI CỦA CHÍNH MÁY NÀY. Doc đang chờ máy chủ xác nhận thì
+        // `updatedAt` (serverTimestamp) **chưa có giá trị** — đưa nó qua
+        // `_shouldAcceptCloudData` là so sánh với mốc 0, dễ lấy bản cũ đè lên
+        // thay đổi vừa làm. Dữ liệu đó vốn đã nằm trong SQLite rồi; khi máy chủ
+        // xác nhận sẽ có snapshot mới với timestamp thật.
+        if (change.doc.metadata.hasPendingWrites) continue;
+
+        var data = change.doc.data();
+        if (data == null) continue;
+        data = EncryptionService.decryptMap(data);
+
+        final cursorMs = _extractRealtimeCursorMs(data);
+        if (cursorMs > maxCursorMs) maxCursorMs = cursorMs;
+
+        await onChanged(data, change.doc.id);
+        applied++;
+      }
+
+      if (applied == 0) return;
+
+      // ⚠️ CHỈ đẩy con trỏ poll khi con trỏ đã bắt kịp mép cửa sổ. Máy offline
+      // một tuần rồi mở lại có con trỏ cũ hơn `windowStartMs`; nếu để listener
+      // kéo con trỏ lên hiện tại thì khoảng trống ở giữa (con trỏ cũ →
+      // windowStartMs) **không bao giờ được poll quét** ⇒ mất đơn vĩnh viễn.
+      // Để nguyên thì poll tự bò lên tới nơi rồi listener mới tiếp quản.
+      if (maxCursorMs > 0 &&
+          _realtimeCursorMs(collection, shopId) >= windowStartMs) {
+        await _saveRealtimeCursorMs(
+          collection: collection,
+          shopId: shopId,
+          cursorMs: maxCursorMs,
+        );
+      }
+
+      unawaited(
+        FirebaseUsageStatsService.logRealtimeRead(
+          collection: collection,
+          shopId: shopId,
+          readCount: applied,
+        ),
+      );
+
+      onBatchDone();
+    }
+
+    // Nối tiếp tuần tự: snapshot sau chờ snapshot trước ghi xong, tránh hai
+    // lượt cùng upsert một doc.
+    Future<void> chain = Future.value();
+
+    final sub = query.snapshots().listen(
+      (snapshot) {
+        chain = chain
+            .then((_) => handleSnapshot(snapshot))
+            .catchError((Object e) {
+              debugPrint('❌ Live listener $collection: lỗi xử lý snapshot: $e');
+            });
+      },
+      onError: (Object error) {
+        final errorText = error.toString();
+        _liveWindowActive.remove(collection);
+
+        if (errorText.contains('failed-precondition') &&
+            errorText.contains('index')) {
+          debugPrint(
+            '⚠️ Live listener $collection: thiếu index (shopId, updatedAt) — '
+            'vẫn còn poll + lưới an toàn định kỳ, nhưng đơn sẽ KHÔNG về tức thì',
+          );
+          return;
+        }
+
+        debugPrint('❌ Live listener $collection lỗi: $errorText');
+      },
+    );
+
+    _subscriptions.add(sub);
+    _liveWindowActive.add(collection);
+    debugPrint(
+      '⚡ Live listener $collection: nghe doc updatedAt > '
+      '${DateTime.fromMillisecondsSinceEpoch(windowStartMs)}',
+    );
   }
 
   /// Helper để xóa record local theo firestoreId khi cloud record đã bị soft-delete
@@ -3073,6 +3266,7 @@ class SyncService {
     }
     _subscriptions.clear();
     _pollingTimers.clear();
+    _liveWindowActive.clear();
     _collectionRefreshers.clear();
     _collectionFetchCounts.clear();
     _subscriptionStatus.clear();
