@@ -18,7 +18,8 @@ Lịch sử tất cả thay đổi từng phiên bản.
   thật** trên `_ScenarioDb implements DBHelper` (DBHelper cần Firebase nên
   không dùng trực tiếp) + `DailyFinancialAnalysisService.analyze` cùng dữ liệu
   → 20 test + đối chiếu chéo 2 engine + bất biến `paidAmount = Σ debt_payments`.
-  1 test skip (FINDING-1, chờ chủ shop chốt).
+  Kịch bản dùng NH tất toán ĐỦ khoản vay (thực tế NH không giữ phí) nên vốn
+  theo tỉ lệ tiền nhận của V2 = vốn đủ.
 
 ### Sửa (lỗi thật do kịch bản phát hiện)
 - **Chốt quỹ / Báo cáo ngày / Home đếm dư tiền ra khi phiếu nhập kho có NHIỀU
@@ -32,12 +33,6 @@ Lịch sử tất cả thay đổi từng phiên bản.
   (`finance_v2_data_service.dart`): đơn bán 15/08, NH trả tiền 10/09 → dòng
   7.800.000 mang ngày 15/08 (ngoài kỳ) dù `totalIn` đúng → bucket ngày/tháng
   lệch. Nay dùng `settlementReceivedAt` khi `soldAt` ngoài kỳ.
-
-### Nghi vấn chưa sửa (FINDING-1 — cần chủ shop quyết)
-- V2 ghi vốn đơn góp **đã tất toán** theo tỉ lệ tiền nhận/giá bán → phí NH giữ
-  lại làm vốn bị "khấu" theo (S6: vốn 17tr hiện 16.575.000; S7: 6.240.000 thay vì
-  6.400.000) → lãi gộp cao hơn thực đúng bằng phí × tỉ lệ vốn. Báo cáo ngày ghi
-  đủ vốn. Test tương ứng đang `skip`.
 
 ### Files
 `test/FINANCE_FULL_SCENARIO.md`, `test/finance_full_scenario_test.dart`,

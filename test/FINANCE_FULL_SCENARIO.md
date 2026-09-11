@@ -31,8 +31,8 @@ Ký hiệu: TM = tiền mặt, CK = chuyển khoản, CN = công nợ.
 | S3 | Bán **Samsung** 5.000.000 (vốn 4.000.000) — **KẾT HỢP** 3tr TM + 2tr CK | sale KẾT HỢP cashAmount/transferAmount | +3.000.000 | +2.000.000 | |
 | S4 | Bán **Xiaomi** 3.000.000 (vốn 2.400.000) — **CÔNG NỢ** KH A, trả trước 1.000.000 TM | sale CÔNG NỢ + debt **D1** CUSTOMER_OWES 3tr + phiếu thu **dp1** 1tr TM | +1.000.000 (qua dp1) | | D1 còn 2.000.000 |
 | S5 | Bán **Oppo** 15.000.000 (vốn 12.500.000) — **TRẢ GÓP 1 NH** HD SAISON: cọc 5tr TM, vay 10tr, **chưa** tất toán | sale isInstallment, downPayment 5tr TM, loanAmount 10tr | +5.000.000 | | (NH chưa trả) |
-| S6 | Bán **Vivo** 20.000.000 (vốn 17.000.000) — **TRẢ GÓP 2 NH**: cọc 4tr CK, FE 10tr + HOME 6tr; NH **tất toán trong ngày 15.500.000** (phí 500.000) | sale isInstallment, bankName/bankName2, settlementReceivedAt = D, settlementAmount 15,5tr | | +4.000.000 cọc +15.500.000 tất toán | |
-| S7 | Đơn góp **Realme** bán **15/08** 10.000.000 (vốn 8.000.000), cọc 2tr TM (kỳ trước), vay 8tr — NH tất toán **hôm nay** 7.800.000 (phí 200.000) | cập nhật settlementReceivedAt = D, settlementAmount 7,8tr | | +7.800.000 | |
+| S6 | Bán **Vivo** 20.000.000 (vốn 17.000.000) — **TRẢ GÓP 2 NH**: cọc 4tr CK, FE 10tr + HOME 6tr; NH **tất toán đủ trong ngày 16.000.000** | sale isInstallment, bankName/bankName2, settlementReceivedAt = D, settlementAmount 16tr | | +4.000.000 cọc +16.000.000 tất toán | |
+| S7 | Đơn góp **Realme** bán **15/08** 10.000.000 (vốn 8.000.000), cọc 2tr TM (kỳ trước), vay 8tr — NH tất toán đủ **hôm nay** 8.000.000 | cập nhật settlementReceivedAt = D, settlementAmount 8tr | | +8.000.000 | |
 | S8 | **Trả hàng**: KH B trả ốp lưng mua kỳ trước, hoàn 150.000 TM (vốn 90.000) | sales_returns refundMethod TIỀN MẶT | −150.000 (tiền ra) | | |
 | S9 | **Xoá** một đơn bán 999.999 (deleted = 1) | sale deleted=1 | không được tính | | |
 
@@ -81,11 +81,11 @@ Ký hiệu: TM = tiền mặt, CK = chuyển khoản, CN = công nợ.
 ### Tiền vào
 | Nguồn | Tính | Kết quả |
 |---|---|---|
-| Bán hàng thực thu | S1 200.000 + S2 11.800.000 + S3 5.000.000 + S4 **0** + S5 5.000.000 + S6 19.500.000 + S7 7.800.000 − S8 150.000 | **49.150.000** |
+| Bán hàng thực thu | S1 200.000 + S2 11.800.000 + S3 5.000.000 + S4 **0** + S5 5.000.000 + S6 20.000.000 + S7 8.000.000 − S8 150.000 | **49.850.000** |
 | Sửa chữa thực thu | R1 800.000 + R2 1.500.000 + R3 **0** (CN) + R4 250.000 + R5 1.200.000 | **3.750.000** |
 | Thu nợ khách | dp1 1.000.000 + dp3 600.000 + dp6 500.000 | **2.100.000** |
 | Thu khác | E3 | **300.000** |
-| **TỔNG TIỀN VÀO** | | **55.300.000** |
+| **TỔNG TIỀN VÀO** | | **56.000.000** |
 
 ### Tiền ra
 | Nguồn | Tính | Kết quả |
@@ -96,7 +96,7 @@ Ký hiệu: TM = tiền mặt, CK = chuyển khoản, CN = công nợ.
 | Trả nợ NCC / đối tác | dp2 400.000 + dp4 5.000.000 + dp5 500.000 | **5.900.000** |
 | Vốn SC đã ghi sổ quỹ (mirror) | R1 300.000 + R3 200.000 + R4 50.000 | **550.000** |
 | **TỔNG TIỀN RA** | | **17.350.000** |
-| **Dòng tiền ròng** | 55.300.000 − 17.350.000 | **37.950.000** |
+| **Dòng tiền ròng** | 56.000.000 − 17.350.000 | **38.650.000** |
 
 ### Vốn & Lãi gộp (cash basis — vốn ghi theo tỉ lệ tiền thực thu)
 | Đơn | Vốn ghi nhận |
@@ -105,15 +105,15 @@ Ký hiệu: TM = tiền mặt, CK = chuyển khoản, CN = công nợ.
 | S2 | 10.000.000 |
 | S3 (KẾT HỢP, thu đủ) | 4.000.000 |
 | S5 (thu 5/15) | 12.500.000 × 5/15 = **4.166.667** |
-| S6 (thu 19,5/20) | 17.000.000 × 19,5/20 = **16.575.000** |
-| S7 (thu 7,8/10) | 8.000.000 × 7,8/10 = **6.240.000** |
+| S6 (thu đủ 20/20) | **17.000.000** |
+| S7 (thu 8/10, cọc 2/10 đã ghi kỳ trước) | 8.000.000 × 8/10 = **6.400.000** |
 | S8 trả hàng | −90.000 |
-| **Vốn bán hàng** | **41.011.667** |
+| **Vốn bán hàng** | **41.596.667** |
 | **Vốn sửa chữa** | R1 300.000 + R2 900.000 + R4 50.000 + R5 700.000 = **1.950.000** |
-| **Lãi gộp bán hàng** | 49.150.000 − 41.011.667 = **8.138.333** |
+| **Lãi gộp bán hàng** | 49.850.000 − 41.596.667 = **8.253.333** |
 | **Lãi gộp sửa chữa** | 3.750.000 − 1.950.000 = **1.800.000** |
-| **Lãi gộp tổng** | **9.938.333** |
-| **Lãi sau chi vận hành** | 9.938.333 − 6.200.000 = **3.738.333** |
+| **Lãi gộp tổng** | **10.053.333** |
+| **Lãi sau chi vận hành** | 10.053.333 − 6.200.000 = **3.853.333** |
 
 ### Công nợ cuối ngày
 | Loại | Chi tiết | Tổng |
@@ -148,28 +148,28 @@ Bất biến: với mọi khoản nợ, `paidAmount == Σ debt_payments` (D1 = 1
 | S2 | 11.800.000 | R3 vốn LK | 200.000 |
 | S3 phần CK | 2.000.000 | dp2 trả Z | 400.000 |
 | S6 cọc | 4.000.000 | I2 nhập | 1.000.000 |
-| S6 tất toán | 15.500.000 | dp4 trả NCC X | 5.000.000 |
-| S7 tất toán | 7.800.000 | E2 mặt bằng | 5.000.000 |
+| S6 tất toán | 16.000.000 | dp4 trả NCC X | 5.000.000 |
+| S7 tất toán | 8.000.000 | E2 mặt bằng | 5.000.000 |
 | R2 | 1.500.000 | | |
 | dp3 | 600.000 | | |
 | dp6 | 500.000 | | |
-| **Tổng CK vào** | **43.700.000** | **Tổng CK ra** | **11.600.000** |
+| **Tổng CK vào** | **44.400.000** | **Tổng CK ra** | **11.600.000** |
 
-→ **Ngân hàng cuối ngày = 20.000.000 + 43.700.000 − 11.600.000 = 52.100.000**
+→ **Ngân hàng cuối ngày = 20.000.000 + 44.400.000 − 11.600.000 = 52.800.000**
 
-**Kiểm tra chéo:** (11.750.000 + 43.700.000) − (5.850.000 + 11.600.000) = **37.950.000** = dòng tiền ròng Tài chính V2 ✔
+**Kiểm tra chéo:** (11.750.000 + 44.400.000) − (5.850.000 + 11.600.000) = 38.700.000 = dòng tiền ròng V2 38.650.000 + 50.000 mirror dịch vụ nội bộ R4 ✔
 
 ### Lợi nhuận ngày (accrual — tính cả đơn CÔNG NỢ)
 | | |
 |---|---|
 | Doanh thu bán (S1..S6 kể cả S4 CN, trừ S8) | 200.000 + 11.800.000 + 5.000.000 + 3.000.000 + 5.000.000 + 4.000.000 − 150.000 = **28.850.000** |
-| Tất toán NH | 15.500.000 + 7.800.000 = **23.300.000** |
+| Tất toán NH | 16.000.000 + 8.000.000 = **24.000.000** |
 | Doanh thu sửa (kể cả R3 CN) | 800.000 + 1.500.000 + 600.000 + 250.000 + 1.200.000 = **4.350.000** |
 | Thu khác | **300.000** |
 | Chi vận hành | **6.200.000** |
 | Vốn bán | 120.000 + 10.000.000 + 4.000.000 + 2.400.000 + 4.166.667 + 3.400.000 + 13.600.000 + 6.400.000 − 90.000 = **43.996.667** |
 | Vốn sửa | 300.000 + 900.000 + 200.000 + 50.000 + 700.000 = **2.150.000** |
-| **Lợi nhuận ròng** | 28.850.000 + 23.300.000 + 4.350.000 + 300.000 − 6.200.000 − 43.996.667 − 2.150.000 = **4.453.333** |
+| **Lợi nhuận ròng** | 28.850.000 + 24.000.000 + 4.350.000 + 300.000 − 6.200.000 − 43.996.667 − 2.150.000 = **5.153.333** |
 
 ---
 
@@ -181,13 +181,13 @@ Bất biến: với mọi khoản nợ, `paidAmount == Σ debt_payments` (D1 = 1
 | Trả hàng S8 | trừ thẳng vào doanh thu bán (net) — không nằm trong "tiền ra" | ghi tiền ra 150.000 + trừ doanh thu |
 | Dịch vụ nội bộ R4 (50.000) | hiện 1 dòng chi mirror `repair_cost_*` trong sổ (nằm trong tiền ra, **loại** khỏi chi vận hành) | chỉ tính vào vốn sửa, **không** tính tiền ra |
 
-## 5. Nghi vấn cần đối chiếu khi chạy test (xem kết quả test để xác nhận)
+## 5. Lỗi thật kịch bản đã tìm ra (đã sửa `[2026-09-11e]`)
 
-1. **Vốn đơn trả góp đã tất toán** (S6, S7): V2 ghi vốn theo tỉ lệ tiền nhận
-   (16.575.000 / 6.240.000) trong khi vốn thật là 17.000.000 / 8.000.000 — phần phí
-   NH không bao giờ về nhưng vốn vẫn bị "khấu" theo → lãi gộp cao hơn thực
-   425.000 + 160.000. Báo cáo ngày ghi đủ vốn (3.400.000 + 13.600.000 = 17.000.000).
-2. **Nhập kho nhiều dòng trả TM/CK** (I1): `analyze()` khớp từng dòng history với
-   expense theo số tiền (±1.000). Expense là tổng phiếu 3.000.000, dòng là
-   2.000.000 / 1.000.000 → dòng 2.000.000 không khớp ⇒ nghi tiền ra TM bị cộng
-   thêm 2.000.000 (và dòng 1.000.000 khớp nhầm với expense của I2).
+1. **Nhập kho nhiều dòng trả TM/CK** (I1): Chốt quỹ khớp từng dòng history với
+   expense theo số tiền → dòng 2.000.000 không khớp ⇒ tiền mặt ra dư 2.000.000.
+   Đã gom theo `referenceId` trước khi khớp.
+2. **Dòng tất toán đơn góp kỳ trước** (S7) mang ngày bán 15/08 thay vì ngày nhận
+   tiền ⇒ rơi ngoài kỳ trên biểu đồ. Đã dùng `settlementReceivedAt`.
+
+Ghi chú: NH thực tế trả đủ khoản vay (không giữ phí) nên vốn theo tỉ lệ tiền
+nhận của V2 = vốn đủ; kịch bản dùng số tất toán = khoản vay.

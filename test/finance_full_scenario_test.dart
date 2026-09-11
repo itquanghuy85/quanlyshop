@@ -273,13 +273,13 @@ class _Scenario {
       total: 20000000, cost: 17000000, method: 'TRẢ GÓP',
       installment: true, down: 4000000, downMethod: _ck,
       loan: 10000000, loan2: 6000000, bank: 'FE CREDIT', bank2: 'HOME CREDIT',
-      settledAt: _at(15), settlement: 15500000);
+      settledAt: _at(15), settlement: 16000000);
   /// Bán 15/08, NH tất toán hôm nay — KHÔNG nằm trong `getSalesByDateRange`,
   /// chỉ về qua `getInstallmentSalesSettledBetween`.
   final s7 = _sale(fid: 'S7', customer: 'KH B', product: 'Realme 12',
       total: 10000000, cost: 8000000, method: 'TRẢ GÓP', soldAt: _aug15,
       installment: true, down: 2000000, downMethod: _tm, loan: 8000000,
-      bank: 'HD SAISON', settledAt: _at(15, 30), settlement: 7800000);
+      bank: 'HD SAISON', settledAt: _at(15, 30), settlement: 8000000);
 
   final salesReturn = <String, dynamic>{
     'id': 1,
@@ -494,12 +494,12 @@ void main() {
           .loadSnapshot(start: _day, end: _day);
     });
 
-    test('tiền vào: bán 49.150.000 + sửa 3.750.000 + thu nợ 2.100.000 + thu khác 300.000',
+    test('tiền vào: bán 49.850.000 + sửa 3.750.000 + thu nợ 2.100.000 + thu khác 300.000',
         () {
-      expect(snap.incomeFromSales, 49150000, reason: 'bán hàng thực thu (đã trừ trả hàng 150k)');
+      expect(snap.incomeFromSales, 49850000, reason: 'bán hàng thực thu (đã trừ trả hàng 150k)');
       expect(snap.incomeFromRepairs, 3750000, reason: 'sửa chữa thực thu, loại R3 CÔNG NỢ');
       expect(snap.incomeOther, 300000, reason: 'thu khác KHÔNG gồm thu nợ');
-      expect(snap.totalIn, 55300000);
+      expect(snap.totalIn, 56000000);
     });
 
     test('tiền ra: 17.350.000 tách đúng 5 nhóm', () {
@@ -508,7 +508,7 @@ void main() {
       expect(snap.partnerPaymentOut, 700000, reason: 'R5 trả đối tác trực tiếp');
       expect(snap.debtRepayOut, 5900000, reason: 'dp2 + dp4 + dp5');
       expect(snap.totalOut, 17350000);
-      expect(snap.netCashflow, 37950000);
+      expect(snap.netCashflow, 38650000);
     });
 
     test('nhập kho có expense mirror KHÔNG bị cộng 2 lần (I1 hai dòng, I2 một dòng)',
@@ -528,12 +528,12 @@ void main() {
     });
 
     test('vốn & lãi gộp theo tỉ lệ tiền thực thu', () {
-      expect(snap.cogsFromSales, 41011667);
+      expect(snap.cogsFromSales, 41596667);
       expect(snap.cogsFromRepairs, 1950000);
-      expect(snap.grossProfitFromSales, 8138333);
+      expect(snap.grossProfitFromSales, 8253333);
       expect(snap.grossProfitFromRepairs, 1800000);
-      expect(snap.grossProfitTotal, 9938333);
-      expect(snap.grossProfitTotal - snap.operatingExpenseOut, 3738333,
+      expect(snap.grossProfitTotal, 10053333);
+      expect(snap.grossProfitTotal - snap.operatingExpenseOut, 3853333,
           reason: 'lãi sau chi vận hành — KHÔNG trừ vốn SC lần 2');
     });
 
@@ -543,10 +543,12 @@ void main() {
           snap.transactions.singleWhere((t) => t.referenceId == fid);
       expect(txn('S5').amount, 5000000);
       expect(txn('S5').costAmount, 4166667);
-      expect(txn('S6').amount, 19500000, reason: 'cọc 4tr + tất toán 15,5tr');
+      expect(txn('S6').amount, 20000000, reason: 'cọc 4tr + tất toán 16tr');
+      expect(txn('S6').costAmount, 17000000, reason: 'NH trả đủ → ghi đủ vốn');
       expect(txn('S6').subtitle, contains('FE CREDIT, HOME CREDIT'));
-      expect(txn('S7').amount, 7800000, reason: 'chỉ phần tất toán — cọc thuộc kỳ trước');
-      expect(txn('S7').costAmount, 6240000);
+      expect(txn('S7').amount, 8000000, reason: 'chỉ phần tất toán — cọc thuộc kỳ trước');
+      expect(txn('S7').createdAt, _at(15, 30), reason: 'ngày NHẬN TIỀN, không phải ngày bán 15/08');
+      expect(txn('S7').costAmount, 6400000, reason: '8tr − 1,6tr đã ghi theo cọc kỳ trước');
     });
 
     test('đơn CÔNG NỢ (S4, R3) không tạo dòng tiền — chỉ phiếu thu mới tạo', () {
@@ -632,9 +634,9 @@ void main() {
       );
     });
 
-    test('tiền mặt vào 11.750.000 · ngân hàng vào 43.700.000', () {
+    test('tiền mặt vào 11.750.000 · ngân hàng vào 44.400.000', () {
       expect(a.cashIn, 11750000);
-      expect(a.bankIn, 43700000);
+      expect(a.bankIn, 44400000);
     });
 
     test('ngân hàng ra 11.600.000', () {
@@ -646,16 +648,16 @@ void main() {
       expect(a.cashOut, 5850000);
     });
 
-    test('chốt quỹ: TM cuối 15.900.000 · NH cuối 52.100.000', () {
+    test('chốt quỹ: TM cuối 15.900.000 · NH cuối 52.800.000', () {
       const cashStart = 10000000;
       const bankStart = 20000000;
       expect(cashStart + a.cashIn - a.cashOut, 15900000);
-      expect(bankStart + a.bankIn - a.bankOut, 52100000);
+      expect(bankStart + a.bankIn - a.bankOut, 52800000);
     });
 
     test('phân rã thu chi', () {
       expect(a.saleIncome, 28850000, reason: 'accrual: gồm S4 CN, trừ trả hàng');
-      expect(a.settlementIncome, 23300000);
+      expect(a.settlementIncome, 24000000);
       expect(a.repairIncome, 4350000, reason: 'gồm R3 CN');
       expect(a.debtCollected, 2100000);
       expect(a.miscIncome, 300000);
@@ -670,7 +672,7 @@ void main() {
     test('vốn & lợi nhuận ròng ngày', () {
       expect(a.saleCost, 43996667);
       expect(a.repairCost, 2150000);
-      expect(a.netProfit, 4453333);
+      expect(a.netProfit, 5153333);
     });
   });
 
@@ -723,24 +725,5 @@ void main() {
         expect((d['paidAmount'] as int) <= (d['totalAmount'] as int), isTrue);
       }
     });
-  });
-
-  group('NGHI VẤN — kỳ vọng đúng nghiệp vụ, đang skip chờ xác nhận', () {
-    late FinanceV2Snapshot snap;
-    setUpAll(() async {
-      snap = await FinanceV2DataService(dbHelper: _ScenarioDb(sc))
-          .loadSnapshot(start: _day, end: _day);
-    });
-
-    test('FINDING-1: đơn góp đã tất toán phải ghi ĐỦ vốn (phí NH không làm giảm vốn)',
-        () {
-      FinanceV2Txn txn(String fid) =>
-          snap.transactions.singleWhere((t) => t.referenceId == fid);
-      // S6: nhận 19,5tr / 20tr, vốn thật 17tr → V2 hiện 16.575.000 (thiếu 425.000)
-      expect(txn('S6').costAmount, 17000000);
-      // S7: kỳ này nhận 7,8tr, kỳ trước đã ghi vốn theo cọc 2tr/10tr = 1,6tr
-      // → phần còn lại phải là 6.400.000 (V2 hiện 6.240.000, thiếu 160.000)
-      expect(txn('S7').costAmount, 6400000);
-    }, skip: 'Chờ chủ shop chốt: vốn đơn góp tất toán tính đủ hay theo tỉ lệ tiền nhận');
   });
 }

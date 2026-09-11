@@ -17,8 +17,8 @@ chi tự động-chủ động), số kỳ vọng tính tay, chạy engine V2 th
 trước khi bàn giao**; thêm truy vấn mới vào `loadSnapshot` thì `noSuchMethod`
 sẽ báo để bổ sung fixture. Đã sửa 2 lỗi thật kịch bản tìm ra (nhập kho nhiều
 dòng đếm dư tiền ra ở Chốt quỹ; dòng tất toán đơn góp kỳ trước sai ngày).
-**Còn FINDING-1 chờ chủ shop chốt**: vốn đơn góp đã tất toán tính đủ hay theo
-tỉ lệ tiền nhận (hiện V2 theo tỉ lệ → lãi gộp cao hơn thực bằng phí NH × tỉ lệ vốn).
+Chủ shop xác nhận NH luôn tất toán ĐỦ khoản vay (không giữ phí) → vốn theo
+tỉ lệ tiền nhận của V2 = vốn đủ, không cần đổi.
 
 **✅ RULES: `data.deleted != true` LÀ BẪY (`[2026-09-11d]`).** Field không tồn
 tại ⇒ biểu thức LỖI → false, không phải true. Đã đổi `isShopOwner()` /
