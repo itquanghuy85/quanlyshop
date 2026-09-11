@@ -9,6 +9,16 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-12  
 
+**✅ KỊCH BẢN TÀI CHÍNH ĐÃ CHẠY TRÊN MÁY THẬT — SỐ KHỚP 100% (`[2026-09-12a]`).**
+Shop test M, 40+ thao tác qua ADB, đối chiếu SQLite + màn hình. Sửa 3 lỗi thật:
+chủ shop giao máy không chọn được CK/CÔNG NỢ (nay có chip trong dialog duyệt);
+sửa điện thoại thiếu Model mất tên; **crash `_dependents.isEmpty` tìm ra gốc =
+dispose TextEditingController ngay sau `await showDialog/BottomSheet`** →
+dùng `disposeAfterTransition()` (`lib/utils/dispose_after_transition.dart`) —
+QUY TẮC: dialog dựng inline có controller thì KHÔNG `dispose()` ngay sau await.
+Còn 3 quan sát nhỏ chưa sửa (KẾT HỢP cho nhập vượt thành tiền; sửa đơn không
+sửa được tách TM/CK; "Tổng đã thu" đơn góp chưa tất toán = giá bán).
+
 **✅ KỊCH BẢN TEST TÀI CHÍNH TOÀN DIỆN (`[2026-09-11e]`).** `test/FINANCE_FULL_SCENARIO.md`
 + `test/finance_full_scenario_test.dart` — 25 bước phủ mọi luồng ghi tiền
 (TM/CK/CN/1 phần/toàn bộ/góp 1-2 NH/tất toán/trả hàng/nhập/trả NCC/đối tác/

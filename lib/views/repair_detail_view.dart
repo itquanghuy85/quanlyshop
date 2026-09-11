@@ -1828,6 +1828,15 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     }
 
     String selectedWarranty = WarrantyNote.normalize(r.warranty);
+    // Hình thức thanh toán chọn ngay trong dialog duyệt. Trước đây chủ shop /
+    // quản lý bấm GIAO đi thẳng vào đây và dùng nguyên `r.paymentMethod`
+    // (mặc định TIỀN MẶT) — không có chỗ nào để chọn CHUYỂN KHOẢN / CÔNG NỢ,
+    // nên đơn khách chuyển khoản vẫn cộng vào tiền mặt ở Chốt quỹ và không
+    // tạo được nợ khách. Chỉ luồng nhân viên "gửi duyệt" mới có chip chọn.
+    const payMethods = ['TIỀN MẶT', 'CHUYỂN KHOẢN', 'CÔNG NỢ'];
+    String payMethod = payMethods.contains(r.paymentMethod.trim().toUpperCase())
+        ? r.paymentMethod.trim().toUpperCase()
+        : 'TIỀN MẶT';
     final requestedPriceForApproval = _displayedChargePrice(r);
     final formKey = GlobalKey<FormState>();
     final priceCtrl = TextEditingController(
@@ -1883,9 +1892,24 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                               fontSize: 12,
                             ),
                           ),
-                        Text(dialogLoc.paymentInfo(r.paymentMethod)),
+                        Text(dialogLoc.paymentInfo(payMethod)),
                       ],
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: payMethods
+                        .map(
+                          (m) => ChoiceChip(
+                            label: Text(m, style: AppTextStyles.caption),
+                            selected: payMethod == m,
+                            onSelected: (_) => setS(() => payMethod = m),
+                            selectedColor:
+                                AppColors.secondary.withOpacity(0.2),
+                          ),
+                        )
+                        .toList(),
                   ),
                   const SizedBox(height: 12),
                   if (_isDeliverySameDay) ...[
@@ -2020,6 +2044,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     r.cost = MoneyUtils.parseCurrency(costCtrl.text);
     r.requestedDeliveryPrice = null;
     r.warranty = selectedWarranty;
+    r.paymentMethod = payMethod;
     final debtImpact = r.paymentMethod == "CÔNG NỢ";
 
     final user = FirebaseAuth.instance.currentUser;

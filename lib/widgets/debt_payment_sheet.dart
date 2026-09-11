@@ -17,6 +17,7 @@ import '../theme/popup_theme.dart';
 import '../widgets/app_popup.dart';
 import '../widgets/payment_result_sheet.dart';
 import '../widgets/bank_transfer_assist.dart';
+import '../utils/dispose_after_transition.dart';
 
 /// Sheet thanh toán/thu nợ thống nhất — dùng chung toàn bộ ứng dụng.
 /// Nhận debt map từ bảng debts (hoặc virtual map có cùng cấu trúc).
@@ -296,7 +297,8 @@ class DebtPaymentSheet {
       ),
     );
 
-    payC.dispose();
+    // KHÔNG dispose ngay — xem dispose_after_transition.dart (crash màn đỏ).
+    disposeAfterTransition(payC);
     return success;
   }
 

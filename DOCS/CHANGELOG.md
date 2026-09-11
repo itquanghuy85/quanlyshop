@@ -4,6 +4,59 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-12a] - Chạy kịch bản tài chính toàn diện trên máy thật (shop test M) — 3 lỗi thật, 1 crash lâu năm tìm ra gốc
+
+Chạy trọn `test/FINANCE_FULL_SCENARIO.md` qua ADB trên Oppo CPH2203, tài khoản
+`m@m.com`: 10 phiếu nhập (TM/CK/CN), 7 đơn bán (TM · CK có giảm · KẾT HỢP ·
+CÔNG NỢ trả trước · TRẢ GÓP 1 NH · 2 NH tất toán · tất toán), 1 xoá đơn, 1 trả
+hàng, 5 đơn sửa giao (TM · CK · CÔNG NỢ · dịch vụ nội bộ · đối tác trả ngay),
+3 thu chi, 9 phiếu trả/thu nợ (1 phần + toàn bộ, KH + NCC + đối tác). Kéo
+SQLite về đối chiếu từng bảng, rồi so số hiển thị Trang chủ / Tài chính
+(Tiền · Lãi · Nợ) / Sổ quỹ với số tính tay: **khớp 100%** (tiền vào 59,45tr ·
+ra 17,35tr · ròng 42,1tr · lãi gộp 10,43tr · phải thu 16,49tr · phải trả
+63,83tr · TM vào/ra 13,95/5,9tr · NH vào/ra 45,7/11,6tr · lợi nhuận ngày
+5.533.333).
+
+### Sửa (lỗi thật phát hiện khi chạy)
+- **Chủ shop / quản lý giao máy KHÔNG chọn được hình thức thanh toán**
+  (`repair_detail_view.dart` `_approveDelivery`): bấm GIAO đi thẳng vào dialog
+  duyệt, dùng nguyên `r.paymentMethod` (mặc định TIỀN MẶT) — chỉ luồng nhân
+  viên "gửi duyệt" mới có chip chọn. Hệ quả: đơn khách chuyển khoản vẫn cộng
+  tiền mặt ở Chốt quỹ, không tạo được nợ khách. Đã thêm chip TIỀN MẶT /
+  CHUYỂN KHOẢN / CÔNG NỢ ngay trong dialog duyệt.
+- **Sửa điện thoại chưa có Model → tên sản phẩm bị xoá trắng**
+  (`inventory_view.dart:4466`): `generateProductName` trả `''` khi thiếu
+  model và tên gốc bị ghi đè. Rỗng thì giữ tên cũ.
+- **Crash màn đỏ `_dependents.isEmpty` (framework.dart:6268) — tìm ra gốc**
+  bằng `flutter attach`: lỗi đầu tiên là *"A TextEditingController was used
+  after being disposed"* tại `currency_text_field.dart:187` → kéo theo
+  Duplicate GlobalKeys → `_dependents`. Nguyên nhân: `await showModalBottomSheet`
+  / `showDialog` trả về khi route mới BẮT ĐẦU pop, code `ctrl.dispose()` ngay
+  sau đó trong lúc dialog còn chạy animation đóng; màn sau `setState`
+  (EventBus `debts_changed`) làm dialog rebuild → `TextFormField.addListener`
+  trên controller đã dispose. Tái hiện ổn định: Công nợ → Thu nợ khoản trả
+  ĐỦ (nhóm biến mất) → thu tiếp. Thêm `lib/utils/dispose_after_transition.dart`
+  và áp cho `debt_payment_sheet.dart`, `sale_detail_view._unlockManager`
+  (2 trong 3 nơi ghi nhận trước đây); kiểm lại cùng luồng trên máy: 0 exception.
+  `order_list_view._confirmDelete` / `_addCustomerToRepair` hiện không dispose
+  controller nên crash ở đó (nếu còn) do nguyên nhân khác — cần attach tương tự.
+
+### Quan sát thêm (chưa sửa)
+- KẾT HỢP cho phép TM + CK **vượt** thành tiền (đơn 5tr nhập 12 + 5tr vẫn lưu,
+  hiện "Dư 12") → V2 tính tiền thu 5.000.012. Nên chặn ở nút HOÀN TẤT.
+- Sửa đơn bán (`Sửa thông tin đơn`) không cho sửa phần TM/CK của KẾT HỢP.
+- Chi tiết đơn trả góp chưa tất toán hiện "Tổng đã thu 20 Tr" (= giá bán) dù
+  mới nhận cọc 4tr.
+- Lỗi nhập kho nhiều dòng (`[2026-09-11e]`) không tái hiện qua UI tay vì mỗi
+  mặt hàng là một phiếu riêng — chỉ xảy ra với phiếu nhiều dòng từ nguồn khác.
+
+### Files
+`lib/views/repair_detail_view.dart`, `lib/views/inventory_view.dart`,
+`lib/utils/dispose_after_transition.dart`, `lib/widgets/debt_payment_sheet.dart`,
+`lib/views/sale_detail_view.dart`, `DOCS/CHANGELOG.md`, `DOCS/HANDOVER.md`
+
+---
+
 ## [2026-09-11e] - Kịch bản test toàn bộ số liệu tài chính + 2 lỗi thật tìm được
 
 ### Thêm

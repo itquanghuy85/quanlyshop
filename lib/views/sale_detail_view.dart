@@ -52,6 +52,7 @@ import '../widgets/custom_app_bar.dart';
 import '../theme/popup_theme.dart';
 import '../widgets/app_popup.dart';
 import 'staff_public_profile_view.dart';
+import '../utils/dispose_after_transition.dart';
 
 class SaleDetailView extends StatefulWidget {
   final SaleOrder sale;
@@ -598,7 +599,8 @@ class _SaleDetailViewState extends State<SaleDetailView> {
       },
     );
 
-    passCtrl.dispose();
+    // KHÔNG dispose ngay — xem dispose_after_transition.dart (crash màn đỏ).
+    disposeAfterTransition(passCtrl);
     if (ok != true || !mounted) return;
 
     setState(() => _managerUnlocked = true);

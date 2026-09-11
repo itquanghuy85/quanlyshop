@@ -4462,7 +4462,10 @@ class _InventoryViewState extends State<InventoryView>
               // sản phẩm không có model từng bị đổi thành "KHÁC MỚI" khi lưu
               // lại mà không sửa gì ở ô tên).
               final typedName = nameC.text.trim();
-              final generatedName = p.type == 'DIEN_THOAI'
+              // Điện thoại chưa có model: generateProductName trả '' → trước
+              // đây ghi đè tên gốc thành rỗng (máy nhập tay không model, bấm
+              // SỬA chỉ để thêm IMEI là mất tên). Rỗng thì giữ tên cũ.
+              final phoneGenerated = p.type == 'DIEN_THOAI'
                   ? ProductConstants.generateProductName(
                       brand: selectedBrand,
                       model: typedName, // nameC chứa model
@@ -4470,6 +4473,9 @@ class _InventoryViewState extends State<InventoryView>
                       color: selectedColor,
                       condition: selectedCondition,
                     )
+                  : '';
+              final generatedName = p.type == 'DIEN_THOAI'
+                  ? (phoneGenerated.isNotEmpty ? phoneGenerated : p.name)
                   : (typedName.isNotEmpty ? typedName : p.name);
 
               final updatedP = p.copyWith(
