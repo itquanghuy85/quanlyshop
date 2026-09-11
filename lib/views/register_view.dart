@@ -37,7 +37,8 @@ class _RegisterViewState extends State<RegisterView> {
   int _currentStep = 0; 
   bool _obscurePass = true;
   bool _obscureConfirm = true;
-  String _selectedBusinessType = 'electronics'; // Default business type
+  // App chỉ còn một loại hình — không còn màn chọn ngành khi đăng ký.
+  static const String _selectedBusinessType = 'electronics';
   String _selectedRole = 'employee'; // Default role for join shop
 
   @override
@@ -314,8 +315,6 @@ class _RegisterViewState extends State<RegisterView> {
         // Business type selection for store owners
         if (!_isJoinShop) ...[
           const SizedBox(height: 8),
-          _buildBusinessTypeSelector(),
-          const SizedBox(height: 8),
         ],
         if (_isJoinShop) ...[
           _input(_inviteCodeC, AppLocalizations.of(context)!.shopInviteCode, Icons.qr_code),          // Role selection for join shop
@@ -538,76 +537,4 @@ class _RegisterViewState extends State<RegisterView> {
     );
   }
 
-  Widget _buildBusinessTypeSelector() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.business, color: Colors.blueAccent, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Loại hình kinh doanh',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: AppTextStyles.headline4.fontSize,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _businessTypeOption('electronics', '📱 Điện tử', 'Điện thoại, laptop, phụ kiện', Colors.blue),
-          const SizedBox(height: 4),
-          Text(
-            'Ứng dụng hiện hỗ trợ duy nhất ngành điện tử.',
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _businessTypeOption(String type, String title, String desc, Color color) {
-    final selected = _selectedBusinessType == type;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedBusinessType = type),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? color.withOpacity(0.1) : Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: selected ? color : Colors.grey.shade200,
-            width: selected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Text(title, style: TextStyle(fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                desc,
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            Icon(
-              selected ? Icons.check_circle : Icons.radio_button_off,
-              color: selected ? color : Colors.grey,
-              size: 20,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

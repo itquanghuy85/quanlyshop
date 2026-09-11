@@ -94,9 +94,7 @@ import '../services/encryption_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../services/category_service.dart';
-import '../services/expiry_alert_service.dart';
 import '../services/first_time_guide_service.dart';
-import '../services/variant_service.dart';
 import '../services/debt_summary_service.dart';
 import '../services/daily_financial_analysis_service.dart';
 import '../models/shop_settings_model.dart';
@@ -105,9 +103,6 @@ import '../models/product_model.dart';
 import '../models/sale_order_model.dart';
 import '../models/expense_model.dart';
 import '../models/debt_model.dart';
-import 'food/expiry_management_view.dart';
-import 'fashion/variant_management_view.dart';
-import 'onboarding/business_type_wizard.dart';
 import 'dashboard_settings_view.dart';
 import 'payment_request_chat_view.dart';
 import 'reminders_view.dart';
@@ -617,12 +612,8 @@ class _HomeViewState extends State<HomeView>
 
   // Phase 2: Multi-Industry - Shop Settings
   ShopSettings? _shopSettings;
-  ExpiryStats? _expiryStats;
-  VariantWarningCounts? _variantWarnings; // Phase 3: Fashion
   bool get _enableRepair =>
       _shopSettings?.enableRepair ?? true; // Default true for backwards compat
-  bool get _enableExpiry => _shopSettings?.enableExpiry ?? false;
-  bool get _enableVariants => _shopSettings?.enableVariants ?? false;
   bool get _enableWarranty =>
       _shopSettings?.enableWarranty ??
       true; // Default true for backwards compat
@@ -710,46 +701,6 @@ class _HomeViewState extends State<HomeView>
         ),
         'widget': _buildInventoryTab(),
       },
-      // Phase 2: Expiry tab for Food shops
-      if (_enableExpiry)
-        {
-          'id': 'expiry',
-          'permission': 'allowViewInventory', // Same as inventory access
-          'item': BottomNavigationBarItem(
-            icon: Badge(
-              isLabelVisible: (_expiryStats?.atRiskCount ?? 0) > 0,
-              label: Text('${_expiryStats?.atRiskCount ?? 0}'),
-              child: const Icon(Icons.timer_outlined),
-            ),
-            activeIcon: Badge(
-              isLabelVisible: (_expiryStats?.atRiskCount ?? 0) > 0,
-              label: Text('${_expiryStats?.atRiskCount ?? 0}'),
-              child: const Icon(Icons.timer),
-            ),
-            label: 'HSD', // Hạn sử dụng
-          ),
-          'widget': const ExpiryManagementView(),
-        },
-      // Phase 3: Variants tab for Fashion shops
-      if (_enableVariants)
-        {
-          'id': 'variants',
-          'permission': 'allowViewInventory', // Same as inventory access
-          'item': BottomNavigationBarItem(
-            icon: Badge(
-              isLabelVisible: (_variantWarnings?.total ?? 0) > 0,
-              label: Text('${_variantWarnings?.total ?? 0}'),
-              child: const Icon(Icons.checkroom_outlined),
-            ),
-            activeIcon: Badge(
-              isLabelVisible: (_variantWarnings?.total ?? 0) > 0,
-              label: Text('${_variantWarnings?.total ?? 0}'),
-              child: const Icon(Icons.checkroom),
-            ),
-            label: 'Size/Màu', // Biến thể
-          ),
-          'widget': const VariantManagementView(),
-        },
       {
         'id': 'staff',
         'permission': null, // Staff tab is always visible; gate actions inside
@@ -1322,10 +1273,6 @@ class _HomeViewState extends State<HomeView>
         return _buildRepairsTab();
       case 'inventory':
         return _buildInventoryTab();
-      case 'expiry':
-        return const ExpiryManagementView();
-      case 'variants':
-        return const VariantManagementView();
       case 'staff':
         return _buildStaffTab();
       case 'finance':
@@ -2187,7 +2134,7 @@ class _HomeViewState extends State<HomeView>
   }
 
   /// Phase 2: Load shop settings cho multi-industry features
-  bool _isShowingBusinessTypeWizard = false;
+  bool _isSavingDefaultSettings = false;
 
   /// Load dashboard card layout config from SharedPreferences
   Future<void> _loadDashboardConfig() async {
@@ -2371,20 +2318,6 @@ class _HomeViewState extends State<HomeView>
 
       if (!mounted) return;
 
-      // Load expiry stats if enabled (Food shops)
-      ExpiryStats? expiryStats;
-      if (settings?.enableExpiry == true) {
-        expiryStats = await ExpiryAlertService().getExpiryStats();
-        // Check and notify expiry alerts
-        ExpiryAlertService().checkAndNotifyExpiry();
-      }
-
-      // Load variant warnings if enabled (Fashion shops) - Phase 3
-      VariantWarningCounts? variantWarnings;
-      if (settings?.enableVariants == true) {
-        variantWarnings = await VariantService().getWarningCounts();
-      }
-
       setState(() {
         _shopSettings = mergedSettings;
         // Clear override khi backend đã phản ánh đúng value vừa chọn.
@@ -2393,8 +2326,6 @@ class _HomeViewState extends State<HomeView>
             effectiveSettings.allowPendingCost == pendingOverride) {
           _pendingCostOverride = null;
         }
-        _expiryStats = expiryStats;
-        _variantWarnings = variantWarnings;
         // Re-initialize tabs when shop settings change
         _initializeTabConfigs();
         _updateAvailableTabs();
@@ -2406,64 +2337,26 @@ class _HomeViewState extends State<HomeView>
         role: widget.role,
       );
 
-      // CRITICAL: Nếu chưa có settings, hiện wizard để chọn loại hình kinh doanh
-      // Guard để tránh hiện wizard nhiều lần (do EventBus + onShopChanged cùng gọi)
-      if (settings == null && mounted) {
-        if (hasFullAccess && !_isShowingBusinessTypeWizard) {
-          _isShowingBusinessTypeWizard = true;
-          _showBusinessTypeSetupDialog();
-        } else {}
+      // App chỉ còn MỘT loại hình (điện thoại & điện tử) — shop chưa có
+      // settings thì tự lưu mặc định, không còn wizard chọn ngành.
+      if (settings == null && mounted && hasFullAccess && !_isSavingDefaultSettings) {
+        _isSavingDefaultSettings = true;
+        final shopId = await UserService.getCurrentShopId();
+        if (shopId != null) {
+          try {
+            await CategoryService().saveShopSettings(
+              ShopSettings.electronics(shopId),
+            );
+            if (mounted) _loadShopSettings();
+          } catch (e) {
+            debugPrint('⚠️ Không lưu được shop settings mặc định: $e');
+          }
+        }
+        _isSavingDefaultSettings = false;
       }
     } catch (_) {}
   }
 
-  /// Hiển thị dialog chọn ngành kinh doanh cho shops chưa thiết lập
-  void _showBusinessTypeSetupDialog() async {
-    final shopId = await UserService.getCurrentShopId();
-    if (shopId == null || !mounted) return;
-
-    showAppBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      isDismissible: false, // Force user to choose
-      enableDrag: false,
-      backgroundColor: Colors.transparent,
-      // `context` bên dưới bị shadow bởi tham số cùng tên builder — dùng
-      // `this.context` (State) để tránh crash _dependents.isEmpty khi pop.
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(this.context).bottom,
-        ),
-        child: Container(
-          height:
-              MediaQuery.of(this.context).size.height * 0.85 -
-              MediaQuery.paddingOf(this.context).bottom,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: BusinessTypeWizard(
-            shopId: shopId,
-            shopName: _shopName.isNotEmpty ? _shopName : 'Cửa hàng',
-            onComplete: (newSettings) async {
-              Navigator.pop(context);
-              _isShowingBusinessTypeWizard = false;
-              // Save the new settings
-              await CategoryService().saveShopSettings(newSettings);
-              // Reload settings to apply changes
-              _loadShopSettings();
-              NotificationService.showSnackBar(
-                'Đã thiết lập ngành kinh doanh: ${newSettings.businessTypeName}',
-                color: Colors.green,
-              );
-            },
-          ),
-        ),
-      ),
-    ).whenComplete(() {
-      _isShowingBusinessTypeWizard = false;
-    });
-  }
 
   // State variables for accurate financial overview (same as cash_closing analysis)
   int _todayTotalIn = 0; // THU HÔM NAY (tổng thu)
@@ -4409,11 +4302,6 @@ class _HomeViewState extends State<HomeView>
           return () => _pushRoute(
             context,
             MaterialPageRoute(builder: (_) => const ExpenseView()),
-          );
-        case ShortcutType.expiryManage:
-          return () => _pushRoute(
-            context,
-            MaterialPageRoute(builder: (_) => const ExpiryManagementView()),
           );
         case ShortcutType.paymentRequest:
           return () => _pushRoute(
@@ -7659,8 +7547,6 @@ class _HomeViewState extends State<HomeView>
 
   List<Widget> _buildTodayActivityItems() {
     final canRepair = hasFullAccess || _permissions['allowViewRepairs'] == true;
-    final canInventory =
-        hasFullAccess || _permissions['allowViewInventory'] == true;
     final canSales = hasFullAccess || _permissions['allowViewSales'] == true;
     final canDebt = hasFullAccess || _permissions['allowViewDebts'] == true;
 
@@ -7692,36 +7578,6 @@ class _HomeViewState extends State<HomeView>
                   OrderListView(role: widget.role, statusFilter: const [3]),
             ),
           ),
-        ),
-      if (_enableExpiry && canInventory)
-        _activityCard(
-          icon: Icons.timer,
-          label: 'Sắp hết HSD',
-          value: (_expiryStats?.atRiskCount ?? 0).toString(),
-          color: Colors.orange,
-          onTap: () {
-            final expiryTabIndex = _navItems.indexWhere(
-              (item) => item.label == 'HSD',
-            );
-            if (expiryTabIndex != -1) {
-              _setCurrentTab(expiryTabIndex);
-            }
-          },
-        ),
-      if (_enableVariants && canInventory)
-        _activityCard(
-          icon: Icons.checkroom,
-          label: 'Hết size/màu',
-          value: (_variantWarnings?.outOfStock ?? 0).toString(),
-          color: Colors.blue,
-          onTap: () {
-            final variantTabIndex = _navItems.indexWhere(
-              (item) => item.label == 'Size/Màu',
-            );
-            if (variantTabIndex != -1) {
-              _setCurrentTab(variantTabIndex);
-            }
-          },
         ),
       if (canSales)
         _activityCard(

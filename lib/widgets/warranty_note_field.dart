@@ -42,9 +42,13 @@ class _WarrantyNoteFieldState extends State<WarrantyNoteField> {
   @override
   void didUpdateWidget(covariant WarrantyNoteField oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // So theo giá trị CHUẨN HOÁ: ô trống và "KO BH" là một — nếu không, sau
+    // khi bấm ✕ (ô trống, parent nhận "KO BH") chính chỗ này điền lại chữ
+    // "KO BH" vào ô và người dùng gõ tiếp bị nối đuôi.
     final normalized = WarrantyNote.normalize(widget.value);
-    if (widget.value != oldWidget.value && _ctrl.text != normalized) {
-      _ctrl.text = normalized;
+    if (widget.value != oldWidget.value &&
+        WarrantyNote.normalize(_ctrl.text) != normalized) {
+      _ctrl.text = normalized == WarrantyNote.none ? '' : normalized;
     }
   }
 

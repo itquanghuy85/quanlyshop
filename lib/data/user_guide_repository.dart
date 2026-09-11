@@ -1690,7 +1690,7 @@ class UserGuideRepository {
         GuideStep(
           order: 2,
           title: 'Tạo shop mới',
-          description: 'Nhấn "Tạo shop mới" → nhập tên shop, địa chỉ, SĐT. Chọn ngành nghề (điện tử, thời trang, thực phẩm, tổng hợp).',
+          description: 'Nhấn "Tạo shop mới" → nhập tên shop, địa chỉ, SĐT. Ứng dụng dành cho cửa hàng điện thoại & điện tử.',
         ),
         GuideStep(
           order: 3,
@@ -1707,42 +1707,7 @@ class UserGuideRepository {
         'Mỗi shop có dữ liệu riêng: sản phẩm, đơn hàng, nhân viên, tài chính đều tách biệt.',
         'Chủ shop có thể vào Cài đặt để xóa shop không dùng nữa.',
       ],
-      relatedSections: ['set-shop-info', 'set-business-type'],
-    ),
-    const GuideSection(
-      id: 'set-business-type',
-      moduleId: 'settings',
-      title: 'Chọn ngành nghề kinh doanh',
-      description: 'Thiết lập loại hình kinh doanh để tùy chỉnh giao diện và tính năng phù hợp',
-      difficulty: 'Dễ',
-      estimatedTime: '3 phút',
-      steps: [
-        GuideStep(
-          order: 1,
-          title: 'Mở cài đặt ngành nghề',
-          description: 'Khi tạo shop mới hoặc vào Cài đặt → "Ngành nghề", chọn loại hình kinh doanh.',
-        ),
-        GuideStep(
-          order: 2,
-          title: 'Chọn ngành nghề',
-          description: 'Chọn 1 trong 4 loại: Điện tử (sửa chữa + bảo hành), Thời trang (size + biến thể), Thực phẩm (hạn sử dụng), Tổng hợp.',
-        ),
-        GuideStep(
-          order: 3,
-          title: 'Xem tính năng',
-          description: 'Hệ thống tự bật/tắt tính năng phù hợp. VD: shop thời trang sẽ ẩn tab Sửa chữa, Bảo hành và hiện quản lý Size/Biến thể.',
-        ),
-        GuideStep(
-          order: 4,
-          title: 'Xác nhận',
-          description: 'Nhấn "Lưu" để áp dụng. Giao diện sẽ tự động cập nhật theo ngành nghề đã chọn.',
-        ),
-      ],
-      tips: [
-        'Có thể đổi ngành nghề bất cứ lúc nào. Dữ liệu cũ vẫn được giữ nguyên.',
-        'Mỗi ngành có danh mục sản phẩm mặc định riêng.',
-      ],
-      relatedSections: ['set-multi-shop', 'set-shop-info'],
+      relatedSections: ['set-shop-info'],
     ),
   ];
 

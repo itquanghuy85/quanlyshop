@@ -509,6 +509,14 @@
       ]
     },
     {
+      "collectionId": "product_categories",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isActive", "order": "ASCENDING" },
+        { "fieldPath": "sortOrder", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionId": "import_orders",
       "queryScope": "COLLECTION",
       "fields": [

@@ -175,7 +175,6 @@ class SyncService {
       case 'storage_locations':
         return true; // visible to all roles — used for repair/product location assignment
       case 'products':
-      case 'product_variants':
       case 'quick_input_codes':
       case 'supplier_import_history':
       case 'supplier_product_prices':
@@ -2689,40 +2688,8 @@ class SyncService {
       debugPrint("Lỗi khởi tạo product_categories sync: $e");
     }
 
-    // 26. Đồng bộ PRODUCT VARIANTS (Biến thể sản phẩm)
-    try {
-      _subscribeToCollection(
-        collection: 'product_variants',
-        shopId: shopId,
-        permissions: permissions,
-        role: role,
-        isSuperAdmin: isSuperAdmin,
-        onChanged: (data, docId) async {
-          try {
-            final db = DBHelper();
-            if (data['isActive'] == false) {
-              await db.rawUpdate(
-                'UPDATE product_variants SET isActive = 0 WHERE firestoreId = ?',
-                [docId],
-              );
-            } else {
-              data['firestoreId'] = docId;
-              data['isSynced'] = 1;
-              _convertTimestampFields(data);
-              await db.upsertProductVariant(data);
-            }
-          } catch (e) {
-            debugPrint("Lỗi sync product_variant $docId: $e");
-          }
-        },
-        onBatchDone: () {
-          onDataChanged();
-          EventBus().emit('product_variants_changed');
-        },
-      );
-    } catch (e) {
-      debugPrint("Lỗi khởi tạo product_variants sync: $e");
-    }
+    // (26. product_variants — tính năng thời trang — đã gỡ 2026-09-11; app chỉ
+    // còn loại hình điện thoại & điện tử. Bảng SQLite giữ nguyên, không sync.)
 
     // 27. Đồng bộ SALES RETURNS (Phiếu trả hàng)
     try {

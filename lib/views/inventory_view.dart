@@ -28,10 +28,8 @@ import '../services/event_bus.dart';
 import '../services/supplier_service.dart';
 import '../services/firestore_service.dart';
 import '../services/first_time_guide_service.dart';
-import '../services/variant_service.dart';
 import '../services/product_pricing_service.dart';
 import '../widgets/printer_selection_dialog.dart';
-import '../widgets/variant_selector.dart';
 import '../models/printer_types.dart';
 import 'smart_stock_in_view.dart';
 import 'parts_inventory_view.dart';
@@ -150,10 +148,7 @@ class _InventoryViewState extends State<InventoryView>
 
   // Phase 2: Multi-Industry - Shop Settings
   ShopSettings? _shopSettings;
-  bool get _enableExpiry => _shopSettings?.enableExpiry ?? false;
-  bool get _enableBatch => _shopSettings?.enableBatch ?? false;
   bool get _enableSerial => _shopSettings?.enableSerial ?? true;
-  bool get _enableVariants => _shopSettings?.enableVariants ?? false;
   bool get _enableRepair => _shopSettings?.enableRepair ?? true;
   String get _businessType => _shopSettings?.businessType ?? 'electronics';
   bool get _isFashion => _businessType == 'fashion';
@@ -162,8 +157,6 @@ class _InventoryViewState extends State<InventoryView>
   bool get _enableSupplier => _shopSettings?.enableSupplier ?? true;
   bool get _requireSupplier => _shopSettings?.requireSupplier ?? true;
 
-  // Variant Service for fashion products
-  final VariantService _variantService = VariantService();
 
   int _safeToInt(dynamic value, [int fallback = 0]) {
     if (value is int) return value;
@@ -3752,13 +3745,6 @@ class _InventoryViewState extends State<InventoryView>
                           ],
                         ),
                       ],
-                      if (_enableVariants && p.firestoreId != null) ...[
-                        const SizedBox(height: 4),
-                        VariantStockWidget(
-                          productId: p.firestoreId!,
-                          variantService: _variantService,
-                        ),
-                      ],
                     ],
                   ),
                 ),
@@ -5117,109 +5103,6 @@ class _InventoryViewState extends State<InventoryView>
                           canViewCost: _canViewCostPrice,
                           applyState: setS,
                         ),
-
-                      // Phase 2: Food module - Expiry & Batch fields
-                      if (_enableExpiry || _enableBatch) ...[
-                        const Divider(height: 30, thickness: 1),
-                        Text(
-                          l10n.inventoryExpiry,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: PopupTheme.orange,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-
-                        if (_enableExpiry) ...[
-                          InkWell(
-                            onTap: () async {
-                              final picked = await showDatePicker(
-                                context: ctx,
-                                initialDate:
-                                    expiryDate ??
-                                    DateTime.now().add(
-                                      const Duration(days: 30),
-                                    ),
-                                firstDate: DateTime.now().subtract(
-                                  const Duration(days: 365),
-                                ),
-                                lastDate: DateTime.now().add(
-                                  const Duration(days: 365 * 5),
-                                ),
-                                helpText: l10n.inventoryChooseExpiry,
-                              );
-                              if (picked != null) {
-                                setS(() => expiryDate = picked);
-                              }
-                            },
-                            child: InputDecorator(
-                              decoration: InputDecoration(
-                                labelText: l10n.inventoryExpiryLabel,
-                                labelStyle: const TextStyle(
-                                  color: PopupTheme.textSecondary,
-                                  fontSize: 13,
-                                ),
-                                prefixIcon: const Icon(
-                                  Icons.event,
-                                  color: PopupTheme.orange,
-                                ),
-                                filled: true,
-                                fillColor: PopupTheme.surfaceDark,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    PopupTheme.radiusField,
-                                  ),
-                                  borderSide: const BorderSide(
-                                    color: PopupTheme.borderDark,
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    PopupTheme.radiusField,
-                                  ),
-                                  borderSide: const BorderSide(
-                                    color: PopupTheme.borderDark,
-                                  ),
-                                ),
-                                suffixIcon: expiryDate != null
-                                    ? IconButton(
-                                        icon: const Icon(
-                                          Icons.clear,
-                                          color: PopupTheme.textMuted,
-                                        ),
-                                        onPressed: () =>
-                                            setS(() => expiryDate = null),
-                                      )
-                                    : null,
-                              ),
-                              child: Text(
-                                expiryDate != null
-                                    ? DateFormat(
-                                        'dd/MM/yyyy',
-                                      ).format(expiryDate!)
-                                    : l10n.inventoryNotChosen,
-                                style: TextStyle(
-                                  color: expiryDate != null
-                                      ? PopupTheme.textPrimary
-                                      : PopupTheme.textMuted,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-
-                        if (_enableBatch) ...[
-                          const SizedBox(height: 12),
-                          _input(
-                            batchC,
-                            l10n.inventoryBatchField,
-                            Icons.qr_code_2,
-                            caps: true,
-                          ),
-                        ],
-                      ],
 
                       // Ảnh sản phẩm & vị trí lưu kho
                       const Divider(

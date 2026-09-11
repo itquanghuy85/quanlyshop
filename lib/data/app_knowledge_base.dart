@@ -1544,7 +1544,8 @@ class AppKnowledgeBase {
           'Quản lý danh sách nhóm hàng dùng chung cho kho, bán hàng và báo '
           'cáo: thêm, sửa, xoá, bật/tắt từng danh mục.',
       whenToUse:
-          'Khi mở thêm ngành hàng mới, hoặc muốn gộp/ẩn nhóm hàng không dùng.',
+          'Khi muốn thêm nhóm hàng mới (vd "Máy tính bảng"), gộp hoặc ẩn nhóm '
+          'hàng không dùng.',
       steps: [
         'Vào Cài đặt → Cửa hàng → Danh mục sản phẩm.',
         'Bấm + để thêm, hoặc chạm vào một danh mục để sửa.',
@@ -1552,6 +1553,11 @@ class AppKnowledgeBase {
       ],
       notes: [
         'Danh mục dùng chung theo shop, đồng bộ sang mọi máy trong cùng shop.',
+        'Mỗi danh mục chỉ còn MỘT tuỳ chọn: "Có IMEI/Serial" (bật cho điện '
+            'thoại, tắt cho phụ kiện / linh kiện). Các công tắc hạn sử dụng, '
+            'biến thể size/màu, bảo hành đã bỏ — app chỉ dành cho cửa hàng '
+            'điện thoại & điện tử; bảo hành ghi trên từng đơn.',
+        'Mặc định có 3 danh mục: Điện thoại (IMEI/Serial), Phụ kiện, Linh kiện.',
       ],
       tags: ['danh muc', 'nhom hang', 'category', 'nganh hang'],
       audience: ['owner', 'manager'],

@@ -181,9 +181,6 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
   String _buildSubtitle(ProductCategory category) {
     final features = <String>[];
     if (category.trackSerial) features.add(_terms.specialField1Label);
-    if (category.trackExpiry) features.add('HSD');
-    if (category.hasVariants) features.add('Biến thể');
-    if (category.hasWarranty) features.add(_terms.specialField2Label);
     if (category.description?.isNotEmpty == true) {
       features.add(category.description!);
     }
@@ -223,9 +220,6 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
     );
     String selectedIcon = category?.icon ?? '📦';
     bool trackSerial = category?.trackSerial ?? false;
-    bool trackExpiry = category?.trackExpiry ?? false;
-    bool hasVariants = category?.hasVariants ?? false;
-    bool hasWarranty = category?.hasWarranty ?? false;
 
     showAppBottomSheet(
       context: context,
@@ -358,50 +352,9 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                                 setDialogState(() => trackSerial = v),
                             contentPadding: EdgeInsets.zero,
                           ),
-                          SwitchListTile(
-                            title: const Text(
-                              'Theo dõi hạn sử dụng',
-                              style: TextStyle(color: PopupTheme.textPrimary),
-                            ),
-                            subtitle: const Text(
-                              'Cho thực phẩm',
-                              style: TextStyle(color: PopupTheme.textSecondary),
-                            ),
-                            value: trackExpiry,
-                            onChanged: (v) =>
-                                setDialogState(() => trackExpiry = v),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          SwitchListTile(
-                            title: const Text(
-                              'Có biến thể (size/màu)',
-                              style: TextStyle(color: PopupTheme.textPrimary),
-                            ),
-                            subtitle: const Text(
-                              'Cho thời trang',
-                              style: TextStyle(color: PopupTheme.textSecondary),
-                            ),
-                            value: hasVariants,
-                            onChanged: (v) =>
-                                setDialogState(() => hasVariants = v),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          SwitchListTile(
-                            title: Text(
-                              'Có ${_terms.specialField2Label.toLowerCase()}',
-                              style: const TextStyle(
-                                color: PopupTheme.textPrimary,
-                              ),
-                            ),
-                            subtitle: const Text(
-                              'Cho sản phẩm có thời hạn bảo hành',
-                              style: TextStyle(color: PopupTheme.textSecondary),
-                            ),
-                            value: hasWarranty,
-                            onChanged: (v) =>
-                                setDialogState(() => hasWarranty = v),
-                            contentPadding: EdgeInsets.zero,
-                          ),
+                          // [2026-09-11] Bỏ 3 công tắc HSD / biến thể / bảo
+                          // hành: app chỉ còn ngành điện thoại, và bảo hành
+                          // nay là ghi chú trên từng đơn, không gắn theo danh mục.
                           const SizedBox(height: 8),
                         ],
                       ),
@@ -442,19 +395,36 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
                                 description: descController.text.trim(),
                                 icon: selectedIcon,
                                 trackSerial: trackSerial,
-                                trackExpiry: trackExpiry,
-                                hasVariants: hasVariants,
-                                hasWarranty: hasWarranty,
                                 sortOrder:
                                     category?.sortOrder ?? _categories.length,
                                 isActive: true,
                               );
+                              // Service nuốt lỗi Firestore và trả null/false
+                              // — trước đây màn hình im lặng, người dùng tưởng
+                              // đã lưu (đo thật: rules từ chối mà không ai biết).
+                              final bool ok;
                               if (isEdit) {
-                                await _categoryService.updateCategory(
+                                ok = await _categoryService.updateCategory(
                                   newCategory,
                                 );
                               } else {
-                                await _categoryService.addCategory(newCategory);
+                                ok =
+                                    await _categoryService.addCategory(
+                                      newCategory,
+                                    ) !=
+                                    null;
+                              }
+                              if (!ok && mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      isEdit
+                                          ? 'Không cập nhật được danh mục — kiểm tra mạng / quyền rồi thử lại.'
+                                          : 'Không thêm được danh mục — kiểm tra mạng / quyền rồi thử lại.',
+                                    ),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
                               }
                               _loadCategories();
                             },

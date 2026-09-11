@@ -4,6 +4,86 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-11d] - Gỡ toàn bộ code/dữ liệu các loại hình kinh doanh khác — app chỉ còn điện thoại & điện tử
+
+Kiểm tra shop thật trước khi gỡ (`run-as` đọc SQLite): **0 biến thể, 0 sản
+phẩm có HSD/số lô, `businessType = electronics`** ⇒ không mất dữ liệu.
+
+### Đã xoá (file)
+`views/onboarding/business_type_wizard.dart` (wizard chọn ngành),
+`views/fashion/variant_management_view.dart` + `services/variant_service.dart`
++ `models/product_variant_model.dart` + `widgets/variant_selector.dart`
+(biến thể size/màu — thời trang), `views/food/expiry_management_view.dart` +
+`services/expiry_alert_service.dart` + `widgets/expiry_badge.dart` (hạn sử
+dụng — thực phẩm), `scripts/multi_industry_test_data.dart`.
+
+### Đã gỡ dây nối
+- **Trang chủ**: tab "HSD" / "Size/Màu", 2 thẻ hoạt động "Sắp hết HSD" /
+  "Hết size/màu", shortcut `expiryManage`, wizard bắt buộc chọn ngành khi shop
+  chưa có settings → nay **tự lưu `ShopSettings.electronics`**, không hỏi.
+- **Tạo đơn bán**: bỏ toàn bộ nhánh biến thể (`item['variant']`, dialog chọn
+  biến thể, trừ tồn biến thể) — nhánh này vốn chết vì `enableVariants` luôn
+  false, nhưng còn nằm trong màn quan trọng nhất.
+- **Kho**: bỏ khối HSD / số lô trong form sửa sản phẩm, widget tồn biến thể.
+- **Danh mục sản phẩm**: bỏ 3 công tắc "Theo dõi HSD" / "Có biến thể" / "Có
+  bảo hành" (bảo hành nay là ghi chú trên từng đơn — `[2026-09-11c]`); chỉ còn
+  "Có IMEI/Serial". Bỏ factory `foodCategory` / `fashionCategory` và seeding
+  danh mục theo ngành — luôn 3 danh mục Điện thoại / Phụ kiện / Linh kiện.
+- **Cài đặt**: bỏ thẻ "Loại hình kinh doanh" (khoá, không đổi được, chỉ hiện
+  1 giá trị). **Đăng ký**: bỏ khối chọn ngành (chỉ có 1 lựa chọn).
+  **Chọn cửa hàng**: nhãn/icon/màu ngành thu về điện tử.
+- **Đồng bộ**: bỏ subscription `product_variants` (bớt 1 truy vấn mỗi lượt
+  poll). Bảng SQLite `product_variants` và các cột `expiryDate` / `batchNumber`
+  / `trackExpiry` / `hasVariants` **giữ nguyên** — không migration, không xoá
+  dữ liệu; model `ProductCategory` / `ShopSettings` vẫn đọc/ghi các field này
+  để tương thích doc cũ trên cloud.
+- **Shortcut config**: `ShortcutConfig.tryFromJson` — entry đã lưu với `type`
+  không còn tồn tại (`expiryManage`) bị **bỏ qua** thay vì rơi về `sellCreate`
+  (entry ẩn đó đứng sau sẽ đè lên `sellCreate` thật ⇒ mất nút Tạo đơn bán).
+- Hướng dẫn sử dụng: bỏ mục "Chọn ngành nghề kinh doanh"; knowledge base cập
+  nhật mục Danh mục sản phẩm.
+
+### Giữ lại có chủ ý
+`BusinessTypeHelper` / `BusinessTerminology` (~200 chỗ dùng `_terms.*` cho
+nhãn UI) — đã là hằng số điện tử, không còn dữ liệu ngành khác; thay bằng chuỗi
+cứng ở 200 chỗ là churn không đổi hành vi.
+
+### 🔴 Màn "Quản lý danh mục" thực ra CHƯA hoạt động (phát hiện khi test trên shop test)
+
+Thêm danh mục "MAY TINH BANG" trên shop test `m@m.com` (chủ shop):
+1. `Write failed at shops/{shop}/product_categories/…: PERMISSION_DENIED` —
+   rules trong repo cho phép chủ shop tạo (`belongsTo && isManager && has([name,
+   shopId])`), nên khả năng cao **bản rules đang chạy trên server cũ hơn repo**
+   (repo sửa rules lần cuối 2026-09-05, chưa thấy ghi nhận deploy). Cần
+   `firebase deploy --only firestore:rules` rồi test lại.
+2. Query danh sách `where isActive == true orderBy sortOrder` (subcollection)
+   → `FAILED_PRECONDITION: requires an index` ⇒ đọc cloud luôn thất bại. Đã
+   thêm index `(isActive, sortOrder)` cho `product_categories` vào
+   `firestore.indexes.json` — **cần deploy** (`firebase deploy --only
+   firestore:indexes`, nhớ đối chiếu trước như `[2026-09-07g]`).
+3. Hệ quả của 1+2: 3 danh mục "Điện thoại / Phụ kiện / Linh kiện" đang thấy
+   trên mọi máy chỉ là **mặc định trong bộ nhớ** (`_getDefaultCategories`),
+   local `product_categories` của shop thật = 0 dòng.
+4. Thêm/sửa thất bại mà màn hình **im lặng** (service nuốt lỗi, trả null/false)
+   ⇒ người dùng tưởng đã lưu. Nay hiện SnackBar đỏ "Không thêm/cập nhật được
+   danh mục — kiểm tra mạng / quyền rồi thử lại."
+
+### Nghiệm thu thêm trên shop test (được phép ghi)
+- Tạo đơn bán TAI NGHE 100.000đ, bảo hành gõ tự do `BH TAI NGHE 3 THANG` →
+  SQLite `sales.warranty = 'BH TAI NGHE 3 THANG'`, sync lên cloud OK; màn Bảo
+  hành tự tính **90 ngày, hết hạn 11/12/26** từ ghi chú.
+- Phát hiện & sửa: sau khi bấm ✕ ô bảo hành, `didUpdateWidget` điền lại chữ
+  "KO BH" (so sánh chưa chuẩn hoá) ⇒ gõ tiếp bị nối đuôi. Thêm
+  `test/warranty_note_field_test.dart` (2 widget test) khoá lỗi này.
+- Nhãn "BH BH TAI NGHE…" ở màn Bảo hành: không lặp tiền tố nếu ghi chú đã bắt
+  đầu bằng "BH".
+
+**Nghiệm thu:** analyze 0 error; 628 test pass (2 KiotViet đỏ sẵn); máy thật
+mở Quản lý danh mục: Điện thoại → "IMEI/Serial", Phụ kiện / Linh kiện →
+"Không có tính năng đặc biệt".
+
+---
+
 ## [2026-09-11c] - Bảo hành = một dòng ghi chú: chip chọn nhanh + gõ tự do, bỏ nhắc "sắp hết hạn"
 
 Theo yêu cầu: *"mục bảo hành chỉ cần ghi chú thôi, không cần hẳn 1 model"*.

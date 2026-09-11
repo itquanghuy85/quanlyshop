@@ -106,34 +106,6 @@ class ProductCategory {
     );
   }
 
-  /// Factory cho danh mục thực phẩm
-  factory ProductCategory.foodCategory(String shopId, String name) {
-    return ProductCategory(
-      shopId: shopId,
-      name: name,
-      icon: '🍎',
-      trackExpiry: true,
-      trackSerial: false,
-      hasVariants: false,
-    );
-  }
-
-  /// Factory cho danh mục thời trang
-  factory ProductCategory.fashionCategory(String shopId, String name) {
-    return ProductCategory(
-      shopId: shopId,
-      name: name,
-      icon: '👕',
-      trackExpiry: false,
-      trackSerial: false,
-      hasVariants: true,
-      customFields: {
-        'size': 'Kích cỡ',
-        'color': 'Màu sắc',
-        'material': 'Chất liệu',
-      },
-    );
-  }
 
   /// Tạo từ Map (Firestore hoặc SQLite)
   factory ProductCategory.fromMap(Map<String, dynamic> map) {

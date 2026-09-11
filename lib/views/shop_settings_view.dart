@@ -19,11 +19,9 @@ import '../services/storage_service.dart';
 import '../services/data_migration_service.dart';
 import '../services/sync_service.dart';
 import '../services/claims_service.dart';
-import '../services/category_service.dart';
 import '../services/osm_map_service.dart';
 import '../widgets/app_cached_image.dart';
 import '../widgets/entity_avatar.dart';
-import '../models/shop_settings_model.dart';
 import '../widgets/validated_text_field.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../widgets/custom_app_bar.dart';
@@ -63,7 +61,6 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
   File? _selectedCover;
 
   // Multi-Industry: Shop Settings
-  ShopSettings? _shopSettings;
 
   // Members cache
   List<Map<String, dynamic>>? _cachedMembers;
@@ -80,7 +77,6 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
   void initState() {
     super.initState();
     _loadShopData();
-    _loadShopSettings();
     _loadMembers();
   }
 
@@ -426,16 +422,6 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
     await prefs.setString('shop_phone', phone);
   }
 
-  /// Load shop settings for multi-industry features
-  Future<void> _loadShopSettings() async {
-    try {
-      final settings = await CategoryService().getShopSettings();
-      debugPrint('🏪 ShopSettings: Loaded - businessType=${settings?.businessType}');
-      _safeSetState(() => _shopSettings = settings);
-    } catch (e) {
-      debugPrint('Error loading shop settings: $e');
-    }
-  }
 
   ImageProvider? _buildShopCoverImageProvider() {
     if (_selectedCover != null) {
@@ -1208,10 +1194,6 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
                     ),
                     const SizedBox(height: 12),
 
-                    // === LOẠI HÌNH KINH DOANH ===
-                    _buildBusinessTypeSection(),
-                    const SizedBox(height: 12),
-
                     // === VỊ TRÍ CHẤM CÔNG ===
                     _buildCompactLocationSection(),
                     const SizedBox(height: 12),
@@ -1249,105 +1231,6 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
     );
   }
 
-  /// Business Type Section - Multi-Industry support
-  Widget _buildBusinessTypeSection() {
-    final businessType = _shopSettings?.businessType ?? 'electronics';
-    final businessTypeName = _shopSettings?.businessTypeName ?? 'Điện thoại & Điện tử';
-    
-    // Get icon and color based on business type
-    IconData icon;
-    Color color;
-    switch (businessType) {
-      case 'food':
-        icon = Icons.restaurant;
-        color = Colors.orange;
-        break;
-      case 'fashion':
-        icon = Icons.checkroom;
-        color = Colors.pink;
-        break;
-      case 'general':
-        icon = Icons.store;
-        color = Colors.blue;
-        break;
-      default: // electronics
-        icon = Icons.phone_android;
-        color = Colors.indigo;
-    }
-    
-    // Get enabled features
-    final features = <String>[];
-    if (_shopSettings?.enableRepair == true) features.add('Sửa chữa');
-    if (_shopSettings?.enableSerial == true) features.add('IMEI/Serial');
-    if (_shopSettings?.enableWarranty == true) features.add('Bảo hành');
-    if (_shopSettings?.enableExpiry == true) features.add('Hạn sử dụng');
-    if (_shopSettings?.enableBatch == true) features.add('Số lô');
-    if (_shopSettings?.enableVariants == true) features.add('Biến thể');
-    
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, color: color, size: 24),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Loại hình kinh doanh',
-                        style: TextStyle(fontSize: 13, color: Colors.grey),
-                      ),
-                      Text(
-                        businessTypeName,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: color,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Lock icon instead of edit - business type is fixed after shop creation
-                Icon(Icons.lock_outline, size: 18, color: Colors.grey.shade400),
-              ],
-            ),
-            if (features.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 4,
-                children: features.map((f) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    f,
-                      style: TextStyle(fontSize: 13, color: color),
-                    ),
-                  )).toList(),
-                ),
-              ],
-            ],
-          ),
-        ),
-    );
-  }
 
   /// Compact location section - chỉ 1 row
   Widget _buildCompactLocationSection() {

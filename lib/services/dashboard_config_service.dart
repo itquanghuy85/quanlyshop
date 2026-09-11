@@ -733,7 +733,6 @@ enum ShortcutType {
   globalSearch, // Tìm kiếm
   staff, // Nhân sự
   expenses, // Thu chi
-  expiryManage, // Hạn sử dụng
   paymentRequest, // Yêu cầu đóng tiền
   dailyReport, // BC hoạt động ngày
   importHistory, // Lịch sử nhập kho
@@ -768,6 +767,16 @@ class ShortcutConfig {
       visible: json['visible'] ?? true,
       order: json['order'] ?? 0,
     );
+  }
+
+  /// Như [fromJson] nhưng trả null cho `type` không còn tồn tại (vd
+  /// `expiryManage` của bản đa ngành cũ). Không được rơi về `sellCreate`:
+  /// entry ẩn đó đứng sau trong danh sách sẽ ĐÈ lên `sellCreate` thật ở
+  /// `configByType` ⇒ mất nút Tạo đơn bán trên Trang chủ.
+  static ShortcutConfig? tryFromJson(Map<String, dynamic> json) {
+    final name = json['type']?.toString();
+    if (!ShortcutType.values.any((t) => t.name == name)) return null;
+    return ShortcutConfig.fromJson(json);
   }
 
   /// Vietnamese display name
@@ -823,8 +832,6 @@ class ShortcutConfig {
         return 'Nhân sự';
       case ShortcutType.expenses:
         return 'Thu chi';
-      case ShortcutType.expiryManage:
-        return 'Hạn SD';
       case ShortcutType.paymentRequest:
         return 'Đóng tiền';
       case ShortcutType.dailyReport:
@@ -891,8 +898,6 @@ class ShortcutConfig {
         return Icons.badge;
       case ShortcutType.expenses:
         return Icons.swap_horiz;
-      case ShortcutType.expiryManage:
-        return Icons.timer;
       case ShortcutType.paymentRequest:
         return Icons.request_page;
       case ShortcutType.dailyReport:
@@ -959,8 +964,6 @@ class ShortcutConfig {
         return Colors.blue;
       case ShortcutType.expenses:
         return Colors.redAccent;
-      case ShortcutType.expiryManage:
-        return Colors.orange;
       case ShortcutType.paymentRequest:
         return const Color(0xFF075E54);
       case ShortcutType.dailyReport:
@@ -999,7 +1002,6 @@ class ShortcutConfig {
       case ShortcutType.stockIn:
       case ShortcutType.pendingStock:
       case ShortcutType.inventoryCheck:
-      case ShortcutType.expiryManage:
       case ShortcutType.importHistory:
         return 'allowViewInventory';
       case ShortcutType.addExpense:
@@ -1252,7 +1254,10 @@ class ShortcutConfigService {
 
       if (jsonStr != null) {
         final List<dynamic> jsonList = jsonDecode(jsonStr);
-        localSaved = jsonList.map((j) => ShortcutConfig.fromJson(j)).toList();
+        localSaved = jsonList
+            .map((j) => ShortcutConfig.tryFromJson(Map<String, dynamic>.from(j)))
+            .whereType<ShortcutConfig>()
+            .toList();
 
         localSaved.sort((a, b) => a.order.compareTo(b.order));
       }
@@ -1270,7 +1275,8 @@ class ShortcutConfigService {
         if (cloudRaw is List) {
           final cloudSaved = cloudRaw
               .whereType<Map>()
-              .map((j) => ShortcutConfig.fromJson(Map<String, dynamic>.from(j)))
+              .map((j) => ShortcutConfig.tryFromJson(Map<String, dynamic>.from(j)))
+              .whereType<ShortcutConfig>()
               .toList();
           if (cloudSaved.isNotEmpty) {
             final migrated = _migrateShortcutConfigs(cloudSaved, cloudVersion);

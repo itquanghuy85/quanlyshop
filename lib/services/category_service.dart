@@ -351,35 +351,12 @@ class CategoryService {
 
   /// Lấy categories mặc định dựa theo businessType
   Future<List<ProductCategory>> _getDefaultCategories(String shopId) async {
-    final settings = await getShopSettings();
-    final businessType = settings?.businessType ?? 'electronics';
-
-    switch (businessType) {
-      case 'electronics':
-        return [
-          ProductCategory.defaultPhoneCategory(shopId),
-          ProductCategory.defaultAccessoryCategory(shopId),
-          ProductCategory.defaultPartCategory(shopId),
-        ];
-      case 'food':
-        return [
-          ProductCategory.foodCategory(shopId, 'Rau củ'),
-          ProductCategory.foodCategory(shopId, 'Trái cây'),
-          ProductCategory.foodCategory(shopId, 'Thịt cá'),
-          ProductCategory.foodCategory(shopId, 'Đồ khô'),
-        ];
-      case 'fashion':
-        return [
-          ProductCategory.fashionCategory(shopId, 'Áo'),
-          ProductCategory.fashionCategory(shopId, 'Quần'),
-          ProductCategory.fashionCategory(shopId, 'Giày dép'),
-          ProductCategory.fashionCategory(shopId, 'Phụ kiện'),
-        ];
-      default:
-        return [
-          ProductCategory(shopId: shopId, name: 'Sản phẩm chung', icon: '📦'),
-        ];
-    }
+    // App chỉ còn một loại hình (điện thoại & điện tử) — 3 danh mục mặc định.
+    return [
+      ProductCategory.defaultPhoneCategory(shopId),
+      ProductCategory.defaultAccessoryCategory(shopId),
+      ProductCategory.defaultPartCategory(shopId),
+    ];
   }
 
   /// Thêm danh mục mới
@@ -530,32 +507,8 @@ class CategoryService {
   }
 
   Future<List<ProductCategory>> _getDefaultCategoriesForType(String shopId, String businessType) async {
-    switch (businessType) {
-      case 'electronics':
-        return [
-          ProductCategory.defaultPhoneCategory(shopId),
-          ProductCategory.defaultAccessoryCategory(shopId),
-          ProductCategory.defaultPartCategory(shopId),
-        ];
-      case 'food':
-        return [
-          ProductCategory.foodCategory(shopId, 'Rau củ'),
-          ProductCategory.foodCategory(shopId, 'Trái cây'),
-          ProductCategory.foodCategory(shopId, 'Thịt cá'),
-          ProductCategory.foodCategory(shopId, 'Đồ khô'),
-        ];
-      case 'fashion':
-        return [
-          ProductCategory.fashionCategory(shopId, 'Áo'),
-          ProductCategory.fashionCategory(shopId, 'Quần'),
-          ProductCategory.fashionCategory(shopId, 'Giày dép'),
-          ProductCategory.fashionCategory(shopId, 'Phụ kiện'),
-        ];
-      default:
-        return [
-          ProductCategory(shopId: shopId, name: 'Sản phẩm chung', icon: '📦'),
-        ];
-    }
+    // `businessType` giữ cho tương thích chữ ký — app chỉ còn điện thoại & điện tử.
+    return _getDefaultCategories(shopId);
   }
 
   // === HELPER METHODS ===

@@ -160,6 +160,15 @@ class _WarrantyViewState extends State<WarrantyView> {
     }
   }
 
+  /// Ghi chú tự do có thể đã bắt đầu bằng "BH …" — không lặp tiền tố.
+  static String _warrantyLabel(dynamic raw) {
+    final w = (raw ?? '').toString().trim();
+    if (w.isEmpty) return '';
+    final startsWithBh = w.toUpperCase().startsWith('BH ') ||
+        w.toUpperCase().startsWith('BẢO HÀNH');
+    return startsWithBh ? '  •  $w' : '  •  BH $w';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -370,7 +379,7 @@ class _WarrantyViewState extends State<WarrantyView> {
                         // IMEI + thời hạn BH
                         Text(
                           'IMEI: ${item['imei']}'
-                          '${(item['warranty'] ?? '').toString().trim().isNotEmpty ? '  •  BH ${item['warranty']}' : ''}',
+                          '${_warrantyLabel(item['warranty'])}',
                           style: TextStyle(
                             fontSize: AppTextStyles.overlineSize,
                             color: Colors.grey.shade500,

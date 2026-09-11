@@ -8,7 +8,6 @@ import '../services/firestore_write_helper.dart';
 import '../utils/money_utils.dart';
 import '../data/db_helper.dart';
 import '../models/product_model.dart';
-import '../models/product_variant_model.dart';
 import '../models/customer_model.dart';
 import '../models/sale_order_model.dart';
 import '../models/debt_model.dart';
@@ -34,14 +33,12 @@ import '../services/category_service.dart';
 import '../services/debt_summary_service.dart';
 import '../services/business_type_helper.dart';
 import '../services/product_pricing_service.dart';
-import '../services/variant_service.dart';
 import '../models/payment_intent_model.dart';
 import '../models/shop_settings_model.dart';
 import '../constants/product_constants.dart';
 import '../constants/financial_constants.dart';
 import '../widgets/debounced_search_field.dart';
 import '../widgets/currency_text_field.dart';
-import '../widgets/variant_selector.dart';
 import '../widgets/entity_avatar.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../theme/app_colors.dart';
@@ -91,14 +88,6 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     return ProductConstants.cleanProductName(raw.trim());
   }
 
-  bool _shouldShowVariantName(String productName, String? variantName) {
-    final cleanedVariant = ProductConstants.cleanProductName(
-      (variantName ?? '').trim(),
-    );
-    if (cleanedVariant.isEmpty) return false;
-    final cleanedProduct = ProductConstants.cleanProductName(productName.trim());
-    return !cleanedProduct.contains(cleanedVariant);
-  }
 
   final db = DBHelper();
   final nameCtrl = TextEditingController();
@@ -150,14 +139,11 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   ShopSettings? _shopSettings;
   bool get _enableSerial => _shopSettings?.enableSerial ?? true;
   bool get _enableWarranty => _shopSettings?.enableWarranty ?? true;
-  bool get _enableVariants => _shopSettings?.enableVariants ?? false;
 
   /// Terminology động theo ngành
   BusinessTerminology get _terms =>
       BusinessTypeHelper.instance.getTerminology(_shopSettings);
 
-  // Variant Service for fashion/multi-size products
-  final VariantService _variantService = VariantService();
 
   // Focus management cho IMEI fields
   final Map<String, FocusNode> _imeiFocusNodes = {};
@@ -913,73 +899,26 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     }
   }
 
-  /// Add product to sale - with variant support for fashion shops
+  /// Add product to sale.
   Future<void> _addProductToSale(Product p) async {
-    // Check if already added (for non-variant products, check by ID)
-    // For variant products, same product can be added multiple times with different variants
-    final hasVariantSupport = _enableVariants;
-
-    // Load variants if enabled
-    List<ProductVariant> variants = [];
-    if (hasVariantSupport && p.firestoreId != null) {
-      variants = await _variantService.getVariantsByProduct(p.firestoreId!);
-    }
-
-    ProductVariant? selectedVariant;
-
-    // If product has variants, show variant selector dialog
-    if (variants.isNotEmpty && mounted) {
-      selectedVariant = await showDialog<ProductVariant>(
-        context: context,
-        builder: (ctx) => VariantSelectionDialog(
-          productId: p.firestoreId!,
-          productName: p.name,
-          productPrice: p.price,
-        ),
-      );
-
-      // User cancelled variant selection
-      if (selectedVariant == null) return;
-
-      // Check if this exact variant is already in cart
-      final alreadyInCart = _selectedItems.any((item) {
-        final itemVariant = item['variant'] as ProductVariant?;
-        return itemVariant?.firestoreId == selectedVariant?.firestoreId;
-      });
-
-      if (alreadyInCart) {
-        NotificationService.showSnackBar(
-          'Biến thể này đã có trong giỏ hàng!',
-          color: Colors.orange,
-        );
-        return;
-      }
-    } else {
-      // Non-variant product: check if already added
-      if (_selectedItems.any(
-        (item) => item['product'].id == p.id && item['variant'] == null,
-      )) {
-        return;
-      }
+    if (_selectedItems.any((item) => item['product'].id == p.id)) {
+      return;
     }
 
     final productId = p.id;
     final imeiController = TextEditingController(text: p.imei ?? '');
     final imeiFocusNode = FocusNode();
 
-    final itemPrice = selectedVariant?.salePrice ?? p.price;
+    final itemPrice = p.price;
     setState(() {
       _selectedItems.add({
         'product': p,
-        'variant': selectedVariant, // null for non-variant products
         'isGift': false,
         'sellPrice': itemPrice,
         'originalPrice': itemPrice,
         'pricingType': PricingRuleType.normal,
         'quantity': 1,
         'imei': p.imei ?? '',
-        // Store variant display name for UI
-        'variantName': selectedVariant?.displayName,
       });
 
       _imeiControllers[productId.toString()] = imeiController;
@@ -1561,17 +1500,9 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       for (var item in _selectedItems) {
         final p = item['product'] as Product;
         final quantity = item['quantity'] as int;
-        final variant = item['variant'] as ProductVariant?;
 
-        // Handle variant stock deduction for fashion shops
-        if (variant != null) {
-          // Deduct from variant stock
-          await _variantService.decreaseQuantity(variant.firestoreId, quantity);
-          debugPrint(
-            '👗 Variant sale: Deducted ${p.name} - ${variant.displayName} by $quantity',
-          );
-        } else if (isLocalOnly) {
-          // Chỉ cập nhật local database khi bán offline (non-variant products)
+        if (isLocalOnly) {
+          // Chỉ cập nhật local database khi bán offline
           if (p.type == 'DIEN_THOAI') {
             await db.updateProductStatus(p.id!, 0);
           }
@@ -3249,14 +3180,11 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       children: _selectedItems.map((item) {
         final product = item['product'] as Product;
         final quantity = item['quantity'] as int? ?? 1;
-        final variant = item['variant'] as ProductVariant?;
         // Phones with a single IMEI represent one physical unit — qty must stay at 1.
         final isPhoneUnit = product.type == 'DIEN_THOAI' &&
             (product.imei ?? '').isNotEmpty &&
             !(product.imei ?? '').contains('|');
-        final variantName = item['variantName'] as String?;
         final displayName = _cleanProductDisplayName(product.name);
-        final showVariantName = _shouldShowVariantName(product.name, variantName);
         final isGift = item['isGift'] as bool? ?? false;
         final originalPrice = item['originalPrice'] as int? ?? product.price;
         final sellPrice = item['sellPrice'] as int? ?? originalPrice;
@@ -3330,29 +3258,6 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                               ],
                             ],
                           ),
-                          // Show variant info if available
-                          if (showVariantName) ...[
-                            const SizedBox(height: 2),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.shade50,
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: Colors.blue.shade200),
-                              ),
-                              child: Text(
-                                variantName!,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.blue.shade700,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -3423,17 +3328,6 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                   ],
                 ),
                 const SizedBox(height: 4),
-                // Show variant stock if available
-                if (variant != null) ...[
-                  Text(
-                    "Tồn kho: ${variant.quantity}",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: variant.quantity > 0 ? Colors.green : Colors.red,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                ],
                 if (isGift)
                   Text(
                     'Giá gốc: ${MoneyUtils.formatCurrency(originalPrice)} → MIỄN PHÍ',

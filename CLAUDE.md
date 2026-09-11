@@ -4,7 +4,7 @@
 
 **Tên:** HULUCA Shop Manager  
 **Phiên bản:** 1.x  
-**Miền:** Quản lý cửa hàng sửa chữa điện thoại  
+**Miền:** Quản lý cửa hàng sửa chữa điện thoại — **loại hình duy nhất** (từ 2026-09-11 đã gỡ hết code/dữ liệu thời trang, thực phẩm…; không thêm lại `enableExpiry` / `enableVariants` / wizard chọn ngành)  
 **Stack:** Flutter (Dart) + Firebase + SQLite  
 **Ngôn ngữ UI:** Tiếng Việt (với dấu)  
 **Ngôn ngữ Code/Comment:** Tiếng Anh  

@@ -473,56 +473,14 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
     );
   }
 
-  IconData _businessIcon(String? type) {
-    switch (type) {
-      case 'electronics':
-        return Icons.phone_android;
-      case 'fashion':
-        return Icons.checkroom;
-      case 'food':
-        return Icons.restaurant;
-      case 'pharmacy':
-        return Icons.local_pharmacy;
-      case 'grocery':
-        return Icons.shopping_basket;
-      default:
-        return Icons.store;
-    }
-  }
+  // App chỉ còn loại hình điện thoại & điện tử.
+  IconData _businessIcon(String? type) => Icons.phone_android;
 
-  String _businessLabel(String? type) {
-    switch (type) {
-      case 'electronics':
-        return 'Điện tử';
-      case 'fashion':
-        return 'Thời trang';
-      case 'food':
-        return 'Ẩm thực';
-      case 'pharmacy':
-        return 'Dược phẩm';
-      case 'grocery':
-        return 'Tạp hoá';
-      default:
-        return type ?? 'Chung';
-    }
-  }
+  // App chỉ còn loại hình điện thoại & điện tử.
+  String _businessLabel(String? type) => 'Điện tử';
 
-  Color _businessColor(String? type) {
-    switch (type) {
-      case 'electronics':
-        return Colors.blue;
-      case 'fashion':
-        return Colors.pink;
-      case 'food':
-        return Colors.orange;
-      case 'pharmacy':
-        return Colors.green;
-      case 'grocery':
-        return Colors.teal;
-      default:
-        return Colors.deepPurple;
-    }
-  }
+  // App chỉ còn loại hình điện thoại & điện tử.
+  Color _businessColor(String? type) => Colors.blue;
 
   String _formatTimestamp(dynamic ts) {
     if (ts == null) return '—';

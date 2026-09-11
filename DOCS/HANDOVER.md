@@ -9,6 +9,20 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-11  
 
+**🔴 CẦN DEPLOY FIRESTORE (`[2026-09-11d]`).** Màn Quản lý danh mục chưa
+hoạt động: (1) ghi `shops/{shop}/product_categories` bị PERMISSION_DENIED dù
+rules repo cho phép ⇒ rules server có thể cũ hơn repo → `firebase deploy --only
+firestore:rules`; (2) thiếu index `(isActive, sortOrder)` cho
+`product_categories` — đã thêm vào `firestore.indexes.json`, chưa deploy →
+`firebase deploy --only firestore:indexes` (đối chiếu trước, không `--force`).
+Sau deploy: vào Cài đặt → Danh mục sản phẩm → thêm 1 danh mục để xác nhận.
+
+**✅ CHỈ CÒN MỘT LOẠI HÌNH (`[2026-09-11d]`).** Đã xoá wizard chọn ngành,
+module biến thể (thời trang), module HSD (thực phẩm), seeding danh mục theo
+ngành, thẻ "Loại hình kinh doanh" ở Cài đặt, khối chọn ngành khi đăng ký. Shop
+chưa có settings → tự lưu `ShopSettings.electronics`. Schema SQLite giữ nguyên.
+Thêm màn nhập liệu mới KHÔNG cần `if (_enableExpiry/_enableVariants)`.
+
 **✅ BẢO HÀNH = GHI CHÚ (`[2026-09-11c]`).** `WarrantyNoteField` (chip + gõ tự
 do) dùng chung cho đơn sửa / đơn bán; `WarrantyNote` (utils) chuẩn hoá giá trị
 + rút thời hạn từ ghi chú. Đã XOÁ `WarrantyReminderService`, widget nhắc, banner

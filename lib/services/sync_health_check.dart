@@ -1065,9 +1065,6 @@ class SyncHealthCheck {
       case 'product_categories':
         await db.upsertProductCategory(data);
         break;
-      case 'product_variants':
-        await db.upsertProductVariant(data);
-        break;
       case 'supplier_payments':
         await db.upsertSupplierPayment(data);
         break;
