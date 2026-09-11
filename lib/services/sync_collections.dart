@@ -36,7 +36,6 @@ class SyncCollections {
     'sales_return_items',
     // ── Kho & nhập hàng ──
     'products',
-    'product_categories',
     'import_orders',
     'import_order_items',
     'purchase_orders',

@@ -126,7 +126,6 @@ import '../services/payment_request_service.dart';
 import '../widgets/app_cached_image.dart';
 import '../utils/app_info.dart';
 import '../utils/internal_tools.dart';
-import 'category_management_view.dart';
 import 'kiotviet_settings_view.dart';
 
 class HomeView extends StatefulWidget {
@@ -6156,16 +6155,6 @@ class _HomeViewState extends State<HomeView>
               keywords: 'biến động số dư sms đối soát',
               onTap: () =>
                   _fadePush(context, const BankNotificationSettingsView()),
-            ),
-          if (hasFullAccess)
-            _SettingsItem(
-              group: 'shop',
-              title: 'Danh mục sản phẩm',
-              subtitle: 'Thêm, sửa, xoá nhóm hàng dùng chung toàn shop',
-              icon: Icons.category_rounded,
-              color: Colors.indigo,
-              keywords: 'nhóm hàng ngành hàng phân loại category',
-              onTap: () => _fadePush(context, const CategoryManagementView()),
             ),
           _SettingsItem(
             group: 'shop',

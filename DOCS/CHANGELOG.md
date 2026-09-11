@@ -41,6 +41,34 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-12a] - Gỡ hẳn màn "Quản lý danh mục" (product_categories)
+
+Sau khi sửa rules để màn này ghi được (`[2026-09-11d]`), rà lại thì nó là
+**cái vỏ chưa nối dây**: không màn nào gán `products.categoryId` (form nhập /
+sửa sản phẩm không có ô chọn danh mục), kho / bán hàng / báo cáo vẫn phân loại
+bằng `type` cứng `DIEN_THOAI / PHU_KIEN / LINH_KIEN` (25 chỗ), cờ "Có IMEI"
+của danh mục không ảnh hưởng gì. 26 nơi gọi `CategoryService` chỉ để lấy
+ShopSettings. Chủ shop chọn gỡ thay vì nối dây (shop điện thoại chỉ cần 3
+loại cố định).
+
+- Xoá `views/category_management_view.dart`, `models/product_category_model.dart`,
+  mục "Danh mục sản phẩm" trong Cài đặt, mục knowledge base `product-categories`.
+- `CategoryService` chỉ còn phần ShopSettings (giữ tên class để không đụng 26
+  chỗ gọi); bỏ getCategories/add/update/delete/seed defaults.
+- Sync: bỏ poller subcollection `shops/{id}/product_categories`, bỏ khỏi
+  `SyncCollections.all` và `SyncHealthCheck` (hết luôn log nhiễu "Bỏ qua kiểm
+  tra product_categories do không có quyền" — health check từng soi ROOT
+  collection trong khi dữ liệu ở subcollection).
+- **Giữ nguyên**: bảng SQLite `product_categories`, cột `products.categoryId`,
+  rules + index `(isActive, sortOrder)` trên Firestore (vô hại; xoá index
+  sẽ phải qua prompt deploy). Fix rules `deleted` của `[2026-09-11d]` vẫn
+  cần thiết cho mọi rule khác.
+
+**Kiểm chứng:** analyze 0 error; 648 test pass (2 KiotViet đỏ sẵn). **CHƯA cài
+máy thật** — máy đang bận chạy test ADB của phiên khác, sẽ nghiệm thu sau.
+
+---
+
 ## [2026-09-11d] - Gỡ toàn bộ code/dữ liệu các loại hình kinh doanh khác — app chỉ còn điện thoại & điện tử
 
 Kiểm tra shop thật trước khi gỡ (`run-as` đọc SQLite): **0 biến thể, 0 sản

@@ -1537,32 +1537,6 @@ class AppKnowledgeBase {
 
     // ===== HỆ THỐNG =====
     KbEntry(
-      id: 'product-categories',
-      title: 'Danh mục sản phẩm',
-      menuPath: 'Cài đặt → Cửa hàng → Danh mục sản phẩm',
-      whatItDoes:
-          'Quản lý danh sách nhóm hàng dùng chung cho kho, bán hàng và báo '
-          'cáo: thêm, sửa, xoá, bật/tắt từng danh mục.',
-      whenToUse:
-          'Khi muốn thêm nhóm hàng mới (vd "Máy tính bảng"), gộp hoặc ẩn nhóm '
-          'hàng không dùng.',
-      steps: [
-        'Vào Cài đặt → Cửa hàng → Danh mục sản phẩm.',
-        'Bấm + để thêm, hoặc chạm vào một danh mục để sửa.',
-        'Lưu — danh mục áp dụng ngay cho toàn shop.',
-      ],
-      notes: [
-        'Danh mục dùng chung theo shop, đồng bộ sang mọi máy trong cùng shop.',
-        'Mỗi danh mục chỉ còn MỘT tuỳ chọn: "Có IMEI/Serial" (bật cho điện '
-            'thoại, tắt cho phụ kiện / linh kiện). Các công tắc hạn sử dụng, '
-            'biến thể size/màu, bảo hành đã bỏ — app chỉ dành cho cửa hàng '
-            'điện thoại & điện tử; bảo hành ghi trên từng đơn.',
-        'Mặc định có 3 danh mục: Điện thoại (IMEI/Serial), Phụ kiện, Linh kiện.',
-      ],
-      tags: ['danh muc', 'nhom hang', 'category', 'nganh hang'],
-      audience: ['owner', 'manager'],
-    ),
-    KbEntry(
       id: 'kiotviet-connect',
       title: 'Kết nối KiotViet',
       menuPath: 'Cài đặt → Dữ liệu & Hệ thống → Kết nối KiotViet',

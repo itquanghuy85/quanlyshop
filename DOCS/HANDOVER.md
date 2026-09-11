@@ -7,7 +7,7 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## ⚡ Trạng thái hiện tại
 
 **Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
-**Last Updated:** 2026-09-11  
+**Last Updated:** 2026-09-12  
 
 **✅ KỊCH BẢN TEST TÀI CHÍNH TOÀN DIỆN (`[2026-09-11e]`).** `test/FINANCE_FULL_SCENARIO.md`
 + `test/finance_full_scenario_test.dart` — 25 bước phủ mọi luồng ghi tiền
@@ -19,6 +19,12 @@ sẽ báo để bổ sung fixture. Đã sửa 2 lỗi thật kịch bản tìm r
 dòng đếm dư tiền ra ở Chốt quỹ; dòng tất toán đơn góp kỳ trước sai ngày).
 Chủ shop xác nhận NH luôn tất toán ĐỦ khoản vay (không giữ phí) → vốn theo
 tỉ lệ tiền nhận của V2 = vốn đủ, không cần đổi.
+
+**✅ ĐÃ GỠ MÀN "DANH MỤC SẢN PHẨM" (`[2026-09-12a]`).** Vỏ chưa nối dây
+(không ai dùng `categoryId`; phân loại vẫn bằng `type` cứng). `CategoryService`
+nay chỉ còn ShopSettings. Schema SQLite/cột giữ nguyên. **Chưa nghiệm thu máy
+thật** (máy bận) — việc cần làm: cài debug, mở Cài đặt xác nhận không còn mục,
+mở Kho / Tạo đơn bán chạy bình thường.
 
 **✅ RULES: `data.deleted != true` LÀ BẪY (`[2026-09-11d]`).** Field không tồn
 tại ⇒ biểu thức LỖI → false, không phải true. Đã đổi `isShopOwner()` /

@@ -239,25 +239,6 @@ class SyncService {
     }).toList();
   }
 
-  static bool _canSubscribeShopSubcollection({
-    required String subcollection,
-    required Map<String, dynamic> permissions,
-    required String role,
-    required bool isSuperAdmin,
-  }) {
-    if (isSuperAdmin) return true;
-
-    switch (subcollection) {
-      case 'product_categories':
-        return _hasPermission(permissions, 'allowViewInventory');
-      case 'settings':
-        return _isManagerLike(role, isSuperAdmin) ||
-            _hasPermission(permissions, 'allowViewSettings');
-      default:
-        return true;
-    }
-  }
-
   // ═══════════════════════════════════════════════════════════════════════
   // DOWNLOAD THROTTLING: Prevent cascade calls to downloadAllFromCloud
   // ═══════════════════════════════════════════════════════════════════════
@@ -435,7 +416,6 @@ class SyncService {
     'suppliers',
     'price_catalog_items',
     'purchase_orders',
-    'product_categories',
     'supplier_payments',
     // storage_locations intentionally excluded: small dataset, always full-fetch to avoid
     // requiring a composite (shopId, updatedAt) Firestore index that is hard to deploy.
@@ -2558,135 +2538,8 @@ class SyncService {
       debugPrint("Lỗi khởi tạo employee_salary_settings sync: $e");
     }
 
-    // === MULTI-INDUSTRY EXPANSION - Phase 1 (v75) ===
-
-    // 25. Đồng bộ PRODUCT CATEGORIES (Danh mục sản phẩm)
-    try {
-      // Categories được lưu trong subcollection của shops
-      if (!_canSubscribeShopSubcollection(
-        subcollection: 'product_categories',
-        permissions: permissions,
-        role: role,
-        isSuperAdmin: isSuperAdmin,
-      )) {
-        _subscriptionStatus['product_categories'] = false;
-        _collectionRefreshers.remove('product_categories');
-        debugPrint(
-          '⏭️ Skipping product_categories subscription due to permissions',
-        );
-      } else {
-        final currentShopId = shopId;
-        if (currentShopId == null || currentShopId.isEmpty) {
-          _subscriptionStatus['product_categories'] = false;
-          _collectionRefreshers.remove('product_categories');
-          debugPrint('⚠️ Skipping product_categories polling: missing shopId');
-        } else {
-          _subscriptionStatus['product_categories'] = true;
-          bool isPolling = false;
-
-          Future<void> pollProductCategories({
-            String reason = 'initial',
-          }) async {
-            if (isPolling) return;
-            isPolling = true;
-            try {
-              // Poller riêng của product_categories (subcollection
-              // `shops/{shopId}/product_categories`) nên KHÔNG đi qua
-              // `_pollLimitFor` — phải tự áp cùng nguyên tắc: chưa có con trỏ
-              // thì lượt này là quét trọn, hạn mức 20 sẽ lấy 20 doc bất kỳ rồi
-              // ĐẨY CON TRỎ qua chúng ⇒ nhóm hàng cũ mất vĩnh viễn.
-              final cursorMs = _realtimeCursorMs(
-                'product_categories',
-                currentShopId,
-              );
-              final pollLimit = cursorMs > 0
-                  ? _collectionPollLimit
-                  : _uncursoredPollLimit;
-
-              _logCollectionFetch(
-                collection: 'product_categories',
-                reason: reason,
-                limit: pollLimit,
-              );
-              Query<Map<String, dynamic>> query = _db
-                  .collection('shops')
-                  .doc(currentShopId)
-                  .collection('product_categories');
-
-              if (cursorMs > 0) {
-                query = query.where(
-                  'updatedAt',
-                  isGreaterThan: Timestamp.fromMillisecondsSinceEpoch(cursorMs),
-                );
-              }
-
-              final snapshot = await _getQueryWithTimeout(
-                query: query,
-                context: 'product_categories_poll',
-                limit: pollLimit,
-              );
-              if (snapshot.docs.isEmpty) return;
-
-              final db = DBHelper();
-              var maxCursorMs = 0;
-              for (final doc in snapshot.docs) {
-                try {
-                  final docId = doc.id;
-                  final data = doc.data();
-                  final docCursorMs = _extractRealtimeCursorMs(data);
-                  if (docCursorMs > maxCursorMs) {
-                    maxCursorMs = docCursorMs;
-                  }
-
-                  if (data['isActive'] == false) {
-                    await db.rawUpdate(
-                      'UPDATE product_categories SET isActive = 0 WHERE firestoreId = ?',
-                      [docId],
-                    );
-                  } else {
-                    data['firestoreId'] = docId;
-                    data['shopId'] = currentShopId;
-                    data['isSynced'] = 1;
-                    _convertTimestampFields(data);
-                    await db.upsertProductCategory(data);
-                  }
-                } catch (e) {
-                  debugPrint("Lỗi sync product_category ${doc.id}: $e");
-                }
-              }
-
-              if (maxCursorMs > 0) {
-                await _saveRealtimeCursorMs(
-                  collection: 'product_categories',
-                  shopId: currentShopId,
-                  cursorMs: maxCursorMs,
-                );
-              }
-
-              unawaited(
-                FirebaseUsageStatsService.logRealtimeRead(
-                  collection: 'product_categories',
-                  shopId: currentShopId,
-                  readCount: snapshot.docs.length,
-                ),
-              );
-              onDataChanged();
-              EventBus().emit('product_categories_changed');
-            } catch (e) {
-              debugPrint('Sync error in product_categories polling: $e');
-            } finally {
-              isPolling = false;
-            }
-          }
-
-          _collectionRefreshers['product_categories'] = () =>
-              pollProductCategories(reason: 'manual_refresh');
-          unawaited(pollProductCategories());
-        }
-      }
-    } catch (e) {
-      debugPrint("Lỗi khởi tạo product_categories sync: $e");
-    }
+    // (25. product_categories — màn Quản lý danh mục đã gỡ 2026-09-12, không
+    // màn nào dùng categoryId. Bảng SQLite giữ nguyên, không sync.)
 
     // (26. product_variants — tính năng thời trang — đã gỡ 2026-09-11; app chỉ
     // còn loại hình điện thoại & điện tử. Bảng SQLite giữ nguyên, không sync.)

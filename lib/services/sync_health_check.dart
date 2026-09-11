@@ -1062,9 +1062,6 @@ class SyncHealthCheck {
       case 'import_order_items':
         await db.upsertImportOrderItem(data);
         break;
-      case 'product_categories':
-        await db.upsertProductCategory(data);
-        break;
       case 'supplier_payments':
         await db.upsertSupplierPayment(data);
         break;

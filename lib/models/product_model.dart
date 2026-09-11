@@ -29,7 +29,7 @@ class Product {
   String? labelNote; // Nội dung in trên tem
 
   // === MULTI-INDUSTRY FIELDS (Phase 1) ===
-  String? categoryId; // Tham chiếu đến ProductCategory (thay thế type)
+  String? categoryId; // Cột cũ của tính năng danh mục đã gỡ (2026-09-12) — không dùng, giữ để đọc/ghi map cũ
   String? unit; // Đơn vị tính: cái, kg, lít, hộp...
   int? expiryDate; // Ngày hết hạn (milliseconds) - cho thực phẩm
   String? batchNumber; // Số lô hàng - cho thực phẩm
