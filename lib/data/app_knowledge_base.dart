@@ -409,12 +409,20 @@ class AppKnowledgeBase {
       ],
       notes: [
         'Danh sách hiện SĐT khách, thời hạn BH và nội dung sửa của đơn gốc.',
+        'Bảo hành là một dòng GHI CHÚ trên đơn sửa / đơn bán: có chip chọn '
+            'nhanh (KO BH, 1/3/6/12 THÁNG) hoặc gõ tự do, ví dụ "BH MÀN 3 '
+            'THÁNG, PIN 6 THÁNG". Ghi chú có số tháng thì màn Bảo hành tự tính '
+            'ngày hết hạn; không có số thì chỉ là ghi chú, không tính hạn.',
+        'Không còn banner "sắp hết hạn bảo hành" trên Trang chủ và không '
+            'gửi thông báo nhắc — khi khách quay lại thì tra cứu ở đây.',
+        'Dòng bảo hành được in trên hoá đơn bán và phiếu sửa.',
       ],
       sampleQuestions: [
         'kiểm tra bảo hành ở đâu',
         'máy này còn bảo hành không',
+        'ghi bảo hành cho đơn sửa ở đâu',
       ],
-      tags: ['bao hanh', 'warranty', 'bh', 'khieu nai'],
+      tags: ['bao hanh', 'warranty', 'bh', 'khieu nai', 'ghi chu bao hanh'],
       audience: ['all'],
     ),
 

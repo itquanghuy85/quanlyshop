@@ -13,6 +13,7 @@ import '../models/customer_model.dart';
 import '../models/sale_order_model.dart';
 import '../models/debt_model.dart';
 import '../services/notification_service.dart';
+import '../widgets/warranty_note_field.dart';
 import '../widgets/payment_result_sheet.dart';
 import '../services/firestore_service.dart';
 import '../services/customer_service.dart';
@@ -703,7 +704,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     discountCtrl.text = _formatCurrency(sale.discount); // FIX: Load discount
     noteCtrl.text = sale.notes ?? '';
     _paymentMethod = sale.paymentMethod;
-    _saleWarranty = sale.warranty;
+    _saleWarranty = WarrantyNote.normalize(sale.warranty);
     _isInstallment = sale.isInstallment;
     _isCombined = (sale.paymentMethod == "KẾT HỢP");
     if (_isCombined) {
@@ -2910,39 +2911,20 @@ class _CreateSaleViewState extends State<CreateSaleView> {
 
         const Divider(height: 12),
 
-        // Bảo hành + Ghi chú: dùng Row flexible để tránh tràn ngang
+        // Multi-Industry: Only show warranty for electronics.
+        // Bảo hành là ghi chú tự do + chip chọn nhanh (không còn dropdown
+        // cứng — dropdown sẽ ném assert nếu đơn cũ có giá trị ngoài danh sách).
+        if (_enableWarranty) ...[
+          WarrantyNoteField(
+            label: _terms.specialField2Label,
+            value: _saleWarranty,
+            dense: true,
+            onChanged: (v) => setState(() => _saleWarranty = v),
+          ),
+          const SizedBox(height: 8),
+        ],
         Row(
           children: [
-            // Multi-Industry: Only show warranty for electronics
-            if (_enableWarranty)
-              SizedBox(
-                width: 130,
-                child: DropdownButtonFormField<String>(
-                  value: _saleWarranty,
-                  isExpanded: true,
-                  decoration: InputDecoration(
-                    labelText: _terms.specialField2Label,
-                    prefixIcon: const Icon(Icons.verified_user, size: DesignTokens.iconMd),
-                    isDense: true,
-                    contentPadding: DesignTokens.formContentPadding,
-                  ),
-                  items: ["KO BH", "1 THÁNG", "3 THÁNG", "6 THÁNG", "12 THÁNG"]
-                      .map(
-                        (e) => DropdownMenuItem(
-                          value: e,
-                          child: Text(
-                            e,
-                            style: AppTextStyles.caption,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (v) =>
-                      setState(() => _saleWarranty = v ?? "KO BH"),
-                ),
-              ),
-            if (_enableWarranty) const SizedBox(width: 12),
             Expanded(
               child: TextFormField(
                 controller: noteCtrl,

@@ -5367,7 +5367,7 @@ class DBHelper {
       whereArgs.add(shopId);
     }
     final maps = await db.rawQuery('''SELECT * FROM repairs
-         WHERE warranty != '' AND warranty != 'KO BH'
+         WHERE warranty != '' AND warranty NOT IN ('KO BH', 'Không bảo hành', 'KHÔNG BẢO HÀNH')
            AND deliveredAt IS NOT NULL AND deliveredAt > ?
            $shopFilter
            AND (deleted = 0 OR deleted IS NULL)
@@ -5732,7 +5732,7 @@ class DBHelper {
       whereArgs.add(shopId);
     }
     final maps = await db.rawQuery('''SELECT * FROM sales
-         WHERE warranty != '' AND warranty != 'KO BH'
+         WHERE warranty != '' AND warranty NOT IN ('KO BH', 'Không bảo hành', 'KHÔNG BẢO HÀNH')
            AND soldAt > ?
            $shopFilter
            AND (deleted = 0 OR deleted IS NULL)

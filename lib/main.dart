@@ -395,9 +395,6 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   bool _syncOrchestratorInitialized = false;
   // Track which UID the notification listener is set up for (avoid stale listener after re-login)
   String? _notificationListenerUid;
-  Future<void> _initWarrantyReminderOnce() async {
-    // Warranty reminder notifications disabled
-  }
 
   @override
   void initState() {
@@ -702,7 +699,6 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           debugPrint('⚠️ _getRoleAfterSync: đọc claims ở fast path lỗi: $e');
         }
         UserService.setCurrentUserSuperAdmin(cachedIsSuperAdmin, uid: uid);
-        await _initWarrantyReminderOnce();
         _startBackgroundUserWarmup(uid, email);
         PerfMonitor.stop('_getRoleAfterSync');
         return {'role': cachedRole, 'isSuperAdmin': cachedIsSuperAdmin};
@@ -734,7 +730,6 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
 
     final fastMobileBootstrap = await _tryFastMobileBootstrap(uid, email);
     if (fastMobileBootstrap != null) {
-      await _initWarrantyReminderOnce();
       PerfMonitor.stop('_getRoleAfterSync');
       return fastMobileBootstrap;
     }
@@ -933,7 +928,6 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     // Lưu role vào prefs cho lần sau
     UserService.saveAuthCache(role: role, forUid: uid);
 
-    await _initWarrantyReminderOnce();
 
     PerfMonitor.stop('_getRoleAfterSync');
     return {'role': role, 'isSuperAdmin': false};

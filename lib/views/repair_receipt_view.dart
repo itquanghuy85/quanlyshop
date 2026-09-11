@@ -134,6 +134,7 @@ class _RepairReceiptViewState extends State<RepairReceiptView> {
       'accessories': repair.accessories,
       'estimatedCost': repair.price,
       'receivedDate': DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now()),
+      'warranty': repair.warranty,
     };
 
     // Extract printer configuration

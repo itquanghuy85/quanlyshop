@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../utils/money_utils.dart';
+import '../widgets/warranty_note_field.dart';
 import '../widgets/currency_text_field.dart';
 import '../widgets/keyboard_aware_padding.dart';
 import '../utils/repair_status_validator.dart';
@@ -1166,27 +1167,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    dialogLoc.selectWarrantyPeriod,
-                    style: AppTextStyles.caption.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: warrantyOptions
-                        .map(
-                          (opt) => ChoiceChip(
-                            label: Text(opt, style: AppTextStyles.caption),
-                            selected: selectedWarranty == opt,
-                            onSelected: (v) =>
-                                setS(() => selectedWarranty = opt),
-                            selectedColor: AppColors.primary.withOpacity(0.2),
-                          ),
-                        )
-                        .toList(),
+                  WarrantyNoteField(
+                    label: dialogLoc.selectWarrantyPeriod,
+                    value: selectedWarranty,
+                    dense: true,
+                    onChanged: (v) => setS(() => selectedWarranty = v),
                   ),
                   const SizedBox(height: 10),
                   Text(
@@ -1536,14 +1521,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     }
 
     String payMethod = loc.cash;
-    String selectedWarranty = r.warranty.isEmpty ? '1 tháng' : r.warranty;
-    final List<String> warrantyOptions = [
-      loc.noWarranty,
-      '1 tháng',
-      '3 tháng',
-      '6 tháng',
-      '12 tháng',
-    ];
+    String selectedWarranty = r.warranty.trim().isEmpty
+        ? '1 THÁNG'
+        : WarrantyNote.normalize(r.warranty);
     final formKey = GlobalKey<FormState>();
     final priceCtrl = TextEditingController(
       text: CurrencyTextField.formatDisplay(_displayedChargePrice(r)),
@@ -1608,27 +1588,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    dialogLoc.selectWarrantyPeriod,
-                    style: AppTextStyles.caption.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: warrantyOptions
-                        .map(
-                          (opt) => ChoiceChip(
-                            label: Text(opt, style: AppTextStyles.caption),
-                            selected: selectedWarranty == opt,
-                            onSelected: (v) =>
-                                setS(() => selectedWarranty = opt),
-                            selectedColor: AppColors.primary.withOpacity(0.2),
-                          ),
-                        )
-                        .toList(),
+                  WarrantyNoteField(
+                    label: dialogLoc.selectWarrantyPeriod,
+                    value: selectedWarranty,
+                    dense: true,
+                    onChanged: (v) => setS(() => selectedWarranty = v),
                   ),
                   const SizedBox(height: 10),
                   Text(
@@ -1863,14 +1827,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       // action == 'skip' → tiếp tục quy trình duyệt giao bên dưới
     }
 
-    String selectedWarranty = r.warranty.isEmpty ? 'KO BH' : r.warranty;
-    final List<String> warrantyOptions = [
-      'KO BH',
-      '1 THÁNG',
-      '3 THÁNG',
-      '6 THÁNG',
-      '12 THÁNG',
-    ];
+    String selectedWarranty = WarrantyNote.normalize(r.warranty);
     final requestedPriceForApproval = _displayedChargePrice(r);
     final formKey = GlobalKey<FormState>();
     final priceCtrl = TextEditingController(
@@ -2009,27 +1966,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     ),
                   ],
                   const SizedBox(height: 16),
-                  Text(
-                    dialogLoc.selectWarrantyNote,
-                    style: AppTextStyles.caption.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: warrantyOptions
-                        .map(
-                          (opt) => ChoiceChip(
-                            label: Text(opt, style: AppTextStyles.caption),
-                            selected: selectedWarranty == opt,
-                            onSelected: (_) =>
-                                setS(() => selectedWarranty = opt),
-                            selectedColor: AppColors.primary.withOpacity(0.2),
-                          ),
-                        )
-                        .toList(),
+                  WarrantyNoteField(
+                    label: dialogLoc.selectWarrantyNote,
+                    value: selectedWarranty,
+                    dense: true,
+                    onChanged: (v) => setS(() => selectedWarranty = v),
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -4668,12 +4609,14 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                               textCapitalization: TextCapitalization.characters,
                             ),
                             const SizedBox(height: 10),
-                            TextFormField(
-                              controller: warrantyC,
-                              decoration: InputDecoration(
-                                labelText: sheetLoc.warrantyLabel2,
-                              ),
-                              textCapitalization: TextCapitalization.characters,
+                            // Bảo hành = chip chọn nhanh + ghi chú tự do,
+                            // ghi vào cùng `warrantyC` để phần lưu bên dưới
+                            // không đổi.
+                            WarrantyNoteField(
+                              label: sheetLoc.warrantyLabel2,
+                              value: warrantyC.text,
+                              dense: true,
+                              onChanged: (v) => warrantyC.text = v,
                             ),
                             const SizedBox(height: 10),
                             const Align(

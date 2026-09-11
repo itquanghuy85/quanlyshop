@@ -9,6 +9,13 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-11  
 
+**✅ BẢO HÀNH = GHI CHÚ (`[2026-09-11c]`).** `WarrantyNoteField` (chip + gõ tự
+do) dùng chung cho đơn sửa / đơn bán; `WarrantyNote` (utils) chuẩn hoá giá trị
++ rút thời hạn từ ghi chú. Đã XOÁ `WarrantyReminderService`, widget nhắc, banner
+"sắp hết hạn" + 2 truy vấn quét toàn bảng trên Trang chủ. Không còn mặc định
+12 tháng khi ghi chú không có số. Khi thêm màn nhập BH mới → dùng
+`WarrantyNoteField`, đừng tự viết dropdown.
+
 **🔴 LÃI SAU CHI PHÍ TRỪ VỐN SỬA CHỮA 2 LẦN + POLL 500 KẸT MÃI (`[2026-09-11a]`).**
 · FinanceV2: `repair_cost_*` / `parts_cost_*` nằm trong `expenseOut` (đúng cho
 dòng tiền) nhưng không bị loại khỏi `operatingExpenseOut` trong khi vốn đó đã ở

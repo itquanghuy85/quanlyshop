@@ -93,7 +93,6 @@ import '../services/storage_service.dart';
 import '../services/encryption_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
-import '../theme/app_button_styles.dart';
 import '../services/category_service.dart';
 import '../services/expiry_alert_service.dart';
 import '../services/first_time_guide_service.dart';
@@ -576,7 +575,6 @@ class _HomeViewState extends State<HomeView>
   bool _isSyncing = false;
   int pendingApprovalCount = 0; // Số đơn chờ duyệt giao
   int totalDebtRemain = 0;
-  int expiringWarranties = 0;
   int unreadChatCount = 0;
   int _pendingPaymentRequestCount = 0; // Yêu cầu duyệt chờ xử lý
   StreamSubscription? _pendingPaymentSub;
@@ -2690,7 +2688,7 @@ class _HomeViewState extends State<HomeView>
           Sqflite.firstIntValue(batch1[11] as List<Map<String, dynamic>>) ?? 0;
       final fSalesReturns = batch1[12] as List<Map<String, dynamic>>;
 
-      int soldT = 0, debtR = 0, expW = 0;
+      int soldT = 0, debtR = 0;
 
       final analysis = DailyFinancialAnalysisService.analyze(
         sales: fSales,
@@ -2729,61 +2727,23 @@ class _HomeViewState extends State<HomeView>
 
       // === BATCH 2: Secondary queries in parallel ===
       // (warranty, debts, partner debts, record counts - all independent)
+      // [2026-09-11] Bỏ 2 truy vấn "bảo hành sắp hết trong 7 ngày": quét TOÀN
+      // BỘ đơn sửa + đơn bán có bảo hành mỗi lần Trang chủ làm mới, chỉ để
+      // hiện một banner đỏ mà shop không có việc gì để làm với nó (và ghi chú
+      // không đọc được số thì mặc định 12 tháng — tự bịa hạn). Bảo hành nay
+      // là ghi chú; tra cứu khi khách quay lại ở màn Bảo hành.
       final batch2 = await Future.wait<Object?>([
-        // [0] repairsWarranty
-        dbConn.query(
-          'repairs',
-          columns: ['deliveredAt', 'warranty'],
-          where: scope.where(
-            "deliveredAt IS NOT NULL AND warranty IS NOT NULL AND warranty != '' AND UPPER(warranty) != 'KO BH'",
-          ),
-          whereArgs: scope.args(const []),
-        ),
-        // [1] salesWarranty
-        dbConn.query(
-          'sales',
-          columns: ['soldAt', 'warranty'],
-          where: scope.where(
-            "warranty IS NOT NULL AND warranty != '' AND UPPER(warranty) != 'KO BH'",
-          ),
-          whereArgs: scope.args(const []),
-        ),
-        // [2] debt overview — same source of truth as DebtView
+        // [0] debt overview — same source of truth as DebtView
         _debtSummaryService.getDebtOverview(),
-        // [4] record counts (single combined query)
+        // [1] record counts (single combined query)
         dbConn.rawQuery(
           scope.breakdownRecordCountSql,
           scope.breakdownRecordCountArgs,
         ),
-        // [5] previous day closing balance for "Quỹ hiện có"
-        db.getPreviousDayClosing(DateFormat('yyyy-MM-dd').format(todayStart)),
       ]);
 
-      final repairsWarranty = batch2[0] as List<Map<String, dynamic>>;
-      final salesWarranty = batch2[1] as List<Map<String, dynamic>>;
-      final debtOverview = batch2[2] as Map<String, int>;
-      final recordCounts = batch2[3] as List<Map<String, dynamic>>;
-
-      // Warranty check (CPU-only, no I/O)
-      for (final r in repairsWarranty) {
-        final deliveredAt = (r['deliveredAt'] as num?)?.toInt();
-        final warranty = (r['warranty'] ?? '').toString();
-        if (deliveredAt == null) continue;
-        int m = int.tryParse(warranty.split(' ').first) ?? 0;
-        if (m > 0) {
-          DateTime d = DateTime.fromMillisecondsSinceEpoch(deliveredAt);
-          DateTime e = DateTime(d.year, d.month + m, d.day);
-          if (e.isAfter(now) && e.difference(now).inDays <= 7) expW++;
-        }
-      }
-      for (final s in salesWarranty) {
-        final soldAt = (s['soldAt'] as num?)?.toInt() ?? 0;
-        final warranty = (s['warranty'] ?? '').toString();
-        int m = int.tryParse(warranty.split(' ').first) ?? 12;
-        DateTime d = DateTime.fromMillisecondsSinceEpoch(soldAt);
-        DateTime e = DateTime(d.year, d.month + m, d.day);
-        if (e.isAfter(now) && e.difference(now).inDays <= 7) expW++;
-      }
+      final debtOverview = batch2[0] as Map<String, int>;
+      final recordCounts = batch2[1] as List<Map<String, dynamic>>;
 
       debtR = debtOverview['totalRemain'] ?? 0;
 
@@ -2809,7 +2769,6 @@ class _HomeViewState extends State<HomeView>
           pendingApprovalCount = pendingApprovalR;
           todaySaleCount = soldT;
           totalDebtRemain = debtR;
-          expiringWarranties = expW;
           _todayTotalIn = financeSnapshot.totalIn;
           _todayTotalOut = financeSnapshot.totalOut;
           _todayRepairCount = fRepairs.length;
@@ -3518,7 +3477,6 @@ class _HomeViewState extends State<HomeView>
         _buildPendingPaymentBanner(),
         _buildBankNotifBanner(),
         _buildUnifiedShortcuts(),
-        _buildAlerts(),
       ];
     }
 
@@ -3590,7 +3548,6 @@ class _HomeViewState extends State<HomeView>
           widgets.add(_buildChatCard());
           break;
         case DashboardCardType.alerts:
-          widgets.add(_buildAlerts());
           break;
         case DashboardCardType.userGuide:
           widgets.add(_buildUserGuideShortcut());
@@ -8631,65 +8588,6 @@ class _HomeViewState extends State<HomeView>
     );
   }
 
-  Widget _buildAlerts() {
-    // Only show warranty alerts for shops with warranty enabled (electronics)
-    if (!_enableWarranty || expiringWarranties == 0) return const SizedBox();
-    final canWarranty =
-        hasFullAccess || _permissions['allowViewWarranty'] == true;
-    if (!canWarranty) return const SizedBox();
-    return InkWell(
-      onTap: () => _pushRoute(
-        context,
-        MaterialPageRoute(builder: (_) => const WarrantyView()),
-      ),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.error,
-          borderRadius: BorderRadius.circular(AppButtonStyles.borderRadius * 2),
-          boxShadow: [
-            BoxShadow(color: AppColors.error.withOpacity(0.3), blurRadius: 10),
-          ],
-        ),
-        child: Row(
-          children: [
-            const Icon(
-              Icons.notification_important,
-              color: AppColors.onError,
-              size: 28,
-            ),
-            const SizedBox(height: 15),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    loc.warrantyReminder,
-                    style: AppTextStyles.body1.copyWith(
-                      color: AppColors.onError,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    "$expiringWarranties ${loc.devicesExpiringWarranty}",
-                    style: AppTextStyles.caption.copyWith(
-                      color: AppColors.onError.withOpacity(0.8),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.arrow_forward_ios,
-              color: AppColors.onError,
-              size: 16,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 /// Simple data class for shortcut items

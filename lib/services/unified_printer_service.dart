@@ -1,3 +1,4 @@
+import '../utils/warranty_note.dart';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
@@ -2698,6 +2699,17 @@ class UnifiedPrinterService {
         styles: const PosStyles(bold: true),
       ),
     );
+    // Bảo hành của ĐƠN (ghi chú tự do) — khác với chính sách BH chung của
+    // shop in ở cuối phiếu. Chỉ in khi có và không phải "KO BH".
+    final orderWarranty = (receiptData['warranty'] ?? '').toString().trim();
+    if (!WarrantyNote.isNone(orderWarranty)) {
+      bytes.addAll(
+        generator.text(
+          _removeDiacritics("BAO HANH: $orderWarranty"),
+          styles: const PosStyles(bold: true),
+        ),
+      );
+    }
 
     if (prefs.getBool('receipt_show_qr') ?? true) {
       bytes.addAll(

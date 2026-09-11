@@ -1,3 +1,4 @@
+import '../utils/warranty_note.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../data/db_helper.dart';
@@ -94,19 +95,15 @@ class _WarrantyViewState extends State<WarrantyView> {
     List<Map<String, dynamic>> results = [];
 
     // 1. BẢO HÀNH MÁY SỬA
+    // Bảo hành là ghi chú tự do — `WarrantyNote.expiryFrom` rút thời hạn
+    // (tháng / năm / ngày / tuần) ra khỏi ghi chú; ghi chú không có con số
+    // thì không tính được hạn ⇒ không vào danh sách "còn hạn".
     for (var r in repairs) {
-      if (r.deliveredAt != null &&
-          r.warranty.isNotEmpty &&
-          r.warranty != "KO BH") {
-        int months = int.tryParse(r.warranty.split(' ').first) ?? 0;
-        if (months > 0) {
+      if (r.deliveredAt != null && !WarrantyNote.isNone(r.warranty)) {
+        final expDate = WarrantyNote.expiryFrom(r.deliveredAt!, r.warranty);
+        if (expDate != null) {
           DateTime delDate = DateTime.fromMillisecondsSinceEpoch(
             r.deliveredAt!,
-          );
-          DateTime expDate = DateTime(
-            delDate.year,
-            delDate.month + months,
-            delDate.day,
           );
           if (expDate.isAfter(now)) {
             results.add({
@@ -128,16 +125,12 @@ class _WarrantyViewState extends State<WarrantyView> {
 
     // 2. BẢO HÀNH MÁY BÁN
     for (var s in sales) {
-      if (s.warranty.isNotEmpty && s.warranty != "KO BH") {
-        int months =
-            int.tryParse(s.warranty.split(' ').first) ??
-            12; // Mặc định 12th nếu lỗi parse
+      if (!WarrantyNote.isNone(s.warranty)) {
+        // Trước đây ghi chú không đọc được số thì MẶC ĐỊNH 12 tháng — tự bịa
+        // ra hạn bảo hành. Nay không có số là không tính.
+        final expDate = WarrantyNote.expiryFrom(s.soldAt, s.warranty);
+        if (expDate == null) continue;
         DateTime saleDate = DateTime.fromMillisecondsSinceEpoch(s.soldAt);
-        DateTime expDate = DateTime(
-          saleDate.year,
-          saleDate.month + months,
-          saleDate.day,
-        );
 
         if (expDate.isAfter(now)) {
           results.add({

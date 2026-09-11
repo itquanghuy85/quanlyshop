@@ -1,3 +1,4 @@
+import '../utils/warranty_note.dart';
 import 'dart:convert';
 import 'repair_service_model.dart';
 import 'part_used_detail_model.dart';
@@ -296,7 +297,7 @@ class Repair {
     this.address = "",
     this.imagePath,
     this.deliveredImage,
-    this.warranty = "Không bảo hành",
+    this.warranty = WarrantyNote.none,
     this.partsUsed = "",
     this.status = 1,
     this.price = 0,
@@ -460,7 +461,7 @@ class Repair {
       address: map['address'] ?? "",
       imagePath: map['imagePath'],
       deliveredImage: map['deliveredImage'],
-      warranty: map['warranty'] ?? "Không bảo hành",
+      warranty: WarrantyNote.normalize(map['warranty']?.toString()),
       partsUsed: map['partsUsed'] ?? "",
       status: _normalizeRepairStatus(map['status']),
       price: _parseIntSafe(map['price']),

@@ -4,6 +4,54 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-11c] - Bảo hành = một dòng ghi chú: chip chọn nhanh + gõ tự do, bỏ nhắc "sắp hết hạn"
+
+Theo yêu cầu: *"mục bảo hành chỉ cần ghi chú thôi, không cần hẳn 1 model"*.
+Thực tế `repairs.warranty` / `sales.warranty` vốn đã là String — cái nặng là
+phần xây bên trên. Đã làm 5 việc:
+
+1. **Ô bảo hành chung `WarrantyNoteField`** (`lib/widgets/warranty_note_field.dart`):
+   chip `KO BH · 1 · 3 · 6 · 12 THÁNG` + ô gõ tự do ("BH MÀN 3 THÁNG, PIN 6
+   THÁNG"), ghi vào cùng một chuỗi. Dùng ở dialog giao máy, dialog duyệt giao,
+   sheet sửa đơn (repair_detail_view) và tạo/sửa đơn bán (create_sale_view —
+   bỏ `DropdownButtonFormField` cứng, vốn sẽ ném assert nếu đơn cũ có giá trị
+   ngoài danh sách).
+2. **Logic thuần `WarrantyNote`** (`lib/utils/warranty_note.dart`):
+   `none = 'KO BH'`, `normalize()`, `parseMonths()` / `parseDuration()` /
+   `expiryFrom()` — rút số tháng/năm/ngày/tuần ra khỏi ghi chú tự do (mốc đầu
+   tiên). Màn Tra cứu bảo hành dùng nó thay cho `int.tryParse(split(' ').first)`;
+   **bỏ mặc định 12 tháng** khi không đọc được số (trước là tự bịa hạn cho đơn
+   bán). Ghi chú không có số ⇒ chỉ là ghi chú, không vào danh sách "còn hạn".
+   Test: `test/warranty_note_test.dart` (6 case).
+3. **Gỡ nhắc hết hạn**: xoá `WarrantyReminderService` (push đã tắt cứng,
+   `startWarrantyReminders()` không ai gọi) + `WarrantyReminderWidget` (không
+   ai dùng) + stub `_initWarrantyReminderOnce` trong `main.dart` + banner đỏ
+   `_buildAlerts` trên Trang chủ cùng **2 truy vấn quét toàn bộ đơn sửa/đơn
+   bán có BH mỗi lần Trang chủ làm mới** (`expiringWarranties`). Tiện thể bỏ
+   `getPreviousDayClosing` trong cùng batch — kết quả không ai đọc.
+4. **In**: phiếu sửa generic (`printRepairReceipt`) thêm dòng `BAO HANH:` của
+   đơn khi khác KO BH (hoá đơn bán và template giao máy đã có sẵn).
+5. **Thống nhất giá trị**: `Repair` mặc định `"Không bảo hành"`, `SaleOrder`
+   `"KO BH"`, dialog giao máy `"1 tháng"` chữ thường — nay đều `WarrantyNote.none`
+   và `fromMap` normalize; 2 truy vấn `getActiveWarranty*` lọc thêm
+   `'Không bảo hành'` cho dữ liệu cũ.
+
+Nghiệm thu máy thật (shop thật, chỉ mở màn tạo đơn bán rồi thoát, không lưu):
+chip + ô ghi chú hiện đúng; phát hiện & sửa ngay 1 lỗi UX — nút ✕ đặt lại chữ
+"KO BH" thay vì xoá trống nên gõ tiếp bị nối vào. `app_knowledge_base.dart`
+đã cập nhật mục "Bảo hành".
+
+**Files:** `lib/utils/warranty_note.dart` (mới), `lib/widgets/warranty_note_field.dart`
+(mới), `lib/views/repair_detail_view.dart`, `lib/views/create_sale_view.dart`,
+`lib/views/warranty_view.dart`, `lib/views/home_view.dart`, `lib/main.dart`,
+`lib/models/repair_model.dart`, `lib/models/sale_order_model.dart`,
+`lib/data/db_helper.dart`, `lib/services/unified_printer_service.dart`,
+`lib/views/repair_receipt_view.dart`, `lib/data/app_knowledge_base.dart`,
+`test/warranty_note_test.dart`; xoá `lib/services/warranty_reminder_service.dart`,
+`lib/widgets/warranty_reminder_widget.dart`.
+
+---
+
 ## [2026-09-11b] - Chốt quỹ: hết tải nguyên collection từ cloud + lỗi permission-denied làm vứt sạch dữ liệu vừa tải
 
 ### 🔴 Chốt quỹ tốn hàng nghìn read rồi… bỏ đi

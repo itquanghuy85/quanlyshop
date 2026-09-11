@@ -1,3 +1,4 @@
+import '../utils/warranty_note.dart';
 import 'dart:convert';
 import '../services/encryption_service.dart';
 import '../constants/product_constants.dart';
@@ -67,7 +68,7 @@ class SaleOrder {
     required this.soldAt,
     this.notes,
     this.gifts,
-    this.warranty = "KO BH",
+    this.warranty = WarrantyNote.none,
     this.isInstallment = false,
     this.downPayment = 0,
     this.downPaymentMethod,
@@ -232,7 +233,7 @@ class SaleOrder {
       soldAt: toSafeInt(m['soldAt']),
       notes: m['notes'],
       gifts: m['gifts'],
-      warranty: m['warranty'] ?? "KO BH",
+      warranty: WarrantyNote.normalize(m['warranty']?.toString()),
       isInstallment: m['isInstallment'] == 1 || m['isInstallment'] == true,
       downPayment: downPayment,
       downPaymentMethod: m['downPaymentMethod']?.toString(),
