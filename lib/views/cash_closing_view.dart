@@ -298,16 +298,29 @@ class _CashClosingViewState extends State<CashClosingView>
       // đang xem (đã gộp cả khoảng chưa chốt quỹ nếu có) thay vì tải lại
       // TOÀN BỘ lịch sử mỗi lần mở màn hình — trước đây riêng `sales` đã
       // chiếm ~6.4K/8.3K lượt đọc ước tính trong 1 phiên (audit thực tế).
-      // repairs/debt_payments/supplier_payments/repair_partner_payments/debts
-      // CỐ TÌNH giữ nguyên không bound: repairs lọc theo nhiều mốc thời gian
-      // khác nhau (ngày tạo/ngày giao/ngày ghi nhận giá vốn) nên bound sai
-      // sẽ làm mất đơn; debts cần tra cứu debtType bất kể tạo lúc nào.
+      //
+      // [2026-09-11] repairs/debt_payments/supplier_payments/
+      // repair_partner_payments/debts/supplier_import_history/sales-trả-góp
+      // TRƯỚC ĐÂY không bound (tải nguyên bảng mỗi lần mở — shop thật 4.2K
+      // đơn bán là hàng nghìn read/lần). Lý do cũ: mỗi bảng lọc theo một mốc
+      // thời gian khác nhau (ngày giao / ngày ghi vốn / ngày tất toán…) mà
+      // không có index cho từng mốc. Nay bound bằng **`updatedAt >= đầu kỳ`**
+      // (index `(shopId, updatedAt)` có sẵn cho cả 7 bảng — cũng là index
+      // SyncService đang dùng): bất kỳ nghiệp vụ nào RƠI VÀO KỲ (giao máy,
+      // ghi sổ quỹ linh kiện, thu/trả nợ, tất toán NH, nhập kho) đều GHI LẠI
+      // doc ⇒ `updatedAt` ≥ đầu kỳ. Đây là tập đủ lớn (có thể dư, không
+      // thiếu) so với lọc đúng mốc. Doc ghi bởi app đời cũ thiếu `updatedAt`
+      // bị loại — nhưng đó là nghiệp vụ cũ ngoài kỳ; phần local đã sync vẫn
+      // được gộp phía dưới làm lưới an toàn.
+      final sinceStart = Timestamp.fromMillisecondsSinceEpoch(rangeStartMs);
+      Query<Map<String, dynamic>> touchedSince(String collection) => firestore
+          .collection(collection)
+          .where('shopId', isEqualTo: shopId)
+          .where('updatedAt', isGreaterThanOrEqualTo: sinceStart);
+
       final results = await Future.wait([
-        // repairs - ROOT collection (không bound, xem giải thích trên)
-        firestore
-            .collection('repairs')
-            .where('shopId', isEqualTo: shopId)
-            .get(),
+        // repairs - đơn giao / ghi vốn / tạo trong kỳ đều có updatedAt ≥ đầu kỳ
+        touchedSince('repairs').get(),
         // expenses - bound theo khoảng ngày
         firestore
             .collection('expenses')
@@ -315,23 +328,16 @@ class _CashClosingViewState extends State<CashClosingView>
             .where('date', isGreaterThanOrEqualTo: rangeStartMs)
             .where('date', isLessThanOrEqualTo: rangeEndMs)
             .get(),
-        // debt_payments - ROOT collection
-        firestore
-            .collection('debt_payments')
-            .where('shopId', isEqualTo: shopId)
-            .get(),
-        // supplier_payments - ROOT collection
-        firestore
-            .collection('supplier_payments')
-            .where('shopId', isEqualTo: shopId)
-            .get(),
-        // FIX: repair_partner_payments - thanh toán đối tác sửa chữa
-        firestore
-            .collection('repair_partner_payments')
-            .where('shopId', isEqualTo: shopId)
-            .get(),
-        // FIX: debts - để lookup debtType cho debt_payments
-        firestore.collection('debts').where('shopId', isEqualTo: shopId).get(),
+        // debt_payments
+        touchedSince('debt_payments').get(),
+        // supplier_payments
+        touchedSince('supplier_payments').get(),
+        // repair_partner_payments - thanh toán đối tác sửa chữa
+        touchedSince('repair_partner_payments').get(),
+        // debts - lookup debtType cho debt_payments trong kỳ; khoản nợ có
+        // thanh toán trong kỳ thì paidAmount đổi ⇒ updatedAt ≥ đầu kỳ. Nợ cũ
+        // không đụng tới lấy từ local (đã sync) ở khối merge bên dưới.
+        touchedSince('debts').get(),
         // sales_returns - bound theo khoảng ngày
         firestore
             .collection('sales_returns')
@@ -342,9 +348,10 @@ class _CashClosingViewState extends State<CashClosingView>
       ]).timeout(const Duration(seconds: 10));
 
       // sales: 2 truy vấn gộp — 1 bound theo ngày bán (`soldAt`, đa số đơn),
-      // 1 KHÔNG bound cho riêng đơn trả góp (`isInstallment`) vì tiền tất
-      // toán ngân hàng của đơn trả góp có thể về sau ngày bán rất lâu, bound
-      // theo `soldAt` một mình sẽ làm mất khoản tất toán đó khỏi Sổ quỹ.
+      // 1 theo `updatedAt ≥ đầu kỳ` để vớt đơn trả góp bán từ trước nhưng
+      // ngân hàng tất toán TRONG kỳ (ghi `settlementReceivedAt` ⇒ doc được
+      // ghi lại). Trước đây truy vấn thứ 2 là `isInstallment == true` KHÔNG
+      // bound — tải toàn bộ lịch sử trả góp mỗi lần mở.
       final salesResults = await Future.wait([
         firestore
             .collection('sales')
@@ -352,11 +359,7 @@ class _CashClosingViewState extends State<CashClosingView>
             .where('soldAt', isGreaterThanOrEqualTo: rangeStartMs)
             .where('soldAt', isLessThanOrEqualTo: rangeEndMs)
             .get(),
-        firestore
-            .collection('sales')
-            .where('shopId', isEqualTo: shopId)
-            .where('isInstallment', isEqualTo: true)
-            .get(),
+        touchedSince('sales').get(),
       ]).timeout(const Duration(seconds: 10));
       final salesDocsById = <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
       for (final snap in salesResults) {
@@ -540,11 +543,9 @@ class _CashClosingViewState extends State<CashClosingView>
 
       // FIX BUG-007: Load supplier imports từ Firestore thay vì SQLite
       // Để đảm bảo sync giữa các thiết bị (Device A == Device B)
-      final supplierImportsSnapshot = await firestore
-          .collection('supplier_import_history')
-          .where('shopId', isEqualTo: shopId)
-          .get()
-          .timeout(const Duration(seconds: 10));
+      final supplierImportsSnapshot = await touchedSince(
+        'supplier_import_history',
+      ).get().timeout(const Duration(seconds: 10));
       final supplierImports = supplierImportsSnapshot.docs
           .where((doc) => doc.data()['deleted'] != true)
           .map((doc) {
@@ -557,14 +558,27 @@ class _CashClosingViewState extends State<CashClosingView>
 
       // Load closings - FIX BUG-CC-001: cash_closings cũng là ROOT collection
       // (todayKey đã tính ở đầu hàm để bound khoảng ngày sales/expenses)
-      final todayDoc = await firestore
+      //
+      // [2026-09-11] KHÔNG `.doc(id).get()` nữa: ngày CHƯA chốt thì doc không
+      // tồn tại ⇒ rules `docInMyShop()` đọc `resource.data` null ⇒
+      // **permission-denied** (không phải "không tìm thấy") ⇒ ném ra ngoài
+      // catch, TOÀN BỘ dữ liệu cloud vừa tải ở trên bị vứt, màn hình rơi về
+      // local. Đo shop thật: mọi lần mở Chốt quỹ trước giờ chốt đều tốn hàng
+      // nghìn read rồi bỏ. Query theo shopId + dateKey thì rules cho qua và
+      // rỗng là rỗng.
+      final todaySnap = await firestore
           .collection('cash_closings')
-          .doc('closing_${shopId}_$todayKey')
-          .get();
+          .where('shopId', isEqualTo: shopId)
+          .where('dateKey', isEqualTo: todayKey)
+          .limit(1)
+          .get()
+          .timeout(const Duration(seconds: 10));
 
       // FIX: Fallback to local DB if Firestore closing records don't exist
       // This ensures data saved locally (offline) is still reflected
-      var todayClosing = todayDoc.exists ? todayDoc.data() : null;
+      var todayClosing = todaySnap.docs.isNotEmpty
+          ? todaySnap.docs.first.data()
+          : null;
 
       debugPrint(
         '📖 [LOAD] Firestore closing for $todayKey: ${todayClosing != null ? 'FOUND' : 'NOT FOUND'}',
@@ -608,7 +622,15 @@ class _CashClosingViewState extends State<CashClosingView>
         }
       }
 
-      final localRepairs = await db.getUnsyncedRepairs();
+      // Gộp local: đơn chưa sync + đơn TRONG KỲ theo cả 3 mốc (tạo / giao /
+      // ghi vốn) — lưới cho doc cloud thiếu `updatedAt` mà truy vấn bound ở
+      // trên không thấy.
+      final localRepairs = <Repair>[
+        ...await db.getUnsyncedRepairs(),
+        ...await db.getRepairsByCreatedAtRange(rangeStartMs, rangeEndMs),
+        ...await db.getDeliveredRepairsByDateRange(rangeStartMs, rangeEndMs),
+        ...await db.getRepairsByCostRecordedAtRange(rangeStartMs, rangeEndMs),
+      ];
       final seenRepairIds = repairs
           .map((r) => r.firestoreId)
           .whereType<String>()
@@ -786,7 +808,18 @@ class _CashClosingViewState extends State<CashClosingView>
     // `_analyzeTransactions` tự tách: soldAt-in-range → nhánh bán;
     // settlementReceivedAt-in-range → nhánh tất toán (không đếm đôi).
     final sales = await db.getSalesByDateRangeForCashFlow(startMs, endMs);
+    // Đơn TẠO trong kỳ + đơn GIAO trong kỳ (tạo từ trước). Trước chỉ lấy theo
+    // createdAt ⇒ đơn nhận tuần trước, giao hôm nay bị mất khỏi Chốt quỹ khi
+    // offline — trên mạng thì truy vấn cloud không bound che mất lỗi này.
     final repairs = await db.getRepairsByCreatedAtRange(startMs, endMs);
+    final seenLocalRepairIds = repairs
+        .map((r) => r.firestoreId ?? 'id_${r.id}')
+        .toSet();
+    for (final r in await db.getDeliveredRepairsByDateRange(startMs, endMs)) {
+      if (seenLocalRepairIds.add(r.firestoreId ?? 'id_${r.id}')) {
+        repairs.add(r);
+      }
+    }
     // Load separately by costRecordedAt to catch repairs created on other days
     // but with cost paid/recorded in this period.
     final costFundRepairs = await db.getRepairsByCostRecordedAtRange(

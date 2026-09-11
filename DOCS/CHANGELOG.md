@@ -4,6 +4,58 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-11b] - Chốt quỹ: hết tải nguyên collection từ cloud + lỗi permission-denied làm vứt sạch dữ liệu vừa tải
+
+### 🔴 Chốt quỹ tốn hàng nghìn read rồi… bỏ đi
+
+Đo trên shop thật khi mở Chốt quỹ ngày **chưa chốt** (tức mọi lần mở trước
+giờ chốt): log `Error loading from Firestore: [cloud_firestore/permission-denied]`.
+Nguyên nhân: sau khi tải xong 8 collection, code gọi
+`cash_closings.doc('closing_{shop}_{hômnay}').get()` — doc chưa tồn tại ⇒ rules
+`docInMyShop()` đọc `resource.data` null ⇒ Firestore trả **permission-denied**
+(không phải "không tìm thấy") ⇒ ném ra `catch`, **toàn bộ dữ liệu cloud vừa
+tải bị vứt**, màn hình rơi về local. Nghĩa là: đắt nhất app mà kết quả không
+được dùng. Nay query `where shopId == && dateKey == && limit(1)` (rules cho
+qua, rỗng là rỗng; 2 equality không cần composite index).
+
+### Bound 7 truy vấn trước đây tải nguyên bảng
+
+`repairs`, `debt_payments`, `supplier_payments`, `repair_partner_payments`,
+`debts`, `supplier_import_history`, và `sales where isInstallment == true`
+đều là `where shopId ==` KHÔNG bound — shop thật 4.2K đơn bán / hàng nghìn đơn
+sửa ⇒ mỗi lần mở là hàng nghìn read. Lý do cũ (comment trong code): mỗi bảng
+lọc theo một mốc thời gian khác nhau (ngày giao / ngày ghi vốn / ngày tất
+toán…) mà không có index riêng từng mốc, bound sai là mất đơn.
+
+Cách giải: bound bằng **`updatedAt >= đầu kỳ`** (index `(shopId, updatedAt)`
+đã có sẵn cho cả 7 bảng — chính là index SyncService dùng). Lập luận: nghiệp vụ
+nào RƠI VÀO KỲ (giao máy, ghi sổ quỹ linh kiện, thu/trả nợ, tất toán NH, nhập
+kho) đều **ghi lại doc** ⇒ `updatedAt` ≥ đầu kỳ. Tập này có thể DƯ (doc sửa
+vặt trong kỳ) nhưng không THIẾU so với lọc đúng mốc — phần dư bị các bộ lọc
+theo mốc ở `_analyzeTransactions` loại như thường. Doc app đời cũ thiếu
+`updatedAt` không vào — nhưng đó là nghiệp vụ cũ ngoài kỳ, và khối merge local
+(đã sync) vẫn gộp thêm.
+
+### Vá lỗ hổng local sẵn có
+
+Đường local (`_loadAllDataFromLocalDB`) chỉ lấy `repairs` theo **createdAt**
+trong kỳ, trong khi phân tích lọc theo **deliveredAt** ⇒ đơn nhận tuần trước,
+giao hôm nay **mất khỏi Chốt quỹ khi offline**; trên mạng thì truy vấn cloud
+không bound che mất lỗi này (và giờ mới biết cloud cũng đang lỗi). Nay local
+gộp thêm `getDeliveredRepairsByDateRange`; khối merge sau cloud cũng gộp local
+theo cả 3 mốc (tạo / giao / ghi vốn) thay vì chỉ đơn chưa sync.
+
+**Nghiệm thu máy thật (shop thật, chỉ xem):** cloud path chạy trọn
+(`[MERGE] sales=94, repairs=44, debtPayments=29, partnerPayments=10,
+salesReturns=2` — thay vì nguyên bảng), không còn permission-denied; số local
+hiện ngay lúc mở = số sau merge cloud (Tiền mặt 331,8 Tr / NH 582,3 Tr). Mạng
+máy test chậm nên lần mở đầu có thể `TimeoutException 10s` (đã có từ trước,
+lần sau OK).
+
+**Files:** `lib/views/cash_closing_view.dart`.
+
+---
+
 ## [2026-09-11a] - Tài chính: lãi sau chi phí trừ vốn SC 2 lần · Excel ra chữ · poll 500 kẹt mãi · 8 mục sync lỗi không xem được lý do
 
 Rà 3 việc trên shop thật (máy test đăng nhập `huy@huluca.com`, chỉ xem).

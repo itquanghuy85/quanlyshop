@@ -21,8 +21,10 @@ thật `financial_activity_log` = 2.083 dòng. Đã phân trang theo docId; qué
 nay 1 lần/24h/shop (`fullSweepAt_*`). Đo trước vá: 2.0K/3.5K read của phiên.
 · Trung tâm đồng bộ có "Xem N mục lỗi" (hiện `lastError`); xoá mềm doc chưa
 lên cloud (`not-found`) không còn failed vĩnh viễn.
-· 🔍 Read lớn còn lại chưa sửa: **màn Chốt quỹ** tải nguyên 6 collection từ
-cloud mỗi lần mở.
+· ✅ **Chốt quỹ (`[2026-09-11b]`)**: (1) ngày chưa chốt thì `.doc(id).get()`
+bị rules trả permission-denied ⇒ vứt sạch dữ liệu cloud vừa tải — nay query
+`shopId + dateKey`; (2) 7 truy vấn tải nguyên bảng nay bound `updatedAt >=
+đầu kỳ`; (3) local thiếu đơn giao-trong-kỳ-tạo-trước — đã gộp thêm.
 · ❓ "8 lỗi tài chính" trên iPhone của anh Huy: chưa xem được `lastError` — cập
 nhật bản này rồi bấm "Xem 8 mục lỗi" TRƯỚC khi "Thử lại".
 
