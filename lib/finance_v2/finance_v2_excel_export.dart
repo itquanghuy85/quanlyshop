@@ -22,6 +22,13 @@ class FinanceV2ExcelExport {
     borderStyle: xl.BorderStyle.Thin,
   );
 
+  // ── Numeric cells: keep the real number type (so Excel can SUM /
+  // filter) but still render with thousands separator "#,##0".
+  // Do NOT pre-format money as String — that is what made every amount
+  // column text-typed before.
+  static xl.CellStyle numericStyle(xl.CellStyle base) =>
+      base.copyWith(numberFormat: xl.NumFormat.standard_3);
+
   // ── Header style: indigo bg, white bold text, thin border ──
   static xl.CellStyle _headerStyle() => xl.CellStyle(
     bold: true,
@@ -69,12 +76,14 @@ class FinanceV2ExcelExport {
       final v = values[i];
       if (v is int) {
         cell.value = xl.IntCellValue(v);
+        cell.cellStyle = FinanceV2ExcelExport.numericStyle(style);
       } else if (v is double) {
         cell.value = xl.DoubleCellValue(v);
+        cell.cellStyle = FinanceV2ExcelExport.numericStyle(style);
       } else {
         cell.value = xl.TextCellValue(v?.toString() ?? '');
+        cell.cellStyle = style;
       }
-      cell.cellStyle = style;
     }
   }
 
@@ -422,12 +431,14 @@ class FinanceV2DetailedExporter {
       final v = values[c];
       if (v is int) {
         cell.value = xl.IntCellValue(v);
+        cell.cellStyle = FinanceV2ExcelExport.numericStyle(style);
       } else if (v is double) {
         cell.value = xl.DoubleCellValue(v);
+        cell.cellStyle = FinanceV2ExcelExport.numericStyle(style);
       } else {
         cell.value = xl.TextCellValue(v?.toString() ?? '');
+        cell.cellStyle = style;
       }
-      cell.cellStyle = style;
     }
   }
 
@@ -481,8 +492,10 @@ class FinanceV2DetailedExporter {
             );
             if (v is int) {
               cell.value = xl.IntCellValue(v);
+              cell.cellStyle = FinanceV2ExcelExport.numericStyle(xl.CellStyle());
             } else if (v is double) {
               cell.value = xl.DoubleCellValue(v);
+              cell.cellStyle = FinanceV2ExcelExport.numericStyle(xl.CellStyle());
             } else {
               cell.value = xl.TextCellValue(v?.toString() ?? '');
             }

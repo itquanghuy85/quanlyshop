@@ -359,13 +359,47 @@ class SyncService {
     'financial_activity_log',
   };
 
-  /// Bảng đã quét trọn xong trong lần mở app này. Cố ý **chỉ giữ trong bộ
-  /// nhớ** — mở app lần sau là quét lại, đó chính là điểm của cơ chế này.
+  /// Bảng đã quét trọn xong trong lần mở app này (bộ nhớ) — cộng thêm mốc
+  /// quét gần nhất lưu SharedPreferences theo (bảng, shop).
+  ///
+  /// Trước đây chỉ giữ trong bộ nhớ ⇒ **mỗi lần mở app** quét lại trọn bảng.
+  /// Đo shop thật 2026-09-11: `financial_activity_log` = 2.083 doc ⇒ ~2.1K
+  /// read cho MỖI lần mở app, là khoản read lớn nhất còn lại. Mục đích của
+  /// lượt quét trọn chỉ là vớt doc cũ thiếu `updatedAt` — thứ không mọc thêm
+  /// theo giờ — nên quét **một lần mỗi [_fullSweepInterval] cho mỗi shop** là
+  /// đủ; giữa hai lượt đã có con trỏ + lưới an toàn `_checkCollection` lo.
   static final Set<String> _launchFullSweepDone = <String>{};
+  static const Duration _fullSweepInterval = Duration(hours: 24);
+  static const String _fullSweepAtPrefix = 'fullSweepAt_';
+  static final Map<String, int> _fullSweepAtCache = <String, int>{};
 
-  static bool _needsLaunchFullSweep(String collection) =>
-      _launchFullSweepCollections.contains(collection) &&
-      !_launchFullSweepDone.contains(collection);
+  static String _fullSweepAtKey(String collection, String shopId) =>
+      '$_fullSweepAtPrefix${collection}_$shopId';
+
+  static bool _needsLaunchFullSweep(String collection, String? shopId) {
+    if (!_launchFullSweepCollections.contains(collection)) return false;
+    if (_launchFullSweepDone.contains(collection)) return false;
+    if (shopId == null || shopId.isEmpty) return true;
+    final lastMs = _fullSweepAtCache[_fullSweepAtKey(collection, shopId)] ?? 0;
+    if (lastMs <= 0) return true;
+    final age = DateTime.now().millisecondsSinceEpoch - lastMs;
+    return age >= _fullSweepInterval.inMilliseconds;
+  }
+
+  static Future<void> _markFullSweepDone(
+    String collection,
+    String? shopId,
+  ) async {
+    _launchFullSweepDone.add(collection);
+    if (shopId == null || shopId.isEmpty) return;
+    final key = _fullSweepAtKey(collection, shopId);
+    final now = DateTime.now().millisecondsSinceEpoch;
+    _fullSweepAtCache[key] = now;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(key, now);
+    } catch (_) {}
+  }
 
   static const Set<String> _incrementalRealtimeCollections = {
     'attendance',
@@ -722,6 +756,11 @@ class SyncService {
         _realtimeCursorCache[key] = cursorMs;
       }
     }
+    for (final collection in _launchFullSweepCollections) {
+      final key = _fullSweepAtKey(collection, shopId);
+      final atMs = prefs.getInt(key) ?? 0;
+      if (atMs > 0) _fullSweepAtCache[key] = atMs;
+    }
   }
 
   static int _realtimeCursorMs(String collection, String shopId) {
@@ -790,7 +829,7 @@ class SyncService {
     if (_incrementalRealtimeDisabled.contains(collection)) return false;
     // Lượt quét trọn đầu tiên của phiên phải BỎ con trỏ, nếu không thì đúng
     // những doc thiếu `updatedAt` — thứ cần vớt — lại bị Firestore loại ra.
-    if (_needsLaunchFullSweep(collection)) return false;
+    if (_needsLaunchFullSweep(collection, shopId)) return false;
 
     return _realtimeCursorMs(collection, shopId) > 0;
   }
@@ -2921,55 +2960,95 @@ class SyncService {
         );
 
         Query<Map<String, dynamic>> query = _db.collection(collection);
+        final bool useCursor =
+            shopId != null &&
+            _canUseIncrementalRealtime(collection: collection, shopId: shopId);
         if (shopId != null) {
           query = query.where('shopId', isEqualTo: shopId);
 
-          if (_canUseIncrementalRealtime(
-            collection: collection,
-            shopId: shopId,
-          )) {
+          if (useCursor) {
             final cursorMs = _realtimeCursorMs(collection, shopId);
             query = query.where(
               'updatedAt',
               isGreaterThan: Timestamp.fromMillisecondsSinceEpoch(cursorMs),
             );
+          } else {
+            // Quét KHÔNG con trỏ phải phân trang theo docId. Không `orderBy`
+            // thì Firestore trả đúng N doc đầu theo docId và lượt nào cũng trả
+            // đúng N doc đó ⇒ bảng ≥ hạn mức (đo shop thật 2026-09-11:
+            // `financial_activity_log` = 4 lượt × đúng 500) vừa **không bao giờ
+            // được đánh dấu quét xong** (mỗi lượt poll lại tốn 500 read), vừa
+            // **doc thứ 501 trở đi không bao giờ về máy**.
+            query = query.orderBy(FieldPath.documentId);
           }
         }
 
         final pollLimit = _pollLimitFor(collection, shopId);
-        final snapshot = await _getQueryWithTimeout(
-          query: query,
-          context: 'poll_$collection',
-          limit: pollLimit,
-        );
-
-        // Đánh dấu ĐÃ quét trọn — chỉ khi lượt này thật sự quét hết. Trả về
-        // đúng bằng hạn mức nghĩa là có thể còn doc chưa lấy, để nguyên cho
-        // lượt sau quét lại.
-        if (_needsLaunchFullSweep(collection) &&
-            snapshot.docs.length < pollLimit) {
-          _launchFullSweepDone.add(collection);
-        }
-
-        if (snapshot.docs.isEmpty) {
-          return;
-        }
-
-        debugPrint(
-          "📥 Polled $collection: ${snapshot.docs.length} docs (limit=$pollLimit)",
-        );
+        // Mọi lượt KHÔNG con trỏ đều phải đi hết trang — kể cả lượt đầu tiên
+        // của bảng con trỏ (cursor = 0): lấy 500 doc bất kỳ rồi đẩy con trỏ
+        // lên là nhảy qua vĩnh viễn phần còn lại.
+        final sweeping = !useCursor;
+        // Trần số trang cho lượt quét trọn — chống vòng lặp vô hạn nếu bảng
+        // quá lớn bất thường; tới trần thì để nguyên chưa-xong cho lượt sau.
+        const maxSweepPages = 20;
 
         var maxCursorMs = 0;
-        for (final doc in snapshot.docs) {
-          var data = doc.data();
-          data = EncryptionService.decryptMap(data);
+        var totalDocs = 0;
+        var sweepComplete = false;
+        DocumentSnapshot<Map<String, dynamic>>? lastDoc;
 
-          final cursorMs = _extractRealtimeCursorMs(data);
-          if (cursorMs > maxCursorMs) {
-            maxCursorMs = cursorMs;
+        for (var page = 0; page < (sweeping ? maxSweepPages : 1); page++) {
+          var pageQuery = query;
+          if (lastDoc != null) {
+            pageQuery = pageQuery.startAfterDocument(lastDoc);
+          }
+          final snapshot = await _getQueryWithTimeout(
+            query: pageQuery,
+            context: 'poll_$collection',
+            limit: pollLimit,
+          );
+
+          if (snapshot.docs.length < pollLimit) sweepComplete = true;
+          if (snapshot.docs.isEmpty) break;
+
+          totalDocs += snapshot.docs.length;
+          lastDoc = snapshot.docs.last;
+          debugPrint(
+            "📥 Polled $collection: ${snapshot.docs.length} docs "
+            "(limit=$pollLimit, page=${page + 1})",
+          );
+
+          for (final doc in snapshot.docs) {
+            var data = doc.data();
+            data = EncryptionService.decryptMap(data);
+
+            final cursorMs = _extractRealtimeCursorMs(data);
+            if (cursorMs > maxCursorMs) {
+              maxCursorMs = cursorMs;
+            }
+
+            await onChanged(data, doc.id);
           }
 
-          await onChanged(data, doc.id);
+          unawaited(
+            FirebaseUsageStatsService.logRealtimeRead(
+              collection: collection,
+              shopId: shopId,
+              readCount: snapshot.docs.length,
+            ),
+          );
+
+          if (sweepComplete) break;
+        }
+
+        // Đánh dấu ĐÃ quét trọn — chỉ khi thật sự đi hết các trang. Chạm trần
+        // trang mà vẫn đầy thì để nguyên cho lượt sau quét lại.
+        if (_needsLaunchFullSweep(collection, shopId) && sweepComplete) {
+          await _markFullSweepDone(collection, shopId);
+        }
+
+        if (totalDocs == 0) {
+          return;
         }
 
         if (shopId != null && maxCursorMs > 0) {
@@ -2979,14 +3058,6 @@ class SyncService {
             cursorMs: maxCursorMs,
           );
         }
-
-        unawaited(
-          FirebaseUsageStatsService.logRealtimeRead(
-            collection: collection,
-            shopId: shopId,
-            readCount: snapshot.docs.length,
-          ),
-        );
 
         onBatchDone();
       } catch (e) {
@@ -3287,7 +3358,8 @@ class SyncService {
         .where(
           (k) =>
               k.startsWith(_lastSyncPrefix) ||
-              k.startsWith(_realtimeCursorPrefix),
+              k.startsWith(_realtimeCursorPrefix) ||
+              k.startsWith(_fullSweepAtPrefix),
         )
         .toList();
     for (final key in keys) {
@@ -3298,6 +3370,7 @@ class SyncService {
     _incrementalRealtimeDisabled.clear();
     // Đổi shop / đăng xuất ⇒ dữ liệu shop mới chưa từng được quét trọn.
     _launchFullSweepDone.clear();
+    _fullSweepAtCache.clear();
     // Đổi shop / dọn dữ liệu ⇒ kết quả kiểm tra cũ vô nghĩa.
     SyncHealthCheck.invalidateCache();
     debugPrint('🔄 Reset ${keys.length} sync timestamps/cursors');

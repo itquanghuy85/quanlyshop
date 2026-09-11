@@ -171,9 +171,10 @@ class FirestoreAuditService {
   Future<void> resetAll() async {
     resetSessionStats();
     _dailyReadsTotal = 0;
+    _dailyKey = _todayKey();
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('dev_audit_daily_${_todayKey()}', 0);
+      await prefs.setInt('dev_audit_daily_$_dailyKey', 0);
     } catch (_) {}
     _notifyStats();
   }
@@ -204,8 +205,14 @@ class FirestoreAuditService {
 
   void _updateDailyTotal(int reads) {
     if (reads <= 0) return;
-    _dailyReadsTotal += reads;
     final today = _todayKey();
+    // Sang ngày mới thì "Daily Total" phải bắt đầu lại từ 0 — trước đây tổng
+    // hôm qua cứ cộng dồn tiếp và được ghi vào khoá của ngày mới.
+    if (today != _dailyKey) {
+      _dailyKey = today;
+      _dailyReadsTotal = 0;
+    }
+    _dailyReadsTotal += reads;
     // Save asynchronously, don't block
     SharedPreferences.getInstance()
         .then((prefs) {

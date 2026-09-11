@@ -421,6 +421,13 @@ class FinanceV2DataService {
     int expenseOut = 0;
     int importExpenseOut = 0;
     int partnerPaymentOut = 0; // TT đối tác sửa chữa — tách riêng để hiển thị
+    // Vốn sửa chữa đã được tính vào `repairCogs` lúc giao máy nhưng vẫn phải
+    // hiện là tiền RA trong sổ quỹ (`repair_cost_*` dịch vụ nội bộ và
+    // `parts_cost_*` linh kiện ghi sổ quỹ). Gom riêng để LOẠI khỏi
+    // `operatingExpenseOut`, nếu không "lãi sau chi phí" trừ vốn SC 2 lần
+    // (1 lần ở lãi gộp, 1 lần ở chi vận hành) — khớp cách
+    // DailyFinancialAnalysisService không đưa repairPartsCostFund vào netProfit.
+    int repairCostMirrorOut = 0;
     int debtRepayOut =
         0; // Trả nợ NCC/đối tác (SHOP_OWES) — tách riêng để hiển thị
     int extraIn = 0;
@@ -548,6 +555,7 @@ class FinanceV2DataService {
           .fold<int>(0, (sum, s) => sum + s.cost);
       if (nonPartnerCost > 0) {
         expenseOut += nonPartnerCost;
+        repairCostMirrorOut += nonPartnerCost;
         transactions.add(
           FinanceV2Txn(
             id: 'repair_cost_${repair.id ?? repair.firestoreId ?? repair.createdAt}',
@@ -623,6 +631,7 @@ class FinanceV2DataService {
       final customerName = (r['customerName'] ?? '').toString().trim();
       final model = (r['model'] ?? '').toString().trim();
       expenseOut += amount;
+      repairCostMirrorOut += amount;
       transactions.add(
         FinanceV2Txn(
           id: 'parts_cost_${r['firestoreId'] ?? r['id'] ?? ts}',
@@ -978,7 +987,8 @@ class FinanceV2DataService {
         expenseOut -
         debtRepayOut -
         importExpenseOut -
-        partnerPaymentOut; // chi vận hành thuần, loại trả nợ NCC, nhập hàng, TT đối tác
+        partnerPaymentOut -
+        repairCostMirrorOut; // chi vận hành thuần, loại trả nợ NCC, nhập hàng, TT đối tác, vốn SC đã nằm trong COGS
     final netCashflow = totalIn - totalOut;
     // Lãi gộp bán hàng theo cash basis — nhất quán với incomeFromSales (saleIn)
     final grossProfitFromSales = saleIn - saleCogs;

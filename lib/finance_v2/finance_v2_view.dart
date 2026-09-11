@@ -3627,22 +3627,6 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     return _actionTypeLabel(actionType);
   }
 
-  /// Format integer as money string with thousands separator, e.g. 1,234,567.
-  String _fmtMoney(int v) {
-    if (v == 0) return '0';
-    final sign = v < 0 ? '-' : '';
-    final abs = v.abs();
-    final s = abs.toString();
-    final buf = StringBuffer();
-    int count = 0;
-    for (int i = s.length - 1; i >= 0; i--) {
-      if (count > 0 && count % 3 == 0) buf.write(',');
-      buf.write(s[i]);
-      count++;
-    }
-    return '$sign${buf.toString().split('').reversed.join()}';
-  }
-
   bool _isImportExpense(Map<String, dynamic> expense) {
     final title = (expense['title'] ?? '').toString().toUpperCase();
     final category = (expense['category'] ?? '').toString().toUpperCase();
@@ -3805,17 +3789,19 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       productName,
       imei,
       quantity > 0 ? quantity : '',
-      price > 0 ? _fmtMoney(price) : '',
-      cost > 0 ? _fmtMoney(cost) : '',
-      resolvedLineAmount > 0 ? _fmtMoney(resolvedLineAmount) : '',
-      resolvedLineCostTotal > 0 ? _fmtMoney(resolvedLineCostTotal) : '',
-      cashIn > 0 ? _fmtMoney(cashIn) : '',
-      cashOut > 0 ? _fmtMoney(cashOut) : '',
-      transferIn > 0 ? _fmtMoney(transferIn) : '',
-      transferOut > 0 ? _fmtMoney(transferOut) : '',
+      // Raw ints, not _fmtMoney() strings: the export layer applies "#,##0"
+      // so Excel shows separators AND can still SUM the column.
+      price > 0 ? price : '',
+      cost > 0 ? cost : '',
+      resolvedLineAmount > 0 ? resolvedLineAmount : '',
+      resolvedLineCostTotal > 0 ? resolvedLineCostTotal : '',
+      cashIn > 0 ? cashIn : '',
+      cashOut > 0 ? cashOut : '',
+      transferIn > 0 ? transferIn : '',
+      transferOut > 0 ? transferOut : '',
       _paymentMethodLabel(paymentMethod),
-      debtCustomerChange != 0 ? _fmtMoney(debtCustomerChange) : '',
-      debtSupplierChange != 0 ? _fmtMoney(debtSupplierChange) : '',
+      debtCustomerChange != 0 ? debtCustomerChange : '',
+      debtSupplierChange != 0 ? debtSupplierChange : '',
       inventoryChange != 0 ? inventoryChange : '',
       actorName,
       description,
@@ -4889,24 +4875,24 @@ class _FinanceV2ViewState extends State<FinanceV2View>
 
     final rows = <List<dynamic>>[
       ['BÁO CÁO KỲ', _sub],
-      ['Thu vào', MoneyUtils.formatVND(s.totalIn)],
-      ['Chi ra', MoneyUtils.formatVND(s.totalOut)],
-      ['Ròng sổ quỹ', MoneyUtils.formatVND(s.netCashflow)],
+      ['Thu vào', s.totalIn],
+      ['Chi ra', s.totalOut],
+      ['Ròng sổ quỹ', s.netCashflow],
       [
         'Lãi gộp (phần đã thu)',
-        MoneyUtils.formatVND(s.grossProfitTotal - s.operatingExpenseOut),
+        s.grossProfitTotal - s.operatingExpenseOut,
       ],
-      ['Số giao dịch', s.transactionCount.toString()],
+      ['Số giao dịch', s.transactionCount],
       [''],
       ['CƠ CẤU TIỀN THU', ''],
-      ['Bán hàng', MoneyUtils.formatVND(s.incomeFromSales)],
-      ['Sửa chữa', MoneyUtils.formatVND(s.incomeFromRepairs)],
-      ['Thu nợ KH', MoneyUtils.formatVND(debtCollectedSnap)],
-      ['Thu khác', MoneyUtils.formatVND(s.incomeOther)],
+      ['Bán hàng', s.incomeFromSales],
+      ['Sửa chữa', s.incomeFromRepairs],
+      ['Thu nợ KH', debtCollectedSnap],
+      ['Thu khác', s.incomeOther],
       [''],
       ['CÔNG NỢ', ''],
-      ['Phải thu', MoneyUtils.formatVND(s.receivableTotal)],
-      ['Phải trả', MoneyUtils.formatVND(s.payableTotal)],
+      ['Phải thu', s.receivableTotal],
+      ['Phải trả', s.payableTotal],
     ];
 
     if (s.topExpenseCategories.isNotEmpty) {
@@ -4915,7 +4901,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         ['TOP CHI PHÍ', ''],
       ]);
       for (final c in s.topExpenseCategories.take(10)) {
-        rows.add([c.label, MoneyUtils.formatVND(c.amount)]);
+        rows.add([c.label, c.amount]);
       }
     }
 
@@ -4929,16 +4915,15 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     String hm(int ms) => ms > 0
         ? DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(ms))
         : '';
-    String fmtN(num v) => NumberFormat('#,###', 'vi_VN').format(v);
 
     // ── Section 1: Tổng quan dòng tiền ──────────────────────────────
     final sec1 = FinanceV2DetailedDailySection(
       title: '1. Tổng quan dòng tiền',
       colHeaders: const ['Loại', 'Số tiền'],
       rows: [
-        ['Thu vào', fmtN(s.totalIn)],
-        ['Chi ra', fmtN(s.totalOut)],
-        ['Ròng sổ quỹ', fmtN(s.netCashflow)],
+        ['Thu vào', (s.totalIn)],
+        ['Chi ra', (s.totalOut)],
+        ['Ròng sổ quỹ', (s.netCashflow)],
       ],
     );
 
@@ -4954,8 +4939,18 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final debtPaid = s.transactions
         .where((t) => t.type.toUpperCase() == 'DEBT_PAY')
         .fold<int>(0, (a, e) => a + e.amount);
-    // IMPORT type is never created by data service — derive from snapshot totals instead.
-    final importOut = s.totalOut - s.debtRepayOut - s.operatingExpenseOut;
+    // Tách CHI theo đúng các nhóm snapshot đã đếm riêng; phần dư còn lại là
+    // vốn sửa chữa đã ghi sổ quỹ (repair_cost_* / parts_cost_*) — tiền có ra
+    // nhưng KHÔNG phải chi vận hành vì đã nằm trong vốn SC của lãi gộp.
+    final importOut = s.importExpenseOut;
+    final partnerOut = s.partnerPaymentOut;
+    final repairCostOut =
+        (s.totalOut -
+                s.debtRepayOut -
+                s.operatingExpenseOut -
+                importOut -
+                partnerOut)
+            .clamp(0, s.totalOut);
 
     final sec2 = FinanceV2DetailedDailySection(
       title: '2. Cơ cấu thu chi',
@@ -4963,25 +4958,31 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       rows: [
         [
           'THU — Bán hàng',
-          fmtN(s.incomeFromSales),
+          (s.incomeFromSales),
           pct(s.incomeFromSales, totalIn),
         ],
         [
           'THU — Sửa chữa',
-          fmtN(s.incomeFromRepairs),
+          (s.incomeFromRepairs),
           pct(s.incomeFromRepairs, totalIn),
         ],
-        ['THU — Thu nợ KH', fmtN(debtCollected), pct(debtCollected, totalIn)],
+        ['THU — Thu nợ KH', (debtCollected), pct(debtCollected, totalIn)],
         [
           'THU — Thu khác',
-          fmtN(s.incomeOther),
+          (s.incomeOther),
           pct(s.incomeOther, totalIn),
         ],
-        ['CHI — Nhập hàng', fmtN(importOut), pct(importOut, totalOut)],
-        ['CHI — Trả nợ NCC', fmtN(debtPaid), pct(debtPaid, totalOut)],
+        ['CHI — Nhập hàng', (importOut), pct(importOut, totalOut)],
+        ['CHI — Trả nợ NCC', (debtPaid), pct(debtPaid, totalOut)],
+        ['CHI — TT đối tác SC', (partnerOut), pct(partnerOut, totalOut)],
         [
-          'CHI — Chi phí',
-          fmtN(s.operatingExpenseOut),
+          'CHI — Vốn SC đã ghi quỹ',
+          (repairCostOut),
+          pct(repairCostOut, totalOut),
+        ],
+        [
+          'CHI — Chi phí vận hành',
+          (s.operatingExpenseOut),
           pct(s.operatingExpenseOut, totalOut),
         ],
       ],
@@ -5002,9 +5003,9 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         hm(sale.soldAt),
         sale.isWalkIn ? (sale.walkInName ?? 'Khách lẻ') : sale.customerName,
         sale.productNamesDisplay,
-        fmtN(displayPrice),
-        fmtN(sale.totalCost),
-        fmtN(profit),
+        (displayPrice),
+        (sale.totalCost),
+        (profit),
         sale.paymentMethod,
       ]);
     }
@@ -5035,9 +5036,9 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         r.isWalkIn ? (r.walkInName ?? 'Khách lẻ') : r.customerName,
         r.model,
         r.issue,
-        fmtN(r.price),
-        fmtN(r.cost),
-        fmtN(profit),
+        (r.price),
+        (r.cost),
+        (profit),
         r.paymentMethod,
         r.repairedBy ?? '',
       ]);
@@ -5069,7 +5070,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         imp['productName'] ?? '',
         imp['supplierName'] ?? '',
         imp['quantity'] ?? 0,
-        fmtN((imp['costPrice'] as num?)?.toInt() ?? 0),
+        ((imp['costPrice'] as num?)?.toInt() ?? 0),
         imp['paymentMethod'] ?? '',
       ]);
     }
@@ -5102,7 +5103,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         hm(ts),
         isIncome ? 'Thu' : 'Chi',
         exp['title'] ?? '',
-        fmtN((exp['amount'] as num?)?.toInt() ?? 0),
+        ((exp['amount'] as num?)?.toInt() ?? 0),
         exp['paymentMethod'] ?? '',
       ]);
     }
@@ -5137,9 +5138,9 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         ++idx7,
         name,
         d['phone'] ?? '',
-        fmtN(total),
-        fmtN(paid),
-        fmtN(total - paid),
+        (total),
+        (paid),
+        (total - paid),
       ]);
     }
     for (final r in s.receivables) {
@@ -5150,9 +5151,9 @@ class _FinanceV2ViewState extends State<FinanceV2View>
           ++idx7,
           r.name,
           r.phone ?? '',
-          fmtN(r.total),
-          fmtN(r.paid),
-          fmtN(r.remaining),
+          (r.total),
+          (r.paid),
+          (r.remaining),
         ]);
       }
     }
@@ -5180,7 +5181,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       final total = (d['totalAmount'] as num?)?.toInt() ?? 0;
       final paid = (d['paidAmount'] as num?)?.toInt() ?? 0;
       final name = d['personName'] ?? d['supplierName'] ?? d['name'] ?? '';
-      sec8Rows.add([++idx8, name, fmtN(total), fmtN(paid), fmtN(total - paid)]);
+      sec8Rows.add([++idx8, name, (total), (paid), (total - paid)]);
     }
     for (final p in s.payables) {
       if (!supplierDebts.any(
@@ -5189,9 +5190,9 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         sec8Rows.add([
           ++idx8,
           p.name,
-          fmtN(p.total),
-          fmtN(p.paid),
-          fmtN(p.remaining),
+          (p.total),
+          (p.paid),
+          (p.remaining),
         ]);
       }
     }
@@ -5212,9 +5213,9 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       sec9Rows.add([
         i + 1,
         sale.productNamesDisplay,
-        fmtN(sale.totalCost),
-        fmtN(sale.finalPrice),
-        fmtN(profit),
+        (sale.totalCost),
+        (sale.finalPrice),
+        (profit),
         pctProfit,
         sale.paymentMethod,
       ]);
@@ -5242,18 +5243,18 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       rows: [
         // FinanceV2 = cash basis → "phần đã thu tiền", không phải doanh thu/
         // lợi nhuận kế toán (xem "Báo cáo lợi nhuận tháng").
-        ['Tổng tiền bán đã thu', fmtN(totalRevenue)],
-        ['Vốn (phần đã thu) - bán', fmtN(s.cogsFromSales)],
-        ['Vốn sửa chữa (thực tế)', fmtN(cogsRepairActual)],
-        ['Lãi gộp (đã thu) - bán', fmtN(s.grossProfitFromSales)],
-        ['Lãi gộp (đã thu) - sửa', fmtN(s.grossProfitFromRepairs)],
-        ['Tổng lãi gộp (phần đã thu)', fmtN(s.grossProfitTotal)],
+        ['Tổng tiền bán đã thu', (totalRevenue)],
+        ['Vốn (phần đã thu) - bán', (s.cogsFromSales)],
+        ['Vốn sửa chữa (thực tế)', (cogsRepairActual)],
+        ['Lãi gộp (đã thu) - bán', (s.grossProfitFromSales)],
+        ['Lãi gộp (đã thu) - sửa', (s.grossProfitFromRepairs)],
+        ['Tổng lãi gộp (phần đã thu)', (s.grossProfitTotal)],
         [
           'Lãi gộp sau chi phí (phần đã thu)',
-          fmtN(s.grossProfitTotal - s.operatingExpenseOut),
+          (s.grossProfitTotal - s.operatingExpenseOut),
         ],
-        ['Nợ phải thu cuối kỳ', fmtN(s.receivableTotal)],
-        ['Nợ phải trả cuối kỳ', fmtN(s.payableTotal)],
+        ['Nợ phải thu cuối kỳ', (s.receivableTotal)],
+        ['Nợ phải trả cuối kỳ', (s.payableTotal)],
       ],
     );
 

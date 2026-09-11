@@ -4,6 +4,101 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-11a] - Tài chính: lãi sau chi phí trừ vốn SC 2 lần · Excel ra chữ · poll 500 kẹt mãi · 8 mục sync lỗi không xem được lý do
+
+Rà 3 việc trên shop thật (máy test đăng nhập `huy@huluca.com`, chỉ xem).
+
+### 1. Tab Tài chính — lãi & Excel
+
+**🔴 "Lãi sau chi phí" trừ vốn sửa chữa 2 lần.** `finance_v2_data_service`
+cộng `repair_cost_*` (dịch vụ nội bộ) và `parts_cost_*` (linh kiện đã ghi sổ
+quỹ) vào `expenseOut` — đúng cho *dòng tiền* — nhưng KHÔNG loại khỏi
+`operatingExpenseOut`, trong khi `repair.totalCost` (đã gồm cả 2 khoản, xem
+`repair_detail_view` cộng `service.cost` vào `r.cost`) đã nằm trong
+`repairCogs`. Mọi chỗ tính `grossProfitTotal − operatingExpenseOut` ("Lãi gộp
+sau chi phí" trong Excel báo cáo ngày, "Lợi nhuận thực" bản in/text, tờ Đối
+soát) vì thế thấp hơn thật. Ví dụ: đơn sửa 1tr, LK 500k, ghi sổ quỹ 500k ⇒ lãi
+sau chi phí ra **0** thay vì 500k. Nay gom `repairCostMirrorOut` và trừ khỏi
+`operatingExpenseOut` — giống cách `DailyFinancialAnalysisService` không đưa
+`repairPartsCostFund` vào `netProfit`. **Tab Lãi trên màn hình (lãi gộp) vốn
+đúng, không đổi.** Số thật 30 ngày sau sửa: CHI tách 5 dòng cộng đúng bằng
+"Chi ra" 575,9 Tr; lãi sau chi phí = 1.654,6 + 56,3 − 14,6 = 1.696,3 Tr.
+
+**Excel ra chữ thay vì số.** `_auditRow` dùng `_fmtMoney()` ("1,234,567"),
+báo cáo ngày dùng `MoneyUtils.formatVND` / `fmtN` ⇒ mọi cột tiền là
+`TextCellValue`, Excel không SUM/lọc được. Nay đẩy `int` thô; tầng xuất
+(`FinanceV2ExcelExport.numericStyle`) gắn `NumFormat.standard_3` = `#,##0` cho
+ô số ⇒ vẫn có dấu phẩy nhưng là kiểu số. Đối chiếu file kéo từ máy: cũ
+`'53.740.000' str General`, mới `2382835000 int #,##0`. Bổ sung
+`test/finance_v2_excel_numeric_test.dart` (ghi → đọc lại). Tờ "Đối soát" đọc
+key riêng (`e['cashIn']`…), không đọc `row` nên không ảnh hưởng.
+
+Ghi chú: mục "Linh kiện sửa chữa" trong "Chi tiêu theo danh mục" cố ý = vốn SC
+(`repairCogs − đối tác`) để hiện lên biểu đồ, không phải lỗi.
+
+### 2. Giám sát Firestore Read — vì sao nhiều read
+
+Đo máy thật (phiên 532 phút, bản trước vá): **3.5K read, 2.0K (57%) là
+`financial_activity_log` = 4 lượt × đúng 500 doc**. Nguyên nhân là lỗi code,
+không phải "dữ liệu nhiều":
+
+**🔴 Quét không con trỏ kẹt mãi ở 500 + mất doc thứ 501 trở đi.** Lượt quét
+trọn (`_uncursoredPollLimit = 500`) không `orderBy` ⇒ Firestore trả đúng 500
+doc đầu theo docId, lượt nào cũng đúng 500 doc đó. Trả về = hạn mức thì
+`_launchFullSweepDone` không được set ⇒ **mọi lượt poll sau đều quét lại 500
+doc** (500 read/lượt), và doc ngoài 500 **không bao giờ về máy**. Shop thật có
+2.083 dòng. Nay `orderBy(FieldPath.documentId)` + `startAfterDocument` phân
+trang tới khi trang < hạn mức (trần 20 trang); áp cho **mọi** lượt không con
+trỏ (kể cả lượt đầu cursor=0 của bảng con trỏ — trước lấy 500 doc bất kỳ rồi
+đẩy con trỏ là nhảy sót). Máy thật: `page=1..5` = 500×4 + 83 = 2.083 ✓.
+
+**Quét trọn 1 lần / 24h / shop thay vì mỗi lần mở app.** Sau khi phân trang
+đúng thì mỗi lần mở app vẫn tốn ~2.1K read cho bảng này. Mục đích quét trọn
+chỉ là vớt doc cũ thiếu `updatedAt` (không mọc thêm theo giờ) ⇒ lưu mốc
+`fullSweepAt_{collection}_{shopId}` (SharedPreferences), 24h mới quét lại;
+`resetSyncTimestamps()` xoá luôn mốc này. Máy thật lần mở thứ 2:
+`financial_activity_log` / `supplier_import_history` đều `limit=20` (đường con
+trỏ). Giữa 2 lượt vẫn có `_checkCollection` (count() + tải doc thiếu) làm lưới.
+
+**Nút Reset trang giám sát** hoạt động đúng (xoá session + daily). Sửa 1 lỗi
+nhỏ: `_updateDailyTotal` không so `_dailyKey` ⇒ sang ngày mới "Daily Total"
+cộng tiếp tổng hôm qua. Nay tự về 0 khi đổi ngày.
+
+Điểm read lớn còn lại (chưa sửa, đã biết): **màn Chốt quỹ** tải nguyên
+`repairs` / `debts` / `debt_payments` / `supplier_payments` /
+`repair_partner_payments` / `supplier_import_history` từ cloud mỗi lần mở
+(`cash_closing_view._loadAllDataFromFirestore`, có comment giải thích vì sao
+chưa bound). Shop nhiều đơn thì mỗi lần mở Chốt quỹ = hàng nghìn read.
+
+### 3. "8 lỗi" đồng bộ tài chính trên iPhone
+
+= 8 dòng `sync_queue` `status='failed'` thuộc nhóm tài chính. Không truy cập
+được iPhone; 2 việc để tự chẩn đoán/khắc phục:
+
+- **Trung tâm đồng bộ thêm "Xem N mục lỗi"**: liệt kê loại dữ liệu, mã bản
+  ghi, `lastError`, số lần thử. Trước đây UI không hiện `lastError`, và bấm
+  "Thử lại" là xoá luôn nên không bao giờ biết vì sao hỏng. **Bấm xem trước,
+  thử lại sau.**
+- **Xoá mềm doc chưa từng lên cloud không còn failed vĩnh viễn**:
+  `_handleDelete` dùng `.update()` ⇒ doc tạo-rồi-xoá lúc offline ném
+  `not-found`, thử 3 lần rồi nằm "failed" mãi. Nay bắt `not-found` → coi như
+  xong. Đây là nguyên nhân khả dĩ nhất cho các mục lỗi loại `delete`.
+- Lỗi vĩnh viễn còn lại chỉ có thể là `permission-denied` (rules: `expenses` /
+  `supplier_payments` / `repair_partner_payments` / `cash_closings` /
+  `adjustment_entries` đòi `isManager()`; `debt_payments` đòi `isEmployee()`).
+
+**Files:** `lib/finance_v2/finance_v2_data_service.dart`,
+`finance_v2_view.dart`, `finance_v2_daily_report_view.dart`,
+`finance_v2_excel_export.dart`, `lib/services/sync_service.dart`,
+`sync_orchestrator.dart`, `lib/widgets/unified_sync_button.dart`,
+`lib/developer/firestore_audit/services/firestore_audit_service.dart`,
+`test/finance_v2_excel_numeric_test.dart`.
+**Kiểm chứng:** analyze 0 error; `flutter test` 620 pass / 1 skip / 2 fail
+(2 test KiotViet đỏ sẵn trên cây sạch, không liên quan); máy thật Oppo
+CPH2203 shop thật: phân trang, lần mở 2 đi con trỏ, Excel số, tổng CHI khớp.
+
+---
+
 ## [2026-09-07h] - fix 8 TEST ĐỎ: 3 nguyên nhân, 1 cái là lỗi thật của app
 
 Soát 8 test đỏ tồn đọng. **1 trong 3 nguyên nhân là lỗi thật trong code chạy**,

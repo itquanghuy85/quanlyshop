@@ -7,7 +7,24 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## ⚡ Trạng thái hiện tại
 
 **Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
-**Last Updated:** 2026-09-06  
+**Last Updated:** 2026-09-11  
+
+**🔴 LÃI SAU CHI PHÍ TRỪ VỐN SỬA CHỮA 2 LẦN + POLL 500 KẸT MÃI (`[2026-09-11a]`).**
+· FinanceV2: `repair_cost_*` / `parts_cost_*` nằm trong `expenseOut` (đúng cho
+dòng tiền) nhưng không bị loại khỏi `operatingExpenseOut` trong khi vốn đó đã ở
+`repairCogs` ⇒ mọi "lãi sau chi phí" (Excel, bản in, Đối soát) thấp hơn thật.
+Đã tách `repairCostMirrorOut`. Tab Lãi trên màn hình không đổi.
+· Excel tài chính nay là **số** (`#,##0`), không còn chuỗi "1,234,567".
+· Sync: quét không con trỏ không `orderBy` ⇒ bảng ≥500 doc lượt nào cũng trả
+đúng 500 doc đó — vừa tốn 500 read/lượt poll, vừa **mất doc thứ 501+**. Shop
+thật `financial_activity_log` = 2.083 dòng. Đã phân trang theo docId; quét trọn
+nay 1 lần/24h/shop (`fullSweepAt_*`). Đo trước vá: 2.0K/3.5K read của phiên.
+· Trung tâm đồng bộ có "Xem N mục lỗi" (hiện `lastError`); xoá mềm doc chưa
+lên cloud (`not-found`) không còn failed vĩnh viễn.
+· 🔍 Read lớn còn lại chưa sửa: **màn Chốt quỹ** tải nguyên 6 collection từ
+cloud mỗi lần mở.
+· ❓ "8 lỗi tài chính" trên iPhone của anh Huy: chưa xem được `lastError` — cập
+nhật bản này rồi bấm "Xem 8 mục lỗi" TRƯỚC khi "Thử lại".
 
 **🔴 MỞ DATABASE CỤC BỘ CHẾT NẾU FIREBASE HỎNG (`[2026-09-07h]`).**
 `DBHelper._resolveShopIdForRepairsBackfill` gọi `UserService.getShopIdSync()`

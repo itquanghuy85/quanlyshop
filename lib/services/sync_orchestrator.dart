@@ -904,13 +904,27 @@ class SyncOrchestrator {
     }
 
     // Soft delete
-    await _withCloudWriteTimeout(
-      _firestore
-          .collection(collection)
-          .doc(item.firestoreId)
-          .update(FirestoreWriteHelper.softDeletePayload()),
-      'delete_$collection/${item.firestoreId}',
-    );
+    try {
+      await _withCloudWriteTimeout(
+        _firestore
+            .collection(collection)
+            .doc(item.firestoreId)
+            .update(FirestoreWriteHelper.softDeletePayload()),
+        'delete_$collection/${item.firestoreId}',
+      );
+    } on FirebaseException catch (e) {
+      // Doc chưa từng lên cloud (tạo rồi xoá lúc offline, hoặc bản create đã
+      // bị gỡ khỏi hàng đợi) ⇒ `update()` ném not-found. Không có gì để xoá
+      // mềm nữa — coi như xong, thay vì thử 3 lần rồi nằm "failed" vĩnh viễn
+      // trong Trung tâm đồng bộ.
+      if (e.code == 'not-found') {
+        debugPrint(
+          '⏭️ Delete $collection/${item.firestoreId}: không có trên cloud, bỏ qua',
+        );
+        return;
+      }
+      rethrow;
+    }
   }
 
   /// Mark item as failed

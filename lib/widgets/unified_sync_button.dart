@@ -380,7 +380,18 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
 
                           // Chỉ hiện khi thật sự có item lỗi trong hàng đợi.
                           if (_syncQueueStats != null &&
-                              (_syncQueueStats!['failed'] ?? 0) > 0)
+                              (_syncQueueStats!['failed'] ?? 0) > 0) ...[
+                            // Xem lý do TRƯỚC khi thử lại — "Thử lại" xoá
+                            // `lastError`, bấm xong là mất dấu vì sao hỏng.
+                            _buildActionTile(
+                              icon: Icons.error_outline,
+                              iconColor: Colors.red,
+                              title:
+                                  'Xem ${_syncQueueStats!['failed']} mục lỗi',
+                              subtitle:
+                                  'Loại dữ liệu, mã bản ghi và lý do thất bại',
+                              onTap: _showFailedItems,
+                            ),
                             _buildActionTile(
                               icon: Icons.refresh,
                               iconColor: Colors.orange,
@@ -389,6 +400,7 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
                               subtitle: 'Đưa các mục sync thất bại về hàng đợi',
                               onTap: _handleRetryFailed,
                             ),
+                          ],
 
                           const SizedBox(height: 16),
 
@@ -1322,6 +1334,78 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
       NotificationService.showSnackBar('❌ Lỗi: $e', color: Colors.red);
       setState(() => _isLoading = false);
     }
+  }
+
+  /// Liệt kê các mục sync thất bại kèm `lastError` — phần chẩn đoán duy nhất
+  /// người dùng có thể đọc được trên máy (không cần cắm cáp / xem log).
+  Future<void> _showFailedItems() async {
+    final items = await _orchestrator.getFailedItems();
+    if (!mounted) return;
+    final fmt = DateFormat('dd/MM HH:mm');
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('${items.length} mục đồng bộ lỗi'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: items.isEmpty
+              ? const Text('Không còn mục lỗi nào.')
+              : ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: items.length,
+                  separatorBuilder: (_, __) => const Divider(height: 12),
+                  itemBuilder: (_, i) {
+                    final it = items[i];
+                    final err = (it.lastError ?? '').trim();
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${_entityLabel(it.entityType.name)} · '
+                          '${it.operation.name} · '
+                          '${fmt.format(DateTime.fromMillisecondsSinceEpoch(it.createdAt))}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                        if ((it.firestoreId ?? '').isNotEmpty)
+                          Text(
+                            it.firestoreId!,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        SelectableText(
+                          err.isEmpty
+                              ? '(không ghi lại lý do — quá số lần thử)'
+                              : err,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.redAccent,
+                          ),
+                        ),
+                        Text(
+                          'Đã thử ${it.retryCount} lần',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Đóng'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _handleRetryFailed() async {

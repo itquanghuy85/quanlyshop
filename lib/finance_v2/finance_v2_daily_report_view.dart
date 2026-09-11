@@ -1206,17 +1206,15 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
         ? DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(ms))
         : '';
 
-    // Format number with commas
-    String fmtN(num v) => NumberFormat('#,###', 'vi_VN').format(v);
 
     // ── Section 1: Tổng quan dòng tiền ──────────────────────────────
     final sec1 = FinanceV2DetailedDailySection(
       title: '1. Tổng quan dòng tiền',
       colHeaders: const ['Loại', 'Tiền mặt', 'Chuyển khoản', 'Tổng'],
       rows: [
-        ['Thu vào', fmtN(analysis.cashIn), fmtN(analysis.bankIn), fmtN(s.totalIn)],
-        ['Chi ra', fmtN(analysis.cashOut), fmtN(analysis.bankOut), fmtN(s.totalOut)],
-        ['Ròng sổ quỹ', '', '', fmtN(s.netCashflow)],
+        ['Thu vào', (analysis.cashIn), (analysis.bankIn), (s.totalIn)],
+        ['Chi ra', (analysis.cashOut), (analysis.bankOut), (s.totalOut)],
+        ['Ròng sổ quỹ', '', '', (s.netCashflow)],
       ],
     );
 
@@ -1235,15 +1233,15 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
       title: '2. Cơ cấu thu chi',
       colHeaders: const ['Loại', 'Số tiền', '% tổng'],
       rows: [
-        ['THU — Bán hàng', fmtN(s.incomeFromSales), '${((s.incomeFromSales / totalIn) * 100).toStringAsFixed(1)}%'],
-        ['THU — Sửa chữa', fmtN(s.incomeFromRepairs), '${((s.incomeFromRepairs / totalIn) * 100).toStringAsFixed(1)}%'],
-        ['THU — Tất toán NH', fmtN(settlement), '${((settlement / totalIn) * 100).toStringAsFixed(1)}%'],
-        ['THU — Thu nợ KH', fmtN(debtCollected), '${((debtCollected / totalIn) * 100).toStringAsFixed(1)}%'],
-        ['THU — Thu khác', fmtN(miscIncome), '${((miscIncome / totalIn) * 100).toStringAsFixed(1)}%'],
-        ['CHI — Nhập hàng', fmtN(analysis.importOut), '${((analysis.importOut / totalOut) * 100).toStringAsFixed(1)}%'],
-        ['CHI — Trả nợ NCC', fmtN(analysis.supplierPaid), '${((analysis.supplierPaid / totalOut) * 100).toStringAsFixed(1)}%'],
-        ['CHI — Chi phí', fmtN(analysis.expenseOut), '${((analysis.expenseOut / totalOut) * 100).toStringAsFixed(1)}%'],
-        ['CHI — TT đối tác', fmtN(analysis.partnerPaid), '${((analysis.partnerPaid / totalOut) * 100).toStringAsFixed(1)}%'],
+        ['THU — Bán hàng', (s.incomeFromSales), '${((s.incomeFromSales / totalIn) * 100).toStringAsFixed(1)}%'],
+        ['THU — Sửa chữa', (s.incomeFromRepairs), '${((s.incomeFromRepairs / totalIn) * 100).toStringAsFixed(1)}%'],
+        ['THU — Tất toán NH', (settlement), '${((settlement / totalIn) * 100).toStringAsFixed(1)}%'],
+        ['THU — Thu nợ KH', (debtCollected), '${((debtCollected / totalIn) * 100).toStringAsFixed(1)}%'],
+        ['THU — Thu khác', (miscIncome), '${((miscIncome / totalIn) * 100).toStringAsFixed(1)}%'],
+        ['CHI — Nhập hàng', (analysis.importOut), '${((analysis.importOut / totalOut) * 100).toStringAsFixed(1)}%'],
+        ['CHI — Trả nợ NCC', (analysis.supplierPaid), '${((analysis.supplierPaid / totalOut) * 100).toStringAsFixed(1)}%'],
+        ['CHI — Chi phí', (analysis.expenseOut), '${((analysis.expenseOut / totalOut) * 100).toStringAsFixed(1)}%'],
+        ['CHI — TT đối tác', (analysis.partnerPaid), '${((analysis.partnerPaid / totalOut) * 100).toStringAsFixed(1)}%'],
 
       ],
     );
@@ -1260,9 +1258,9 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
         sale.productNamesDisplay,
         sale.productImeis,
         '', // SL — không có field riêng, có thể để trống
-        fmtN(sale.finalPrice),
-        fmtN(sale.totalCost),
-        fmtN(profit),
+        (sale.finalPrice),
+        (sale.totalCost),
+        (profit),
         sale.paymentMethod,
         'Hoàn thành',
       ]);
@@ -1286,10 +1284,10 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
         r.model,
         r.issue,
         r.services.map((sv) => sv.serviceName).join(', '),
-        fmtN(r.price),
-        fmtN(r.cost),
-        fmtN(partnerCost),
-        fmtN(profit),
+        (r.price),
+        (r.cost),
+        (partnerCost),
+        (profit),
         r.paymentMethod,
         r.repairedBy ?? '',
       ]);
@@ -1310,7 +1308,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
         imp['productName'] ?? '',
         imp['supplierName'] ?? '',
         imp['quantity'] ?? 0,
-        fmtN((imp['costPrice'] as num?)?.toInt() ?? 0),
+        ((imp['costPrice'] as num?)?.toInt() ?? 0),
         imp['paymentMethod'] ?? '',
       ]);
     }
@@ -1332,7 +1330,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
         hm(ts),
         isIncome ? 'Thu' : 'Chi',
         exp['title'] ?? '',
-        fmtN((exp['amount'] as num?)?.toInt() ?? 0),
+        ((exp['amount'] as num?)?.toInt() ?? 0),
         exp['paymentMethod'] ?? '',
       ]);
     }
@@ -1357,9 +1355,9 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
         ++idx7,
         d['customerName'] ?? d['name'] ?? '',
         d['phone'] ?? '',
-        fmtN(total),
-        fmtN(paid),
-        fmtN(total - paid),
+        (total),
+        (paid),
+        (total - paid),
       ]);
     }
     // Also append snapshot receivables (cuối kỳ)
@@ -1370,9 +1368,9 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
           ++idx7,
           r.name,
           r.phone ?? '',
-          fmtN(r.total),
-          fmtN(r.paid),
-          fmtN(r.remaining),
+          (r.total),
+          (r.paid),
+          (r.remaining),
         ]);
       }
     }
@@ -1396,9 +1394,9 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
       sec8Rows.add([
         ++idx8,
         d['supplierName'] ?? d['name'] ?? '',
-        fmtN(total),
-        fmtN(paid),
-        fmtN(total - paid),
+        (total),
+        (paid),
+        (total - paid),
       ]);
     }
     for (final p in s.payables) {
@@ -1407,9 +1405,9 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
         sec8Rows.add([
           ++idx8,
           p.name,
-          fmtN(p.total),
-          fmtN(p.paid),
-          fmtN(p.remaining),
+          (p.total),
+          (p.paid),
+          (p.remaining),
         ]);
       }
     }
@@ -1430,9 +1428,9 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
       sec9Rows.add([
         i + 1,
         sale.productNamesDisplay,
-        fmtN(sale.totalCost),
-        fmtN(sale.finalPrice),
-        fmtN(profit),
+        (sale.totalCost),
+        (sale.finalPrice),
+        (profit),
         pct,
         sale.paymentMethod,
       ]);
@@ -1449,14 +1447,14 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
       title: '10. Tổng kết cuối ngày',
       colHeaders: const ['Chỉ tiêu', 'Giá trị'],
       rows: [
-        ['Tổng doanh thu', fmtN(totalRevenue)],
-        ['Tổng vốn hàng bán', fmtN(s.cogsFromSales)],
-        ['Lãi gộp bán hàng', fmtN(s.grossProfitFromSales)],
-        ['Lãi gộp sửa chữa', fmtN(s.grossProfitFromRepairs)],
-        ['Lãi tổng', fmtN(s.grossProfitTotal)],
-        ['Lãi thực (sau chi phí)', fmtN(s.grossProfitTotal - s.operatingExpenseOut)],
-        ['Nợ phải thu cuối kỳ', fmtN(s.receivableTotal)],
-        ['Nợ phải trả cuối kỳ', fmtN(s.payableTotal)],
+        ['Tổng doanh thu', (totalRevenue)],
+        ['Tổng vốn hàng bán', (s.cogsFromSales)],
+        ['Lãi gộp bán hàng', (s.grossProfitFromSales)],
+        ['Lãi gộp sửa chữa', (s.grossProfitFromRepairs)],
+        ['Lãi tổng', (s.grossProfitTotal)],
+        ['Lãi thực (sau chi phí)', (s.grossProfitTotal - s.operatingExpenseOut)],
+        ['Nợ phải thu cuối kỳ', (s.receivableTotal)],
+        ['Nợ phải trả cuối kỳ', (s.payableTotal)],
       ],
     );
 
