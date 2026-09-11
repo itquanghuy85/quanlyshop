@@ -102,9 +102,9 @@ class ReminderService {
       futures['repairDone'] = _countRepairsDoneForDelivery();
       futures['missingCostRepair'] = _countMissingCostRepairs();
     }
-    if (canViewRepairs && enableWarranty) {
-      futures['warrantyExpiring'] = _countExpiringWarranty();
-    }
+    // [2026-09-11] Không còn nhắc "sắp hết bảo hành": bảo hành là ghi chú,
+    // shop không có việc gì để làm khi BH của khách sắp hết (xem CHANGELOG
+    // [2026-09-11c]). `enableWarranty` giữ trong chữ ký cho tương thích.
     if (isTechnician && enableRepair) {
       futures['technicianRepairs'] = _countTechnicianRepairs();
     }
@@ -373,22 +373,6 @@ class ReminderService {
       }
     }
 
-    // 14. Thiết bị sắp hết bảo hành
-    if (results.containsKey('warrantyExpiring')) {
-      final count = results['warrantyExpiring'] as int;
-      if (count > 0) {
-        reminders.add(TaskReminder(
-          category: ReminderCategory.warrantyExpiring,
-          priority: ReminderPriority.normal,
-          title: 'Sắp hết bảo hành',
-          subtitle: '$count thiết bị hết BH trong 7 ngày',
-          count: count,
-          icon: Icons.shield_rounded,
-          color: const Color(0xFFEF6C00),
-        ));
-      }
-    }
-
     // Sort: urgent → high → normal, then by count desc
     reminders.sort((a, b) {
       final priComp = a.priority.index.compareTo(b.priority.index);
@@ -650,45 +634,6 @@ class ReminderService {
     } catch (e) {
       debugPrint('ReminderService._loadPendingInstallments error: $e');
       return const _InstallmentSummary();
-    }
-  }
-
-  /// Đếm thiết bị đã giao còn bảo hành nhưng hết hạn trong 7 ngày tới.
-  static Future<int> _countExpiringWarranty() async {
-    try {
-      final db = await _db.database;
-      final shopId = UserService.getShopIdSync();
-      String where =
-          "deliveredAt IS NOT NULL AND warranty IS NOT NULL "
-          "AND warranty != '' AND UPPER(warranty) != 'KO BH' AND status = 4 "
-          "AND (deleted IS NULL OR deleted != 1)";
-      final args = <dynamic>[];
-      if (shopId != null && shopId.isNotEmpty) {
-        where += ' AND (shopId = ? OR shopId IS NULL)';
-        args.add(shopId);
-      }
-      final rows = await db.query(
-        'repairs',
-        columns: ['deliveredAt', 'warranty'],
-        where: where,
-        whereArgs: args,
-      );
-      final now = DateTime.now();
-      int count = 0;
-      for (final r in rows) {
-        final deliveredAt = (r['deliveredAt'] as num?)?.toInt();
-        if (deliveredAt == null) continue;
-        final months =
-            int.tryParse((r['warranty'] ?? '').toString().split(' ').first) ?? 0;
-        if (months <= 0) continue;
-        final d = DateTime.fromMillisecondsSinceEpoch(deliveredAt);
-        final expiry = DateTime(d.year, d.month + months, d.day);
-        if (expiry.isAfter(now) && expiry.difference(now).inDays <= 7) count++;
-      }
-      return count;
-    } catch (e) {
-      debugPrint('ReminderService._countExpiringWarranty error: $e');
-      return 0;
     }
   }
 

@@ -77,6 +77,9 @@ Thêm danh mục "MAY TINH BANG" trên shop test `m@m.com` (chủ shop):
   `test/warranty_note_field_test.dart` (2 widget test) khoá lỗi này.
 - Nhãn "BH BH TAI NGHE…" ở màn Bảo hành: không lặp tiền tố nếu ghi chú đã bắt
   đầu bằng "BH".
+- Sót 1 chỗ nhắc BH: mục "Sắp hết bảo hành — N thiết bị hết BH trong 7 ngày"
+  trong CẦN XỬ LÝ (`ReminderService._countExpiringWarranty`, quét toàn bộ đơn
+  đã giao mỗi lần Trang chủ làm mới). Đã gỡ, cùng lý do `[2026-09-11c]`.
 
 **Nghiệm thu:** analyze 0 error; 628 test pass (2 KiotViet đỏ sẵn); máy thật
 mở Quản lý danh mục: Điện thoại → "IMEI/Serial", Phụ kiện / Linh kiện →
