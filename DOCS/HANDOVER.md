@@ -9,6 +9,17 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-11  
 
+**✅ KỊCH BẢN TEST TÀI CHÍNH TOÀN DIỆN (`[2026-09-11e]`).** `test/FINANCE_FULL_SCENARIO.md`
++ `test/finance_full_scenario_test.dart` — 25 bước phủ mọi luồng ghi tiền
+(TM/CK/CN/1 phần/toàn bộ/góp 1-2 NH/tất toán/trả hàng/nhập/trả NCC/đối tác/
+chi tự động-chủ động), số kỳ vọng tính tay, chạy engine V2 thật qua
+`_ScenarioDb implements DBHelper`. Sửa tính năng tài chính → **chạy file này
+trước khi bàn giao**; thêm truy vấn mới vào `loadSnapshot` thì `noSuchMethod`
+sẽ báo để bổ sung fixture. Đã sửa 2 lỗi thật kịch bản tìm ra (nhập kho nhiều
+dòng đếm dư tiền ra ở Chốt quỹ; dòng tất toán đơn góp kỳ trước sai ngày).
+**Còn FINDING-1 chờ chủ shop chốt**: vốn đơn góp đã tất toán tính đủ hay theo
+tỉ lệ tiền nhận (hiện V2 theo tỉ lệ → lãi gộp cao hơn thực bằng phí NH × tỉ lệ vốn).
+
 **✅ RULES: `data.deleted != true` LÀ BẪY (`[2026-09-11d]`).** Field không tồn
 tại ⇒ biểu thức LỖI → false, không phải true. Đã đổi `isShopOwner()` /
 `shopExistsAndActive()` sang `.data.get('deleted', false) != true` và deploy.

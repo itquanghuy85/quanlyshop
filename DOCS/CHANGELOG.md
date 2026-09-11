@@ -4,6 +4,48 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-11e] - Kịch bản test toàn bộ số liệu tài chính + 2 lỗi thật tìm được
+
+### Thêm
+- `test/FINANCE_FULL_SCENARIO.md` — kịch bản 1 ngày / 1 shop, 25 bước phủ:
+  bán TM/CK/KẾT HỢP/CÔNG NỢ có trả trước/TRẢ GÓP 1 NH/2 NH tất toán trong
+  ngày/tất toán đơn kỳ trước/trả hàng; sửa chữa giao TM/CK/CÔNG NỢ, ghi vốn LK
+  sổ quỹ, đối tác CN trả 1 phần, đối tác trả ngay; nhập hàng TM/CK/CN + trả NCC
+  1 phần/toàn bộ; chi chủ động, thu phát sinh, chi tự động (mirror); khách trả
+  nợ 1 phần. **Mọi con số kỳ vọng tính tay** (tiền vào/ra 5 nhóm, vốn, lãi gộp,
+  phải thu/trả, TM/NH vào-ra từng dòng, số dư chốt quỹ, lợi nhuận ngày).
+- `test/finance_full_scenario_test.dart` — chạy **`FinanceV2DataService.loadSnapshot`
+  thật** trên `_ScenarioDb implements DBHelper` (DBHelper cần Firebase nên
+  không dùng trực tiếp) + `DailyFinancialAnalysisService.analyze` cùng dữ liệu
+  → 20 test + đối chiếu chéo 2 engine + bất biến `paidAmount = Σ debt_payments`.
+  1 test skip (FINDING-1, chờ chủ shop chốt).
+
+### Sửa (lỗi thật do kịch bản phát hiện)
+- **Chốt quỹ / Báo cáo ngày / Home đếm dư tiền ra khi phiếu nhập kho có NHIỀU
+  mặt hàng** (`daily_financial_analysis_service.dart`): `supplier_import_history`
+  ghi 1 dòng/mặt hàng, expense mirror ghi tổng phiếu; khớp từng dòng theo số
+  tiền ±1.000 thì dòng lẻ không khớp → cộng thêm tiền ra ảo (kịch bản: phiếu
+  3.000.000 = 2.000.000 + 1.000.000 → tiền mặt ra dư 2.000.000, dòng 1.000.000
+  còn khớp nhầm expense phiếu khác). Nay **gom theo `referenceId` trước** rồi
+  mới khớp — cùng cách FinanceV2 đã làm. `importOut` không đổi.
+- **Sổ giao dịch V2 gắn sai ngày cho đơn góp tất toán kỳ trước**
+  (`finance_v2_data_service.dart`): đơn bán 15/08, NH trả tiền 10/09 → dòng
+  7.800.000 mang ngày 15/08 (ngoài kỳ) dù `totalIn` đúng → bucket ngày/tháng
+  lệch. Nay dùng `settlementReceivedAt` khi `soldAt` ngoài kỳ.
+
+### Nghi vấn chưa sửa (FINDING-1 — cần chủ shop quyết)
+- V2 ghi vốn đơn góp **đã tất toán** theo tỉ lệ tiền nhận/giá bán → phí NH giữ
+  lại làm vốn bị "khấu" theo (S6: vốn 17tr hiện 16.575.000; S7: 6.240.000 thay vì
+  6.400.000) → lãi gộp cao hơn thực đúng bằng phí × tỉ lệ vốn. Báo cáo ngày ghi
+  đủ vốn. Test tương ứng đang `skip`.
+
+### Files
+`test/FINANCE_FULL_SCENARIO.md`, `test/finance_full_scenario_test.dart`,
+`lib/services/daily_financial_analysis_service.dart`,
+`lib/finance_v2/finance_v2_data_service.dart`, `DOCS/CHANGELOG.md`, `DOCS/HANDOVER.md`
+
+---
+
 ## [2026-09-11d] - Gỡ toàn bộ code/dữ liệu các loại hình kinh doanh khác — app chỉ còn điện thoại & điện tử
 
 Kiểm tra shop thật trước khi gỡ (`run-as` đọc SQLite): **0 biến thể, 0 sản

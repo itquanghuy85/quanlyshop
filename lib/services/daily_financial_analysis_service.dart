@@ -272,6 +272,14 @@ class DailyFinancialAnalysisService {
       }
     }
 
+    // Gom lịch sử nhập theo PHIẾU trước khi khớp expense. `supplier_import_history`
+    // ghi 1 dòng / 1 mặt hàng nhưng expense mirror `exp_stock_*` ghi TỔNG phiếu
+    // (stock_entry_service.dart). Khớp từng dòng theo số tiền như trước đây thì
+    // phiếu nhiều mặt hàng không dòng nào bằng tổng → cộng thêm tiền ra ảo vào
+    // Chốt quỹ (kịch bản test: phiếu 3.000.000 gồm 2.000.000 + 1.000.000 → tiền
+    // mặt ra dư 2.000.000). Cùng logic gom theo referenceId với FinanceV2.
+    final importGroupAmounts = <String, int>{};
+    final importGroupMethods = <String, String>{};
     for (final import in supplierImports) {
       final method = _asString(import['paymentMethod'], fallback: 'TIỀN MẶT');
       if (method == 'CÔNG NỢ') continue;
@@ -280,6 +288,20 @@ class DailyFinancialAnalysisService {
           ? _asInt(import['totalAmount'])
           : _asInt(import['costPrice']);
       importOut += amount;
+
+      final rawRef = _asString(
+        import['referenceId'] ?? import['firestoreId'] ?? import['id'],
+      );
+      final key = rawRef.isNotEmpty
+          ? rawRef
+          : '${_asString(import['supplierName'])}|${_asString(import['importDate'] ?? import['createdAt'])}|${importGroupAmounts.length}';
+      importGroupAmounts[key] = (importGroupAmounts[key] ?? 0) + amount;
+      importGroupMethods.putIfAbsent(key, () => method);
+    }
+
+    for (final entry in importGroupAmounts.entries) {
+      final amount = entry.value;
+      final method = importGroupMethods[entry.key] ?? 'TIỀN MẶT';
 
       final hasMatchingExpense = expenses.any((expense) {
         final category = _asString(expense['category']).toUpperCase();

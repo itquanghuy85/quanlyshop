@@ -482,10 +482,18 @@ class FinanceV2DataService {
         }
         saleCogs += recognizedCost;
         saleIn += actualPaid;
+        // Đơn góp bán TRƯỚC kỳ nhưng NH tất toán TRONG kỳ (về qua
+        // `getInstallmentSalesSettledBetween`): tiền vào là khoản tất toán nên
+        // dòng sổ phải mang ngày NHẬN TIỀN — gắn `soldAt` sẽ đẩy dòng ra ngoài
+        // kỳ, biểu đồ theo ngày/tháng lệch dù tổng vẫn đúng.
+        final soldInRange = sale.soldAt >= startMs && sale.soldAt <= endMs;
+        final txnAt = soldInRange
+            ? sale.soldAt
+            : (sale.settlementReceivedAt ?? sale.soldAt);
         transactions.add(
           FinanceV2Txn(
             id: 'sale_${sale.id ?? sale.firestoreId ?? sale.soldAt}',
-            createdAt: sale.soldAt,
+            createdAt: txnAt,
             type: 'SALE',
             title: sale.productNames.trim().isNotEmpty
                 ? sale.productNames.trim()
