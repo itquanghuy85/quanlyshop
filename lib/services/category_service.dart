@@ -20,6 +20,8 @@ class CategoryService {
   // === CACHED DATA ===
   ShopSettings? _cachedSettings;
   List<ProductCategory>? _cachedCategories;
+  /// Shop đã thử ghi 3 danh mục mặc định lên cloud trong phiên này.
+  static final Set<String> _seededDefaultsFor = <String>{};
   DateTime? _remoteWriteDeniedAt;
   static const Duration _remoteWriteDeniedCooldown = Duration(minutes: 2);
 
@@ -340,6 +342,24 @@ class CategoryService {
           await _saveCategoryLocally(cat);
         }
         return _cachedCategories!;
+      }
+
+      // Cloud rỗng (đọc được, không lỗi) ⇒ GHI 3 danh mục mặc định lên cloud
+      // một lần. Trước đây chỉ trả về mặc định trong bộ nhớ: người dùng thêm
+      // danh mục đầu tiên là 3 mục "Điện thoại / Phụ kiện / Linh kiện" biến
+      // mất (đo 2026-09-11 trên shop test). Chỉ làm khi đã có quyền ghi —
+      // addCategory nuốt lỗi permission nên vòng lặp không ném.
+      if (!_seededDefaultsFor.contains(shopId)) {
+        _seededDefaultsFor.add(shopId);
+        final seeded = <ProductCategory>[];
+        for (final cat in await _getDefaultCategories(shopId)) {
+          final id = await addCategory(cat);
+          if (id != null) seeded.add(cat.copyWith(firestoreId: id));
+        }
+        if (seeded.isNotEmpty) {
+          _cachedCategories = seeded;
+          return seeded;
+        }
       }
     } catch (e) {
       debugPrint('Error getting categories from Firestore: $e');

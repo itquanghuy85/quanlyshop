@@ -9,13 +9,14 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-11  
 
-**🔴 CẦN DEPLOY FIRESTORE (`[2026-09-11d]`).** Màn Quản lý danh mục chưa
-hoạt động: (1) ghi `shops/{shop}/product_categories` bị PERMISSION_DENIED dù
-rules repo cho phép ⇒ rules server có thể cũ hơn repo → `firebase deploy --only
-firestore:rules`; (2) thiếu index `(isActive, sortOrder)` cho
-`product_categories` — đã thêm vào `firestore.indexes.json`, chưa deploy →
-`firebase deploy --only firestore:indexes` (đối chiếu trước, không `--force`).
-Sau deploy: vào Cài đặt → Danh mục sản phẩm → thêm 1 danh mục để xác nhận.
+**✅ RULES: `data.deleted != true` LÀ BẪY (`[2026-09-11d]`).** Field không tồn
+tại ⇒ biểu thức LỖI → false, không phải true. Đã đổi `isShopOwner()` /
+`shopExistsAndActive()` sang `.data.get('deleted', false) != true` và deploy.
+Khi viết rule mới đụng field có thể thiếu → luôn dùng `.get(field, default)`.
+· Có harness kiểm thử rules bằng emulator ở `tools/firestore_rules_test/`
+  (README) — dùng nó thay vì đoán khi gặp PERMISSION_DENIED khó hiểu.
+· Index `(isActive, sortOrder)` cho `product_categories` đã deploy. Danh mục
+  mặc định nay được ghi lên cloud khi cloud rỗng.
 
 **✅ CHỈ CÒN MỘT LOẠI HÌNH (`[2026-09-11d]`).** Đã xoá wizard chọn ngành,
 module biến thể (thời trang), module HSD (thực phẩm), seeding danh mục theo

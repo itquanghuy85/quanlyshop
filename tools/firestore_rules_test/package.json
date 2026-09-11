@@ -1,0 +1,2 @@
+{ "name": "rulestest", "private": true, "type": "commonjs",
+  "dependencies": { "@firebase/rules-unit-testing": "^3.0.4", "firebase": "^10.12.0" } }

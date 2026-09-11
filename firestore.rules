@@ -66,10 +66,14 @@ service cloud.firestore {
     
     // Check if user owns a specific shop (for multi-shop owners)
     // Also checks that shop exists and is not deleted
+    // ⚠️ `data.deleted != true` khi field KHÔNG tồn tại là LỖI đánh giá → false
+    // (không phải null != true). Shop tạo từ app không ghi `deleted` ⇒ mọi
+    // rule đi qua hàm này bị từ chối (đo 2026-09-11: chủ shop không tạo được
+    // product_categories). Dùng .get('deleted', false).
     function isShopOwner(shopId) {
       return exists(/databases/$(database)/documents/shops/$(shopId)) &&
              get(/databases/$(database)/documents/shops/$(shopId)).data.ownerUid == uid() &&
-             get(/databases/$(database)/documents/shops/$(shopId)).data.deleted != true;
+             get(/databases/$(database)/documents/shops/$(shopId)).data.get('deleted', false) != true;
     }
     
     // Check if user owns a shop regardless of deleted state
@@ -82,7 +86,7 @@ service cloud.firestore {
     // Check if shop exists and is active (not deleted)
     function shopExistsAndActive(shopId) {
       return exists(/databases/$(database)/documents/shops/$(shopId)) &&
-             get(/databases/$(database)/documents/shops/$(shopId)).data.deleted != true;
+             get(/databases/$(database)/documents/shops/$(shopId)).data.get('deleted', false) != true;
     }
     
     function belongsTo(shopId) {

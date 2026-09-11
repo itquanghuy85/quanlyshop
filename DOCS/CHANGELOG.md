@@ -48,25 +48,43 @@ dụng — thực phẩm), `scripts/multi_industry_test_data.dart`.
 nhãn UI) — đã là hằng số điện tử, không còn dữ liệu ngành khác; thay bằng chuỗi
 cứng ở 200 chỗ là churn không đổi hành vi.
 
-### 🔴 Màn "Quản lý danh mục" thực ra CHƯA hoạt động (phát hiện khi test trên shop test)
+### 🔴 Màn "Quản lý danh mục" thực ra CHƯA hoạt động — đã tìm ra gốc và sửa
 
-Thêm danh mục "MAY TINH BANG" trên shop test `m@m.com` (chủ shop):
-1. `Write failed at shops/{shop}/product_categories/…: PERMISSION_DENIED` —
-   rules trong repo cho phép chủ shop tạo (`belongsTo && isManager && has([name,
-   shopId])`), nên khả năng cao **bản rules đang chạy trên server cũ hơn repo**
-   (repo sửa rules lần cuối 2026-09-05, chưa thấy ghi nhận deploy). Cần
-   `firebase deploy --only firestore:rules` rồi test lại.
-2. Query danh sách `where isActive == true orderBy sortOrder` (subcollection)
-   → `FAILED_PRECONDITION: requires an index` ⇒ đọc cloud luôn thất bại. Đã
-   thêm index `(isActive, sortOrder)` cho `product_categories` vào
-   `firestore.indexes.json` — **cần deploy** (`firebase deploy --only
-   firestore:indexes`, nhớ đối chiếu trước như `[2026-09-07g]`).
-3. Hệ quả của 1+2: 3 danh mục "Điện thoại / Phụ kiện / Linh kiện" đang thấy
-   trên mọi máy chỉ là **mặc định trong bộ nhớ** (`_getDefaultCategories`),
-   local `product_categories` của shop thật = 0 dòng.
-4. Thêm/sửa thất bại mà màn hình **im lặng** (service nuốt lỗi, trả null/false)
-   ⇒ người dùng tưởng đã lưu. Nay hiện SnackBar đỏ "Không thêm/cập nhật được
-   danh mục — kiểm tra mạng / quyền rồi thử lại."
+Thêm danh mục "MAY TINH BANG" trên shop test `m@m.com` (chủ shop) bị
+`PERMISSION_DENIED`, dù rules repo cho phép và server đã đúng bằng repo
+(`firebase deploy` báo *already up to date*), dữ liệu cloud cũng chuẩn
+(`shops/{id}.ownerUid == uid`, `users/{uid}.role == owner`, claims đủ).
+
+**Cách tìm:** dựng Firestore **emulator + `@firebase/rules-unit-testing`**
+(`tools/firestore_rules_test/`, JDK 21 lấy từ JBR của Android Studio), tái
+hiện được FAIL với payload thật, rồi bisect: khác biệt duy nhất giữa ca PASS
+và FAIL là doc `shops/{id}` **có hay không có field `deleted`**.
+
+**Gốc:** `isShopOwner()` / `shopExistsAndActive()` viết
+`get(...).data.deleted != true`. Trong rules, truy cập field **không tồn tại
+là LỖI đánh giá → cả biểu thức false**, không phải `null != true == true`.
+Shop tạo từ app không ghi `deleted` ⇒ **mọi rule đi qua `belongsTo()`** (28
+chỗ) đều rớt cho shop đó. Shop thật chắc có `deleted: false` (do một lần
+sửa/khôi phục) nên không lộ; shop test thì lộ. Sửa: `.data.get('deleted',
+false) != true`. Test emulator: shop không field → cho; `deleted: true` →
+chặn; `deleted: false` → cho. **Đã deploy rules + index** (Claude chạy
+`firebase deploy` theo yêu cầu; rules: released; index `(isActive,
+sortOrder)` cho `product_categories`: deployed).
+
+**Hệ quả lộ thêm sau khi ghi được:** 3 danh mục mặc định "Điện thoại / Phụ
+kiện / Linh kiện" **biến mất** ngay khi thêm doc đầu tiên — vì chúng chưa bao
+giờ được lưu, chỉ là fallback trong bộ nhớ khi cloud rỗng. Nay
+`CategoryService.getCategories()` khi cloud rỗng (đọc OK) sẽ **ghi 3 mặc định
+lên cloud một lần** (`_seededDefaultsFor` chống lặp trong phiên).
+
+Ngoài ra: thêm/sửa thất bại mà màn hình **im lặng** (service nuốt lỗi) ⇒ nay
+hiện SnackBar đỏ. Còn 1 nhiễu log biết-trước: `SyncHealthCheck` kiểm tra
+`product_categories` như **root collection** (`where shopId ==`) trong khi dữ
+liệu nằm ở subcollection `shops/{id}/product_categories` ⇒ log "Bỏ qua kiểm
+tra product_categories do không có quyền" — vô hại, chưa sửa.
+
+**Nghiệm thu máy thật (shop test):** thêm "MAY TINH BANG" → hiện ngay với
+"IMEI/Serial", mở lại đọc từ cloud không lỗi quyền/index.
 
 ### Nghiệm thu thêm trên shop test (được phép ghi)
 - Tạo đơn bán TAI NGHE 100.000đ, bảo hành gõ tự do `BH TAI NGHE 3 THANG` →
