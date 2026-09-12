@@ -144,6 +144,7 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showCreateDialog,
+        shape: const StadiumBorder(),
         icon: const Icon(Icons.swap_horiz),
         label: const Text('YÊU CẦU ĐỔI CA'),
       ),

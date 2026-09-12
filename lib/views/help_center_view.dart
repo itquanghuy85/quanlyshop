@@ -184,6 +184,7 @@ class _HelpCenterViewState extends State<HelpCenterView> {
             color: Colors.blue,
           );
         },
+        shape: const StadiumBorder(),
         icon: const Icon(Icons.support_agent),
         label: const Text('Góp ý / Hỗ trợ'),
       ),

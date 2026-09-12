@@ -4,6 +4,37 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-12e] - Vì sao monitor báo 5K read; 3 bảng poll trọn → con trỏ; FAB "Thêm mục" méo
+
+### Read 5K là gì
+Bộ đếm ngày của Firestore Audit (`dev_audit_daily_*`) là **cộng dồn cả ngày**
+trên máy test, và bản build trước 09:00 còn 2 lỗi: `financial_activity_log`
+quét trọn 138 doc mỗi lần mở app (~14 lần mở trong buổi test) và
+`watchRepairsByShop` đếm `docs.length` mỗi snapshot (gấp ~3 lần thật).
+SQLite `firebase_read_stats` cùng máy: 07h = 986, 08h = 749, **09h (sau fix)
+= 170** dù đang test nặng. Đo lại 1 lần mở app sạch: **42 read** (12 sales
++ 9 repairs listener, 10 partner_repair_history, 3 users, 2+2+1+1+1+1 poll).
+
+### Sửa
+- `partner_repair_history`, `repair_partners`, `storage_locations` trước
+  poll TRỌN mỗi lần mở app / resume / kéo làm mới (17 doc shop test, shop
+  thật nhiều hơn). Nay vào nhóm con trỏ + lưới quét trọn 24h; thêm index
+  `(shopId, updatedAt)` cho `partner_repair_history` (2 bảng kia đã có) và
+  đã `firebase deploy --only firestore:indexes`. Trong lúc index còn build,
+  poll tự rơi về không con trỏ (`_incrementalRealtimeDisabled`, không lỗi).
+  Đo lại: lần mở đầu quét trọn + lập con trỏ, lần sau `storage_locations` /
+  `repair_partners` = 0 doc.
+- FAB `FloatingActionButton.extended` "Thêm mục" (Bảng giá), "Góp ý / Hỗ
+  trợ", "YÊU CẦU ĐỔI CA": theme đặt `shape: CircleBorder()` cho FAB tròn nên
+  FAB mở rộng thành bầu dục méo, chữ dính mép → `StadiumBorder`.
+
+### Files
+`lib/services/sync_service.dart`, `firestore.indexes.json`,
+`lib/views/price_book_view.dart`, `lib/views/help_center_view.dart`,
+`lib/views/shift_swap_view.dart`, `docs/CHANGELOG.md`
+
+---
+
 ## [2026-09-12d] - Test đồng bộ TOÀN BỘ trên 2 máy Oppo + đối chiếu 30 bảng — 6 lỗi thật; thông báo trùng; tìm kiếm Bảng giá
 
 Cách test: CPH2203 (m@m.com, chủ shop) ↔ CPH2239 (n@n.com, employee) cùng shop M.

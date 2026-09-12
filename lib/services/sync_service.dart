@@ -337,6 +337,13 @@ class SyncService {
     // thiếu `updatedAt`), sau đó chạy con trỏ ⇒ ~106 lượt đọc/lần mở app thay
     // vì ~106 mỗi 2 phút.
     'financial_activity_log',
+    // 3 bảng dưới trước đây poll TRỌN mỗi lần mở app / resume / kéo làm mới
+    // (đo 2026-09-12: 14 lượt × (10 + 2 + 2) doc trong một buổi sáng test;
+    // shop thật `partner_repair_history` lớn hơn nhiều). Nay chạy con trỏ,
+    // lưới 24h vớt doc cũ thiếu `updatedAt` như các bảng trên.
+    'partner_repair_history',
+    'repair_partners',
+    'storage_locations',
   };
 
   /// Bảng đã quét trọn xong trong lần mở app này (bộ nhớ) — cộng thêm mốc
@@ -421,8 +428,11 @@ class SyncService {
     'price_catalog_items',
     'purchase_orders',
     'supplier_payments',
-    // storage_locations intentionally excluded: small dataset, always full-fetch to avoid
-    // requiring a composite (shopId, updatedAt) Firestore index that is hard to deploy.
+    // Index (shopId, updatedAt) đã có trong firestore.indexes.json cho cả 3;
+    // thiếu index thì poll tự rơi về không con trỏ (`_incrementalRealtimeDisabled`).
+    'partner_repair_history',
+    'repair_partners',
+    'storage_locations',
   };
   static final Map<String, int> _realtimeCursorCache = <String, int>{};
   static final Set<String> _incrementalRealtimeDisabled = <String>{};

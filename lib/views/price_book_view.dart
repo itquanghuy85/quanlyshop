@@ -443,6 +443,9 @@ class _PriceBookViewState extends State<PriceBookView>
           ? null
           : FloatingActionButton.extended(
               onPressed: _showAddMenu,
+              // Theme đặt `shape: CircleBorder()` cho FAB tròn — áp lên FAB
+              // mở rộng thành hình bầu dục méo, chữ dính mép. Dùng viên thuốc.
+              shape: const StadiumBorder(),
               icon: const Icon(Icons.add),
               label: const Text('Thêm mục'),
             ),

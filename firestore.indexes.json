@@ -405,6 +405,14 @@
       ]
     },
     {
+      "collectionId": "partner_repair_history",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "shopId", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionId": "repair_partners",
       "queryScope": "COLLECTION",
       "fields": [
