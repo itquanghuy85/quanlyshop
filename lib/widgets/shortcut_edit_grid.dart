@@ -177,6 +177,10 @@ class _ShortcutEditGridState extends State<ShortcutEditGrid>
   Widget _buildDraggable(ShortcutConfig c, int index, double itemWidth) {
     final tile = _Tile(config: c, mode: _TileMode.visible, onHide: () => _hide(c));
     return SizedBox(
+      // Keyed by type so the "being dragged" state travels with the item
+      // when the grid reflows — without it the faded placeholder stays at
+      // the original slot and shows whichever tile moved into it.
+      key: ValueKey(c.type),
       width: itemWidth,
       child: LongPressDraggable<ShortcutConfig>(
         data: c,

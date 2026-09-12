@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -2342,7 +2343,10 @@ class _HomeViewState extends State<HomeView>
 
       // App chỉ còn MỘT loại hình (điện thoại & điện tử) — shop chưa có
       // settings thì tự lưu mặc định, không còn wizard chọn ngành.
-      if (settings == null && mounted && hasFullAccess && !_isSavingDefaultSettings) {
+      if (settings == null &&
+          mounted &&
+          hasFullAccess &&
+          !_isSavingDefaultSettings) {
         _isSavingDefaultSettings = true;
         final shopId = await UserService.getCurrentShopId();
         if (shopId != null) {
@@ -2359,7 +2363,6 @@ class _HomeViewState extends State<HomeView>
       }
     } catch (_) {}
   }
-
 
   // State variables for accurate financial overview (same as cash_closing analysis)
   int _todayTotalIn = 0; // THU HÔM NAY (tổng thu)
@@ -2707,11 +2710,14 @@ class _HomeViewState extends State<HomeView>
       if (!mounted) return;
       // So sánh cả danh sách: chỉ so tổng thì thẻ "CẦN XỬ LÝ" không đổi khi
       // một việc xong và một việc khác phát sinh cùng lúc.
-      final sameList = reminders.length == _reminders.length &&
-          List.generate(reminders.length, (i) => i).every((i) =>
-              reminders[i].category == _reminders[i].category &&
-              reminders[i].subtitle == _reminders[i].subtitle &&
-              reminders[i].count == _reminders[i].count);
+      final sameList =
+          reminders.length == _reminders.length &&
+          List.generate(reminders.length, (i) => i).every(
+            (i) =>
+                reminders[i].category == _reminders[i].category &&
+                reminders[i].subtitle == _reminders[i].subtitle &&
+                reminders[i].count == _reminders[i].count,
+          );
       if (count == _totalReminderCount && sameList) return;
       setState(() {
         _totalReminderCount = count;
@@ -3484,7 +3490,6 @@ class _HomeViewState extends State<HomeView>
     }
   }
 
-
   void _enterDashboardEditMode() {
     if (!_dashboardConfigLoaded || _dashboardConfigs.isEmpty) {
       _openDashboardSettings();
@@ -3651,8 +3656,10 @@ class _HomeViewState extends State<HomeView>
           });
           HapticFeedback.selectionClick();
         },
+        // Opaque ground so the lifted card does not show the header text
+        // through it while hovering (seen on device).
         proxyDecorator: (child, index, animation) => Material(
-          color: Colors.transparent,
+          color: Theme.of(context).scaffoldBackgroundColor,
           elevation: 6,
           borderRadius: BorderRadius.circular(14),
           child: child,
@@ -3781,7 +3788,6 @@ class _HomeViewState extends State<HomeView>
       });
     }
   }
-
 
   /// Widget lời chào người dùng - hiển thị tên và vai trò
   Widget _buildGreetingCard() {
@@ -4836,52 +4842,72 @@ class _HomeViewState extends State<HomeView>
                     .map(
                       (item) => SizedBox(
                         width: itemWidth,
-                        child: InkWell(
-                          onTap: item.onTap,
-                          onLongPress: _shortcutConfigLoaded
-                              ? () {
-                                  HapticFeedback.mediumImpact();
-                                  setState(() => _shortcutEditMode = true);
+                        // Long-press on a TILE must beat the home tab's own
+                        // long-press (dashboard edit). Both are 500ms by
+                        // default and the outer one wins on device, so the
+                        // tile uses a shorter recognizer that accepts first.
+                        child: RawGestureDetector(
+                          gestures: _shortcutConfigLoaded
+                              ? {
+                                  LongPressGestureRecognizer:
+                                      GestureRecognizerFactoryWithHandlers<
+                                        LongPressGestureRecognizer
+                                      >(
+                                        () => LongPressGestureRecognizer(
+                                          duration: const Duration(
+                                            milliseconds: 350,
+                                          ),
+                                        ),
+                                        (r) => r.onLongPress = () {
+                                          HapticFeedback.mediumImpact();
+                                          setState(
+                                            () => _shortcutEditMode = true,
+                                          );
+                                        },
+                                      ),
                                 }
-                              : null,
-                          borderRadius: BorderRadius.circular(10),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(vertical: vPad),
-                            decoration: BoxDecoration(
-                              color: item.color.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: item.color.withOpacity(0.2),
+                              : const {},
+                          child: InkWell(
+                            onTap: item.onTap,
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(vertical: vPad),
+                              decoration: BoxDecoration(
+                                color: item.color.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: item.color.withOpacity(0.2),
+                                ),
                               ),
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(5),
-                                  decoration: BoxDecoration(
-                                    color: item.color.withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(8),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(5),
+                                    decoration: BoxDecoration(
+                                      color: item.color.withOpacity(0.15),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      item.icon,
+                                      color: item.color,
+                                      size: iconSize,
+                                    ),
                                   ),
-                                  child: Icon(
-                                    item.icon,
-                                    color: item.color,
-                                    size: iconSize,
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    item.label,
+                                    style: TextStyle(
+                                      fontSize: fontSize,
+                                      fontWeight: FontWeight.w600,
+                                      color: item.color.withOpacity(0.9),
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  item.label,
-                                  style: TextStyle(
-                                    fontSize: fontSize,
-                                    fontWeight: FontWeight.w600,
-                                    color: item.color.withOpacity(0.9),
-                                  ),
-                                  textAlign: TextAlign.center,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -8159,10 +8185,8 @@ class _HomeViewState extends State<HomeView>
       onOpenGuide: (kbId) => _pushRoute(
         context,
         MaterialPageRoute(
-          builder: (_) => HelpCenterView(
-            userRole: widget.role,
-            initialTopicId: 'kb-$kbId',
-          ),
+          builder: (_) =>
+              HelpCenterView(userRole: widget.role, initialTopicId: 'kb-$kbId'),
         ),
       ),
     );
@@ -8194,14 +8218,16 @@ class _HomeViewState extends State<HomeView>
           ),
           child: Row(
             children: [
-              Icon(Icons.lightbulb_outline_rounded,
-                  size: 16, color: Colors.amber.shade800),
+              Icon(
+                Icons.lightbulb_outline_rounded,
+                size: 16,
+                color: Colors.amber.shade800,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Mẹo hôm nay: ${tod.tip}',
-                  style: TextStyle(
-                      fontSize: 12, color: Colors.brown.shade800),
+                  style: TextStyle(fontSize: 12, color: Colors.brown.shade800),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -8597,8 +8623,7 @@ class _HomeViewState extends State<HomeView>
           onTap: () => openMoneyReconcile(context),
           child: Container(
             margin: const EdgeInsets.only(bottom: 10),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
             decoration: BoxDecoration(
               color: const Color(0xFFFFF7ED),
               borderRadius: BorderRadius.circular(12),
@@ -8606,8 +8631,11 @@ class _HomeViewState extends State<HomeView>
             ),
             child: Row(
               children: [
-                const Icon(Icons.account_balance_rounded,
-                    color: Color(0xFFEA580C), size: 20),
+                const Icon(
+                  Icons.account_balance_rounded,
+                  color: Color(0xFFEA580C),
+                  size: 20,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -8619,8 +8647,11 @@ class _HomeViewState extends State<HomeView>
                     ),
                   ),
                 ),
-                const Icon(Icons.chevron_right_rounded,
-                    color: Color(0xFFEA580C), size: 20),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: Color(0xFFEA580C),
+                  size: 20,
+                ),
               ],
             ),
           ),
@@ -8628,7 +8659,6 @@ class _HomeViewState extends State<HomeView>
       },
     );
   }
-
 }
 
 /// Simple data class for shortcut items
