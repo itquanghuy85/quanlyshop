@@ -19,7 +19,6 @@ import '../widgets/bulk_debt_payment_sheet.dart';
 import '../views/expense_view.dart';
 import '../views/repair_detail_view.dart';
 import '../views/sale_detail_view.dart';
-import '../widgets/customer_segments_widget.dart';
 import '../widgets/entity_avatar.dart';
 import '../widgets/printer_selection_dialog.dart';
 import '../widgets/responsive_wrapper.dart';
@@ -5317,13 +5316,11 @@ class _FinanceV2ViewState extends State<FinanceV2View>
           child: _monthlyProfitCard(),
         ),
         Padding(
-          padding: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.only(bottom: 16),
           child: TopServicesWidget(startDate: startDate, endDate: endDate),
         ),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: const CustomerSegmentsWidget(),
-        ),
+        // "Phân khúc khách hàng" đã gỡ 2026-09-12: tiêu chí VIP/mất tích dành
+        // cho bán lẻ quay lại hàng tuần; tiệm sửa điện thoại ra 96% "mất tích".
       ],
     );
   }

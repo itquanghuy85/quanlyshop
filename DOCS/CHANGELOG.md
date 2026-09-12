@@ -28,10 +28,14 @@ bấm được, đưa ra ngoài cho tôi"*.
   menu mất mục "Lợi nhuận".
 - Knowledge base: 2 mục `monthly-profit-report`, `top-services-report`.
 
-### Chưa làm — chờ chủ shop quyết
-"Phân khúc khách hàng" (VIP / Thường xuyên / Thường / Mới / Mất tích): trên
-shop thật ra 0 VIP · 10 · 32 · 206 · **5.338 "mất tích"** — với tiệm sửa điện
-thoại (khách vài tháng/năm mới quay lại) con số gần như vô nghĩa. Đề xuất gỡ.
+### Gỡ "Phân khúc khách hàng" (chủ shop chốt: xoá)
+VIP / Thường xuyên / Thường / Mới / Mất tích: trên shop thật ra 0 VIP · 10 ·
+32 · 206 · **5.338 "mất tích"** — tiêu chí dành cho bán lẻ quay lại hàng tuần,
+tiệm sửa điện thoại ra 96% "mất tích", vô nghĩa. Xoá
+`customer_segments_widget.dart` + `customer_segment_service.dart` (không nơi
+nào khác dùng; không đụng dữ liệu khách). Đã kiểm trên A94: màn Báo cáo kết
+thúc ở "Dịch vụ lãi nhất", chạm tiêu đề mở màn riêng, thẻ Lãi theo tháng mở
+được ngay trong Báo cáo.
 
 ### Files
 `lib/views/top_services_report_view.dart` (mới), `lib/widgets/top_services_widget.dart`,
