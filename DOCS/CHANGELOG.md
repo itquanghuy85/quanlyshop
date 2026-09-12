@@ -4,6 +4,35 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-12h] - "Mở app ngân hàng" mở ra trang lỗi `Missing parameter app`
+
+Chủ shop (iPhone, màn Tạo đơn bán → Chuyển khoản): bấm "Mở app ngân hàng" thì
+Safari hiện `{"message":"Missing parameter app"}` và tải file `pay.json`.
+
+### Gốc
+`bank_transfer_assist._openBankApp` gọi `https://dl.vietqr.io/pay?bank=…&acc=…`
+— link này của VietQR **bắt buộc** `app=<mã app ngân hàng>` (mở đúng app, ví dụ
+`app=mb` → `mbbank://`); các tham số bank/acc/amount không có tác dụng.
+Link dự phòng `api.vietqr.io/v2/generate` cũng chỉ là API JSON.
+
+### Sửa
+- `BankAppDeeplinkService` (mới): danh sách 34 app ngân hàng theo mã chính thức
+  của VietQR (`api.vietqr.io/v2/android-app-deeplinks`), nhớ lựa chọn theo máy.
+- Bấm nút lần đầu → bảng "Bạn dùng app ngân hàng nào?" → chọn → mở
+  `dl.vietqr.io/pay?app=<mã>&ba=<STK>@<BIN>&am=<tiền>&tn=<nội dung>`.
+  Lần sau nút ghi "Mở MB Bank" mở thẳng; nút "Đổi" chọn lại.
+- Chiều NHẬN tiền ghi rõ: khách quét QR bằng app của khách, nút này mở app
+  của mình để kiểm tra tiền về.
+- Kiểm trên A94: chọn MB Bank → Android chuyển tới `intent://…scheme=mbbank;
+  package=com.mbmobile` (máy test không cài MB nên ra Play Store — đúng cơ chế
+  VietQR); nút đổi thành "Mở MB Bank" + "Đổi".
+
+### Files
+`lib/services/bank_app_deeplink_service.dart` (mới), `lib/widgets/bank_transfer_assist.dart`,
+`lib/data/app_knowledge_base.dart`, `docs/CHANGELOG.md`
+
+---
+
 ## [2026-09-12g] - "Lãi theo tháng" + "DV lãi nhất" bấm được và ra Trang chủ; chặn lợi nhuận theo quyền giá vốn
 
 Chủ shop (iPhone): *"báo cáo lợi nhuận theo tháng và dịch vụ lãi nhất không

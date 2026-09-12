@@ -533,7 +533,9 @@ class AppKnowledgeBase {
       notes: [
         'Cùng mã QR đó nay còn hiện ngay trong các sheet thanh toán khi chọn '
             '"Chuyển khoản" (thu nợ, thu tiền đơn, tất toán, trả NCC…) — kèm nút '
-            '"Mở app ngân hàng" và nút sao chép. Vẫn phải bấm Xác nhận để ghi nhận.',
+            '"Mở app ngân hàng" (lần đầu chọn app ngân hàng BẠN dùng — MB, VCB, '
+            'TCB… — app nhớ cho lần sau, nút "Đổi" để chọn lại) và nút sao chép. '
+            'Vẫn phải bấm Xác nhận để ghi nhận.',
       ],
       sampleQuestions: [
         'in phiếu bán ở đâu',

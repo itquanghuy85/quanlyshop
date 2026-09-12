@@ -20,6 +20,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/bank_accounts_service.dart';
+import '../services/bank_app_deeplink_service.dart';
 import '../services/notification_service.dart';
 import '../utils/money_utils.dart';
 import '../utils/vietqr_builder.dart';
@@ -63,35 +64,85 @@ String _sanitizeAddInfo(String? s) {
       .trim();
 }
 
+/// Bảng chọn app ngân hàng của NGƯỜI DÙNG (không phải ngân hàng của TK shop —
+/// chiều nhận tiền thì khách chuyển bằng app của khách, còn nút này mở app
+/// của mình để chuyển đi / kiểm tra tiền về).
+Future<BankAppOption?> _pickBankApp(BuildContext context) {
+  return showModalBottomSheet<BankAppOption>(
+    context: context,
+    isScrollControlled: true,
+    builder: (ctx) => SafeArea(
+      child: SizedBox(
+        height: MediaQuery.of(ctx).size.height * 0.7,
+        child: Column(
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 14, 16, 6),
+              child: Text(
+                'Bạn dùng app ngân hàng nào?',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text(
+                'Chọn một lần, lần sau bấm là mở thẳng. Đổi lại bằng nút "Đổi".',
+                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: BankAppDeeplinkService.apps.length,
+                itemBuilder: (_, i) {
+                  final a = BankAppDeeplinkService.apps[i];
+                  return ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.account_balance_outlined),
+                    title: Text(a.name),
+                    onTap: () => Navigator.pop(ctx, a),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 Future<void> _openBankApp({
+  required BuildContext context,
   required BankAccount? account,
   required int amount,
   required String addInfo,
+  bool forcePick = false,
 }) async {
-  final tries = <Uri>[];
-  if (account != null && account.isComplete) {
-    // Universal link VietQR — nhiều app ngân hàng VN đăng ký mở link này.
-    final q = <String, String>{
-      'bank': account.bankBin,
-      'acc': account.accountNumber,
-      if (amount > 0) 'amount': amount.toString(),
-      if (addInfo.isNotEmpty) 'addInfo': addInfo,
-      if (account.accountHolder.isNotEmpty) 'accountName': account.accountHolder,
-    };
-    tries.add(Uri.https('dl.vietqr.io', '/pay', q));
-    tries.add(Uri.https('api.vietqr.io', '/v2/generate', q));
+  // `dl.vietqr.io/pay` BẮT BUỘC có `app=` — trước đây thiếu nên VietQR chỉ
+  // trả JSON "Missing parameter app" (báo từ iPhone 2026-09-12).
+  var app = forcePick ? null : await BankAppDeeplinkService.getSelected();
+  if (app == null) {
+    if (!context.mounted) return;
+    app = await _pickBankApp(context);
+    if (app == null) return;
+    await BankAppDeeplinkService.setSelected(app);
   }
 
-  for (final uri in tries) {
-    try {
-      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (ok) return;
-    } catch (_) {
-      // thử link kế tiếp
-    }
+  final uri = BankAppDeeplinkService.buildPayUri(
+    app: app,
+    bankBin: account?.bankBin,
+    accountNumber: account?.accountNumber,
+    amount: amount,
+    addInfo: addInfo,
+  );
+  try {
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (ok) return;
+  } catch (_) {
+    // rơi xuống thông báo
   }
   NotificationService.showSnackBar(
-    'Không mở được app ngân hàng — hãy dùng app ngân hàng quét mã QR bên dưới.',
+    'Không mở được ${app.name} — hãy mở app ngân hàng và quét mã QR.',
     color: Colors.orange,
   );
 }
@@ -138,10 +189,12 @@ class _BankTransferAssistCard extends StatefulWidget {
 
 class _BankTransferAssistCardState extends State<_BankTransferAssistCard> {
   final _svc = BankAccountsService.instance;
+  BankAppOption? _bankApp;
 
   @override
   void initState() {
     super.initState();
+    _loadBankApp();
     // Nạp TK: prefs ngay + refresh cloud nền.
     _svc.ensureLoaded();
   }
@@ -235,9 +288,13 @@ class _BankTransferAssistCardState extends State<_BankTransferAssistCard> {
               const SizedBox(height: 10),
               _actionRow(account, amount),
               const SizedBox(height: 4),
-              const Text(
-                'Chuyển khoản xong hãy bấm nút Xác nhận để ghi nhận.',
-                style: TextStyle(
+              Text(
+                isInbound
+                    ? 'Khách quét mã QR bằng app ngân hàng của khách. Nút trên mở '
+                        'app ngân hàng của bạn để kiểm tra tiền về. Nhận được '
+                        'tiền hãy bấm Xác nhận để ghi nhận.'
+                    : 'Chuyển khoản xong hãy bấm nút Xác nhận để ghi nhận.',
+                style: const TextStyle(
                     fontSize: 11,
                     fontStyle: FontStyle.italic,
                     color: Color(0xFF64748B)),
@@ -326,22 +383,47 @@ class _BankTransferAssistCardState extends State<_BankTransferAssistCard> {
     if (!_deeplinkSupported) {
       return const SizedBox.shrink();
     }
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: () => _openBankApp(
-          account: account,
-          amount: amount,
-          addInfo: _addInfo,
+    final label = _bankApp == null
+        ? 'Mở app ngân hàng'
+        : 'Mở ${_bankApp!.name}';
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: () => _openBankApp(
+              context: context,
+              account: account,
+              amount: amount,
+              addInfo: _addInfo,
+            ).then((_) => _loadBankApp()),
+            icon: const Icon(Icons.open_in_new, size: 16),
+            label: Text(label, overflow: TextOverflow.ellipsis),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1D4ED8),
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(40),
+            ),
+          ),
         ),
-        icon: const Icon(Icons.open_in_new, size: 16),
-        label: const Text('Mở app ngân hàng'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF1D4ED8),
-          foregroundColor: Colors.white,
-          minimumSize: const Size.fromHeight(40),
-        ),
-      ),
+        if (_bankApp != null) ...[
+          const SizedBox(width: 6),
+          TextButton(
+            onPressed: () => _openBankApp(
+              context: context,
+              account: account,
+              amount: amount,
+              addInfo: _addInfo,
+              forcePick: true,
+            ).then((_) => _loadBankApp()),
+            child: const Text('Đổi'),
+          ),
+        ],
+      ],
     );
+  }
+
+  Future<void> _loadBankApp() async {
+    final app = await BankAppDeeplinkService.getSelected();
+    if (mounted && app?.id != _bankApp?.id) setState(() => _bankApp = app);
   }
 }
