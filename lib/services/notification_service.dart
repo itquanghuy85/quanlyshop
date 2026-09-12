@@ -987,7 +987,7 @@ class NotificationService {
               operation: AuditOperation.snapshots,
               callerService: 'NotificationService',
               callerMethod: 'listenToNotifications',
-              documentCount: snapshot.docs.length,
+              documentCount: snapshot.metadata.isFromCache ? 0 : snapshot.docChanges.length,
               isActiveListener: true,
             );
             for (var change in snapshot.docChanges) {

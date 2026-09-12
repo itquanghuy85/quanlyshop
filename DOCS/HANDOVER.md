@@ -9,6 +9,17 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-12  
 
+**✅ ĐO READ FIRESTORE THẬT + ĐỒNG BỘ 2 MÁY (`[2026-09-12c]`).** Root cause
+"bảng tốn read nhất": `financial_activity_log` không có `updatedAt` (local
+không có cột) → con trỏ không bao giờ lập → quét trọn mỗi lượt poll (shop thật
+~2.1K read/lần mở app). Đã sửa (đóng dấu serverTimestamp + lập con trỏ sau
+quét trọn) — đo lại 138 → 0. Tạo đơn sửa từng ghi cloud 3 lần + 2 thông báo
+(syncAll trả `skipped` khi đang sync) — nay chờ lượt đang chạy + hỏi cloud
+trước khi ghi thẳng; test 2 máy Oppo cả 2 chiều: 1 ghi / 1 snapshot / 1 thông
+báo. Monitor "Giám sát Firestore": hook đăng ký luôn, phân loại poll/listener,
+listener đếm `docChanges` thay vì `docs`. Cách đo: `run-as` kéo
+`firebase_read_stats` + prefs `rtCursor_*`; logcat `📥 Polled`.
+
 **✅ RESYNC TỪ FIRESTORE ĐÃ KIỂM TRÊN MÁY (`[2026-09-12b]`).** Xoá DB local →
 kéo lại: dữ liệu trùng 100%. Sửa 2 lỗi: expenses/debts về bị NULL shopId
 (`_upsert` tự điền); màn hình không tải lại sau auto-fix của SyncHealthCheck

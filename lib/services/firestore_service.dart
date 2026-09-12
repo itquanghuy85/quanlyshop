@@ -54,7 +54,7 @@ class FirestoreService {
         operation: AuditOperation.snapshots,
         callerService: 'FirestoreService',
         callerMethod: 'watchRepairDoc',
-        documentCount: snap.exists ? 1 : 0,
+        documentCount: snap.metadata.isFromCache ? 0 : (snap.exists ? 1 : 0),
         isActiveListener: true,
       );
       return snap;
@@ -104,8 +104,11 @@ class FirestoreService {
         collection: 'repairs',
         operation: AuditOperation.snapshots,
         callerService: 'FirestoreService',
+        // Firestore chỉ tính tiền doc THAY ĐỔI của mỗi snapshot (lượt đầu mọi
+        // doc đều là `added`), và snapshot phục vụ từ cache không tốn read —
+        // đếm `docs.length` mỗi lượt làm monitor báo gấp nhiều lần thực tế.
         callerMethod: 'watchRepairsByShop',
-        documentCount: snap.docs.length,
+        documentCount: snap.metadata.isFromCache ? 0 : snap.docChanges.length,
         isActiveListener: true,
       );
       return snap;
@@ -1330,7 +1333,7 @@ class FirestoreService {
               operation: AuditOperation.snapshots,
               callerService: 'FirestoreService',
               callerMethod: 'getUserNotifications',
-              documentCount: snapshot.docs.length,
+              documentCount: snapshot.metadata.isFromCache ? 0 : snapshot.docChanges.length,
               isActiveListener: true,
             );
             return snapshot.docs
@@ -1380,7 +1383,7 @@ class FirestoreService {
               operation: AuditOperation.snapshots,
               callerService: 'FirestoreService',
               callerMethod: 'getUnreadCount',
-              documentCount: snapshot.docs.length,
+              documentCount: snapshot.metadata.isFromCache ? 0 : snapshot.docChanges.length,
               isActiveListener: true,
             );
             return snapshot.docs.length;

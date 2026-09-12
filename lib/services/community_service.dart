@@ -34,7 +34,7 @@ class CommunityService {
             operation: AuditOperation.snapshots,
             callerService: 'CommunityService',
             callerMethod: 'streamPosts',
-            documentCount: snap.docs.length,
+            documentCount: snap.metadata.isFromCache ? 0 : snap.docChanges.length,
             isActiveListener: true,
           );
           return snap;

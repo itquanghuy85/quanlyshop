@@ -184,23 +184,23 @@ void _enforceFirebaseOnlyMode() {
 Future<void> _initFirestoreAuditModule() async {
   try {
     await FirestoreAuditModule.init();
-    // Register hook into FirebaseUsageStatsService (SyncService poll coverage).
-    if (FirestoreAuditService.instance.isEnabled) {
-      FirebaseUsageStatsService.setAuditHook((collection, readCount, source) {
-        FirestoreAuditModule.logRead(
-          collection: collection,
-          operation: source == 'snapshots'
-              ? AuditOperation.snapshots
-              : AuditOperation.get,
-          callerService: 'SyncService',
-          callerMethod: '_subscribeToCollection',
-          documentCount: readCount,
-          estimatedReads: readCount,
-          isActiveListener: source == 'snapshots',
-          queryInfo: 'source=$source',
-        );
-      });
-    }
+    // Register hook into FirebaseUsageStatsService (SyncService poll/listener
+    // coverage). Always registered: `logRead` is a no-op while the monitor is
+    // OFF, and gating on `isEnabled` here meant switching the monitor ON from
+    // the dashboard showed zero SyncService reads until the next app restart.
+    FirebaseUsageStatsService.setAuditHook((collection, readCount, source) {
+      final isListener = source == 'listener' || source == 'snapshots';
+      FirestoreAuditModule.logRead(
+        collection: collection,
+        operation: isListener ? AuditOperation.snapshots : AuditOperation.get,
+        callerService: 'SyncService',
+        callerMethod: isListener ? '_attachLiveWindowListener' : 'pollCollection',
+        documentCount: readCount,
+        estimatedReads: readCount,
+        isActiveListener: isListener,
+        queryInfo: 'source=$source',
+      );
+    });
   } catch (e) {
     debugPrint('[FirestoreAudit] init error: $e');
   }

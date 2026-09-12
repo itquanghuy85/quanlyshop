@@ -4,6 +4,61 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-12c] - Đo read Firestore thật trên máy + test đồng bộ 2 máy Oppo — 2 lỗi tốn read/ghi thừa, 3 lỗi sai số của monitor
+
+Cách đo: kéo bảng `firebase_read_stats` (SQLite) + `FlutterSharedPreferences.xml`
+(con trỏ `rtCursor_*`, `fullSweepAt_*`) từ CPH2203 qua `run-as`, đối chiếu
+logcat `📥 Polled …`. Test 2 máy: CPH2203 (m@m.com) ↔ CPH2239 (n@n.com) cùng
+shop M, tạo đơn sửa mỗi chiều qua ADB, đếm snapshot/thông báo máy kia nhận.
+
+### Sửa — read/ghi thừa
+- **`financial_activity_log` quét trọn MỖI lượt poll** (`sync_service.dart`):
+  bảng local không có cột `updatedAt` nên doc đẩy lên cloud cũng không có →
+  sau lượt quét trọn `maxCursorMs = 0` → **không bao giờ lập được con trỏ**
+  (`rtCursor_financial_activity_log` vắng mặt dù `fullSweepAt_` đã có) → mỗi
+  lần mở app/kéo làm mới đọc lại cả bảng: shop test 138 read/lần, shop thật
+  ~2.1K. Cơ chế "quét trọn 1 lần/24h rồi chạy con trỏ" của `[2026-09-11]`
+  vì thế chưa từng có tác dụng. Nay (1) `syncAllToCloud` bước 5 đóng dấu
+  `updatedAt = serverTimestamp()`; (2) quét trọn xong mà không có doc nào mang
+  `updatedAt` thì lập con trỏ = giờ bắt đầu quét − 1h biên lệch đồng hồ (chỉ
+  cho bảng trong `_launchFullSweepCollections`, đã có lưới 24h vớt doc cũ).
+  Đo lại: lần mở đầu 138 doc + `🧭 lập con trỏ`, lần mở sau **0 doc**.
+- **1 đơn sửa = 3 lượt ghi cloud + 2 thông báo "đơn mới"**
+  (`sync_orchestrator.dart`, `create_repair_order_view.dart`): `enqueue()` đã
+  kích sync nên `syncAll()` gọi ngay sau đó hầu như luôn nhận "Already
+  syncing" (`success=0`) → màn tạo đơn tưởng chưa lên cloud → ghi thẳng
+  `FirestoreService.addRepair` (kèm thông báo "MÁY NHẬN MỚI") → hàng đợi ghi
+  lần 2 → `syncAllToCloud` ghi lần 3 → view gửi thêm "ĐƠN SỬA MỚI". Máy kia
+  nhận 3 snapshot trong 300 ms + 2 thông báo. Nay `syncAll()` đang có lượt
+  chạy thì **chờ lượt đó xong rồi chạy tiếp** (không trả `skipped`), và view
+  **hỏi cloud doc đã có chưa** trước khi ghi thẳng. Đo lại cả 2 chiều: 1 ghi,
+  máy kia nhận 1 snapshot (~2 s), 1 thông báo.
+
+### Sửa — monitor "Giám sát Firestore" báo sai
+- Hook `FirebaseUsageStatsService.setAuditHook` chỉ đăng ký khi monitor đã ON
+  lúc khởi động → bật ON trong dashboard thì read của SyncService (nguồn lớn
+  nhất) = 0 cho tới khi restart. Nay đăng ký luôn (`logRead` tự no-op khi OFF).
+- Poll và listener của SyncService đều đi `source` mặc định `'listener'`, hook
+  lại chỉ nhận `'snapshots'` ⇒ mọi read đều bị gắn nhãn `get`. Nay poll gửi
+  `'poll'`, listener `'listener'`, hook phân loại đúng + tên hàm đúng.
+- 6 listener (`watchRepairsByShop`, `watchRepairDoc`, thông báo, cộng đồng…)
+  đếm `docs.length` mỗi snapshot ⇒ gấp nhiều lần thực tế. Firestore chỉ tính
+  doc thay đổi và không tính snapshot từ cache → đếm
+  `isFromCache ? 0 : docChanges.length`.
+
+### Chưa làm
+- Doc `financial_activity_log` cũ trên cloud vẫn thiếu `updatedAt` (chỉ được
+  vớt qua lưới quét trọn 24h). Muốn sạch hẳn: script backfill
+  `updatedAt = createdAt` một lần trên Firestore (không bắt buộc).
+
+### Files
+`lib/services/sync_service.dart`, `lib/services/sync_orchestrator.dart`,
+`lib/views/create_repair_order_view.dart`, `lib/main.dart`,
+`lib/services/firestore_service.dart`, `lib/services/notification_service.dart`,
+`lib/services/community_service.dart`, `docs/CHANGELOG.md`, `docs/HANDOVER.md`
+
+---
+
 ## [2026-09-12b] - Kiểm luồng đọc Firestore trên máy: xoá DB local → kéo lại từ cloud — 2 lỗi thật
 
 Cách test: `run-as` xoá `repair_shop_v22.db*` + cache Firestore trên Oppo (giữ

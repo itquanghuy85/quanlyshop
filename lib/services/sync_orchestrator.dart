@@ -158,6 +158,8 @@ class SyncOrchestrator {
   bool _isSyncing = false;
   bool get isSyncing => _isSyncing;
   bool _syncRequestedWhileSyncing = false;
+  // Lượt sync đang chạy — để người gọi sau CHỜ thay vì nhận `skipped`.
+  Future<SyncResult>? _inFlightSync;
 
   static List<String> _splitImagePaths(String? csv) {
     if (csv == null) return const [];
@@ -603,14 +605,44 @@ class SyncOrchestrator {
         .toList();
   }
 
-  /// Sync tất cả pending items
-  Future<SyncResult> syncAll() async {
-    if (_isSyncing) {
+  /// Sync tất cả pending items.
+  ///
+  /// Gọi khi đang có lượt khác chạy thì **chờ lượt đó xong rồi chạy tiếp một
+  /// lượt nữa** và trả kết quả của lượt sau — không trả `skipped` nữa. Trước
+  /// đây `enqueue()` + `syncAll()` ngay sau đó (tạo đơn sửa) hầu như luôn dính
+  /// "Already syncing" ⇒ màn tạo đơn tưởng chưa lên cloud, ghi thẳng Firestore
+  /// thêm một lần, rồi hàng đợi + `syncAllToCloud` ghi tiếp ⇒ **1 đơn = 3
+  /// lượt ghi + 2 thông báo "đơn mới"**, máy khác nhận 3 snapshot (đo 2 máy
+  /// thật 2026-09-12).
+  Future<SyncResult> syncAll() {
+    final inFlight = _inFlightSync;
+    if (inFlight != null) {
       _syncRequestedWhileSyncing = true;
-      debugPrint('🔄 SyncOrchestrator: Already syncing, skipping...');
-      return SyncResult(success: 0, failed: 0, total: 0, skipped: true);
+      debugPrint(
+        '🔄 SyncOrchestrator: Already syncing — chờ lượt đang chạy rồi chạy tiếp',
+      );
+      // Lượt kế tiếp (deferred pass) được `whenComplete` của lượt hiện tại
+      // khởi động TRƯỚC khi callback này chạy, nên `_inFlightSync` lúc đó đã
+      // trỏ tới nó; chỉ tự gọi lại khi vì lý do nào đó không có.
+      Future<SyncResult> follow(Object? _) => _inFlightSync ?? syncAll();
+      return inFlight.then<SyncResult>(follow, onError: follow);
     }
 
+    final run = _syncAllOnce();
+    _inFlightSync = run;
+    run.whenComplete(() {
+      _inFlightSync = null;
+      final shouldRunAgain = _syncRequestedWhileSyncing;
+      _syncRequestedWhileSyncing = false;
+      if (shouldRunAgain) {
+        debugPrint('🔄 SyncOrchestrator: Running deferred sync pass...');
+        unawaited(syncAll());
+      }
+    });
+    return run;
+  }
+
+  Future<SyncResult> _syncAllOnce() async {
     // Check connectivity
     final connectivityResults = await Connectivity().checkConnectivity();
     final hasConnection = connectivityResults.any(
@@ -668,14 +700,6 @@ class SyncOrchestrator {
       );
     } finally {
       _isSyncing = false;
-
-      final shouldRunAgain = _syncRequestedWhileSyncing;
-      _syncRequestedWhileSyncing = false;
-      if (shouldRunAgain) {
-        debugPrint('🔄 SyncOrchestrator: Running deferred sync pass...');
-        // ignore: unawaited_futures
-        unawaited(syncAll());
-      }
     }
   }
 

@@ -871,6 +871,24 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       // Nếu sync thất bại (có mạng nhưng ghi lỗi), thử upload trực tiếp lên Firestore.
       // Khi không có mạng (noNetwork) thì bỏ qua hoàn toàn, tránh treo màn hình.
       // Guard: không push local image path lên cloud vì web sẽ không render được.
+      // Bộ đếm hàng đợi KHÔNG phải bằng chứng: `failed>0` có thể do món khác,
+      // `success==0` có thể do lượt sync khác vừa đẩy đơn này lên. Hỏi cloud
+      // trước — doc đã có thì tuyệt đối không ghi thẳng thêm lần nữa
+      // (mỗi lần ghi thừa = máy khác nhận thêm 1 snapshot + 1 thông báo trùng).
+      if (!syncedToCloud && !syncResult.noNetwork) {
+        try {
+          final existing = await FirestoreService.getRepairDoc(
+            r.firestoreId!,
+          ).timeout(const Duration(seconds: 6));
+          if (existing.exists) {
+            debugPrint('🔧 Cloud doc already present, skip direct upload');
+            syncedToCloud = true;
+          }
+        } catch (e) {
+          debugPrint('🔧 Pre-upload cloud check failed: $e');
+        }
+      }
+
       if (!syncedToCloud && !syncResult.noNetwork) {
         debugPrint(
           '🔧 Queue sync did not confirm cloud doc, trying direct Firestore upload...',

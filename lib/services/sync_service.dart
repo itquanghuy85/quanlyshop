@@ -350,6 +350,10 @@ class SyncService {
   /// đủ; giữa hai lượt đã có con trỏ + lưới an toàn `_checkCollection` lo.
   static final Set<String> _launchFullSweepDone = <String>{};
   static const Duration _fullSweepInterval = Duration(hours: 24);
+  /// Biên lệch đồng hồ máy so với máy chủ khi lập con trỏ từ giờ bắt đầu quét
+  /// trọn (bảng không có doc nào mang `updatedAt`). Rộng để không sót doc;
+  /// giá phải trả chỉ là vài doc trong biên bị đọc lại mỗi lượt poll.
+  static const Duration _sweepCursorSkewMargin = Duration(hours: 1);
   static const String _fullSweepAtPrefix = 'fullSweepAt_';
   static final Map<String, int> _fullSweepAtCache = <String, int>{};
 
@@ -2815,6 +2819,7 @@ class SyncService {
         var maxCursorMs = 0;
         var totalDocs = 0;
         var sweepComplete = false;
+        final sweepStartMs = DateTime.now().millisecondsSinceEpoch;
         DocumentSnapshot<Map<String, dynamic>>? lastDoc;
 
         for (var page = 0; page < (sweeping ? maxSweepPages : 1); page++) {
@@ -2855,6 +2860,7 @@ class SyncService {
               collection: collection,
               shopId: shopId,
               readCount: snapshot.docs.length,
+              source: 'poll',
             ),
           );
 
@@ -2876,6 +2882,26 @@ class SyncService {
             collection: collection,
             shopId: shopId,
             cursorMs: maxCursorMs,
+          );
+        } else if (shopId != null &&
+            sweeping &&
+            sweepComplete &&
+            _launchFullSweepCollections.contains(collection) &&
+            _incrementalRealtimeCollections.contains(collection)) {
+          // Quét trọn xong mà KHÔNG doc nào có `updatedAt` (bảng ghi bởi app
+          // cũ, vd. `financial_activity_log` trước 2026-09-12) ⇒ không có mốc
+          // để lập con trỏ ⇒ lượt poll nào cũng quét trọn lại. Lấy giờ bắt đầu
+          // quét (trừ biên lệch đồng hồ) làm con trỏ: doc mới ghi sau đó có
+          // serverTimestamp > mốc này nên vẫn về đủ; doc cũ thiếu `updatedAt`
+          // đã nằm trong SQLite và được lưới quét trọn 24h vớt lại.
+          await _saveRealtimeCursorMs(
+            collection: collection,
+            shopId: shopId,
+            cursorMs: sweepStartMs - _sweepCursorSkewMargin.inMilliseconds,
+          );
+          debugPrint(
+            '🧭 $collection: quét trọn không có updatedAt — '
+            'lập con trỏ từ giờ bắt đầu quét',
           );
         }
 
@@ -3023,6 +3049,7 @@ class SyncService {
           collection: collection,
           shopId: shopId,
           readCount: applied,
+          source: 'listener',
         ),
       );
 
@@ -3392,6 +3419,12 @@ class SyncService {
             final docId =
                 data['firestoreId'] ??
                 "fal_${data['createdAt']}_${data['activityType'] ?? 'unknown'}";
+            // Bảng local KHÔNG có cột `updatedAt` nên doc đẩy lên cloud cũng
+            // không có ⇒ con trỏ poll `where('updatedAt' > …)` không bao giờ
+            // được lập (maxCursorMs = 0) và MỖI lượt poll lại quét trọn bảng
+            // (đo máy thật 2026-09-12: 138 doc/lần mở app; shop thật ~2.1K).
+            // Đóng dấu giờ máy chủ để doc mới đi được đường con trỏ.
+            data['updatedAt'] = FieldValue.serverTimestamp();
             batch.set(
               _db.collection('financial_activity_log').doc(docId),
               data,
