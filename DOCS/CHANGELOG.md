@@ -146,8 +146,10 @@ loại cố định).
   sẽ phải qua prompt deploy). Fix rules `deleted` của `[2026-09-11d]` vẫn
   cần thiết cho mọi rule khác.
 
-**Kiểm chứng:** analyze 0 error; 648 test pass (2 KiotViet đỏ sẵn). **CHƯA cài
-máy thật** — máy đang bận chạy test ADB của phiên khác, sẽ nghiệm thu sau.
+**Kiểm chứng:** analyze 0 error; 648 test pass (2 KiotViet đỏ sẵn). Máy thật
+CPH2203 (shop test) 2026-09-12: Cài đặt không còn mục Danh mục / Loại hình;
+Kho, Tạo đơn bán, Nhập mới mở bình thường; log 0 dòng `product_categories`,
+0 lỗi app.
 
 ---
 

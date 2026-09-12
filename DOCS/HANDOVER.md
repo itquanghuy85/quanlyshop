@@ -38,9 +38,10 @@ tỉ lệ tiền nhận của V2 = vốn đủ, không cần đổi.
 
 **✅ ĐÃ GỠ MÀN "DANH MỤC SẢN PHẨM" (`[2026-09-12a]`).** Vỏ chưa nối dây
 (không ai dùng `categoryId`; phân loại vẫn bằng `type` cứng). `CategoryService`
-nay chỉ còn ShopSettings. Schema SQLite/cột giữ nguyên. **Chưa nghiệm thu máy
-thật** (máy bận) — việc cần làm: cài debug, mở Cài đặt xác nhận không còn mục,
-mở Kho / Tạo đơn bán chạy bình thường.
+nay chỉ còn ShopSettings. Schema SQLite/cột giữ nguyên. **Đã nghiệm thu máy
+thật 2026-09-12** (CPH2203, shop test): Cài đặt hết mục Danh mục/Loại hình;
+Kho / Tạo đơn bán / Nhập mới mở bình thường; log 0 dòng `product_categories`,
+0 lỗi app.
 
 **✅ RULES: `data.deleted != true` LÀ BẪY (`[2026-09-11d]`).** Field không tồn
 tại ⇒ biểu thức LỖI → false, không phải true. Đã đổi `isShopOwner()` /
