@@ -738,6 +738,8 @@ enum ShortcutType {
   importHistory, // Lịch sử nhập kho
   moneyReconcile, // Đối soát tiền về
   priceBook, // Bảng giá
+  monthlyProfit, // Lãi theo tháng
+  topServices, // DV lãi nhất
 }
 
 /// Config for a single shortcut item
@@ -842,6 +844,10 @@ class ShortcutConfig {
         return 'Đối soát tiền';
       case ShortcutType.priceBook:
         return 'Bảng giá';
+      case ShortcutType.monthlyProfit:
+        return 'Lãi theo tháng';
+      case ShortcutType.topServices:
+        return 'DV lãi nhất';
     }
   }
 
@@ -908,6 +914,10 @@ class ShortcutConfig {
         return Icons.fact_check_outlined;
       case ShortcutType.priceBook:
         return Icons.sell_outlined;
+      case ShortcutType.monthlyProfit:
+        return Icons.bar_chart_rounded;
+      case ShortcutType.topServices:
+        return Icons.trending_up;
     }
   }
 
@@ -976,6 +986,10 @@ class ShortcutConfig {
         return Colors.indigo;
       case ShortcutType.priceBook:
         return Colors.deepPurple;
+      case ShortcutType.monthlyProfit:
+        return Colors.indigo;
+      case ShortcutType.topServices:
+        return Colors.green;
     }
   }
 
@@ -1017,6 +1031,8 @@ class ShortcutConfig {
       // Cả hai đều là số tiền của shop nên đi cùng quyền xem doanh thu.
       case ShortcutType.moneyReconcile:
       case ShortcutType.priceBook:
+      case ShortcutType.monthlyProfit:
+      case ShortcutType.topServices:
         return 'allowViewRevenue';
       case ShortcutType.attendance:
         return 'allowViewAttendance';
@@ -1054,7 +1070,9 @@ class ShortcutConfigService {
   // của bảng mặc định. Hai mục này nằm trong `priorityOrder` nên với người đã
   // tuỳ biến lối tắt, chúng được nối thêm ở trạng thái HIỆN — không phải vào
   // "Sửa" bật tay, mà cũng không xoá mất sắp xếp cũ của họ.
-  static const int _schemaVersion = 5;
+  // v6: thêm "Lãi theo tháng" và "DV lãi nhất" (đưa 2 báo cáo cuối màn Báo
+  // cáo ra Trang chủ — chủ shop yêu cầu 2026-09-12). Cùng cơ chế nối thêm.
+  static const int _schemaVersion = 6;
 
   /// Get default shortcuts - keep core operations + expose key new features.
   static List<ShortcutConfig> getDefaultShortcuts() {
@@ -1068,6 +1086,8 @@ class ShortcutConfigService {
       ShortcutType.activityLog,
       ShortcutType.moneyReconcile,
       ShortcutType.priceBook,
+      ShortcutType.monthlyProfit,
+      ShortcutType.topServices,
     ];
     final visibleDefaults = priorityOrder.toSet();
     final defaults = <ShortcutConfig>[];

@@ -71,6 +71,8 @@ import 'user_guide_view.dart';
 import 'help_center_view.dart';
 import 'money_reconcile_view.dart';
 import 'price_book_view.dart';
+import 'monthly_profit_report_view.dart';
+import 'top_services_report_view.dart';
 import '../data/app_knowledge_base.dart';
 import '../widgets/discovery_card.dart';
 import '../data/db_helper.dart';
@@ -4320,6 +4322,13 @@ class _HomeViewState extends State<HomeView>
           return () => openMoneyReconcile(context);
         case ShortcutType.priceBook:
           return () => openPriceBook(context);
+        case ShortcutType.monthlyProfit:
+          return () => _pushRoute(
+            context,
+            MaterialPageRoute(builder: (_) => const MonthlyProfitReportView()),
+          );
+        case ShortcutType.topServices:
+          return () => openTopServicesReport(context);
       }
     }
 

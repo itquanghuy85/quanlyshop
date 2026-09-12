@@ -5329,9 +5329,13 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   }
 
   Widget _monthlyProfitCard() {
-    return InkWell(
-      onTap: () => Navigator.push(
-        context,
+    // Dùng context của CHÍNH thẻ (Builder) chứ không phải `context` của
+    // FinanceV2View: thẻ này được nhúng vào màn Báo cáo (route riêng); khi
+    // FinanceV2View đã rời cây thì Navigator.push bằng context cũ không làm
+    // gì ⇒ "bấm không được" (báo từ iPhone 2026-09-12).
+    return Builder(
+      builder: (ctx) => InkWell(
+      onTap: () => Navigator.of(ctx, rootNavigator: true).push(
         MaterialPageRoute(builder: (_) => const MonthlyProfitReportView()),
       ),
       borderRadius: BorderRadius.circular(14),
@@ -5379,6 +5383,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
             const Icon(Icons.chevron_right, color: Colors.white70),
           ],
         ),
+      ),
       ),
     );
   }

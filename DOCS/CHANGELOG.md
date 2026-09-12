@@ -4,6 +4,42 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-12g] - "Lãi theo tháng" + "DV lãi nhất" bấm được và ra Trang chủ; chặn lợi nhuận theo quyền giá vốn
+
+Chủ shop (iPhone): *"báo cáo lợi nhuận theo tháng và dịch vụ lãi nhất không
+bấm được, đưa ra ngoài cho tôi"*.
+
+### Sửa / thêm
+- **Thẻ "Báo cáo lợi nhuận theo tháng" không bấm được** (`finance_v2_view.
+  _monthlyProfitCard`): `Navigator.push(context…)` dùng context của
+  `FinanceV2View` trong khi thẻ nằm ở màn Báo cáo (route riêng) — khi
+  FinanceV2View đã rời cây thì push không làm gì. Nay `Builder` lấy context
+  của chính thẻ + `rootNavigator`.
+- **"Dịch vụ lãi nhất" chỉ là khối nhúng theo kỳ của Báo cáo (hôm nay) ⇒ hầu
+  như luôn "Chưa có dữ liệu", không bấm được.** Thêm màn toàn màn hình
+  `TopServicesReportView` (chip 7 / 30 / 90 ngày / 1 năm, mặc định 30 ngày);
+  chạm tiêu đề khối trong Báo cáo là mở. Đo shop thật: 30 ngày ra ngay top
+  THAY MÀN / THAY PIN…
+- **2 lối tắt mới ở Trang chủ → THAO TÁC NHANH:** "Lãi theo tháng", "DV lãi
+  nhất" (hiện sẵn, schema lối tắt v6 nối thêm cho người đã tuỳ biến; quyền
+  `allowViewRevenue`).
+- `TopServicesWidget` hiện LN + biên lãi cho mọi người — nay chỉ khi có quyền
+  xem giá vốn (CLAUDE.md mục 9); không quyền chỉ thấy doanh thu + số lần,
+  menu mất mục "Lợi nhuận".
+- Knowledge base: 2 mục `monthly-profit-report`, `top-services-report`.
+
+### Chưa làm — chờ chủ shop quyết
+"Phân khúc khách hàng" (VIP / Thường xuyên / Thường / Mới / Mất tích): trên
+shop thật ra 0 VIP · 10 · 32 · 206 · **5.338 "mất tích"** — với tiệm sửa điện
+thoại (khách vài tháng/năm mới quay lại) con số gần như vô nghĩa. Đề xuất gỡ.
+
+### Files
+`lib/views/top_services_report_view.dart` (mới), `lib/widgets/top_services_widget.dart`,
+`lib/finance_v2/finance_v2_view.dart`, `lib/services/dashboard_config_service.dart`,
+`lib/views/home_view.dart`, `lib/data/app_knowledge_base.dart`, `docs/CHANGELOG.md`
+
+---
+
 ## [2026-09-12f] - Đo read trên SHOP THẬT (huy@huluca.com, Oppo A94): 22K read mỗi lần mở app — 5 gốc, sửa hết
 
 Đăng nhập shop thật trên máy debug, bật `svc power stayon`, đo logcat +

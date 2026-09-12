@@ -953,6 +953,57 @@ class AppKnowledgeBase {
       audience: ['owner', 'manager'],
     ),
     KbEntry(
+      id: 'monthly-profit-report',
+      title: 'Báo cáo lợi nhuận theo tháng',
+      menuPath:
+          'Trang chủ → THAO TÁC NHANH → "Lãi theo tháng"  (hoặc tab Tài chính '
+          '→ Báo cáo đầy đủ → cuộn xuống thẻ "Báo cáo lợi nhuận theo tháng")',
+      whatItDoes:
+          'Bảng + biểu đồ doanh thu, giá vốn, chi phí và lợi nhuận của từng '
+          'tháng trong năm; tổng thu/chi cả năm. Nhân viên không có quyền xem '
+          'giá vốn chỉ thấy doanh thu.',
+      whenToUse: 'Muốn biết tháng nào lãi/lỗ, so các tháng với nhau.',
+      steps: [
+        'Mở "Lãi theo tháng" từ Trang chủ (lối tắt hiện sẵn, có thể ẩn/sắp '
+            'lại ở nút Sửa của THAO TÁC NHANH).',
+        'Chọn năm ở đầu màn; chạm một tháng để xem chi tiết.',
+      ],
+      terms: ['lai-gop', 'gia-von', 'dong-tien'],
+      sampleQuestions: [
+        'xem lãi từng tháng ở đâu',
+        'báo cáo lợi nhuận theo tháng',
+        'tháng này lãi bao nhiêu',
+      ],
+      tags: ['loi nhuan', 'lai thang', 'bao cao thang', 'doanh thu thang'],
+      audience: ['owner', 'manager'],
+    ),
+    KbEntry(
+      id: 'top-services-report',
+      title: 'Dịch vụ lãi nhất',
+      menuPath:
+          'Trang chủ → THAO TÁC NHANH → "DV lãi nhất"  (hoặc tab Tài chính → '
+          'Báo cáo đầy đủ → chạm tiêu đề khối "Dịch vụ lãi nhất")',
+      whatItDoes:
+          'Xếp hạng top 10 dịch vụ sửa chữa theo doanh thu / lợi nhuận / tần '
+          'suất trong 7-30-90 ngày hoặc 1 năm. Lợi nhuận và biên lãi chỉ hiện '
+          'khi có quyền xem giá vốn.',
+      whenToUse:
+          'Biết dịch vụ nào đem lại nhiều tiền nhất để đẩy mạnh, đặt giá.',
+      steps: [
+        'Mở "DV lãi nhất" từ Trang chủ.',
+        'Chọn kỳ bằng chip 7 / 30 / 90 ngày / 1 năm; menu ⋮ đổi tiêu chí xếp '
+            'hạng (Doanh thu · Lợi nhuận · Tần suất).',
+      ],
+      terms: ['lai-gop', 'gia-von'],
+      sampleQuestions: [
+        'dịch vụ nào lãi nhất',
+        'sửa gì kiếm được nhiều tiền nhất',
+        'top dịch vụ sửa chữa',
+      ],
+      tags: ['dich vu lai nhat', 'top dich vu', 'xep hang dich vu'],
+      audience: ['owner', 'manager'],
+    ),
+    KbEntry(
       id: 'price-book-supplier-invoice',
       title: 'Bảng giá từ hoá đơn NCC (nhờ AI đọc ảnh hoá đơn)',
       menuPath: 'Bảng giá → menu ⋮ → "Nhập bảng giá từ hoá đơn NCC"',

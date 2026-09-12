@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/top_services_report_service.dart';
+import '../services/user_service.dart';
 import '../utils/money_utils.dart';
+import '../views/top_services_report_view.dart';
 
 /// Widget hiển thị Top Services — dịch vụ lãi nhất
 /// Hiển thị top 10 dịch vụ theo doanh thu, lợi nhuận, hoặc tần suất
@@ -9,11 +11,16 @@ class TopServicesWidget extends StatefulWidget {
   final DateTime? endDate;
   final String sortBy; // 'revenue', 'profit', 'frequency'
 
+  /// Chạm tiêu đề mở màn toàn màn hình [TopServicesReportView]. Tắt khi
+  /// chính màn đó nhúng widget này (tránh mở chồng).
+  final bool canOpenFullView;
+
   const TopServicesWidget({
     super.key,
     this.startDate,
     this.endDate,
     this.sortBy = 'revenue',
+    this.canOpenFullView = true,
   });
 
   @override
@@ -23,12 +30,26 @@ class TopServicesWidget extends StatefulWidget {
 class _TopServicesWidgetState extends State<TopServicesWidget> {
   late Future<List<Map<String, dynamic>>> _futureServices;
   late String _sortBy;
+  // Lợi nhuận / biên lãi suy ngược ra giá vốn ⇒ chặn như giá vốn (CLAUDE.md
+  // mục 9). Mặc định false tới khi đọc xong quyền; lỗi đọc không rơi về true.
+  bool _canViewCost = false;
 
   @override
   void initState() {
     super.initState();
     _sortBy = widget.sortBy;
     _loadServices();
+    _loadCostPermission();
+  }
+
+  Future<void> _loadCostPermission() async {
+    bool allowed = false;
+    try {
+      allowed = await UserService.canViewCostPrice();
+    } catch (_) {
+      allowed = false;
+    }
+    if (mounted) setState(() => _canViewCost = allowed);
   }
 
   @override
@@ -84,10 +105,31 @@ class _TopServicesWidgetState extends State<TopServicesWidget> {
               children: [
                 const Icon(Icons.trending_up, color: Colors.green, size: 24),
                 const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'Dịch vụ lãi nhất',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: InkWell(
+                    onTap: widget.canOpenFullView
+                        ? () => openTopServicesReport(context)
+                        : null,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Dịch vụ lãi nhất',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        if (widget.canOpenFullView)
+                          const Icon(
+                            Icons.chevron_right,
+                            color: Colors.grey,
+                            size: 20,
+                          ),
+                      ],
+                    ),
                   ),
                 ),
                 PopupMenuButton<String>(
@@ -101,10 +143,11 @@ class _TopServicesWidgetState extends State<TopServicesWidget> {
                       value: 'revenue',
                       child: Text('Doanh thu'),
                     ),
-                    const PopupMenuItem(
-                      value: 'profit',
-                      child: Text('Lợi nhuận'),
-                    ),
+                    if (_canViewCost)
+                      const PopupMenuItem(
+                        value: 'profit',
+                        child: Text('Lợi nhuận'),
+                      ),
                     const PopupMenuItem(
                       value: 'frequency',
                       child: Text('Tần suất'),
@@ -156,8 +199,9 @@ class _TopServicesWidgetState extends State<TopServicesWidget> {
                     final grossProfit = service['grossProfit'] as int?;
                     final marginPct = service['profitMarginPct'] as double?;
 
-                    final summary =
-                        '${serviceName ?? 'N/A'} · LN ${MoneyUtils.formatCurrency((grossProfit ?? 0).toInt())} · DT ${MoneyUtils.formatCurrency((totalRevenue ?? 0).toInt())} · ${count ?? 0} lần · ${(marginPct ?? 0).toStringAsFixed(1)}%';
+                    final summary = _canViewCost
+                        ? '${serviceName ?? 'N/A'} · LN ${MoneyUtils.formatCurrency((grossProfit ?? 0).toInt())} · DT ${MoneyUtils.formatCurrency((totalRevenue ?? 0).toInt())} · ${count ?? 0} lần · ${(marginPct ?? 0).toStringAsFixed(1)}%'
+                        : '${serviceName ?? 'N/A'} · DT ${MoneyUtils.formatCurrency((totalRevenue ?? 0).toInt())} · ${count ?? 0} lần';
 
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4),
