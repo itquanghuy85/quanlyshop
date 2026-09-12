@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../data/db_helper.dart';
 import 'sync_collections.dart';
 import 'event_bus.dart';
@@ -138,6 +139,22 @@ class SyncHealthCheck {
   /// Firestore lớn mà chủ shop không nhìn thấy (thống kê read chỉ đếm listener).
   static const Duration _autoCheckCooldown = Duration(minutes: 30);
 
+  /// Lượt kiểm TỰ ĐỘNG (mở app) chỉ chạy tối đa một lần mỗi khoảng này cho
+  /// mỗi shop — mốc lưu SharedPreferences, sống qua khởi động lại app.
+  ///
+  /// Lý do: `_checkCollection` đọc **TRỌN** từng collection trên cloud
+  /// (`where(shopId).get()`, ~30 bảng) để so ID với local. Đo shop thật
+  /// 2026-09-12 (huy@huluca.com): repairs 1.041 + sales 4.278 + products 847
+  /// + import_orders 3.062 + import_order_items 4.293 + customers 5.399 +
+  /// nhật ký 2.083… ≈ **22K read cho MỖI lần mở app**, dù không có gì đổi —
+  /// khoản read lớn nhất toàn app và không hiện trong `firebase_read_stats`
+  /// nên các lần đo trước không thấy. Cooldown 30 phút ở trên chỉ nằm trong
+  /// bộ nhớ nên mở lại app là chạy lại. Kiểm tra bằng tay (`force: true`)
+  /// không bị chặn. Dữ liệu mới giữa hai lượt đã có con trỏ poll + listener
+  /// + lưới quét trọn 24h lo.
+  static const Duration _autoCheckInterval = Duration(hours: 24);
+  static const String _autoCheckAtPrefix = 'healthCheckAt_';
+
   /// Kiểm tra toàn bộ sync health.
   ///
   /// [force] = true bỏ qua throttle — dùng cho nút bấm tay trong Trung tâm
@@ -153,6 +170,13 @@ class SyncHealthCheck {
           '(còn ${(_autoCheckCooldown - elapsed).inMinutes} phút mới kiểm lại)',
         );
         return cached;
+      }
+    }
+    if (!force) {
+      final skip = await _autoCheckRanRecently();
+      if (skip != null) {
+        debugPrint('⏸️ runFullCheck: $skip');
+        return cached ?? _emptyReport(await UserService.getCurrentShopId());
       }
     }
     debugPrint('🔍 Bắt đầu kiểm tra Sync Health...');
@@ -262,8 +286,50 @@ class SyncHealthCheck {
 
     _cachedReport = report;
     _lastFullCheckAt = DateTime.now();
+    await _markAutoCheckDone(validShopId);
     return report;
   }
+
+  /// Trả về lý do bỏ qua nếu lượt kiểm tự động gần nhất của shop này còn
+  /// trong [_autoCheckInterval]; null nếu được phép chạy.
+  static Future<String?> _autoCheckRanRecently() async {
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null || shopId.isEmpty) return null;
+      final prefs = await SharedPreferences.getInstance();
+      final lastMs = prefs.getInt('$_autoCheckAtPrefix$shopId') ?? 0;
+      if (lastMs <= 0) return null;
+      final elapsed = DateTime.now().difference(
+        DateTime.fromMillisecondsSinceEpoch(lastMs),
+      );
+      if (elapsed >= _autoCheckInterval) return null;
+      return 'kiểm tự động đã chạy cách đây ${elapsed.inMinutes} phút — '
+          'còn ${(_autoCheckInterval - elapsed).inMinutes} phút mới kiểm lại '
+          '(đọc trọn ~30 bảng cloud, chỉ chạy 1 lần/ngày; bấm kiểm tay vẫn được)';
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> _markAutoCheckDone(String shopId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(
+        '$_autoCheckAtPrefix$shopId',
+        DateTime.now().millisecondsSinceEpoch,
+      );
+    } catch (_) {}
+  }
+
+  static SyncHealthReport _emptyReport(String? shopId) => SyncHealthReport(
+        checkedAt: DateTime.now(),
+        shopId: shopId,
+        results: const [],
+        isFullyHealthy: true,
+        totalLocalRecords: 0,
+        totalCloudRecords: 0,
+        totalMismatches: 0,
+      );
 
   /// Xoá kết quả đã lưu — gọi khi đổi shop/tài khoản để lần sau kiểm lại thật.
   static void invalidateCache() {

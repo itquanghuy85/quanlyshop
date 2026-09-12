@@ -200,8 +200,11 @@ class _SyncCenterSheetState extends State<SyncCenterSheet> {
       // Check realtime sync status
       _isRealtimeSyncActive = SyncService.isRealTimeSyncActive;
 
-      // Load health check (quick)
-      _healthReport = await SyncHealthCheck.runFullCheck(force: true);
+      // Kết quả kiểm gần nhất (tối đa 1 lần/ngày). KHÔNG `force` ở đây:
+      // kiểm tra ép đọc TRỌN ~30 bảng trên cloud — shop thật ≈ 22K read cho
+      // mỗi lần mở bảng này (đo 2026-09-12). Người dùng muốn kiểm ngay thì
+      // bấm "Kiểm tra chi tiết" (`_handleDetailedCheck`, vẫn force).
+      _healthReport = await SyncHealthCheck.runFullCheck();
 
       // Load Firestore connectivity diagnostics
       _firestoreConnectivityReport =

@@ -9,6 +9,14 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.6.0+557 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-12.md`, gộp cả 3.5.0 chưa đăng; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-12  
 
+**🔴 ĐO SHOP THẬT: 22K READ MỖI LẦN MỞ APP → 125 (`[2026-09-12f]`).** Gốc lớn
+nhất toàn app là `SyncHealthCheck.runFullCheck()` đọc trọn ~30 bảng cloud mỗi
+lần mở app (không hiện trong `firebase_read_stats`!) — nay 1 lần/24h lưu prefs.
+Cộng: audit_logs chỉ đồng bộ 30 ngày, poll tối đa 4 song song (hết timeout
+hàng loạt), quét trọn nối tiếp qua các lần mở app (`sweepAfter_*`), chỉ lập con
+trỏ khi quét xong. Đo trên máy: mở app 125 read, bấm mọi tab/lối tắt 0 read.
+Bản 3.6.0+557 đã build AAB TRƯỚC các sửa này — **build lại trước khi up store**.
+
 **✅ TEST ĐỒNG BỘ TOÀN BỘ 2 MÁY + ĐỐI CHIẾU 30 BẢNG (`[2026-09-12d]`).** Mọi
 luồng (đơn sửa tạo→XONG→Y/C duyệt→duyệt→xoá, bán, nhập kho, thu nợ) đều 1
 ghi/1 snapshot, 30 bảng khớp trừ phần phân quyền. 6 lỗi thật đã sửa — NẶNG

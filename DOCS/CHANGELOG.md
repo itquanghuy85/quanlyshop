@@ -4,6 +4,60 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-12f] - Đo read trên SHOP THẬT (huy@huluca.com, Oppo A94): 22K read mỗi lần mở app — 5 gốc, sửa hết
+
+Đăng nhập shop thật trên máy debug, bật `svc power stayon`, đo logcat +
+`firebase_read_stats` từng lần mở app / resume / bấm qua mọi tab & lối tắt.
+
+### Kết quả đo
+| Tình huống | Trước | Sau |
+|---|---|---|
+| Mở app (DB đã có) | **≈ 22K + 2K + 1.5K + 779 + timeouts** | **125 read** (+ ~36 truy vấn rỗng) |
+| Bấm qua 7 tab + DS sửa / Đơn bán / Chấm công / Nhật ký / Thông báo | — | **0 read** (đọc SQLite + listener) |
+| Đăng nhập máy mới (DB trống) | tải trọn shop 2 lần (health check + poll) | 1 lần (poll nối tiếp, không timeout) |
+
+### 5 gốc
+1. **`SyncHealthCheck.runFullCheck()` chạy MỖI lần mở app và `.get()` TRỌN
+   ~30 collection trên cloud** để so ID (`sync_health_check._checkCollection`).
+   Shop thật: repairs 1.041 + sales 4.278 + products 847 + import_orders 3.062
+   + import_order_items 4.293 + customers 5.399 + nhật ký 2.083… ≈ 22K read
+   dù không có gì đổi. Cooldown 30 phút chỉ nằm trong RAM. Không hiện ở
+   `firebase_read_stats` nên các lần đo trước không thấy. Nay: mốc lưu
+   SharedPreferences theo shop, **tự động tối đa 1 lần/24h**; kiểm bằng tay
+   (`force: true`) vẫn được. Bảng Trung tâm đồng bộ mở lên cũng từng
+   `force: true` ⇒ mỗi lần mở = 22K read — nay dùng kết quả gần nhất, nút
+   "Kiểm tra chi tiết" mới ép.
+2. **`audit_logs` quét trọn không bao giờ xong**: > 4.000 doc, mỗi lần mở
+   app đọc 1.500 (3 trang × 500) rồi timeout, con trỏ không lập được ⇒ lặp
+   mãi. Nay nhật ký kỹ thuật **không quét lịch sử**: lập con trỏ = 30 ngày
+   gần đây rồi chạy con trỏ (`_seedCursorWindow`). Màn "Nhật ký hệ thống"
+   trên máy mới chỉ có 30 ngày gần nhất (máy cũ giữ nguyên dữ liệu đã có).
+3. **27/35 poll timeout đồng loạt sau 20 s** khi mở app (kể cả bảng rỗng) —
+   SDK xếp hàng sau vài truy vấn 500 doc; truy vấn timeout vẫn bị tính read
+   mà không nhận gì, lượt sau đọc lại. Nay tối đa **4 poll song song**
+   (`_acquirePollSlot`) và trang quét trọn 200 doc. Đo lại: 0 timeout.
+4. **Quét trọn dở dang thì lượt sau quét lại từ đầu** (financial_activity_log
+   2.083 doc, import_order_items 4.293 doc không bao giờ xong ⇒ không bao
+   giờ có con trỏ). Nay ghi id doc cuối mỗi trang (`sweepAfter_*`), lượt sau
+   nối tiếp; **chỉ lập con trỏ khi quét xong** (lập sớm là bỏ sót phần dở).
+5. **`payment_intents` 779 doc đọc lại mỗi lần mở app** (doc cũ không có
+   `updatedAt`) — đưa vào `_launchFullSweepCollections` để được lập con trỏ
+   sau quét trọn + lưới 24h.
+
+### Còn lại (chấp nhận được, ghi để biết)
+- Lượt kiểm sức khoẻ 1 lần/ngày vẫn ≈ 22K read/ngày trên shop thật
+  (≈ 660K/tháng ≈ 0,24 USD). Muốn rẻ hơn: so `count()` trước, chỉ đọc trọn
+  bảng lệch.
+- Listener `sales`/`repairs` cửa sổ 3 ngày: 70 + 14 doc mỗi lần mở app.
+- Đăng nhập máy mới vẫn tải trọn shop (bắt buộc, ~20K) — health check auto-fix
+  và poll nay không còn tải trùng nhau nhờ (3)(4).
+
+### Files
+`lib/services/sync_health_check.dart`, `lib/services/sync_service.dart`,
+`lib/widgets/unified_sync_button.dart`, `docs/CHANGELOG.md`, `docs/HANDOVER.md`
+
+---
+
 ## [2026-09-12e] - Vì sao monitor báo 5K read; 3 bảng poll trọn → con trỏ; FAB "Thêm mục" méo
 
 ### Read 5K là gì

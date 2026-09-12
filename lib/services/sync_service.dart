@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firestore_write_helper.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -344,6 +345,10 @@ class SyncService {
     'partner_repair_history',
     'repair_partners',
     'storage_locations',
+    // `payment_intents`: doc cũ không có `updatedAt` ⇒ không lập được con trỏ
+    // ⇒ shop thật đọc lại 779 doc MỖI lần mở app (đo 2026-09-12). Vào nhóm
+    // này để được lập con trỏ sau lượt quét trọn + lưới 24h.
+    'payment_intents',
   };
 
   /// Bảng đã quét trọn xong trong lần mở app này (bộ nhớ) — cộng thêm mốc
@@ -357,6 +362,41 @@ class SyncService {
   /// đủ; giữa hai lượt đã có con trỏ + lưới an toàn `_checkCollection` lo.
   static final Set<String> _launchFullSweepDone = <String>{};
   static const Duration _fullSweepInterval = Duration(hours: 24);
+
+  /// Cỡ trang cho lượt quét trọn (không con trỏ). Xem chú thích tại chỗ dùng.
+  static const int _sweepPageLimit = 200;
+  static const String _sweepResumePrefix = 'sweepAfter_';
+  static final Map<String, String> _sweepResumeCache = <String, String>{};
+  static bool _sweepResumeLoaded = false;
+
+  static String _sweepResumeKey(String collection, String shopId) =>
+      '$_sweepResumePrefix${collection}_$shopId';
+
+  static Future<void> _loadSweepResume() async {
+    if (_sweepResumeLoaded) return;
+    _sweepResumeLoaded = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      for (final key in prefs.getKeys()) {
+        if (!key.startsWith(_sweepResumePrefix)) continue;
+        final value = prefs.getString(key);
+        if (value != null && value.isNotEmpty) _sweepResumeCache[key] = value;
+      }
+    } catch (_) {}
+  }
+
+  static Future<void> _saveSweepResume(String key, String? lastDocId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (lastDocId == null || lastDocId.isEmpty) {
+        _sweepResumeCache.remove(key);
+        await prefs.remove(key);
+      } else {
+        _sweepResumeCache[key] = lastDocId;
+        await prefs.setString(key, lastDocId);
+      }
+    } catch (_) {}
+  }
   /// Biên lệch đồng hồ máy so với máy chủ khi lập con trỏ từ giờ bắt đầu quét
   /// trọn (bảng không có doc nào mang `updatedAt`). Rộng để không sót doc;
   /// giá phải trả chỉ là vài doc trong biên bị đọc lại mỗi lượt poll.
@@ -519,12 +559,41 @@ class SyncService {
     ].join('::');
   }
 
+  /// Số truy vấn poll chạy song song tối đa. Lúc mở app ~35 bảng cùng gọi
+  /// `get()`; trên shop thật (2026-09-12) 27/35 truy vấn **timeout đồng loạt
+  /// sau đúng 20 s** — kể cả bảng rỗng — vì SDK xếp hàng phía sau vài truy
+  /// vấn 200-500 doc. Truy vấn timeout vẫn bị Firestore tính read mà máy
+  /// không nhận được gì, rồi lượt sau đọc lại. Giới hạn song song để từng
+  /// truy vấn xong trong hạn, đổi lấy vài giây mở app chậm hơn.
+  static const int _maxConcurrentPolls = 4;
+  static int _activePolls = 0;
+  static final List<Completer<void>> _pollWaiters = <Completer<void>>[];
+
+  static Future<void> _acquirePollSlot() async {
+    if (_activePolls < _maxConcurrentPolls) {
+      _activePolls++;
+      return;
+    }
+    final c = Completer<void>();
+    _pollWaiters.add(c);
+    await c.future;
+  }
+
+  static void _releasePollSlot() {
+    if (_pollWaiters.isNotEmpty) {
+      _pollWaiters.removeAt(0).complete();
+    } else {
+      _activePolls = math.max(0, _activePolls - 1);
+    }
+  }
+
   static Future<QuerySnapshot<Map<String, dynamic>>> _getQueryWithTimeout({
     required Query<Map<String, dynamic>> query,
     required String context,
     int? limit,
   }) async {
     final effectiveQuery = limit != null ? query.limit(limit) : query;
+    await _acquirePollSlot();
     try {
       return await effectiveQuery.get().timeout(_cloudReadTimeout);
     } on TimeoutException {
@@ -534,6 +603,8 @@ class SyncService {
         );
       }
       rethrow;
+    } finally {
+      _releasePollSlot();
     }
   }
 
@@ -763,6 +834,7 @@ class SyncService {
       final atMs = prefs.getInt(key) ?? 0;
       if (atMs > 0) _fullSweepAtCache[key] = atMs;
     }
+    await _loadSweepResume();
   }
 
   static int _realtimeCursorMs(String collection, String shopId) {
@@ -833,8 +905,33 @@ class SyncService {
     // những doc thiếu `updatedAt` — thứ cần vớt — lại bị Firestore loại ra.
     if (_needsLaunchFullSweep(collection, shopId)) return false;
 
-    return _realtimeCursorMs(collection, shopId) > 0;
+    if (_realtimeCursorMs(collection, shopId) > 0) return true;
+
+    // Bảng nhật ký chỉ cần phần gần đây: thay vì quét trọn từ đầu (shop thật
+    // 2026-09-12: `audit_logs` > 4.000 doc, mỗi lần mở app đọc 4.000 rồi vẫn
+    // chưa xong), lập ngay con trỏ = hiện tại − cửa sổ và chạy poll con trỏ.
+    final seedWindow = _seedCursorWindow[collection];
+    if (seedWindow != null) {
+      final seedMs = DateTime.now().subtract(seedWindow).millisecondsSinceEpoch;
+      final key = _realtimeCursorKey(collection, shopId);
+      _realtimeCursorCache[key] = seedMs;
+      unawaited(
+        SharedPreferences.getInstance().then((p) => p.setInt(key, seedMs)),
+      );
+      debugPrint(
+        '🧭 $collection: không quét trọn — lập con trỏ ${seedWindow.inDays} ngày gần đây',
+      );
+      return true;
+    }
+    return false;
   }
+
+  /// Bảng KHÔNG quét trọn lịch sử khi chưa có con trỏ: chỉ đồng bộ phần trong
+  /// cửa sổ này rồi chạy con trỏ như thường. Chỉ dùng cho nhật ký kỹ thuật —
+  /// dữ liệu nghiệp vụ (đơn, tiền, nợ…) vẫn phải về đủ.
+  static const Map<String, Duration> _seedCursorWindow = {
+    'audit_logs': Duration(days: 30),
+  };
 
   static List<String> _splitImagePaths(String? csv) {
     if (csv == null || csv.trim().isEmpty) return const [];
@@ -2840,26 +2937,44 @@ class SyncService {
         var sweepComplete = false;
         final sweepStartMs = DateTime.now().millisecondsSinceEpoch;
         DocumentSnapshot<Map<String, dynamic>>? lastDoc;
+        // Quét trọn NỐI TIẾP qua các lần mở app: trang nào xong ghi id doc
+        // cuối xuống prefs; lượt sau đi tiếp từ đó thay vì quét lại từ đầu.
+        // Đo shop thật 2026-09-12: `audit_logs` mỗi lần mở app đọc lại 3 trang
+        // × 500 rồi timeout ở trang sau ⇒ **1.500 read/lần mở app mà không
+        // bao giờ xong**, con trỏ vì thế cũng không bao giờ lập được.
+        final sweepResumeKey = shopId == null
+            ? null
+            : _sweepResumeKey(collection, shopId);
+        final resumeAfterId = sweeping && sweepResumeKey != null
+            ? _sweepResumeCache[sweepResumeKey]
+            : null;
+        // Trang quét trọn nhỏ hơn để mỗi trang chắc chắn xong trong hạn
+        // 20 giây khi ~35 bảng cùng poll lúc mở app (trang 500 doc timeout
+        // liên tục trên shop thật, mà read vẫn bị tính).
+        final pageLimit = sweeping ? math.min(pollLimit, _sweepPageLimit) : pollLimit;
 
         for (var page = 0; page < (sweeping ? maxSweepPages : 1); page++) {
           var pageQuery = query;
           if (lastDoc != null) {
             pageQuery = pageQuery.startAfterDocument(lastDoc);
+          } else if (resumeAfterId != null && resumeAfterId.isNotEmpty) {
+            pageQuery = pageQuery.startAfter([resumeAfterId]);
           }
           final snapshot = await _getQueryWithTimeout(
             query: pageQuery,
             context: 'poll_$collection',
-            limit: pollLimit,
+            limit: pageLimit,
           );
 
-          if (snapshot.docs.length < pollLimit) sweepComplete = true;
+          if (snapshot.docs.length < pageLimit) sweepComplete = true;
           if (snapshot.docs.isEmpty) break;
 
           totalDocs += snapshot.docs.length;
           lastDoc = snapshot.docs.last;
           debugPrint(
             "📥 Polled $collection: ${snapshot.docs.length} docs "
-            "(limit=$pollLimit, page=${page + 1})",
+            "(limit=$pageLimit, page=${page + 1}"
+            "${resumeAfterId != null ? ', tiếp từ lượt trước' : ''})",
           );
 
           for (final doc in snapshot.docs) {
@@ -2883,16 +2998,35 @@ class SyncService {
             ),
           );
 
+          if (sweepResumeKey != null) {
+            await _saveSweepResume(sweepResumeKey, lastDoc.id);
+          }
+
           if (sweepComplete) break;
         }
 
         // Đánh dấu ĐÃ quét trọn — chỉ khi thật sự đi hết các trang. Chạm trần
-        // trang mà vẫn đầy thì để nguyên cho lượt sau quét lại.
+        // trang mà vẫn đầy thì để nguyên cho lượt sau quét TIẾP.
+        if (sweeping && sweepComplete && sweepResumeKey != null) {
+          await _saveSweepResume(sweepResumeKey, null);
+        }
         if (_needsLaunchFullSweep(collection, shopId) && sweepComplete) {
           await _markFullSweepDone(collection, shopId);
         }
 
         if (totalDocs == 0) {
+          return;
+        }
+
+        // Quét trọn CHƯA xong thì KHÔNG lập con trỏ: có con trỏ là lượt sau
+        // chuyển sang poll `updatedAt >` và không bao giờ quay lại quét phần
+        // còn dở ⇒ mất doc vĩnh viễn. Để lượt sau nối tiếp từ `sweepAfter_`.
+        if (sweeping && !sweepComplete) {
+          debugPrint(
+            '⏭️ $collection: quét trọn chưa xong ($totalDocs doc lượt này) — '
+            'lượt sau đi tiếp, chưa lập con trỏ',
+          );
+          onBatchDone();
           return;
         }
 
