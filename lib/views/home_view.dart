@@ -115,6 +115,7 @@ import '../services/dashboard_config_service.dart';
 import '../services/community_service.dart';
 import '../widgets/dashboard_cards.dart';
 import '../widgets/responsive_wrapper.dart';
+import '../widgets/shortcut_edit_grid.dart';
 import '../expansion/safe_mode/expansion_feature_flags.dart';
 import '../expansion/safe_mode/branch_service.dart';
 import 'expansion/branch/branch_selector_view.dart';
@@ -610,6 +611,7 @@ class _HomeViewState extends State<HomeView>
   List<ShortcutConfig> _shortcutConfigs = [];
   bool _shortcutConfigLoaded = false;
   bool _shortcutEditMode = false; // Inline edit mode on shortcuts grid
+  bool _dashboardEditMode = false; // iPhone-style reorder of dashboard cards
 
   // Phase 2: Multi-Industry - Shop Settings
   ShopSettings? _shopSettings;
@@ -3314,8 +3316,11 @@ class _HomeViewState extends State<HomeView>
   }
 
   Widget _buildHomeTab() {
+    if (_dashboardEditMode) return _buildDashboardEditMode();
     return GestureDetector(
-      onLongPress: _openDashboardSettings,
+      // iPhone-style: hold anywhere on the home tab to rearrange the cards
+      // in place (the full settings screen is still one tap away from there).
+      onLongPress: _enterDashboardEditMode,
       child: RefreshIndicator(
         key: const ValueKey('home_tab'), // Stable key to preserve scroll state
         onRefresh: () => _syncNow(),
@@ -3382,96 +3387,371 @@ class _HomeViewState extends State<HomeView>
     widgets.add(_buildBankNotifBanner());
 
     for (final config in _dashboardConfigs) {
-      if (!config.visible) continue;
-
-      // Role-based AND permission-based filtering for finance cards
-      final canViewFinance =
-          hasFullAccess || _permissions['allowViewRevenue'] == true;
-      if (config.requiresFinanceAccess && !canViewFinance) {
-        continue;
-      }
-
-      switch (config.type) {
-        case DashboardCardType.greeting:
-          // 2 banner tien nong DA DUOC tach ra ngoai vong lap (xem ben tren) —
-          // truoc day gan cung o day nen an "Loi chao" (thu trang tri) la mat
-          // luon canh bao "Can thanh toan" va "Giao dich ngan hang".
-          widgets.add(_buildGreetingCard());
-          break;
-        case DashboardCardType.actionRequired:
-          // Thẻ này chỉ VẼ danh sách reminder đã load ở `_loadReminderCount`.
-          // Việc lọc theo quyền / ngành nghề nằm trong ReminderService, không
-          // lặp lại ở đây nữa (trước kia thẻ tự chạy SQL riêng ⇒ đếm lệch với
-          // trang Nhắc nhở, xem `dashboard_cards.dart`).
-          widgets.add(
-            ActionRequiredCard(
-              key: const ValueKey('action_required'),
-              reminders: _reminders,
-              onTapReminder: (reminder) => ReminderNavigator.open(
-                context,
-                reminder,
-                role: widget.role,
-              ).then((_) => _loadReminderCount()),
-              onSeeAll: _openRemindersView,
-            ),
-          );
-          break;
-        case DashboardCardType.quickActions:
-          widgets.add(_buildUnifiedShortcuts());
-          break;
-        case DashboardCardType.financeSummary:
-          // Merged into financeDetail below
-          break;
-        case DashboardCardType.financeDetail:
-          widgets.add(_buildDashboardOverview());
-          widgets.add(const SizedBox(height: 10));
-          break;
-        case DashboardCardType.activityFeed:
-          widgets.add(
-            ActivityFeedCard(
-              key: const ValueKey('activity_feed'),
-              enableRepair: _enableRepair,
-              onViewAll: () => _pushRoute(
-                context,
-                MaterialPageRoute(builder: (_) => const RecentActivityView()),
-              ),
-            ),
-          );
-          break;
-        case DashboardCardType.chat:
-          widgets.add(_buildChatCard());
-          break;
-        case DashboardCardType.alerts:
-          break;
-        case DashboardCardType.userGuide:
-          widgets.add(_buildUserGuideShortcut());
-          break;
-        case DashboardCardType.financeShortcuts:
-          widgets.add(_buildFinanceShortcuts());
-          break;
-        case DashboardCardType.todayActivity:
-          // Truoc day case nay RONG: bat cong tac trong man Tuy chinh khong he
-          // hien gi, the chi loe len o nhanh du phong luc config chua tai xong
-          // roi bien mat — nhin nhu app loi.
-          widgets.add(_buildTodayActivityDashboardCard());
-          break;
-        case DashboardCardType.discovery:
-          widgets.add(_buildDiscoveryCard());
-          break;
-        case DashboardCardType.tipOfDay:
-          widgets.add(_buildTipOfDayLine());
-          break;
-        case DashboardCardType.community:
-          widgets.add(_buildHomeCommunityQuickCard());
-          break;
-        case DashboardCardType.dailyReport:
-          // Da bo khoi Trang chu; cau hinh cu con luu thi da bi loc o
-          // DashboardConfigService truoc khi toi day.
-          break;
-      }
+      final w = _buildDashboardCardFor(config);
+      if (w != null) widgets.add(w);
     }
 
     return widgets;
+  }
+
+  bool get _canViewFinanceCards =>
+      hasFullAccess || _permissions['allowViewRevenue'] == true;
+
+  /// Whether [config] can be rendered for this user at all (permission /
+  /// retired). Hidden-but-eligible cards are what the edit mode offers to
+  /// re-add.
+  bool _isDashboardCardEligible(DashboardCardConfig config) {
+    if (config.isRetired) return false;
+    if (config.requiresFinanceAccess && !_canViewFinanceCards) return false;
+    switch (config.type) {
+      case DashboardCardType.financeSummary: // merged into financeDetail
+      case DashboardCardType.alerts: // no widget
+      case DashboardCardType.dailyReport:
+        return false;
+      default:
+        return true;
+    }
+  }
+
+  /// One dashboard card for [config], or null when it must not be shown
+  /// (hidden by the user, no permission, or a type with no widget).
+  Widget? _buildDashboardCardFor(DashboardCardConfig config) {
+    if (!config.visible) return null;
+    if (!_isDashboardCardEligible(config)) return null;
+    switch (config.type) {
+      case DashboardCardType.greeting:
+        // 2 banner tien nong DA DUOC tach ra ngoai vong lap (xem ben tren) —
+        // truoc day gan cung o day nen an "Loi chao" (thu trang tri) la mat
+        // luon canh bao "Can thanh toan" va "Giao dich ngan hang".
+        return _buildGreetingCard();
+      case DashboardCardType.actionRequired:
+        // Thẻ này chỉ VẼ danh sách reminder đã load ở `_loadReminderCount`.
+        // Việc lọc theo quyền / ngành nghề nằm trong ReminderService, không
+        // lặp lại ở đây nữa (trước kia thẻ tự chạy SQL riêng ⇒ đếm lệch với
+        // trang Nhắc nhở, xem `dashboard_cards.dart`).
+        return ActionRequiredCard(
+          key: const ValueKey('action_required'),
+          reminders: _reminders,
+          onTapReminder: (reminder) => ReminderNavigator.open(
+            context,
+            reminder,
+            role: widget.role,
+          ).then((_) => _loadReminderCount()),
+          onSeeAll: _openRemindersView,
+        );
+      case DashboardCardType.quickActions:
+        return _buildUnifiedShortcuts();
+      case DashboardCardType.financeSummary:
+        // Merged into financeDetail below
+        return null;
+      case DashboardCardType.financeDetail:
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [_buildDashboardOverview(), const SizedBox(height: 10)],
+        );
+      case DashboardCardType.activityFeed:
+        return ActivityFeedCard(
+          key: const ValueKey('activity_feed'),
+          enableRepair: _enableRepair,
+          onViewAll: () => _pushRoute(
+            context,
+            MaterialPageRoute(builder: (_) => const RecentActivityView()),
+          ),
+        );
+      case DashboardCardType.chat:
+        return _buildChatCard();
+      case DashboardCardType.alerts:
+        return null;
+      case DashboardCardType.userGuide:
+        return _buildUserGuideShortcut();
+      case DashboardCardType.financeShortcuts:
+        return _buildFinanceShortcuts();
+      case DashboardCardType.todayActivity:
+        // Truoc day case nay RONG: bat cong tac trong man Tuy chinh khong he
+        // hien gi, the chi loe len o nhanh du phong luc config chua tai xong
+        // roi bien mat — nhin nhu app loi.
+        return _buildTodayActivityDashboardCard();
+      case DashboardCardType.discovery:
+        return _buildDiscoveryCard();
+      case DashboardCardType.tipOfDay:
+        return _buildTipOfDayLine();
+      case DashboardCardType.community:
+        return _buildHomeCommunityQuickCard();
+      case DashboardCardType.dailyReport:
+        // Da bo khoi Trang chu; cau hinh cu con luu thi da bi loc o
+        // DashboardConfigService truoc khi toi day.
+        return null;
+    }
+  }
+
+
+  void _enterDashboardEditMode() {
+    if (!_dashboardConfigLoaded || _dashboardConfigs.isEmpty) {
+      _openDashboardSettings();
+      return;
+    }
+    HapticFeedback.mediumImpact();
+    setState(() {
+      _shortcutEditMode = false;
+      _dashboardEditMode = true;
+    });
+  }
+
+  void _exitDashboardEditMode() {
+    DashboardConfigService.saveConfig(_dashboardConfigs);
+    HapticFeedback.lightImpact();
+    setState(() => _dashboardEditMode = false);
+  }
+
+  /// iPhone-style in-place editing of the dashboard cards: hold a card and
+  /// drag to reorder, "−" hides it, hidden cards can be added back from the
+  /// footer. Cards are drawn as-is (non-interactive) so the user sees what
+  /// they are moving; `_dashboardConfigs` is mutated in place and persisted
+  /// on "Xong".
+  Widget _buildDashboardEditMode() {
+    final visible = _dashboardConfigs
+        .where((c) => c.visible && _isDashboardCardEligible(c))
+        .toList();
+    final hidden = _dashboardConfigs
+        .where((c) => !c.visible && _isDashboardCardEligible(c))
+        .toList();
+    final blue = Colors.blue.shade700;
+
+    void hide(DashboardCardConfig c) {
+      HapticFeedback.lightImpact();
+      setState(() => c.visible = false);
+    }
+
+    void show(DashboardCardConfig c) {
+      HapticFeedback.lightImpact();
+      setState(() {
+        // Append after the last visible card so it lands at the bottom.
+        _dashboardConfigs.remove(c);
+        final last = _dashboardConfigs.lastIndexWhere((x) => x.visible);
+        _dashboardConfigs.insert(last + 1, c..visible = true);
+      });
+    }
+
+    final header = Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.dashboard_customize, size: 16, color: blue),
+              const SizedBox(width: 6),
+              Text(
+                'SẮP XẾP TRANG CHỦ',
+                style: AppTextStyles.body1.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: blue,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const Spacer(),
+              InkWell(
+                onTap: _exitDashboardEditMode,
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade600,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Text(
+                    'Xong',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Giữ rồi kéo thẻ để sắp xếp • Bấm dấu − để ẩn',
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+          ),
+        ],
+      ),
+    );
+
+    final footer = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (hidden.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 6),
+            child: Text(
+              'THẺ ĐÃ ẨN (${hidden.length}) — bấm để thêm lại',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade500,
+                letterSpacing: 0.4,
+              ),
+            ),
+          ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final c in hidden)
+                ActionChip(
+                  avatar: const Icon(Icons.add, size: 16, color: Colors.green),
+                  label: Text(c.displayName),
+                  onPressed: () => show(c),
+                ),
+            ],
+          ),
+        ],
+        const SizedBox(height: 12),
+        Center(
+          child: TextButton.icon(
+            onPressed: () {
+              _exitDashboardEditMode();
+              _openDashboardSettings();
+            },
+            icon: const Icon(Icons.tune, size: 16),
+            label: const Text('Cài đặt nâng cao'),
+          ),
+        ),
+        const SizedBox(height: 50),
+      ],
+    );
+
+    return ResponsiveCenter(
+      child: ReorderableListView.builder(
+        key: const ValueKey('home_tab_edit'),
+        padding: EdgeInsets.symmetric(
+          horizontal: context.responsive.horizontalPadding,
+          vertical: 10,
+        ),
+        header: header,
+        footer: footer,
+        itemCount: visible.length,
+        onReorder: (oldIndex, newIndex) {
+          if (newIndex > oldIndex) newIndex--;
+          if (oldIndex == newIndex) return;
+          final moved = visible[oldIndex];
+          final target = visible[newIndex];
+          // Reorder on the FULL list so hidden cards keep their slots:
+          // moving down lands after the target, moving up lands before it.
+          setState(() {
+            _dashboardConfigs.remove(moved);
+            final at = _dashboardConfigs.indexOf(target);
+            _dashboardConfigs.insert(newIndex > oldIndex ? at + 1 : at, moved);
+          });
+          HapticFeedback.selectionClick();
+        },
+        proxyDecorator: (child, index, animation) => Material(
+          color: Colors.transparent,
+          elevation: 6,
+          borderRadius: BorderRadius.circular(14),
+          child: child,
+        ),
+        itemBuilder: (context, index) {
+          final c = visible[index];
+          final card = _buildDashboardCardFor(c) ?? const SizedBox.shrink();
+          return Padding(
+            key: ValueKey('dash_edit_${c.type.name}'),
+            padding: const EdgeInsets.only(top: 8, bottom: 4),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // Card is display-only here: taps must not navigate away.
+                // AbsorbPointer (not IgnorePointer) so the box still hit-tests
+                // and the list's long-press-to-drag listener above receives
+                // the touch.
+                AbsorbPointer(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    padding: const EdgeInsets.fromLTRB(6, 18, 6, 4),
+                    child: card,
+                  ),
+                ),
+                // Name tag + drag handle (immediate drag on desktop/web).
+                Positioned(
+                  left: 10,
+                  top: -8,
+                  child: ReorderableDragStartListener(
+                    index: index,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade600,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.drag_indicator,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            c.displayName,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                // iOS-style red "−" badge
+                Positioned(
+                  right: -4,
+                  top: -4,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => hide(c),
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade600,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.15),
+                            blurRadius: 3,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.remove,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
   /// Navigate to dashboard customization settings
@@ -4681,114 +4961,21 @@ class _HomeViewState extends State<HomeView>
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: Text(
-              'Nhấn để ẩn/hiện • Sắp xếp thứ tự trong Cài đặt',
+              'Giữ rồi kéo để sắp xếp • Bấm dấu − để ẩn',
               style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
             ),
           ),
 
-          // Unified grid: all shortcuts, visible ones colored, hidden ones greyed
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final cols = context.responsive.shortcutColumns;
-              final itemWidth = (constraints.maxWidth - (cols - 1) * 8) / cols;
-              return Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _shortcutConfigs.map((config) {
-                  final isVisible = config.visible;
-                  final color = isVisible ? config.color : Colors.grey.shade400;
-                  final bgOpacity = isVisible ? 0.08 : 0.04;
-                  final borderColor = isVisible
-                      ? config.color.withOpacity(0.3)
-                      : Colors.grey.shade200;
-
-                  return SizedBox(
-                    width: itemWidth,
-                    child: GestureDetector(
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        setState(() => config.visible = !config.visible);
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        curve: Curves.easeInOut,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(
-                          color: color.withOpacity(bgOpacity),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: borderColor),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Icon with check/uncheck badge
-                            Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: color.withOpacity(
-                                      isVisible ? 0.15 : 0.08,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Icon(
-                                    config.icon,
-                                    color: color.withOpacity(
-                                      isVisible ? 1.0 : 0.5,
-                                    ),
-                                    size: 20,
-                                  ),
-                                ),
-                                // Small badge: check (visible) or empty circle (hidden)
-                                Positioned(
-                                  right: -4,
-                                  top: -4,
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    width: 16,
-                                    height: 16,
-                                    decoration: BoxDecoration(
-                                      color: isVisible
-                                          ? Colors.green
-                                          : Colors.grey.shade300,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    child: Icon(
-                                      isVisible ? Icons.check : Icons.remove,
-                                      color: Colors.white,
-                                      size: 10,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              config.displayName,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: color.withOpacity(isVisible ? 0.9 : 0.5),
-                              ),
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              );
-            },
+          // iPhone-style jiggle grid: drag to reorder, − to hide, + to restore.
+          // Mutates `_shortcutConfigs` in place; "Xong" persists it.
+          ShortcutEditGrid(
+            configs: _shortcutConfigs,
+            columns: context.responsive.shortcutColumns,
+            canShow: (c) =>
+                !(c.requiresRepair && !_enableRepair) &&
+                !(c.requiresWarranty && !_enableWarranty) &&
+                _hasShortcutPermission(c),
+            onChanged: () => setState(() {}),
           ),
 
           // Link to advanced settings (reorder, etc.)
@@ -4813,7 +5000,7 @@ class _HomeViewState extends State<HomeView>
                     Icon(Icons.tune, size: 14, color: Colors.blue.shade400),
                     const SizedBox(width: 4),
                     Text(
-                      'Sắp xếp thứ tự & cài đặt nâng cao',
+                      'Cài đặt nâng cao (thẻ Dashboard)',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.blue.shade400,

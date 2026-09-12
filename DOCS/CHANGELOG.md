@@ -4,6 +4,49 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-12i] - Sắp xếp Trang chủ kiểu iPhone: nhấn giữ → kéo thả, dấu − để ẩn
+
+Trước: nhấn giữ lối tắt chỉ bật/tắt được, muốn đổi thứ tự phải vào màn
+Cài đặt (danh sách dọc); nhấn giữ Trang chủ thì mở thẳng màn Cài đặt.
+
+### Lối tắt (Thao tác nhanh)
+- `ShortcutEditGrid` (widget mới): các ô rung nhẹ như iOS; giữ ~150ms rồi
+  kéo → lưới **tự dồn chỗ ngay khi rê qua ô khác** (không cần thả đúng chỗ);
+  dấu **−** đỏ góc trái ẩn ô; mục "ĐÃ ẨN" bên dưới, bấm **+** để thêm lại
+  (nối vào cuối lưới).
+- Đổi chỗ thao tác trên DANH SÁCH ĐẦY ĐỦ (`_shortcutConfigs`), nên ô ẩn / ô
+  không có quyền vẫn giữ nguyên vị trí tương đối. Lưới sửa nay lọc theo quyền
+  và cờ sửa chữa/bảo hành như lưới thật (trước hiện cả ô không dùng được).
+- "Xong" lưu như cũ (`ShortcutConfigService.saveConfig`).
+
+### Thẻ Dashboard
+- Nhấn giữ Trang chủ → **chế độ sắp xếp tại chỗ** thay vì mở màn Cài đặt:
+  từng thẻ được vẽ nguyên bản (không bấm được — `AbsorbPointer`), có nhãn
+  tên + tay kéo và dấu **−** đỏ; giữ thẻ rồi kéo để đổi thứ tự
+  (`ReorderableListView`, header/footer); thẻ đã ẩn hiện thành chip **+** ở
+  cuối. "Xong" → `DashboardConfigService.saveConfig`. Link "Cài đặt nâng cao"
+  vẫn mở màn cũ.
+- `_buildModularDashboard` tách thành `_buildDashboardCardFor(config)` +
+  `_isDashboardCardEligible(config)` dùng chung cho cả 2 chế độ ⇒ không còn 2
+  bản sao logic thẻ nào được vẽ. Chưa tải xong config thì nhấn giữ vẫn mở
+  màn Cài đặt như trước.
+
+### Kiểm
+- `test/shortcut_edit_grid_test.dart` (3 test): lọc theo quyền + mục ẩn; giữ
+  → kéo đổi chỗ trên danh sách đầy đủ + đánh lại `order`; − ẩn / bấm ô ẩn
+  thêm lại vào cuối phần hiện. Lưu ý test: wiggle chạy vô hạn ⇒ dùng `pump`
+  chứ không `pumpAndSettle`.
+- `flutter analyze` không lỗi/cảnh báo mới; bộ test 654 pass (2 lỗi
+  `kiotviet_settings_view_test` có sẵn từ trước).
+
+### Files
+- `lib/widgets/shortcut_edit_grid.dart` (mới)
+- `lib/views/home_view.dart`
+- `test/shortcut_edit_grid_test.dart` (mới)
+- `lib/data/app_knowledge_base.dart`, `docs/CHANGELOG.md`, `docs/HANDOVER.md`
+
+---
+
 ## [2026-09-12h] - "Mở app ngân hàng" mở ra trang lỗi `Missing parameter app`
 
 Chủ shop (iPhone, màn Tạo đơn bán → Chuyển khoản): bấm "Mở app ngân hàng" thì

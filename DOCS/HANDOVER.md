@@ -9,6 +9,14 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.6.0+557 (AAB đã build 12/09 15:26 + web đã deploy https://quanlyshop.web.app — xem `DOCS/release_notes_2026-09-12.md`; 3.5.0+556 đang live trên store). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-12  
 
+**✅ SẮP XẾP TRANG CHỦ KIỂU iPHONE (`[2026-09-12i]`).** Nhấn giữ lối tắt →
+lưới rung, giữ rồi kéo để đổi chỗ (tự dồn khi rê qua), dấu − ẩn, mục "ĐÃ ẨN"
+bấm + thêm lại (`ShortcutEditGrid`). Nhấn giữ Trang chủ → sắp xếp thẻ tại
+chỗ (`_buildDashboardEditMode`, ReorderableListView) thay vì mở màn Cài đặt;
+màn Cài đặt vẫn còn qua "Cài đặt nâng cao". Logic vẽ thẻ gom về
+`_buildDashboardCardFor`. Test widget 3/3; CHƯA nghiệm thu cảm giác kéo thả
+trên máy thật.
+
 **🔴 ĐO SHOP THẬT: 22K READ MỖI LẦN MỞ APP → 125 (`[2026-09-12f]`).** Gốc lớn
 nhất toàn app là `SyncHealthCheck.runFullCheck()` đọc trọn ~30 bảng cloud mỗi
 lần mở app (không hiện trong `firebase_read_stats`!) — nay 1 lần/24h lưu prefs.

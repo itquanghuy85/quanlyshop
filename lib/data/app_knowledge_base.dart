@@ -1548,21 +1548,26 @@ class AppKnowledgeBase {
     ),
     KbEntry(
       id: 'home-customize',
-      title: 'Sắp xếp lại Trang chủ (bật/tắt & đổi thứ tự thẻ)',
+      title: 'Sắp xếp lại Trang chủ (kéo thả thẻ & lối tắt như iPhone)',
       menuPath:
-          'Cài đặt → Tuỳ chỉnh dashboard  (hoặc NHẤN GIỮ vào vùng trống của '
-          'Trang chủ)',
+          'Trang chủ → NHẤN GIỮ vào vùng trống (sắp thẻ) hoặc NHẤN GIỮ một lối '
+          'tắt (sắp lối tắt)  •  Cài đặt → Tuỳ chỉnh dashboard (nâng cao)',
       whatItDoes:
-          'Chọn thẻ nào hiện trên Trang chủ và sắp thứ tự trên dưới. Mỗi người '
-          'dùng có bố cục riêng, đồng bộ theo tài khoản nên đổi máy vẫn giữ.',
+          'Chọn thẻ / lối tắt nào hiện trên Trang chủ và sắp thứ tự, thao tác '
+          'ngay tại chỗ giống sắp icon trên iPhone. Mỗi người dùng có bố cục '
+          'riêng, đồng bộ theo tài khoản nên đổi máy vẫn giữ.',
       whenToUse:
           'Khi Trang chủ có thứ bạn không dùng tới, hoặc muốn kéo thứ hay dùng '
           'lên trên cùng.',
       steps: [
-        'Vào Cài đặt → "Tuỳ chỉnh dashboard".',
-        'Gạt công tắc để bật/tắt từng thẻ.',
-        'Kéo để đổi thứ tự.',
-        'Lưu — Trang chủ đổi ngay.',
+        'LỐI TẮT: nhấn giữ một ô trong "Thao tác nhanh" → các ô rung → giữ rồi '
+            'kéo ô sang chỗ khác để đổi thứ tự; bấm dấu − đỏ để ẩn; ô đã ẩn '
+            'nằm ở mục "Đã ẩn" bên dưới, bấm + để thêm lại. Bấm "Xong".',
+        'THẺ: nhấn giữ vùng trống của Trang chủ → mỗi thẻ có nhãn tên + dấu − '
+            'đỏ; giữ thẻ rồi kéo lên/xuống; bấm − để ẩn; thẻ đã ẩn hiện ở cuối, '
+            'bấm + để thêm lại. Bấm "Xong".',
+        'Nâng cao: Cài đặt → "Tuỳ chỉnh dashboard" (danh sách công tắc + khôi '
+            'phục mặc định).',
       ],
       notes: [
         'Thứ tự mặc định đi theo: việc gấp (Cần xử lý) → việc hay làm (Thao '
