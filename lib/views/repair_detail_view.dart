@@ -315,6 +315,11 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       _hasReceivedServerDocSnapshot = true;
     }
 
+    // Echo ghi của chính máy này (chưa được máy chủ xác nhận): dữ liệu đó đã
+    // nằm trong SQLite, `updatedAt` serverTimestamp còn null → đem so với local
+    // chỉ ra kết quả sai. SyncService cũng bỏ qua y hệt.
+    if (snapshot.metadata.hasPendingWrites) return;
+
     try {
       final rawData = Map<String, dynamic>.from(snapshot.data() ?? {});
       final data = EncryptionService.decryptMap(rawData);
@@ -327,10 +332,19 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       final isPartialSnapshot = _isPartialRepairSnapshot(data);
       final latest = Repair.fromMap(data);
       var safeLatest = await _mergeSnapshotWithLocalIfPartial(data, latest);
+      final beforeProtect = safeLatest;
       safeLatest = await _protectLocalUnsyncedRepairFromStaleCloud(
         data,
         safeLatest,
       );
+      // Giữ bản local chưa sync ⇒ KHÔNG ghi lại SQLite: bản đó vốn đọc từ
+      // SQLite (isSynced=false), ghi lại sau khi hàng đợi vừa đẩy xong sẽ lật
+      // cờ về chưa-sync → SyncService thấy local chưa sync lại enqueue → ghi
+      // cloud lần nữa → echo → lật cờ… Đo 2 máy 2026-09-12: 1 lần bấm XONG =
+      // 4 lượt ghi cloud, máy kia nhận 5 snapshot. Các field cloud gộp thêm
+      // (repairedBy, lastCaredAt…) sẽ về đủ ở snapshot kế tiếp sau khi local
+      // đẩy xong và được chấp nhận.
+      final keptLocalUnsynced = !identical(safeLatest, beforeProtect);
 
       // Khi đang xử lý thao tác cập nhật và snapshot cloud chỉ là patch trạng thái,
       // bỏ qua để tránh ghi đè đơn local thành giá 0/thiếu dữ liệu.
@@ -354,7 +368,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         safeLatest.isSynced = false;
       }
 
-      await db.upsertRepair(safeLatest);
+      if (!keptLocalUnsynced) {
+        await db.upsertRepair(safeLatest);
+      }
 
       if (recoveredLocalData && safeLatest.id != null) {
         try {

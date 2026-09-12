@@ -56,6 +56,15 @@ class NotificationService {
   // Handle background messages
   static Future<void> handleBackgroundMessage(RemoteMessage message) async {
     debugPrint('Handling background message: ${message.messageId}');
+    // Cloud Function gửi FCM CÓ khối `notification` ⇒ khi app ở nền/tắt, HỆ
+    // THỐNG tự hiện thông báo đó rồi (tag FCM-Notification). Tự hiện thêm
+    // local notification nữa là mỗi tin xuất hiện 2 lần trong khay (đo máy
+    // thật CPH2239 2026-09-12: 2 NotificationRecord cùng tiêu đề). Chỉ tự
+    // hiện khi tin là data-only.
+    if (message.notification != null) {
+      debugPrint('Background message has notification payload — system shows it');
+      return;
+    }
     final data = Map<String, dynamic>.from(message.data);
     final canDisplay = await _isNotificationForCurrentContext(data);
     if (!canDisplay) {

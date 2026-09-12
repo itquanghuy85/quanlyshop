@@ -1558,6 +1558,12 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       if (saleDocId != null && saleDocId.isNotEmpty) {
         sale.firestoreId = saleDocId;
       }
+      // Cloud đã có doc từ transaction ⇒ local phải là ĐÃ sync (giống products
+      // ngay trên). Để mặc định isSynced=false thì echo của transaction về gặp
+      // "local chưa sync" → enqueue update → ghi cloud lần 2, máy khác nhận
+      // 2 snapshot (đo 2 máy thật 2026-09-12). Bản localOnly vẫn giữ false
+      // để hàng đợi đẩy sau.
+      sale.isSynced = !isLocalOnly;
       await db.upsertSale(sale);
       // Set shopId để getAllSales() scoped query tìm thấy đơn này ngay lập tức
       final savedShopId = UserService.getShopIdSync();

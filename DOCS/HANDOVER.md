@@ -9,6 +9,19 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-12  
 
+**✅ TEST ĐỒNG BỘ TOÀN BỘ 2 MÁY + ĐỐI CHIẾU 30 BẢNG (`[2026-09-12d]`).** Mọi
+luồng (đơn sửa tạo→XONG→Y/C duyệt→duyệt→xoá, bán, nhập kho, thu nợ) đều 1
+ghi/1 snapshot, 30 bảng khớp trừ phần phân quyền. 6 lỗi thật đã sửa — NẶNG
+NHẤT: nhân viên gửi Y/C DUYỆT bị orchestrator nâng thẳng lên ĐÃ GIAO (thiếu
+`!pendingApproval`); vòng lặp echo XONG = 4 ghi; `e.isSynced != 1` (bool) đẩy
+lại toàn bộ expenses mỗi lần thanh toán; 5 đường `syncPaymentRelatedData` +
+lịch sử nhập NCC không có `updatedAt` serverTimestamp. Thông báo trùng ở khay
+= FCM notification payload + local notification trong handler nền (đã bỏ).
+Bảng giá tìm theo từng từ khoá + viết tắt. QUY TẮC rút ra: (1) mọi doc ghi
+lên cloud PHẢI có `updatedAt = serverTimestamp` (con trỏ poll); (2) kéo SQLite
+để đối chiếu PHẢI kéo cả `-wal`; (3) không `db.upsert` lại bản local vừa đọc
+trong handler snapshot — lật cờ isSynced.
+
 **✅ ĐO READ FIRESTORE THẬT + ĐỒNG BỘ 2 MÁY (`[2026-09-12c]`).** Root cause
 "bảng tốn read nhất": `financial_activity_log` không có `updatedAt` (local
 không có cột) → con trỏ không bao giờ lập → quét trọn mỗi lượt poll (shop thật

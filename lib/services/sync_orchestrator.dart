@@ -241,6 +241,10 @@ class SyncOrchestrator {
     return 1;
   }
 
+  @visibleForTesting
+  static void normalizeRepairPayloadForCloudForTest(Map<String, dynamic> data) =>
+      _normalizeRepairPayloadForCloud(data);
+
   static void _normalizeRepairPayloadForCloud(Map<String, dynamic> data) {
     final hasStatus = data['status'] != null;
     var status = _normalizeRepairStatus(data['status']);
@@ -250,7 +254,13 @@ class SyncOrchestrator {
     final lastCaredAt = _asInt(data['lastCaredAt']);
     final pendingApproval = _asBool(data['pendingDeliveryApproval']);
 
-    if (deliveredAt > 0 && status < 4) {
+    // Gửi YÊU CẦU DUYỆT GIAO cũng đặt `deliveredAt` (mốc giao hiển thị) nhưng
+    // status vẫn 3 + pendingDeliveryApproval — KHÔNG được nâng lên 4 ở đây.
+    // Thiếu điều kiện này (sync_service.dart đã có từ lâu): nhân viên bấm
+    // Y/C DUYỆT ⇒ hàng đợi đẩy lên status 4, pending=0 ⇒ máy chủ shop không
+    // thấy yêu cầu, máy nhân viên hiện "ĐÃ GIAO" dù chưa ai duyệt (đo 2 máy
+    // thật 2026-09-12).
+    if (deliveredAt > 0 && status < 4 && !pendingApproval) {
       status = 4;
     }
 
@@ -752,9 +762,6 @@ class SyncOrchestrator {
         break;
     }
 
-    // Mark as completed and remove from queue
-    await db.delete('sync_queue', where: 'id = ?', whereArgs: [item.id]);
-
     // Update local entity with firestoreId if created
     if (newFirestoreId != null && item.operation == SyncOperation.create) {
       await _updateLocalFirestoreId(
@@ -764,8 +771,16 @@ class SyncOrchestrator {
       );
     }
 
-    // Mark local entity as synced
+    // Đánh dấu local đã sync TRƯỚC khi xoá item khỏi hàng đợi. Echo của chính
+    // lượt ghi này về gần như cùng lúc với ack; nếu lúc đó item đã bị xoá mà
+    // local còn isSynced=false thì `_shouldAcceptCloudData` (SKIP cloud →
+    // `_enqueueLocalForSync`) tạo item MỚI ⇒ ghi cloud thêm một lần nữa, máy
+    // khác nhận thêm snapshot (đo 2 máy thật 2026-09-12: 1 lần bấm XONG = 3
+    // lượt ghi). Thứ tự này thì echo gặp isSynced=true và được chấp nhận.
     await _markLocalAsSynced(item.entityType, item.entityId);
+
+    // Mark as completed and remove from queue
+    await db.delete('sync_queue', where: 'id = ?', whereArgs: [item.id]);
 
     await SyncAuditService.logSuccess(
       entityType: item.entityType.name,

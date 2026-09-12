@@ -84,4 +84,24 @@ void main() {
       expect(local['status'], 3);
     });
   });
+  group('normalizeRepairPayloadForCloud', () {
+    test('yêu cầu duyệt giao (status 3 + pending + deliveredAt) KHÔNG bị nâng lên 4', () {
+      final data = <String, dynamic>{
+        'status': 3,
+        'pendingDeliveryApproval': 1,
+        'deliveredAt': 1789177645348,
+        'requestedDeliveryPrice': 300000,
+      };
+      SyncOrchestrator.normalizeRepairPayloadForCloudForTest(data);
+      expect(data['status'], 3);
+      expect(data['pendingDeliveryApproval'], 1);
+    });
+
+    test('deliveredAt có và KHÔNG pending → nâng lên 4 như cũ', () {
+      final data = <String, dynamic>{'status': 3, 'deliveredAt': 1789177645348};
+      SyncOrchestrator.normalizeRepairPayloadForCloudForTest(data);
+      expect(data['status'], 4);
+      expect(data['pendingDeliveryApproval'], 0);
+    });
+  });
 }

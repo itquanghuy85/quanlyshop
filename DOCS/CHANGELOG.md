@@ -4,6 +4,87 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-12d] - Test đồng bộ TOÀN BỘ trên 2 máy Oppo + đối chiếu 30 bảng — 6 lỗi thật; thông báo trùng; tìm kiếm Bảng giá
+
+Cách test: CPH2203 (m@m.com, chủ shop) ↔ CPH2239 (n@n.com, employee) cùng shop M.
+Chạy từng luồng qua ADB: tạo đơn sửa 2 chiều → XONG → Y/C DUYỆT (nhân viên) →
+DUYỆT (chủ) → xoá đơn; bán hàng; nhập kho (hàng chờ → xác nhận); thu nợ.
+Sau mỗi bước đếm lượt ghi cloud (logcat máy ghi), snapshot/thông báo máy kia
+nhận, rồi kéo SQLite **kèm file -wal** (`pull.sh`; thiếu WAL là đọc bản cũ)
+đối chiếu 30 bảng sync bằng `firestoreId` + từng cột.
+
+### Sửa — đồng bộ
+- **Nhân viên gửi Y/C DUYỆT GIAO ⇒ đơn thành "ĐÃ GIAO" không ai duyệt**
+  (`sync_orchestrator._normalizeRepairPayloadForCloud`): yêu cầu duyệt đặt
+  `deliveredAt` (mốc giao hiển thị) + status 3 + pending; hàng đợi thấy
+  `deliveredAt > 0` nâng thẳng lên 4, xoá pending ⇒ máy chủ shop không thấy
+  yêu cầu, máy nhân viên hiện ĐÃ GIAO. `sync_service` đã có điều kiện
+  `!pendingApproval` từ lâu, orchestrator thì không. Thêm điều kiện + test
+  `repair_progress_guard_test`. Kiểm lại: chờ duyệt đúng cả 2 máy, duyệt xong
+  status 4 + giá + PI về đủ.
+- **1 lần bấm XONG = 4 lượt ghi cloud, máy kia nhận 5 snapshot** — vòng lặp
+  echo: (a) `RepairDetailView._applyRepairDocSnapshot` giữ bản local chưa sync
+  rồi **ghi lại SQLite** ⇒ lật `isSynced` về 0 sau khi hàng đợi vừa đẩy xong
+  ⇒ SyncService thấy chưa sync ⇒ enqueue ⇒ ghi ⇒ echo ⇒ lật… Nay giữ local
+  thì không ghi lại DB, và bỏ qua snapshot `hasPendingWrites` như SyncService.
+  (b) `SyncOrchestrator._processSyncItem` xoá item khỏi hàng đợi TRƯỚC khi
+  đánh dấu local đã sync — echo về đúng khe đó tạo item mới. Đổi thứ tự.
+  Đo lại: XONG = 2 ghi (patch + doc đầy đủ, đúng thiết kế), Y/C DUYỆT = 2,
+  DUYỆT = 1, xoá = 1.
+- **Đơn bán ghi cloud 2 lần** (`create_sale_view`): transaction đã tạo doc
+  nhưng `SaleOrder` local để `isSynced=false` ⇒ echo ⇒ enqueue update ⇒ ghi
+  lần 2. Nay `isSynced = !isLocalOnly` như products ngay trên.
+- **Mọi lần thanh toán đẩy lại TOÀN BỘ expenses** (`syncPaymentRelatedData`):
+  `e.isSynced != 1` với `isSynced` là bool ⇒ luôn true (analyzer đã cảnh báo
+  `unrelated_type_equality_checks`) ⇒ "Synced 26 expenses" sau 1 đơn bán
+  200k; shop thật hàng trăm write × máy khác nhận từng ấy snapshot. Sửa
+  `!e.isSynced`.
+- **5 đường ghi của `syncPaymentRelatedData` không đóng dấu `updatedAt`
+  serverTimestamp** (payment_intents, debt_payments, debts, expenses,
+  financial_activity_log — khác hẳn `syncAllToCloud`) ⇒ doc mang updatedAt
+  int/null ⇒ con trỏ poll `updatedAt > Timestamp` của máy khác không thấy
+  (đo: PI của đơn bán thứ 2 không về máy nhân viên). Nay đóng dấu như
+  `syncAllToCloud`.
+- **Lịch sử nhập NCC (`supplier_import_history`) ghi trong transaction nhập
+  kho không có `updatedAt`** ⇒ máy khác chỉ nhận qua lưới quét trọn 24h.
+  Thêm dấu giờ máy chủ.
+- **Xác nhận nhập kho poll lại cả 35 bảng** (~50 read/lần): thêm tham số
+  `only` cho `refreshCloudCollections`, nhập kho chỉ kéo 6 bảng transaction
+  vừa ghi (products, repair_parts, import_orders, import_order_items,
+  supplier_import_history, supplier_payments).
+
+### Sửa — thông báo trùng (`notification_service.handleBackgroundMessage`)
+Cloud Function gửi FCM có khối `notification` ⇒ app ở nền thì hệ thống tự
+hiện (tag `FCM-Notification`), handler nền lại `_showLocalNotification` thêm
+lần nữa ⇒ **2 thông báo cùng nội dung trong khay** (đo CPH2239: 2
+NotificationRecord "✔️ SỬA XONG"). Nay handler nền bỏ qua khi tin đã có
+`notification`, chỉ tự hiện với tin data-only. Kiểm lại: 1 thông báo.
+
+### Bảng giá — tìm kiếm dễ hơn (`price_book_view`)
+Trước: so cả chuỗi liền ⇒ gõ khác thứ tự / thiếu chữ giữa là không ra. Nay
+tách từng từ khoá (bỏ dấu), khớp mọi từ **không cần thứ tự**, tìm thêm theo
+hãng, mở rộng viết tắt (ip→iphone, ss/sam→samsung, xm→xiaomi, mh→màn hình,
+ek→ép kính, tp→thay pin), dòng khớp đầu tên / nhiều từ xếp trước, có nút xoá.
+Kiểm máy thật: "mh 12 ip" → IPHONE 12 · MAN HINH. Test `price_book_search_test`.
+
+### Đối chiếu 30 bảng sau toàn bộ luồng
+Khớp 100% trừ: expenses / cash_closings / repair_partner_payments /
+audit_logs (employee không có quyền — đúng rules), customers/audit_logs/
+debts… chỉ về khi máy kia resume/mở app (đúng thiết kế poll; đã kiểm resume
+là về ngay), `suppliers` mỗi máy tự tạo 1 "KHO TỔNG" riêng từ tháng 6 rồi
+`deduplicateSuppliers` giấu bản kia (tồn tại từ trước, không đụng),
+`repair_parts.createdAt` 1 dòng bị điền `now()` vì doc cloud cũ thiếu
+createdAt (cosmetic, không đụng).
+
+### Files
+`lib/services/sync_orchestrator.dart`, `lib/services/sync_service.dart`,
+`lib/services/stock_entry_service.dart`, `lib/services/notification_service.dart`,
+`lib/views/repair_detail_view.dart`, `lib/views/create_sale_view.dart`,
+`lib/views/price_book_view.dart`, `test/repair_progress_guard_test.dart`,
+`test/price_book_search_test.dart`, `docs/CHANGELOG.md`, `docs/HANDOVER.md`
+
+---
+
 ## [2026-09-12c] - Đo read Firestore thật trên máy + test đồng bộ 2 máy Oppo — 2 lỗi tốn read/ghi thừa, 3 lỗi sai số của monitor
 
 Cách đo: kéo bảng `firebase_read_stats` (SQLite) + `FlutterSharedPreferences.xml`

@@ -529,9 +529,14 @@ class SyncService {
 
   /// Trigger one-shot cloud fetch for active collections.
   /// Used by open screen, pull-to-refresh, and resume events.
+  /// [only]: chỉ poll lại các bảng này thay vì toàn bộ ~35 bảng. Một lượt
+  /// poll trọn bộ tốn ~50 read (mỗi query ≥1 read dù rỗng + 4 bảng không
+  /// con trỏ ~17 doc) — thao tác chỉ đụng vài bảng (xác nhận nhập kho) thì
+  /// không cần kéo cả app.
   static Future<void> refreshCloudCollections({
     String reason = 'manual',
     bool force = false,
+    Set<String>? only,
   }) async {
     if (_collectionRefreshers.isEmpty) {
       debugPrint('⏭️ refreshCloudCollections: no active collections');
@@ -554,17 +559,21 @@ class SyncService {
 
     _isRefreshingCollections = true;
     try {
+      final targets = only == null
+          ? _collectionRefreshers.entries
+          : _collectionRefreshers.entries.where((e) => only.contains(e.key));
       debugPrint(
-        '🔄 refreshCloudCollections: reason=$reason total=${_collectionRefreshers.length}',
+        '🔄 refreshCloudCollections: reason=$reason total=${targets.length}',
       );
-      for (final entry in _collectionRefreshers.entries) {
+      for (final entry in targets) {
         try {
           await entry.value();
         } catch (e) {
           debugPrint('❌ refreshCloudCollections error in ${entry.key}: $e');
         }
       }
-      _lastRefreshCollectionsAt = DateTime.now();
+      // Lượt poll một phần không được tính là "vừa làm mới toàn bộ".
+      if (only == null) _lastRefreshCollectionsAt = DateTime.now();
       EventBus().emit(EventBus.dataRefresh);
     } finally {
       _isRefreshingCollections = false;
@@ -3276,6 +3285,9 @@ class SyncService {
             final docId =
                 firestoreId ??
                 "pi_${data['intentId'] ?? data['createdAt']}_${data['type'] ?? 'unknown'}";
+            // Dấu giờ máy chủ — mọi đường ghi lên cloud đều phải có (như
+            // syncAllToCloud); thiếu thì con trỏ poll máy khác không thấy doc.
+            data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
             batch.set(
               _db.collection('payment_intents').doc(docId),
               data,
@@ -3312,6 +3324,9 @@ class SyncService {
             final docId =
                 firestoreId ??
                 "dp_${data['debtId']}_${data['paidAt'] ?? data['createdAt']}";
+            // Dấu giờ máy chủ — mọi đường ghi lên cloud đều phải có (như
+            // syncAllToCloud); thiếu thì con trỏ poll máy khác không thấy doc.
+            data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
             batch.set(
               _db.collection('debt_payments').doc(docId),
               data,
@@ -3347,6 +3362,9 @@ class SyncService {
             data['deleted'] = data['deleted'] == 1 || data['deleted'] == true;
             data.remove('id');
 
+            // Dấu giờ máy chủ — mọi đường ghi lên cloud đều phải có (như
+            // syncAllToCloud); thiếu thì con trỏ poll máy khác không thấy doc.
+            data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
             batch.set(
               _db.collection('debts').doc(firestoreId),
               data,
@@ -3366,9 +3384,11 @@ class SyncService {
       // 4. Sync expenses (in case payment created an expense)
       try {
         final expenses = await dbHelper.getAllExpensesForSync();
-        final unsyncedExpenses = expenses
-            .where((e) => e.isSynced != 1)
-            .toList();
+        // `isSynced` là bool — so với số 1 (`!= 1`) luôn đúng nên TOÀN BỘ
+        // expenses bị đẩy lại sau MỖI lần thanh toán (đo máy thật 2026-09-12:
+        // "Synced 26 expenses" ngay sau 1 đơn bán 200k; shop thật hàng trăm
+        // doc × mỗi máy nhận lại từng ấy snapshot).
+        final unsyncedExpenses = expenses.where((e) => !e.isSynced).toList();
         if (unsyncedExpenses.isNotEmpty) {
           final WriteBatch batch = _db.batch();
           int count = 0;
@@ -3380,6 +3400,9 @@ class SyncService {
 
             final docId =
                 expense.firestoreId ?? "exp_${expense.date}_${expense.amount}";
+            // Dấu giờ máy chủ — mọi đường ghi lên cloud đều phải có (như
+            // syncAllToCloud); thiếu thì con trỏ poll máy khác không thấy doc.
+            data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
             batch.set(
               _db.collection('expenses').doc(docId),
               data,
@@ -3424,7 +3447,9 @@ class SyncService {
             // được lập (maxCursorMs = 0) và MỖI lượt poll lại quét trọn bảng
             // (đo máy thật 2026-09-12: 138 doc/lần mở app; shop thật ~2.1K).
             // Đóng dấu giờ máy chủ để doc mới đi được đường con trỏ.
-            data['updatedAt'] = FieldValue.serverTimestamp();
+                        // Dấu giờ máy chủ — mọi đường ghi lên cloud đều phải có (như
+            // syncAllToCloud); thiếu thì con trỏ poll máy khác không thấy doc.
+            data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
             batch.set(
               _db.collection('financial_activity_log').doc(docId),
               data,
@@ -3465,6 +3490,9 @@ class SyncService {
 
             final docId =
                 firestoreId ?? "sp_${data['supplierId']}_${data['paidAt']}";
+            // Dấu giờ máy chủ — mọi đường ghi lên cloud đều phải có (như
+            // syncAllToCloud); thiếu thì con trỏ poll máy khác không thấy doc.
+            data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
             batch.set(
               _db.collection('supplier_payments').doc(docId),
               data,
@@ -3510,6 +3538,9 @@ class SyncService {
 
             final docId =
                 firestoreId ?? "rpp_${data['partnerId']}_${data['paidAt']}";
+            // Dấu giờ máy chủ — mọi đường ghi lên cloud đều phải có (như
+            // syncAllToCloud); thiếu thì con trỏ poll máy khác không thấy doc.
+            data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
             batch.set(
               _db.collection('repair_partner_payments').doc(docId),
               data,

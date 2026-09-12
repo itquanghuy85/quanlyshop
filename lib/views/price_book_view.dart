@@ -266,13 +266,52 @@ class _PriceBookViewState extends State<PriceBookView>
     });
   }
 
-  List<PriceBookRow> _filtered(List<PriceBookRow> src) {
-    final nq = VietnameseUtils.normalize(_q.trim());
-    if (nq.isEmpty) return src;
-    return src
-        .where((r) => VietnameseUtils.normalize('${r.title} ${r.note}')
-            .contains(nq))
+  /// Viết tắt hay gõ ở tiệm → từ đầy đủ (so sau khi bỏ dấu, chữ thường).
+  static const Map<String, String> _searchAliases = {
+    'ip': 'iphone',
+    'ss': 'samsung',
+    'sam': 'samsung',
+    'xm': 'xiaomi',
+    'mh': 'man hinh',
+    'ek': 'ep kinh',
+    'tp': 'thay pin',
+  };
+
+  /// Tách câu tìm thành các từ khoá đã chuẩn hoá (bỏ dấu, chữ thường, mở
+  /// rộng viết tắt). "ip 12 ek" → ["iphone", "12", "ep kinh"].
+  static List<String> _searchTokens(String q) {
+    return VietnameseUtils.normalize(q)
+        .split(RegExp(r'\s+'))
+        .where((t) => t.isNotEmpty)
+        .map((t) => _searchAliases[t] ?? t)
         .toList();
+  }
+
+  /// Tìm theo TỪNG từ khoá, không cần đúng thứ tự / liền nhau: "ép kính ip 12"
+  /// vẫn ra "iPhone 12 · Ép kính". Trước đây so cả chuỗi liền ⇒ gõ khác thứ
+  /// tự hoặc thiếu một chữ ở giữa là không thấy gì. Dòng khớp ngay đầu tên
+  /// (gõ "iphone 12" thấy iPhone 12 trước iPhone 12 Pro Max) và khớp nhiều
+  /// từ hơn được xếp lên trên.
+  List<PriceBookRow> _filtered(List<PriceBookRow> src) {
+    final tokens = _searchTokens(_q.trim());
+    if (tokens.isEmpty) return src;
+    final joined = tokens.join(' ');
+    final scored = <MapEntry<PriceBookRow, int>>[];
+    for (final r in src) {
+      final title = VietnameseUtils.normalize(r.title);
+      final hay = '$title ${VietnameseUtils.normalize(r.note)} '
+          '${VietnameseUtils.normalize(r.brand)}';
+      if (!tokens.every(hay.contains)) continue;
+      var score = 0;
+      if (title.startsWith(joined)) score += 3;
+      if (title.contains(joined)) score += 2;
+      for (final t in tokens) {
+        if (title.contains(t)) score += 1;
+      }
+      scored.add(MapEntry(r, score));
+    }
+    scored.sort((a, b) => b.value.compareTo(a.value));
+    return scored.map((e) => e.key).toList();
   }
 
   @override
@@ -362,7 +401,17 @@ class _PriceBookViewState extends State<PriceBookView>
               onChanged: (v) => setState(() => _q = v),
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.search),
-                hintText: 'Tìm model, lỗi… (vd "iphone 12 ép kính")',
+                suffixIcon: _q.trim().isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Xoá tìm kiếm',
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchCtrl.clear();
+                          setState(() => _q = '');
+                        },
+                      ),
+                hintText: 'Tìm model, lỗi… (vd "ip 12 ép kính", "ss a52 pin")',
                 filled: true,
                 fillColor: Theme.of(context).cardColor,
                 isDense: true,

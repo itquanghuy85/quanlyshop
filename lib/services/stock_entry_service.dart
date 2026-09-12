@@ -745,6 +745,10 @@ class StockEntryService {
             'referenceId': entryId,
             'shopId': entry.shopId,
             'createdAt': FieldValue.serverTimestamp(),
+            // Thiếu `updatedAt` thì poll con trỏ của máy khác không bao giờ
+            // thấy doc này — chỉ lượt quét trọn 24h mới vớt (đo 2 máy thật
+            // 2026-09-12: máy nhân viên không nhận lịch sử nhập mới).
+            'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
           });
         }
 
@@ -1044,9 +1048,19 @@ class StockEntryService {
       // Emit expenses_changed: cập nhật sổ quỹ / cash_closing_view
       EventBus().emit('expenses_changed');
       debugPrint('✅ [StockEntryService] Đã emit: stock_entries_changed, products_changed, parts_changed, expenses_changed');
+      // Chỉ kéo về đúng các bảng transaction vừa ghi trên cloud — trước đây
+      // poll cả 35 bảng (~50 read) cho mỗi lần xác nhận nhập kho.
       await SyncService.refreshCloudCollections(
         reason: 'stock_entry_confirmed',
         force: true,
+        only: const {
+          'products',
+          'repair_parts',
+          'import_orders',
+          'import_order_items',
+          'supplier_import_history',
+          'supplier_payments',
+        },
       );
       return result['success'] == true;
     } on TimeoutException {
