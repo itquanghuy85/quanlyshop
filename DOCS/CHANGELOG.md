@@ -4,6 +4,35 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-12b] - Kiểm luồng đọc Firestore trên máy: xoá DB local → kéo lại từ cloud — 2 lỗi thật
+
+Cách test: `run-as` xoá `repair_shop_v22.db*` + cache Firestore trên Oppo (giữ
+đăng nhập m@m.com), mở app, đối chiếu DB kéo về với bản local trước khi xoá
+(bảng nào cũng trùng số dòng/số tiền) rồi so màn hình.
+
+### Sửa
+- **expenses / debts kéo từ cloud bị `shopId = NULL`** (`db_helper._upsert`):
+  `Expense`/`Debt` model không có trường shopId nên `toMap()` không mang theo →
+  7/7 expenses, 11/11 debts sau resync mất shop. Truy vấn tài chính chịu được
+  `OR shopId IS NULL` nhưng chỗ lọc chặt `shopId = ?` (số dư đối tác, thống kê
+  NCC…) sẽ sót. `_upsert` nay điền shop hiện tại khi thiếu (đúng shop vì sync
+  chỉ đọc `/shops/{shopId}/…`). Sau fix: 26/26 và 27/27 có shopId.
+- **Màn hình đứng ở bản chụp thiếu sau resync** (`sync_health_check.dart`,
+  `finance_v2_view.dart`): subscription chỉ kéo doc mới hơn mốc lastSync
+  (SharedPreferences còn nguyên) — đo thật `expenses count=1`; phần còn lại về
+  qua nhánh auto-fix của SyncHealthCheck nhưng nhánh này không phát EventBus,
+  còn tab Tài chính chỉ nghe `financialChanged`/`syncComplete`. Kết quả: tiền
+  ra 1,25tr thay vì 17,35tr, phải trả 0, "24 ngày chưa chốt quỹ" cho tới khi
+  khởi động lại app. Nay auto-fix phát `<collection>_changed` +
+  `financialChanged`; tab Tài chính nghe thêm các sự kiện batch của sync (gộp
+  600 ms). Kiểm lại: kéo xong hiện đúng ngay, không cần restart.
+
+### Files
+`lib/data/db_helper.dart`, `lib/services/sync_health_check.dart`,
+`lib/finance_v2/finance_v2_view.dart`, `DOCS/CHANGELOG.md`, `DOCS/HANDOVER.md`
+
+---
+
 ## [2026-09-12a] - Chạy kịch bản tài chính toàn diện trên máy thật (shop test M) — 3 lỗi thật, 1 crash lâu năm tìm ra gốc
 
 Chạy trọn `test/FINANCE_FULL_SCENARIO.md` qua ADB trên Oppo CPH2203, tài khoản

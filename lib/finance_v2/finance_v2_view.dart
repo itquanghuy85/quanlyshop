@@ -194,20 +194,47 @@ class _FinanceV2ViewState extends State<FinanceV2View>
           (event) =>
               event == EventBus.shopChanged ||
               event == EventBus.financialChanged ||
-              event == EventBus.syncComplete,
+              event == EventBus.syncComplete ||
+              _syncBatchEvents.contains(event),
         )
         .listen((event) {
           if (!mounted) return;
           // Quyền gắn theo shop → đổi shop phải đọc lại, nếu không người của
           // shop mới vẫn nhìn thấy giá vốn theo quyền của shop cũ.
           if (event == EventBus.shopChanged) _loadCostPermission();
+          if (_syncBatchEvents.contains(event)) {
+            // Sync cloud→local (cài lại máy / máy mới) đổ dữ liệu theo từng
+            // collection và chỉ phát `<collection>_changed`, KHÔNG phát
+            // financialChanged. Mở tab Tài chính trong lúc đó thì số đứng
+            // yên ở bản chụp thiếu (đo thật 2026-09-12: tiền ra 1,25tr thay
+            // vì 17,35tr, phải trả 0) cho tới khi khởi động lại app. Gộp
+            // nhiều batch liên tiếp thành một lần tải lại.
+            _syncReloadTimer?.cancel();
+            _syncReloadTimer = Timer(const Duration(milliseconds: 600), () {
+              if (mounted) _load();
+            });
+            return;
+          }
           _load();
         });
     _load();
   }
 
+  /// Sự kiện batch của SyncService ảnh hưởng tới số liệu tài chính.
+  static const Set<String> _syncBatchEvents = {
+    'sales_changed',
+    'repairs_changed',
+    'expenses_changed',
+    'debts_changed',
+    'sales_returns_changed',
+    'cash_closings_changed',
+    'payment_intents_changed',
+  };
+  Timer? _syncReloadTimer;
+
   @override
   void dispose() {
+    _syncReloadTimer?.cancel();
     _eventSub?.cancel();
     _tabController.dispose();
     _txCtrl.dispose();

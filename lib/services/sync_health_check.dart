@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../data/db_helper.dart';
 import 'sync_collections.dart';
+import 'event_bus.dart';
 import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
 import '../models/product_model.dart';
@@ -109,6 +110,14 @@ class SyncHealthReport {
 
 /// Service kiểm tra tình trạng sync
 class SyncHealthCheck {
+  /// Collection ảnh hưởng số liệu tài chính — auto-fix xong phải phát
+  /// `financialChanged` để Tài chính / Sổ quỹ / Trang chủ tải lại.
+  static const Set<String> _financialCollections = {
+    'sales', 'repairs', 'expenses', 'debts', 'debt_payments', 'sales_returns',
+    'cash_closings', 'supplier_import_history', 'repair_partner_payments',
+    'payment_intents',
+  };
+
   static final _db = FirebaseFirestore.instance;
   static final _localDb = DBHelper();
   static final Map<String, Set<String>> _tableColumnsCache = {};
@@ -392,6 +401,17 @@ class SyncHealthCheck {
         debugPrint(
           '   ✅ $collection: tải $fixed, đẩy lệnh xoá $pushedDelete / tổng $cloudOnly',
         );
+        // Báo cho màn hình đang mở. Khi cài lại máy / xoá DB local, subscription
+        // chỉ kéo doc mới hơn mốc lastSync (đo thật 2026-09-12: expenses
+        // count=1) — phần còn lại về bằng nhánh auto-fix này mà không có sự
+        // kiện nào ⇒ tab Tài chính / Trang chủ đứng ở bản chụp thiếu (tiền ra
+        // 1,25tr thay vì 17,35tr, phải trả 0) cho tới khi khởi động lại app.
+        if (fixed > 0) {
+          EventBus().emit('${collection}_changed');
+          if (_financialCollections.contains(collection)) {
+            EventBus().emit(EventBus.financialChanged);
+          }
+        }
       } else if (cloudOnly > 0 && noAutoRestoreCollections.contains(collection)) {
         debugPrint(
           '   ℹ️ $collection: $cloudOnly cloud-only records — skip auto-restore (user may have deleted intentionally)',

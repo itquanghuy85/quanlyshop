@@ -9,6 +9,12 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-12  
 
+**✅ RESYNC TỪ FIRESTORE ĐÃ KIỂM TRÊN MÁY (`[2026-09-12b]`).** Xoá DB local →
+kéo lại: dữ liệu trùng 100%. Sửa 2 lỗi: expenses/debts về bị NULL shopId
+(`_upsert` tự điền); màn hình không tải lại sau auto-fix của SyncHealthCheck
+(nay phát sự kiện). Cách test resync: `run-as com.huluca.shopmanager rm
+databases/repair_shop_v22.db*` (+ 2 file `firestore.*`) trên build debug.
+
 **✅ KỊCH BẢN TÀI CHÍNH ĐÃ CHẠY TRÊN MÁY THẬT — SỐ KHỚP 100% (`[2026-09-12a]`).**
 Shop test M, 40+ thao tác qua ADB, đối chiếu SQLite + màn hình. Sửa 3 lỗi thật:
 chủ shop giao máy không chọn được CK/CÔNG NỢ (nay có chip trong dialog duyệt);

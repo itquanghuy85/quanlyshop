@@ -4847,6 +4847,17 @@ class DBHelper {
       data.remove(
         '_encrypted',
       ); // Field metadata của Firestore, không lưu SQLite
+      // `Expense`/`Debt` model không có trường shopId nên `toMap()` không mang
+      // theo → mọi dòng expenses/debts kéo từ cloud (cài lại máy, máy mới) bị
+      // shopId NULL (đo thật 2026-09-12: 7/7 expenses, 11/11 debts). Truy vấn
+      // tài chính chịu được `OR shopId IS NULL` nhưng chỗ lọc chặt `shopId = ?`
+      // (số dư đối tác, thống kê NCC…) sẽ sót. Điền shop hiện tại khi thiếu —
+      // đúng shop vì subscription sync chỉ đọc `/shops/{shopId}/…` của shop đó.
+      if (data['shopId'] == null ||
+          data['shopId'].toString().trim().isEmpty) {
+        final sid = UserService.getShopIdSync();
+        if (sid != null && sid.isNotEmpty) data['shopId'] = sid;
+      }
       // Strip any Firestore fields not in SQLite schema
       await _filterToTableColumns(table, data, executor: txn);
       if (existing.isNotEmpty) {
