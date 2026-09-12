@@ -16,7 +16,9 @@ import '../../utils/money_input_formatter.dart';
 /// - Nhập "1500000" (>= 100000) → Giữ nguyên "1.500.000" → Lưu 1500000
 class MoneyUtils {
   static final NumberFormat _vndFormat = NumberFormat('#,###', 'vi_VN');
-  static final NumberFormat _compactFormat = NumberFormat('#,##0.###', 'en_US');
+  // vi_VN: "24,43 Tr" (phẩy thập phân) — en_US in "24.43 Tr" trong khi cả app
+  // dùng dấu chấm ngăn nghìn nên đọc nhầm thành "24.430 triệu".
+  static final NumberFormat _compactFormat = NumberFormat('#,##0.###', 'vi_VN');
 
   /// Formats VNĐ amount to display string with dot separators.
   /// Example: 5000000 -> "5.000.000"
@@ -26,7 +28,7 @@ class MoneyUtils {
   }
 
   /// Formats VNĐ amount in compact form (Tr, Tỷ).
-  /// Example: 6_350_000_000 -> "6,350 Tr", 30_450_000_000_000 -> "30,450 Tỷ"
+  /// Example: 24_430_000 -> "24,43 Tr", 6_350_000_000 -> "6,35 Tỷ"
   static String formatCompact(int vnd) {
     if (vnd == 0) return '0';
     final abs = vnd.abs();

@@ -1290,9 +1290,13 @@ class AppKnowledgeBase {
             'sách giao dịch. Bấm ô "Tiền vào" hoặc "Tiền ra" là lọc luôn danh '
             'sách bên dưới. Hàng chip: Tất cả / Thu / Chi / Nhật ký thao tác. '
             'Có sẵn 3 nút Ghi thu / Ghi chi / Chốt quỹ.',
-        '**Lãi** — Cơ cấu tiền thu vào → Chi tiêu theo danh mục → Lãi gộp '
-            '(doanh thu đã thu − vốn = lãi) → So với kỳ trước → lối vào "Báo '
-            'cáo đầy đủ".',
+        '**Lãi** — khối "Lãi hôm nay/7 ngày qua…" nằm TRÊN CÙNG, đọc từ trên '
+            'xuống: Doanh thu đã thu (bán hàng + sửa chữa) − Vốn hàng đã bán − '
+            'Vốn linh kiện sửa chữa = LÃI GỘP − Chi phí vận hành = LÃI THỰC '
+            '(số in đầy đủ, không rút gọn). Dưới là "So với kỳ trước" (doanh '
+            'thu / vốn / lãi gộp), Cơ cấu tiền thu vào, Chi tiêu theo danh '
+            'mục, lối vào "Báo cáo đầy đủ". Không có quyền xem giá vốn thì '
+            'chỉ thấy doanh thu.',
         '**Nợ** — chuyển giữa Phải thu / Phải trả, có phân nhóm tuổi nợ.',
         'Menu ⋯ góc trên: Báo cáo đầy đủ, Đối soát tiền về, In tab đang xem, '
             'Xuất Excel tab đang xem, Xuất báo cáo ngày, Tải lại.',

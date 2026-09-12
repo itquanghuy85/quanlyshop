@@ -9,13 +9,30 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.6.0+557 (AAB đã build 12/09 15:26 + web đã deploy https://quanlyshop.web.app — xem `DOCS/release_notes_2026-09-12.md`; 3.5.0+556 đang live trên store). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-12  
 
+**🔴 ĐÃ VÁ: id SQLite cục bộ dùng làm khoá xuyên máy (`[2026-09-12j]`).**
+Đơn bán thật hôm nay (CÓC SẠC / ỐP LƯNG / CƯỜNG LỰC, máy KIMHUE205A) bấm vào
+món đã bán mở ra IPAD / IPHONE 14PRO trên Oppo chủ shop, món khác nữa trên
+iPhone: snapshot ghi `productId` = row id SQLite của máy tạo đơn và
+`sale_detail_view` ưu tiên nó hơn `productFirestoreId`. Cùng bẫy ở trả hàng
+(**cộng kho vào SP sai** trên máy khác), vá giá vốn đơn cũ, phụ tùng đơn sửa.
+Quy tắc mới CLAUDE.md §12: firestoreId → IMEI → id cục bộ CHỈ KHI TÊN KHỚP
+(`ProductConstants.isSameProductName`) → SKU → tên. Đã nghiệm thu CPH2203
+(shop thật) + CPH2239 (tạo đơn → bấm SP → trả hàng tồn 18→19). Tab Lãi viết
+lại: khối lãi lên đầu, thác nước tới **Lãi thực**, số đầy đủ, so sánh lãi
+thay vì tiền; số rút gọn đổi ký hiệu Việt "24,43 Tr". CÒN NỢ: nhánh tab Lãi
+không có quyền giá vốn và phụ tùng đơn sửa nguồn `products` chưa có dữ liệu
+để nghiệm thu máy thật. Phát hiện dữ liệu shop thật: iPhone đã bán có **giá
+vốn = 0** (IPHONE 17 PRO MAX 33,79 Tr vốn 148k phụ kiện) → lãi bị thổi, cần
+chủ shop nhập vốn máy (màn "Sản phẩm thiếu thông tin").
+
 **✅ SẮP XẾP TRANG CHỦ KIỂU iPHONE (`[2026-09-12i]`).** Nhấn giữ lối tắt →
 lưới rung, giữ rồi kéo để đổi chỗ (tự dồn khi rê qua), dấu − ẩn, mục "ĐÃ ẨN"
 bấm + thêm lại (`ShortcutEditGrid`). Nhấn giữ Trang chủ → sắp xếp thẻ tại
 chỗ (`_buildDashboardEditMode`, ReorderableListView) thay vì mở màn Cài đặt;
 màn Cài đặt vẫn còn qua "Cài đặt nâng cao". Logic vẽ thẻ gom về
-`_buildDashboardCardFor`. Test widget 3/3; CHƯA nghiệm thu cảm giác kéo thả
-trên máy thật.
+`_buildDashboardCardFor`. Test widget 3/3 + ĐÃ NGHIỆM THU máy thật CPH2203
+(kéo lưới, ẩn/thêm lại, kéo thẻ, ẩn/thêm thẻ) — sửa 1 bug key `Wrap` và bẫy
+nhấn giữ ô bị GestureDetector ngoài thắng (ô dùng recognizer 350ms).
 
 **🔴 ĐO SHOP THẬT: 22K READ MỖI LẦN MỞ APP → 125 (`[2026-09-12f]`).** Gốc lớn
 nhất toàn app là `SyncHealthCheck.runFullCheck()` đọc trọn ~30 bảng cloud mỗi

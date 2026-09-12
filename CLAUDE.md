@@ -180,6 +180,23 @@
 
 ---
 
+### 12. Id SQLite cục bộ KHÔNG phải khoá xuyên máy
+- `products.id`, `sales.id`, … là số thứ tự AUTOINCREMENT **của riêng từng
+  máy**; cùng số đó trên máy khác là bản ghi khác. Snapshot / JSON ghi kèm đơn
+  (`itemSnapshotsJson.productId`, `partsUsedDetailed.productId`,
+  `sales_return_items.productId`) chỉ có nghĩa trên máy đã tạo.
+- **Khoá dùng chung mọi máy là `firestoreId`** (`productFirestoreId`). Khi ghi
+  snapshot PHẢI ghi kèm cloud id; khi đọc, thứ tự tra:
+  `firestoreId` → IMEI → id cục bộ **chỉ khi tên khớp**
+  (`ProductConstants.isSameProductName`) → SKU → tên.
+- Không dùng `LIKE '%"productId":N%'` để tìm đơn của một sản phẩm — dùng
+  `productFirestoreId` (`DBHelper.getSalesByProductId(productFirestoreId:)`).
+- Sự cố 2026-09-12: bấm món đã bán mở ra sản phẩm khác trên từng máy; trả hàng
+  suýt cộng kho vào sản phẩm sai. Xem `docs/CHANGELOG.md` mục `[2026-09-12j]`
+  và `test/sale_snapshot_cross_device_test.dart`.
+
+---
+
 ## IV. WORKFLOW PHÁT TRIỂN
 
 ### Chạy Ứng Dụng

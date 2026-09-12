@@ -4,6 +4,94 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-12j] - Bấm SP đã bán mở SAI sản phẩm trên máy khác (id SQLite cục bộ) + tab Lãi đọc được
+
+### Lỗi gốc (dữ liệu thật, đơn `sale_1789206347870` bán CÓC SẠC / ỐP LƯNG / CƯỜNG LỰC)
+- Snapshot đơn bán (`itemSnapshotsJson`) ghi `productId` = **số thứ tự SQLite của
+  máy tạo đơn** (517 / 512 / 514 trên máy KIMHUE205A). `sale_detail_view` ưu
+  tiên khoá này → `DeepLinkNavigator.openProductDetail` gọi
+  `getProductById(517)` → trên Oppo chủ shop 517 = "IPAD GEN 10 HỒNG", 512/514
+  = "IPHONE 14PRO"; iPhone lại ra món khác nữa. `productFirestoreId` (ghi ngay
+  cạnh) mới là khoá dùng chung mọi máy.
+- Cùng bẫy, **nặng hơn** vì ghi dữ liệu:
+  - `SalesReturnService._restoreStock`: trả hàng tra `products WHERE id =
+    productId` TRƯỚC cloud id → trên máy khác **cộng tồn kho vào sản phẩm sai**.
+  - `create_sales_return_view` mang nguyên `productId` của máy khác vào phiếu
+    trả khi không tra được theo tên.
+  - `missing_info_products_view` vá giá vốn vào đơn cũ bằng
+    `getSalesByProductId(localId)` (LIKE `"productId":517`) → vá nhầm dòng của
+    sản phẩm khác trên máy khác.
+  - `repair_detail_view`: phụ tùng đơn sửa (`PartUsedDetail.productId`) → bấm
+    dòng phụ tùng / tra NCC ra sản phẩm sai (shop thật hiện chỉ dùng
+    `repair_parts`, productId null, nên chưa lộ).
+
+### Sửa
+- **Quy tắc mới (CLAUDE.md §12):** id SQLite cục bộ KHÔNG bao giờ là khoá tra
+  cứu xuyên máy. Thứ tự tra: `firestoreId` → IMEI → id cục bộ **chỉ khi tên
+  khớp** (`ProductConstants.isSameProductName`, bỏ dấu/hoa thường/khoảng
+  trắng/hậu tố " x2") → SKU → tên.
+- `sale_detail_view._buildLinkedProducts`: `productFirestoreId`/`firestoreId`
+  trước, `productId`/`id` chỉ là dự phòng.
+- `DeepLinkNavigator.openProductDetail`: id số chỉ được tin khi tên khớp
+  `fallbackName`; không khớp thì rơi xuống IMEI/SKU/tên như cũ.
+- `SalesReturnService._restoreStock`: IMEI → cloud id → id cục bộ (khớp tên) →
+  tên. `create_sales_return_view`: tra cloud id trước tên; không tra được thì
+  **xoá** `productId` lạ khỏi phiếu.
+- `DBHelper.getSalesByProductId(productFirestoreId:)` + `updateSaleCostByProductId(
+  productFirestoreId:, productName:)` → khớp dòng snapshot bằng
+  `snapshotLineIsProduct` (cloud id trùng; dòng cũ không có cloud id thì id +
+  tên phải cùng khớp).
+- `PartUsedDetail` thêm `productFirestoreId` (ghi khi chọn phụ tùng nguồn
+  `products`; `getAllPartsUnified` trả thêm `firestoreId`);
+  `repair_detail_view._resolvePartProduct` dùng cho cả bấm dòng phụ tùng lẫn
+  tra NCC.
+
+### Tab Lãi (phản hồi "nhìn không hiểu gì")
+- Khối **Lãi <kỳ>** lên ĐẦU tab (trước nằm thứ 3, dưới màn hình): Doanh thu đã
+  thu (con: Bán hàng / Sửa chữa) − Vốn hàng đã bán − Vốn linh kiện sửa chữa =
+  **Lãi gộp** − Chi phí vận hành = **Lãi thực** (số to) + dòng "Cứ 100đ thu về
+  thì lãi thực Xđ". Số in **đầy đủ** (848.200.000) thay vì "848.2 Tr".
+- Khối "So với kỳ trước" đổi từ Thu tiền / Chi tiền / Còn lại (tiền ròng — bị
+  đọc nhầm là lãi) sang **Doanh thu / Vốn / Lãi gộp** + 1 dòng "% lãi gộp
+  tăng/giảm"; không có quyền giá vốn thì chỉ cột Doanh thu.
+- `MoneyUtils.formatCompactCurrency` + `core/utils MoneyUtils.formatCompact`:
+  ký hiệu Việt "24,43 Tr" / "1.234 Tỷ" (trước "24.43 Tr" — dấu chấm vừa là
+  ngăn nghìn vừa là thập phân).
+- Excel: sheet Lãi thêm "Chi phí vận hành" + "Lãi thực (sau chi phí)"; sheet
+  tổng quan báo cáo ngày sửa nhãn sai "Lãi gộp (phần đã thu)" cho con số đã
+  trừ chi vận hành → tách 3 dòng Lãi gộp / Chi phí vận hành / Lãi thực.
+- `app_knowledge_base.dart` cập nhật mô tả tab Lãi.
+
+### Kiểm
+- `test/sale_snapshot_cross_device_test.dart` (7): snapshot thật của đơn hôm
+  nay; `isSameProductName`; `snapshotLineIsProduct` (cloud id / dòng cũ);
+  FFI SQLite chứng minh LIKE theo id cục bộ trúng 2 đơn của 2 sản phẩm khác.
+- `test/money_compact_format_test.dart` (4).
+- **Máy thật CPH2203 (shop thật, chỉ xem):** bấm 3 món của đơn
+  `KHÁCH VÃNG LAI 16:45` → đúng CÓC SẠC ANKER 30W (tồn 900) / ỐP LƯNG MAGATIC /
+  CƯỜNG LỰC CHỐNG NHÌN TRỘM. Tài chính hôm nay: Tiền vào 550.000, dòng
+  +550.000 TIỀN MẶT; tab Lãi 550.000 − 148.000 = 402.000, lãi thực 402.000.
+  Số "hôm qua" (DT 56,67 Tr, vốn 2,187 Tr) khớp SQLite — vốn thấp vì các
+  iPhone đã bán **giá vốn = 0** (dữ liệu shop, không phải lỗi tính).
+- **Máy test CPH2239 (n@n.com, shop M):** tạo đơn CAP SAC Y + OP LUNG Y
+  (snapshot có `productFirestoreId`) → bấm 2 chip đúng SP → trả OP LUNG Y x1
+  → tồn 18→19, CAP SAC Y giữ 7, dòng trả có cloud id. n@n.com không có quyền
+  Tài chính nên tab Lãi nghiệm thu trên shop thật.
+- Chưa nghiệm thu: phụ tùng đơn sửa nguồn `products` (shop thật + shop test
+  đều không có linh kiện loại này), nhánh tab Lãi không có quyền giá vốn.
+
+### Files
+- `lib/views/sale_detail_view.dart`, `lib/widgets/deep_link_navigator.dart`
+- `lib/services/sales_return_service.dart`, `lib/views/create_sales_return_view.dart`
+- `lib/data/db_helper.dart`, `lib/views/missing_info_products_view.dart`
+- `lib/models/part_used_detail_model.dart`, `lib/views/repair_detail_view.dart`
+- `lib/constants/product_constants.dart` (`isSameProductName`)
+- `lib/finance_v2/finance_v2_view.dart`, `lib/utils/money_utils.dart`,
+  `lib/core/utils/money_utils.dart`, `lib/data/app_knowledge_base.dart`
+- `test/sale_snapshot_cross_device_test.dart`, `test/money_compact_format_test.dart`
+
+---
+
 ## [2026-09-12i] - Sắp xếp Trang chủ kiểu iPhone: nhấn giữ → kéo thả, dấu − để ẩn
 
 Trước: nhấn giữ lối tắt chỉ bật/tắt được, muốn đổi thứ tự phải vào màn
@@ -38,6 +126,21 @@ Cài đặt (danh sách dọc); nhấn giữ Trang chủ thì mở thẳng màn 
   chứ không `pumpAndSettle`.
 - `flutter analyze` không lỗi/cảnh báo mới; bộ test 654 pass (2 lỗi
   `kiotviet_settings_view_test` có sẵn từ trước).
+
+### Nghiệm thu máy thật Oppo CPH2203 (shop thật, chỉ xem — kill app, KHÔNG bấm Xong)
+- Lối tắt: nhấn giữ ô → lưới rung + dấu −; giữ 0.4s kéo "Đơn bán" qua "DS sửa"
+  → lưới dồn ngay khi rê, thả ra đúng thứ tự Bán hàng → DS sửa → Đơn bán; − đưa
+  ô xuống "ĐÃ ẨN (23)"; bấm ô ẩn → về cuối lưới. **Bug tìm thấy & sửa:** ô mờ
+  (chỗ trống) dính ở vị trí cũ và hiện ô khác — thiếu `key` theo type nên
+  state kéo bám theo chỉ số trong `Wrap`.
+- Thẻ: nhấn giữ vùng trống → chế độ sắp; giữ thẻ "Thao tác nhanh" kéo lên
+  trên "Cần xử lý" OK; − đưa thẻ xuống "THẺ ĐÃ ẨN (6)"; chip + đưa về cuối.
+  Polish: thẻ nhấc lên có nền đục (trước trong suốt đè chữ header).
+- **Bẫy gesture (sửa luôn):** nhấn giữ ô lối tắt bị GestureDetector ngoài
+  (Trang chủ) thắng ⇒ ô dùng `RawGestureDetector` + `LongPressGestureRecognizer`
+  350ms để thắng bộ 500ms bên ngoài. Lưu ý khi test bằng adb: dòng trong thẻ
+  "Cần xử lý" là InkWell — `input swipe` ngắn thành TAP mở màn khác; nhấn giữ
+  vào tiêu đề "THAO TÁC NHANH" cho an toàn.
 
 ### Files
 - `lib/widgets/shortcut_edit_grid.dart` (mới)

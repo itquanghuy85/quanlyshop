@@ -8,9 +8,11 @@ class MoneyUtils {
   }
 
   /// Format rút gọn cho số tiền lớn theo đơn vị Việt: Tr/Tỷ.
+  /// Ký hiệu kiểu Việt: dấu chấm ngăn nghìn, dấu phẩy thập phân.
   /// Ví dụ:
-  /// - 6_350_000_000 -> 6,350 Tr
-  /// - 30_450_000_000_000 -> 30,450 Tỷ
+  /// - 24_430_000 -> 24,43 Tr
+  /// - 6_350_000_000 -> 6,35 Tỷ
+  /// - 1_234_000_000_000 -> 1.234 Tỷ
   static String formatCompactCurrency(int value) {
     final abs = value.abs();
     final sign = value < 0 ? '-' : '';
@@ -44,18 +46,21 @@ class MoneyUtils {
     final parts = cleaned.split('.');
     final intPart = parts.first;
     final fracPart = parts.length > 1 ? parts.last : '';
-    final grouped = _groupThousandsByComma(intPart);
+    final grouped = _groupThousandsByDot(intPart);
     if (fracPart.isEmpty) return grouped;
-    return '$grouped.$fracPart';
+    // Dấu PHẨY thập phân kiểu Việt: "24,43 Tr". Bản cũ in "24.43 Tr" trong
+    // khi cả app dùng dấu chấm làm ngăn nghìn ("24.430.000") → đọc thành
+    // "24.430 triệu" (phản hồi tab Lãi 2026-09-12).
+    return '$grouped,$fracPart';
   }
 
-  static String _groupThousandsByComma(String intPart) {
+  static String _groupThousandsByDot(String intPart) {
     final buf = StringBuffer();
     for (int i = 0; i < intPart.length; i++) {
       final revIdx = intPart.length - i;
       buf.write(intPart[i]);
       if (revIdx > 1 && revIdx % 3 == 1) {
-        buf.write(',');
+        buf.write('.');
       }
     }
     return buf.toString();

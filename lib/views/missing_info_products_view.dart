@@ -511,7 +511,10 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
         }
       } else if (p.id != null) {
         // Non-IMEI accessory: patch by productId in itemSnapshotsJson
-        final saleMaps = await _db.getSalesByProductId(p.id!);
+        final saleMaps = await _db.getSalesByProductId(
+          p.id!,
+          productFirestoreId: p.firestoreId,
+        );
         for (final saleMap in saleMaps) {
           final saleId = saleMap['id'] as int?;
           final fid = saleMap['firestoreId'] as String?;
@@ -520,6 +523,8 @@ class _MissingInfoProductsViewState extends State<MissingInfoProductsView>
               saleId,
               p.id!,
               newCost,
+              productFirestoreId: p.firestoreId,
+              productName: p.name,
             );
             if (changed) {
               updatedSaleCount++;

@@ -1531,14 +1531,18 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         color: FinanceV2Theme.accent,
         child: ListView(
           padding: const EdgeInsets.only(top: 12),
+          // Tab tên là "Lãi" thì con số lãi phải là thứ đầu tiên đập vào mắt.
+          // Bản cũ xếp "Cơ cấu tiền thu" + "Chi tiêu theo danh mục" lên trên,
+          // lãi gộp tụt xuống dưới màn hình — chủ tiệm mở tab ra không thấy
+          // lãi đâu (phản hồi 2026-09-12 "nhìn không hiểu gì").
           children: [
-            _incomeSection(s),
-            const SizedBox(height: 12),
-            _expCatSection(s),
-            const SizedBox(height: 12),
             _profitSection(s),
             const SizedBox(height: 12),
             _compSection(s),
+            const SizedBox(height: 12),
+            _incomeSection(s),
+            const SizedBox(height: 12),
+            _expCatSection(s),
             const SizedBox(height: 12),
             _fullReportLink(),
             const SizedBox(height: 24),
@@ -1704,21 +1708,27 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     );
   }
 
-  /// So sánh TIỀN với kỳ trước — chỉ tiền, không lặp lại lãi gộp.
+  /// So sánh LÃI với kỳ trước — đây là tab Lãi nên so lãi, không so tiền.
   ///
-  /// Bản cũ nhồi thêm 6 ô Vốn BH / Vốn SC / Vốn tổng / Lãi BH / Lãi SC / Lãi
-  /// tổng vào đây dưới đúng cái tên "Lãi gộp (phần đã thu)" đã dùng ở khối
-  /// trên, làm người đọc tưởng gặp hai bộ số khác nhau. Vốn & lãi nay chỉ có
-  /// một chỗ duy nhất là `_profitSection`.
+  /// Bản cũ đặt ở đây 3 ô Thu tiền / Chi tiền / Còn lại (tiền ròng sổ quỹ) —
+  /// ngay dưới khối lãi gộp, nên "Còn lại 838 Tr" bị đọc nhầm thành lãi (lãi
+  /// gộp cùng kỳ chỉ 573 Tr). Tiền vào/ra/còn lại đã có sẵn ở tab Tiền.
   ///
-  /// Mỗi ô cũng bỏ dòng "%" riêng: khi kỳ trước gần bằng 0 thì tỉ lệ nhảy ra
-  /// những con số vô nghĩa kiểu "+1650%" / "−93%" nằm cạnh nhau, đọc vào chỉ
-  /// thấy nhiễu. Nay chỉ còn MỘT dòng % cho dòng tiền ròng.
+  /// Không có quyền giá vốn thì chỉ so doanh thu (lãi suy ngược ra được vốn).
+  /// Chỉ MỘT dòng % cho lãi gộp; kỳ trước = 0 thì không in % (tránh
+  /// "+1650%" vô nghĩa).
   Widget _compSection(FinanceV2Snapshot s) {
-    final chg = s.previousNetCashflow == 0
+    final revenue = s.incomeFromSales + s.incomeFromRepairs;
+    final gross = s.grossProfitTotal;
+    final prevGross =
+        s.previousGrossProfitFromSales + s.previousGrossProfitFromRepairs;
+    // Snapshot không lưu riêng doanh thu kỳ trước; lãi gộp + vốn = doanh thu
+    // (cùng cash basis, xem `previousGrossProfitFromSales` ở data service).
+    final prevRevenue =
+        prevGross + s.previousCogsFromSales + s.previousCogsFromRepairs;
+    final chg = (!_canViewCost || prevGross <= 0)
         ? null
-        : ((s.netCashflow - s.previousNetCashflow) / s.previousNetCashflow) *
-              100.0;
+        : ((gross - prevGross) / prevGross) * 100.0;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: _hPad),
       child: Container(
@@ -1729,23 +1739,20 @@ class _FinanceV2ViewState extends State<FinanceV2View>
           children: [
             _sectionTitle(
               'So với $_compLabel',
-              'So sánh số tiền thực thu/thực chi của kỳ đang chọn với kỳ trước có cùng độ dài.',
+              'So doanh thu đã thu và lãi gộp của kỳ đang chọn với kỳ liền trước có cùng độ dài.',
             ),
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: _cs('Thu tiền', s.totalIn, s.previousTotalIn)),
-                Expanded(
-                  child: _cs('Chi tiền', s.totalOut, s.previousTotalOut),
-                ),
-                Expanded(
-                  child: _cs(
-                    'Còn lại',
-                    s.netCashflow,
-                    s.previousNetCashflow,
-                    net: true,
+                Expanded(child: _cs('Doanh thu', revenue, prevRevenue)),
+                if (_canViewCost) ...[
+                  Expanded(
+                    child: _cs('Vốn', revenue - gross, prevRevenue - prevGross),
                   ),
-                ),
+                  Expanded(
+                    child: _cs('Lãi gộp', gross, prevGross, net: true),
+                  ),
+                ],
               ],
             ),
             if (chg != null) ...[
@@ -1764,7 +1771,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      '${chg >= 0 ? "+" : ""}${chg.toStringAsFixed(1)}% so với $_compLabel',
+                      'Lãi gộp ${chg >= 0 ? "tăng" : "giảm"} ${chg.abs().toStringAsFixed(0)}% so với $_compLabel',
                       style: FinanceV2Theme.micro.copyWith(
                         color: chg >= 0
                             ? FinanceV2Theme.positive
@@ -1813,21 +1820,26 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     );
   }
 
-  /// Lãi gộp — đọc theo **thác nước**: thu về bao nhiêu, vốn hết bao nhiêu,
-  /// còn lại bao nhiêu. Phép cộng trừ nhìn thấy được nên tự kiểm tra được.
+  /// Lãi — đọc theo **thác nước** từ trên xuống: thu về bao nhiêu, trừ vốn
+  /// còn lãi gộp, trừ chi phí vận hành còn lãi thực. Mỗi phép trừ nhìn thấy
+  /// được nên tự kiểm tra được.
   ///
-  /// Bản cũ có HAI khối cùng mang tên "Lãi gộp (phần đã thu)" trên cùng một
-  /// trang, cách nhau chừng một màn cuộn: một ở đây (2 cột Vốn BH / Vốn SC),
-  /// một nữa nằm trong khối "So sánh theo nhóm" (3 cột, thêm Vốn tổng / Lãi
-  /// tổng và % so kỳ trước). Hai khối đọc cùng một nguồn nhưng trình bày khác
-  /// nhau nên trông như hai con số khác nhau. Nay chỉ còn khối này; khối so
-  /// sánh chỉ giữ phần tiền.
+  /// Số in ĐẦY ĐỦ (848.200.000) chứ không rút gọn "848.2 Tr": trong app dấu
+  /// chấm là ngăn nghìn, nên "24.43 Tr" đọc thành "24.430 triệu" — chủ tiệm
+  /// đọc không ra (phản hồi 2026-09-12). Dạng rút gọn chỉ còn dùng ở các ô so
+  /// sánh 3 cột phía dưới, và đã đổi sang dấu phẩy thập phân kiểu Việt.
   ///
-  /// Đánh số "1)" / "2)" ở tiêu đề cũng bỏ: bản cũ đặt "2) Lãi gộp" NẰM TRÊN
-  /// "1) Tiền (cash)" trong danh sách, tức đánh số ngược thứ tự hiển thị.
+  /// "Lãi thực" = lãi gộp − chi phí vận hành, cùng công thức với dòng
+  /// "Lãi thực (sau chi phí)" trong Báo cáo đầy đủ / in / Excel. Chi vận hành
+  /// KHÔNG gồm nhập hàng, trả nợ NCC, thanh toán đối tác, vốn sửa chữa (đã
+  /// nằm trong vốn) — xem `operatingExpenseOut`.
   Widget _profitSection(FinanceV2Snapshot s) {
     final revenue = s.incomeFromSales + s.incomeFromRepairs;
     final cogs = s.cogsFromSales + s.cogsFromRepairs;
+    final gross = revenue - cogs;
+    final net = gross - s.operatingExpenseOut;
+    Color signColor(int v) =>
+        v >= 0 ? FinanceV2Theme.positive : FinanceV2Theme.negative;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: _hPad),
       child: Container(
@@ -1837,45 +1849,73 @@ class _FinanceV2ViewState extends State<FinanceV2View>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _sectionTitle(
-              'Lãi gộp (phần đã thu)',
-              'Vốn & lãi tính trên phần tiền ĐÃ THU trong kỳ — đơn công nợ chưa thu chưa được tính. '
-                  'Đây là lãi theo dòng tiền thực thu, không phải lợi nhuận kế toán đầy đủ '
-                  '(xem "Báo cáo đầy đủ" ở cuối trang).',
+              'Lãi $_periodLabel',
+              'Tính trên phần tiền ĐÃ THU trong kỳ — đơn công nợ chưa thu chưa được tính.\n\n'
+                  'Doanh thu đã thu − vốn hàng/linh kiện = LÃI GỘP.\n'
+                  'Lãi gộp − chi phí vận hành (điện nước, mặt bằng, lương, chi khác…) = LÃI THỰC.\n\n'
+                  'Chi phí vận hành không gồm tiền nhập hàng, trả nợ NCC, thanh toán đối tác '
+                  '(những khoản đó là vốn, đã trừ ở dòng vốn hoặc là tiền tồn kho).',
             ),
             const SizedBox(height: 12),
             _wfRow(
-              'Tiền bán hàng đã thu',
-              s.incomeFromSales,
+              'Doanh thu đã thu',
+              revenue,
               FinanceV2Theme.ink,
+              bold: true,
             ),
             _wfRow(
-              'Tiền sửa chữa đã thu',
-              s.incomeFromRepairs,
-              FinanceV2Theme.ink,
+              'Bán hàng',
+              s.incomeFromSales,
+              FinanceV2Theme.subInk,
+              indent: true,
             ),
-            const Divider(height: 18, thickness: 0.5),
-            _wfRow('Doanh thu đã thu', revenue, FinanceV2Theme.ink, bold: true),
+            _wfRow(
+              'Sửa chữa',
+              s.incomeFromRepairs,
+              FinanceV2Theme.subInk,
+              indent: true,
+            ),
             if (_canViewCost) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               _wfRow(
-                '− Vốn bán hàng',
+                '− Vốn hàng đã bán',
                 s.cogsFromSales,
                 FinanceV2Theme.negative,
               ),
               _wfRow(
-                '− Vốn sửa chữa',
+                '− Vốn linh kiện sửa chữa',
                 s.cogsFromRepairs,
                 FinanceV2Theme.negative,
               ),
               const Divider(height: 18, thickness: 0.5),
               _wfRow(
                 '= Lãi gộp',
-                revenue - cogs,
-                (revenue - cogs) >= 0
-                    ? FinanceV2Theme.positive
-                    : FinanceV2Theme.negative,
+                gross,
+                signColor(gross),
                 bold: true,
                 signed: true,
+              ),
+              const SizedBox(height: 4),
+              _wfRow(
+                '− Chi phí vận hành',
+                s.operatingExpenseOut,
+                FinanceV2Theme.negative,
+              ),
+              const Divider(height: 18, thickness: 0.5),
+              _wfRow(
+                '= Lãi thực',
+                net,
+                signColor(net),
+                bold: true,
+                signed: true,
+                hero: true,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                revenue > 0
+                    ? 'Cứ 100đ thu về thì lãi thực ${(net * 100 / revenue).round()}đ.'
+                    : 'Chưa có tiền thu trong kỳ này.',
+                style: FinanceV2Theme.micro,
               ),
             ] else if (_costPermissionResolved)
               // CLAUDE.md §9: chặn giá vốn ở CẢ giao diện lẫn dữ liệu xuất ra.
@@ -1892,7 +1932,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'Bạn không có quyền xem giá vốn nên phần vốn & lãi gộp được ẩn.',
+                        'Bạn không có quyền xem giá vốn nên phần vốn & lãi được ẩn.',
                         style: FinanceV2Theme.micro,
                       ),
                     ),
@@ -1905,30 +1945,62 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     );
   }
 
-  /// Một dòng của bảng thác nước: nhãn bên trái, số bên phải.
+  /// Nhãn kỳ đang chọn cho tiêu đề khối lãi: "hôm nay" / "7 ngày qua" / …
+  String get _periodLabel {
+    if (_timeFilter == _TimeFilter.today) return 'hôm nay';
+    if (_timeFilter == _TimeFilter.sevenDays) return '7 ngày qua';
+    if (_timeFilter == _TimeFilter.thirtyDays) return '30 ngày qua';
+    return 'kỳ này';
+  }
+
+  /// Một dòng của bảng thác nước: nhãn bên trái, số ĐẦY ĐỦ bên phải.
+  /// [indent] = dòng con (thụt vào, chữ nhỏ, số không đậm).
+  /// [hero] = dòng kết (số to hơn).
   Widget _wfRow(
     String label,
     int amount,
     Color color, {
     bool bold = false,
     bool signed = false,
+    bool indent = false,
+    bool hero = false,
   }) {
+    final text = signed && amount < 0 ? '-${_full(amount)}' : _full(amount);
+    final TextStyle labelStyle;
+    if (hero) {
+      labelStyle = FinanceV2Theme.titleLg;
+    } else if (bold) {
+      labelStyle = FinanceV2Theme.bodyMd.copyWith(fontWeight: FontWeight.w700);
+    } else if (indent) {
+      labelStyle = FinanceV2Theme.bodySm.copyWith(color: FinanceV2Theme.subInk);
+    } else {
+      labelStyle = FinanceV2Theme.bodySm;
+    }
+    final TextStyle amountStyle;
+    if (hero) {
+      amountStyle = FinanceV2Theme.amountLg.copyWith(fontSize: 20, color: color);
+    } else if (bold) {
+      amountStyle = FinanceV2Theme.amountMd.copyWith(
+        fontSize: 15,
+        color: color,
+      );
+    } else if (indent) {
+      amountStyle = FinanceV2Theme.bodySm.copyWith(color: color);
+    } else {
+      amountStyle = FinanceV2Theme.bodyMd.copyWith(
+        color: color,
+        fontWeight: FontWeight.w700,
+      );
+    }
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: EdgeInsets.only(top: 3, bottom: 3, left: indent ? 14 : 0),
       child: Row(
         children: [
-          Expanded(
-            child: Text(
-              label,
-              style: bold
-                  ? FinanceV2Theme.bodyMd.copyWith(fontWeight: FontWeight.w700)
-                  : FinanceV2Theme.bodySm,
-            ),
-          ),
-          Text(
-            signed ? _signedCmp(amount) : _cmp(amount),
-            style: (bold ? FinanceV2Theme.amountMd : FinanceV2Theme.bodyMd)
-                .copyWith(color: color, fontWeight: FontWeight.w700),
+          Expanded(child: Text(label, style: labelStyle)),
+          const SizedBox(width: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(text, style: amountStyle),
           ),
         ],
       ),
@@ -4748,6 +4820,11 @@ class _FinanceV2ViewState extends State<FinanceV2View>
           ['Lãi gộp (đã thu) - bán', s.grossProfitFromSales],
           ['Lãi gộp (đã thu) - sửa', s.grossProfitFromRepairs],
           ['Tổng lãi gộp (phần đã thu)', s.grossProfitTotal],
+          ['Chi phí vận hành', s.operatingExpenseOut],
+          [
+            'Lãi thực (sau chi phí)',
+            s.grossProfitTotal - s.operatingExpenseOut,
+          ],
         ],
         ['Phải thu', s.receivableTotal],
         ['Phải trả', s.payableTotal],
@@ -4904,8 +4981,13 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       ['Thu vào', s.totalIn],
       ['Chi ra', s.totalOut],
       ['Ròng sổ quỹ', s.netCashflow],
+      // Cùng công thức & tên với màn hình / bản in ("Lãi thực (sau chi phí)");
+      // bản cũ ghi nhãn "Lãi gộp" cho con số đã trừ chi vận hành → lệch với
+      // dòng "Tổng lãi gộp" ở sheet Lãi.
+      ['Lãi gộp (phần đã thu)', s.grossProfitTotal],
+      ['Chi phí vận hành', s.operatingExpenseOut],
       [
-        'Lãi gộp (phần đã thu)',
+        'Lãi thực (sau chi phí)',
         s.grossProfitTotal - s.operatingExpenseOut,
       ],
       ['Số giao dịch', s.transactionCount],

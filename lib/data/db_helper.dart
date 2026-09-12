@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firestore_write_helper.dart';
 import '../models/repair_model.dart';
 import '../models/product_model.dart';
+import '../constants/product_constants.dart';
 import '../models/sale_order_model.dart';
 import '../models/expense_model.dart';
 import '../models/debt_model.dart';
@@ -6179,8 +6180,23 @@ class DBHelper {
   /// Retroactively update totalCost for non-IMEI products by matching productId
   /// in itemSnapshotsJson. Only patches items whose unitCost was 0.
   /// Returns list of sale ids that were actually changed.
-  Future<List<Map<String, dynamic>>> getSalesByProductId(int productId) async {
+  ///
+  /// Matches by the product's cloud id when it has one; the local `productId`
+  /// in a snapshot is the SQLite row id of whichever device created the sale
+  /// and collides with unrelated products on every other device.
+  Future<List<Map<String, dynamic>>> getSalesByProductId(
+    int productId, {
+    String? productFirestoreId,
+  }) async {
     final db = await database;
+    final fid = (productFirestoreId ?? '').trim();
+    if (fid.isNotEmpty) {
+      return db.query(
+        'sales',
+        where: 'itemSnapshotsJson LIKE ?',
+        whereArgs: ['%"productFirestoreId":"$fid"%'],
+      );
+    }
     return db.query(
       'sales',
       where: "itemSnapshotsJson LIKE ?",
@@ -6188,11 +6204,35 @@ class DBHelper {
     );
   }
 
+  /// A snapshot line belongs to the product when its cloud id matches, or —
+  /// for lines without a cloud id — when the local id matches AND the name
+  /// agrees (the local id alone is not portable between devices).
+  @visibleForTesting
+  static bool snapshotLineIsProduct(
+    Map<String, dynamic> snap, {
+    required int productId,
+    required String productFirestoreId,
+    required String productName,
+  }) {
+    final snapFid = (snap['productFirestoreId'] ?? '').toString().trim();
+    if (snapFid.isNotEmpty || productFirestoreId.isNotEmpty) {
+      return snapFid.isNotEmpty && snapFid == productFirestoreId;
+    }
+    if ((snap['productId'] as num?)?.toInt() != productId) return false;
+    if (productName.trim().isEmpty) return true;
+    return ProductConstants.isSameProductName(
+      (snap['productName'] ?? '').toString(),
+      productName,
+    );
+  }
+
   Future<bool> updateSaleCostByProductId(
     int saleId,
     int productId,
-    int newCost,
-  ) async {
+    int newCost, {
+    String? productFirestoreId,
+    String? productName,
+  }) async {
     final db = await database;
     final rows = await db.query(
       'sales',
@@ -6209,7 +6249,12 @@ class DBHelper {
       int costDelta = 0;
       for (final s in snapshots) {
         final snap = s as Map<String, dynamic>;
-        if ((snap['productId'] as int? ?? -1) == productId) {
+        if (snapshotLineIsProduct(
+          snap,
+          productId: productId,
+          productFirestoreId: (productFirestoreId ?? '').trim(),
+          productName: productName ?? '',
+        )) {
           final qty = snap['quantity'] as int? ?? 1;
           final oldUnit = snap['unitCost'] as int? ?? 0;
           if (oldUnit == 0) {
@@ -6619,6 +6664,7 @@ class DBHelper {
     for (var p in newParts) {
       result.add({
         'id': p.id,
+        'firestoreId': p.firestoreId, // khoá dùng chung giữa các máy
         'source': 'products', // Đánh dấu nguồn
         'partName': p.name,
         'compatibleModels': p.model ?? '',

@@ -7,6 +7,7 @@ import '../models/sales_return_model.dart';
 import '../services/user_service.dart';
 import '../services/audit_service.dart';
 import '../utils/money_utils.dart';
+import '../constants/product_constants.dart';
 import '../services/encryption_service.dart';
 import '../services/sync_orchestrator.dart';
 import '../services/event_bus.dart';
@@ -320,6 +321,7 @@ class SalesReturnService {
     }
   }
 
+
   /// Restore stock for a returned item
   static Future<void> _restoreStock(SalesReturnItem item) async {
     try {
@@ -333,21 +335,25 @@ class SalesReturnService {
         product = await _db.getProductByImei(item.productImei!);
       }
 
-      if (product == null && item.productId != null && item.productId! > 0) {
-        final database = await _db.database;
-        final rows = await database.query(
-          'products',
-          where: 'id = ?',
-          whereArgs: [item.productId],
-          limit: 1,
-        );
-        if (rows.isNotEmpty) {
-          product = Product.fromMap(rows.first);
-        }
+      // Cloud id BEFORE local id: `productId` is the SQLite row id of the
+      // device that created the sale, which on another device is a different
+      // product — restoring stock into it would silently corrupt inventory.
+      // A local id is only trusted when the row's name matches the item name.
+      if (product == null &&
+          item.productFirestoreId != null &&
+          item.productFirestoreId!.isNotEmpty) {
+        product = await _db.getProductByFirestoreId(item.productFirestoreId!);
       }
 
-      if (product == null && item.productFirestoreId != null) {
-        product = await _db.getProductByFirestoreId(item.productFirestoreId!);
+      if (product == null && item.productId != null && item.productId! > 0) {
+        final byLocalId = await _db.getProductById(item.productId!);
+        if (byLocalId != null &&
+            ProductConstants.isSameProductName(
+              byLocalId.name,
+              item.productName,
+            )) {
+          product = byLocalId;
+        }
       }
 
       if (product == null) {

@@ -96,11 +96,23 @@ class _CreateSalesReturnViewState extends State<CreateSalesReturnView> {
           item.imei != 'NO_IMEI') {
         product = await _db.getProductByImei(item.imei);
       }
+      // Cloud id is the only key that survives crossing devices; name is the
+      // last resort (two accessories can share a name).
+      final cloudId = (item.productFirestoreId ?? '').trim();
+      if (product == null && cloudId.isNotEmpty) {
+        product = await _db.getProductByFirestoreId(cloudId);
+      }
       product ??= await _db.getProductByName(item.name);
       product ??= await _db.getProductByNameFlexible(item.name);
       if (product != null) {
         item.productId = product.id;
         item.productFirestoreId = product.firestoreId;
+      } else {
+        // Never carry the snapshot's `productId` forward: it is the SQLite row
+        // id of the device that created the sale and points at a different
+        // product here. Leaving it would make the return service restock the
+        // wrong item. The cloud id stays so the service can still try it.
+        item.productId = null;
       }
     }
 

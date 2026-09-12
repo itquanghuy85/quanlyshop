@@ -20,6 +20,7 @@ import '../models/repair_model.dart';
 import '../models/repair_service_model.dart';
 import '../models/part_used_detail_model.dart';
 import '../models/product_model.dart';
+import '../constants/product_constants.dart';
 import '../services/pricing_engine_service.dart';
 import '../services/price_book_service.dart';
 import '../models/price_book_models.dart';
@@ -157,22 +158,46 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     unawaited(_loadHistoricalPricing());
   }
 
+  /// Sản phẩm trong Kho ứng với một phụ tùng đã dùng — ưu tiên cloud id.
+  ///
+  /// `productId` là id SQLite của máy đã thêm phụ tùng; trên máy khác cùng
+  /// số đó là món khác (cùng bẫy với snapshot đơn bán, 2026-09-12), nên chỉ
+  /// tin khi tên trùng. Cuối cùng mới tra theo tên.
+  Future<Product?> _resolvePartProduct(PartUsedDetail p) async {
+    final cloudId = (p.productFirestoreId ?? '').trim();
+    if (cloudId.isNotEmpty) {
+      final byCloud = await db.getProductByFirestoreId(cloudId);
+      if (byCloud != null) return byCloud;
+    }
+    if (p.productId != null) {
+      final byLocal = await db.getProductById(p.productId!);
+      if (byLocal != null &&
+          ProductConstants.isSameProductName(byLocal.name, p.name)) {
+        return byLocal;
+      }
+    }
+    if (p.name.trim().isNotEmpty) {
+      return db.getProductByNameFlexible(p.name.trim());
+    }
+    return null;
+  }
+
   /// Tra NCC cho các phụ tùng có productId nhưng chưa lưu supplier (đơn cũ).
   Future<void> _loadPartSuppliers() async {
     try {
-      final pids = <int>{
+      final pending = <int, PartUsedDetail>{
         for (final p in r.partsUsedDetailed)
           if (p.productId != null &&
               (p.supplier ?? '').trim().isEmpty &&
               !_partSupplierByPid.containsKey(p.productId))
-            p.productId!,
+            p.productId!: p,
       };
-      if (pids.isEmpty) return;
+      if (pending.isEmpty) return;
       final map = <int, String>{};
-      for (final pid in pids) {
-        final prod = await db.getProductById(pid);
+      for (final entry in pending.entries) {
+        final prod = await _resolvePartProduct(entry.value);
         final sup = (prod?.supplier ?? '').trim();
-        if (sup.isNotEmpty) map[pid] = sup;
+        if (sup.isNotEmpty) map[entry.key] = sup;
       }
       if (map.isNotEmpty && mounted) {
         setState(() => _partSupplierByPid.addAll(map));
@@ -2544,12 +2569,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   Future<void> _openPartInInventory(PartUsedDetail p) async {
     Product? prod;
     try {
-      if (p.productId != null) {
-        prod = await db.getProductById(p.productId!);
-      }
-      if (prod == null && p.name.trim().isNotEmpty) {
-        prod = await db.getProductByNameFlexible(p.name.trim());
-      }
+      prod = await _resolvePartProduct(p);
     } catch (e) {
       debugPrint('_openPartInInventory: $e');
     }
@@ -2736,6 +2756,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         usedParts.add("$partName x$qty");
         selectedPartsInfo.add({
           'id': partId,
+          'firestoreId': part['firestoreId'],
           'source': source,
           'name': partName,
           'cost': partCost,
@@ -2751,6 +2772,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             (p) => PartUsedDetail(
               name: (p['name'] ?? '').toString(),
               productId: p['source'] == 'products' ? p['id'] as int? : null,
+              productFirestoreId: p['source'] == 'products'
+                  ? p['firestoreId'] as String?
+                  : null,
               cost: p['cost'] as int? ?? 0,
               qty: p['qty'] as int? ?? 1,
               supplier: (p['supplier'] ?? '').toString().trim().isEmpty

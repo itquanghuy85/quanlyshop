@@ -396,14 +396,20 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                 rawImei.toUpperCase().startsWith('PKX');
             final imei = isPlaceholderImei ? '' : rawImei;
             final sku = (item['sku'] ?? '').toString().trim();
-            final productId =
-                (item['id'] ??
-                        item['productId'] ??
-                        item['productFirestoreId'] ??
-                        item['firestoreId'] ??
-                        '')
+            // `productId`/`id` in the snapshot is the SQLite row id of the
+            // device that CREATED the sale — it means nothing on any other
+            // device (real case 2026-09-12: id 517 = "CÓC SẠC" on the seller's
+            // phone, "IPAD GEN 10" on the owner's). The cloud id is the only
+            // portable key; the local id is kept as a last resort and
+            // DeepLinkNavigator verifies it against the name before trusting it.
+            final cloudId =
+                (item['productFirestoreId'] ?? item['firestoreId'] ?? '')
                     .toString()
                     .trim();
+            final localId = (item['productId'] ?? item['id'] ?? '')
+                .toString()
+                .trim();
+            final productId = cloudId.isNotEmpty ? cloudId : localId;
             final qty = (item['quantity'] as num?)?.toInt();
             // snapshot key: price (legacy) | unitPrice (create_sale_view)
             final price = ((item['price'] ?? item['unitPrice']) as num?)

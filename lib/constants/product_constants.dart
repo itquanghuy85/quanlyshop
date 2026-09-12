@@ -1,7 +1,25 @@
+import '../utils/vietnamese_utils.dart';
+
 /// Các hằng số dùng chung cho sản phẩm
 /// Đồng bộ giữa: NHẬP KHO MỚI, HÀNG CHỜ XÁC NHẬN, QUẢN LÝ KHO,
 /// THÊM MÃ NHẬP NHANH, NHẬP KHO NHANH
 class ProductConstants {
+  /// Cùng một tên sản phẩm? Bỏ dấu, hoa/thường, khoảng trắng và hậu tố số
+  /// lượng " x2" ("ỐP LƯNG X2" trong `productNames` của đơn bán).
+  ///
+  /// Dùng làm hàng rào khi phải dựa vào `productId` CỤC BỘ trong snapshot đơn
+  /// bán / trả hàng: id đó là số thứ tự SQLite của máy tạo đơn, sang máy khác
+  /// trỏ vào sản phẩm khác — chỉ tin khi tên cũng khớp. Chuỗi rỗng không bảo
+  /// chứng được gì → false.
+  static bool isSameProductName(String a, String b) {
+    String norm(String v) => VietnameseUtils.normalize(
+      v.replaceAll(RegExp(r'\s+[xX]\d+\b'), ''),
+    ).replaceAll(RegExp(r'\s+'), '');
+    final na = norm(a);
+    final nb = norm(b);
+    return na.isNotEmpty && na == nb;
+  }
+
   /// Danh sách màu sắc (sử dụng tiếng Việt để đồng bộ)
   static const List<String> colors = [
     'ĐEN',

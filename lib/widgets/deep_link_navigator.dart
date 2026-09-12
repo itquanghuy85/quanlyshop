@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../constants/product_constants.dart';
 
 import '../data/db_helper.dart';
 import '../models/customer_model.dart';
@@ -141,6 +142,7 @@ class DeepLinkNavigator {
     }
   }
 
+
   static Future<Product?> _findProductBySku(String sku) async {
     final shopId = await UserService.getCurrentShopId();
     final db = await DBHelper().database;
@@ -187,12 +189,25 @@ class DeepLinkNavigator {
       final rawSku = (sku ?? '').trim();
       final rawName = (fallbackName ?? '').trim();
 
-      // Priority 1: productId (local id or firestoreId)
+      // Priority 1: productId (firestoreId, or a local SQLite id)
+      //
+      // A numeric id is the row id of whichever device wrote the record and is
+      // NOT portable: on another phone the same number is a different product
+      // (2026-09-12: a sale's "CÓC SẠC" opened "IPAD GEN 10" on the owner's
+      // phone, and a third product on the iPhone). So a numeric hit is only
+      // trusted when its name matches the name we were given; otherwise fall
+      // through to IMEI / SKU / name, which are device-independent.
       if (rawProductId.isNotEmpty) {
         final localId = int.tryParse(rawProductId);
         if (localId != null) {
-          found = await db.getProductById(localId);
+          final byLocalId = await db.getProductById(localId);
+          if (byLocalId != null &&
+              ProductConstants.isSameProductName(byLocalId.name, rawName)) {
+            found = byLocalId;
+          }
         }
+        // Also covers an all-digit firestoreId (none seen in real data, kept
+        // so behaviour is a strict superset of the old lookup).
         found ??= await db.getProductByFirestoreId(rawProductId);
       }
 

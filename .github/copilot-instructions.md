@@ -24,6 +24,7 @@ Critical patterns to follow (discoverable in code)
 - Error handling: Global `runZonedGuarded` in `main.dart`; services use try/catch with rethrow; soft failures return null/false.
 - Notifications: `NotificationService.init()` in `main.dart`, `listenToNotifications()` in `AuthGate` for snackbars; rate-limited to 3 per 10s.
 - Local persistence: Upsert patterns in `db_helper.dart`; `firestoreId` as unique key; `isSynced` for conflict resolution.
+- Cross-device keys: local SQLite row ids (`products.id`, snapshot `productId`, `PartUsedDetail.productId`) mean nothing on another device — always store and resolve by `firestoreId` first; a numeric id may only be trusted when the product name also matches (`ProductConstants.isSameProductName`). See CLAUDE.md §12 and `[2026-09-12j]`.
 - Soft deletes: Firestore updates with `deleted: true` and `updatedAt: serverTimestamp()`; local DB marks deleted but keeps records.
 
 Developer workflows & commands
