@@ -6,7 +6,7 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ## ⚡ Trạng thái hiện tại
 
-**Version:** 3.5.0+556 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-06.md`; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
+**Version:** 3.6.0+557 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-12.md`, gộp cả 3.5.0 chưa đăng; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-12  
 
 **✅ TEST ĐỒNG BỘ TOÀN BỘ 2 MÁY + ĐỐI CHIẾU 30 BẢNG (`[2026-09-12d]`).** Mọi
