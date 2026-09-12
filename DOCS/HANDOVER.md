@@ -6,7 +6,7 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ## ⚡ Trạng thái hiện tại
 
-**Version:** 3.6.0+557 (SẴN SÀNG lên store — xem `DOCS/release_notes_2026-09-12.md`, gộp cả 3.5.0 chưa đăng; 3.4.0+545 đang live từ 17/08). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
+**Version:** 3.6.0+557 (AAB đã build 12/09 15:26 + web đã deploy https://quanlyshop.web.app — xem `DOCS/release_notes_2026-09-12.md`; 3.5.0+556 đang live trên store). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-12  
 
 **🔴 ĐO SHOP THẬT: 22K READ MỖI LẦN MỞ APP → 125 (`[2026-09-12f]`).** Gốc lớn
