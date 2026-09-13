@@ -9,6 +9,56 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.6.0+557 (AAB đã build 12/09 15:26 + web đã deploy https://quanlyshop.web.app — xem `DOCS/release_notes_2026-09-12.md`; 3.5.0+556 đang live trên store). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-13  
 
+**🔴 ĐÃ VÁ (NGHIÊM TRỌNG, LIVE production): sai giá trị Android priority ở `functions/index.js` khiến PHẦN LỚN thông báo push gửi lỗi (`[2026-09-13l]`).**
+Phát hiện khi test tính năng "Còn lại" (`[2026-09-13k]`): FCM báo
+`Sent 0 notifications, 1 failed`. Gốc: 2 field priority khác nhau của FCM
+v1 (`android.priority` chỉ nhận `'normal'|'high'`;
+`android.notification.priority` nhận `'default'|'high'|...`) bị code cũ
+dùng CHUNG 1 hàm, trả `'default'` cho field đầu — **bị FCM REJECT THẲNG**.
+Ảnh hưởng MỌI type không phải `new_order`/`payment`/`chat`: `finance`,
+`debt`, `approval_needed`, `inventory`, `staff`, `system`... — rất có thể
+là nguyên nhân câu hỏi trước đó về thiếu thông báo "YÊU CẦU DUYỆT GIAO
+MÁY". Đã tách 2 hàm riêng, deploy ngay
+(`firebase deploy --only functions:sendShopNotification`) — xác nhận qua
+`firebase functions:log`: sau vá `Sent 1 notifications, 0 failed`. **CHƯA
+xác nhận trên UI máy thật** — CPH2239 (máy test, ColorOS, banner "chưa
+hoàn tất thiết lập" suốt phiên) FCM báo thành công nhưng thông báo chưa
+hiện trên thanh trạng thái — nghi vấn quyền thông báo riêng của máy CHƯA
+setup xong, không phải lỗi code. Cần xác nhận lại trên máy đã setup đầy đủ
+(CPH2203, hiện đang bận việc khác). Xem CHANGELOG `[2026-09-13l]`.
+
+**⏳ "Còn lại" trong thông báo tài chính (`[2026-09-13k]`) — CHƯA nghiệm
+thu do vướng bug ở trên, cần test lại sau khi xác nhận notification hiện
+được trên máy thật.**
+
+**✅ Nghiệm thu nút "Đảo tất cả N khoản chi ma" bằng dữ liệu thật mới tạo
+(`[2026-09-13l]`).** Shop "M" đã sạch sau `[2026-09-13j]` nên tạo dữ liệu
+thật ngay trong app để test: màn Thu Chi xóa 1 khoản chi (🗑) chỉ xóa
+`expenses`, KHÔNG đụng `financial_activity_log` — phát hiện đây chính là
+cách "chi ma" thật phát sinh (không phải lỗi hiếm). Tạo 3 khoản test → xóa
+cả 3 → hiện đúng trong tab TÀI CHÍNH kèm nút bulk mới. Bấm nút, xác nhận
+mật khẩu 1 lần → cả 3 biến mất. Kéo SQLite xác minh: `financial_activity_log`
+có đúng 3 dòng bù IN khớp số tiền, `payment_intents` CANCELLED, `audit_logs`
+có 3 dòng `RECONCILE_REVERSE_ORPHAN_EXPENSE` mới — khớp 100%, không lỗi.
+3 nút bulk còn lại dùng chung code+UI pattern đã kiểm chứng, không lặp lại
+test (2/3 thuộc điều kiện lỗi lịch sử đã bị các bản vá PHASE 1.1–1.5 chặn,
+khó tái hiện qua luồng hợp lệ hiện tại). Xem CHANGELOG `[2026-09-13l]`.
+
+**⏳ CHÈN "Còn lại" vào thông báo tài chính, không thêm thông báo mới (`[2026-09-13k]`) — CHƯA nghiệm thu, cần deploy firestore.rules trước.**
+Không tạo luồng "biến động số dư" riêng (sẽ ra 2 thông báo/giao dịch = spam)
+— bổ sung dòng "💼 Còn lại: X đ" (tiền mặt+ngân hàng) vào thông báo tài
+chính ĐÃ CÓ sẵn (`notifyFinancialActivity`/`notifyDebtActivity`). Tính bằng
+cache cộng/trừ dần `CashBalanceCacheService` (MỚI,
+`shops/{shopId}/meta/cashBalanceCache`, `FieldValue.increment` — không chạy
+lại `DailyFinancialAnalysisService` nặng mỗi giao dịch), tự sửa lệch mỗi
+lần CHỐT QUỸ thật. Đã thêm rule Firestore cho subcollection `meta` — dry-run
+compile OK nhưng **CHƯA deploy thật lên production**, nên tính năng hiện
+CHƯA hoạt động trên máy thật (mọi lệnh gọi cache sẽ PERMISSION_DENIED, bị
+nuốt âm thầm — không ảnh hưởng gì khác, thông báo chính vẫn gửi bình
+thường, chỉ thiếu dòng "Còn lại"). `flutter analyze`/`test` sạch. Việc kế
+tiếp: xác nhận rồi `firebase deploy --only firestore:rules`, build+cài lại,
+nghiệm thu máy thật. Xem CHANGELOG `[2026-09-13k]`.
+
 **✅ 4 nút "xử lý tất cả" cho tab TÀI CHÍNH — Công cụ điều chỉnh dữ liệu
 (`[2026-09-13j]`).** Sau audit `[2026-09-13i]`, đã tự tay dọn TOÀN BỘ 61 mục
 sai lệch tồn đọng của shop "M" để đánh giá thật — phát hiện 60/61 mục phải

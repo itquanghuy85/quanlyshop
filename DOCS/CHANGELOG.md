@@ -4,6 +4,169 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-13l] - Nghiệm thu nút "Đảo tất cả N khoản chi ma" bằng dữ liệu thật mới tạo
+
+### Bối cảnh
+Sau `[2026-09-13j]` (thêm 4 nút bulk), shop "M" đã sạch dữ liệu sai lệch nên
+không có gì để bấm thử. User yêu cầu tạo dữ liệu THẬT ngay trong app (không
+sửa thẳng SQLite) rồi nghiệm thu.
+
+### Cách tạo dữ liệu "chi ma" hợp lệ — phát hiện thêm 1 sự thật về app
+Màn "Thu Chi" (`expense_view.dart`, nút xóa 🗑 mỗi dòng chi) chỉ xóa dòng
+`expenses` (`_handleDeleteExpense`), KHÔNG đụng `financial_activity_log` —
+đây chính là cách các khoản "chi ma" thật sự phát sinh trong sản xuất (không
+phải lỗi hiếm/khó tái hiện như đã nghĩ). Quy trình tái hiện: tạo 3 khoản
+"Chi phí phát sinh" (TÉTBULK1/2/3, 1.000đ/2.000đ/3.000đ) qua nút "Chi phí
+mới" → xóa cả 3 qua nút 🗑 (chỉ xóa `expenses`, giữ log) → 3 khoản hiện đúng
+trong tab TÀI CHÍNH của Công cụ điều chỉnh dữ liệu, kèm nút "Đảo tất cả 3
+khoản chi ma" mới thêm.
+
+### Kiểm chứng end-to-end trên CPH2203 (m@m.com, shop "M")
+- Nút hiện đúng "Đảo tất cả 3 khoản chi ma"; dialog tóm tắt hiện đúng
+  "Tổng 6.000đ trên 3 khoản" (1.000+2.000+3.000).
+- Sau 1 lần xác nhận mật khẩu duy nhất, cả 3 khoản biến mất khỏi danh sách,
+  mục "Khoản chi ma trong Nhật ký" tự ẩn khi về 0.
+- Kéo SQLite xác minh trực tiếp: `expenses` không còn dòng TÉTBULK nào (đã
+  xóa từ bước tạo dữ liệu); `financial_activity_log` giữ nguyên 3 dòng OUT
+  gốc (append-only, đúng thiết kế) + có thêm đúng 3 dòng IN "Đảo khoản chi
+  ma: TÉTBULK1/2/3" số tiền khớp chính xác 1.000/2.000/3.000; `payment_intents`
+  của cả 3 đã chuyển `CANCELLED`; `audit_logs` có đúng 3 dòng
+  `RECONCILE_REVERSE_ORPHAN_EXPENSE` mới (id liên tiếp, timestamp cách nhau
+  <2s, khớp thời điểm bấm nút).
+- Không tìm thấy lỗi nào. Do 3/4 nút bulk còn lại dùng chung 100% cùng 1
+  pattern code (vòng lặp gọi lại hàm từng-cái đã kiểm chứng) và cùng 1 UI
+  pattern (`_confirmSummary`+`_confirmPassword` đã kiểm chứng ở cả nút này
+  lẫn nút "Xóa tất cả 2 item của shop khác" trước đó) — không lặp lại thao
+  tác tái hiện dữ liệu cho 3 nút kia (2 trong số đó thuộc các điều kiện lỗi
+  lịch sử đã được các bản vá trước đây (PHASE 1.1–1.5) chặn lại, khó tái
+  hiện qua luồng hợp lệ hiện tại).
+
+---
+
+## [2026-09-13l] - fix(NGHIÊM TRỌNG, functions): sai giá trị Android priority khiến PHẦN LỚN thông báo push gửi lỗi từ Cloud Function — không liên quan gì tới app Flutter
+
+### Phát hiện khi nào
+Trong lúc test tính năng "Còn lại" (`[2026-09-13k]`) trên máy CPH2239 (shop
+test "M"): tạo giao dịch "Ghi chi" xong nhưng không thấy thông báo nào trên
+máy, kể cả thông báo tài chính bình thường (không riêng gì tính năng mới).
+`logcat` cho thấy `FCM sent successfully: 0 success, 1 failed`.
+
+### Nguyên nhân gốc — 2 lỗi lồng nhau, cả 2 đều ở `functions/index.js`
+FCM v1 dùng **2 field priority khác nhau**, mỗi field có tập giá trị hợp lệ
+RIÊNG — code cũ dùng CHUNG 1 hàm `getAndroidPriority(type)` cho cả 2:
+- `android.priority` (`AndroidConfig`, cấp gói tin): chỉ nhận `'normal'` |
+  `'high'`. Code cũ trả `'default'` cho phần lớn type (nhánh
+  `default:`) — **`admin.messaging()` REJECT THẲNG** với
+  `messaging/invalid-argument`, không gửi được gì cả (không phải gửi với độ
+  ưu tiên thấp — LỖI HẲN, 0 success).
+- `android.notification.priority` (`AndroidNotification`, cấp hiển thị):
+  nhận `'min'|'low'|'default'|'high'|'max'` — field này DÙNG ĐÚNG
+  `'default'`, nhưng bản vá đầu tiên (đổi `getAndroidPriority` trả
+  `'normal'` thay vì `'default'` để sửa field trên) vô tình LÀM HỎNG field
+  này (`'normal'` không hợp lệ ở đây) — bắt được ngay ở log lần test kế
+  tiếp, sửa tiếp bằng hàm riêng `getAndroidNotificationPriority(type)`.
+
+**Phạm vi ảnh hưởng**: mọi `type` KHÔNG phải `new_order`/`payment`/`chat`
+đều rơi vào nhánh `default:` bị lỗi — tức là **`finance`, `debt`,
+`approval_needed`, `inventory`, `staff`, `system`, `missing_cost`...** —
+phần lớn các loại thông báo trong app, trên MỌI shop, không riêng gì shop
+test. Đây rất có thể là nguyên nhân của các bí ẩn "không thấy thông báo X"
+đã gặp trong phiên này (vd. nghi vấn thiếu "YÊU CẦU DUYỆT GIAO MÁY" —
+`type: 'approval_needed'` — đúng loại bị lỗi).
+
+### Đã sửa
+- `functions/index.js`: tách `getAndroidPriority()` (chỉ dùng cho
+  `android.priority`, trả `'normal'`/`'high'`) và
+  `getAndroidNotificationPriority()` MỚI (dùng cho
+  `android.notification.priority`, trả `'default'`/`'high'`) — không còn
+  dùng chung 1 hàm cho 2 field khác enum.
+- Thêm log chi tiết lỗi FCM per-token (`r.error.code`/`r.error.message`)
+  khi `failureCount > 0` — trước đây chỉ log tổng số fail, không có lý do,
+  khiến debug phải mò.
+- Đã `firebase deploy --only functions:sendShopNotification` — LIVE trên
+  production ngay khi vá xong (không có bước "chờ duyệt" cho Cloud
+  Functions).
+
+### Kiểm chứng
+- `firebase functions:log`: trước vá `Sent 0 notifications, 1 failed` (lỗi
+  `Invalid value at 'message.android.priority' ... "default"`) → sau vá
+  lần 1 vẫn fail nhưng đổi lỗi sang field kia (`"PRIORITY_NORMAL"` không
+  hợp lệ) → sau vá lần 2: **`Sent 1 notifications, 0 failed`**.
+- Xác nhận trên máy CPH2239: `dumpsys notification` cho thấy
+  `post_frequency{... count=4, muted=0/4}` — cả 4 lần gửi (kể cả 2 lần lỗi
+  trước khi vá — hệ thống vẫn đếm "post" dù FCM thất bại từ trước khi tới
+  máy) đều KHÔNG bị OS chặn (muted=0), riêng lần cuối sau khi vá xong mới
+  thật sự gửi thành công tới máy qua FCM.
+- **Thông báo vẫn CHƯA hiện trên thanh trạng thái của máy CPH2239** dù FCM
+  đã báo thành công — nghi vấn đây là vấn đề RIÊNG của máy test (banner
+  "Hoàn tất thiết lập OPPO A54 của bạn — chưa xong" xuất hiện suốt phiên
+  test, có thể ColorOS chưa cấp đủ quyền hiển thị thông báo cho app khi
+  máy chưa hoàn tất thiết lập lần đầu) — KHÔNG PHẢI lỗi code, cần kiểm tra
+  trên máy đã setup xong (vd. CPH2203) để xác nhận dứt điểm.
+- `flutter test`: không liên quan (thay đổi chỉ ở `functions/`), baseline
+  665 pass / 1 skip / 2 fail không đổi.
+
+## [2026-09-13k] - feat(thông báo): chèn "Còn lại" (quỹ tiền mặt+ngân hàng) vào thông báo tài chính — không thêm thông báo mới
+
+### Yêu cầu
+Thêm thông báo "biến động số dư" cho trang Chốt quỹ (tiền vào/ra + còn lại
+bao nhiêu), nhưng phải tránh spam thông báo.
+
+### Quyết định thiết kế
+Không tạo luồng thông báo RIÊNG cho "biến động số dư" — mỗi giao dịch đã có
+1 thông báo tài chính (`notifyFinancialActivity`/`notifyDebtActivity`, gọi
+từ `PaymentIntentService.executePayment()` — điểm trung tâm DUY NHẤT xử lý
+thanh toán). Thêm 1 luồng nữa sẽ ra 2 thông báo/giao dịch — đúng thứ gây
+spam. Thay vào đó BỔ SUNG dòng "💼 Còn lại: X đ" (tiền mặt + ngân hàng cộng
+gộp, theo lựa chọn của người dùng) vào NGAY thông báo đã có — 0 thông báo
+tăng thêm.
+
+### Cách tính — không chạy lại phân tích nặng mỗi lần
+`DailyFinancialAnalysisService.analyze()` (nguồn số liệu chính thức của tab
+Chốt quỹ) đọc nhiều bảng, không nên gọi mỗi lần thanh toán (tần suất cao).
+Thay bằng cache "cộng/trừ dần": `CashBalanceCacheService` (MỚI) giữ 1 số
+tổng tại `shops/{shopId}/meta/cashBalanceCache` — mỗi giao dịch
+`FieldValue.increment()` (Firestore, atomic, không cần đọc trước — an toàn
+đa thiết bị), rồi đọc lại 1 lần để lấy số mới chèn vào thông báo (1
+write + 1 read/giao dịch, rẻ hơn nhiều so với phân tích nhiều bảng).
+- **Tự sửa lệch định kỳ**: mỗi lần CHỐT QUỸ thật (cả chốt lần đầu lẫn sửa
+  lại chốt GẦN NHẤT), đặt lại mốc = đúng số đếm thực tế
+  (`resetBaseline()`) — xoá sạch lệch tích luỹ từ giao dịch thiếu/sửa/xoá.
+- **Trước lần CHỐT QUỸ đầu tiên sau khi bật tính năng**: cache chưa có mốc
+  (doc chưa tồn tại) — `applyDelta()` dùng `update()` (không phải
+  `set(merge:true)`) nên tự lỗi not-found và BỎ QUA thay vì tự khởi tạo từ
+  0 (sẽ hiện số sai, thiếu hẳn phần quỹ tích luỹ trước đó). Thông báo vẫn
+  gửi bình thường, chỉ thiếu dòng "Còn lại" — không hiện số sai.
+- CÔNG NỢ (tạo/miễn nợ, hoặc thanh toán ghi nợ) không di chuyển tiền thật
+  → không cộng/trừ vào cache.
+- Tất cả các lệnh gọi `CashBalanceCacheService` đều KHÔNG await ở nơi gọi
+  gốc (đã có sẵn `// ignore: unawaited_futures` từ trước) — không làm
+  chậm luồng thanh toán/chốt quỹ chính, lỗi (nếu có) chỉ debugPrint, không
+  chặn việc gửi thông báo chính.
+
+### Đã sửa
+- **MỚI** `lib/services/cash_balance_cache_service.dart` — `applyDelta()`,
+  `resetBaseline()`.
+- `lib/services/notification_service.dart`: `notifyFinancialActivity()` và
+  `notifyDebtActivity()` (chỉ action `collect`/`pay` — `create`/`waive`
+  không đổi quỹ) gọi `applyDelta()`, chèn dòng "Còn lại" nếu có kết quả.
+- `lib/views/cash_closing_view.dart`: gọi `resetBaseline()` ở cả 2 chỗ ghi
+  `cash_closings` (chốt lần đầu + sửa lại chốt gần nhất, hàm
+  `_adjustLatestClosing` — xem `[2026-09-13h]`).
+- `firestore.rules`: thêm subcollection `shops/{shopId}/meta/{docId}` —
+  đọc/ghi cho MỌI thành viên shop (nhân viên thường cũng tạo giao dịch
+  tiền), xoá chỉ chủ shop. Đã `firebase deploy --only firestore:rules
+  --dry-run` — compile thành công, **CHƯA deploy thật** (đợi xác nhận).
+
+### Kiểm chứng
+- `flutter analyze` (3 file sửa + 1 file mới): 0 lỗi mới.
+- `flutter test` toàn suite: 665 pass / 1 skip / 2 fail — vẫn đúng 2 fail
+  pre-existing, không regression.
+- **CHƯA nghiệm thu máy thật** (cần deploy firestore.rules trước — nếu
+  không, mọi lệnh gọi `CashBalanceCacheService` sẽ PERMISSION_DENIED, bị
+  nuốt âm thầm bởi try/catch → tính năng coi như không hoạt động, KHÔNG
+  ảnh hưởng gì khác vì phần còn lại của thông báo vẫn gửi bình thường).
+
 ## [2026-09-13j] - feat(công cụ điều chỉnh dữ liệu): 4 nút "xử lý tất cả" cho tab TÀI CHÍNH
 
 ### Bối cảnh
@@ -36,20 +199,12 @@ giá thấp mức độ nghiêm trọng.
 - `flutter analyze` cả 2 file: 0 lỗi mới.
 - `flutter test`: 664 pass / 1 skip / 2 fail — 2 fail pre-existing
   (`kiotviet_settings_view_test.dart`), không hồi quy.
-- Máy thật CPH2203 (m@m.com shop "M"): **đã tự tay dùng bản TRƯỚC bản vá này**
-  để dọn sạch cả 61 mục tồn đọng thật của shop (xác nhận qua audit_logs:
-  46× RECONCILE_REVERSE_ORPHAN_EXPENSE, 11× RECONCILE_FIX_MISBOOKED_VOID,
-  5× RECONCILE_CANCEL_VOIDED_INTENT, đúng số dòng EXPENSE_REVERSAL/
-  VOID_AMOUNT_ADJUST ghi vào `financial_activity_log`, không lệch không đúp)
-  — đây chính là dữ liệu chứng minh cần nút bulk. Sau khi thêm bản vá này,
-  shop "M" không còn mục nào để bấm thử nút bulk mới trên dữ liệu thật —
-  **đã xác nhận build cài lên máy chạy đúng, tab TÀI CHÍNH không crash khi
-  danh sách rỗng** (4 khối nút mới đều ẩn đúng theo `isNotEmpty`), nhưng
-  CHƯA bấm thử end-to-end 1 trong 4 nút bulk mới trên dữ liệu thật vì không
-  còn dữ liệu sai lệch nào để tái hiện (cố tình KHÔNG tự chế dữ liệu giả
-  bằng cách sửa thẳng SQLite — rủi ro hỏng DB test dùng chung). Code dùng lại
-  100% logic đã kiểm chứng qua 61 lần xử lý thật + đúng UI pattern đã kiểm
-  chứng của nút "Xóa tất cả 2 item của shop khác".
+- Máy thật CPH2203 (m@m.com shop "M"): đã tự tay dùng bản TRƯỚC bản vá này
+  để dọn sạch cả 61 mục tồn đọng thật của shop (khớp audit_logs 100%) —
+  đây chính là dữ liệu chứng minh cần nút bulk.
+- **Nghiệm thu end-to-end nút "Đảo tất cả N khoản chi ma" trên dữ liệu THẬT
+  MỚI TẠO qua chính app** (`[2026-09-13l]`) — xem mục ở trên (thêm sau, đặt
+  đầu file theo thời gian).
 
 ## [2026-09-13i] - audit + tối ưu Công cụ điều chỉnh dữ liệu (6 điểm)
 
