@@ -434,6 +434,16 @@ class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
         return 'Đã thanh toán';
       case 'paymentMethod':
         return 'Hình thức TT';
+      case 'cashEnd':
+        return 'Tiền mặt cuối kỳ';
+      case 'bankEnd':
+        return 'Số dư CK cuối kỳ';
+      case 'cashDiff':
+        return 'Lệch tiền mặt';
+      case 'bankDiff':
+        return 'Lệch CK';
+      case 'note':
+        return 'Ghi chú';
       default:
         return key;
     }
@@ -451,6 +461,8 @@ class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
         return Colors.teal;
       case 'SALES_RETURN_REFUND':
         return Colors.red;
+      case 'CASH_CLOSING_ADJUSTMENT':
+        return Colors.deepPurple;
       default:
         return Colors.grey;
     }
@@ -468,6 +480,8 @@ class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
         return Icons.inventory_2;
       case 'SALES_RETURN_REFUND':
         return Icons.currency_exchange;
+      case 'CASH_CLOSING_ADJUSTMENT':
+        return Icons.point_of_sale;
       default:
         return Icons.edit_document;
     }
@@ -485,6 +499,8 @@ class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
         return 'TRẢ HÀNG - HOÀN KHO';
       case 'SALES_RETURN_REFUND':
         return 'TRẢ HÀNG - HOÀN TIỀN';
+      case 'CASH_CLOSING_ADJUSTMENT':
+        return 'ĐIỀU CHỈNH CHỐT QUỸ';
       default:
         return 'BÚT TOÁN ĐIỀU CHỈNH';
     }

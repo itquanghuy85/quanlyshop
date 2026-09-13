@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../widgets/responsive_wrapper.dart';
@@ -132,6 +133,7 @@ class CashClosingViewState extends State<CashClosingView>
   final _txSearchController = TextEditingController();
   DateTime? _txEndDate; // null = single date, set = date range
   bool _hasPermission = false;
+  bool _canAdjustClosing = false;
 
   /// Future của tab Lịch sử. PHẢI giữ ở state, KHÔNG tạo trong `build()`:
   /// `FutureBuilder(future: _loadHistoryClosings())` tạo future mới mỗi lần
@@ -213,6 +215,9 @@ class CashClosingViewState extends State<CashClosingView>
     if (!mounted) return;
     setState(() {
       _hasPermission = perms['allowViewRevenue'] ?? false;
+      // Sửa chốt quỹ đã chốt là thao tác tài chính nhạy cảm — chỉ chủ
+      // shop/quản lý (cùng tầng quyền xem giá vốn) mới thấy nút này.
+      _canAdjustClosing = perms['allowViewCostPrice'] ?? false;
     });
   }
 
@@ -3326,7 +3331,9 @@ class CashClosingViewState extends State<CashClosingView>
                 ),
               ),
               const SizedBox(height: 12),
-              ...closings.map((c) => _historyCard(c)),
+              ...closings.asMap().entries.map(
+                (e) => _historyCard(e.value, isLatest: e.key == 0),
+              ),
             ],
           );
         },
@@ -3334,7 +3341,7 @@ class CashClosingViewState extends State<CashClosingView>
     );
   }
 
-  Widget _historyCard(Map<String, dynamic> c) {
+  Widget _historyCard(Map<String, dynamic> c, {required bool isLatest}) {
     final dateKey = c['dateKey'] as String? ?? '';
     final cashEnd = c['cashEnd'] as int? ?? 0;
     final bankEnd = c['bankEnd'] as int? ?? 0;
@@ -3450,31 +3457,412 @@ class CashClosingViewState extends State<CashClosingView>
                 ),
               ),
               const SizedBox(width: 8),
-              ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: isNarrow ? 96 : 130),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      MoneyUtils.formatCompactCurrency(cashEnd + bankEnd),
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: accent == Colors.grey
-                            ? Colors.blueGrey
-                            : accent,
-                        fontSize: AppTextStyles.headline3.fontSize,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: isNarrow ? 96 : 130,
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          MoneyUtils.formatCompactCurrency(cashEnd + bankEnd),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: accent == Colors.grey
+                                ? Colors.blueGrey
+                                : accent,
+                            fontSize: AppTextStyles.headline3.fontSize,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                  // Chỉ ngày chốt GẦN NHẤT mới sửa được — sửa 1 ngày cũ hơn
+                  // trong khi có ngày sau đã chốt sẽ để lại số dư đầu kỳ sai
+                  // ở các ngày sau đó (xem ghi chú `_adjustLatestClosing`).
+                  if (isLatest && _canAdjustClosing)
+                    InkWell(
+                      onTap: () => _adjustLatestClosing(c),
+                      borderRadius: BorderRadius.circular(6),
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.edit_note,
+                              size: 14,
+                              color: Colors.blueGrey.shade400,
+                            ),
+                            const SizedBox(width: 2),
+                            Text(
+                              'Sửa',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.blueGrey.shade400,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ],
           );
         },
       ),
     );
+  }
+
+  /// Yêu cầu nhập lại mật khẩu đăng nhập trước khi sửa chốt quỹ — cùng cơ
+  /// chế `_confirmPassword` của `data_reconciliation_view.dart`.
+  Future<bool> _confirmPasswordForClosingEdit(BuildContext context) async {
+    final passCtrl = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xác nhận mật khẩu'),
+        content: TextField(
+          controller: passCtrl,
+          obscureText: true,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'Nhập mật khẩu đăng nhập để xác nhận',
+            border: OutlineInputBorder(),
+            isDense: true,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('HỦY'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('XÁC NHẬN', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return false;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.email == null) return false;
+    try {
+      final cred = EmailAuthProvider.credential(
+        email: user.email!,
+        password: passCtrl.text,
+      );
+      await user.reauthenticateWithCredential(cred);
+      return true;
+    } catch (_) {
+      if (context.mounted) {
+        NotificationService.showSnackBar('❌ Mật khẩu sai', color: Colors.red);
+      }
+      return false;
+    }
+  }
+
+  /// Sửa lại 1 lần chốt quỹ đã chốt — CHỈ cho ngày chốt GẦN NHẤT (xác định
+  /// bằng vị trí đầu danh sách `_loadHistoryClosings`, sắp `dateKey DESC`).
+  ///
+  /// Vì sao chỉ ngày gần nhất: `cashStart`/`bankStart` của mỗi lần chốt được
+  /// lấy từ `cashEnd`/`bankEnd` của lần chốt liền trước
+  /// (`getPreviousDayClosing`) tại thời điểm chốt — nếu cho sửa 1 ngày cũ hơn
+  /// trong khi đã có ngày sau đó chốt rồi, số dư đầu kỳ của các ngày sau sẽ
+  /// SAI mà không tự cập nhật theo (cần cơ chế chốt lại dây chuyền, chưa làm
+  /// ở bản này). Giới hạn ở ngày gần nhất tránh hoàn toàn rủi ro đó.
+  ///
+  /// CHỈ sửa `cashEnd`/`bankEnd`/`note` (số đếm được thực tế lúc chốt bị gõ
+  /// sai) — KHÔNG đụng `cashStart`/`bankStart`/`expectedCashDelta`/
+  /// `expectedBankDelta` (số dư đầu kỳ + biến động kỳ vọng giữ nguyên như lúc
+  /// chốt, để không lẫn với việc "phát sinh thêm giao dịch sau khi đã chốt" —
+  /// vấn đề khác, không xử lý ở đây).
+  Future<void> _adjustLatestClosing(Map<String, dynamic> closing) async {
+    final dateKey = closing['dateKey'] as String? ?? '';
+    if (dateKey.isEmpty) return;
+    final oldCashEnd = (closing['cashEnd'] as num?)?.toInt() ?? 0;
+    final oldBankEnd = (closing['bankEnd'] as num?)?.toInt() ?? 0;
+    final oldNote = (closing['note'] as String? ?? '');
+    final oldCashDiff = (closing['cashDiff'] as num?)?.toInt() ?? 0;
+    final oldBankDiff = (closing['bankDiff'] as num?)?.toInt() ?? 0;
+    final cashStart = (closing['cashStart'] as num?)?.toInt() ?? 0;
+    final bankStart = (closing['bankStart'] as num?)?.toInt() ?? 0;
+    final expectedCashDelta = (closing['expectedCashDelta'] as num?)?.toInt() ?? 0;
+    final expectedBankDelta = (closing['expectedBankDelta'] as num?)?.toInt() ?? 0;
+    final expectedCash = cashStart + expectedCashDelta;
+    final expectedBank = bankStart + expectedBankDelta;
+
+    final newCashCtrl = TextEditingController(
+      text: MoneyUtils.formatCurrency(oldCashEnd),
+    );
+    final newBankCtrl = TextEditingController(
+      text: MoneyUtils.formatCurrency(oldBankEnd),
+    );
+    final noteCtrl2 = TextEditingController(text: oldNote);
+    final reasonCtrl = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) {
+          final newCash = MoneyUtils.parseCurrency(newCashCtrl.text);
+          final newBank = MoneyUtils.parseCurrency(newBankCtrl.text);
+          return AlertDialog(
+            title: Text('SỬA CHỐT QUỸ NGÀY $dateKey'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Chỉ dùng khi số đếm được lúc chốt bị gõ sai. Không đổi '
+                    'được số dư đầu kỳ/biến động kỳ vọng.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                  const SizedBox(height: 12),
+                  _closingInputCard(
+                    '💵 TIỀN MẶT',
+                    expectedCash,
+                    newCashCtrl,
+                    newCash - expectedCash,
+                    () => setS(() {}),
+                  ),
+                  const SizedBox(height: 12),
+                  _closingInputCard(
+                    '🏦 NGÂN HÀNG',
+                    expectedBank,
+                    newBankCtrl,
+                    newBank - expectedBank,
+                    () => setS(() {}),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: noteCtrl2,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'Ghi chú chênh lệch',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: reasonCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Lý do sửa lại (bắt buộc)',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('HỦY'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('LƯU', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    if (confirmed != true) return;
+
+    final newCashEnd = MoneyUtils.parseCurrency(newCashCtrl.text);
+    final newBankEnd = MoneyUtils.parseCurrency(newBankCtrl.text);
+    final newNote = noteCtrl2.text.trim();
+    final reason = reasonCtrl.text.trim();
+    if (reason.isEmpty) {
+      if (mounted) {
+        NotificationService.showSnackBar(
+          'Nhập lý do sửa lại (bắt buộc)',
+          color: Colors.orange,
+        );
+      }
+      return;
+    }
+    if (newCashEnd == oldCashEnd &&
+        newBankEnd == oldBankEnd &&
+        newNote == oldNote) {
+      return;
+    }
+
+    if (!mounted) return;
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xác nhận sửa chốt quỹ'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Ngày $dateKey'),
+            const SizedBox(height: 4),
+            Text(
+              'Tiền mặt: ${MoneyUtils.formatCurrency(oldCashEnd)}đ → '
+              '${MoneyUtils.formatCurrency(newCashEnd)}đ',
+            ),
+            Text(
+              'Ngân hàng: ${MoneyUtils.formatCurrency(oldBankEnd)}đ → '
+              '${MoneyUtils.formatCurrency(newBankEnd)}đ',
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Thao tác này không thể hoàn tác.',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('HỦY'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('TIẾP TỤC', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (proceed != true) return;
+    if (!mounted || !await _confirmPasswordForClosingEdit(context)) return;
+
+    // Chặn race: đảm bảo KHÔNG có ngày chốt mới hơn xuất hiện giữa lúc mở
+    // dialog và lúc lưu (ví dụ máy khác vừa chốt quỹ hôm nay).
+    final freshClosings = await db.getAllCashClosings();
+    if (freshClosings.isNotEmpty &&
+        (freshClosings.first['dateKey'] as String? ?? '') != dateKey) {
+      if (mounted) {
+        NotificationService.showSnackBar(
+          '❌ Đã có ngày chốt quỹ mới hơn — không thể sửa ngày $dateKey nữa',
+          color: Colors.red,
+        );
+      }
+      return;
+    }
+
+    final newCashDiff = newCashEnd - expectedCash;
+    final newBankDiff = newBankEnd - expectedBank;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final editedBy = FirebaseAuth.instance.currentUser?.email ?? 'unknown';
+    final shopId = await UserService.getCurrentShopId();
+    final closingFid =
+        (closing['firestoreId'] as String?) ?? 'closing_${shopId}_$dateKey';
+
+    final updateData = {
+      'dateKey': dateKey,
+      'cashStart': cashStart,
+      'bankStart': bankStart,
+      'expectedCashDelta': expectedCashDelta,
+      'expectedBankDelta': expectedBankDelta,
+      'cashEnd': newCashEnd,
+      'bankEnd': newBankEnd,
+      'cashDiff': newCashDiff,
+      'bankDiff': newBankDiff,
+      'note': newNote,
+      'createdAt': closing['createdAt'],
+      'closedAt': closing['closedAt'],
+      'closedBy': closing['closedBy'],
+      'unlockedBy': editedBy,
+      'unlockedAt': now,
+      'shopId': shopId,
+      'firestoreId': closingFid,
+    };
+
+    await db.upsertCashClosing(updateData);
+    try {
+      await FirebaseFirestore.instance
+          .collection('cash_closings')
+          .doc(closingFid)
+          .set({
+            ...updateData,
+            'date': dateKey,
+            'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
+          }, SetOptions(merge: true));
+      await db.upsertCashClosing({...updateData, 'isSynced': 1});
+    } catch (e) {
+      debugPrint('💾 [CLOSING-ADJUST] ⚠️ Firestore sync failed (local saved): $e');
+    }
+
+    final adjDb = await db.database;
+    await adjDb.insert('adjustment_entries', {
+      'firestoreId': 'adj_closing_${now}_$dateKey',
+      'shopId': shopId,
+      'adjustmentType': 'CASH_CLOSING_ADJUSTMENT',
+      'originalEntityType': 'cash_closing',
+      'originalEntityId': dateKey,
+      'originalDate': closing['closedAt'] ?? closing['createdAt'],
+      'adjustmentDate': now,
+      'description': 'Sửa chốt quỹ ngày $dateKey',
+      'reason': reason,
+      'oldValues': jsonEncode({
+        'cashEnd': oldCashEnd,
+        'bankEnd': oldBankEnd,
+        'cashDiff': oldCashDiff,
+        'bankDiff': oldBankDiff,
+        'note': oldNote,
+      }),
+      'newValues': jsonEncode({
+        'cashEnd': newCashEnd,
+        'bankEnd': newBankEnd,
+        'cashDiff': newCashDiff,
+        'bankDiff': newBankDiff,
+        'note': newNote,
+      }),
+      'cashDelta': newCashEnd - oldCashEnd,
+      'bankDelta': newBankEnd - oldBankEnd,
+      'createdBy': editedBy,
+      'createdAt': now,
+      'status': 'APPROVED',
+      'approvedBy': editedBy,
+      'approvedAt': now,
+      'isSynced': 0,
+    });
+
+    await AuditService.logAction(
+      action: 'CASH_CLOSING_ADJUSTMENT',
+      entityType: 'CASH_CLOSING',
+      entityId: closingFid,
+      summary:
+          'Sửa chốt quỹ $dateKey: TM ${MoneyUtils.formatCurrency(oldCashEnd)}đ→'
+          '${MoneyUtils.formatCurrency(newCashEnd)}đ, CK '
+          '${MoneyUtils.formatCurrency(oldBankEnd)}đ→'
+          '${MoneyUtils.formatCurrency(newBankEnd)}đ — $reason',
+      payload: {
+        'dateKey': dateKey,
+        'oldCashEnd': oldCashEnd,
+        'newCashEnd': newCashEnd,
+        'oldBankEnd': oldBankEnd,
+        'newBankEnd': newBankEnd,
+        'reason': reason,
+      },
+    );
+
+    if (!mounted) return;
+    NotificationService.showSnackBar(
+      '✅ Đã sửa chốt quỹ ngày $dateKey',
+      color: Colors.green,
+    );
+    _refreshHistory();
+    await _loadAllData();
   }
 
   void _showClosingDialog(int expectedCash, int expectedBank) {

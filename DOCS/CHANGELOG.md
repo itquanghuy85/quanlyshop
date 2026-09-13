@@ -4,6 +4,73 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-13h] - feat(chốt quỹ): sửa lại ngày chốt quỹ GẦN NHẤT khi đếm sai tiền mặt/CK
+
+### Bối cảnh
+User hỏi hướng "điều chỉnh dữ liệu shop khi hoạt động 1 thời gian mà không
+mất dữ liệu khác" (chốt quỹ sai, quên thu/chi, giá vốn sai...). Rà lại từng
+khoản trước khi code phát hiện **2/3 đã có sẵn, tốt hơn cả đề xuất ban đầu**:
+- "Quên ghi thu/chi" → `expense_view.dart` (nút Thu/Chi phát sinh) đã ghi
+  đúng bảng `expenses` (nguồn thật của Sổ quỹ, KHÁC `financial_activity_log`
+  chỉ là nhật ký hiển thị), luôn ghi "hôm nay", đã tự chặn nếu hôm nay khoá
+  qua `AdjustmentService.canEditDirectly`.
+- "Giá vốn SP/linh kiện sai" → `inventory_view.dart`/`parts_inventory_view.dart`
+  đã có ô `costCtrl` trong dialog sửa thường.
+Chỉ còn đúng 1 khoảng trống thật: **sửa lại 1 lần chốt quỹ đã chốt khi đếm
+sai tiền mặt/CK** — cột `unlockedBy`/`unlockedAt` có sẵn trong schema
+(`cash_closings`, từ v49) nhưng chưa từng được ghi ở đâu.
+
+### Đã sửa
+- `lib/views/cash_closing_view.dart`:
+  - Thêm `_canAdjustClosing` (gate theo `allowViewCostPrice`, cùng tầng
+    quyền chủ shop/quản lý) đọc song song `_hasPermission` trong
+    `_checkPermission()`.
+  - `_historyCard` nhận thêm `isLatest` — CHỈ dòng đầu danh sách "LỊCH SỬ
+    CHỐT QUỸ" (`dateKey DESC`, đúng ngày chốt gần nhất) mới hiện nút "Sửa".
+    Cố tình KHÔNG cho sửa ngày cũ hơn: `cashStart`/`bankStart` của mỗi lần
+    chốt lấy từ `cashEnd`/`bankEnd` của lần chốt liền trước tại thời điểm
+    chốt — sửa 1 ngày cũ trong khi đã có ngày sau chốt rồi sẽ để lại số dư
+    đầu kỳ SAI ở các ngày sau mà không tự cập nhật theo (cần cơ chế chốt lại
+    dây chuyền, chưa làm ở bản này).
+  - `_adjustLatestClosing()` (mới) + `_confirmPasswordForClosingEdit()`
+    (mới, cùng cơ chế `_confirmPassword` của `data_reconciliation_view.dart`):
+    dialog sửa `cashEnd`/`bankEnd`/`note` (tái dùng `_closingInputCard` y hệt
+    dialog chốt quỹ gốc) + ô "Lý do sửa lại" bắt buộc → tóm tắt trước/sau →
+    xác nhận mật khẩu → chặn race (đọc lại `getAllCashClosings()`, huỷ nếu
+    đã có ngày chốt mới hơn xuất hiện) → ghi `unlockedBy/unlockedAt` +
+    tính lại `cashDiff/bankDiff` (giữ nguyên `cashStart/bankStart/
+    expectedCashDelta/expectedBankDelta`) → sync Firestore
+    (`SetOptions(merge:true)`, cùng pattern `_saveClosing()`) → ghi
+    `adjustment_entries` (`adjustmentType: CASH_CLOSING_ADJUSTMENT`,
+    `oldValues`/`newValues` đầy đủ) → `AuditService.logAction`.
+- `lib/views/adjustment_history_view.dart`: thêm nhãn/màu/icon cho
+  `CASH_CLOSING_ADJUSTMENT` (tím, `Icons.point_of_sale`, "ĐIỀU CHỈNH CHỐT
+  QUỸ") + dịch các key mới (`cashEnd/bankEnd/cashDiff/bankDiff/note`) trong
+  `_translateKey` — trước đó rơi vào nhãn mặc định "BÚT TOÁN ĐIỀU CHỈNH".
+
+### Kiểm chứng
+- `flutter analyze lib/`: 0 error mới (chỉ info/warning có sẵn trước đó).
+- `flutter test`: 665 pass / 1 skip / 2 fail — 2 fail pre-existing ở
+  `kiotviet_settings_view_test.dart` (file không đụng tới), không hồi quy.
+- Máy thật Oppo CPH2203 (đăng xuất tài khoản thật, đăng nhập tài khoản test
+  `m@m.com` shop "M" — xem lưu ý bên dưới): mở Chốt quỹ → Lịch sử, sửa
+  ngày 06/09/2026 (TM 6.000.000đ → 6.500.000đ) — dialog hiện đúng dự
+  kiến/chênh lệch live, tóm tắt trước/sau đúng, mật khẩu xác nhận đúng,
+  lưu thành công, danh sách cập nhật ngay (29,28 Tr → hiện lại đúng số).
+  Kéo SQLite (`repair_shop_v22.db` kèm `-wal`/`-shm`) xác minh trực tiếp:
+  `cash_closings` cập nhật đúng `cashEnd/cashDiff/unlockedBy=m@m.com`,
+  `cashStart/bankStart/expectedCashDelta/expectedBankDelta` giữ nguyên,
+  `isSynced=1` (đã lên Firestore); `adjustment_entries` có đúng 1 dòng
+  `CASH_CLOSING_ADJUSTMENT` với `oldValues/newValues/reason/cashDelta` khớp
+  UI. **Kiểm tra an toàn cốt lõi**: chốt thêm 1 ngày mới (13/09/2026) →
+  xác nhận nút "Sửa" chỉ còn ở dòng 13/09 (mới nhất), dòng 06/09 (cũ hơn)
+  MẤT nút "Sửa" — đúng thiết kế chặn sửa ngày không phải gần nhất.
+- **Lưu ý quan trọng**: để test an toàn không đụng dữ liệu shop thật, đã
+  đăng xuất tài khoản `huy@huluca.com` trên máy CPH2203 và đăng nhập
+  `m@m.com` — KHÔNG có mật khẩu thật để đăng nhập lại tài khoản chủ shop
+  trên máy đó. **Chủ shop cần tự đăng nhập lại `huy@huluca.com` trên
+  CPH2203** trước khi dùng máy đó cho việc thật.
+
 ## [2026-09-13g] - Mở rộng fix ENC: sang mọi loại giao dịch trong Chốt quỹ + fix overflow ngay trên từng dòng giao dịch (nghiệm thu máy test thứ 2)
 
 ### Bối cảnh

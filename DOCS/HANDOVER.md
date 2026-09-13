@@ -9,6 +9,27 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.6.0+557 (AAB đã build 12/09 15:26 + web đã deploy https://quanlyshop.web.app — xem `DOCS/release_notes_2026-09-12.md`; 3.5.0+556 đang live trên store). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-13  
 
+**✅ Sửa lại chốt quỹ ngày GẦN NHẤT khi đếm sai tiền mặt/CK (`[2026-09-13h]`).**
+User hỏi hướng "điều chỉnh dữ liệu shop mà không mất dữ liệu khác" (chốt quỹ
+sai, quên thu/chi, giá vốn sai...). Rà lại trước khi code: quên thu/chi và
+giá vốn sai **đã có sẵn đường an toàn hơn** (nút Thu/Chi phát sinh ghi đúng
+bảng `expenses`; ô sửa giá vốn có sẵn trong dialog sửa sản phẩm/linh kiện).
+Chỉ còn thật 1 khoảng trống: sửa 1 lần chốt quỹ đã chốt khi đếm sai. Đã
+thêm nút "Sửa" trong `cash_closing_view.dart` — CHỈ hiện ở ngày chốt GẦN
+NHẤT (sửa ngày cũ hơn sẽ để lại số dư đầu kỳ sai ở các ngày chốt sau nó) —
+qua dialog (tái dùng `_closingInputCard`) + lý do bắt buộc + tóm tắt +
+mật khẩu, ghi `unlockedBy/unlockedAt` + `adjustment_entries`
+(`CASH_CLOSING_ADJUSTMENT`, có nhãn riêng trong "Lịch sử điều chỉnh") +
+sync Firestore. `flutter analyze` 0 lỗi mới, `flutter test` 665/1/2 không
+hồi quy. **Nghiệm thu CPH2203** (tài khoản test `m@m.com` shop "M"): sửa
+06/09/2026 TM 6tr→6,5tr thành công, kéo SQLite xác minh `cash_closings` +
+`adjustment_entries` khớp UI 100%; chốt thêm ngày 13/09 → xác nhận nút
+"Sửa" chuyển đúng sang ngày mới nhất, 06/09 mất nút "Sửa" (đúng thiết kế
+chặn sửa ngày không phải gần nhất). **⚠️ Đã đăng xuất `huy@huluca.com`
+trên CPH2203 để test an toàn, đăng nhập `m@m.com` — không có mật khẩu thật
+để đăng nhập lại. Chủ shop cần tự đăng nhập lại `huy@huluca.com` trên máy
+đó.** Xem CHANGELOG `[2026-09-13h]`.
+
 **✅ Mở rộng fix ENC:/overflow sang toàn bộ giao dịch Chốt quỹ (`[2026-09-13g]`).**
 Sau bản vá `[2026-09-13f]` (chỉ field `note` của "MUA MÁY XÁC"), test trên
 máy thứ 2 (Oppo CPH2239, tài khoản test `m@m.com` shop "M") phát hiện thêm:
