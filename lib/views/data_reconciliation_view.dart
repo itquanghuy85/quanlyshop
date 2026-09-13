@@ -1623,6 +1623,29 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
     _load();
   }
 
+  Future<void> _fixAllMisVoids() async {
+    final items = _misbookedVoids;
+    if (items.isEmpty) return;
+    final total = items.fold<int>(0, (sum, v) => sum + _mi(v, 'diff').abs());
+    final proceed = await _confirmSummary(
+      context,
+      title: 'Bù tất cả ${items.length} bút toán VOID sai biên độ',
+      lines: [
+        'Tổng lệch ${MoneyUtils.formatCurrency(total)}đ trên ${items.length} giao dịch.',
+        'Mỗi giao dịch ghi 1 dòng bù để net = 0. KHÔNG xóa dòng gốc.',
+      ],
+      withReversal: false,
+    );
+    if (proceed != true || !mounted || !await _confirmPassword(context)) return;
+    final n = await DataReconciliationService.fixAllMisbookedVoids(
+      items,
+      reason: 'Công cụ dọn dữ liệu tài chính (AUDIT D-3b, xử lý hàng loạt)',
+    );
+    if (!mounted) return;
+    NotificationService.showSnackBar('✅ Đã bù $n bút toán VOID', color: Colors.green);
+    _load();
+  }
+
   int _mi(Map m, String k) => (m[k] as num?)?.toInt() ?? 0;
 
   Future<void> _cleanRetItem(Map<String, dynamic> it) async {
@@ -1689,6 +1712,30 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
     _load();
   }
 
+  Future<void> _reverseAllExpFal() async {
+    final items = _orphanExpFal;
+    if (items.isEmpty) return;
+    final total = items.fold<int>(0, (sum, f) => sum + _mi(f, 'amount'));
+    final proceed = await _confirmSummary(
+      context,
+      title: 'Đảo tất cả ${items.length} khoản chi ma',
+      lines: [
+        'Tổng ${MoneyUtils.formatCurrency(total)}đ trên ${items.length} khoản.',
+        'Mỗi khoản ghi 1 dòng bù (THU cùng số tiền) để net = 0 + hủy '
+            'payment_intent liên quan. KHÔNG xóa dòng nhật ký gốc (append-only).',
+      ],
+      withReversal: false,
+    );
+    if (proceed != true || !mounted || !await _confirmPassword(context)) return;
+    final n = await DataReconciliationService.reverseAllOrphanExpenseActivities(
+      items,
+      reason: 'Công cụ dọn dữ liệu tài chính (AUDIT D-3, xử lý hàng loạt)',
+    );
+    if (!mounted) return;
+    NotificationService.showSnackBar('✅ Đã đảo $n khoản chi ma', color: Colors.green);
+    _load();
+  }
+
   Future<void> _cancelVoidedIntent(Map<String, dynamic> pi) async {
     final proceed = await _confirmSummary(
       context,
@@ -1708,6 +1755,30 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
     );
     if (!mounted) return;
     NotificationService.showSnackBar('✅ Đã hủy intent', color: Colors.green);
+    _load();
+  }
+
+  Future<void> _cancelAllVoidedIntents() async {
+    final items = _voidedIntents;
+    if (items.isEmpty) return;
+    final total = items.fold<int>(0, (sum, pi) => sum + _mi(pi, 'amount'));
+    final proceed = await _confirmSummary(
+      context,
+      title: 'Hủy tất cả ${items.length} payment_intent đã VOID',
+      lines: [
+        'Tổng ${MoneyUtils.formatCurrency(total)}đ trên ${items.length} intent.',
+        'Đổi status → CANCELLED. KHÔNG đụng tiền (engine không cộng '
+            'payment_intents).',
+      ],
+      withReversal: false,
+    );
+    if (proceed != true || !mounted || !await _confirmPassword(context)) return;
+    final n = await DataReconciliationService.cancelAllVoidedTxnPaymentIntents(
+      items,
+      reason: 'Công cụ dọn dữ liệu tài chính (AUDIT L-4, xử lý hàng loạt)',
+    );
+    if (!mounted) return;
+    NotificationService.showSnackBar('✅ Đã hủy $n intent', color: Colors.green);
     _load();
   }
 
@@ -1732,6 +1803,30 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
     );
     if (!mounted) return;
     NotificationService.showSnackBar('✅ Đã xóa phiếu mồ côi', color: Colors.green);
+    _load();
+  }
+
+  Future<void> _cleanAllOrphans() async {
+    final items = _orphans;
+    if (items.isEmpty) return;
+    final total = items.fold<int>(0, (sum, p) => sum + ((p['amount'] as int?) ?? 0));
+    final proceed = await _confirmSummary(
+      context,
+      title: 'Xóa tất cả ${items.length} phiếu thu/trả nợ mồ côi',
+      lines: [
+        'Tổng ${MoneyUtils.formatCurrency(total)}đ trên ${items.length} phiếu.',
+        'Công nợ liên kết KHÔNG còn tồn tại. Soft-delete + đồng bộ. Sổ quỹ / '
+            'Tài chính sẽ hết cộng các khoản này vào "tiền vào".',
+      ],
+      withReversal: false,
+    );
+    if (proceed != true || !mounted || !await _confirmPassword(context)) return;
+    final n = await DataReconciliationService.cleanAllOrphanDebtPayments(
+      items,
+      reason: 'Công cụ dọn dữ liệu tài chính (AUDIT, xử lý hàng loạt)',
+    );
+    if (!mounted) return;
+    NotificationService.showSnackBar('✅ Đã xóa $n phiếu mồ côi', color: Colors.green);
     _load();
   }
 
@@ -1829,6 +1924,14 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
             'Khoản chi ma trong Nhật ký (${_orphanExpFal.length})',
             'Nhật ký tài chính ghi CHI nhưng không có phiếu chi tương ứng.',
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.undo, size: 18),
+              label: Text('Đảo tất cả ${_orphanExpFal.length} khoản chi ma'),
+              onPressed: _reverseAllExpFal,
+            ),
+          ),
           ..._orphanExpFal.map(
             (f) => ListTile(
               dense: true,
@@ -1855,6 +1958,14 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
             'Bút toán VOID sai biên độ (${_misbookedVoids.length})',
             'SALE_VOID/REPAIR_VOID ghi số tiền khác phần thực thu → sổ đối soát lệch.',
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.rule, size: 18),
+              label: Text('Bù tất cả ${_misbookedVoids.length} bút toán VOID'),
+              onPressed: _fixAllMisVoids,
+            ),
+          ),
           ..._misbookedVoids.map(
             (v) => ListTile(
               dense: true,
@@ -1880,6 +1991,14 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
           _sectionHeader(
             'payment_intent của giao dịch đã VOID (${_voidedIntents.length})',
             'Intent còn COMPLETED/PENDING cho đơn/phiếu đã bị VOID.',
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.cancel_schedule_send, size: 18),
+              label: Text('Hủy tất cả ${_voidedIntents.length} payment_intent'),
+              onPressed: _cancelAllVoidedIntents,
+            ),
           ),
           ..._voidedIntents.map(
             (pi) => ListTile(
@@ -1928,6 +2047,14 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
           _sectionHeader(
             'Phiếu thu/trả nợ mồ côi (${_orphans.length})',
             'Công nợ đã xóa nhưng phiếu còn — vẫn bị tính là tiền vào.',
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.delete_sweep, size: 18),
+              label: Text('Xóa tất cả ${_orphans.length} phiếu mồ côi'),
+              onPressed: _cleanAllOrphans,
+            ),
           ),
           ..._orphans.map(
             (p) => ListTile(

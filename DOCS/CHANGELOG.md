@@ -4,6 +4,53 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-13j] - feat(công cụ điều chỉnh dữ liệu): 4 nút "xử lý tất cả" cho tab TÀI CHÍNH
+
+### Bối cảnh
+Sau audit `[2026-09-13i]`, user yêu cầu tự tay dọn TOÀN BỘ dữ liệu sai lệch
+tồn đọng của shop "M" (tài khoản test) để đánh giá thật. Kết quả: **61 mục**
+(2 item shop khác + 43 khoản chi ma + 11 bút toán VOID sai + 5 payment_intent
+treo + 1 phiếu mồ côi). Trừ đúng 1 nút bulk có sẵn ("Xóa tất cả 2 item của
+shop khác"), **60 mục còn lại phải xử lý từng cái một** — mỗi cái là 1 vòng
+tóm tắt + **gõ lại mật khẩu**. Tự tay làm hết mới thấy rõ đây là rào cản thật
+(60 lần gõ mật khẩu liên tiếp) — đúng là thứ audit trước ghi nhận nhưng đánh
+giá thấp mức độ nghiêm trọng.
+
+### Đã sửa
+- `lib/services/data_reconciliation_service.dart`: thêm 4 hàm bulk —
+  `reverseAllOrphanExpenseActivities`, `fixAllMisbookedVoids`,
+  `cancelAllVoidedTxnPaymentIntents`, `cleanAllOrphanDebtPayments`. Mỗi hàm
+  chỉ là vòng lặp gọi lại ĐÚNG hàm xử lý-từng-cái đã có (giữ nguyên toàn bộ
+  logic nghiệp vụ + audit log RIÊNG từng dòng để còn tra lại khoản nào đã xử
+  lý/lúc nào/lý do gì) — không đổi hành vi nghiệp vụ, chỉ gộp điểm xin mật
+  khẩu.
+- `lib/views/data_reconciliation_view.dart`: thêm 4 nút "Đảo tất cả N khoản
+  chi ma" / "Bù tất cả N bút toán VOID" / "Hủy tất cả N payment_intent" /
+  "Xóa tất cả N phiếu mồ côi" — đặt ngay dưới tiêu đề mỗi nhóm, đúng vị trí
+  và style nút "Xóa tất cả N item của shop khác" đã có sẵn trong CHÍNH tab
+  này. Mỗi nút: tóm tắt (tổng số tiền + số lượng) → **1 lần** xác nhận mật
+  khẩu cho cả lô → thực thi → snackbar → tải lại. Nút chỉ cho từng-item vẫn
+  giữ nguyên bên dưới cho ai muốn xử lý riêng lẻ.
+
+### Kiểm chứng
+- `flutter analyze` cả 2 file: 0 lỗi mới.
+- `flutter test`: 664 pass / 1 skip / 2 fail — 2 fail pre-existing
+  (`kiotviet_settings_view_test.dart`), không hồi quy.
+- Máy thật CPH2203 (m@m.com shop "M"): **đã tự tay dùng bản TRƯỚC bản vá này**
+  để dọn sạch cả 61 mục tồn đọng thật của shop (xác nhận qua audit_logs:
+  46× RECONCILE_REVERSE_ORPHAN_EXPENSE, 11× RECONCILE_FIX_MISBOOKED_VOID,
+  5× RECONCILE_CANCEL_VOIDED_INTENT, đúng số dòng EXPENSE_REVERSAL/
+  VOID_AMOUNT_ADJUST ghi vào `financial_activity_log`, không lệch không đúp)
+  — đây chính là dữ liệu chứng minh cần nút bulk. Sau khi thêm bản vá này,
+  shop "M" không còn mục nào để bấm thử nút bulk mới trên dữ liệu thật —
+  **đã xác nhận build cài lên máy chạy đúng, tab TÀI CHÍNH không crash khi
+  danh sách rỗng** (4 khối nút mới đều ẩn đúng theo `isNotEmpty`), nhưng
+  CHƯA bấm thử end-to-end 1 trong 4 nút bulk mới trên dữ liệu thật vì không
+  còn dữ liệu sai lệch nào để tái hiện (cố tình KHÔNG tự chế dữ liệu giả
+  bằng cách sửa thẳng SQLite — rủi ro hỏng DB test dùng chung). Code dùng lại
+  100% logic đã kiểm chứng qua 61 lần xử lý thật + đúng UI pattern đã kiểm
+  chứng của nút "Xóa tất cả 2 item của shop khác".
+
 ## [2026-09-13i] - audit + tối ưu Công cụ điều chỉnh dữ liệu (6 điểm)
 
 ### Bối cảnh

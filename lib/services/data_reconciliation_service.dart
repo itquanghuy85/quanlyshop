@@ -530,6 +530,24 @@ class DataReconciliationService {
     );
   }
 
+  /// Xóa TẤT CẢ phiếu thu/trả nợ mồ côi cùng lúc — cùng lý do gộp-password
+  /// như [reverseAllOrphanExpenseActivities].
+  static Future<int> cleanAllOrphanDebtPayments(
+    List<Map<String, dynamic>> items, {
+    required String reason,
+  }) async {
+    int n = 0;
+    for (final p in items) {
+      try {
+        await cleanOrphanDebtPayment(p, reason: reason);
+        n++;
+      } catch (e) {
+        debugPrint('cleanAllOrphanDebtPayments: item failed: $e');
+      }
+    }
+    return n;
+  }
+
   /// Công nợ KHÁCH có `totalAmount <= 0` nhưng đơn bán liên kết có
   /// `finalPrice > 0` → khoản khách nợ "tàng hình" ở tab Nợ phải thu.
   /// Trả về map công nợ kèm cột phụ `saleFinalPrice`.
@@ -721,6 +739,28 @@ class DataReconciliationService {
     );
   }
 
+  /// Đảo TẤT CẢ khoản chi ma cùng lúc — gọi lại đúng
+  /// [reverseOrphanExpenseActivity] cho từng dòng (giữ nguyên audit log RIÊNG
+  /// từng khoản để còn tra lại khoản nào đã đảo/lúc nào/lý do gì), chỉ khác
+  /// là UI phía trên xin mật khẩu 1 LẦN cho cả lô thay vì từng khoản một —
+  /// shop dồn hàng chục khoản sai lệch trước đó thì gõ lại mật khẩu N lần là
+  /// rào cản thật (đã nghiệm thu 43 khoản/1 lần dùng công cụ).
+  static Future<int> reverseAllOrphanExpenseActivities(
+    List<Map<String, dynamic>> items, {
+    required String reason,
+  }) async {
+    int n = 0;
+    for (final fal in items) {
+      try {
+        await reverseOrphanExpenseActivity(fal, reason: reason);
+        n++;
+      } catch (e) {
+        debugPrint('reverseAllOrphanExpenseActivities: item failed: $e');
+      }
+    }
+    return n;
+  }
+
   /// D-3b — bút toán SALE_VOID/REPAIR_VOID ghi SAI biên độ: entry OUT có số
   /// tiền KHÁC phần TIỀN THỰC ĐÃ THU của cùng giao dịch → sổ đối soát lệch.
   ///
@@ -821,6 +861,25 @@ class DataReconciliationService {
     );
   }
 
+  /// Bù TẤT CẢ bút toán VOID sai biên độ cùng lúc — cùng lý do gộp-password
+  /// như [reverseAllOrphanExpenseActivities]. Giữ nguyên audit log riêng
+  /// từng dòng.
+  static Future<int> fixAllMisbookedVoids(
+    List<Map<String, dynamic>> items, {
+    required String reason,
+  }) async {
+    int n = 0;
+    for (final v in items) {
+      try {
+        await fixMisbookedVoid(v, reason: reason);
+        n++;
+      } catch (e) {
+        debugPrint('fixAllMisbookedVoids: item failed: $e');
+      }
+    }
+    return n;
+  }
+
   /// D-4 — sản phẩm có `status` mâu thuẫn `quantity`: status=0 (đã bán/ẩn) mà
   /// quantity>0 (còn hàng). KHÔNG tự sửa số lượng — chỉ liệt kê để user kiểm kho
   /// thực tế. Báo cáo VỐN TỒN KHO của app vốn đã lọc `status` nên không tính
@@ -890,6 +949,24 @@ class DataReconciliationService {
           'của giao dịch đã VOID (${pi['referenceId']}) — $reason',
       payload: {'amount': pi['amount'], 'referenceId': pi['referenceId'], 'reason': reason},
     );
+  }
+
+  /// Hủy TẤT CẢ payment_intent của giao dịch đã VOID cùng lúc — cùng lý do
+  /// gộp-password như [reverseAllOrphanExpenseActivities].
+  static Future<int> cancelAllVoidedTxnPaymentIntents(
+    List<Map<String, dynamic>> items, {
+    required String reason,
+  }) async {
+    int n = 0;
+    for (final pi in items) {
+      try {
+        await cancelVoidedTxnPaymentIntent(pi, reason: reason);
+        n++;
+      } catch (e) {
+        debugPrint('cancelAllVoidedTxnPaymentIntents: item failed: $e');
+      }
+    }
+    return n;
   }
 
   // ─────────────────────────── KHO & SẢN PHẨM ──────────────────────────

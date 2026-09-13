@@ -9,6 +9,23 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.6.0+557 (AAB đã build 12/09 15:26 + web đã deploy https://quanlyshop.web.app — xem `DOCS/release_notes_2026-09-12.md`; 3.5.0+556 đang live trên store). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-13  
 
+**✅ 4 nút "xử lý tất cả" cho tab TÀI CHÍNH — Công cụ điều chỉnh dữ liệu
+(`[2026-09-13j]`).** Sau audit `[2026-09-13i]`, đã tự tay dọn TOÀN BỘ 61 mục
+sai lệch tồn đọng của shop "M" để đánh giá thật — phát hiện 60/61 mục phải
+xử lý từng cái một, mỗi cái gõ lại mật khẩu 1 lần → 60 lần gõ mật khẩu liên
+tiếp, rào cản thật cho chủ shop có backlog lớn. Thêm 4 hàm bulk trong
+`data_reconciliation_service.dart` (gọi lại đúng hàm xử lý-từng-cái đã có,
+giữ nguyên audit log riêng từng dòng) + 4 nút "Đảo/Bù/Hủy/Xóa tất cả N..."
+trong `data_reconciliation_view.dart`, đúng vị trí/style nút bulk có sẵn
+("Xóa tất cả N item của shop khác") — mỗi nút chỉ xin mật khẩu 1 LẦN cho cả
+lô. `flutter analyze` 0 lỗi, `flutter test` không hồi quy. Nghiệm thu CPH2203:
+đã xác nhận qua audit_logs rằng bản TRƯỚC bản vá xử lý đúng cả 61 mục thật
+(46 reverse + 11 fix void + 5 cancel intent + xóa hàng loạt + xóa mồ côi,
+khớp 100% không đúp không sót); bản SAU bản vá cài lên máy chạy đúng, tab
+không crash khi rỗng — nhưng CHƯA bấm thử trực tiếp 1 trong 4 nút bulk MỚI
+trên dữ liệu thật vì shop "M" đã sạch, cố tình không tự chế dữ liệu giả bằng
+sửa thẳng SQLite (rủi ro hỏng DB test dùng chung). Xem CHANGELOG `[2026-09-13j]`.
+
 **✅ Audit + tối ưu Công cụ điều chỉnh dữ liệu — 6 điểm (`[2026-09-13i]`).**
 Đọc toàn bộ `data_reconciliation_view.dart`+`data_reconciliation_service.dart`
 (2749 dòng) theo yêu cầu audit. Sửa hết 1 lượt: (1) lazy-load 5 tab — trước
