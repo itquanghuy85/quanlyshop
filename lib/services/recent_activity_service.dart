@@ -1,6 +1,6 @@
-import '../data/db_helper.dart';
+import 'history/history_models.dart';
+import 'history/history_service.dart';
 import 'sync_audit_service.dart';
-import 'user_service.dart';
 
 class RecentActivitySource {
   static const String all = 'all';
@@ -63,112 +63,120 @@ class RecentActivitySnapshot {
       items.where((i) => i.source == RecentActivitySource.audit).length;
 }
 
+/// Feed "Hoạt động gần đây" ở trang chủ.
+///
+/// PHA 0: đã chuyển sang là CONSUMER của `HistoryService` — không còn tự gọi
+/// `DBHelper.getFinancialActivities`/`getAuditLogs`/`SyncAuditService`
+/// rời rạc rồi tự gộp như trước. Việc lấy dữ liệu + gộp theo thời gian nay
+/// nằm trong `HistoryService.getRecentActivity()`; lớp này chỉ còn lo phần
+/// ĐỊNH DẠNG HIỂN THỊ riêng của màn "Hoạt động gần đây" (tiêu đề/mô tả nhân
+/// văn hoá tiếng Việt) — phần này đặc thù cho màn này nên không đưa vào
+/// `HistoryService` dùng chung.
+///
+/// Toàn bộ hàm định dạng bên dưới GIỮ NGUYÊN logic như trước khi có
+/// `HistoryService` — chỉ đổi nguồn đọc field từ `row` sang
+/// `entry.metadata` (chính là row gốc, không mất field nào).
 class RecentActivityService {
-  static final DBHelper _db = DBHelper();
-
   static Future<RecentActivitySnapshot> load({
     String sourceFilter = RecentActivitySource.all,
     Duration window = const Duration(hours: 24),
     int limit = 300,
   }) async {
     final now = DateTime.now();
-    final threshold = now.subtract(window).millisecondsSinceEpoch;
-    final shopId = await UserService.getCurrentShopId();
-    final items = <RecentActivityItem>[];
+    final entries = await HistoryService.getRecentActivity(
+      sourceFilter: _toHistoryCategory(sourceFilter),
+      window: window,
+      limit: limit,
+    );
+    final items = entries.map(_toItem).toList();
+    return RecentActivitySnapshot(generatedAt: now, items: items);
+  }
 
-    if (sourceFilter == RecentActivitySource.all ||
-        sourceFilter == RecentActivitySource.financial) {
-      final rows = await _db.getFinancialActivities(
-        startDate: threshold,
-        limit: 180,
-      );
-      for (final row in rows) {
-        final id =
-            row['firestoreId']?.toString() ??
-            'financial_${row['id']?.toString() ?? row['createdAt']?.toString() ?? ''}';
-        items.add(
-          RecentActivityItem(
-            id: id,
-            source: RecentActivitySource.financial,
-            domain: _financialDomain(row['activityType']?.toString() ?? ''),
-            title: _financialTitle(row),
-            subtitle: _financialSubtitle(row),
-            timestamp: _toInt(row['createdAt']),
-            amount: _toNullableInt(row['amount']),
-            direction: row['direction']?.toString(),
-            status: null,
-            referenceType: row['referenceType']?.toString(),
-            referenceId: row['referenceId']?.toString(),
-          ),
-        );
-      }
+  /// `RecentActivitySource.*` ('financial') và `HistoryCategory.*` ('finance')
+  /// cố tình đặt tên khác nhau (2 tầng độc lập) — hàm này là điểm dịch DUY
+  /// NHẤT giữa 2 bộ hằng số, để không đổi API công khai của lớp này.
+  static String _toHistoryCategory(String sourceFilter) {
+    switch (sourceFilter) {
+      case RecentActivitySource.financial:
+        return HistoryCategory.finance;
+      case RecentActivitySource.sync:
+        return HistoryCategory.sync;
+      case RecentActivitySource.audit:
+        return HistoryCategory.audit;
+      default:
+        // Bao gồm `RecentActivitySource.all` và bất kỳ giá trị lạ nào khác —
+        // giữ nguyên chuỗi để hành vi giống hệt code gốc: 'all' khớp đúng
+        // điều kiện `sourceFilter == 'all'` trong `HistoryService`, còn giá
+        // trị lạ (không khớp category nào) sẽ không chạy nhánh nào, cho ra
+        // kết quả rỗng — đúng như code gốc khi gặp sourceFilter không hợp lệ.
+        return sourceFilter;
     }
+  }
 
-    if (sourceFilter == RecentActivitySource.all ||
-        sourceFilter == RecentActivitySource.sync) {
-      final events = await SyncAuditService.getRecentEvents(limit: 200);
-      for (final e in events) {
-        final ts = e.createdAt.millisecondsSinceEpoch;
-        if (ts < threshold) continue;
-        items.add(
-          RecentActivityItem(
-            id: 'sync_${e.id}',
-            source: RecentActivitySource.sync,
-            domain: e.domainKey,
-            title: _syncTitle(e),
-            subtitle: _syncSubtitle(e),
-            timestamp: ts,
-            amount: null,
-            direction: null,
-            status: e.outcome,
-          ),
+  static RecentActivityItem _toItem(HistoryEntry e) {
+    switch (e.category) {
+      case HistoryCategory.finance:
+        final row = e.metadata;
+        return RecentActivityItem(
+          id: e.id,
+          source: RecentActivitySource.financial,
+          domain: _financialDomain(row['activityType']?.toString() ?? ''),
+          title: _financialTitle(row),
+          subtitle: _financialSubtitle(row),
+          timestamp: e.createdAt,
+          amount: e.amount,
+          direction: e.direction,
+          status: null,
+          referenceType: e.entityType,
+          referenceId: e.entityId,
         );
-      }
-    }
-
-    if (sourceFilter == RecentActivitySource.all ||
-        sourceFilter == RecentActivitySource.audit) {
-      final logs = await _db.getAuditLogs();
-      for (final row in logs) {
-        final ts = _toInt(row['createdAt']);
-        if (ts < threshold) continue;
-
-        final rowShopId = row['shopId']?.toString();
-        if (shopId != null &&
-            shopId.isNotEmpty &&
-            rowShopId != null &&
-            rowShopId != shopId) {
-          continue;
-        }
-
-        final id =
-            row['firestoreId']?.toString() ??
-            'audit_${row['id']?.toString() ?? row['createdAt']?.toString() ?? ''}';
-        items.add(
-          RecentActivityItem(
-            id: id,
-            source: RecentActivitySource.audit,
-            domain: row['targetType']?.toString() ?? 'system',
-            title: _auditTitle(row),
-            subtitle: _auditSubtitle(row),
-            timestamp: ts,
-            amount: null,
-            direction: null,
-            status: null,
-            // `audit_logs` ghi cả cặp cũ (targetType/targetId) lẫn cặp mới
-            // (entityType/entityId) tuỳ chỗ ghi — nhận cả hai.
-            referenceType:
-                (row['targetType'] ?? row['entityType'])?.toString(),
-            referenceId: (row['targetId'] ?? row['entityId'])?.toString(),
-          ),
+      case HistoryCategory.sync:
+        final event = e.metadata['event'] as SyncAuditEvent;
+        return RecentActivityItem(
+          id: e.id,
+          source: RecentActivitySource.sync,
+          domain: event.domainKey,
+          title: _syncTitle(event),
+          subtitle: _syncSubtitle(event),
+          timestamp: e.createdAt,
+          amount: null,
+          direction: null,
+          status: e.status,
         );
-      }
+      case HistoryCategory.audit:
+        final row = e.metadata;
+        return RecentActivityItem(
+          id: e.id,
+          source: RecentActivitySource.audit,
+          domain: row['targetType']?.toString() ?? 'system',
+          title: _auditTitle(row),
+          subtitle: _auditSubtitle(row),
+          timestamp: e.createdAt,
+          amount: null,
+          direction: null,
+          status: null,
+          referenceType: e.entityType,
+          referenceId: e.entityId,
+        );
+      default:
+        // Không xảy ra trong PHA 0 — getRecentActivity() chỉ trả về 3 category
+        // ở trên. Giữ nhánh này để không crash nếu HistoryService thêm
+        // category mới mà quên cập nhật màn này (sẽ hiện dòng chung chung
+        // thay vì vỡ UI).
+        return RecentActivityItem(
+          id: e.id,
+          source: e.category,
+          domain: e.category,
+          title: e.title ?? 'Hoạt động',
+          subtitle: e.description ?? '',
+          timestamp: e.createdAt,
+          amount: e.amount,
+          direction: e.direction,
+          status: e.status,
+          referenceType: e.entityType,
+          referenceId: e.entityId,
+        );
     }
-
-    items.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-    final limited = items.length > limit ? items.take(limit).toList() : items;
-
-    return RecentActivitySnapshot(generatedAt: now, items: limited);
   }
 
   static String _financialDomain(String activityType) {
@@ -455,18 +463,5 @@ class RecentActivityService {
     final cleaned = raw.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (cleaned.length <= 90) return cleaned;
     return '${cleaned.substring(0, 90)}...';
-  }
-
-  static int _toInt(dynamic value) {
-    if (value is int) return value;
-    if (value is num) return value.toInt();
-    if (value is String) return int.tryParse(value.trim()) ?? 0;
-    return 0;
-  }
-
-  static int? _toNullableInt(dynamic value) {
-    final v = _toInt(value);
-    if (v == 0) return null;
-    return v;
   }
 }

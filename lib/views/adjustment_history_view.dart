@@ -3,13 +3,18 @@ import 'package:flutter/material.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/responsive_wrapper.dart';
 import 'package:intl/intl.dart';
-import '../data/db_helper.dart';
-import '../services/adjustment_service.dart';
+import '../services/history/history_models.dart';
+import '../services/history/history_service.dart';
 import '../services/user_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 
-/// View hiển thị lịch sử bút toán điều chỉnh
+/// View hiển thị lịch sử bút toán điều chỉnh.
+///
+/// PHA 1 — migrate sang `HistoryService.getAdjustmentHistory()` thay vì gọi
+/// thẳng `AdjustmentService.getAdjustmentHistory()`. `HistoryEntry.metadata`
+/// giữ nguyên row gốc nên logic hiển thị bên dưới GIỮ NGUYÊN, chỉ đổi
+/// `adj['x']` thành `adj.metadata['x']`.
 class AdjustmentHistoryView extends StatefulWidget {
   final String? entityType;
   final String? entityId;
@@ -21,8 +26,7 @@ class AdjustmentHistoryView extends StatefulWidget {
 }
 
 class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
-  final db = DBHelper();
-  List<Map<String, dynamic>> _adjustments = [];
+  List<HistoryEntry> _adjustments = [];
   bool _isLoading = true;
   bool _canViewCostPrice = false;
 
@@ -45,7 +49,7 @@ class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
     setState(() => _isLoading = true);
 
     try {
-      final adjustments = await AdjustmentService.getAdjustmentHistory(
+      final adjustments = await HistoryService.getAdjustmentHistory(
         entityType: widget.entityType,
         entityId: widget.entityId,
         limit: 100,
@@ -117,7 +121,8 @@ class _AdjustmentHistoryViewState extends State<AdjustmentHistoryView> {
     );
   }
 
-  Widget _buildAdjustmentCard(Map<String, dynamic> adj) {
+  Widget _buildAdjustmentCard(HistoryEntry entry) {
+    final adj = entry.metadata;
     final adjustmentDate = DateTime.fromMillisecondsSinceEpoch(
       adj['adjustmentDate'] as int? ?? 0,
     );

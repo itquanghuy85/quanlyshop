@@ -46,6 +46,7 @@ import '../services/firestore_write_helper.dart';
 import '../services/user_service.dart';
 import '../services/audit_service.dart';
 import '../services/financial_activity_service.dart';
+import '../services/history/history_service.dart';
 import '../services/storage_service.dart';
 import '../services/background_upload_service.dart';
 import '../services/encryption_service.dart';
@@ -2976,7 +2977,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         // TIỀN MẶT hoặc CHUYỂN KHOẢN - ghi nhận vào tài chính và chi phí
         try {
           // Log to financial_activities table (for financial log view)
-          await FinancialActivityService.logCustomActivity(
+          await HistoryService.recordCorrection(
             activityType: 'PARTS_COST',
             amount: totalCost,
             direction: 'OUT',
@@ -3829,7 +3830,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         final repairRef = r.firestoreId ?? r.id?.toString() ?? 'unknown';
         if (priceChanged) {
           final delta = parsedPrice - oldPrice;
-          await FinancialActivityService.logCustomActivity(
+          await HistoryService.recordCorrection(
             activityType: 'REPAIR_PRICE_ADJUST',
             amount: delta.abs(),
             direction: delta >= 0 ? 'IN' : 'OUT',
@@ -3847,7 +3848,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         }
         if (costChanged) {
           final costDelta = parsedCost - oldCost;
-          await FinancialActivityService.logCustomActivity(
+          await HistoryService.recordCorrection(
             activityType: 'REPAIR_COST_ADJUST',
             amount: costDelta.abs(),
             direction: costDelta >= 0 ? 'OUT' : 'IN',
@@ -3886,7 +3887,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
     if (absAmount == 0) return;
 
-    await FinancialActivityService.logCustomActivity(
+    await HistoryService.recordCorrection(
       activityType: 'PARTS_COST_ADJUST',
       amount: absAmount,
       direction: isOut ? 'OUT' : 'IN',
@@ -4174,7 +4175,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         r.costRecordedAt = DateTime.now().millisecondsSinceEpoch;
         r.costRecordedAmount = costAmount;
       });
-      await FinancialActivityService.logCustomActivity(
+      await HistoryService.recordCorrection(
         activityType: 'PARTS_COST',
         amount: costAmount,
         direction: 'OUT',

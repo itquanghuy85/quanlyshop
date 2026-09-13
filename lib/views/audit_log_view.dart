@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../widgets/custom_app_bar.dart';
-import '../data/db_helper.dart';
+import '../services/history/history_models.dart';
+import '../services/history/history_service.dart';
 import '../theme/app_text_styles.dart';
 import '../services/user_service.dart';
 
+/// PHA 1 — migrate sang `HistoryService.getAuditHistory()` thay vì gọi thẳng
+/// `DBHelper.getAuditLogs()`. Mỗi `HistoryEntry` giữ nguyên row gốc trong
+/// `metadata` nên toàn bộ logic hiển thị bên dưới GIỮ NGUYÊN, chỉ đổi
+/// `log['x']` thành `log.metadata['x']`.
 class AuditLogView extends StatefulWidget {
   const AuditLogView({super.key});
   @override
@@ -13,9 +18,8 @@ class AuditLogView extends StatefulWidget {
 }
 
 class _AuditLogViewState extends State<AuditLogView> {
-  final db = DBHelper();
   static const int _pageSize = 60;
-  List<Map<String, dynamic>> _logs = [];
+  List<HistoryEntry> _logs = [];
   bool _loading = true;
   bool _isLoadingMore = false;
   bool _hasMore = true;
@@ -37,7 +41,10 @@ class _AuditLogViewState extends State<AuditLogView> {
 
   Future<void> _refresh() async {
     setState(() => _loading = true);
-    final data = await db.getAuditLogs(limit: _pageSize, offset: 0);
+    final data = await HistoryService.getAuditHistory(
+      limit: _pageSize,
+      offset: 0,
+    );
     if (!mounted) return;
     setState(() {
       _logs = data;
@@ -52,7 +59,10 @@ class _AuditLogViewState extends State<AuditLogView> {
     if (_loading || _isLoadingMore || !_hasMore) return;
     setState(() => _isLoadingMore = true);
     try {
-      final data = await db.getAuditLogs(limit: _pageSize, offset: _offset);
+      final data = await HistoryService.getAuditHistory(
+        limit: _pageSize,
+        offset: _offset,
+      );
       if (!mounted) return;
       setState(() {
         _logs.addAll(data);
@@ -153,12 +163,16 @@ class _AuditLogViewState extends State<AuditLogView> {
     );
   }
 
-  Widget _buildLogCard(Map<String, dynamic> log, int index) {
-    final DateTime date = DateTime.fromMillisecondsSinceEpoch(log['createdAt']);
-    final Color actionColor = _getActionColor(log['action'] ?? '');
-    final String actionLabel = _displayAction(log['action']);
-    final String entityType = log['targetType'] ?? log['entityType'] ?? '';
-    final String description = log['description'] ?? log['summary'] ?? '';
+  Widget _buildLogCard(HistoryEntry log, int index) {
+    final DateTime date = DateTime.fromMillisecondsSinceEpoch(
+      log.metadata['createdAt'],
+    );
+    final Color actionColor = _getActionColor(log.metadata['action'] ?? '');
+    final String actionLabel = _displayAction(log.metadata['action']);
+    final String entityType =
+        log.metadata['targetType'] ?? log.metadata['entityType'] ?? '';
+    final String description =
+        log.metadata['description'] ?? log.metadata['summary'] ?? '';
 
     return GestureDetector(
       onTap: () => _showLogDetail(log),
@@ -210,7 +224,7 @@ class _AuditLogViewState extends State<AuditLogView> {
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    _getActionIcon(log['action'] ?? ''),
+                    _getActionIcon(log.metadata['action'] ?? ''),
                     color: actionColor,
                     size: 18,
                   ),
@@ -294,7 +308,7 @@ class _AuditLogViewState extends State<AuditLogView> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        log['userName'] ?? 'Unknown',
+                        log.metadata['userName'] ?? 'Unknown',
                         style: TextStyle(
                           fontSize: AppTextStyles.caption.fontSize,
                           fontWeight: FontWeight.bold,
@@ -348,13 +362,18 @@ class _AuditLogViewState extends State<AuditLogView> {
     );
   }
 
-  void _showLogDetail(Map<String, dynamic> log) {
-    final DateTime date = DateTime.fromMillisecondsSinceEpoch(log['createdAt']);
-    final Color actionColor = _getActionColor(log['action'] ?? '');
-    final String actionLabel = _displayAction(log['action']);
-    final String entityType = log['targetType'] ?? log['entityType'] ?? '';
-    final String entityId = log['targetId'] ?? log['entityId'] ?? '';
-    final String description = log['description'] ?? log['summary'] ?? '';
+  void _showLogDetail(HistoryEntry log) {
+    final DateTime date = DateTime.fromMillisecondsSinceEpoch(
+      log.metadata['createdAt'],
+    );
+    final Color actionColor = _getActionColor(log.metadata['action'] ?? '');
+    final String actionLabel = _displayAction(log.metadata['action']);
+    final String entityType =
+        log.metadata['targetType'] ?? log.metadata['entityType'] ?? '';
+    final String entityId =
+        log.metadata['targetId'] ?? log.metadata['entityId'] ?? '';
+    final String description =
+        log.metadata['description'] ?? log.metadata['summary'] ?? '';
 
     showAppBottomSheet(
       context: context,
@@ -395,7 +414,7 @@ class _AuditLogViewState extends State<AuditLogView> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
-                      _getActionIcon(log['action'] ?? ''),
+                      _getActionIcon(log.metadata['action'] ?? ''),
                       color: actionColor,
                       size: 24,
                     ),
@@ -429,11 +448,16 @@ class _AuditLogViewState extends State<AuditLogView> {
               const Divider(),
               const SizedBox(height: 12),
               // Details
-              _buildDetailRow('Người thực hiện', log['userName'] ?? 'Unknown'),
-              if (log['email'] != null && log['email'].toString().isNotEmpty)
-                _buildDetailRow('Email', log['email'].toString()),
-              if (log['role'] != null && log['role'].toString().isNotEmpty)
-                _buildDetailRow('Vai trò', log['role'].toString()),
+              _buildDetailRow(
+                'Người thực hiện',
+                log.metadata['userName'] ?? 'Unknown',
+              ),
+              if (log.metadata['email'] != null &&
+                  log.metadata['email'].toString().isNotEmpty)
+                _buildDetailRow('Email', log.metadata['email'].toString()),
+              if (log.metadata['role'] != null &&
+                  log.metadata['role'].toString().isNotEmpty)
+                _buildDetailRow('Vai trò', log.metadata['role'].toString()),
               if (entityType.isNotEmpty)
                 _buildDetailRow(
                   'Loại đối tượng',
