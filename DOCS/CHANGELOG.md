@@ -4,6 +4,413 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-13g] - Mở rộng fix ENC: sang mọi loại giao dịch trong Chốt quỹ + fix overflow ngay trên từng dòng giao dịch (nghiệm thu máy test thứ 2)
+
+### Bối cảnh
+Sau khi vá `[2026-09-13f]` (chỉ riêng field `note` của "MUA MÁY XÁC"), đã đưa
+build lên máy test THỨ HAI (Oppo — model máy CPH2239, tài khoản test
+`m@m.com` shop "M", được phép ghi dữ liệu thoải mái) để tái hiện thêm. Shop
+"M" tình cờ CŨNG đang ở trạng thái chưa chốt quỹ nhiều ngày (07/09→13/09),
+giống hệt điều kiện gây lỗi ở shop thật.
+
+### Phát hiện thêm (thật, trên dữ liệu thật của shop "M")
+- Giao dịch **"Trả hàng"** trong tab Chi hiện thẳng
+  `ENC:d4n6lMcoZSSNAh7zCFDe55CtAlG...` ở tên khách — và dòng thẻ giao dịch
+  ĐÓ tự nó bị tràn khung thật (banner debug "RIGHT OVERFLOWED BY 119
+  PIXELS"), khác với overflow đã vá ở `[2026-09-13f]` (overflow đó nằm ở
+  card tổng "TỔNG THU/CHI", còn cái này nằm ngay trên dòng từng giao dịch
+  trong `_transactionCard`).
+- Rà lại toàn bộ `cash_closing_view.dart`: field `customerName`/`note` được
+  gán thẳng từ Map thô (`ret['customerName']`, `p['note']`, `pay['note']`,
+  `imp['note']`, `r.customerName`/`r.issue` từ model `Repair` — model này
+  KHÔNG tự giải mã trong `fromMap`, khác với `SaleOrder.fromMap` đã có sẵn
+  `EncryptionService.decryptMap()`) xuất hiện lặp lại ở 7 loại giao dịch:
+  Thu nợ khách, Thu phát sinh, Nhập hàng, Trả nợ NCC (2 nhánh), Trả đối tác
+  SC, Vốn LK sửa chữa, Trả hàng — cùng lỗ hổng như "MUA MÁY XÁC", chỉ là
+  chưa gặp dữ liệu bị kẹt mã hoá ở đúng field đó trên shop thật CPH2203.
+
+### Đã sửa
+- `lib/views/cash_closing_view.dart`: bọc `EncryptionService.decrypt(...)`
+  cho toàn bộ 7 điểm trên (không đổi field nào không nằm trong
+  `EncryptionService.sensitiveFields` — vd `supplierName`/`partnerName`/
+  `productName`/`title` không cần vì chưa từng bị mã hoá).
+  `EncryptionService.decrypt()` tự bỏ qua chuỗi không có tiền tố
+  `ENC:`/`ENC2:` nên an toàn tuyệt đối với dữ liệu chưa từng mã hoá — áp
+  dụng tràn lan không có rủi ro phụ.
+- Fix riêng phần overflow ở `_transactionCard`: `Text(customerName, ...)`
+  trong "Row 2: Detail info line" không có `Flexible`/`maxLines` (khác với
+  `detail` cạnh nó đã có sẵn `Expanded` + ellipsis) — bọc thêm
+  `Flexible(child: Text(..., maxLines: 1, overflow: TextOverflow.ellipsis))`
+  để không tràn khung dù tên khách dài bất thường (không chỉ do ENC:).
+- KHÔNG đổi công thức tính tiền/số dư/lãi — chỉ đổi cách hiển thị text.
+
+### Kiểm chứng
+- `flutter analyze lib/views/cash_closing_view.dart`: không phát sinh lỗi
+  mới (54 issues, toàn bộ info-level có sẵn từ trước).
+- `flutter test` toàn suite: 665 pass / 1 skip / 2 fail — vẫn đúng 2 fail
+  pre-existing, không regression mới.
+- Nghiệm thu máy test CPH2239 (shop "M", `install -r`): tạo tay 1 giao dịch
+  "MUA MÁY XÁC" mới (khách "Nguyen") → hiện đúng ngay lập tức. Giao dịch
+  "Trả hàng" CŨ (12/09, đã kẹt mã hoá `ENC:d4n6...` từ trước khi có bản vá)
+  sau khi cài bản vá hiện đúng "KHÁCH VÃNG LAI" — xác nhận
+  `EncryptionService.decrypt()` giải mã đúng dữ liệu thật đã kẹt, không chỉ
+  chạy được cú pháp. Hết banner overflow ở cả card tổng lẫn dòng giao dịch.
+  Đối chứng lại máy thật CPH2203: không kiểm tra lại lần 2 (đổi code hiển
+  thị giống hệt pattern đã kiểm ở `[2026-09-13f]`, rủi ro thấp; sẽ theo dõi
+  qua logcat/phản hồi nếu có bất thường).
+
+## [2026-09-13f] - Fix overflow TỔNG THU/TỔNG CHI + hiện đúng ghi chú "MUA MÁY XÁC" (đang lộ chuỗi mã hoá ENC:)
+
+### Vấn đề (phản hồi sau bản gộp sâu `[2026-09-13e]`)
+Người dùng báo trên máy thật: (1) card "TỔNG THU" ở tab Thu (trong Chốt quỹ)
+bị tràn khung — Flutter hiện banner debug "RIGHT OVERFLOWED"; (2) dòng "Chi
+tiết" của mục chi "MUA MÁY XÁC" hiện thẳng chuỗi mã hoá dạng
+`ENC:J7/hexPTfoasSGzhU1+MBoj8+DFXFZb...` thay vì tên khách; (3) tiện thể yêu
+cầu kiểm tra số liệu tài chính trên dữ liệu thật.
+
+### Nguyên nhân
+- **Overflow**: `_buildIncomeTab`/`_buildExpenseTab` (`cash_closing_view.dart`)
+  vẽ `Row(mainAxisAlignment: spaceBetween, children: [Column(...), Text(số
+  tiền)])` — cả `Column` bên trái lẫn `Text` số tiền bên phải đều KHÔNG bọc
+  `Expanded`/`Flexible`. Dòng phụ đề `'$N giao dịch$_scopeSuffix'` có thể dài
+  ra khi shop có khoảng ngày chưa chốt quỹ (`_scopeSuffix` chèn thêm
+  `' · gộp dd/MM → dd/MM (chưa chốt quỹ)'`) — shop thật đang chưa chốt quỹ từ
+  02/09 nên dòng phụ đề đủ dài để đẩy `Row` vượt bề ngang màn hình. Bug này
+  có ở CẢ 2 card (Thu lẫn Chi) vì dùng chung 1 pattern — đúng như nghi ngờ
+  "kiểm tra lỗi tương tự" của người dùng, dù card Chi không lộ ra ở
+  screenshot vì số tiền hôm đó ngắn hơn (chỉ là may mắn, không phải đã an
+  toàn).
+- **ENC: hiện ra màn hình**: `_getExpenseTransactions()` gán thẳng
+  `'detail': e['note']` từ dữ liệu thô trong bảng `expenses` SQLite. Trường
+  `note` nằm trong `EncryptionService.sensitiveFields` nên bị mã hoá trước
+  khi đẩy lên Firestore (`FirestoreService.addExpenseCloud`); các đường đồng
+  bộ tải xuống đều có gọi `EncryptionService.decryptMap()` trước khi ghi lại
+  local (đã rà cả 3 điểm ghi `expenses` trong `sync_service.dart`, đều đúng)
+  — nhưng KHÔNG có nơi nào giải mã lại khi ĐỌC trực tiếp từ SQLite để hiển
+  thị. Một số dòng cũ trong DB thật của shop vẫn còn giữ chuỗi `ENC:...` thô
+  (không xác định được chính xác nguyên nhân gốc từng dòng cụ thể bị kẹt mã
+  hoá — không đủ điều kiện đào sâu thêm vì không được phép trích xuất DB sản
+  xuất thật để soi từng bản ghi), nhưng hướng xử lý đúng và an toàn nhất là
+  giải mã phòng thủ ngay tại điểm hiển thị, áp dụng được cho MỌI dòng dù cũ
+  hay mới.
+
+### Đã sửa (chỉ 2 file, không đụng công thức tính tiền)
+- `lib/views/cash_closing_view.dart`:
+  - Card "TỔNG THU" và "TỔNG CHI": bọc `Column` bên trái trong `Expanded`,
+    thêm `maxLines: 1, overflow: TextOverflow.ellipsis` cho dòng phụ đề; số
+    tiền bên phải giữ nguyên không bọc (ưu tiên hiển thị đủ, không rút gọn).
+  - `_getExpenseTransactions()`: đổi `'detail': e['note'] as String? ?? ''`
+    thành `'detail': EncryptionService.decrypt(e['note'] as String? ?? '')`
+    — `EncryptionService.decrypt()` tự bỏ qua (trả nguyên) chuỗi không có
+    tiền tố `ENC:`/`ENC2:`, nên an toàn với cả dữ liệu chưa từng mã hoá.
+    Thêm import `../services/encryption_service.dart`.
+
+### Kiểm chứng
+- `flutter analyze lib/views/cash_closing_view.dart`: không phát sinh lỗi
+  mới (chỉ còn các info-level có sẵn từ trước).
+- `flutter test` toàn suite: 665 pass / 1 skip / 2 fail — vẫn đúng 2 fail
+  pre-existing (`kiotviet_settings_view_test.dart`), không regression mới.
+- Nghiệm thu máy thật CPH2203 (`install -r`, giữ nguyên dữ liệu — đây là máy
+  chủ shop thật, có giao dịch thật phát sinh song song lúc test):
+  - Tab Thu: banner overflow biến mất, dòng phụ đề "155 giao dịch · gộp
+    02/09 → 13/09 (chưa chốt q…" rút gọn bằng "…", số tiền "+1,131 Tỷ" hiện
+    đủ.
+  - Tab Chi: không còn overflow; mục "MUA MÁY XÁC" mới tạo lúc test (13/09
+    15:55) hiện đúng "Mua từ anh Văn Dũng"; một dòng "MUA MÁY XÁC" CŨ từ
+    10/09 09:15 (tồn tại từ trước, khả nghi đã kẹt mã hoá) sau khi cài bản
+    vá cũng hiện đúng "Mua từ Khách lẻ" thay vì chuỗi `ENC:...` — xác nhận
+    fix áp dụng được cho cả dữ liệu cũ, không chỉ dòng mới.
+  - Đối chiếu số liệu thật: "TỔNG QUỸ HIỆN TẠI" = 1,03 Tỷ (Tiền mặt 477,5 Tr
+    + Ngân hàng 552,3 Tr = 1.029,8 Tr). Số dư đầu kỳ (chốt gần nhất 01/09) ≈
+    55 Tr + Tổng thu 1.131 Tr − Tổng chi 156,6 Tr ≈ 1.029,4 Tr — khớp với số
+    hiển thị (chênh lệch nhỏ do làm tròn hiển thị dạng rút gọn), xác nhận
+    đẳng thức "đầu kỳ + Thu − Chi = Tồn hiện tại" đúng trên dữ liệu thật.
+    Không phát hiện bất thường nào khác trong phạm vi kiểm tra nhanh này.
+
+## [2026-09-13e] - Gộp sâu tab Chốt quỹ — bỏ hẳn "tab chồng tab", dọn 2 icon trùng lặp thật
+
+### Vấn đề (phản hồi thứ 2, sau bản polish màu/chữ ở `[2026-09-13d]`)
+Vẫn "thiếu chuyên nghiệp" — audit lại phát hiện đây không phải chuyện màu
+sắc mà là **6 tầng thanh ngang chồng nhau** trước khi thấy nội dung (AppBar
+app → thanh chọn kỳ+"?"+"..." → TabBar chính → dòng ngày+4 icon riêng của
+Chốt quỹ → TabBar con → nội dung), trong đó xác nhận được **2 icon trùng
+lặp thật** bằng cách đọc lại code: nút "?" ở dòng riêng trùng với nút "?" ở
+thanh chọn kỳ; icon "Đối soát tiền về" ở dòng riêng **đã có sẵn** trong menu
+"..." (`_ToolbarAction.moneyReconcile`).
+
+### Đã làm — gộp sâu thay vì chỉnh màu
+- **Bỏ hẳn dòng ngày + 4 icon riêng** trong `CashClosingView._buildEmbeddedBody()`
+  (thêm ở `[2026-09-13d]`, nay xoá) — giờ nhúng chỉ còn TabBar con
+  Tổng quan/Thu/Chi/Lịch sử + nội dung, không còn hàng chrome riêng nào.
+- **Ngày chuyển lên thay thanh chọn kỳ** của `FinanceV2View`: `_periodChips()`
+  giờ kiểm tra tab đang mở — nếu là Chốt quỹ thì hiện 1 chip ngày (dùng
+  chung style `_modeChip`) thay vì 4 chip Hôm nay/7 ngày/30 ngày/Tùy chọn
+  (vốn vô nghĩa với Chốt quỹ). Vẫn nằm trong `SizedBox` cao **cố định** như
+  cũ nên không tái diễn kiểu "giật lên giật xuống" mà comment gốc của file
+  đã cảnh báo khi đổi chiều cao header theo tab.
+- **"Xuất Excel sổ quỹ"/"Tìm giao dịch" chuyển vào menu "..."** — chỉ hiện
+  khi đang ở tab Chốt quỹ (thay "Báo cáo đầy đủ"/"In"/"Xuất Excel tab đang
+  xem"/"Xuất báo cáo ngày" — đều vô nghĩa ở tab này). "Đối soát tiền về" giữ
+  nguyên, dùng chung với 3 tab kia (đã sẵn có, không phải thêm mới).
+- **Cầu nối cha-con**: `CashClosingView` đổi State từ private
+  `_CashClosingViewState` sang public `CashClosingViewState` + 3 hàm public
+  mới `pickDate()`/`exportExcel()`/`openTransactionSearch()` (bọc lại đúng 3
+  hàm private cũ, KHÔNG đổi hành vi bên trong) + callback `onDateChanged` để
+  báo ngược ngày mới lên cha. `FinanceV2View` giữ
+  `GlobalKey<CashClosingViewState>` để gọi 2 hàm đầu từ chip ngày/menu
+  ngoài; thêm `_tabController.addListener` (chỉ rebuild khi
+  `!indexIsChanging`, tránh setState mỗi frame lúc vuốt tab) để chip
+  ngày/menu tự vẽ lại đúng theo tab đang mở.
+- Bỏ nhánh chặn-với-snackbar tạm ở `[2026-09-13d]` (không cần nữa vì 2 hành
+  động đã có chỗ đúng, không còn đường nào gọi nhầm).
+- KHÔNG đổi bất kỳ công thức tính tiền/lãi/chốt quỹ nào — chỉ đổi vỏ điều
+  hướng + giao diện.
+
+### Kiểm chứng
+- `flutter analyze` scoped + toàn project: 0 lỗi/warning mới, 1842
+  info-level (giảm so với bản polish trước vì bớt hẳn 1 khối widget).
+- `flutter test` toàn suite: 665 pass / 1 skip / 2 fail — vẫn đúng 2 fail
+  pre-existing (`kiotviet_settings_view_test.dart`), không có regression mới.
+- Nghiệm thu máy thật CPH2203 (`install -r`, không mất dữ liệu): tab Tiền
+  không đổi gì (đối chứng). Tab Chốt quỹ chỉ còn ĐÚNG 1 hàng ngày+"?"+"..."
+  — hết 2 icon trùng. Mở menu "..." đúng hiện "Đối soát tiền về"/"Xuất Excel
+  sổ quỹ"/"Tìm giao dịch"/"Tải lại". Bấm "Xuất Excel sổ quỹ" qua menu ngoài
+  → xuất thành công file thật `so_quy_giao_dich_02092026_13092026.xlsx` —
+  xác nhận cầu nối `GlobalKey<CashClosingViewState>` hoạt động đúng đầu-cuối,
+  không chỉ compile được. Logcat sạch suốt phiên test, kể cả khi có 1 giao
+  dịch thật phát sinh song song trên shop lúc đang test (đơn IPHONE 11PRM
+  giao cho MISS TRÂM) — xác nhận app hoạt động bình thường dưới tải thật.
+
+## [2026-09-13d] - Gộp "Chốt quỹ" thành tab thứ 4 trong Tài chính V2
+
+### Vấn đề
+Chốt quỹ (Sổ quỹ) là màn riêng, chỉ mở được qua `Navigator.push` (nút "Chốt
+quỹ" trong tab Tiền, hoặc lối tắt Trang chủ) — cảm giác tách rời khỏi "Tài
+chính", dễ bị bỏ quên (đã bàn ở phần trước, xem lịch sử hội thoại).
+
+### Đã làm
+- `finance_v2_view.dart`: thêm "Chốt quỹ" thành tab thứ 4 (`_financeTabs`,
+  hằng `_tabCashClosing = 3`) cạnh Tiền/Lãi/Nợ. Nút "Chốt quỹ" trong tab
+  Tiền đổi từ `Navigator.push` sang `_tabController.animateTo(_tabCashClosing)`.
+  Menu "In"/"Xuất Excel" ở thanh công cụ ngoài chặn sớm + báo rõ khi đang ở
+  tab Chốt quỹ (tab này có nút in/xuất riêng của chính nó).
+- `cash_closing_view.dart`: thêm tham số `embeddedInTab` (cùng quy ước với
+  `FinanceV2DailyReportView.embeddedInTab` đã có sẵn) + hàm `_buildEmbeddedBody()`
+  MỚI — khi nhúng trong tab, bỏ hẳn Scaffold/SliverAppBar "SỔ QUỸ" riêng
+  (từng gây cảnh 2 lớp thanh công cụ chồng nhau — đã thấy trên máy thật ở
+  bước thử đầu), thay bằng 1 thanh gọn (ngày + 4 nút thao tác) + TabBar con
+  Tổng quan/Thu/Chi/Lịch sử kiểu gạch chân, dùng chung nền với Tài chính V2.
+  **Đường mở màn CŨ (Trang chủ, nút cũ, "Tìm giao dịch" nội bộ) không đổi gì**
+  — `embeddedInTab` mặc định `false`, chỉ đường gọi mới từ tab Tài chính mới
+  bật cờ này.
+- KHÔNG đổi bất kỳ công thức tính tiền/lãi/chốt quỹ nào — chỉ đổi vỏ điều
+  hướng + giao diện hiển thị.
+
+### Chỉnh lại giao diện sau phản hồi "nhìn thiếu chuyên nghiệp"
+Bản thử đầu (nghiệm thu máy thật) lộ 2 lỗi hiển thị thật:
+- Tab con "Tổng quan" bị cắt chữ ("Tổng qua…") vì dùng `Tab(icon:, text:)`
+  kiểu icon-trên-chữ, chiếm quá nhiều bề ngang khi chia đều 4 cột. → đổi
+  sang `Tab(child: FittedBox(child: Text(...)))` cho cả 4 tab con, tự co
+  chữ vừa khung, không tràn dòng.
+- TabBar con (Tổng quan/Thu/Chi/Lịch sử) khác hẳn kiểu với TabBar chính
+  (Tiền/Lãi/Nợ/Chốt quỹ) ngay phía trên — 2 kiểu tab nằm sát nhau nhìn rối.
+  → đồng bộ màu (navy `#0D47A1`/xám `#5F6B7A`), cỡ chữ, độ đậm với TabBar
+  chính. Icon thao tác (đối soát/xuất Excel/tìm giao dịch) canh khoảng cách
+  đều nhau hơn, cỡ nút bấm cố định (36×36) thay vì để mặc định lệch nhau.
+
+### Kiểm chứng
+- `flutter analyze` scoped + toàn project: 0 lỗi mới (chỉ thêm vài gợi ý
+  `const`/`withOpacity` info-level ở code mới, cùng mức với phần còn lại
+  của file — không phải lỗi).
+- `flutter test` toàn suite (chạy lại sau bản chỉnh giao diện): 665 pass /
+  1 skip / 2 fail — vẫn đúng 2 fail pre-existing, không có regression mới.
+- Nghiệm thu máy thật CPH2203 (`install -r`, không mất dữ liệu) qua 2 vòng
+  build: vòng 1 phát hiện lỗi cắt chữ + lệch kiểu tab, vòng 2 (sau khi sửa)
+  xác nhận "Tổng quan" hiện đủ chữ, tab bar đồng bộ kiểu với hàng trên, số
+  liệu thật hiển thị đúng (Tổng quỹ 988,9 Tr, Tiền mặt 436,6 Tr, NH 552,3
+  Tr; tab "Lịch sử" hiện đúng lịch sử chốt quỹ 01/09, 28/08, 20/08/2026).
+  Logcat sạch, không exception ở cả 2 vòng.
+
+## [2026-09-13a] - Tái cấu trúc kiến trúc History/Log/Event — PHA 0 (Read Facade)
+
+### Vấn đề
+App có nhiều hệ log độc lập (`financial_activity_log`, `audit_logs`,
+`sync_audit_log`, `adjustment_entries`) — mỗi màn hình tự gọi thẳng
+bảng/service riêng, không có điểm truy xuất chung. Dễ lệch dữ liệu khi thêm
+tính năng mới quên ghi log đúng chỗ (đã lộ qua AUDIT 2026-08-29 D-2/D-3/D-4/L-4:
+phiếu mồ côi, khoản chi ma, VOID sai biên độ).
+
+### Đã làm (PHA 0 — CHỈ ĐỌC, không đổi nguồn dữ liệu, không đổi schema)
+- Thêm `lib/services/history/history_models.dart` — `HistoryEntry` (model
+  trung lập: id/category/type/title/description/amount/direction/status/
+  entityType/entityId/userId/createdAt/metadata) + `HistoryCategory`
+  (finance/audit/sync/adjustment) — không lộ tên bảng ra ngoài.
+- Thêm `lib/services/history/history_service.dart` — facade đọc:
+  `getFinanceHistory/getAuditHistory/getSyncHistory/getAdjustmentHistory/
+  getRecentActivity`. Mỗi hàm bọc lại ĐÚNG service/bảng đang dùng hôm nay
+  (`DBHelper.getFinancialActivities/getAuditLogs`,
+  `SyncAuditService.getRecentEvents`, `AdjustmentService.getAdjustmentHistory`)
+  — không đổi truy vấn, không đổi tham số mặc định.
+- `recent_activity_service.dart` (màn "Hoạt động gần đây") chuyển thành
+  consumer của `HistoryService` — không còn tự gọi 3 nguồn rời rạc rồi tự gộp;
+  chỉ còn lo phần định dạng hiển thị tiếng Việt (giữ nguyên logic cũ).
+
+### Kiểm chứng
+- `flutter analyze` scoped: 0 issue. Toàn project: 0 dòng "error" (1842
+  info-level lint có sẵn từ trước, không liên quan).
+- `flutter test` toàn suite: 665 pass / 1 skip / 2 fail. 2 fail
+  (`kiotviet_settings_view_test.dart`) đã CHỨNG MINH pre-existing bằng cách
+  `git stash` toàn bộ thay đổi Pha 0 rồi chạy lại — vẫn fail y hệt trên code
+  gốc, không phải regression của đợt này.
+- Review độc lập qua skill `/code-review` (effort high, không dùng lại context
+  của phiên đã code): 3 finding, không có correctness bug chặn — unchecked
+  cast `SyncAuditEvent` (an toàn ở hiện trạng), `getRecentActivity()` query
+  tuần tự thay vì `Future.wait` (chỉ ảnh hưởng tốc độ), thiếu cập nhật
+  CHANGELOG (vá bằng chính mục này).
+- KHÔNG đổi database/schema/business logic/số liệu tài chính/hành vi hiển thị.
+
+Tiếp tục PHA 1 (migrate `audit_log_view`/`adjustment_history_view` sang
+`HistoryService`) trong cùng đợt — xem mục tiếp theo.
+
+## [2026-09-13b] - Tái cấu trúc History/Log/Event — PHA 1 + PHA 2 + điều tra Finance + nghiệm thu máy thật
+
+### PHA 1 — migrate read consumer
+- `audit_log_view.dart`, `adjustment_history_view.dart`: chuyển từ gọi thẳng
+  `DBHelper.getAuditLogs()`/`AdjustmentService.getAdjustmentHistory()` sang
+  `HistoryService.getAuditHistory()`/`getAdjustmentHistory()`. `HistoryEntry.metadata`
+  giữ nguyên row gốc nên toàn bộ logic hiển thị 2 màn này GIỮ NGUYÊN — chỉ đổi
+  `x['field']` thành `x.metadata['field']`.
+- Rà toàn project: xác nhận `financial_activity_log`/`audit_logs` còn 2 call
+  site đọc trực tiếp khác (`finance_v2_view.dart:3502`, `finance_v2_data_service.dart:349`)
+  — CHỦ Ý không đụng (thuộc phạm vi Pha Finance sau này, không phải Pha 1).
+
+### PHA 2 — tập trung điểm ghi correction
+- Thêm `HistoryService.recordCorrection()` — bọc lại nguyên xi
+  `FinancialActivityService.logCustomActivity()` (cùng tham số, cùng
+  `EventBus().emitFinancialChanged()`), KHÔNG đổi hành vi ghi.
+- Chuyển 5 call site ghi correction trong `repair_detail_view.dart`
+  (`PARTS_COST` ×2, `REPAIR_PRICE_ADJUST`, `REPAIR_COST_ADJUST`,
+  `PARTS_COST_ADJUST`) sang gọi qua `HistoryService.recordCorrection()` — UI
+  không còn tự quyết định cách ghi log tài chính. `FinancialActivityService.logRepair()`
+  (dòng thu nhập bình thường, không phải correction) GIỮ NGUYÊN không đổi.
+
+### Điều tra kiến trúc Finance (`financial_activity_log`) — RỦI RO CAO NHẤT, chưa migrate
+- Rà toàn bộ writer thực tế: phát hiện **~30+ activityType** (không phải ~14
+  như ước tính ban đầu), phần lớn đến từ `MoneyTransactionService.appendLedger()`
+  (gọi từ `PaymentIntentService`) dùng `PaymentIntentType.code` — bao gồm mẫu mở
+  (`<type>_REVERSAL`) khi thực thi thanh toán thất bại.
+- Phát hiện phụ (không sửa, chỉ ghi nhận — ngoài phạm vi đợt này):
+  `PARTS_COST` + `OTHER_EXPENSE` bị ghi 2 dòng cho cùng 1 khoản tiền trong 1
+  luồng (`repair_detail_view.dart` nhánh nhập nhiều linh kiện); refund
+  (`sales_return_service.dart`) hiện KHÔNG ghi vào `financial_activity_log`
+  (constructor `fromSalesReturn`/type `REFUND` chết, 0 lượt gọi).
+- **Đối chiếu trên dữ liệu thật** (kéo read-only DB local của máy CPH2203 —
+  shop thật — qua `adb`, không đụng dữ liệu gốc trên máy): `sales` có 4.291
+  dòng nhưng `financial_activity_log` chỉ có 492 dòng `SALE` (chênh ~8,7 lần);
+  `import_orders` 3.101 dòng vs 266 dòng `PURCHASE`-family (chênh ~11,6 lần) —
+  do dữ liệu lịch sử/nhập KiotViet không đi qua luồng ghi log tài chính.
+  **Kết luận: live-query thay `financial_activity_log` sẽ thổi phồng doanh
+  thu/chi phí rất nhiều lần — KHÔNG migrate ở đợt này, giữ nguyên nguồn cũ**,
+  đúng nguyên tắc "chưa chứng minh an toàn tuyệt đối thì giữ nguồn cũ".
+
+### Audit phụ trong phạm vi được yêu cầu
+- `partner_repair_history`: xác nhận CÓ orphan khi xoá đơn sửa qua "Công cụ
+  điều chỉnh dữ liệu" (`DataReconciliationService` không dọn bảng này, khác
+  với `debt_payments` đã có xử lý) — **ghi nhận technical debt, CHƯA sửa**
+  (ngoài phạm vi đợt tái cấu trúc History/Log).
+- `debts`+`debt_payments` / `supplier_payments` / `repair_partner_payments`:
+  xác nhận 3 cách biểu diễn công nợ khác nhau, không hợp nhất, chỉ ghi nhận
+  cho định hướng lâu dài.
+
+### Kiểm chứng
+- `flutter analyze` scoped + toàn project: 0 lỗi mới, số info-level giữ
+  nguyên 1842 (không đổi so với trước Pha 1/2).
+- `flutter test` toàn suite: 665 pass / 1 skip / 2 fail — 2 fail
+  (`kiotviet_settings_view_test.dart`) XÁC NHẬN LẠI vẫn đúng 2 test pre-existing
+  từ Pha 0, không có test nào fail thêm.
+- **Nghiệm thu máy thật (CPH2203 — shop thật, cài `install -r`, không mất dữ
+  liệu)**: build & cài debug APK, mở app, logcat sạch (0 FlutterError/exception
+  liên quan), điều hướng thật qua "Hoạt động gần đây" (đủ cả dòng tài chính +
+  1 dòng `REPAIR_COST_ADJUST` hiển thị đúng — xác nhận Pha 2 không đổi hiển
+  thị), "Nhật ký hệ thống" (60 bản ghi tải đúng, đúng tên NV/mô tả/ngày), "Sổ
+  quỹ" (số liệu tài chính không đổi). Không tạo giao dịch test nào trên máy
+  thật trong quá trình kiểm tra.
+
+## [2026-09-13c] - Bản đồ đầy đủ financial_activity_log + fix trùng dòng hiển thị PARTS_COST/OTHER_EXPENSE + điều tra và loại trừ nghi vấn tính lãi trùng (KHÔNG có lỗi)
+
+### Bản đồ hoàn chỉnh từng activityType (tiếp `[2026-09-13b]`)
+- Xác nhận **~1/3 số activityType từng liệt kê là ĐÃ CHẾT** (0 lượt gọi thực
+  tế): `SALE_PAYMENT`, `SALE_INSTALLMENT`, `CUSTOMER_REFUND`, `REFUND`,
+  `REPAIR_PARTS_COST`, `EXPENSE` (`logExpense` 0 caller), `SETTLEMENT`
+  (`logSettlement` 0 caller), `INVENTORY_PURCHASE`, `PARTS_STOCK_IN`,
+  `DEBT_COLLECT`.
+- Phát hiện cấu trúc quan trọng: `DailyFinancialAnalysisService.analyze()` —
+  bộ máy tính Chốt quỹ — **không đọc `financial_activity_log`**, đọc thẳng
+  `sales/repairs/expenses/debt_payments/supplier_payments/
+  repair_partner_payments/import_orders/sales_returns`. Finance V2 cũng đã
+  đọc thẳng `sales` cho tất toán NH. → Chốt quỹ/Finance V2 KHÔNG phụ thuộc
+  log, an toàn trước mọi vấn đề của log.
+- **Vẫn giữ quyết định KHÔNG migrate Finance History sang live-query**: gap
+  8-12 lần giữa `sales`/`import_orders` và log (đo ở `[2026-09-13b]`) là do
+  dữ liệu lịch sử/KiotViet-import, KHÔNG phải lỗi filter có thể vá — không có
+  cách lọc an toàn để loại trừ dữ liệu lịch sử khỏi bảng nghiệp vụ.
+
+### Sửa: trùng dòng hiển thị PARTS_COST/OTHER_EXPENSE trong Nhật ký tài chính
+- `HistoryService.getFinanceHistory()` (`lib/services/history/history_service.dart`)
+  thêm bước lọc `_dedupePartsCostMirror`: nhánh nhập nhiều linh kiện giữa
+  chừng đơn sửa (`repair_detail_view.dart`, TIỀN MẶT/CHUYỂN KHOẢN) ghi 2 dòng
+  cho CÙNG 1 khoản tiền (`PARTS_COST` + mirror `OTHER_EXPENSE` từ
+  `PaymentIntentService`, cùng `referenceId`+amount) — nay chỉ hiện 1 dòng.
+  **CHỈ sửa tầng đọc/hiển thị**, không đụng dữ liệu, không đụng Chốt quỹ/
+  Finance V2 (đã xác nhận 2 màn đó không dùng `financial_activity_log` cho
+  số liệu này nên không hề bị đếm trùng — chỉ trùng ở "Nhật ký tài chính"/
+  "Hoạt động gần đây"). Đã kiểm tra trên dữ liệu thật CPH2203: shop này chưa
+  từng kích hoạt nhánh gây trùng (0 cặp trùng thực tế) nên chưa quan sát được
+  bằng mắt, nhưng logic đã khớp đúng field ghi ở nguồn.
+
+### ĐÃ ĐIỀU TRA — nghi vấn tính lãi bị trừ CHI PHÍ LINH KIỆN 2 LẦN: XÁC NHẬN AN TOÀN, KHÔNG CÓ LỖI
+- Mục này ở lượt ghi trước (cùng ngày) nêu nghi vấn: thêm phụ tùng giữa đơn
+  đang sửa (nhánh TIỀN MẶT/CHUYỂN KHOẢN) có thể vừa cộng `r.cost += totalCost`
+  (tính vào giá vốn sửa chữa lúc giao máy) vừa ghi một dòng `OTHER_EXPENSE`
+  bị trừ vào lãi ngay lúc mua, với category mặc định `'KHÁC'` không khớp bộ
+  lọc loại trừ `category.contains('LINH KIỆN')` — nghi có thể trừ lãi 2 lần
+  nếu ngày mua và ngày giao khác kỳ báo cáo. **Nhận định đó SAI** — đã đọc
+  lại trực tiếp code để đính chính:
+  - `repair_detail_view.dart:3012` **có** set rõ
+    `'category': 'LINH KIỆN SỬA CHỮA'` trong metadata truyền cho
+    `PaymentIntentService.executePaymentDirect(type: otherExpense, ...)` —
+    không rơi về mặc định `'KHÁC'` như nhận định trước.
+  - Category này **khớp đúng** điều kiện loại trừ `category.contains('LINH KIỆN')`
+    ở cả `daily_financial_analysis_service.dart` (loại khỏi `expenseOut`) lẫn
+    `finance_v2_data_service.dart` (`_isImportExpense`, loại khỏi
+    `operatingExpenseOut`) — tức dù nhánh này có chạy, vẫn không bị trừ 2 lần.
+  - Ngoài ra, với luồng chọn phụ tùng hiện tại (`getAllPartsUnified()` chỉ
+    trả về nguồn `products`/`repair_parts`, cả 2 đều đã thanh toán lúc nhập
+    kho), nhánh sinh cặp `PARTS_COST`+`OTHER_EXPENSE` này (`repair_detail_view.dart:2875-3022`)
+    **không thể chạy tới được** — `allFromStock` (dòng 2791-2793) luôn `true`
+    nên code luôn đi nhánh chỉ cộng `r.cost`, không ghi thêm log nào.
+    `repairs.cost` cộng dồn được tính vào giá vốn đúng 1 lần, đúng lúc giao máy.
+  - Dữ liệu thật CPH2203 xác nhận: **0 dòng `OTHER_EXPENSE`** trong toàn bộ
+    lịch sử shop; **112 dòng `PARTS_COST`** hiện có đều mang tiêu đề
+    `"Giá vốn linh kiện: ..."` của nhánh AN TOÀN
+    (`_showCostFundRecordingPopup`), không có dòng nào của nhánh dead-code
+    (`"Chi phí linh kiện: ..."`) — không có bằng chứng double-count.
+  - **Kết luận: KHÔNG có lỗi double-count, không cần sửa, không cần backfill.**
+    Đã điều tra độc lập bằng subagent riêng + tự tay đọc lại code xác nhận.
+  - Ghi nhận thành technical debt (chưa xử lý, không thuộc phạm vi đợt này):
+    (1) ~150 dòng dead code ở nhánh `else` (`repair_detail_view.dart:2875-3022`)
+    không còn đường nào gọi tới; (2) lớp bảo vệ chống double-count đang dựa
+    vào so khớp CHUỖI `category.contains('LINH KIỆN')` đặt thủ công tại 1
+    điểm gọi — giòn về lâu dài nếu sau này có người đổi tên category hoặc mở
+    lại nhánh dead-code mà quên set đúng category.
+
+### Kiểm chứng
+- `flutter analyze` scoped + toàn project: 0 lỗi mới, 1842 info-level không
+  đổi.
+- `flutter test` toàn suite sau fix dedup: 665 pass / 1 skip / 2 fail — vẫn
+  đúng 2 fail pre-existing (`kiotviet_settings_view_test.dart`), không có
+  regression mới.
+
 ## [2026-09-12j] - Bấm SP đã bán mở SAI sản phẩm trên máy khác (id SQLite cục bộ) + tab Lãi đọc được
 
 ### Lỗi gốc (dữ liệu thật, đơn `sale_1789206347870` bán CÓC SẠC / ỐP LƯNG / CƯỜNG LỰC)

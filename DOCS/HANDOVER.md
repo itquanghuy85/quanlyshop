@@ -7,7 +7,82 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## ⚡ Trạng thái hiện tại
 
 **Version:** 3.6.0+557 (AAB đã build 12/09 15:26 + web đã deploy https://quanlyshop.web.app — xem `DOCS/release_notes_2026-09-12.md`; 3.5.0+556 đang live trên store). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
-**Last Updated:** 2026-09-12  
+**Last Updated:** 2026-09-13  
+
+**✅ Mở rộng fix ENC:/overflow sang toàn bộ giao dịch Chốt quỹ (`[2026-09-13g]`).**
+Sau bản vá `[2026-09-13f]` (chỉ field `note` của "MUA MÁY XÁC"), test trên
+máy thứ 2 (Oppo CPH2239, tài khoản test `m@m.com` shop "M") phát hiện thêm:
+giao dịch "Trả hàng" cũng lộ `ENC:...` ở tên khách, và dòng thẻ giao dịch đó
+tự tràn khung thật (khác vị trí overflow đã vá ở bản trước — đây là ngay
+trên từng dòng giao dịch, không phải card tổng). Rà lại toàn file phát hiện
+cùng lỗ hổng lặp ở 7 loại giao dịch (Thu nợ khách, Thu phát sinh, Nhập
+hàng, Trả nợ NCC ×2, Trả đối tác SC, Vốn LK sửa chữa, Trả hàng) — model
+`Repair.fromMap` không tự giải mã như `SaleOrder.fromMap` đã có. Đã bọc
+`EncryptionService.decrypt()` cho toàn bộ 7 điểm + thêm `Flexible`/ellipsis
+cho `Text(customerName)` trong `_transactionCard`. Nghiệm thu CPH2239: tạo
+mới "MUA MÁY XÁC" hiện đúng ngay; dòng "Trả hàng" CŨ (12/09, kẹt mã hoá từ
+trước) sau khi vá hiện đúng "KHÁCH VÃNG LAI" — xác nhận giải mã đúng dữ
+liệu thật đã kẹt. Đã cài build này lên cả CPH2203 (shop thật) để triển khai
+fix, không tạo giao dịch giả để test trên máy thật. Xem CHANGELOG
+`[2026-09-13g]`.
+
+**✅ Fix overflow TỔNG THU/TỔNG CHI + hiện đúng ghi chú "MUA MÁY XÁC" (`[2026-09-13f]`).**
+Sau bản gộp sâu `[2026-09-13e]`, người dùng báo trên máy thật: card "TỔNG
+THU" tràn khung (banner debug "RIGHT OVERFLOWED") khi shop có khoảng ngày
+chưa chốt quỹ (dòng phụ đề dài ra); card "TỔNG CHI" có cùng lỗi cấu trúc dù
+chưa lộ ra do số tiền hôm đó ngắn. Đã bọc `Expanded` + `maxLines:1,
+overflow: ellipsis` cho cả 2 card trong `cash_closing_view.dart`. Đồng thời
+phát hiện mục chi "MUA MÁY XÁC" hiện thẳng chuỗi mã hoá `ENC:...` ở dòng
+"Chi tiết" — nguyên nhân: `_getExpenseTransactions()` đọc thẳng `note` thô
+từ SQLite (trường này nằm trong `EncryptionService.sensitiveFields`, được
+mã hoá trước khi lên Firestore) mà không giải mã lại khi hiển thị; các
+đường đồng bộ tải xuống đều decrypt đúng nên đây là lỗ hổng ở tầng hiển thị,
+không phải lỗi đồng bộ. Đã sửa bằng `EncryptionService.decrypt()` tại điểm
+gán `'detail'`. Đã nghiệm thu máy thật CPH2203: hết overflow, dòng
+"MUA MÁY XÁC" CŨ (10/09, trước khi có bản vá) lẫn MỚI đều hiện đúng tên
+khách. Tiện thể đối chiếu "đầu kỳ + Thu − Chi = Tồn hiện tại" trên số liệu
+thật — khớp. Xem CHANGELOG `[2026-09-13f]`.
+
+**✅ GỘP "Chốt quỹ" thành tab thứ 4 trong Tài chính V2 (`[2026-09-13d,e]`).**
+3 vòng chỉnh theo phản hồi thực tế trên máy: vòng 1 gộp tab nhưng bị 2 lớp
+thanh công cụ chồng nhau; vòng 2 sửa màu/chữ nhưng vẫn "thiếu chuyên nghiệp";
+vòng 3 audit lại phát hiện gốc là **6 tầng thanh ngang + 2 icon trùng lặp
+thật** ("?" và "Đối soát tiền về" đã có sẵn ở thanh chọn kỳ/menu ngoài) — đã
+gộp sâu: bỏ hẳn dòng riêng, ngày chuyển lên thay thanh chọn kỳ, "Xuất Excel
+sổ quỹ"/"Tìm giao dịch" chuyển vào menu "..." (cầu nối qua
+`GlobalKey<CashClosingViewState>`). Còn 4 tầng, hết icon trùng. Đường mở màn
+cũ (Trang chủ, nút cũ) không đổi gì. Đã nghiệm thu máy thật CPH2203 — bấm
+"Xuất Excel sổ quỹ" từ menu ngoài ra đúng file thật, không đổi công thức
+tính tiền/lãi. Xem CHANGELOG `[2026-09-13e]`.
+
+**✅ ĐÃ ĐIỀU TRA, XÁC NHẬN AN TOÀN: nghi vấn lãi bị trừ CHI PHÍ LINH KIỆN 2
+LẦN (`[2026-09-13c]`).** Nghi vấn ban đầu (thêm phụ tùng giữa chừng đơn sửa
+vừa cộng `repairs.cost` vừa ghi `OTHER_EXPENSE` trừ lãi ngay lúc mua) đã được
+điều tra độc lập và **loại trừ** — `repair_detail_view.dart:3012` set đúng
+category `'LINH KIỆN SỬA CHỮA'`, khớp bộ lọc loại trừ ở cả
+`daily_financial_analysis_service.dart` lẫn `finance_v2_data_service.dart`;
+nhánh sinh cặp ghi đôi cũng là dead code không chạy tới được với luồng chọn
+phụ tùng hiện tại (`allFromStock` luôn `true`). Dữ liệu thật CPH2203: 0 dòng
+`OTHER_EXPENSE`, 112 dòng `PARTS_COST` đều thuộc nhánh an toàn. **Không có
+lỗi, không sửa gì** — chỉ ghi nhận technical debt (dead code ~150 dòng, lớp
+bảo vệ dựa vào so khớp chuỗi category) — xem chi tiết CHANGELOG `[2026-09-13c]`.
+
+**✅ ĐÓNG ĐỢT: Tái cấu trúc kiến trúc History/Log/Event Pha 0-2 (`[2026-09-13a,b,c]`).**
+`HistoryService` (`lib/services/history/`) là facade đọc tập trung cho
+finance/audit/sync/adjustment + `recordCorrection()` ghi tập trung cho bút
+toán bù trừ. Đã migrate: `recent_activity_service.dart`, `audit_log_view.dart`,
+`adjustment_history_view.dart`, 5 call site correction trong
+`repair_detail_view.dart`. ĐÃ NGHIỆM THU máy thật CPH2203 (shop thật) —
+"Hoạt động gần đây"/"Nhật ký hệ thống"/"Sổ quỹ" chạy đúng dữ liệu, logcat sạch.
+**CHƯA làm** (rủi ro cao, cần dự án riêng): thay `financial_activity_log`
+bằng live-query — đối chiếu dữ liệu thật cho thấy `sales`/`import_orders` có
+nhiều hơn log 8-12 lần (dữ liệu lịch sử/KiotViet không qua luồng log) nên
+live-query sẽ thổi phồng số liệu — **giữ nguyên nguồn cũ theo đúng nguyên tắc
+an toàn**. Technical debt ghi nhận thêm: `partner_repair_history` mồ côi khi
+xoá đơn sửa qua Công cụ điều chỉnh dữ liệu (chưa sửa); `PARTS_COST` +
+`OTHER_EXPENSE` ghi trùng 1 khoản tiền trong 1 luồng; refund không ghi log
+tài chính (type `REFUND` chết). 2 test `kiotviet_settings_view_test.dart` fail
+vẫn là pre-existing, không liên quan.
 
 **🔴 ĐÃ VÁ: id SQLite cục bộ dùng làm khoá xuyên máy (`[2026-09-12j]`).**
 Đơn bán thật hôm nay (CÓC SẠC / ỐP LƯNG / CƯỜNG LỰC, máy KIMHUE205A) bấm vào

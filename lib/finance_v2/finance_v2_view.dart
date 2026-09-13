@@ -70,6 +70,9 @@ enum _ToolbarAction {
   exportDailyReport,
   moneyReconcile,
   reload,
+  // Chỉ hiện trong menu khi đang ở tab Chốt quỹ — xem `_buildToolbarMenu`.
+  cashClosingExport,
+  cashClosingSearch,
 }
 
 class FinanceV2View extends StatefulWidget {
@@ -103,16 +106,41 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   ///    của 3 tab kia. Chọn "30 ngày" rồi sang Báo cáo lại thấy số của hôm nay,
   ///    không có gì báo. Nay Báo cáo ra khỏi tab, thành màn riêng mở từ menu ⋯
   ///    (nó vốn đã có AppBar + nút in/xuất riêng khi `embeddedInTab: false`).
-  static const List<String> _financeTabs = <String>['Tiền', 'Lãi', 'Nợ'];
+  /// THỬ NGHIỆM: thêm "Chốt quỹ" làm tab thứ 4 để không phải rời màn Tài
+  /// chính mới xem/ghi chốt quỹ được (trước đây phải bấm nút "Chốt quỹ" →
+  /// mở màn riêng qua `Navigator.push`). LƯU Ý: Chốt quỹ dùng bộ chọn NGÀY
+  /// riêng (xem 1 ngày cụ thể) — khác khái niệm "kỳ" (7/30 ngày) mà 3 tab
+  /// kia dùng chung — cùng loại vấn đề mà tab "Báo cáo" cũ từng gặp (xem
+  /// comment phía trên). Đang để tab chủ shop tự xem trên máy thật rồi mới
+  /// quyết định giữ hay quay lại nút riêng.
+  static const List<String> _financeTabs = <String>[
+    'Tiền',
+    'Lãi',
+    'Nợ',
+    'Chốt quỹ',
+  ];
 
   /// Chi so tab — dat ten de khong con viet so tran nhu `index == 4`.
   static const int _tabCash = 0;
   static const int _tabProfit = 1;
   static const int _tabDebt = 2;
+  static const int _tabCashClosing = 3;
 
   late TabController _tabController;
   final FinanceV2DataService _service = FinanceV2DataService();
   final DBHelper _db = DBHelper();
+
+  /// Gọi `pickDate()`/`exportExcel()`/`openTransactionSearch()` của tab
+  /// Chốt quỹ nhúng bên dưới — 3 hành động đó giờ kích hoạt từ chip ngày
+  /// (thay thanh chọn kỳ) và menu "..." của chính màn này khi đang mở tab
+  /// Chốt quỹ, không còn dòng nút riêng bên trong `CashClosingView` nữa.
+  final GlobalKey<CashClosingViewState> _cashClosingKey =
+      GlobalKey<CashClosingViewState>();
+
+  /// Ngày Chốt quỹ đang xem — chỉ để hiển thị trên chip ngày ở đây;
+  /// `CashClosingView` tự giữ giá trị thật, gọi `onDateChanged` báo ngược
+  /// lên mỗi khi đổi.
+  DateTime _cashClosingDate = DateTime.now();
   final _txCtrl = TextEditingController();
   final _tlCtrl = TextEditingController();
 
@@ -170,6 +198,12 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   void initState() {
     super.initState();
     _tabController = TabController(length: _financeTabs.length, vsync: this);
+    // Chỉ tab Chốt quỹ cần vẽ lại chip-ngày/menu "..." theo tab đang mở
+    // (`_periodChips`/`_buildToolbarMenu`) — chờ animation dừng hẳn
+    // (`!indexIsChanging`) để không setState mỗi frame lúc vuốt tab.
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging && mounted) setState(() {});
+    });
     _loadCostPermission();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _maybeShowFinanceGuide();
@@ -891,6 +925,12 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       case _ToolbarAction.moneyReconcile:
         openMoneyReconcile(context);
         break;
+      case _ToolbarAction.cashClosingExport:
+        _cashClosingKey.currentState?.exportExcel();
+        break;
+      case _ToolbarAction.cashClosingSearch:
+        _cashClosingKey.currentState?.openTransactionSearch();
+        break;
     }
   }
 
@@ -905,11 +945,12 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         GuideStep(
           title: '🎯 Màn này để làm gì?',
           description:
-              'ĐỂ LÀM GÌ: xem sức khoẻ tài chính cửa hàng qua 3 tab, mỗi tab một câu hỏi.\n'
+              'ĐỂ LÀM GÌ: xem sức khoẻ tài chính cửa hàng qua 4 tab, mỗi tab một câu hỏi.\n'
               '• TIỀN — hôm nay thu/chi bao nhiêu, gồm những giao dịch nào (số nằm ngay trên danh sách).\n'
               '• LÃI — bán/sửa xong còn lại bao nhiêu.\n'
               '• NỢ — ai nợ mình, mình nợ ai (số dư hiện tại, KHÔNG theo kỳ đang chọn).\n'
-              'Thanh chọn kỳ nằm trên cùng, dùng chung cho cả màn. In / xuất Excel / Báo cáo đầy đủ ở menu ⋯.',
+              '• CHỐT QUỸ — đếm tiền mặt/NH cuối ngày, có bộ chọn NGÀY riêng (không theo kỳ đang chọn ở trên).\n'
+              'Thanh chọn kỳ nằm trên cùng, dùng chung cho 3 tab Tiền/Lãi/Nợ. In / xuất Excel / Báo cáo đầy đủ ở menu ⋯.',
           icon: Icons.lightbulb_outline,
           iconColor: Colors.amber,
         ),
@@ -947,69 +988,116 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       onSelected: _onToolbarAction,
       icon: const Icon(Icons.more_horiz_rounded, color: Color(0xFF1565C0)),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      itemBuilder: (_) => [
-        const PopupMenuItem(
-          value: _ToolbarAction.fullReport,
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.assessment_rounded),
-            title: Text('Báo cáo đầy đủ'),
-          ),
-        ),
-        const PopupMenuItem(
-          value: _ToolbarAction.moneyReconcile,
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.fact_check_outlined),
-            title: Text('Đối soát tiền về'),
-          ),
-        ),
-        const PopupMenuDivider(),
-        const PopupMenuItem(
-          value: _ToolbarAction.print,
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.print_rounded),
-            title: Text('In tab đang xem'),
-          ),
-        ),
-        const PopupMenuItem(
-          value: _ToolbarAction.exportExcel,
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.download_rounded),
-            title: Text('Xuất Excel tab đang xem'),
-          ),
-        ),
-        // "Báo cáo ngày" là file giá vốn/lãi từng đơn từ đầu tới cuối (9 mục,
-        // có cả cột "Giá vốn" và "% lãi" cho từng đơn bán). Không có quyền xem
-        // giá vốn thì giấu hẳn mục này thay vì lọc từng cột — lọc sót một cột
-        // là lộ, mà file thì đi ra ngoài máy. CLAUDE.md §9.
-        if (_canViewCost)
-          const PopupMenuItem(
-            value: _ToolbarAction.exportDailyReport,
-            child: ListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.table_chart_rounded),
-              title: Text('Xuất báo cáo ngày'),
-            ),
-          ),
-        const PopupMenuDivider(),
-        const PopupMenuItem(
-          value: _ToolbarAction.reload,
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.refresh_rounded),
-            title: Text('Tải lại'),
-          ),
-        ),
-      ],
+      // Tab Chốt quỹ không có "kỳ"/giá vốn từng đơn kiểu Tiền-Lãi-Nợ nên
+      // "Báo cáo đầy đủ"/"In"/"Xuất Excel tab đang xem"/"Xuất báo cáo ngày"
+      // đều vô nghĩa ở đó — thay bằng đúng 2 hành động riêng của Chốt quỹ
+      // (trước đây có dòng nút riêng bên trong `CashClosingView`, nay gọi
+      // qua `_cashClosingKey`, xem `_onToolbarAction`).
+      itemBuilder: (_) => _tabController.index == _tabCashClosing
+          ? [
+              const PopupMenuItem(
+                value: _ToolbarAction.moneyReconcile,
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.fact_check_outlined),
+                  title: Text('Đối soát tiền về'),
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: _ToolbarAction.cashClosingExport,
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.download_rounded),
+                  title: Text('Xuất Excel sổ quỹ'),
+                ),
+              ),
+              const PopupMenuItem(
+                value: _ToolbarAction.cashClosingSearch,
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.manage_search_rounded),
+                  title: Text('Tìm giao dịch'),
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: _ToolbarAction.reload,
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.refresh_rounded),
+                  title: Text('Tải lại'),
+                ),
+              ),
+            ]
+          : [
+              const PopupMenuItem(
+                value: _ToolbarAction.fullReport,
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.assessment_rounded),
+                  title: Text('Báo cáo đầy đủ'),
+                ),
+              ),
+              const PopupMenuItem(
+                value: _ToolbarAction.moneyReconcile,
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.fact_check_outlined),
+                  title: Text('Đối soát tiền về'),
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: _ToolbarAction.print,
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.print_rounded),
+                  title: Text('In tab đang xem'),
+                ),
+              ),
+              const PopupMenuItem(
+                value: _ToolbarAction.exportExcel,
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.download_rounded),
+                  title: Text('Xuất Excel tab đang xem'),
+                ),
+              ),
+              // "Báo cáo ngày" là file giá vốn/lãi từng đơn từ đầu tới cuối
+              // (9 mục, có cả cột "Giá vốn" và "% lãi" cho từng đơn bán).
+              // Không có quyền xem giá vốn thì giấu hẳn mục này thay vì lọc
+              // từng cột — lọc sót một cột là lộ, mà file thì đi ra ngoài
+              // máy. CLAUDE.md §9.
+              if (_canViewCost)
+                const PopupMenuItem(
+                  value: _ToolbarAction.exportDailyReport,
+                  child: ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.table_chart_rounded),
+                    title: Text('Xuất báo cáo ngày'),
+                  ),
+                ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: _ToolbarAction.reload,
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.refresh_rounded),
+                  title: Text('Tải lại'),
+                ),
+              ),
+            ],
     );
   }
 
@@ -1076,6 +1164,24 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   /// 06/09`) thay vì chữ "Tùy chọn" trống nghĩa, nên không cần thêm một dòng
   /// nhãn phụ bên dưới như bản cũ.
   Widget _periodChips() {
+    // Tab Chốt quỹ không có khái niệm "kỳ" (7/30 ngày) — nó luôn xem 1 NGÀY
+    // cụ thể. Thay cả hàng chip kỳ bằng 1 chip ngày, TRONG CÙNG SizedBox cao
+    // cố định `_periodBarHeight` ở `_buildFinanceHeader` nên không đổi chiều
+    // cao header theo tab (đúng nguyên tắc "chiều cao là hằng số" đã ghi ở
+    // đó — tránh tái diễn kiểu giật lên giật xuống của bản header cũ).
+    if (_tabController.index == _tabCashClosing) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: _modeChip(
+            DateFormat('dd/MM/yyyy', 'vi').format(_cashClosingDate),
+            true,
+            () => _cashClosingKey.currentState?.pickDate(),
+          ),
+        ),
+      );
+    }
     final custom = _timeFilter == _TimeFilter.custom;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -1228,7 +1334,20 @@ class _FinanceV2ViewState extends State<FinanceV2View>
             )
           : TabBarView(
               controller: _tabController,
-              children: [_cashBody(), _profitBody(), _debtBody()],
+              children: [
+                _cashBody(),
+                _profitBody(),
+                _debtBody(),
+                // `embeddedInTab: true` — bỏ hẳn Scaffold/SliverAppBar "SỔ
+                // QUỸ" riêng LẪN dòng ngày/icon thao tác riêng (chip ngày +
+                // hành động chuyển lên `_periodChips`/`_buildToolbarMenu`
+                // của chính màn này — xem `_cashClosingKey`).
+                CashClosingView(
+                  key: _cashClosingKey,
+                  embeddedInTab: true,
+                  onDateChanged: (d) => setState(() => _cashClosingDate = d),
+                ),
+              ],
             ),
     );
   }
@@ -1362,10 +1481,10 @@ class _FinanceV2ViewState extends State<FinanceV2View>
                   Icons.lock_clock_rounded,
                   'Chốt quỹ',
                   FinanceV2Theme.accent,
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CashClosingView()),
-                  ).then((_) => _load()),
+                  // THỬ NGHIỆM: Chốt quỹ giờ là tab ngay trong màn này —
+                  // chuyển tab thay vì mở màn riêng (trước đây
+                  // `Navigator.push` + `_load()` lại sau khi đóng).
+                  () => _tabController.animateTo(_tabCashClosing),
                 ),
               ),
             ],

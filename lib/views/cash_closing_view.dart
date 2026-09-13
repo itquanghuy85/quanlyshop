@@ -17,6 +17,7 @@ import '../services/audit_service.dart';
 import '../services/notification_service.dart';
 import '../services/category_service.dart';
 import '../services/event_bus.dart';
+import '../services/encryption_service.dart';
 import '../services/daily_financial_analysis_service.dart';
 import '../services/firestore_write_helper.dart';
 import '../utils/money_utils.dart';
@@ -52,17 +53,41 @@ class CashClosingView extends StatefulWidget {
   /// để giữ nguyên ngày người dùng đang xem.
   final DateTime? initialDate;
 
+  /// `true` = nhúng làm tab "Chốt quỹ" bên trong Tài chính V2
+  /// (`finance_v2_view.dart`) — bỏ hẳn Scaffold/SliverAppBar "SỔ QUỸ" riêng
+  /// LẪN dòng ngày/icon thao tác riêng (bản đầu từng thêm rồi bỏ vì bị chê
+  /// "tab chồng tab" — ngày chuyển lên thay chỗ thanh chọn kỳ của màn cha,
+  /// nút thao tác chuyển vào menu "..." của màn cha, xem
+  /// `FinanceV2View._periodChips/_buildToolbarMenu`). Chỉ còn TabBar con
+  /// Tổng quan/Thu/Chi/Lịch sử + nội dung. Cùng quy ước với `embeddedInTab`
+  /// của `FinanceV2DailyReportView`. Mặc định `false` — mọi lối mở màn này
+  /// hiện có (Trang chủ, nút "Chốt quỹ" cũ, "Tìm giao dịch" từ trong chính
+  /// nó) đều không truyền cờ này nên GIỮ NGUYÊN giao diện đầy đủ như trước.
+  final bool embeddedInTab;
+
+  /// Chỉ dùng khi `embeddedInTab`: báo cho màn cha biết ngày đang xem đã đổi
+  /// (do `pickDate()` gọi từ chip ngày của màn cha) — để màn cha cập nhật
+  /// đúng ngày hiển thị trên chip đó (widget con tự `setState` được, nhưng
+  /// state của CHIP NGÀY nằm bên `FinanceV2View`, phải báo ngược lên).
+  final ValueChanged<DateTime>? onDateChanged;
+
   const CashClosingView({
     super.key,
     this.showOnlyTransactions = false,
     this.initialDate,
+    this.embeddedInTab = false,
+    this.onDateChanged,
   });
 
   @override
-  State<CashClosingView> createState() => _CashClosingViewState();
+  State<CashClosingView> createState() => CashClosingViewState();
 }
 
-class _CashClosingViewState extends State<CashClosingView>
+/// Public để `FinanceV2View` gọi được `pickDate()`/`exportExcel()`/
+/// `openTransactionSearch()` qua `GlobalKey<CashClosingViewState>` khi
+/// `embeddedInTab: true` — 3 hành động này chuyển ra chip ngày/menu "..."
+/// của màn cha thay vì có dòng nút riêng bên trong nữa.
+class CashClosingViewState extends State<CashClosingView>
     with SingleTickerProviderStateMixin {
   final db = DBHelper();
   late TabController _tabController;
@@ -951,6 +976,9 @@ class _CashClosingViewState extends State<CashClosingView>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.embeddedInTab) {
+      return _buildEmbeddedBody();
+    }
     if (!_hasPermission) {
       return Scaffold(
         backgroundColor: const Color(0xFFF5F7FA),
@@ -1083,6 +1111,87 @@ class _CashClosingViewState extends State<CashClosingView>
                   ],
                 ),
               ),
+      ),
+    );
+  }
+
+  /// Thân màn khi nhúng làm tab trong Tài chính V2 (`widget.embeddedInTab`).
+  /// KHÔNG Scaffold/SliverAppBar riêng — Finance V2 đã có AppBar +
+  /// TabBar Tiền/Lãi/Nợ/Chốt quỹ của nó rồi. Chỉ còn 1 thanh gọn (ngày + 4
+  /// nút thao tác, giữ NGUYÊN đúng các hàm `_pickDate`/`openMoneyReconcile`/
+  /// `_exportCashClosingExcel`/`_openTransactionSearch` như bản đầy đủ) và
+  /// TabBar con Tổng quan/Thu/Chi/Lịch sử kiểu gạch chân thay vì viên thuốc
+  /// trắng-trên-xanh, cho đỡ giống "2 màn dán vào nhau".
+  Widget _buildEmbeddedBody() {
+    if (!_hasPermission) {
+      return const Center(
+        child: Text(
+          'Bạn không có quyền truy cập tính năng này',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    // Cùng 2 màu với TabBar Tiền/Lãi/Nợ/Chốt quỹ ở `_buildAdaptiveTabStrip`
+    // (finance_v2_view.dart) — chép giá trị trực tiếp thay vì import chéo
+    // sang `finance_v2/` để giữ nguyên ranh giới thư mục hiện có.
+    const navy = Color(0xFF0D47A1);
+    const grey = Color(0xFF5F6B7A);
+    return ResponsiveCenter(
+      child: Column(
+        children: [
+          // Ngày + nút thao tác (help/đối soát/xuất Excel/tìm giao dịch) đã
+          // chuyển hết lên `FinanceV2View` (chip ngày thay thanh chọn kỳ +
+          // menu "...") — ở đây chỉ còn TabBar con Tổng quan/Thu/Chi/Lịch sử,
+          // CÙNG kiểu chữ-thuần với TabBar Tiền/Lãi/Nợ/Chốt quỹ ngay phía
+          // trên (không icon-trên-chữ như bản đầu: ở bề ngang chia 4 phần,
+          // "Tổng quan" bị tràn dòng "Tổng qua…" rất xấu).
+          SizedBox(
+            height: 40,
+            child: TabBar(
+              controller: _tabController,
+              isScrollable: false,
+              labelColor: navy,
+              unselectedLabelColor: grey,
+              labelStyle: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+              indicatorSize: TabBarIndicatorSize.label,
+              indicatorColor: navy,
+              indicatorWeight: 2,
+              dividerColor: Colors.transparent,
+              // Chữ dài nhất ("Tổng quan") từng bị cắt "Tổng qua…" khi chia
+              // đều 4 cột với padding mặc định (16 mỗi bên) — giảm padding +
+              // cỡ chữ, bọc trong FittedBox để không bao giờ tràn dòng dù ở
+              // máy màn hình hẹp.
+              labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+              tabs: const [
+                Tab(child: FittedBox(child: Text('Tổng quan'))),
+                Tab(child: FittedBox(child: Text('Thu'))),
+                Tab(child: FittedBox(child: Text('Chi'))),
+                Tab(child: FittedBox(child: Text('Lịch sử'))),
+              ],
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildOverviewTab(),
+                _buildIncomeTab(),
+                _buildExpenseTab(),
+                _buildHistoryTab(),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1301,8 +1410,24 @@ class _CashClosingViewState extends State<CashClosingView>
     if (picked != null && picked != _selectedDate) {
       setState(() => _selectedDate = picked);
       _loadAllData();
+      widget.onDateChanged?.call(picked);
     }
   }
+
+  // ──────────────────── API công khai khi embeddedInTab ────────────────────
+  // `FinanceV2View` gọi qua `GlobalKey<CashClosingViewState>` — xem giải
+  // thích ở `CashClosingView.embeddedInTab`. Chỉ bọc lại đúng 3 hàm private
+  // đã có, KHÔNG đổi hành vi bên trong.
+
+  /// Ngày đang xem — để màn cha khởi tạo đúng giá trị hiển thị ban đầu trên
+  /// chip ngày trước khi người dùng bấm đổi ngày lần nào.
+  DateTime get currentSelectedDate => _selectedDate;
+
+  Future<void> pickDate() => _pickDate();
+
+  Future<void> exportExcel() => _exportCashClosingExcel();
+
+  void openTransactionSearch() => _openTransactionSearch();
 
   Future<void> _pickDateRange() async {
     final now = DateTime.now();
@@ -2133,26 +2258,31 @@ class _CashClosingViewState extends State<CashClosingView>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'TỔNG THU',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green.shade800,
-                          fontSize: AppTextStyles.body1.fontSize,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'TỔNG THU',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade800,
+                            fontSize: AppTextStyles.body1.fontSize,
+                          ),
                         ),
-                      ),
-                      Text(
-                        '${incomeList.length} giao dịch$_scopeSuffix',
-                        style: TextStyle(
-                          color: Colors.green.shade600,
-                          fontSize: AppTextStyles.caption.fontSize,
+                        Text(
+                          '${incomeList.length} giao dịch$_scopeSuffix',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.green.shade600,
+                            fontSize: AppTextStyles.caption.fontSize,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     '+${MoneyUtils.formatCompactCurrency(totalIncome)}',
                     style: TextStyle(
@@ -2276,26 +2406,31 @@ class _CashClosingViewState extends State<CashClosingView>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'TỔNG CHI',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red.shade800,
-                          fontSize: AppTextStyles.body1.fontSize,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'TỔNG CHI',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red.shade800,
+                            fontSize: AppTextStyles.body1.fontSize,
+                          ),
                         ),
-                      ),
-                      Text(
-                        '${expenseList.length} giao dịch$_scopeSuffix',
-                        style: TextStyle(
-                          color: Colors.red.shade600,
-                          fontSize: AppTextStyles.caption.fontSize,
+                        Text(
+                          '${expenseList.length} giao dịch$_scopeSuffix',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.red.shade600,
+                            fontSize: AppTextStyles.caption.fontSize,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     '-${MoneyUtils.formatCompactCurrency(totalExpense)}',
                     style: TextStyle(
@@ -2509,12 +2644,16 @@ class _CashClosingViewState extends State<CashClosingView>
                         color: Colors.grey.shade600,
                       ),
                       const SizedBox(width: 3),
-                      Text(
-                        customerName,
-                        style: TextStyle(
-                          fontSize: AppTextStyles.body1.fontSize,
-                          color: Colors.black87,
-                          fontWeight: FontWeight.w500,
+                      Flexible(
+                        child: Text(
+                          customerName,
+                          style: TextStyle(
+                            fontSize: AppTextStyles.body1.fontSize,
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (detail.isNotEmpty)
@@ -3859,9 +3998,11 @@ class _CashClosingViewState extends State<CashClosingView>
           'type': 'repair',
           'icon': '🔧',
           'title': 'Sửa chữa',
-          'customerName': r.customerName.isNotEmpty ? r.customerName : 'KH',
+          'customerName': EncryptionService.decrypt(
+            r.customerName.isNotEmpty ? r.customerName : 'KH',
+          ),
           'customerPhone': r.phone,
-          'detail': '${r.model} - ${r.issue}',
+          'detail': '${r.model} - ${EncryptionService.decrypt(r.issue)}',
           'paymentMethod': r.paymentMethod,
           'time': DateFormat(
             'HH:mm',
@@ -3888,9 +4029,12 @@ class _CashClosingViewState extends State<CashClosingView>
         'type': 'debt_collect',
         'icon': '💳',
         'title': 'Thu nợ khách',
-        'customerName':
-            p['personName'] as String? ?? p['customerName'] as String? ?? 'KH',
-        'detail': p['note'] as String? ?? 'Thanh toán công nợ',
+        'customerName': EncryptionService.decrypt(
+          p['personName'] as String? ?? p['customerName'] as String? ?? 'KH',
+        ),
+        'detail': EncryptionService.decrypt(
+          p['note'] as String? ?? 'Thanh toán công nợ',
+        ),
         'paymentMethod': p['paymentMethod'] as String? ?? 'TIỀN MẶT',
         'time': DateFormat(
           'HH:mm',
@@ -3912,8 +4056,9 @@ class _CashClosingViewState extends State<CashClosingView>
         'type': 'misc_income',
         'icon': '💰',
         'title': 'Thu phát sinh',
-        'detail':
-            e['title'] as String? ?? e['note'] as String? ?? 'Thu phát sinh',
+        'detail': EncryptionService.decrypt(
+          e['title'] as String? ?? e['note'] as String? ?? 'Thu phát sinh',
+        ),
         'paymentMethod': e['paymentMethod'] as String? ?? 'TIỀN MẶT',
         'time': DateFormat(
           'HH:mm',
@@ -3966,7 +4111,7 @@ class _CashClosingViewState extends State<CashClosingView>
         'type': typeName,
         'icon': icon,
         'title': e['category'] as String? ?? 'Chi phí',
-        'detail': e['note'] as String? ?? '',
+        'detail': EncryptionService.decrypt(e['note'] as String? ?? ''),
         'paymentMethod': e['paymentMethod'] as String? ?? 'TIỀN MẶT',
         'time': DateFormat(
           'HH:mm',
@@ -3994,10 +4139,9 @@ class _CashClosingViewState extends State<CashClosingView>
         'icon': '📦',
         'title': 'Nhập hàng',
         'customerName': imp['supplierName'] as String? ?? 'NCC',
-        'detail':
-            imp['productName'] as String? ??
-            imp['note'] as String? ??
-            'Hàng nhập',
+        'detail': EncryptionService.decrypt(
+          imp['productName'] as String? ?? imp['note'] as String? ?? 'Hàng nhập',
+        ),
         'paymentMethod': imp['paymentMethod'] as String? ?? 'TIỀN MẶT',
         'time': DateFormat('HH:mm').format(
           DateTime.fromMillisecondsSinceEpoch(
@@ -4018,7 +4162,9 @@ class _CashClosingViewState extends State<CashClosingView>
         'icon': '🏭',
         'title': 'Trả nợ NCC',
         'customerName': pay['supplierName'] as String? ?? 'NCC',
-        'detail': pay['note'] as String? ?? 'Thanh toán công nợ NCC',
+        'detail': EncryptionService.decrypt(
+          pay['note'] as String? ?? 'Thanh toán công nợ NCC',
+        ),
         'paymentMethod': pay['paymentMethod'] as String? ?? 'TIỀN MẶT',
         'time': DateFormat('HH:mm').format(
           DateTime.fromMillisecondsSinceEpoch((pay['paidAt'] ?? 0) as int),
@@ -4042,7 +4188,9 @@ class _CashClosingViewState extends State<CashClosingView>
           'icon': '🔧',
           'title': 'Trả đối tác SC',
           'customerName': pay['partnerName'] as String? ?? 'Đối tác sửa chữa',
-          'detail': pay['note'] as String? ?? 'Thanh toán đối tác',
+          'detail': EncryptionService.decrypt(
+            pay['note'] as String? ?? 'Thanh toán đối tác',
+          ),
           'paymentMethod': pay['paymentMethod'] as String? ?? 'TIỀN MẶT',
           'time': DateFormat('HH:mm').format(
             DateTime.fromMillisecondsSinceEpoch((pay['paidAt'] ?? 0) as int),
@@ -4068,9 +4216,9 @@ class _CashClosingViewState extends State<CashClosingView>
           'type': 'repair_parts_cost',
           'icon': '🔩',
           'title': 'Vốn LK: ${r.model}',
-          'customerName': r.customerName.isNotEmpty
-              ? r.customerName
-              : 'KH vãng lai',
+          'customerName': EncryptionService.decrypt(
+            r.customerName.isNotEmpty ? r.customerName : 'KH vãng lai',
+          ),
           'detail': 'Chi phí vốn linh kiện SC',
           'paymentMethod': r.costPaymentMethod ?? 'TIỀN MẶT',
           'time': DateFormat(
@@ -4097,8 +4245,12 @@ class _CashClosingViewState extends State<CashClosingView>
         'type': 'refund',
         'icon': '↩️',
         'title': 'Trả hàng',
-        'customerName': ret['customerName'] as String? ?? '',
-        'detail': ret['note'] as String? ?? 'Hoàn tiền trả hàng',
+        'customerName': EncryptionService.decrypt(
+          ret['customerName'] as String? ?? '',
+        ),
+        'detail': EncryptionService.decrypt(
+          ret['note'] as String? ?? 'Hoàn tiền trả hàng',
+        ),
         'paymentMethod': method,
         'time': DateFormat(
           'HH:mm',
@@ -4126,9 +4278,12 @@ class _CashClosingViewState extends State<CashClosingView>
         'type': 'debt_pay',
         'icon': '🏭',
         'title': 'Trả nợ NCC',
-        'customerName':
-            p['personName'] as String? ?? p['customerName'] as String? ?? 'NCC',
-        'detail': p['note'] as String? ?? 'Thanh toán công nợ',
+        'customerName': EncryptionService.decrypt(
+          p['personName'] as String? ?? p['customerName'] as String? ?? 'NCC',
+        ),
+        'detail': EncryptionService.decrypt(
+          p['note'] as String? ?? 'Thanh toán công nợ',
+        ),
         'paymentMethod': p['paymentMethod'] as String? ?? 'TIỀN MẶT',
         'time': DateFormat(
           'HH:mm',
