@@ -4,6 +4,61 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-13i] - audit + tối ưu Công cụ điều chỉnh dữ liệu (6 điểm)
+
+### Bối cảnh
+User yêu cầu audit "Công cụ điều chỉnh dữ liệu" (`data_reconciliation_view.dart`
++ `data_reconciliation_service.dart`, 5 tab: ĐƠN SỬA/ĐƠN BÁN/CÔNG NỢ/KHO&SP/
+TÀI CHÍNH) để tối ưu trải nghiệm và hiệu năng. Đọc toàn bộ 2 file (2749 dòng)
+tìm ra 6 vấn đề, làm hết 1 lượt theo yêu cầu.
+
+### Đã sửa
+1. **Lazy-load 5 tab** — `TabBarView.children` là `List<Widget>` cố định nên
+   Flutter dựng cả 5 State (chạy `initState`) ngay khi mở màn, bất kể đang
+   xem tab nào → bắn đồng thời `getAllRepairs`+`getAllSales`+`getAllDebts`+
+   `getAllParts/Products`+`KvDuplicateCleanupService.scan`+8 truy vấn TÀI
+   CHÍNH. Thêm hàm dùng chung `_lazyLoadOnTabActive()` — mỗi tab chỉ tự tải
+   khi `TabController.index` chạm đúng tab đó lần đầu (nghe qua listener,
+   gỡ ngay sau khi tải xong).
+2. **8 truy vấn dọn TÀI CHÍNH chạy song song** — `_FinanceCleanupTabState._load()`
+   trước đó `await` tuần tự 8 lần (tổng thời gian chờ = tổng 8 query), nay
+   `Future.wait` (bằng đúng query chậm nhất). Mỗi truy vấn đã tự nuốt lỗi
+   qua `_safe()` từ trước nên đổi sang song song an toàn tuyệt đối.
+3. **`findMisbookedVoids()` bớt kéo cột thừa** — đổi `SELECT *` (kéo cả
+   `description/customerName/phone/productInfo/payload`... không dùng tới)
+   thành đúng 8 cột `computeMisbookedVoids`/UI cần. KHÔNG đổi `WHERE`/phạm
+   vi quét — chỉ giảm dung lượng mỗi dòng khi bảng `financial_activity_log`
+   lớn.
+4. **Tab TÀI CHÍNH (thứ 5) hết bị khuất** — `TabBar` đổi `isScrollable: true`
+   → `false` (+ `labelPadding`/`labelStyle` nhỏ hơn cho vừa 5 tab). Trước đó
+   code tự thừa nhận (comment cũ) đã phải RỜI 1 tính năng (dọn KiotViet
+   trùng) sang tab khác vì "chủ shop không tìm ra nút" (phản hồi thật
+   06/09/2026) — nhưng 7 loại dọn tài chính còn lại vẫn ở tab bị khuất đó.
+   Giờ cả 5 tab luôn hiện đủ, nhãn dài tự xuống dòng trong ô của nó (Material
+   tự lo) thay vì bị cuộn mất hẳn.
+5. **"Chọn tất cả" ở tab ĐƠN SỬA/ĐƠN BÁN** — thêm `_selectAllBar()` dùng
+   chung, tick-tất-cả/bỏ-tick theo đúng danh sách ĐANG LỌC (không đụng đơn
+   bị ẩn bởi ô tìm kiếm). Trước đó phải bấm từng checkbox một.
+6. **`_DebtTab._writeOff` khớp pattern an toàn chung** — thêm bước
+   `_confirmSummary` (tóm tắt tên/số tiền/lý do + dòng "không thể hoàn tác")
+   giữa dialog nhập lý do và `_confirmPassword` — trước đó tab này tự dựng
+   dialog riêng, thiếu đúng bước tóm tắt cuối mà mọi thao tác khác trong
+   công cụ đều có.
+
+### Kiểm chứng
+- `flutter analyze` cả 2 file: 0 lỗi mới (chỉ info có sẵn từ trước).
+- `flutter test`: 664 pass / 1 skip / 2 fail — 2 fail pre-existing ở
+  `kiotviet_settings_view_test.dart` (không đụng), không hồi quy.
+- Máy thật CPH2203 (tài khoản test `m@m.com` shop "M"): xác nhận cả 5 tab
+  hiện đủ không cần cuộn; "Chọn tất cả (17)" ở ĐƠN SỬA tick/bỏ tick đúng
+  toàn bộ danh sách lọc; chuyển tab ĐƠN BÁN → CÔNG NỢ → TÀI CHÍNH đều tải
+  đúng dữ liệu ngay khi mở (xác nhận lazy-load không làm mất/trễ dữ liệu);
+  tab TÀI CHÍNH hiện đúng "Item trả hàng của SHOP KHÁC (2)" +
+  "Khoản chi ma trong Nhật ký (43)" (xác nhận truy vấn song song + cột đã
+  thu gọn vẫn ra đúng kết quả); dialog "Miễn nợ" hiện đúng bước tóm tắt mới
+  trước khi xin mật khẩu — đã HỦY ở bước này, không thực thi xoá thật để
+  không đụng dữ liệu test có sẵn của phiên khác.
+
 ## [2026-09-13h] - feat(chốt quỹ): sửa lại ngày chốt quỹ GẦN NHẤT khi đếm sai tiền mặt/CK
 
 ### Bối cảnh

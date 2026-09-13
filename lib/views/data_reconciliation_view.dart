@@ -53,7 +53,15 @@ class _DataReconciliationViewState extends State<DataReconciliationView>
         subtitle: 'Dọn đơn dư thừa • miễn nợ • sửa kho',
         bottom: TabBar(
           controller: _tabController,
-          isScrollable: true,
+          // KHÔNG dùng isScrollable:true — tab thứ 5 (TÀI CHÍNH) từng bị đẩy
+          // khuất khỏi màn hình điện thoại, chủ shop không biết để cuộn ngang
+          // ra xem (phản hồi thật 06/09/2026, xem `_KvDuplicatePanel`). Cố
+          // định 5 tab chia đều bề ngang — nhãn dài tự xuống dòng 2 trong ô
+          // của nó (Material tự lo), KHÔNG BAO GIỜ bị ẩn hẳn như kiểu cuộn.
+          isScrollable: false,
+          labelPadding: const EdgeInsets.symmetric(horizontal: 2),
+          labelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+          unselectedLabelStyle: const TextStyle(fontSize: 11),
           indicatorColor: Colors.white,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
@@ -92,12 +100,17 @@ class _DataReconciliationViewState extends State<DataReconciliationView>
           Expanded(
             child: TabBarView(
               controller: _tabController,
+              // `TabBarView.children` là List<Widget> cố định — Flutter dựng
+              // CẢ 5 State (và chạy initState) ngay khi mở màn, bất kể đang
+              // xem tab nào. Mỗi tab tự trì hoãn tải dữ liệu thật (LazyTabLoad)
+              // tới khi `_tabController.index` chạm đúng tab đó — mở màn chỉ
+              // tải đúng 1 tab đang xem, không bắn 5 truy vấn nặng cùng lúc.
               children: [
-                _RepairTab(db: _db),
-                _SaleTab(db: _db),
-                _DebtTab(db: _db),
-                _InventoryTab(db: _db),
-                const _FinanceCleanupTab(),
+                _RepairTab(db: _db, tabController: _tabController, tabIndex: 0),
+                _SaleTab(db: _db, tabController: _tabController, tabIndex: 1),
+                _DebtTab(db: _db, tabController: _tabController, tabIndex: 2),
+                _InventoryTab(db: _db, tabController: _tabController, tabIndex: 3),
+                _FinanceCleanupTab(tabController: _tabController, tabIndex: 4),
               ],
             ),
           ),
@@ -224,6 +237,69 @@ Future<bool> _confirmSummary(
   return ok == true;
 }
 
+/// Trì hoãn gọi [load] tới khi `tabController.index == tabIndex` LẦN ĐẦU —
+/// `TabBarView.children` là `List<Widget>` cố định nên Flutter dựng cả 5 tab
+/// (và chạy `initState`) ngay khi mở màn, bất kể đang xem tab nào; không có
+/// hàm này thì mở màn sẽ bắn 5 truy vấn tải dữ liệu (có tab tải cả bảng
+/// `sales`/`repairs`, tab TÀI CHÍNH quét 8 loại) cùng lúc dù chỉ đang xem 1
+/// tab. Trả về listener để `dispose()` gỡ nếu tab chưa từng được xem tới
+/// (tránh gọi `setState` sau khi State đã huỷ).
+VoidCallback? _lazyLoadOnTabActive({
+  required TabController tabController,
+  required int tabIndex,
+  required VoidCallback load,
+}) {
+  if (tabController.index == tabIndex) {
+    load();
+    return null;
+  }
+  late VoidCallback listener;
+  listener = () {
+    if (tabController.index == tabIndex) {
+      tabController.removeListener(listener);
+      load();
+    }
+  };
+  tabController.addListener(listener);
+  return listener;
+}
+
+/// Hàng "Chọn tất cả" cho danh sách có checkbox hàng loạt (ĐƠN SỬA/ĐƠN BÁN) —
+/// dọn nhiều đơn test/nhập nhầm trước đây phải bấm từng ô một. Chỉ tác động
+/// đúng danh sách ĐANG LỌC (`totalCount`), không đụng các đơn đang bị ẩn bởi
+/// ô tìm kiếm.
+Widget _selectAllBar({
+  required int selectedCount,
+  required int totalCount,
+  required VoidCallback onToggle,
+}) {
+  if (totalCount == 0) return const SizedBox.shrink();
+  final bool? checkboxValue = selectedCount == 0
+      ? false
+      : (selectedCount == totalCount ? true : null);
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(6, 0, 14, 0),
+    child: Row(
+      children: [
+        Checkbox(tristate: true, value: checkboxValue, onChanged: (_) => onToggle()),
+        GestureDetector(
+          onTap: onToggle,
+          child: Text(
+            checkboxValue == true ? 'Bỏ chọn tất cả' : 'Chọn tất cả ($totalCount)',
+            style: const TextStyle(fontSize: 13),
+          ),
+        ),
+        const Spacer(),
+        if (selectedCount > 0)
+          Text(
+            'Đã chọn $selectedCount',
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+          ),
+      ],
+    ),
+  );
+}
+
 Widget _emptyState(String text) => Center(
   child: Padding(
     padding: const EdgeInsets.all(24),
@@ -256,8 +332,14 @@ Widget _searchField(
 // ═══════════════════════════════ TAB: ĐƠN SỬA ═══════════════════════════════
 
 class _RepairTab extends StatefulWidget {
-  const _RepairTab({required this.db});
+  const _RepairTab({
+    required this.db,
+    required this.tabController,
+    required this.tabIndex,
+  });
   final DBHelper db;
+  final TabController tabController;
+  final int tabIndex;
 
   @override
   State<_RepairTab> createState() => _RepairTabState();
@@ -269,11 +351,25 @@ class _RepairTabState extends State<_RepairTab> {
   final Set<int> _selected = {};
   final _searchCtrl = TextEditingController();
   bool _loading = true;
+  VoidCallback? _tabListener;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _tabListener = _lazyLoadOnTabActive(
+      tabController: widget.tabController,
+      tabIndex: widget.tabIndex,
+      load: _load,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (_tabListener != null) {
+      widget.tabController.removeListener(_tabListener!);
+    }
+    _searchCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -307,6 +403,17 @@ class _RepairTabState extends State<_RepairTab> {
 
   List<Repair> get _selectedRepairs =>
       _all.where((r) => _selected.contains(r.id)).toList();
+
+  void _toggleSelectAll() {
+    setState(() {
+      final ids = _filtered.map((r) => r.id!).toSet();
+      if (ids.isNotEmpty && ids.every(_selected.contains)) {
+        _selected.removeAll(ids);
+      } else {
+        _selected.addAll(ids);
+      }
+    });
+  }
 
   Future<void> _execute(bool withReversal) async {
     if (_selected.isEmpty) return;
@@ -346,6 +453,11 @@ class _RepairTabState extends State<_RepairTab> {
     return Column(
       children: [
         _searchField(_searchCtrl, 'Tìm theo model/khách/SĐT...', _filter),
+        _selectAllBar(
+          selectedCount: _filtered.where((r) => _selected.contains(r.id)).length,
+          totalCount: _filtered.length,
+          onToggle: _toggleSelectAll,
+        ),
         Expanded(
           child: _filtered.isEmpty
               ? _emptyState('Không có đơn sửa nào')
@@ -393,8 +505,14 @@ class _RepairTabState extends State<_RepairTab> {
 // ═══════════════════════════════ TAB: ĐƠN BÁN ═══════════════════════════════
 
 class _SaleTab extends StatefulWidget {
-  const _SaleTab({required this.db});
+  const _SaleTab({
+    required this.db,
+    required this.tabController,
+    required this.tabIndex,
+  });
   final DBHelper db;
+  final TabController tabController;
+  final int tabIndex;
 
   @override
   State<_SaleTab> createState() => _SaleTabState();
@@ -406,11 +524,25 @@ class _SaleTabState extends State<_SaleTab> {
   final Set<int> _selected = {};
   final _searchCtrl = TextEditingController();
   bool _loading = true;
+  VoidCallback? _tabListener;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _tabListener = _lazyLoadOnTabActive(
+      tabController: widget.tabController,
+      tabIndex: widget.tabIndex,
+      load: _load,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (_tabListener != null) {
+      widget.tabController.removeListener(_tabListener!);
+    }
+    _searchCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -447,6 +579,17 @@ class _SaleTabState extends State<_SaleTab> {
 
   List<SaleOrder> get _selectedSales =>
       _all.where((s) => _selected.contains(s.id)).toList();
+
+  void _toggleSelectAll() {
+    setState(() {
+      final ids = _filtered.map((s) => s.id!).toSet();
+      if (ids.isNotEmpty && ids.every(_selected.contains)) {
+        _selected.removeAll(ids);
+      } else {
+        _selected.addAll(ids);
+      }
+    });
+  }
 
   Future<void> _execute(bool withReversal) async {
     if (_selected.isEmpty) return;
@@ -487,6 +630,11 @@ class _SaleTabState extends State<_SaleTab> {
       children: [
         const _KvDuplicatePanel(),
         _searchField(_searchCtrl, 'Tìm theo sản phẩm/khách/SĐT...', _filter),
+        _selectAllBar(
+          selectedCount: _filtered.where((s) => _selected.contains(s.id)).length,
+          totalCount: _filtered.length,
+          onToggle: _toggleSelectAll,
+        ),
         Expanded(
           child: _filtered.isEmpty
               ? _emptyState('Không có đơn bán nào')
@@ -704,8 +852,14 @@ class _KvDuplicatePanelState extends State<_KvDuplicatePanel> {
 // ═══════════════════════════════ TAB: CÔNG NỢ ═══════════════════════════════
 
 class _DebtTab extends StatefulWidget {
-  const _DebtTab({required this.db});
+  const _DebtTab({
+    required this.db,
+    required this.tabController,
+    required this.tabIndex,
+  });
   final DBHelper db;
+  final TabController tabController;
+  final int tabIndex;
 
   @override
   State<_DebtTab> createState() => _DebtTabState();
@@ -716,11 +870,25 @@ class _DebtTabState extends State<_DebtTab> {
   List<Debt> _filtered = [];
   final _searchCtrl = TextEditingController();
   bool _loading = true;
+  VoidCallback? _tabListener;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _tabListener = _lazyLoadOnTabActive(
+      tabController: widget.tabController,
+      tabIndex: widget.tabIndex,
+      load: _load,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (_tabListener != null) {
+      widget.tabController.removeListener(_tabListener!);
+    }
+    _searchCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -808,11 +976,25 @@ class _DebtTabState extends State<_DebtTab> {
       ),
     );
     if (confirmed != true || reasonCtrl.text.trim().isEmpty) return;
-    if (!await _confirmPassword(context)) return;
+    final reason = reasonCtrl.text.trim();
+    // Cùng hàng rào tóm tắt + "không thể hoàn tác" như mọi thao tác xoá/sửa
+    // khác trong công cụ này — trước đây tab này tự dựng dialog riêng, thiếu
+    // bước tóm tắt cuối trước khi nhập mật khẩu.
+    if (!mounted) return;
+    final proceed = await _confirmSummary(
+      context,
+      title: 'Miễn nợ: ${d.personName}',
+      lines: [
+        'Còn ${MoneyUtils.formatCurrency(remaining)}đ • Lý do: $reason',
+      ],
+      withReversal: false,
+    );
+    if (!proceed) return;
+    if (!mounted || !await _confirmPassword(context)) return;
 
     await DataReconciliationService.writeOffDebt(
       d.id!,
-      reason: reasonCtrl.text.trim(),
+      reason: reason,
       personName: d.personName,
     );
     // Thông báo cho cả shop: 1 khoản nợ vừa được miễn (thao tác nhạy cảm).
@@ -823,7 +1005,7 @@ class _DebtTabState extends State<_DebtTab> {
       personName: d.personName,
       amount: (d.totalAmount - d.paidAmount).clamp(0, d.totalAmount),
       by: waiveUser?.displayName ?? waiveUser?.email?.split('@').first,
-      note: reasonCtrl.text.trim(),
+      note: reason,
     );
     if (!mounted) return;
     NotificationService.showSnackBar(
@@ -876,8 +1058,14 @@ class _DebtTabState extends State<_DebtTab> {
 // ═══════════════════════════════ TAB: KHO & SẢN PHẨM ═══════════════════════════════
 
 class _InventoryTab extends StatefulWidget {
-  const _InventoryTab({required this.db});
+  const _InventoryTab({
+    required this.db,
+    required this.tabController,
+    required this.tabIndex,
+  });
   final DBHelper db;
+  final TabController tabController;
+  final int tabIndex;
 
   @override
   State<_InventoryTab> createState() => _InventoryTabState();
@@ -888,11 +1076,25 @@ class _InventoryTabState extends State<_InventoryTab> {
   List<Product> _products = [];
   final _searchCtrl = TextEditingController();
   bool _loading = true;
+  VoidCallback? _tabListener;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _tabListener = _lazyLoadOnTabActive(
+      tabController: widget.tabController,
+      tabIndex: widget.tabIndex,
+      load: _load,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (_tabListener != null) {
+      widget.tabController.removeListener(_tabListener!);
+    }
+    _searchCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -1292,7 +1494,12 @@ class _ActionBar extends StatelessWidget {
 /// tính "tiền vào"); (2) công nợ KHÁCH `totalAmount = 0` trong khi đơn bán có
 /// giá > 0 (khoản khách nợ "tàng hình"). KHÔNG tự chạy — từng dòng phải bấm.
 class _FinanceCleanupTab extends StatefulWidget {
-  const _FinanceCleanupTab();
+  const _FinanceCleanupTab({
+    required this.tabController,
+    required this.tabIndex,
+  });
+  final TabController tabController;
+  final int tabIndex;
 
   @override
   State<_FinanceCleanupTab> createState() => _FinanceCleanupTabState();
@@ -1309,11 +1516,24 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
   List<Map<String, dynamic>> _misbookedVoids = [];
   final List<String> _loadErrors = [];
   bool _loading = true;
+  VoidCallback? _tabListener;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _tabListener = _lazyLoadOnTabActive(
+      tabController: widget.tabController,
+      tabIndex: widget.tabIndex,
+      load: _load,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (_tabListener != null) {
+      widget.tabController.removeListener(_tabListener!);
+    }
+    super.dispose();
   }
 
   /// Một truy vấn hỏng KHÔNG được làm kẹt cả tab.
@@ -1341,32 +1561,36 @@ class _FinanceCleanupTabState extends State<_FinanceCleanupTab> {
       _loadErrors.clear();
     });
     try {
-      final orphans = await _safe('nợ mồ côi',
-          DataReconciliationService.findOrphanDebtPayments);
-      final zeros = await _safe('nợ 0đ',
-          DataReconciliationService.findZeroAmountCustomerDebts);
-      final orphanRet = await _safe('item trả hàng mồ côi',
-          DataReconciliationService.findOrphanSalesReturnItems);
-      final foreignRet = await _safe('item trả hàng shop khác',
-          DataReconciliationService.findForeignShopSalesReturnItems);
-      final orphanExp = await _safe('khoản chi ma',
-          DataReconciliationService.findOrphanExpenseActivity);
-      final stockMis = await _safe('lệch trạng thái kho',
-          DataReconciliationService.findStockStatusMismatch);
-      final voided = await _safe('payment intent đã huỷ',
-          DataReconciliationService.findVoidedTxnPaymentIntents);
-      final misVoids = await _safe('biên độ VOID',
-          DataReconciliationService.findMisbookedVoids);
+      // 8 truy vấn ĐỘC LẬP (không cái nào phụ thuộc kết quả cái khác) — chạy
+      // song song thay vì tuần tự. Trước đây `await` từng cái một khiến tổng
+      // thời gian chờ = TỔNG 8 query; giờ chỉ còn bằng query chậm nhất. Mỗi
+      // phần tử đã tự nuốt lỗi qua `_safe()` nên `Future.wait` không cần lo
+      // 1 lỗi làm hỏng cả loạt.
+      final results = await Future.wait([
+        _safe('nợ mồ côi', DataReconciliationService.findOrphanDebtPayments),
+        _safe('nợ 0đ', DataReconciliationService.findZeroAmountCustomerDebts),
+        _safe('item trả hàng mồ côi',
+            DataReconciliationService.findOrphanSalesReturnItems),
+        _safe('item trả hàng shop khác',
+            DataReconciliationService.findForeignShopSalesReturnItems),
+        _safe('khoản chi ma',
+            DataReconciliationService.findOrphanExpenseActivity),
+        _safe('lệch trạng thái kho',
+            DataReconciliationService.findStockStatusMismatch),
+        _safe('payment intent đã huỷ',
+            DataReconciliationService.findVoidedTxnPaymentIntents),
+        _safe('biên độ VOID', DataReconciliationService.findMisbookedVoids),
+      ]);
       if (!mounted) return;
       setState(() {
-        _orphans = orphans;
-        _zeroDebts = zeros;
-        _orphanRetItems = orphanRet;
-        _foreignRetItems = foreignRet;
-        _orphanExpFal = orphanExp;
-        _stockMismatch = stockMis;
-        _voidedIntents = voided;
-        _misbookedVoids = misVoids;
+        _orphans = results[0];
+        _zeroDebts = results[1];
+        _orphanRetItems = results[2];
+        _foreignRetItems = results[3];
+        _orphanExpFal = results[4];
+        _stockMismatch = results[5];
+        _voidedIntents = results[6];
+        _misbookedVoids = results[7];
       });
     } finally {
       if (mounted) setState(() => _loading = false);

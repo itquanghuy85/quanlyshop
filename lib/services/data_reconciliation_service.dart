@@ -779,8 +779,14 @@ class DataReconciliationService {
 
   static Future<List<Map<String, dynamic>>> findMisbookedVoids() async {
     final db = await _db.database;
+    // Chỉ lấy đúng cột `computeMisbookedVoids`/UI cần dùng — bảng này có thể
+    // hàng chục nghìn dòng ở shop hoạt động lâu, `SELECT *` kéo cả cột không
+    // dùng (description, customerName, phone, productInfo, payload...) vào
+    // RAM không cần thiết. KHÔNG đổi WHERE/phạm vi quét — chỉ giảm số cột.
     final all = await db.rawQuery(
-      "SELECT * FROM financial_activity_log WHERE referenceId IS NOT NULL AND referenceId != ''",
+      "SELECT id, firestoreId, referenceId, activityType, direction, amount, "
+      "title, paymentMethod FROM financial_activity_log "
+      "WHERE referenceId IS NOT NULL AND referenceId != ''",
     );
     return computeMisbookedVoids(all);
   }

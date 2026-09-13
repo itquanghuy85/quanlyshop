@@ -9,6 +9,25 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.6.0+557 (AAB đã build 12/09 15:26 + web đã deploy https://quanlyshop.web.app — xem `DOCS/release_notes_2026-09-12.md`; 3.5.0+556 đang live trên store). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-13  
 
+**✅ Audit + tối ưu Công cụ điều chỉnh dữ liệu — 6 điểm (`[2026-09-13i]`).**
+Đọc toàn bộ `data_reconciliation_view.dart`+`data_reconciliation_service.dart`
+(2749 dòng) theo yêu cầu audit. Sửa hết 1 lượt: (1) lazy-load 5 tab — trước
+đó `TabBarView` dựng cả 5 State ngay khi mở màn, bắn đồng thời tải
+repairs/sales/debts/parts/products + quét KiotViet trùng + 8 truy vấn tài
+chính dù chỉ xem 1 tab; (2) 8 truy vấn dọn TÀI CHÍNH đổi từ tuần tự sang
+`Future.wait` song song; (3) `findMisbookedVoids()` bớt `SELECT *` xuống
+đúng 8 cột cần; (4) tab TÀI CHÍNH (thứ 5) hết bị khuất do
+`isScrollable:true` — đổi `false`, đây là gốc rễ của vấn đề mà trước đó
+chỉ né 1 phần (dọn KiotViet trùng phải rời sang tab khác vì "chủ shop
+không tìm ra nút", phản hồi thật 06/09/2026); (5) thêm "Chọn tất cả" ở
+ĐƠN SỬA/ĐƠN BÁN; (6) `_DebtTab._writeOff` thêm bước tóm tắt +
+"không thể hoàn tác" khớp pattern chung. `flutter analyze` 0 lỗi mới,
+`flutter test` không hồi quy. Nghiệm thu CPH2203 (m@m.com shop "M"): cả 5
+tab hiện đủ, chọn tất cả đúng, chuyển tab tải đúng dữ liệu ngay (lazy-load
+không mất dữ liệu), tab TÀI CHÍNH hiện đúng kết quả quét, dialog Miễn nợ
+hiện đúng bước tóm tắt mới (đã HỦY, không xoá thật dữ liệu test có sẵn).
+Xem CHANGELOG `[2026-09-13i]`.
+
 **✅ Sửa lại chốt quỹ ngày GẦN NHẤT khi đếm sai tiền mặt/CK (`[2026-09-13h]`).**
 User hỏi hướng "điều chỉnh dữ liệu shop mà không mất dữ liệu khác" (chốt quỹ
 sai, quên thu/chi, giá vốn sai...). Rà lại trước khi code: quên thu/chi và
