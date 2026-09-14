@@ -4,6 +4,100 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-14e] - fix(thông báo): dọn nốt 1 chỗ còn sót hiện UID thô + xác nhận Cloud Function idempotency đã live
+
+### Bối cảnh
+User hỏi thẳng: "đã fix hoàn toàn lỗi hiển thị tên trên thông báo chưa?" —
+sau `[2026-09-14c]` (5 chỗ đã sửa). Rà lại toàn bộ thay vì tin theo con số
+"5 chỗ" đã báo.
+
+### Rà soát — grep toàn bộ `executedBy:` + `currentUser?.uid` trong lib/
+Tìm thấy đúng **1 chỗ còn sót**: `lib/views/create_sale_view.dart` (luồng
+"Trả trước đơn công nợ" khi tạo đơn bán CÔNG NỢ có thu trước 1 phần) vẫn
+truyền `FirebaseAuth.instance.currentUser?.uid ?? 'unknown'` thẳng vào
+`executedBy`. Đã sửa dùng lại biến `userName` (đã resolve từ email, cùng
+scope, đúng pattern các chỗ khác đã sửa).
+
+Đối chiếu tất cả điểm khác gọi `executedBy:`/`notifyFinancialActivity(by:
+...)`/`notifyDebtActivity(by: ...)` trong toàn bộ `lib/` — còn lại ĐỀU
+dùng `displayName`/`email`/tên đã resolve sẵn, không còn chỗ nào lộ UID
+thô.
+
+### Xác nhận phần "gửi trùng do Cloud Function retry" (bug 2 của `[2026-09-14c]`)
+Commit trước tự mâu thuẫn: message ghi "Đã deploy
+functions:sendShopNotification" nhưng nội dung CHANGELOG cùng commit lại
+ghi "CHƯA deploy Cloud Function". Để chắc chắn, deploy lại
+(`firebase deploy --only functions:sendShopNotification`) — không rủi ro
+gì thêm vì code idempotency (transaction cờ `pushSentAt` trên
+`notificationId`) không đổi, chỉ đảm bảo chắc chắn đang chạy bản mới nhất.
+
+### Kiểm chứng
+- `flutter analyze`: 0 lỗi mới. `flutter test`: baseline 665 pass / 1 skip
+  / 2 fail không đổi.
+- **ĐÃ nghiệm thu trên máy thật** (CPH2239, shop test "M", tài khoản
+  `q@m.com`/owner): tạo đơn bán CÔNG NỢ (KINH CUONG LUC M, 50.000đ) với
+  "Trả trước" 20.000đ (TIỀN MẶT) — đúng nhánh code vừa sửa
+  (`create_sale_view.dart:1686`). Log xác nhận:
+  `Booked CÔNG NỢ partial payment: 20000 (TIỀN MẶT)` và thông báo
+  "🆕 CÔNG NỢ MỚI" tạo ra có `senderName: Q` (tên đã resolve từ email,
+  ĐÚNG như kỳ vọng) — không còn UID thô (`3L7Zbuz3Q7NyOVf5ZQbpMtJBWl72`)
+  như trước khi sửa.
+
+---
+
+## [2026-09-14d] - fix(NGHIÊM TRỌNG, dữ liệu thật): "Còn lại" sai gấp ~19 lần trên shop THẬT — seed chỉ từ lần chốt cũ, thiếu hẳn giao dịch của những ngày chưa chốt
+
+### Phát hiện bằng dữ liệu thật, không phải giả lập
+User gửi ảnh chụp máy thật (shop HULUCA): thông báo "THU TIỀN SỬA MÁY"
+hiện "💼 Còn lại: 55.370.000đ", trong khi tab Chốt quỹ CÙNG THỜI ĐIỂM hiện
+"TỔNG QUỸ HIỆN TẠI: 1,048 Tỷ" (Tiền mặt 495,6 Tr + Ngân hàng 552,3 Tr) —
+lệch ~19 lần.
+
+### Nguyên nhân
+`_trySeedFromLastClosing()` (`[2026-09-14a]`) seed mốc cache = đúng
+`cashEnd`/`bankEnd` của lần CHỐT QUỸ GẦN NHẤT — đúng về mặt kỹ thuật,
+nhưng shop thật này **chưa chốt quỹ từ 02/09** (hơn 10 ngày, xem ảnh: "Từ
+02/09 đến nay chưa chốt quỹ ngày nào"). Mốc seed = số dư của lần chốt
+01/09 (~55 Tr), thiếu HOÀN TOÀN mọi giao dịch phát sinh từ 02/09 đến nay —
+đúng như tình huống "Sổ quỹ cố ý cộng gộp ngày chưa chốt" đã ghi nhận từ
+trước (`project_finance_tab_3tabs_2026-09-06.md`) nhưng
+`_trySeedFromLastClosing()` lại không tính tới trường hợp gộp nhiều ngày
+này khi seed.
+
+### Đã sửa — tự đồng bộ lại mỗi khi tải dữ liệu, không đợi 1 lần CHỐT QUỸ thật
+`lib/views/cash_closing_view.dart`: thêm `_syncCashBalanceCacheFromCurrentState()`,
+gọi ở cuối `_loadAllData()` (cả sau khi tải xong local DB lẫn sau khi merge
+Firestore) — tính "Tổng quỹ hiện tại" bằng ĐÚNG công thức tab đang hiển thị
+(`openingCash/Bank` của lần chốt gần nhất + `_analyzeTransactions()` gộp
+mọi ngày chưa chốt, KHÔNG tốn đọc thêm vì dùng lại dữ liệu đã tải cho màn
+hình) rồi ghi đè mốc cache bằng `resetBaseline()`. Chỉ chạy khi đang xem
+ĐÚNG HÔM NAY (`_selectedDate` = hôm nay) — tránh ghi đè mốc hiện tại bằng
+số liệu của 1 ngày cũ khi người dùng lùi xem lịch sử.
+
+Từ nay mốc cache tự "vá" lại đúng mỗi khi CÓ AI mở tab Chốt quỹ (không chỉ
+lúc chốt quỹ thật) — với shop hoạt động hàng ngày, tab này được mở
+thường xuyên nên độ lệch tối đa chỉ còn khoảng vài giao dịch giữa 2 lần mở
+tab, thay vì tích luỹ cả chục ngày như trước.
+
+### Kiểm chứng — ĐÃ nghiệm thu TRỰC TIẾP trên shop HULUCA thật (không phải mô phỏng)
+- `flutter analyze`/`build apk`/`test`: sạch, baseline 665 pass / 1 skip /
+  2 fail không đổi.
+- Thêm log xác nhận (`CashBalanceCacheService.applyDelta/resetBaseline
+  OK: ...`, `🔄 [CashBalanceSync] ...`) vì `resetBaseline()` im lặng khi
+  thành công — không có log thì không phân biệt được "đã chạy và thành
+  công" với "chưa chạy" (theo đúng nguyên tắc không suy diễn khi chưa có
+  bằng chứng).
+- Cài lên đúng máy CPH2203 lúc đang đăng nhập `huy@huluca.com` (shop thật,
+  4298 đơn bán, shopId=`iXJOFySNBjPoJkszstVQWzmEzip2` — khớp đúng chuỗi
+  UID từng thấy hiện sai trong ảnh chụp thông báo trước đó). Mở tab Chốt
+  quỹ → log xác nhận:
+  `CashBalanceCacheService.resetBaseline OK: cash=522515000 bank=552250000
+  total=1074765000` — khớp CHÍNH XÁC với "TỔNG QUỸ HIỆN TẠI: 1,075 Tỷ"
+  (Tiền mặt 522,5 Tr + Ngân hàng 552,3 Tr) hiển thị trên màn hình tại
+  cùng thời điểm. Ghi Firestore mất ~18 giây mới xong (mạng máy lúc đó
+  chậm) — không phải lỗi, chỉ là độ trễ.
+- Chỉ xem, không thao tác ghi/sửa gì trên dữ liệu thật trong lúc kiểm tra.
+
 ## [2026-09-14c] - fix(thông báo tài chính): hiện UID thô thay vì tên nhân viên + gửi trùng do client retry
 
 ### Phát hiện — user gửi ảnh chụp khay thông báo thật

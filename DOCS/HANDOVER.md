@@ -9,6 +9,33 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.6.0+557 (AAB đã build 12/09 15:26 + web đã deploy https://quanlyshop.web.app — xem `DOCS/release_notes_2026-09-12.md`; 3.5.0+556 đang live trên store). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-14  
 
+**✅ ĐÃ DỌN NỐT 1 CHỖ LỘ UID + NGHIỆM THU TRÊN MÁY THẬT
+(`[2026-09-14e]`).** User hỏi thẳng "đã fix hoàn toàn chưa" — grep toàn bộ
+`executedBy:`/`currentUser?.uid` trong `lib/` thay vì tin theo con số
+"5 chỗ" đã báo trước: tìm thấy `create_sale_view.dart` (luồng "Trả trước
+đơn công nợ") còn sót, đã sửa dùng `userName` đã resolve. Deploy lại
+`functions:sendShopNotification` cho chắc idempotency đang chạy bản mới.
+Đã build + cài lên CPH2239 (shop test "M", `q@m.com`), tạo đơn CÔNG NỢ có
+trả trước 20.000đ — log xác nhận thông báo "CÔNG NỢ MỚI" có
+`senderName: Q` (đúng tên), không còn UID thô. Xem CHANGELOG
+`[2026-09-14e]`.
+
+**✅ ĐÃ VÁ + NGHIỆM THU TRÊN CHÍNH SHOP HULUCA THẬT: "Còn lại" từng sai
+~19 lần (`[2026-09-14d]`).**
+User gửi ảnh chụp máy thật shop HULUCA: thông báo hiện "Còn lại:
+55.370.000đ" trong khi Chốt quỹ cùng lúc hiện đúng "1,048 Tỷ" — vì shop
+này chưa chốt quỹ từ 02/09 (>10 ngày), mốc seed
+(`_trySeedFromLastClosing`, `[2026-09-14a]`) chỉ lấy đúng số của lần chốt
+CŨ (01/09, ~55 Tr), thiếu sạch giao dịch phát sinh sau đó. Đã thêm
+`_syncCashBalanceCacheFromCurrentState()` trong `cash_closing_view.dart` —
+tự ghi đè mốc cache = đúng "Tổng quỹ hiện tại" đang hiển thị mỗi khi tải
+dữ liệu, chỉ chạy khi xem đúng hôm nay. **Nghiệm thu TRỰC TIẾP trên máy
+CPH2203 lúc đang đăng nhập `huy@huluca.com` thật** (shopId khớp đúng UID
+từng thấy lộ trong ảnh thông báo cũ): mở tab Chốt quỹ → log
+`resetBaseline OK: cash=522515000 bank=552250000 total=1074765000` —
+khớp CHÍNH XÁC với "1,075 Tỷ" hiển thị trên màn hình cùng lúc. Chỉ xem,
+không ghi/sửa gì trên dữ liệu thật. Xem CHANGELOG `[2026-09-14d]`.
+
 **🟡 ĐANG CHỜ DEPLOY: thông báo "THU TIỀN SỬA MÁY" hiện UID thô + gửi trùng
 (`[2026-09-14c]`).** User gửi ảnh chụp khay thông báo thật: dòng người
 thực hiện hiện chuỗi UID (`iXJOFySNBjPoJkszstVQWzmEzip2`) thay vì tên nhân

@@ -1683,8 +1683,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                 amount: downPaymentAmount,
                 paymentMethod: PaymentMethod.fromCode(_downPaymentMethod),
                 description: 'Trả trước đơn công nợ: $payerName',
-                executedBy:
-                    FirebaseAuth.instance.currentUser?.uid ?? 'unknown',
+                executedBy: userName,
                 referenceId: saleRef,
                 referenceType: 'sale',
                 personName: payerName,

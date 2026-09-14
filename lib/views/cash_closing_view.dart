@@ -904,8 +904,57 @@ class CashClosingViewState extends State<CashClosingView>
   Future<void> _loadAllData() async {
     // Load local DB first for instant display
     await _loadAllDataFromLocalDB();
+    _syncCashBalanceCacheFromCurrentState();
     // Then merge Firestore data in background (non-blocking)
-    _loadAllDataFromFirestore();
+    _loadAllDataFromFirestore().then((_) {
+      if (mounted) _syncCashBalanceCacheFromCurrentState();
+    });
+  }
+
+  /// Đồng bộ lại mốc cache "Còn lại" (`CashBalanceCacheService`, dùng để
+  /// chèn vào thông báo tài chính) = ĐÚNG "Tổng quỹ hiện tại" thật đang
+  /// hiển thị ở tab này — tái dùng phép tính đã có sẵn (`_analyzeTransactions`
+  /// trên dữ liệu ĐÃ tải, không tốn đọc thêm), KHÔNG phải tính lại từ đầu.
+  ///
+  /// BẮT BUỘC phải có bước này: nếu chỉ seed 1 lần từ đúng số
+  /// `cashEnd`/`bankEnd` của lần CHỐT QUỸ gần nhất (như `applyDelta()` tự
+  /// làm khi chưa có mốc) thì với shop THẬT đã nhiều ngày chưa chốt quỹ
+  /// (đo thực tế: từ 02/09, hơn 10 ngày), mốc đó thiếu hẳn toàn bộ giao
+  /// dịch phát sinh giữa lần chốt cũ và hôm nay — "Còn lại" hiện ra sai
+  /// gấp nhiều lần số thật (đã xảy ra: hiện 55 Tr trong khi thật là
+  /// 1.048 Tỷ). Đồng bộ lại mỗi lần tải dữ liệu (mỗi lần ai đó mở tab này)
+  /// giữ mốc luôn khớp mà không cần đợi 1 lần CHỐT QUỸ thật.
+  ///
+  /// CHỈ đồng bộ khi đang xem ĐÚNG HÔM NAY — nếu người dùng lùi xem ngày
+  /// cũ thì `_analyzeTransactions`/`_previousDayClosing` phản ánh đúng
+  /// ngày đó, không phải hiện tại, ghi đè mốc lúc này sẽ làm sai "Còn lại"
+  /// của các giao dịch xảy ra SAU thời điểm xem.
+  Future<void> _syncCashBalanceCacheFromCurrentState() async {
+    if (!_isSameDay(DateTime.now().millisecondsSinceEpoch, _selectedDate)) {
+      debugPrint(
+        '⏭️ [CashBalanceSync] Bỏ qua — _selectedDate không phải hôm nay',
+      );
+      return;
+    }
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null || shopId.isEmpty) return;
+      final analysis = _analyzeTransactions(_analysisStartDate, _selectedDate);
+      final openingCash = _previousDayClosing?['cashEnd'] as int? ?? 0;
+      final openingBank = _previousDayClosing?['bankEnd'] as int? ?? 0;
+      final expectedCash = openingCash + analysis.cashIn - analysis.cashOut;
+      final expectedBank = openingBank + analysis.bankIn - analysis.bankOut;
+      debugPrint(
+        '🔄 [CashBalanceSync] shopId=$shopId cash=$expectedCash bank=$expectedBank',
+      );
+      await CashBalanceCacheService.resetBaseline(
+        shopId: shopId,
+        cash: expectedCash,
+        bank: expectedBank,
+      );
+    } catch (e) {
+      debugPrint('Sync cash balance cache error: $e');
+    }
   }
 
   bool _isSameDay(int timestamp, DateTime target) {

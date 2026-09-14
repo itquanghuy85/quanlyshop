@@ -46,7 +46,11 @@ class CashBalanceCacheService {
         'updatedAt': FieldValue.serverTimestamp(),
       });
       final snap = await ref.get();
-      return (snap.data()?['total'] as num?)?.toInt();
+      final total = (snap.data()?['total'] as num?)?.toInt();
+      debugPrint(
+        'CashBalanceCacheService.applyDelta OK: shopId=$shopId delta=$delta total=$total',
+      );
+      return total;
     } catch (e) {
       // Chưa có mốc (lần đầu dùng tính năng này, hoặc doc bị lỗi) — seed 1
       // lần từ lần CHỐT QUỸ gần nhất ĐÃ CÓ SẴN trong máy (chỉ đọc local
@@ -99,6 +103,9 @@ class CashBalanceCacheService {
         'total': cash + bank,
         'updatedAt': FieldValue.serverTimestamp(),
       });
+      debugPrint(
+        'CashBalanceCacheService.resetBaseline OK: shopId=$shopId cash=$cash bank=$bank total=${cash + bank}',
+      );
     } catch (e) {
       debugPrint('CashBalanceCacheService.resetBaseline error: $e');
     }
