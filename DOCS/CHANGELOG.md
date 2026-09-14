@@ -4,6 +4,100 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-13p] - fix(thu chi): xóa khoản thu/chi phát sinh không còn sinh "chi ma"/"thu ma"
+
+### Bối cảnh
+Từ audit `[2026-09-13i,j,l]` phát hiện nút xóa 🗑 trong màn "Thu Chi"
+(`_handleDeleteExpense`) chỉ xóa dòng `expenses`, KHÔNG đụng
+`financial_activity_log` — đây là NGUỒN GỐC THẬT khiến các khoản "chi ma"
+tích luỹ trong sản xuất (không phải lỗi hiếm/lịch sử như audit ban đầu
+nghĩ). Bug này ảnh hưởng luồng xóa chi phí dùng HÀNG NGÀY, không chỉ dữ
+liệu test.
+
+### Đã sửa — `lib/views/expense_view.dart`
+- Thêm `_reverseFinancialLedgerForDeletedExpense()`: khi xóa 1 khoản thu/chi
+  phát sinh, tra NGƯỢC `referenceId` gốc (chuỗi `txRef` lúc tạo qua
+  `executePaymentDirect`) qua bảng `payment_intents` — nối bằng `intentId`
+  lấy từ `expenses.firestoreId` (dạng `exp_<intentId>`), CHÍNH XÁC 1-1,
+  không cần đoán mò LIKE như `findOrphanExpenseActivity()` phải làm cho dữ
+  liệu cũ không tra được nguồn.
+- Ghi 1 dòng bù vào `financial_activity_log` (`EXPENSE_REVERSAL` cho CHI,
+  `INCOME_REVERSAL` cho THU — khớp đúng tên `EXPENSE_REVERSAL` mà
+  `findOrphanExpenseActivity()` đã dùng để loại trừ) + đánh dấu
+  `payment_intent` gốc thành `CANCELLED` — cùng quy ước với
+  `DataReconciliationService.reverseOrphanExpenseActivity`. KHÔNG xóa dòng
+  nhật ký gốc (append-only).
+- Nếu không tra được nguồn (khoản tạo từ luồng khác) thì bỏ qua an toàn —
+  không chặn việc xóa, chỉ là không đảo được, giống hạn chế đã có của công
+  cụ dọn dữ liệu.
+- Sửa ĐỐI XỨNG cả 2 chiều (xóa CHI lẫn xóa THU) vì cùng 1 hàm xử lý cả hai
+  — trước đó tab TÀI CHÍNH thậm chí chưa có công cụ phát hiện "thu ma" nên
+  lỗi bên THU còn nguy hiểm hơn (âm thầm sai số, không ai phát hiện).
+
+### Kiểm chứng
+- `flutter analyze`: 0 lỗi mới. `flutter test`: 664 pass / 1 skip / 2 fail
+  (2 fail pre-existing, không liên quan).
+- **Nghiệm thu thật trên CPH2203 (m@m.com shop "M")**: tạo khoản chi
+  "FIXVERIFY1" 12.345đ qua Thu Chi → xóa bằng đúng nút 🗑 người dùng dùng
+  hàng ngày → mở Công cụ điều chỉnh dữ liệu → tab TÀI CHÍNH: danh sách
+  "Khoản chi ma" vẫn giữ nguyên 8 khoản CŨ (tạo trước khi vá, dated
+  12-13/09) nhưng "FIXVERIFY1" KHÔNG xuất hiện — xác nhận trực quan fix
+  hoạt động. Kéo SQLite xác minh sâu hơn: `expenses` đã xóa sạch,
+  `financial_activity_log` có đúng 2 dòng cho cùng 1 `referenceId` (OUT gốc
+  12.345 `OPERATING_EXPENSE` + IN bù 12.345 `EXPENSE_REVERSAL`, net = 0,
+  đúng append-only), `payment_intents` đã chuyển `CANCELLED` — khớp 100%
+  thiết kế.
+- KHÔNG dọn 8 khoản chi ma cũ trong lần nghiệm thu này (dữ liệu debris từ
+  phiên test thông báo song song trên cùng shop "M", không phải của tôi tạo
+  ra) — để nguyên cho phiên đó tự quyết định.
+
+## [2026-09-13o] - Nghiệm thu CUỐI: thông báo cross-device/cross-account xác nhận TRỰC TIẾP trên máy thật (không chỉ qua log)
+
+### Bối cảnh
+Sau khi vá 2 lỗi `[2026-09-13m,n]`, `dumpsys notification` xác nhận CPH2203
+(tài khoản `n@n.com`, khác tài khoản/khác máy với CPH2239 vừa tạo giao
+dịch) NHẬN được thông báo — nhưng khi user tự cầm máy kiểm tra thì
+**không thấy gì trong khay thông báo** (`tôi ko thấy`). Đúng nguyên tắc
+"không che mismatch để kết luận PASS" của phiên này — không được coi log
+kỹ thuật là đủ khi người dùng thực tế báo ngược lại.
+
+### Điều tra thêm trước khi kết luận
+- `zen_mode` (Do Not Disturb chuẩn Android) = 0 → không phải nguyên nhân.
+- "Chế độ im lặng" riêng của ColorOS đang BẬT → tắt thử → không đổi gì.
+- Cài đặt thông báo riêng của app (`Cài đặt → Ứng dụng → Quản Lý Shop →
+  Thông báo`): TẤT CẢ đều bật — "Cho phép thông báo", "Màn hình khóa",
+  "Biểu ngữ", "Nhạc chuông", "Rung", danh mục "Đơn hàng mới" bật đủ
+  "Ngăn kéo thông báo, Biểu ngữ, Màn hình khóa, Nhạc chuông, Rung" → không
+  phải do cài đặt.
+- `dumpsys notification` chi tiết cho thấy record có
+  `posttimeToFirstVisibleExpansionMs=1052` — tức ĐÃ từng hiển thị (mở
+  rộng) 1 giây sau khi gửi — nhiều khả năng ColorOS tự dọn khỏi khay sau
+  một lúc (hành vi riêng của máy, dọn thông báo cũ để đỡ rối), không phải
+  lỗi gửi.
+
+### Xác nhận dứt điểm — test trực tiếp có người quan sát
+Tạo 1 giao dịch "Ghi chi" MỚI trên CPH2239 trong lúc user đang NHÌN THẲNG
+vào màn hình CPH2203 tại đúng thời điểm gửi (không qua screenshot có độ
+trễ) — user xác nhận thấy thông báo hiện lên NGAY LÚC ĐÓ ("ok rồi"). Kết
+luận: chuỗi Cloud Function → FCM → hiển thị hoạt động đúng hoàn toàn, kể
+cả khác tài khoản (`n@n.com` nhận từ `m@m.com`) và khác máy. Vấn đề "không
+thấy" trước đó là do xem LẠI sau vài phút, sau khi ColorOS đã tự dọn khỏi
+khay — không phải lỗi code, không cần vá thêm.
+
+### Trạng thái cuối
+- `[2026-09-13m]` (FCM priority sai) — ĐÃ VÁ, deploy live, xác nhận qua
+  log + quan sát trực tiếp.
+- `[2026-09-13n]` (dedup nhầm 2 Set) — ĐÃ VÁ, deploy build mới, xác nhận
+  qua log + quan sát trực tiếp.
+- `[2026-09-13k]` ("Còn lại" trong thông báo) — cơ chế cache đúng thiết
+  kế (bỏ qua an toàn khi chưa có mốc), CHƯA thấy tận mắt dòng "Còn lại"
+  hiện ra (cần 1 lần CHỐT QUỸ thật dưới build mới để seed mốc — chưa xảy
+  ra tự nhiên trong phiên).
+- CPH2203 hiện đang đăng nhập `n@n.com` (đổi từ tài khoản trước đó để
+  phục vụ test cross-account) — CẦN hỏi lại user có muốn đăng nhập về
+  tài khoản cũ không, vì đây là máy CPH2203 (theo ghi chú dự án trước đây
+  là máy shop thật).
+
 ## [2026-09-13l] - Nghiệm thu nút "Đảo tất cả N khoản chi ma" bằng dữ liệu thật mới tạo
 
 ### Bối cảnh
@@ -43,7 +137,65 @@ khoản chi ma" mới thêm.
 
 ---
 
-## [2026-09-13l] - fix(NGHIÊM TRỌNG, functions): sai giá trị Android priority khiến PHẦN LỚN thông báo push gửi lỗi từ Cloud Function — không liên quan gì tới app Flutter
+## [2026-09-13n] - fix(NGHIÊM TRỌNG, notification_service.dart): thông báo bị "nuốt" khi app đang mở (foreground) — 2 bộ dedup dùng nhầm chung 1 Set
+
+### Phát hiện khi nào
+Sau khi vá `[2026-09-13m]` (FCM priority), Cloud Function đã báo
+`Sent 1 notifications, 0 failed` nhưng **trên máy vẫn không thấy gì** —
+`dumpsys notification` xác nhận không có `NotificationRecord` nào của
+`com.huluca.shopmanager`. `logcat` cho thấy:
+```
+Foreground message received: 🧾 QUICKTEST
+Skipping duplicate foreground notification: 48fw4w0ciFXhGYXfnFaX
+```
+FCM đã tới máy, nhưng bị code TỰ COI LÀ TRÙNG LẶP và bỏ qua.
+
+### Nguyên nhân gốc
+`_processedNotificationIds` (1 Set duy nhất) bị dùng CHUNG cho 2 mục đích
+KHÔNG LIÊN QUAN nhau:
+1. `_handleForegroundMessage` — dùng để tránh hiện 2 lần cùng 1 tin FCM
+   (mục đích ĐÚNG, cần giữ).
+2. Listener Firestore `listenToNotifications` — chỉ cần tránh xử lý lại 1
+   doc khi snapshot bắn nhiều lần (from-cache rồi from-server), **KHÔNG
+   liên quan gì tới việc có hiện thông báo hay không** (comment cũ trong
+   code đã ghi rõ "Display... is intentionally NOT triggered here").
+
+Sự cố: máy VỪA TẠO thông báo có listener Firestore của CHÍNH NÓ, thấy doc
+mới gần như tức thì (chỉ là echo ghi local) → đánh dấu id đó "đã xử lý"
+NGAY LẬP TỨC. Vài trăm ms sau, FCM push (phải round-trip qua Cloud
+Function) mới tới nơi → `_handleForegroundMessage` tra `id` đã có trong
+Set → tưởng là gửi trùng → bỏ qua, **không bao giờ hiện thông báo** khi
+app đang mở trên chính máy vừa thao tác. Đây rất có thể là nguyên nhân
+sâu xa cho mọi "không thấy thông báo" gặp phải suốt phiên này (kể cả nghi
+vấn "Đã giao" ban đầu) khi test với app đang mở.
+
+### Đã sửa
+- `lib/services/notification_service.dart`: tách 2 Set riêng —
+  `_processedNotificationIds` (chỉ dùng ở `_handleForegroundMessage`) và
+  `_seenFirestoreNotificationIds` (MỚI, chỉ dùng ở listener Firestore).
+  `_markNotificationProcessed()` nhận thêm tham số `target` (Set nào) thay
+  vì mặc định ghi vào `_processedNotificationIds`.
+
+### Kiểm chứng — trên CẢ 2 máy thật (CPH2239 + CPH2203, cùng shop test "M")
+- Tạo giao dịch "Ghi chi" thật trên CPH2239 (app đang mở, foreground):
+  `dumpsys notification` xác nhận có `NotificationRecord` mới
+  (channel=system_channel); mở khay thông báo thấy đúng
+  "CROSSDEV -7.000đ • TIỀN MẶT" — **lần đầu tiên trong toàn bộ phiên này
+  một thông báo tài chính thực sự hiện lên màn hình** sau khi tạo giao
+  dịch. Banner trong-app cũng tự nổi lên đúng nội dung.
+- CPH2203 không nhận được lần này — do 2 máy đang đăng nhập CÙNG 1 tài
+  khoản `m@m.com` (không phải bug: kiến trúc hiện tại lưu `fcmToken` dạng
+  1 field/user, máy nào mở app sau cùng "chiếm" token, không hỗ trợ nhiều
+  thiết bị cùng tài khoản nhận song song — giới hạn kiến trúc có từ trước,
+  ngoài phạm vi phiên vá lỗi này).
+- `CashBalanceCacheService` (`[2026-09-13k]`) hoạt động đúng như thiết kế:
+  log xác nhận `chưa có mốc (chưa chốt quỹ lần nào)` → bỏ qua dòng "Còn
+  lại" thay vì hiện số sai (shop test chưa chốt quỹ lần nào dưới build có
+  tính năng này).
+- `flutter analyze`/`test`: sạch, baseline 665 pass / 1 skip / 2 fail
+  không đổi.
+
+## [2026-09-13m] - fix(NGHIÊM TRỌNG, functions): sai giá trị Android priority khiến PHẦN LỚN thông báo push gửi lỗi từ Cloud Function — không liên quan gì tới app Flutter
 
 ### Phát hiện khi nào
 Trong lúc test tính năng "Còn lại" (`[2026-09-13k]`) trên máy CPH2239 (shop

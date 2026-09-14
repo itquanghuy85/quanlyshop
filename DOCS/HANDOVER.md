@@ -7,9 +7,50 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 ## ⚡ Trạng thái hiện tại
 
 **Version:** 3.6.0+557 (AAB đã build 12/09 15:26 + web đã deploy https://quanlyshop.web.app — xem `DOCS/release_notes_2026-09-12.md`; 3.5.0+556 đang live trên store). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
-**Last Updated:** 2026-09-13  
+**Last Updated:** 2026-09-14  
 
-**🔴 ĐÃ VÁ (NGHIÊM TRỌNG, LIVE production): sai giá trị Android priority ở `functions/index.js` khiến PHẦN LỚN thông báo push gửi lỗi (`[2026-09-13l]`).**
+**✅ Fix gốc: xóa khoản thu/chi phát sinh không còn sinh "chi ma"/"thu ma"
+(`[2026-09-13p]`).** Nút xóa 🗑 màn Thu Chi trước đó chỉ xóa `expenses`,
+không đụng `financial_activity_log` — đây là NGUỒN GỐC THẬT của "chi ma"
+(không phải lỗi hiếm), ảnh hưởng luồng dùng hàng ngày. Thêm
+`_reverseFinancialLedgerForDeletedExpense()` (`expense_view.dart`): tra
+đúng `referenceId` gốc qua `payment_intents` (nối bằng `intentId` từ
+`expenses.firestoreId`, CHÍNH XÁC không đoán mò), ghi 1 dòng bù
+`EXPENSE_REVERSAL`/`INCOME_REVERSAL` + hủy `payment_intent` liên quan —
+sửa đối xứng cả CHI lẫn THU. `flutter analyze` 0 lỗi, `flutter test` không
+hồi quy. **Nghiệm thu thật CPH2203**: tạo+xóa khoản "FIXVERIFY1" 12.345đ
+qua đúng nút dùng hàng ngày → tab TÀI CHÍNH của Công cụ điều chỉnh dữ liệu
+KHÔNG hiện khoản này (8 khoản chi ma cũ từ trước khi vá vẫn còn, đúng kỳ
+vọng — fix không hồi tố). Kéo SQLite xác nhận sâu: `financial_activity_log`
+có đúng 2 dòng (OUT gốc + IN bù, net=0), `payment_intents` đã CANCELLED —
+khớp 100% thiết kế. Xem CHANGELOG `[2026-09-13p]`.
+
+**✅ ĐÃ NGHIỆM THU DỨT ĐIỂM (có người quan sát trực tiếp): thông báo hoạt
+động đúng, kể cả khác tài khoản + khác máy (`[2026-09-13o]`).**
+Sau khi vá `[2026-09-13m,n]`, `dumpsys` báo nhận được nhưng user tự kiểm
+tra máy lại KHÔNG thấy — đã điều tra thêm (DND, Chế độ im lặng ColorOS,
+cài đặt thông báo riêng app — đều loại trừ) rồi test lại có user NHÌN
+THẲNG màn hình đúng lúc gửi: **thấy hiện ngay** ("ok rồi"). Kết luận: hệ
+thống đúng, lần trước không thấy là do ColorOS tự dọn khay sau vài phút
+(hành vi máy, không phải lỗi code). **⚠️ CPH2203 hiện đang đăng nhập
+`n@n.com`** (đổi để test cross-account) — CẦN hỏi lại/đăng nhập về đúng
+tài khoản trước khi bàn giao máy, vì đây là máy được ghi nhận là máy shop
+thật trong các phiên trước. Xem CHANGELOG `[2026-09-13o]`.
+
+**✅ ĐÃ NGHIỆM THU máy thật (2 máy): thông báo tài chính hiện đúng khi app đang mở, sau khi vá 2 lỗi NGHIÊM TRỌNG (`[2026-09-13m,n]`).**
+Lỗi 2 (`[2026-09-13n]`, phát hiện SAU khi vá lỗi 1 ở dưới): dù FCM báo gửi
+thành công, máy vẫn không hiện gì — `notification_service.dart` dùng
+CHUNG 1 Set `_processedNotificationIds` cho 2 mục đích khác nhau (dedup
+hiển thị FCM foreground VS dedup nội bộ của listener Firestore). Listener
+Firestore của CHÍNH máy vừa tạo thông báo thấy doc mới gần như tức thì
+(echo ghi local) → đánh dấu "đã xử lý" TRƯỚC KHI FCM kịp round-trip tới →
+`_handleForegroundMessage` sau đó luôn coi là trùng lặp, bỏ qua — không
+bao giờ hiện thông báo khi app đang mở trên chính máy thao tác. Đã tách
+2 Set riêng. **Nghiệm thu thành công trên CPH2239**: tạo "Ghi chi" thật →
+notification hiện đúng trên thanh trạng thái (lần đầu tiên trong phiên).
+Xem CHANGELOG `[2026-09-13n]`.
+
+**🔴 ĐÃ VÁ (NGHIÊM TRỌNG, LIVE production): sai giá trị Android priority ở `functions/index.js` khiến PHẦN LỚN thông báo push gửi lỗi (`[2026-09-13m]`).**
 Phát hiện khi test tính năng "Còn lại" (`[2026-09-13k]`): FCM báo
 `Sent 0 notifications, 1 failed`. Gốc: 2 field priority khác nhau của FCM
 v1 (`android.priority` chỉ nhận `'normal'|'high'`;
@@ -20,16 +61,19 @@ dùng CHUNG 1 hàm, trả `'default'` cho field đầu — **bị FCM REJECT TH�
 là nguyên nhân câu hỏi trước đó về thiếu thông báo "YÊU CẦU DUYỆT GIAO
 MÁY". Đã tách 2 hàm riêng, deploy ngay
 (`firebase deploy --only functions:sendShopNotification`) — xác nhận qua
-`firebase functions:log`: sau vá `Sent 1 notifications, 0 failed`. **CHƯA
-xác nhận trên UI máy thật** — CPH2239 (máy test, ColorOS, banner "chưa
-hoàn tất thiết lập" suốt phiên) FCM báo thành công nhưng thông báo chưa
-hiện trên thanh trạng thái — nghi vấn quyền thông báo riêng của máy CHƯA
-setup xong, không phải lỗi code. Cần xác nhận lại trên máy đã setup đầy đủ
-(CPH2203, hiện đang bận việc khác). Xem CHANGELOG `[2026-09-13l]`.
+`firebase functions:log`: sau vá `Sent 1 notifications, 0 failed`. **ĐÃ
+xác nhận trên UI máy thật CPH2239** sau khi vá tiếp lỗi thứ 2
+(`[2026-09-13n]` ở trên) — ban đầu tưởng do máy CPH2239 (ColorOS) chưa
+setup xong, hoá ra còn 1 lỗi thứ 2 độc lập ở tầng app Flutter. Xem
+CHANGELOG `[2026-09-13m]`.
 
-**⏳ "Còn lại" trong thông báo tài chính (`[2026-09-13k]`) — CHƯA nghiệm
-thu do vướng bug ở trên, cần test lại sau khi xác nhận notification hiện
-được trên máy thật.**
+**⏳ "Còn lại" trong thông báo tài chính (`[2026-09-13k]`) — cơ chế cache
+đã xác nhận đúng qua log (bỏ qua đúng cách khi shop chưa từng CHỐT QUỸ
+dưới build có tính năng này, không hiện số sai), nhưng CHƯA tận mắt thấy
+dòng "Còn lại" hiện ra sau 1 lần CHỐT QUỸ thật — chưa tìm được nút "Sửa
+lại chốt gần nhất" trong bản gộp sâu hiện tại của tab Chốt quỹ để ép chạy
+lại `resetBaseline()`. Cần chờ chu kỳ CHỐT QUỸ tự nhiên tiếp theo của shop
+test, hoặc tìm đường vào `_adjustLatestClosing` để test ngay.**
 
 **✅ Nghiệm thu nút "Đảo tất cả N khoản chi ma" bằng dữ liệu thật mới tạo
 (`[2026-09-13l]`).** Shop "M" đã sạch sau `[2026-09-13j]` nên tạo dữ liệu

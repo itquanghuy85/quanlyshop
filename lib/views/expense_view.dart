@@ -17,6 +17,7 @@ import '../services/adjustment_service.dart';
 import '../services/first_time_guide_service.dart';
 import '../services/event_bus.dart';
 import '../services/payment_intent_service.dart';
+import '../services/financial_activity_service.dart';
 import '../services/firestore_write_helper.dart';
 import '../models/payment_intent_model.dart';
 import '../models/expense_model.dart';
@@ -520,6 +521,17 @@ class _ExpenseViewState extends State<ExpenseView> {
             await db.deleteExpense(expenseId);
           }
 
+          // 1b. Ghi 1 dòng bù vào `financial_activity_log` — nếu không, dòng
+          // gốc (ghi lúc tạo khoản thu/chi này qua `executePaymentDirect`)
+          // vẫn còn đó mãi mãi mà không còn `expenses` tương ứng ⇒ đúng
+          // định nghĩa "chi ma"/"thu ma" mà tab TÀI CHÍNH của Công cụ điều
+          // chỉnh dữ liệu phải dọn sau này. Xóa NGAY từ đây thì không bao
+          // giờ sinh ra "ma" nữa. KHÔNG xóa dòng gốc (append-only).
+          await _reverseFinancialLedgerForDeletedExpense(
+            exp,
+            isIncome: isIncome,
+          );
+
           // 2. Soft-delete on Firestore IMMEDIATELY (not just queue)
           // This prevents the record from being re-synced back
           if (firestoreId != null && firestoreId.isNotEmpty) {
@@ -567,6 +579,80 @@ class _ExpenseViewState extends State<ExpenseView> {
         );
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  /// Đảo bút toán `financial_activity_log` của 1 khoản thu/chi phát sinh vừa
+  /// xóa — gọi TRƯỚC KHI xóa xong hàm này quay lại (đã xóa xong `expenses` ở
+  /// bước 1, chưa xóa Firestore ở bước 2).
+  ///
+  /// `executePaymentDirect` (lúc tạo khoản này) ghi `financial_activity_log`
+  /// với `referenceId` = chuỗi `txRef` GỐC (vd `expense_<ts>_..._TÊN`), còn
+  /// `expenses.firestoreId` chỉ lưu `exp_<intentId>` — `intentId` là bản
+  /// CHUẨN HOÁ (lowercase, ký tự lạ → `_`) của `txRef`, KHÔNG suy ngược lại
+  /// được. Cầu nối duy nhất là bảng `payment_intents`
+  /// (`intentId` ↔ `referenceId` GỐC) — tra đúng 1 dòng theo `intentId` lấy
+  /// từ `firestoreId` thì chắc chắn khớp, không cần đoán như cách
+  /// `findOrphanExpenseActivity()` phải LIKE mò cho dữ liệu cũ.
+  ///
+  /// Nếu không tra được (khoản tạo từ luồng khác, không qua
+  /// `executePaymentDirect`) thì bỏ qua — vẫn an toàn, chỉ là không đảo được,
+  /// giống hệt hạn chế đã có của công cụ dọn dữ liệu.
+  Future<void> _reverseFinancialLedgerForDeletedExpense(
+    Map<String, dynamic> exp, {
+    required bool isIncome,
+  }) async {
+    try {
+      final firestoreId = exp['firestoreId'] as String?;
+      if (firestoreId == null || !firestoreId.startsWith('exp_')) return;
+      final intentId = firestoreId.substring(4);
+      final rawDb = await db.database;
+      final intentRows = await rawDb.query(
+        'payment_intents',
+        columns: ['referenceId'],
+        where: 'intentId = ?',
+        whereArgs: [intentId],
+        limit: 1,
+      );
+      if (intentRows.isEmpty) return;
+      final originalReferenceId = intentRows.first['referenceId'] as String?;
+      if (originalReferenceId == null || originalReferenceId.isEmpty) return;
+
+      final amount = (exp['amount'] as num?)?.toInt() ?? 0;
+      if (amount <= 0) return;
+      final paymentMethod = (exp['paymentMethod'] as String?) ?? 'TIỀN MẶT';
+      final title = (exp['title'] as String? ?? '').toString();
+
+      await FinancialActivityService.logCustomActivity(
+        // 'EXPENSE_REVERSAL' khớp ĐÚNG chuỗi mà
+        // `DataReconciliationService.findOrphanExpenseActivity()` dùng để
+        // loại trừ khoản đã đảo — không đổi tên này nếu không cả 2 nơi phải
+        // sửa cùng lúc.
+        activityType: isIncome ? 'INCOME_REVERSAL' : 'EXPENSE_REVERSAL',
+        amount: amount,
+        direction: isIncome ? 'OUT' : 'IN',
+        paymentMethod: paymentMethod,
+        title: 'Đảo khoản ${isIncome ? "thu" : "chi"} đã xóa: $title',
+        description: 'Xóa qua màn Thu Chi',
+        referenceType: 'expense_deleted',
+        referenceId: originalReferenceId,
+      );
+
+      // Khoản đã bị đảo net = 0 → payment_intent gốc (đã COMPLETED) không
+      // còn phản ánh đúng thực tế nữa, đánh dấu CANCELLED — cùng quy ước với
+      // `DataReconciliationService.reverseOrphanExpenseActivity`.
+      await rawDb.update(
+        'payment_intents',
+        {
+          'status': 'CANCELLED',
+          'isSynced': 0,
+          'updatedAt': DateTime.now().millisecondsSinceEpoch,
+        },
+        where: "referenceId = ? AND status != 'CANCELLED'",
+        whereArgs: [originalReferenceId],
+      );
+    } catch (e) {
+      debugPrint('⚠️ _reverseFinancialLedgerForDeletedExpense error: $e');
     }
   }
 
