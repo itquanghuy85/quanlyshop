@@ -9,6 +9,20 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.6.0+557 (AAB đã build 12/09 15:26 + web đã deploy https://quanlyshop.web.app — xem `DOCS/release_notes_2026-09-12.md`; 3.5.0+556 đang live trên store). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-14  
 
+**🟡 ĐANG CHỜ DEPLOY: thông báo "THU TIỀN SỬA MÁY" hiện UID thô + gửi trùng
+(`[2026-09-14c]`).** User gửi ảnh chụp khay thông báo thật: dòng người
+thực hiện hiện chuỗi UID (`iXJOFySNBjPoJkszstVQWzmEzip2`) thay vì tên nhân
+viên, và cùng một giao dịch bắn 2 thông báo giống hệt nhau. Gốc: 5 chỗ
+gọi `executePaymentDirect(executedBy: ...)` truyền thẳng
+`currentUser?.uid` thay vì tên đã resolve (đã sửa dùng
+`UserService.getCurrentUserName()`/tên đã resolve sẵn); Cloud Function
+`sendShopNotification` không chống trùng nên client tự retry khi timeout
+30s làm gửi lại y hệt (đã thêm khoá idempotency bằng `notificationId` +
+transaction `pushSentAt`). **CẦN: `firebase deploy --only
+functions:sendShopNotification` rồi nghiệm thu máy thật** (đơn sửa xong →
+duyệt giao, kiểm tên đúng + chỉ còn 1 thông báo). Xem CHANGELOG
+`[2026-09-14c]`.
+
 **🔴 ĐÃ VÁ (NGHIÊM TRỌNG, bảo mật): màn "Thông báo" trong app lộ nội dung
 tài chính cho nhân viên (`[2026-09-14b]`).**
 User hỏi thẳng "phân quyền thông báo chưa, nhân viên có thấy?" — phát

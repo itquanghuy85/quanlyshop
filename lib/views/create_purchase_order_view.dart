@@ -229,7 +229,7 @@ class _CreatePurchaseOrderViewState extends State<CreatePurchaseOrderView> {
           amount: order.totalCost,
           paymentMethod: PaymentMethod.fromCode(_paymentMethod),
           description: 'Chi nhập hàng: ${supplierNameCtrl.text.trim()} - Đơn ${order.orderCode}',
-          executedBy: user?.uid ?? 'unknown',
+          executedBy: _currentUserName.isNotEmpty ? _currentUserName : (user?.email?.split('@').first ?? 'unknown'),
           referenceId: paymentRef,
           referenceType: 'purchase_order',
           personName: supplierNameCtrl.text.trim(),

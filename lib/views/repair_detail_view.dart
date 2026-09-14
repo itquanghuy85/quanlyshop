@@ -2161,7 +2161,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           amount: r.price,
           paymentMethod: PaymentMethod.fromCode(r.paymentMethod),
           description: 'Thu tiền sửa máy: ${r.model} - ${r.customerName}',
-          executedBy: user?.uid ?? 'unknown',
+          executedBy: userName,
           referenceId: r.firestoreId,
           referenceType: 'repair',
           personName: r.customerName,
@@ -3014,7 +3014,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             paymentMethod: PaymentMethod.fromCode(paymentMethod),
             description:
                 'Chi phí linh kiện: $supplierName - ${usedParts.join(', ')}',
-            executedBy: FirebaseAuth.instance.currentUser?.uid ?? 'unknown',
+            executedBy: await _resolveCurrentStaffName(fallback: 'NV'),
             referenceId: r.firestoreId,
             referenceType: 'parts_payment',
             personName: supplierName,
@@ -6885,7 +6885,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         paymentMethod: PaymentMethod.fromCode(service.paymentMethod),
         description:
             'Trả đối tác: ${service.partnerName ?? "N/A"} - ${service.serviceName}',
-        executedBy: FirebaseAuth.instance.currentUser?.uid ?? 'unknown',
+        executedBy: await _resolveCurrentStaffName(fallback: 'NV'),
         referenceId: repairOrderId,
         referenceType: 'repair_partner_service',
         personName: service.partnerName,

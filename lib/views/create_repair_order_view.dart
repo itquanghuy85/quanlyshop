@@ -1035,7 +1035,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 paymentMethod: PaymentMethod.fromCode(s.paymentMethod),
                 description:
                     'Trả đối tác: ${s.partnerName ?? "N/A"} - ${s.serviceName}',
-                executedBy: FirebaseAuth.instance.currentUser?.uid ?? 'unknown',
+                executedBy: await UserService.getCurrentUserName(),
                 referenceId: repairOrderId,
                 referenceType: 'repair_partner_service',
                 personName: s.partnerName,

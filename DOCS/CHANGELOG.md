@@ -4,6 +4,57 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-14c] - fix(thông báo tài chính): hiện UID thô thay vì tên nhân viên + gửi trùng do client retry
+
+### Phát hiện — user gửi ảnh chụp khay thông báo thật
+Thông báo "THU TIỀN SỬA MÁY" hiện dòng người thực hiện là chuỗi UID thô
+(`iXJOFySNBjPoJkszstVQWzmEzip2`) thay vì tên nhân viên, và xuất hiện y hệt
+2 lần liên tiếp (cùng nội dung, cùng "Còn lại: 55.370.000đ" — nghĩa là
+chỉ MỘT giao dịch thật, không phải cộng dồn 2 lần tiền).
+
+### Bug 1 — hiển thị sai tên
+5 chỗ gọi `PaymentIntentService.executePaymentDirect(executedBy: ...)`
+truyền thẳng `FirebaseAuth.instance.currentUser?.uid` thay vì tên đã
+resolve, khác với các luồng đúng khác trong dự án (`debt_payment_sheet.dart`,
+`money_reconcile_service.dart`, `collect_customer_debt_view.dart` đều dùng
+`displayName`/`email`). Đã sửa dùng tên đã resolve sẵn (`UserService.
+getCurrentUserName()` / helper `_resolveCurrentStaffName()` có sẵn trong
+`repair_detail_view.dart`):
+- `lib/views/repair_detail_view.dart:2164` (duyệt giao máy — dòng gây ra
+  ảnh chụp của user) — dùng lại biến `userName` đã resolve ngay phía trên.
+- `lib/views/repair_detail_view.dart` (chi phí linh kiện, trả đối tác sửa
+  chữa) — dùng `_resolveCurrentStaffName(fallback: 'NV')`.
+- `lib/views/create_repair_order_view.dart` (trả đối tác sửa chữa lúc tạo
+  đơn) — dùng `UserService.getCurrentUserName()`.
+- `lib/views/create_purchase_order_view.dart` (chi nhập hàng) — dùng biến
+  `_currentUserName` đã có sẵn trong state, fallback email.
+
+### Bug 2 — gửi trùng push
+`NotificationService._sendFCMNotification` tự retry tối đa 3 lần (backoff
+2/4/8s) khi gọi Cloud Function `sendShopNotification` timeout sau 30s hoặc
+lỗi mạng chung chung (`catch (e)` bắt cả timeout) — nhưng Cloud Function
+KHÔNG có cơ chế chống trùng: nếu lần gọi đầu THỰC RA đã chạy xong và gửi
+FCM thành công (chỉ mất phản hồi trả về client), lần retry gọi lại y hệt
+→ gửi trùng 1 push tới toàn bộ máy trong shop. Khớp đúng triệu chứng: nội
+dung 2 thông báo giống hệt nhau (retry gửi lại nguyên `notificationData`
+đã tính 1 lần, không tính lại "Còn lại").
+
+Đã sửa `functions/index.js` (`sendShopNotification`): dùng `notificationId`
+client đã sinh sẵn và ghi vào doc `shop_notifications` TRƯỚC khi gọi hàm
+(xem `NotificationService.sendCloudNotification`) làm khoá idempotency —
+transaction đọc/ghi cờ `pushSentAt` ngay trên doc đó; lần gọi lặp lại thấy
+cờ đã có thì trả `{success:true, sentCount:0, alreadySent:true}` ngay,
+không gọi `sendEachForMulticast` lần 2.
+
+### Trạng thái
+`flutter analyze` sạch trên 3 file Dart đã sửa (chỉ còn info/warning có sẵn
+từ trước, không liên quan). `node --check functions/index.js` cú pháp OK.
+**CHƯA deploy Cloud Function, CHƯA nghiệm thu máy thật** — cần chạy
+`firebase deploy --only functions:sendShopNotification` rồi tạo lại đúng
+kịch bản (đơn sửa xong → duyệt giao) để xác nhận còn 1 thông báo, đúng tên.
+
+---
+
 ## [2026-09-14b] - fix(NGHIÊM TRỌNG, bảo mật): màn "Thông báo" trong app lộ nội dung tài chính cho nhân viên dù push đã chặn đúng role
 
 ### Câu hỏi khơi mào

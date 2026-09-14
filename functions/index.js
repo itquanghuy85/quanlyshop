@@ -979,6 +979,33 @@ exports.sendShopNotification = onCall(async (request) => {
     throw new HttpsError("failed-precondition", "Không tìm thấy thông tin cửa hàng");
   }
 
+  // Chống gửi trùng khi client retry (timeout 30s nhưng Cloud Function đã
+  // chạy xong): notificationId do client sinh ra và đã ghi vào doc
+  // shop_notifications TRƯỚC khi gọi hàm này (xem NotificationService.
+  // sendCloudNotification), nên đánh dấu "đã gửi" ngay trên chính doc đó
+  // bằng transaction — lần gọi lặp lại (do timeout/backoff) sẽ thấy cờ và
+  // bỏ qua, không gửi FCM thêm lần nữa.
+  const notificationId =
+    typeof extraData.notificationId === "string" && extraData.notificationId.trim() !== ""
+      ? extraData.notificationId.trim()
+      : null;
+
+  if (notificationId) {
+    const notifRef = admin.firestore().collection("shop_notifications").doc(notificationId);
+    const alreadySent = await admin.firestore().runTransaction(async (tx) => {
+      const snap = await tx.get(notifRef);
+      if (snap.exists && snap.data().pushSentAt) {
+        return true;
+      }
+      tx.set(notifRef, { pushSentAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      return false;
+    });
+    if (alreadySent) {
+      console.log(`Notification ${notificationId} đã gửi trước đó — bỏ qua để tránh gửi trùng`);
+      return { success: true, sentCount: 0, alreadySent: true };
+    }
+  }
+
   try {
     // Get FCM tokens for the shop with role-based filtering
     let query = admin.firestore()
