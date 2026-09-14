@@ -70,6 +70,9 @@ import '../models/storage_location_model.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/app_popup.dart';
 import '../theme/popup_theme.dart';
+import '../widgets/customer_autocomplete_field.dart';
+import '../models/customer_model.dart';
+import '../utils/dispose_after_transition.dart';
 
 class RepairDetailView extends StatefulWidget {
   final Repair repair;
@@ -4472,11 +4475,20 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     final addressC = TextEditingController(text: r.address);
     final notesC = TextEditingController(text: r.notes ?? '');
     final loanerDeviceC = TextEditingController(text: r.loanerDevice ?? '');
-    final searchC = TextEditingController();
     String? pickupScheduleLocal = r.pickupSchedule;
-    List<Map<String, dynamic>> customerSearchResults = [];
-    Timer? customerSearchTimer;
-    final shopId = await UserService.getCurrentShopId();
+    final nameF = FocusNode();
+    final phoneF = FocusNode();
+    // StatefulBuilder's `setS` is a fresh closure each rebuild — route
+    // FocusNode/controller listeners through this mutable ref (reassigned at
+    // the top of every `builder:` call below) instead of capturing one
+    // particular `setS` forever, so the suggestions panel re-queries/
+    // shows-hides as focus and text change.
+    void Function(VoidCallback)? triggerRebuild;
+    void rebuild() => triggerRebuild?.call(() {});
+    nameF.addListener(rebuild);
+    phoneF.addListener(rebuild);
+    nameC.addListener(rebuild);
+    phoneC.addListener(rebuild);
 
     if (!mounted) return;
     final sheetLoc = AppLocalizations.of(context)!;
@@ -4488,24 +4500,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
-          void doCustomerSearch(String q) {
-            customerSearchTimer?.cancel();
-            if (q.trim().isEmpty) {
-              setS(() => customerSearchResults = []);
-              return;
-            }
-            customerSearchTimer = Timer(
-              const Duration(milliseconds: 300),
-              () async {
-                final results = await db.searchCustomers(q.trim(), shopId);
-                if (!ctx.mounted) return;
-                try {
-                  setS(() => customerSearchResults = results.take(6).toList());
-                } catch (_) {}
-              },
-            );
-          }
-
+          triggerRebuild = setS;
           // KeyboardAwarePadding reads the keyboard height from the platform
           // FlutterView (no InheritedWidget dependency), so it tracks the
           // keyboard live without the _dependents.isEmpty crash that reading
@@ -4554,87 +4549,13 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Search existing customer
-                            TextField(
-                              controller: searchC,
-                              decoration: InputDecoration(
-                                hintText: 'Tìm khách hàng cũ (SĐT hoặc tên)...',
-                                prefixIcon: const Icon(Icons.search, size: 18),
-                                border: const OutlineInputBorder(),
-                                isDense: true,
-                                filled: true,
-                                fillColor: Colors.grey.shade100,
-                              ),
-                              onChanged: doCustomerSearch,
-                            ),
-                            if (customerSearchResults.isNotEmpty) ...[
-                              const SizedBox(height: 6),
-                              Container(
-                                constraints: const BoxConstraints(
-                                  maxHeight: 160,
-                                ),
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: Colors.blue.shade200,
-                                  ),
-                                  borderRadius: BorderRadius.circular(8),
-                                  color: Colors.blue.shade50,
-                                ),
-                                child: ListView.separated(
-                                  shrinkWrap: true,
-                                  padding: EdgeInsets.zero,
-                                  itemCount: customerSearchResults.length,
-                                  separatorBuilder: (_, __) => Divider(
-                                    height: 1,
-                                    color: Colors.blue.shade100,
-                                  ),
-                                  itemBuilder: (_, i) {
-                                    final c = customerSearchResults[i];
-                                    final cName = (c['name'] as String?) ?? '';
-                                    final cPhone =
-                                        (c['phone'] as String?) ?? '';
-                                    return ListTile(
-                                      dense: true,
-                                      leading: CircleAvatar(
-                                        radius: 14,
-                                        backgroundColor: Colors.blue.shade100,
-                                        child: Text(
-                                          cName.isNotEmpty ? cName[0] : '?',
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                      title: Text(
-                                        cName,
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      subtitle: Text(
-                                        cPhone,
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
-                                      trailing: const Icon(
-                                        Icons.arrow_forward_ios,
-                                        size: 12,
-                                      ),
-                                      onTap: () {
-                                        nameC.text = cName;
-                                        phoneC.text = cPhone;
-                                        searchC.clear();
-                                        setS(() => customerSearchResults = []);
-                                      },
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                            const Divider(height: 20),
+                            // Gõ vào tên HOẶC SĐT đều gợi ý khách cũ khớp
+                            // bên dưới — cùng cơ chế với màn Tạo đơn sửa
+                            // (CustomerSuggestionsPanel), thay cho ô tìm
+                            // riêng biệt trước đây (gõ 2 nơi mới ra gợi ý).
                             TextFormField(
                               controller: nameC,
+                              focusNode: nameF,
                               decoration: InputDecoration(
                                 labelText: sheetLoc.customerNameLabel,
                               ),
@@ -4643,21 +4564,34 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                             const SizedBox(height: 10),
                             TextFormField(
                               controller: phoneC,
+                              focusNode: phoneF,
                               decoration: InputDecoration(
-                                labelText: r.isWalkIn
-                                    ? '${sheetLoc.phoneLabel} (không bắt buộc)'
-                                    : sheetLoc.phoneLabel,
+                                labelText:
+                                    '${sheetLoc.phoneLabel} (không bắt buộc)',
                               ),
                               keyboardType: TextInputType.phone,
                               validator: (v) {
                                 final text = v?.trim() ?? '';
-                                if (r.isWalkIn && text.isEmpty) return null;
-                                if (text.isEmpty)
-                                  return sheetLoc.phoneRequired2;
+                                // Cho phép lưu không có SĐT (khách vãng lai
+                                // lẫn khách thường) — chỉ kiểm định dạng khi
+                                // có nhập.
+                                if (text.isEmpty) return null;
                                 return UserService.validatePhone(
                                   text,
                                   sheetLoc,
                                 );
+                              },
+                            ),
+                            CustomerSuggestionsPanel(
+                              active: nameF.hasFocus || phoneF.hasFocus,
+                              query: phoneF.hasFocus
+                                  ? phoneC.text
+                                  : nameC.text,
+                              onSelected: (Customer c) {
+                                nameC.text = c.name;
+                                phoneC.text = c.phone;
+                                nameF.unfocus();
+                                phoneF.unfocus();
                               },
                             ),
                             const SizedBox(height: 10),
@@ -4787,7 +4721,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                                       // widget-tree dependency system at all.
                                       FocusManager.instance.primaryFocus
                                           ?.unfocus();
-                                      customerSearchTimer?.cancel();
                                       await Future.delayed(Duration.zero);
                                       if (ctx.mounted) {
                                         Navigator.pop(ctx, false);
@@ -4807,7 +4740,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                                       }
                                       FocusManager.instance.primaryFocus
                                           ?.unfocus();
-                                      customerSearchTimer?.cancel();
                                       await Future.delayed(Duration.zero);
                                       if (ctx.mounted) {
                                         Navigator.pop(ctx, true);
@@ -4836,7 +4768,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       ),
     );
 
-    customerSearchTimer?.cancel();
     final vals = (
       name: nameC.text.trim(),
       phone: phoneC.text.trim(),
@@ -4849,18 +4780,25 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       loanerDevice: loanerDeviceC.text.trim(),
       pickupSchedule: pickupScheduleLocal,
     );
-    Future.delayed(Duration.zero, () {
-      nameC.dispose();
-      phoneC.dispose();
-      modelC.dispose();
-      issueC.dispose();
-      accC.dispose();
-      warrantyC.dispose();
-      addressC.dispose();
-      notesC.dispose();
-      loanerDeviceC.dispose();
-      searchC.dispose();
-    });
+    // KHÔNG dispose ngay — xem dispose_after_transition.dart (crash màn đỏ
+    // `_dependents.isEmpty`): route bottom sheet còn chạy hiệu ứng đóng
+    // ~300ms sau khi `await showModalBottomSheet` trả về, dispose ngay lúc
+    // đó mà widget phía sau rebuild trúng khung này là dính crash.
+    for (final notifier in <ChangeNotifier>[
+      nameC,
+      phoneC,
+      modelC,
+      issueC,
+      accC,
+      warrantyC,
+      addressC,
+      notesC,
+      loanerDeviceC,
+      nameF,
+      phoneF,
+    ]) {
+      disposeAfterTransition(notifier);
+    }
     if (confirmed == true) {
       setState(() {
         r.customerName = vals.name.toUpperCase();

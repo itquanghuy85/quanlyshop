@@ -9,6 +9,23 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.6.0+557 (AAB đã build 12/09 15:26 + web đã deploy https://quanlyshop.web.app — xem `DOCS/release_notes_2026-09-12.md`; 3.5.0+556 đang live trên store). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-14  
 
+**🔴 ĐÃ VÁ CRASH `_dependents.isEmpty` KHI SỬA THÔNG TIN ĐƠN SỬA + màn LIST
+đơn chờ NH tất toán thay trang thống kê (`[2026-09-14g]`).** User chỉnh
+lại: "Chờ NH tất toán" phải ra DANH SÁCH đơn, không phải trang thống kê
+`BankInstallmentReportView` (mặc định lọc "Tháng" nên số không khớp). Tạo
+màn mới `PendingBankSettlementView` (list thẳng, cùng nguồn
+`getPendingSettlementSales()`), thay thế ở 4 lối vào: nhắc nhở Trang chủ,
+thẻ Tổng tài sản, icon Danh sách đơn bán, và thẻ MỚI "Ngân hàng chưa trả
+góp" trong tab Bán hàng (đúng chỗ user yêu cầu — lần đầu đặt nhầm vào
+Danh sách đơn bán). Trong lúc tự kiểm thử popup "Chỉnh sửa thông tin đơn
+sửa" (thêm gợi ý khách cũ + cho phép bỏ trống SĐT theo yêu cầu), **PHÁT
+HIỆN VÀ TÁI HIỆN ĐƯỢC crash màn đỏ `_dependents.isEmpty` trên máy thật**
+(CPH2239) — dispose controller ngay sau khi đóng bottom sheet, đúng lỗi
+đã ghi nhận trước đây. Đã sửa bằng `disposeAfterTransition()`. Nghiệm thu
+lại nhiều vòng liên tục trên CPH2239 — ổn định. CHƯA bấm thử trực tiếp
+popup này trên CPH2203 (icon bút chì quá nhỏ, ADB trượt) nhưng code giống
+hệt, không có nhánh riêng theo shop. Xem CHANGELOG `[2026-09-14g]`.
+
 **✅ ĐÃ VÁ "CẦN XỬ LÝ" BỎ SÓT ĐƠN TRẢ GÓP + THÊM THẺ "TỔNG TÀI SẢN"
 (`[2026-09-14f]`).** User hỏi tổng hợp tiền NH chưa tất toán/nợ phải
 thu-trả/tiền TK/tiền mặt/tổng tài sản, kèm phát hiện Home không hiện đơn

@@ -30,6 +30,7 @@ import '../services/debt_summary_service.dart';
 import '../models/customer_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'create_sales_return_view.dart';
+import 'pending_bank_settlement_view.dart';
 import '../l10n/app_localizations.dart';
 
 class SaleListView extends StatefulWidget {
@@ -915,6 +916,21 @@ class _SaleListViewState extends State<SaleListView> {
                   ),
                 ),
             ],
+          ),
+          // Lối tắt xem đơn trả góp NH chưa tất toán — cùng màn mà thẻ "CẦN
+          // XỬ LÝ" ở Trang chủ và thẻ "TỔNG TÀI SẢN" ở tab Chốt quỹ mở ra.
+          IconButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const PendingBankSettlementView(),
+              ),
+            ),
+            icon: const Icon(
+              Icons.account_balance_rounded,
+              color: Colors.white,
+            ),
+            tooltip: 'Ngân hàng chưa trả góp',
           ),
         ],
         bottom: PreferredSize(

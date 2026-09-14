@@ -14,7 +14,7 @@ import 'purchase_order_list_view.dart';
 import 'payment_request_chat_view.dart';
 import 'warranty_view.dart';
 import 'cash_closing_view.dart';
-import 'bank_installment_report_view.dart';
+import 'pending_bank_settlement_view.dart';
 import '../widgets/permission_gate.dart';
 
 /// Trang Nhắc nhở — hiển thị tất cả task cần xử lý theo role & quyền.
@@ -520,7 +520,7 @@ class ReminderNavigator {
         break;
       case ReminderCategory.pendingInstallment:
         requiredPermission = 'allowViewSales';
-        targetView = const BankInstallmentReportView();
+        targetView = const PendingBankSettlementView();
         break;
     }
 

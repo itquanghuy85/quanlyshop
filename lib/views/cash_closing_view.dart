@@ -30,7 +30,7 @@ import 'sale_detail_view.dart';
 import 'repair_detail_view.dart';
 import 'money_reconcile_view.dart';
 import 'debt_view.dart';
-import 'bank_installment_report_view.dart';
+import 'pending_bank_settlement_view.dart';
 import '../developer/firestore_audit/firestore_audit_module.dart';
 
 /// Helper: Check if debtType is "Shop owes" (NCC) - includes SHOP_OWES and OTHER_SHOP_OWES
@@ -1644,7 +1644,7 @@ class CashClosingViewState extends State<CashClosingView>
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => const BankInstallmentReportView(),
+                builder: (_) => const PendingBankSettlementView(),
               ),
             ),
           ),

@@ -4,6 +4,41 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-14g] - feat(Bán hàng): màn LIST đơn chờ NH tất toán (thay vì trang thống kê) + fix(đơn sửa, NGHIÊM TRỌNG): crash `_dependents.isEmpty` khi sửa thông tin khách + cho phép bỏ trống SĐT + tự động gợi ý khách cũ
+
+### Bối cảnh
+User chỉnh lại yêu cầu `[2026-09-14f]`: "Chờ NH tất toán" phải là **danh sách các đơn bán** chưa nhận tiền NH, không phải trang thống kê (`BankInstallmentReportView` — có bộ lọc ngân hàng/kỳ, mặc định "Tháng" nên không khớp số đang cần xem). Đồng thời yêu cầu thêm: (1) lối tắt "Ngân hàng chưa trả góp" ở tab Bán hàng, (2) popup "Chỉnh sửa thông tin đơn sửa" cho phép lưu không có SĐT + gõ tên/SĐT tự gợi ý khách cũ giống màn Tạo đơn sửa.
+
+### 1. Màn mới: `PendingBankSettlementView` (`lib/views/pending_bank_settlement_view.dart`)
+Danh sách THẲNG (không thống kê/không nhóm theo NH) các đơn `getPendingSettlementSales()` — CÙNG NGUỒN với `ReminderService`/thẻ "TỔNG TÀI SẢN" nên số đếm luôn khớp 3 nơi. Sắp xếp chờ lâu nhất lên đầu, mỗi dòng bấm mở thẳng `SaleDetailView`. Thay thế `BankInstallmentReportView` ở **4 lối vào**:
+- `ReminderNavigator` (case `pendingInstallment`, mở từ thẻ "CẦN XỬ LÝ" Trang chủ)
+- Thẻ "TỔNG TÀI SẢN" (`cash_closing_view.dart`, dòng "NH chưa tất toán")
+- Icon mới trên AppBar màn "Danh sách đơn bán" (`sale_list_view.dart`)
+- **Thẻ mới** "Ngân hàng chưa trả góp" trong "TRUY CẬP NHANH" của tab Bán hàng (`home_view.dart._buildSalesTab()`) — đúng vị trí user yêu cầu, KHÔNG phải màn Danh sách đơn bán (lối tắt cũ nhầm ở đó lúc đầu, đã sửa).
+
+`BankInstallmentReportView` (trang thống kê) GIỮ NGUYÊN, chỉ không còn là đích của 4 lối trên — vẫn dùng ở ô "Trả góp NH" trong THAO TÁC NHANH Trang chủ (dashboard thống kê là đúng chỗ của nó).
+
+### 2. `repair_detail_view.dart._editBasicInfo()` — 3 thay đổi
+- **SĐT không còn bắt buộc** (trước chỉ miễn cho khách vãng lai): validator luôn `return null` khi rỗng, chỉ kiểm định dạng lúc có nhập.
+- **Bỏ ô "Tìm khách hàng cũ" riêng**, thay bằng `CustomerSuggestionsPanel` (widget dùng chung với màn Tạo đơn sửa) gắn thẳng vào ô Tên khách/SĐT — gõ 1 trong 2 ô đều ra gợi ý khớp, bấm chọn tự điền cả hai, đúng UX màn Tạo đơn sửa.
+- **NGHIÊM TRỌNG — crash `_dependents.isEmpty` (framework.dart:6268)**: phát hiện khi tự kiểm thử trên máy thật (CPH2239). Nguyên nhân đúng như `docs` đã ghi trước đây (`disposeAfterTransition`): code cũ `Future.delayed(Duration.zero, ...)` dispose 9 `TextEditingController` + 2 `FocusNode` mới thêm ngay khi `showModalBottomSheet` trả về, trong khi route còn chạy hiệu ứng đóng ~300ms — nếu widget phía sau rebuild trúng lúc đó (dễ xảy ra hơn với `CustomerSuggestionsPanel` mới, có query async + listener) thì dính đúng crash màn đỏ đã biết. Đã sửa dùng `disposeAfterTransition()` (tiện ích có sẵn, cùng cách `debt_payment_sheet.dart` đã dùng) cho toàn bộ 11 controller/focus node.
+
+### Kiểm chứng
+- `flutter analyze` toàn bộ file sửa: 0 lỗi mới.
+- **Tái hiện được crash trên máy thật** (CPH2239) bằng thao tác gõ tên → xoá SĐT → thao tác nhanh → màn đỏ `_dependents.isEmpty`. Sau khi sửa: lặp lại đúng luồng đó + luồng chọn gợi ý khách cũ → lưu, nhiều vòng liên tục — ổn định, không crash, dữ liệu lưu đúng (tên/SĐT/lỗi máy), lưu được khi để trống SĐT.
+- Đã bấm thử cả 4 lối vào `PendingBankSettlementView` mới trên CPH2203 (shop thật) — đều ra đúng danh sách 25 đơn/335.360.000đ, khớp số với thẻ Tổng tài sản và nhắc nhở Trang chủ.
+- Chưa nghiệm thu popup sửa đơn sửa trực tiếp trên CPH2203 (icon bút chì quá nhỏ, ADB bấm trượt nhiều lần) — code giống hệt CPH2239 (không có nhánh riêng theo shop) nên không lặp lại.
+
+### Files
+- `lib/views/pending_bank_settlement_view.dart` (mới)
+- `lib/views/reminders_view.dart`
+- `lib/views/cash_closing_view.dart`
+- `lib/views/sale_list_view.dart`
+- `lib/views/home_view.dart`
+- `lib/views/repair_detail_view.dart`
+
+---
+
 ## [2026-09-14f] - fix(CẦN XỬ LÝ): đơn trả góp chờ NH tất toán quá 1 tuần biến mất khỏi nhắc nhở + feat(Tài chính): thẻ "TỔNG TÀI SẢN"
 
 ### Bối cảnh

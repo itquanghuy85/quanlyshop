@@ -54,6 +54,7 @@ import 'other_apps_view.dart';
 import 'data_reconciliation_view.dart';
 import 'cash_closing_view.dart';
 import 'bank_installment_report_view.dart';
+import 'pending_bank_settlement_view.dart';
 import 'salvage_phone_view.dart';
 import 'audit_log_view.dart';
 import 'backup_restore_view.dart';
@@ -5155,6 +5156,18 @@ class _HomeViewState extends State<HomeView>
               Icons.fact_check_outlined,
               Colors.indigo,
               () => openMoneyReconcile(context),
+            ),
+            const SizedBox(height: 6),
+            _financeQuickCard(
+              'Ngân hàng chưa trả góp',
+              Icons.account_balance_rounded,
+              const Color(0xFF303F9F),
+              () => _pushRoute(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const PendingBankSettlementView(),
+                ),
+              ),
             ),
 
             const SizedBox(height: 10),
