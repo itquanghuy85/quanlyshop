@@ -1308,6 +1308,37 @@ class FirestoreService {
     }
   }
 
+  // Cùng bảng role↔type với `getAllowedRolesForNotificationType()` bên
+  // Cloud Function (functions/index.js) — chặn PUSH thôi chưa đủ, danh
+  // sách "Thông báo" trong app đọc thẳng `shop_notifications` qua stream
+  // này, không hề lọc theo role trước đây, nên nhân viên vẫn đọc được nội
+  // dung 'finance'/'debt' (kể cả dòng "Còn lại" quỹ tiền) dù không hề
+  // nhận được push — đúng bẫy CLAUDE.md §9 "chặn 1 tầng chưa đủ".
+  static const Map<String, Set<String>> _notificationAllowedRolesByType = {
+    'new_order': {'admin', 'owner', 'manager', 'employee'},
+    'payment': {'admin', 'owner', 'manager', 'employee'},
+    'inventory': {'admin', 'owner', 'manager', 'technician'},
+    'staff': {'admin', 'owner', 'manager'},
+    'finance': {'admin', 'owner', 'manager'},
+    'debt': {'admin', 'owner', 'manager'},
+    'chat': {'admin', 'owner', 'manager', 'employee', 'technician', 'user'},
+  };
+  static const Set<String> _notificationDefaultAllowedRoles = {
+    'admin',
+    'owner',
+    'manager',
+    'employee',
+    'technician',
+    'user',
+  };
+
+  static bool _canViewNotificationType(String? type, String role) {
+    final allowed =
+        _notificationAllowedRolesByType[type] ??
+        _notificationDefaultAllowedRoles;
+    return allowed.contains(role) || role == 'admin';
+  }
+
   static Stream<List<Map<String, dynamic>>> getUserNotifications() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return Stream.value([]);
@@ -1315,35 +1346,45 @@ class FirestoreService {
     return UserService.getCurrentShopId().asStream().asyncExpand((shopId) {
       if (shopId == null) return Stream.value([]);
 
-      return _db
-          .collection('shop_notifications')
-          .where('shopId', isEqualTo: shopId)
-          .where(
-            Filter.or(
-              Filter('targetUserId', isEqualTo: user.uid),
-              Filter('targetUserId', isNull: true),
-            ),
-          )
-          .orderBy('createdAt', descending: true)
-          .limit(20)
-          .snapshots()
-          .map((snapshot) {
-            FirestoreAuditModule.logRead(
-              collection: 'shop_notifications',
-              operation: AuditOperation.snapshots,
-              callerService: 'FirestoreService',
-              callerMethod: 'getUserNotifications',
-              documentCount: snapshot.metadata.isFromCache ? 0 : snapshot.docChanges.length,
-              isActiveListener: true,
-            );
-            return snapshot.docs
-                .map((doc) => {...doc.data(), 'id': doc.id})
-                .toList();
-          })
-          .handleError((error) {
-            debugPrint('Error in notifications stream: $error');
-            return [];
-          });
+      return UserService.getRoleFast().asStream().asyncExpand((role) {
+        return _db
+            .collection('shop_notifications')
+            .where('shopId', isEqualTo: shopId)
+            .where(
+              Filter.or(
+                Filter('targetUserId', isEqualTo: user.uid),
+                Filter('targetUserId', isNull: true),
+              ),
+            )
+            .orderBy('createdAt', descending: true)
+            .limit(20)
+            .snapshots()
+            .map((snapshot) {
+              FirestoreAuditModule.logRead(
+                collection: 'shop_notifications',
+                operation: AuditOperation.snapshots,
+                callerService: 'FirestoreService',
+                callerMethod: 'getUserNotifications',
+                documentCount: snapshot.metadata.isFromCache
+                    ? 0
+                    : snapshot.docChanges.length,
+                isActiveListener: true,
+              );
+              return snapshot.docs
+                  .map((doc) => {...doc.data(), 'id': doc.id})
+                  .where(
+                    (data) => _canViewNotificationType(
+                      data['type'] as String?,
+                      role,
+                    ),
+                  )
+                  .toList();
+            })
+            .handleError((error) {
+              debugPrint('Error in notifications stream: $error');
+              return [];
+            });
+      });
     });
   }
 
@@ -1365,33 +1406,44 @@ class FirestoreService {
     return UserService.getCurrentShopId().asStream().asyncExpand((shopId) {
       if (shopId == null) return Stream.value(0);
 
-      return _db
-          .collection('shop_notifications')
-          .where('shopId', isEqualTo: shopId)
-          .where('isRead', isEqualTo: false)
-          .where(
-            Filter.or(
-              Filter('targetUserId', isEqualTo: user.uid),
-              Filter('targetUserId', isNull: true),
-            ),
-          )
-          .limit(20)
-          .snapshots()
-          .map((snapshot) {
-            FirestoreAuditModule.logRead(
-              collection: 'shop_notifications',
-              operation: AuditOperation.snapshots,
-              callerService: 'FirestoreService',
-              callerMethod: 'getUnreadCount',
-              documentCount: snapshot.metadata.isFromCache ? 0 : snapshot.docChanges.length,
-              isActiveListener: true,
-            );
-            return snapshot.docs.length;
-          })
-          .handleError((error) {
-            debugPrint('Error in unread count stream: $error');
-            return 0;
-          });
+      return UserService.getRoleFast().asStream().asyncExpand((role) {
+        return _db
+            .collection('shop_notifications')
+            .where('shopId', isEqualTo: shopId)
+            .where('isRead', isEqualTo: false)
+            .where(
+              Filter.or(
+                Filter('targetUserId', isEqualTo: user.uid),
+                Filter('targetUserId', isNull: true),
+              ),
+            )
+            .limit(20)
+            .snapshots()
+            .map((snapshot) {
+              FirestoreAuditModule.logRead(
+                collection: 'shop_notifications',
+                operation: AuditOperation.snapshots,
+                callerService: 'FirestoreService',
+                callerMethod: 'getUnreadCount',
+                documentCount: snapshot.metadata.isFromCache
+                    ? 0
+                    : snapshot.docChanges.length,
+                isActiveListener: true,
+              );
+              return snapshot.docs
+                  .where(
+                    (doc) => _canViewNotificationType(
+                      doc.data()['type'] as String?,
+                      role,
+                    ),
+                  )
+                  .length;
+            })
+            .handleError((error) {
+              debugPrint('Error in unread count stream: $error');
+              return 0;
+            });
+      });
     });
   }
 

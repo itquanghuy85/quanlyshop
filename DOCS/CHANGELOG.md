@@ -4,6 +4,92 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-14b] - fix(NGHIÊM TRỌNG, bảo mật): màn "Thông báo" trong app lộ nội dung tài chính cho nhân viên dù push đã chặn đúng role
+
+### Câu hỏi khơi mào
+User hỏi thẳng: "có phân quyền thông báo chưa, nhân viên có thấy?" — sau khi
+vừa thêm dòng "Còn lại" (quỹ tiền mặt+ngân hàng) vào thông báo tài chính
+(`[2026-09-13k]`, `[2026-09-14a]`).
+
+### Phát hiện — lỗ hổng có từ TRƯỚC, không phải do tính năng "Còn lại" gây ra
+`functions/index.js` (`getAllowedRolesForNotificationType`) đã lọc ĐÚNG
+role được nhận PUSH: `finance`/`debt` chỉ gửi cho `admin/owner/manager`,
+nhân viên không nhận được push. NHƯNG màn "Thông báo" trong app
+(`lib/views/notifications_view.dart`, qua
+`FirestoreService.getUserNotifications()`/`getUnreadCount()`) đọc thẳng
+collection `shop_notifications` chỉ lọc theo `shopId` — **KHÔNG lọc theo
+role** — mà rule Firestore `shop_notifications` cũng cho phép MỌI thành
+viên shop đọc (`allow read: if isAuth() && docInMyShop()`). Kết quả: nhân
+viên tuy không nhận push nhưng mở màn "Thông báo" trong app vẫn đọc được
+TOÀN BỘ nội dung — kể cả dòng "Còn lại" (số dư quỹ) vừa thêm. Đúng bẫy
+CLAUDE.md §9 "chặn 1 tầng (transport/push) chưa đủ, phải chặn cả tầng đọc
+dữ liệu".
+
+### Đã sửa — tầng service, cùng pattern với cách ẩn giá vốn có sẵn trong dự án
+`lib/services/firestore_service.dart`: thêm bảng
+`_notificationAllowedRolesByType` MIRROR ĐÚNG bảng role của Cloud Function
+(`new_order`/`payment` → +employee; `inventory` → +technician;
+`staff`/`finance`/`debt` → chỉ admin/owner/manager). `getUserNotifications()`
+và `getUnreadCount()` đọc role hiện tại qua `UserService.getRoleFast()`
+(đọc custom claims, không tốn Firestore read) rồi lọc bỏ đúng những doc
+role không được xem — chặn ở tầng service, không dựa vào ẩn nút UI.
+
+### Kiểm chứng — 2 tài khoản thật, xác nhận role bằng log SẠCH (đã `logcat -c`
+trước khi đọc, tránh nhầm log cũ như đã xảy ra 1 lần trong lúc điều tra)
+- `m@m.com` (role=owner, máy CPH2203): thấy đầy đủ "ĐÃ CHỐT QUỸ", các
+  khoản "Ghi chi" kèm "Còn lại" — đúng, vì owner được phép.
+- `n@n.com` (role=**employee** xác nhận qua
+  `getCurrentUserPermissions: role from firestore = employee` +
+  `Token claims: role=employee`, máy CPH2239): màn "Thông báo" CHỈ còn
+  "ĐƠN SỬA MỚI", "THANH TOÁN THÀNH CÔNG", "SỬA XONG", "XÁC NHẬN NHẬP KHO"
+  — **không còn bất kỳ thông báo `finance`/`debt` nào, không còn dòng
+  "Còn lại"**. Đúng thiết kế.
+- Trong lúc điều tra từng nhầm 1 lần: log cache cũ (chưa `logcat -c`) khiến
+  tưởng nhầm máy đang đăng nhập role khác — đã tự phát hiện, xin lỗi user,
+  và xác minh lại bằng log sạch trước khi kết luận (đúng nguyên tắc
+  "không che mismatch để kết luận PASS" xuyên suốt phiên).
+- `flutter analyze`/`test`: sạch, baseline 665 pass / 1 skip / 2 fail
+  không đổi.
+
+### Chưa làm (biết rõ giới hạn, không tự nhận là đã kín hoàn toàn)
+Đây là chặn ở tầng SERVICE (client Dart) — giống hệt pattern ẩn giá vốn có
+sẵn trong dự án, nhưng KHÔNG PHẢI chặn ở tầng Firestore RULES. Một client
+bị sửa đổi (APK chỉnh sửa, gọi thẳng Firestore SDK ngoài app) vẫn đọc được
+`shop_notifications` thô nếu rules không tự giới hạn theo role. Muốn kín
+tuyệt đối cần thêm rule Firestore cấp `type` cho collection này — việc lớn
+hơn, chưa làm trong lượt vá này.
+
+## [2026-09-14a] - fix(thông báo): "Còn lại" tự seed từ lần CHỐT QUỸ gần nhất — không cần chờ chốt quỹ mới dưới build có tính năng
+
+### Vấn đề
+User báo: sau khi vá xong 2 lỗi gửi thông báo (`[2026-09-13m,n]`), dòng
+"💼 Còn lại" (`[2026-09-13k]`) vẫn chưa từng thấy xuất hiện. Đúng như đã ghi
+nhận trong HANDOVER trước đó: `CashBalanceCacheService.applyDelta()` cố ý
+BỎ QUA khi chưa có mốc (`shops/{shopId}/meta/cashBalanceCache` chưa tồn
+tại) để tránh hiện số sai — nhưng mốc này chỉ được tạo qua
+`resetBaseline()` lúc CHỐT QUỸ, mà shop test chưa chốt quỹ lần nào kể từ
+khi có tính năng này → không có gì để hiện.
+
+### Đã sửa — seed 1 lần từ dữ liệu ĐÃ CÓ SẴN thay vì bắt chờ chốt quỹ mới
+`lib/services/cash_balance_cache_service.dart`: khi `applyDelta()` gặp lỗi
+not-found (chưa có mốc), thử `_trySeedFromLastClosing()` MỚI — đọc
+`DBHelper().getLatestClosingBefore()` (local SQLite, rẻ — 1 query, KHÔNG
+chạy lại `DailyFinancialAnalysisService`) lấy `cashEnd`+`bankEnd` của lần
+CHỐT QUỸ gần nhất ĐÃ CÓ trong máy, cộng luôn giao dịch hiện tại vào rồi
+seed mốc mới — không mất phần delta của giao dịch vừa xảy ra. Nếu shop
+CHƯA TỪNG chốt quỹ lần nào (không có gì để seed) thì vẫn bỏ qua như cũ,
+không hiện số sai.
+
+### Kiểm chứng — máy thật CPH2239, log + xem trực tiếp trên khay thông báo
+- `logcat`: `💼 Còn lại: 60.116.000đ` — khớp chính xác phép tính thủ công:
+  lần chốt gần nhất (13/09) TM 3,204 Tr + CK 56,88 Tr = 60.120.000đ, trừ
+  giao dịch Ghi chi mới -4.000đ = 60.116.000đ.
+- Mở khay thông báo thật, mở rộng thông báo: thấy đúng "🧾 SÊDTEST
+  -4.000đ • 💳 TIỀN MẶT / 👤 H / 💼 Còn lại: 60.116.000đ / 🕐 08:29" —
+  không chỉ đúng qua log, đúng cả trên UI thật.
+- `flutter analyze`: 0 lỗi mới. `flutter test`: baseline 665 pass / 1 skip
+  / 2 fail không đổi.
+
 ## [2026-09-13p] - fix(thu chi): xóa khoản thu/chi phát sinh không còn sinh "chi ma"/"thu ma"
 
 ### Bối cảnh

@@ -9,6 +9,35 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.6.0+557 (AAB đã build 12/09 15:26 + web đã deploy https://quanlyshop.web.app — xem `DOCS/release_notes_2026-09-12.md`; 3.5.0+556 đang live trên store). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-14  
 
+**🔴 ĐÃ VÁ (NGHIÊM TRỌNG, bảo mật): màn "Thông báo" trong app lộ nội dung
+tài chính cho nhân viên (`[2026-09-14b]`).**
+User hỏi thẳng "phân quyền thông báo chưa, nhân viên có thấy?" — phát
+hiện: push đã chặn đúng role (`finance`/`debt` chỉ gửi
+admin/owner/manager) NHƯNG màn "Thông báo" trong app đọc thẳng
+`shop_notifications` không lọc role (và rule Firestore cũng cho mọi thành
+viên shop đọc) — nhân viên không nhận push vẫn mở app xem được đầy đủ, kể
+cả dòng "Còn lại" vừa thêm. Đã thêm lọc role ở tầng service
+(`FirestoreService.getUserNotifications/getUnreadCount`), mirror đúng
+bảng role Cloud Function — cùng pattern ẩn giá vốn có sẵn trong dự án.
+**Nghiệm thu 2 tài khoản thật** (role xác nhận qua log SẠCH, tránh nhầm
+log cũ như từng xảy ra 1 lần khi điều tra): owner thấy đủ, employee KHÔNG
+còn thấy bất kỳ thông báo finance/debt/"Còn lại" nào. **Giới hạn đã biết**:
+mới chặn tầng service (client Dart), CHƯA chặn ở Firestore rules — client
+bị sửa đổi vẫn đọc thẳng được nếu muốn, việc lớn hơn nếu muốn kín tuyệt
+đối. Xem CHANGELOG `[2026-09-14b]`.
+
+**✅ "Còn lại" trong thông báo tài chính ĐÃ HOẠT ĐỘNG ĐÚNG, xem tận mắt
+trên khay thông báo thật (`[2026-09-14a]`).**
+User báo chưa từng thấy dòng "Còn lại" dù 2 lỗi gửi thông báo đã vá xong —
+đúng như dự đoán trong HANDOVER cũ: cache chưa có mốc vì shop chưa chốt
+quỹ lần nào dưới build mới. Thay vì bắt chờ, đã thêm seed-1-lần từ lần
+CHỐT QUỸ gần nhất ĐÃ CÓ SẴN trong máy (đọc local SQLite, rẻ, không chạy
+lại phân tích nặng). Nghiệm thu CPH2239: tạo "Ghi chi" 4.000đ →
+notification hiện "💼 Còn lại: 60.116.000đ" — khớp đúng phép tính (chốt
+gần nhất 60.120.000đ − 4.000đ), thấy cả qua log lẫn mở khay thông báo thật
+mở rộng ra xem. Tính năng `[2026-09-13k]` coi như ĐÃ NGHIỆM THU ĐỦ. Xem
+CHANGELOG `[2026-09-14a]`.
+
 **✅ Fix gốc: xóa khoản thu/chi phát sinh không còn sinh "chi ma"/"thu ma"
 (`[2026-09-13p]`).** Nút xóa 🗑 màn Thu Chi trước đó chỉ xóa `expenses`,
 không đụng `financial_activity_log` — đây là NGUỒN GỐC THẬT của "chi ma"
