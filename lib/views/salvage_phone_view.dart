@@ -9,6 +9,7 @@ import '../data/db_helper.dart';
 import '../models/salvage_phone_model.dart';
 import '../models/expense_model.dart';
 import '../services/firestore_service.dart';
+import '../services/notification_service.dart';
 import '../services/sync_orchestrator.dart';
 import '../services/storage_service.dart';
 import '../services/user_service.dart';
@@ -1426,6 +1427,24 @@ class _SalvagePhoneViewState extends State<SalvagePhoneView> {
 
       // Save to Firestore
       await FirestoreService.addExpenseCloud(expData);
+
+      // Thông báo hoạt động tài chính cho cả shop — trước đây khoản chi
+      // này ghi thẳng xuống DB, không qua PaymentIntentService nên không
+      // ai được báo (khác với "Ghi chi" thường, vốn đi qua
+      // executePaymentDirect() và tự động thông báo).
+      try {
+        await NotificationService.notifyFinancialActivity(
+          label: title,
+          amount: cost,
+          isIncome: false,
+          paymentMethod: 'TIỀN MẶT',
+          by: FirebaseAuth.instance.currentUser?.email,
+          refType: 'expense',
+          refId: fId,
+        );
+      } catch (e) {
+        debugPrint('Failed to send salvage expense notification: $e');
+      }
     } catch (e) {
       debugPrint('Record expense for salvage phone error: $e');
     }

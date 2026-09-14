@@ -19,6 +19,7 @@ import '../services/notification_service.dart';
 import '../services/category_service.dart';
 import '../services/event_bus.dart';
 import '../services/encryption_service.dart';
+import '../services/cash_balance_cache_service.dart';
 import '../services/daily_financial_analysis_service.dart';
 import '../services/firestore_write_helper.dart';
 import '../utils/money_utils.dart';
@@ -3788,6 +3789,18 @@ class CashClosingViewState extends State<CashClosingView>
     };
 
     await db.upsertCashClosing(updateData);
+
+    // Sửa lại đúng ngày chốt GẦN NHẤT (ràng buộc của hàm này) → mốc cache
+    // "Còn lại" cũng phải đổi theo số đếm mới.
+    if (shopId != null && shopId.isNotEmpty) {
+      // ignore: unawaited_futures
+      CashBalanceCacheService.resetBaseline(
+        shopId: shopId,
+        cash: newCashEnd,
+        bank: newBankEnd,
+      );
+    }
+
     try {
       await FirebaseFirestore.instance
           .collection('cash_closings')
@@ -4232,6 +4245,16 @@ class CashClosingViewState extends State<CashClosingView>
       );
       // Lưu local trước (đã có identity → không sinh dòng ma)
       await db.upsertCashClosing(localData);
+
+      // Đặt lại mốc cache "Còn lại" (dùng cho nội dung thông báo, xem
+      // CashBalanceCacheService) = đúng số đếm thực tế — sửa lệch tích luỹ
+      // từ cộng/trừ dần theo từng giao dịch kể từ lần chốt trước.
+      // ignore: unawaited_futures
+      CashBalanceCacheService.resetBaseline(
+        shopId: shopId,
+        cash: actualCash,
+        bank: actualBank,
+      );
 
       // Sync to Firestore (best effort)
       {

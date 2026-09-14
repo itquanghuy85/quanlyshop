@@ -2368,6 +2368,22 @@ class _RepairDetailViewState extends State<RepairDetailView> {
       final user = FirebaseAuth.instance.currentUser;
       final userName = await _resolveCurrentStaffName(fallback: 'QL');
 
+      // Gửi notification cho người gửi yêu cầu duyệt — trước đây chỉ ghi
+      // log + hiện snackbar cho người từ chối, người gửi yêu cầu không biết
+      // đơn bị từ chối trừ khi tự mở lại app kiểm tra.
+      final key = r.firestoreId ?? "repair_${r.createdAt}";
+      try {
+        await NotificationService.sendCloudNotification(
+          title: '❌ TỪ CHỐI GIAO MÁY',
+          body:
+              '👤 ${r.customerName} • 📱 ${r.model}\n👤 Từ chối: $userName',
+          type: 'approval_needed',
+          data: {'targetType': 'repair', 'targetId': key, 'repairId': key},
+        );
+      } catch (e) {
+        debugPrint('Failed to send reject delivery notification: $e');
+      }
+
       await db.logAction(
         userId: user?.uid ?? "0",
         userName: userName,

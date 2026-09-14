@@ -12,6 +12,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/utils/money_utils.dart';
+import 'cash_balance_cache_service.dart';
 import 'user_service.dart';
 import '../developer/firestore_audit/firestore_audit_module.dart';
 
@@ -34,8 +35,22 @@ class NotificationService {
 
   // Singleton listener subscription - prevent duplicate listeners
   static StreamSubscription? _notificationSubscription;
-  // Track processed notification IDs to avoid showing same one twice
+  // Track processed notification IDs to avoid showing same one twice —
+  // dùng RIÊNG cho `_handleForegroundMessage` (quyết định có hiện local
+  // notification hay không). KHÔNG dùng chung với
+  // `_seenFirestoreNotificationIds` bên dưới — xem giải thích ở đó.
   static final Set<String> _processedNotificationIds = {};
+  // Bookkeeping RIÊNG cho listener Firestore `listenToNotifications` (chỉ
+  // để tránh xử lý lại cùng 1 doc khi snapshot bắn nhiều lần — from-cache
+  // rồi from-server). Trước đây dùng CHUNG `_processedNotificationIds` ở
+  // trên với FCM — bug thật: listener Firestore của CHÍNH máy vừa tạo
+  // thông báo luôn thấy doc đó gần như tức thì (chỉ là echo local write),
+  // đánh dấu "đã xử lý" TRƯỚC KHI FCM (phải round-trip qua Cloud Function)
+  // kịp tới — khiến `_handleForegroundMessage` sau đó luôn coi FCM là
+  // "trùng lặp" và bỏ qua, KHÔNG BAO GIỜ hiện thông báo khi app đang mở
+  // (foreground) trên chính máy vừa thao tác. Xem CHANGELOG mục vá lỗi
+  // này để biết cách phát hiện qua logcat.
+  static final Set<String> _seenFirestoreNotificationIds = {};
   static const int _maxProcessedNotificationIds = 200;
   static Future<void> Function(Map<String, dynamic>)? _navigationHandler;
   static Map<String, dynamic>? _queuedNavigationData;
@@ -774,16 +789,19 @@ class NotificationService {
     });
   }
 
-  static void _markNotificationProcessed(String notificationId) {
+  static void _markNotificationProcessed(
+    String notificationId, {
+    Set<String>? target,
+  }) {
     if (notificationId.isEmpty) return;
+    final ids = target ?? _processedNotificationIds;
 
-    _processedNotificationIds.add(notificationId);
-    if (_processedNotificationIds.length > _maxProcessedNotificationIds) {
-      final overflow =
-          _processedNotificationIds.length - _maxProcessedNotificationIds;
-      final staleIds = _processedNotificationIds.take(overflow).toList();
+    ids.add(notificationId);
+    if (ids.length > _maxProcessedNotificationIds) {
+      final overflow = ids.length - _maxProcessedNotificationIds;
+      final staleIds = ids.take(overflow).toList();
       for (final staleId in staleIds) {
-        _processedNotificationIds.remove(staleId);
+        ids.remove(staleId);
       }
     }
   }
@@ -1022,12 +1040,17 @@ class NotificationService {
                 }
 
                 final docId = change.doc.id;
-                // Skip if already processed (avoid duplicate display)
-                if (_processedNotificationIds.contains(docId)) {
+                // Bookkeeping riêng — KHÔNG dùng chung với dedup của FCM
+                // foreground handler (xem giải thích ở khai báo
+                // `_seenFirestoreNotificationIds`).
+                if (_seenFirestoreNotificationIds.contains(docId)) {
                   debugPrint('Skipping already processed notification: $docId');
                   continue;
                 }
-                _markNotificationProcessed(docId);
+                _markNotificationProcessed(
+                  docId,
+                  target: _seenFirestoreNotificationIds,
+                );
                 debugPrint(
                   'New notification: ${data['title']} from ${data['senderId']} (current user: ${user.uid})',
                 );
@@ -1601,6 +1624,20 @@ class NotificationService {
       default:
         title = 'CÔNG NỢ';
     }
+    // Chỉ 'collect' (thu nợ khách — tiền vào két) và 'pay' (trả nợ NCC —
+    // tiền ra két) là di chuyển tiền thật; 'create'/'waive' không đổi quỹ.
+    int? newTotal;
+    if (action == 'collect' || action == 'pay') {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId != null && shopId.isNotEmpty) {
+        newTotal = await CashBalanceCacheService.applyDelta(
+          shopId: shopId,
+          amount: amount,
+          isIncome: action == 'collect',
+        );
+      }
+    }
+
     final now = DateTime.now();
     final time =
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
@@ -1609,6 +1646,7 @@ class NotificationService {
       '💵 ${MoneyUtils.formatVND(amount)}đ'
           '${by != null && by.isNotEmpty ? ' • 👤 $by' : ''}',
       if (note != null && note.trim().isNotEmpty) '📝 ${note.trim()}',
+      if (newTotal != null) '💼 Còn lại: ${MoneyUtils.formatVND(newTotal)}đ',
       '🕐 $time',
     ];
     await sendCloudNotification(
@@ -1639,6 +1677,18 @@ class NotificationService {
   }) async {
     final sign = isIncome ? '+' : '-';
     final head = isIncome ? '💵' : '🧾';
+
+    int? newTotal;
+    final shopId = await UserService.getCurrentShopId();
+    if (shopId != null && shopId.isNotEmpty) {
+      newTotal = await CashBalanceCacheService.applyDelta(
+        shopId: shopId,
+        amount: amount,
+        isIncome: isIncome,
+        paymentMethod: paymentMethod,
+      );
+    }
+
     final now = DateTime.now();
     final time =
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
@@ -1648,6 +1698,7 @@ class NotificationService {
       '$sign${MoneyUtils.formatVND(amount)}đ'
           '${paymentMethod != null && paymentMethod.isNotEmpty ? ' • 💳 $paymentMethod' : ''}',
       if (by != null && by.trim().isNotEmpty) '👤 ${by.trim()}',
+      if (newTotal != null) '💼 Còn lại: ${MoneyUtils.formatVND(newTotal)}đ',
       '🕐 $time',
     ];
     await sendCloudNotification(

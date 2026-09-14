@@ -470,6 +470,18 @@ service cloud.firestore {
         // DELETE: Owner only (soft delete preferred, also during shop cleanup)
         allow delete: if isAuth() && (belongsTo(shopId) || isShopOwnerAnyState(shopId)) && isOwner();
       }
+
+      // ─────────── SUBCOLLECTION: meta (cache nội bộ, không phải sổ sách) ───────────
+      // "cashBalanceCache": tổng quỹ (tiền mặt + ngân hàng) cộng/trừ dần theo
+      // từng giao dịch để chèn vào nội dung thông báo — KHÔNG phải nguồn số
+      // liệu kế toán chính thức (số chính thức vẫn ở DailyFinancialAnalysisService/
+      // tab Chốt quỹ). Cho phép MỌI nhân viên trong shop ghi vì nhân viên
+      // thường (bán hàng/KTV) cũng tạo giao dịch tiền.
+      match /meta/{docId} {
+        allow read: if isAuth() && (belongsTo(shopId) || request.auth.token.shopId == shopId);
+        allow create, update: if isAuth() && (belongsTo(shopId) || request.auth.token.shopId == shopId);
+        allow delete: if isAuth() && (isShopOwnerAnyState(shopId) && isOwner());
+      }
     }
 
     // ═══════════ 2.3 INVITES ═══════════

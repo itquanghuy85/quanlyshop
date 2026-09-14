@@ -877,16 +877,32 @@ function getNotificationChannel(type) {
   }
 }
 
+// FCM v1 dùng 2 field priority KHÁC NHAU, mỗi field 1 tập giá trị hợp lệ
+// riêng — nhầm lẫn giữa 2 tập này khiến admin.messaging() REJECT THẲNG với
+// messaging/invalid-argument (không gửi được, không phải bị hạ priority).
+// - `android.priority` (AndroidConfig, cấp gói tin): CHỈ 'normal' | 'high'.
+// - `android.notification.priority` (AndroidNotification, cấp hiển thị):
+//   'min' | 'low' | 'default' | 'high' | 'max'.
+// Giá trị cũ 'default' hợp lệ ở field thứ 2 nhưng KHÔNG hợp lệ ở field thứ
+// nhất — đó là lý do mọi type rơi vào nhánh dưới (finance, debt,
+// approval_needed, inventory, staff, system, missing_cost...) gửi lỗi.
 function getAndroidPriority(type) {
   switch (type) {
     case 'new_order':
     case 'payment':
     case 'chat':
       return 'high';
-    case 'inventory':
-    case 'staff':
-      return 'default';
-    case 'system':
+    default:
+      return 'normal';
+  }
+}
+
+function getAndroidNotificationPriority(type) {
+  switch (type) {
+    case 'new_order':
+    case 'payment':
+    case 'chat':
+      return 'high';
     default:
       return 'default';
   }
@@ -1015,7 +1031,7 @@ exports.sendShopNotification = onCall(async (request) => {
         priority: getAndroidPriority(type),
         notification: {
           channelId: getChannelId(type),
-          priority: getAndroidPriority(type),
+          priority: getAndroidNotificationPriority(type),
         },
       },
       apns: {
@@ -1043,6 +1059,16 @@ exports.sendShopNotification = onCall(async (request) => {
     });
 
     console.log(`Sent ${responses.successCount} notifications, ${responses.failureCount} failed`);
+    if (responses.failureCount > 0) {
+      responses.responses.forEach((r, idx) => {
+        if (!r.success) {
+          const tok = tokens[idx];
+          console.error(
+            `FCM send failed for token ...${tok.slice(-12)}: ${r.error && r.error.code} - ${r.error && r.error.message}`,
+          );
+        }
+      });
+    }
 
     return {
       success: true,
