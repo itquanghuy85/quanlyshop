@@ -742,14 +742,13 @@ class _SaleDetailViewState extends State<SaleDetailView> {
               top: Radius.circular(PopupTheme.radiusSheet),
             ),
           ),
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const PopupDragHandle(),
-                Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const PopupDragHandle(),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                child: Row(
                   children: [
                     const Icon(
                       Icons.account_balance,
@@ -767,73 +766,97 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                CurrencyTextField(
-                  controller: amountCtrl,
-                  label: AppLocalizations.of(ctx)!.receivedAmountLabel,
-                  validator: (v) => MoneyUtils.validateAmount(
-                    v ?? '',
-                    min: 1,
-                    fieldName: AppLocalizations.of(ctx)!.receivedAmountField,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                CurrencyTextField(
-                  controller: feeCtrl,
-                  label: AppLocalizations.of(ctx)!.bankFeeLabel,
-                  validator: (v) => MoneyUtils.validateAmount(
-                    v ?? '',
-                    min: 0,
-                    fieldName: AppLocalizations.of(ctx)!.bankFeeField,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: noteCtrl,
-                  decoration: InputDecoration(
-                    labelText: AppLocalizations.of(ctx)!.notesFieldLabel,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(
-                        PopupTheme.radiusField,
-                      ),
-                    ),
-                  ),
-                ),
-                bankTransferAssistCard(
-                  amountController: amountCtrl,
-                  direction: BankPayDirection.inbound,
-                  counterpartyName: s.bankName ?? s.customerName,
-                  refText: 'Tat toan ${s.customerName}',
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(ctx, false),
-                        child: Text(AppLocalizations.of(ctx)!.cancel),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: PopupTheme.blue,
-                          foregroundColor: Colors.white,
+              ),
+              // Flexible + SingleChildScrollView — trước đây Column nằm
+              // thẳng trong Container không cuộn được, đủ trường (SĐT +
+              // phí + ghi chú + thẻ gợi ý chuyển khoản) cộng bàn phím mở
+              // là tràn màn hình (RenderFlex overflow), đè mất nút Xác
+              // nhận không bấm được. Nút giờ nằm trong vùng cuộn, luôn kéo
+              // tới được dù form dài cỡ nào.
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CurrencyTextField(
+                          controller: amountCtrl,
+                          label: AppLocalizations.of(ctx)!.receivedAmountLabel,
+                          validator: (v) => MoneyUtils.validateAmount(
+                            v ?? '',
+                            min: 1,
+                            fieldName:
+                                AppLocalizations.of(ctx)!.receivedAmountField,
+                          ),
                         ),
-                        onPressed: () {
-                          if (!(formKey.currentState?.validate() ?? false))
-                            return;
-                          Navigator.pop(ctx, true);
-                        },
-                        child: Text(AppLocalizations.of(ctx)!.confirmButton),
-                      ),
+                        const SizedBox(height: 10),
+                        CurrencyTextField(
+                          controller: feeCtrl,
+                          label: AppLocalizations.of(ctx)!.bankFeeLabel,
+                          validator: (v) => MoneyUtils.validateAmount(
+                            v ?? '',
+                            min: 0,
+                            fieldName: AppLocalizations.of(ctx)!.bankFeeField,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: noteCtrl,
+                          decoration: InputDecoration(
+                            labelText:
+                                AppLocalizations.of(ctx)!.notesFieldLabel,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                PopupTheme.radiusField,
+                              ),
+                            ),
+                          ),
+                        ),
+                        bankTransferAssistCard(
+                          amountController: amountCtrl,
+                          direction: BankPayDirection.inbound,
+                          counterpartyName: s.bankName ?? s.customerName,
+                          refText: 'Tat toan ${s.customerName}',
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: Text(AppLocalizations.of(ctx)!.cancel),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 2,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: PopupTheme.blue,
+                                  foregroundColor: Colors.white,
+                                ),
+                                onPressed: () {
+                                  if (!(formKey.currentState?.validate() ??
+                                      false)) {
+                                    return;
+                                  }
+                                  Navigator.pop(ctx, true);
+                                },
+                                child: Text(
+                                  AppLocalizations.of(ctx)!.confirmButton,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

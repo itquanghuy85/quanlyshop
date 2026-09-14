@@ -4,6 +4,69 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-14h] - fix(NGHIÊM TRỌNG): popup "Nhận tiền NH" tràn màn hình không bấm được Xác nhận + feat: mời tạo hồ sơ khách hàng khi bấm tên đơn "khách vãng lai" báo không tìm thấy
+
+### Phát hiện qua đối chiếu số liệu — công nợ Phải trả lệch 2,3tr (điều tra, CHƯA sửa)
+User gửi 3 ảnh chụp gần như đồng thời (cách nhau ~1 phút): màn Công nợ
+"Phải trả" = 390,1Tr, màn Tài chính "Phải trả" = 392,4Tr — vẫn lệch dù
+không còn khả năng do lệch thời gian như `[2026-09-14f]` từng kết luận
+nhầm. Rà bằng script Python đối chiếu 2 công thức tính trên cùng 1 bản
+SQLite: root cause là **dữ liệu nợ trùng lặp thật**, không phải lỗi công
+thức — cùng 1 đơn sửa gán đối tác ngoài "Sang Smartphone" bị tạo NHIỀU
+khoản nợ qua 2 luồng code khác nhau (`debt_partner_...` và
+`debt_repair_...`), ví dụ 1 đơn giá vốn 1.000.000đ có tới 3 khoản nợ
+riêng biệt cộng lại 2.800.000đ. Màn Công nợ cố tình lọc bỏ nhóm
+`debt_partner_...` (tưởng đã tính ở khối "Nợ đối tác sửa chữa" riêng —
+nhưng khối đó tính theo công thức khác, không khớp, nên 1,9tr "biến mất"
+không hiện ở đâu); màn Tài chính cộng thẳng tất cả, dính trùng lặp.
+User đã xoá đối tác liên quan (không xoá được nợ mồ côi kèm theo) —
+**CHƯA xử lý dữ liệu trùng**, tạm dừng theo yêu cầu user, chờ quyết định
+tiếp theo (không tự ý xoá/sửa công nợ mồ côi).
+
+### 1. NGHIÊM TRỌNG — popup "Nhận tiền NH" tràn màn hình, không bấm được Xác nhận
+`sale_detail_view.dart._openSettlementDialog()`: `Column` (SĐT nhận + phí
+NH + ghi chú + `bankTransferAssistCard` QR/số TK + nút Huỷ/Xác nhận) nằm
+thẳng trong `Container`, KHÔNG có `SingleChildScrollView` — mở bàn phím
+gõ số tiền là đủ tràn màn hình (RenderFlex overflow), đè/đẩy mất nút Xác
+nhận không bấm được. Đã sửa theo đúng mẫu `Flexible + SingleChildScrollView`
+(cùng mẫu vừa áp cho `_editBasicInfo` ở `[2026-09-14g]`) — nút giờ nằm
+trong vùng cuộn, luôn kéo tới được.
+
+### 2. Bấm tên khách "khách vãng lai" báo "Không tìm thấy hồ sơ" — mời tạo luôn
+Điều tra `tận gốc` theo yêu cầu: KHÔNG phải bug tra cứu — đơn đánh dấu
+"Khách vãng lai" (`isWalkIn=1`) cố ý không lưu vào bảng `customers` (đúng
+mô tả switch "không lưu vào danh bạ"), nên `DeepLinkNavigator.openCustomerProfile`
+tìm không ra là đúng logic. Nhưng nhiều đơn "vãng lai" vẫn có đủ tên +
+SĐT thật (nhân viên lỡ tick, không phải khách ẩn danh) — bấm vào tên chỉ
+ra ngõ cụt. Đã thêm: khi không tìm thấy NHƯNG đơn có sẵn tên+SĐT, SnackBar
+đổi thành giải thích rõ ("...đơn đánh dấu khách vãng lai") kèm nút hành
+động "Tạo hồ sơ" — tạo `Customer` mới từ đúng tên+SĐT đó
+(`CustomerService.addCustomer`) rồi mở thẳng hồ sơ vừa tạo.
+
+### Kiểm chứng
+- `flutter analyze` 2 file sửa: 0 lỗi mới.
+- **Nghiệm thu trực tiếp trên máy thật CPH2203 (shop HULUCA)**, đúng đơn
+  user báo (LÊ THỊ HUỲNH NHƯ, đơn trả góp NH `isWalkIn=1`):
+  - Mở popup "Nhận tiền NH" — toàn bộ nội dung (kể cả thẻ QR/số TK) render
+    đầy đủ, không còn cảnh báo tràn màn hình. KHÔNG bấm Xác nhận thật (giữ
+    nguyên trạng thái tất toán, chỉ xác nhận layout).
+  - Bấm tên khách → SnackBar đúng nội dung mới + nút "Tạo hồ sơ" → bấm →
+    tạo đúng khách hàng mới (`customers.id=15186`, tên/SĐT/shopId khớp,
+    `isSynced=0` chờ đồng bộ) → mở đúng "Hồ sơ khách hàng" vừa tạo, hiện
+    đúng lịch sử mua 25,79 Tr. Đối chiếu lại bằng SQLite kéo trực tiếp từ
+    máy — khớp tuyệt đối UI.
+- Gotcha khi test: `uiautomator dump` cho bounds cây view cao tối đa
+  ~2158px trong khi ảnh chụp màn hình báo 1080×2400 — với phần tử SÁT ĐÁY
+  màn hình (SnackBarAction), quy đổi toạ độ theo tỉ lệ ảnh chụp
+  (`×1.2`) SAI, phải bấm theo đúng toạ độ `bounds` của uiautomator, không
+  tự suy từ kích thước ảnh.
+
+### Files
+- `lib/views/sale_detail_view.dart`
+- `lib/widgets/deep_link_navigator.dart`
+
+---
+
 ## [2026-09-14g] - feat(Bán hàng): màn LIST đơn chờ NH tất toán (thay vì trang thống kê) + fix(đơn sửa, NGHIÊM TRỌNG): crash `_dependents.isEmpty` khi sửa thông tin khách + cho phép bỏ trống SĐT + tự động gợi ý khách cũ
 
 ### Bối cảnh

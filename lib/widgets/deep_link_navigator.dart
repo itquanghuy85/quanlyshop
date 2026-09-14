@@ -116,9 +116,41 @@ class DeepLinkNavigator {
 
       if (!context.mounted) return;
       if (found == null) {
-        NotificationService.showSnackBar(
-          'Không tìm thấy hồ sơ khách hàng',
-          color: AppColors.warning,
+        // Đơn "khách vãng lai" cố ý không lưu vào danh bạ (đúng thiết kế) —
+        // nhưng nếu đơn vẫn có sẵn tên + SĐT thật (nhân viên lỡ tick vãng
+        // lai chứ không phải khách ẩn danh), mời tạo hồ sơ ngay từ đó thay
+        // vì chỉ báo lỗi rồi hết, người dùng phải tự gõ lại thủ công.
+        final canCreate = rawPhone.isNotEmpty && rawName.isNotEmpty;
+        if (!canCreate) {
+          NotificationService.showSnackBar(
+            'Không tìm thấy hồ sơ khách hàng',
+            color: AppColors.warning,
+          );
+          return;
+        }
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Không tìm thấy hồ sơ khách hàng (đơn đánh dấu khách vãng lai)',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: AppColors.warning,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            duration: const Duration(seconds: 6),
+            action: SnackBarAction(
+              label: 'Tạo hồ sơ',
+              textColor: Colors.white,
+              onPressed: () => _createAndOpenCustomer(
+                context,
+                name: rawName,
+                phone: rawPhone,
+              ),
+            ),
+          ),
         );
         return;
       }
@@ -137,6 +169,47 @@ class DeepLinkNavigator {
         NotificationService.showSnackBar(
           'Không tìm thấy hồ sơ khách hàng',
           color: AppColors.warning,
+        );
+      }
+    }
+  }
+
+  /// Tạo hồ sơ khách hàng mới từ tên + SĐT đã có sẵn trên đơn (trường hợp
+  /// đơn đánh dấu "khách vãng lai" nên chưa từng lưu vào danh bạ), rồi mở
+  /// thẳng hồ sơ vừa tạo — gọi từ action "Tạo hồ sơ" trên SnackBar.
+  static Future<void> _createAndOpenCustomer(
+    BuildContext context, {
+    required String name,
+    required String phone,
+  }) async {
+    try {
+      final created = await CustomerService().addCustomer(
+        Customer(
+          name: name,
+          phone: phone,
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
+      if (!context.mounted) return;
+      if (created == null) {
+        NotificationService.showSnackBar(
+          'Không tạo được hồ sơ khách hàng, thử lại sau.',
+          color: AppColors.error,
+        );
+        return;
+      }
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CustomerProfileView(customer: created),
+        ),
+      );
+    } catch (e) {
+      debugPrint('DeepLinkNavigator._createAndOpenCustomer error: $e');
+      if (context.mounted) {
+        NotificationService.showSnackBar(
+          'Không tạo được hồ sơ khách hàng, thử lại sau.',
+          color: AppColors.error,
         );
       }
     }

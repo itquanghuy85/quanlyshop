@@ -9,6 +9,22 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.6.0+557 (AAB đã build 12/09 15:26 + web đã deploy https://quanlyshop.web.app — xem `DOCS/release_notes_2026-09-12.md`; 3.5.0+556 đang live trên store). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-14  
 
+**🔴 ĐÃ VÁ popup "Nhận tiền NH" tràn màn hình (không bấm được Xác nhận) +
+mời tạo hồ sơ khách khi đơn "vãng lai" báo không tìm thấy (`[2026-09-14h]`).**
+Popup tất toán trả góp NH (`sale_detail_view._openSettlementDialog`)
+thiếu vùng cuộn — mở bàn phím là tràn, đè mất nút Xác nhận; đã sửa bằng
+`Flexible + SingleChildScrollView`. Bấm tên khách ở đơn "khách vãng lai"
+báo "Không tìm thấy hồ sơ" nay có nút "Tạo hồ sơ" ngay tại chỗ (dùng
+tên+SĐT có sẵn trên đơn) thay vì ngõ cụt. **Đã nghiệm thu trên chính
+CPH2203 với đúng ca user báo** (LÊ THỊ HUỲNH NHƯ) — tạo đúng khách hàng
+mới `id=15186`, đối chiếu khớp SQLite.
+**Điều tra riêng (CHƯA sửa, đang chờ quyết định):** lệch công nợ Phải trả
+390,1 vs 392,4 Tr KHÔNG phải lỗi công thức như từng kết luận ở
+`[2026-09-14f]` — là dữ liệu nợ trùng lặp thật của đối tác "Sang
+Smartphone" (1 đơn sửa bị tạo tới 3 khoản nợ qua 2 luồng code khác
+nhau). User đã xoá đối tác (không xoá nợ mồ côi kèm theo), tạm dừng xử
+lý dữ liệu theo yêu cầu. Xem CHANGELOG `[2026-09-14h]`.
+
 **🔴 ĐÃ VÁ CRASH `_dependents.isEmpty` KHI SỬA THÔNG TIN ĐƠN SỬA + màn LIST
 đơn chờ NH tất toán thay trang thống kê (`[2026-09-14g]`).** User chỉnh
 lại: "Chờ NH tất toán" phải ra DANH SÁCH đơn, không phải trang thống kê
