@@ -4,6 +4,61 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-14f] - fix(CẦN XỬ LÝ): đơn trả góp chờ NH tất toán quá 1 tuần biến mất khỏi nhắc nhở + feat(Tài chính): thẻ "TỔNG TÀI SẢN"
+
+### Bối cảnh
+User hỏi tổng hợp: tiền NH chưa tất toán, nợ phải thu/phải trả, tiền
+trong TK, tiền mặt, tổng tài sản — kèm phát hiện "mục Cần xử lý ở Home
+không thấy hiển thị số đơn trả góp chưa nhận tiền".
+
+### Bug 1: `ReminderService._loadPendingInstallments()` bound sai theo tuần
+`WHERE isInstallment=1 AND settlementReceivedAt IS NULL AND soldAt >=
+<đầu tuần>` — đơn bán QUÁ 1 tuần mà NH vẫn chưa giải ngân (thường xảy ra,
+NH hay trễ) biến mất khỏi thẻ "CẦN XỬ LÝ" ở Home dù thực tế vẫn đang treo.
+Đối chiếu dữ liệu thật shop HULUCA (CPH2203): logic cũ chỉ đếm **14 đơn /
+183.140.000đ**, logic đúng phải là **25 đơn / 335.360.000đ** — bỏ sót 11
+đơn/152 triệu.
+
+Sửa: bỏ hẳn điều kiện `soldAt >= đầu tuần`, dùng lại
+`DBHelper.getPendingSettlementSales()` (đã có sẵn, cùng nguồn với màn
+"Đối soát tiền về") để hai nơi không lệch số. Subtitle đổi từ "tuần này
+chưa về tiền" → "chưa được ngân hàng tất toán".
+
+### Feature: thẻ "TỔNG TÀI SẢN" (tab Tài chính → Chốt quỹ → Tổng quan)
+Thêm cuối `CashClosingView._buildOverviewTab()`: Tiền mặt + Ngân hàng
+(dùng lại đúng `expectedCash`/`expectedBank` đã tính sẵn ở thẻ "SỐ DƯ DỰ
+KIẾN CUỐI NGÀY") + NH chưa tất toán (tổng `loanAmount+loanAmount2` của
+`getPendingSettlementSales()`) + Phải thu − Phải trả (nạp riêng qua
+`_loadAssetSummary()`, dùng đúng nguồn + công thức với tab "Nợ"
+— `getDebtsForFinanceSnapshot()`, remaining = total−paid, loại
+SHOP_OWES/OTHER_SHOP_OWES/OWED/REPAIR_PARTNER vào Phải trả — để hai tab
+trong cùng màn không lệch số).
+
+Nạp độc lập với luồng Chốt quỹ chính (không depend/không bị depend) —
+lỗi/chậm ở thẻ mới không ảnh hưởng phần chốt quỹ vốn đã nhạy cảm (nhiều
+sự cố trong quá khứ).
+
+### Kiểm chứng
+- `flutter analyze` 2 file sửa: 0 lỗi mới (chỉ info `withOpacity` có sẵn
+  từ trước).
+- Đối chiếu trực tiếp SQLite kéo từ máy thật (CPH2203) bằng script Python
+  độc lập với code Dart — khớp tuyệt đối con số app hiển thị.
+- **Đã nghiệm thu trên 2 máy thật**:
+  - CPH2203 (shop THẬT huy@huluca.com, chỉ xem): "Chờ NH tất toán" hiện
+    đúng 25 đơn/335.360.000đ (trước đây 14 đơn/183tr). Thẻ TỔNG TÀI SẢN:
+    Tiền mặt 522,5Tr + Ngân hàng 552,3Tr + NH chưa tất toán 335,4Tr +
+    Phải thu 35,65Tr − Phải trả 392,4Tr = **1,053 Tỷ** (khớp phép cộng).
+  - CPH2239 (shop test "M", ghi thoải mái): "Chờ NH tất toán" 2
+    đơn/22.000.000đ. Thẻ TỔNG TÀI SẢN: 3,296Tr + 56,88Tr + 22Tr + 16,41Tr
+    − 63,83Tr = **34,76 Tr** (khớp phép cộng). Không crash trên dữ liệu
+    nhỏ/rỗng.
+
+### Files
+- `lib/services/reminder_service.dart`
+- `lib/views/cash_closing_view.dart`
+
+---
+
 ## [2026-09-14e] - fix(thông báo): dọn nốt 1 chỗ còn sót hiện UID thô + xác nhận Cloud Function idempotency đã live
 
 ### Bối cảnh

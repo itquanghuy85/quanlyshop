@@ -113,6 +113,15 @@ class CashClosingViewState extends State<CashClosingView>
   Map<String, dynamic>? _previousDayClosing;
   Map<String, dynamic>? _todayClosing;
 
+  // ─── Thẻ "TỔNG TÀI SẢN" (tab Tổng quan) ───────────────────────────────
+  // Nạp riêng qua `_loadAssetSummary()`, KHÔNG dùng chung state với luồng
+  // Chốt quỹ chính ở trên — lỗi/chậm ở đây không được phép ảnh hưởng phần
+  // chốt quỹ vốn đã nhạy cảm.
+  int _totalReceivables = 0;
+  int _totalPayables = 0;
+  int _pendingInstallmentTotal = 0;
+  int _pendingInstallmentCount = 0;
+
   // Shop settings for multi-industry
   ShopSettings? _shopSettings;
   bool get _enableRepair => _shopSettings?.enableRepair ?? true;
@@ -155,6 +164,7 @@ class CashClosingViewState extends State<CashClosingView>
     );
     _loadShopSettings();
     _loadAllData();
+    _loadAssetSummary();
     // Gán thẳng, KHÔNG gọi `_refreshHistory()`: trong `initState` chưa được
     // phép `setState`.
     _historyFuture = _loadHistoryClosings();
@@ -241,8 +251,54 @@ class CashClosingViewState extends State<CashClosingView>
     _debounceTimer = Timer(const Duration(milliseconds: 500), () {
       if (mounted) {
         _loadAllDataFromLocalDB();
+        _loadAssetSummary();
       }
     });
+  }
+
+  /// Nạp Phải thu/Phải trả/NH chưa tất toán cho thẻ "TỔNG TÀI SẢN" — dùng
+  /// đúng nguồn + công thức với tab "Nợ" của `FinanceV2View`
+  /// (`_db.getDebtsForFinanceSnapshot()`, remaining = total − paid, loại
+  /// SHOP_OWES/OTHER_SHOP_OWES/OWED/REPAIR_PARTNER vào Phải trả, còn lại vào
+  /// Phải thu) để hai tab trong cùng màn Tài chính không lệch số.
+  Future<void> _loadAssetSummary() async {
+    try {
+      final debts = await db.getDebtsForFinanceSnapshot();
+      int receivable = 0;
+      int payable = 0;
+      for (final d in debts) {
+        final total = (d['totalAmount'] as num?)?.toInt() ?? 0;
+        final paid = (d['paidAmount'] as num?)?.toInt() ?? 0;
+        final remaining = total - paid;
+        if (remaining <= 0) continue;
+        final debtType = (d['type'] ?? 'CUSTOMER_OWES').toString();
+        final isPayable =
+            debtType == 'SHOP_OWES' ||
+            debtType == 'OTHER_SHOP_OWES' ||
+            debtType == 'OWED' ||
+            debtType == 'REPAIR_PARTNER';
+        if (isPayable) {
+          payable += remaining;
+        } else {
+          receivable += remaining;
+        }
+      }
+      final pending = await db.getPendingSettlementSales();
+      final pendingTotal = pending.fold<int>(
+        0,
+        (acc, s) => acc + s.loanAmount + s.loanAmount2,
+      );
+      if (mounted) {
+        setState(() {
+          _totalReceivables = receivable;
+          _totalPayables = payable;
+          _pendingInstallmentTotal = pendingTotal;
+          _pendingInstallmentCount = pending.length;
+        });
+      }
+    } catch (e) {
+      debugPrint('CashClosingView._loadAssetSummary error: $e');
+    }
   }
 
   Future<void> _initRealTimeSync() async {
@@ -1552,8 +1608,51 @@ class CashClosingViewState extends State<CashClosingView>
           ),
           const SizedBox(height: 24),
           _buildClosingStatusCard(expectedCash, expectedBank),
+          const SizedBox(height: 16),
+          _buildTotalAssetsCard(expectedCash, expectedBank),
         ],
       ),
+    );
+  }
+
+  /// Thẻ "TỔNG TÀI SẢN": tiền mặt + ngân hàng (số dự kiến cùng công thức ở
+  /// trên) + NH chưa tất toán (đơn trả góp đã bán, ngân hàng chưa giải ngân)
+  /// + Phải thu − Phải trả. Số liệu Phải thu/Phải trả/NH chưa tất toán nạp
+  /// riêng ở `_loadAssetSummary()` nên có thể trễ hơn vài trăm ms so với
+  /// tiền mặt/ngân hàng — không sao vì đây là thẻ xem nhanh, không phải số
+  /// dùng để chốt quỹ.
+  Widget _buildTotalAssetsCard(int cash, int bank) {
+    final totalAssets =
+        cash + bank + _pendingInstallmentTotal + _totalReceivables - _totalPayables;
+    return _buildSectionCard(
+      "TỔNG TÀI SẢN",
+      Icons.account_balance_wallet_rounded,
+      Colors.teal,
+      [
+        _infoRow("Tiền mặt", MoneyUtils.formatCompactCurrency(cash)),
+        _infoRow("Ngân hàng", MoneyUtils.formatCompactCurrency(bank)),
+        if (_pendingInstallmentCount > 0)
+          _infoRow(
+            "NH chưa tất toán ($_pendingInstallmentCount đơn)",
+            MoneyUtils.formatCompactCurrency(_pendingInstallmentTotal),
+          ),
+        _infoRow(
+          "Phải thu",
+          MoneyUtils.formatCompactCurrency(_totalReceivables),
+        ),
+        _infoRow(
+          "Phải trả",
+          "-${MoneyUtils.formatCompactCurrency(_totalPayables)}",
+          color: _totalPayables > 0 ? Colors.red : null,
+        ),
+        const Divider(height: 16),
+        _infoRow(
+          "Tổng tài sản",
+          MoneyUtils.formatCompactCurrency(totalAssets),
+          bold: true,
+          color: Colors.teal,
+        ),
+      ],
     );
   }
 

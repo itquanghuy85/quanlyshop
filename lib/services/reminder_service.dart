@@ -356,7 +356,10 @@ class ReminderService {
       }
     }
 
-    // 13. Trả góp ngân hàng tuần này chưa tất toán
+    // 13. Trả góp ngân hàng chưa tất toán (mọi đơn còn treo, không chỉ tuần
+    // này — trước đây bound theo `soldAt >= đầu tuần` nên đơn bán quá 1 tuần
+    // vẫn chưa được NH giải ngân sẽ biến mất khỏi "CẦN XỬ LÝ", coi như đã
+    // xong dù thực tế vẫn đang treo).
     if (results.containsKey('pendingInstallment')) {
       final info = results['pendingInstallment'] as _InstallmentSummary;
       if (info.count > 0) {
@@ -364,7 +367,7 @@ class ReminderService {
           category: ReminderCategory.pendingInstallment,
           priority: ReminderPriority.normal,
           title: 'Chờ NH tất toán',
-          subtitle: '${info.count} đơn trả góp tuần này chưa về tiền',
+          subtitle: '${info.count} đơn trả góp chưa được ngân hàng tất toán',
           count: info.count,
           icon: Icons.account_balance_rounded,
           color: const Color(0xFF303F9F),
@@ -607,30 +610,20 @@ class ReminderService {
     }
   }
 
-  /// Đơn trả góp ngân hàng bán TUẦN NÀY mà ngân hàng chưa tất toán.
+  /// Mọi đơn trả góp ngân hàng CHƯA tất toán, bất kể bán từ khi nào — NH
+  /// giải ngân thường trễ hơn 1 tuần nên KHÔNG được bound theo `soldAt`
+  /// (trước đây bound theo tuần khiến đơn treo lâu ngày biến mất khỏi "CẦN
+  /// XỬ LÝ" dù chưa về tiền). Dùng chung nguồn với màn "Đối soát tiền về"
+  /// (`getPendingSettlementSales`) để số liệu khớp nhau.
   static Future<_InstallmentSummary> _loadPendingInstallments() async {
     try {
-      final db = await _db.database;
-      final shopId = UserService.getShopIdSync();
-      String where =
-          'isInstallment = 1 AND settlementReceivedAt IS NULL '
-          'AND soldAt >= ? AND (deleted IS NULL OR deleted != 1)';
-      final args = <dynamic>[_startOfWeekMs()];
-      if (shopId != null && shopId.isNotEmpty) {
-        where += ' AND (shopId = ? OR shopId IS NULL)';
-        args.add(shopId);
-      }
-      final rows = await db.rawQuery(
-        'SELECT COUNT(*) as cnt, '
-        'COALESCE(SUM(COALESCE(loanAmount, 0) + COALESCE(loanAmount2, 0)), 0) as total '
-        'FROM sales WHERE $where',
-        args,
+      final sales = await _db.getPendingSettlementSales();
+      if (sales.isEmpty) return const _InstallmentSummary();
+      final total = sales.fold<int>(
+        0,
+        (acc, s) => acc + s.loanAmount + s.loanAmount2,
       );
-      if (rows.isEmpty) return const _InstallmentSummary();
-      return _InstallmentSummary(
-        count: (rows.first['cnt'] as num?)?.toInt() ?? 0,
-        amount: (rows.first['total'] as num?)?.toInt() ?? 0,
-      );
+      return _InstallmentSummary(count: sales.length, amount: total);
     } catch (e) {
       debugPrint('ReminderService._loadPendingInstallments error: $e');
       return const _InstallmentSummary();

@@ -9,6 +9,20 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Version:** 3.6.0+557 (AAB đã build 12/09 15:26 + web đã deploy https://quanlyshop.web.app — xem `DOCS/release_notes_2026-09-12.md`; 3.5.0+556 đang live trên store). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
 **Last Updated:** 2026-09-14  
 
+**✅ ĐÃ VÁ "CẦN XỬ LÝ" BỎ SÓT ĐƠN TRẢ GÓP + THÊM THẺ "TỔNG TÀI SẢN"
+(`[2026-09-14f]`).** User hỏi tổng hợp tiền NH chưa tất toán/nợ phải
+thu-trả/tiền TK/tiền mặt/tổng tài sản, kèm phát hiện Home không hiện đơn
+trả góp chờ NH tất toán. Gốc: `ReminderService._loadPendingInstallments()`
+bound sai theo `soldAt >= đầu tuần` — đơn quá 1 tuần NH chưa giải ngân
+biến mất khỏi "CẦN XỬ LÝ". Đối chiếu dữ liệu thật CPH2203: cũ đếm 14
+đơn/183tr, đúng phải 25 đơn/335tr (bỏ sót 11 đơn/152 triệu). Đã sửa dùng
+lại `getPendingSettlementSales()` (không bound ngày). Thêm thẻ "TỔNG TÀI
+SẢN" cuối tab Tài chính → Chốt quỹ → Tổng quan: Tiền mặt + Ngân hàng + NH
+chưa tất toán + Phải thu − Phải trả. **Đã nghiệm thu trên 2 máy thật**
+(CPH2203 shop THẬT chỉ xem: khớp 1,053 Tỷ; CPH2239 shop test "M": khớp
+34,76 Tr) — số khớp tuyệt đối với SQLite kéo trực tiếp từ máy. Xem
+CHANGELOG `[2026-09-14f]`.
+
 **✅ ĐÃ DỌN NỐT 1 CHỖ LỘ UID + NGHIỆM THU TRÊN MÁY THẬT
 (`[2026-09-14e]`).** User hỏi thẳng "đã fix hoàn toàn chưa" — grep toàn bộ
 `executedBy:`/`currentUser?.uid` trong `lib/` thay vì tin theo con số
