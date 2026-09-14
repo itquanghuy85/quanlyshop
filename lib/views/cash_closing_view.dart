@@ -29,6 +29,8 @@ import '../widgets/custom_app_bar.dart';
 import 'sale_detail_view.dart';
 import 'repair_detail_view.dart';
 import 'money_reconcile_view.dart';
+import 'debt_view.dart';
+import 'bank_installment_report_view.dart';
 import '../developer/firestore_audit/firestore_audit_module.dart';
 
 /// Helper: Check if debtType is "Shop owes" (NCC) - includes SHOP_OWES and OTHER_SHOP_OWES
@@ -1621,6 +1623,10 @@ class CashClosingViewState extends State<CashClosingView>
   /// riêng ở `_loadAssetSummary()` nên có thể trễ hơn vài trăm ms so với
   /// tiền mặt/ngân hàng — không sao vì đây là thẻ xem nhanh, không phải số
   /// dùng để chốt quỹ.
+  ///
+  /// 3 dòng có danh sách chi tiết sẵn (NH chưa tất toán/Phải thu/Phải trả)
+  /// bấm được để mở đúng màn liệt kê — cùng màn mà `ReminderNavigator` mở
+  /// từ thẻ "CẦN XỬ LÝ" ở Trang chủ, không tạo màn mới.
   Widget _buildTotalAssetsCard(int cash, int bank) {
     final totalAssets =
         cash + bank + _pendingInstallmentTotal + _totalReceivables - _totalPayables;
@@ -1632,18 +1638,32 @@ class CashClosingViewState extends State<CashClosingView>
         _infoRow("Tiền mặt", MoneyUtils.formatCompactCurrency(cash)),
         _infoRow("Ngân hàng", MoneyUtils.formatCompactCurrency(bank)),
         if (_pendingInstallmentCount > 0)
-          _infoRow(
+          _linkRow(
             "NH chưa tất toán ($_pendingInstallmentCount đơn)",
             MoneyUtils.formatCompactCurrency(_pendingInstallmentTotal),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const BankInstallmentReportView(),
+              ),
+            ),
           ),
-        _infoRow(
+        _linkRow(
           "Phải thu",
           MoneyUtils.formatCompactCurrency(_totalReceivables),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const DebtView(initialTab: 0)),
+          ),
         ),
-        _infoRow(
+        _linkRow(
           "Phải trả",
           "-${MoneyUtils.formatCompactCurrency(_totalPayables)}",
           color: _totalPayables > 0 ? Colors.red : null,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const DebtView(initialTab: 1)),
+          ),
         ),
         const Divider(height: 16),
         _infoRow(
@@ -1653,6 +1673,54 @@ class CashClosingViewState extends State<CashClosingView>
           color: Colors.teal,
         ),
       ],
+    );
+  }
+
+  /// Như `_infoRow` nhưng bấm được — mở màn danh sách chi tiết đứng sau con
+  /// số. Tách riêng khỏi `_infoRow` (không thêm tham số `onTap` vào đó) để
+  /// không đụng ~15 chỗ gọi `_infoRow` có sẵn trong file.
+  Widget _linkRow(
+    String label,
+    String value, {
+    required VoidCallback onTap,
+    Color? color,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: AppTextStyles.headline5.fontSize,
+                color: Colors.black54,
+              ),
+            ),
+            Row(
+              children: [
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: AppTextStyles.headline4.fontSize,
+                    fontWeight: FontWeight.w500,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 16,
+                  color: (color ?? Colors.black38).withOpacity(0.6),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 

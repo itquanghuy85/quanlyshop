@@ -20,8 +20,12 @@ lại `getPendingSettlementSales()` (không bound ngày). Thêm thẻ "TỔNG T�
 SẢN" cuối tab Tài chính → Chốt quỹ → Tổng quan: Tiền mặt + Ngân hàng + NH
 chưa tất toán + Phải thu − Phải trả. **Đã nghiệm thu trên 2 máy thật**
 (CPH2203 shop THẬT chỉ xem: khớp 1,053 Tỷ; CPH2239 shop test "M": khớp
-34,76 Tr) — số khớp tuyệt đối với SQLite kéo trực tiếp từ máy. Xem
-CHANGELOG `[2026-09-14f]`.
+34,76 Tr) — số khớp tuyệt đối với SQLite kéo trực tiếp từ máy. Bổ sung
+cùng ngày: 3 dòng NH chưa tất toán/Phải thu/Phải trả trong thẻ này giờ
+bấm được, mở đúng màn danh sách chi tiết — đã nghiệm thu CPH2203. Phát
+hiện phụ CHƯA sửa: `DebtView` tự tính "Phải trả" lệch ~2,3 Tr so với
+`FinanceV2DataService` (390,1 Tr vs 392,4 Tr), có từ trước, ngoài phạm vi
+task này. Xem CHANGELOG `[2026-09-14f]`.
 
 **✅ ĐÃ DỌN NỐT 1 CHỖ LỘ UID + NGHIỆM THU TRÊN MÁY THẬT
 (`[2026-09-14e]`).** User hỏi thẳng "đã fix hoàn toàn chưa" — grep toàn bộ

@@ -57,6 +57,20 @@ sự cố trong quá khứ).
 - `lib/services/reminder_service.dart`
 - `lib/views/cash_closing_view.dart`
 
+### Bổ sung cùng ngày: 3 dòng trong thẻ TỔNG TÀI SẢN bấm được
+User yêu cầu thêm "liên kết bấm vào ra list chi tiết". Bọc "NH chưa tất
+toán"/"Phải thu"/"Phải trả" bằng `InkWell` (hàm mới `_linkRow`, tách khỏi
+`_infoRow` để không đụng ~15 chỗ gọi sẵn có) + icon `chevron_right`:
+- NH chưa tất toán → `BankInstallmentReportView` (đúng màn
+  `ReminderNavigator` mở từ thẻ "CẦN XỬ LÝ" ở Home).
+- Phải thu → `DebtView(initialTab: 0)`; Phải trả → `DebtView(initialTab: 1)`.
+
+**Đã nghiệm thu trên CPH2203 (shop thật)**: bấm cả 3 dòng, mở đúng màn,
+đúng tab. Phát hiện phụ (KHÔNG sửa, ngoài phạm vi): `DebtView` tự tính
+"Phải trả" = 390,1 Tr, lệch ~2,3 Tr so với 392,4 Tr của thẻ TỔNG TÀI SẢN/
+tab Nợ (`FinanceV2DataService`) — hai màn dùng công thức/nguồn khác nhau,
+tồn tại từ trước, chưa rõ nguyên nhân.
+
 ---
 
 ## [2026-09-14e] - fix(thông báo): dọn nốt 1 chỗ còn sót hiện UID thô + xác nhận Cloud Function idempotency đã live
