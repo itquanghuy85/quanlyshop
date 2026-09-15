@@ -6,8 +6,9 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ## ⚡ Trạng thái hiện tại
 
-**Version:** 3.6.0+557 (AAB đã build 12/09 15:26 + web đã deploy https://quanlyshop.web.app — xem `DOCS/release_notes_2026-09-12.md`; 3.5.0+556 đang live trên store). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.  
-**Last Updated:** 2026-09-14  
+**Version:** 3.6.0+557 (AAB đã build 12/09 15:26 — chưa lên store, xem `DOCS/release_notes_2026-09-12.md`; 3.5.0+556 đang live trên store). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.
+**Web:** `https://quanlyshop.web.app` đã build+deploy lại **15/09** (`flutter build web --release` + `firebase deploy --only hosting`) — bao gồm mọi thay đổi từ `[2026-09-14f..h]` (Tổng tài sản, danh sách "Chờ NH tất toán", fix crash sửa đơn, fix popup Nhận tiền NH tràn màn hình, fix hồ sơ khách vãng lai). Trước đó web đứng ở bản 12/09, thiếu hết các thay đổi này — đây là nguyên nhân user thấy "web khác bản mobile" test hôm qua.
+**Last Updated:** 2026-09-15  
 
 **🔴 ĐÃ VÁ popup "Nhận tiền NH" tràn màn hình (không bấm được Xác nhận) +
 mời tạo hồ sơ khách khi đơn "vãng lai" báo không tìm thấy (`[2026-09-14h]`).**

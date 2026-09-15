@@ -4,6 +4,26 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-15a] - chore(deploy): build + deploy lại bản web, đồng bộ với các thay đổi `[2026-09-14f..h]`
+
+### Bối cảnh
+User hỏi "sao tôi thấy trên web khác bản mobile" — xác nhận web
+(`quanlyshop.web.app`) thiếu toàn bộ thay đổi ngày 14/09 (thẻ "TỔNG TÀI
+SẢN", màn "Chờ ngân hàng tất toán", lối tắt tab Bán hàng, fix crash sửa
+đơn, fix popup "Nhận tiền NH" tràn màn hình, fix hồ sơ khách vãng lai) vì
+lần deploy web gần nhất là 12/09 — trước khi có các thay đổi đó.
+
+### Đã làm
+`flutter analyze` toàn bộ `lib/` (0 lỗi) → `flutter build web --release`
+→ `firebase deploy --only hosting`. Deploy thành công, 47 file, không
+lỗi.
+
+### Files
+- Không sửa code — chỉ build lại từ code đã có sẵn (đã qua `flutter
+  analyze` + nghiệm thu máy thật ở các mục trước) và deploy.
+
+---
+
 ## [2026-09-14h] - fix(NGHIÊM TRỌNG): popup "Nhận tiền NH" tràn màn hình không bấm được Xác nhận + feat: mời tạo hồ sơ khách hàng khi bấm tên đơn "khách vãng lai" báo không tìm thấy
 
 ### Phát hiện qua đối chiếu số liệu — công nợ Phải trả lệch 2,3tr (điều tra, CHƯA sửa)
