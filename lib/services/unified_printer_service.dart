@@ -1293,11 +1293,14 @@ class UnifiedPrinterService {
       if (ok) return true;
     }
 
+    // ─── Layout mặc định: ESC/POS có section headers + dịch vụ/tổng ───────
+    // Không thay đổi plumbing / template, chỉ rearrange nội dung hiển thị.
     final profile = await CapabilityProfile.load();
     final generator = Generator(PaperSize.mm80, profile);
     List<int> bytes = [];
     bytes.addAll(generator.reset());
 
+    // ─── HEADER: Tên shop ──────────────────────────────────────────────
     bytes.addAll(
       generator.text(
         _removeDiacritics(shopInfo['shopName'] ?? 'SHOP NEW'),
@@ -1310,7 +1313,9 @@ class UnifiedPrinterService {
     );
     bytes.addAll(
       generator.text(
-        _removeDiacritics(shopInfo['shopAddr'] ?? 'Chuyen Smartphone & Laptop'),
+        _removeDiacritics(
+          shopInfo['shopAddr'] ?? 'Chuyen Smartphone & Laptop',
+        ),
         styles: const PosStyles(align: PosAlign.center),
       ),
     );
@@ -1322,6 +1327,7 @@ class UnifiedPrinterService {
     );
     bytes.addAll(generator.hr());
 
+    // ─── TIÊU ĐỀ PHIẾU ────────────────────────────────────────────────
     bytes.addAll(
       generator.text(
         'PHIEU TIEP NHAN MAY',
@@ -1340,51 +1346,100 @@ class UnifiedPrinterService {
     );
     bytes.addAll(
       generator.text(
-        "Ngay nhan: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(repair.createdAt))}",
+        "Ngay nhan: ${DateFormat('dd/MM/yyyy HH:mm').format(
+          DateTime.fromMillisecondsSinceEpoch(repair.createdAt),
+        )}",
         styles: const PosStyles(align: PosAlign.center),
       ),
     );
     bytes.addAll(generator.feed(1));
 
+    // ─── THÔNG TIN KHÁCH HÀNG ─────────────────────────────────────────
+    bytes.addAll(generator.hr());
     bytes.addAll(
       generator.text(
-        _removeDiacritics("KHACH HANG: ${repair.customerName}"),
-        styles: const PosStyles(bold: true),
+        'KHACH HANG',
+        styles: const PosStyles(bold: true, fontType: PosFontType.fontB),
       ),
+    );
+    bytes.addAll(
+      generator.text(_removeDiacritics("Ten: ${repair.customerName}")),
     );
     bytes.addAll(generator.text("SDT: ${repair.phone}"));
-    bytes.addAll(generator.feed(1));
 
+    // ─── THÔNG TIN MÁY ────────────────────────────────────────────────
+    bytes.addAll(generator.hr());
     bytes.addAll(
       generator.text(
-        _removeDiacritics("MAY: ${repair.model}"),
-        styles: const PosStyles(bold: true),
+        'MAY',
+        styles: const PosStyles(bold: true, fontType: PosFontType.fontB),
       ),
     );
-    if (repair.imei != null && repair.imei!.isNotEmpty) {
+    bytes.addAll(
+      generator.text(_removeDiacritics("Ten may: ${repair.model}")),
+    );
+    if (repair.imei != null && repair.imei!.trim().isNotEmpty) {
       bytes.addAll(generator.text("IMEI/SN: ${repair.imei}"));
     }
-    bytes.addAll(
-      generator.text(_removeDiacritics("TINH TRANG: ${repair.issue}")),
-    );
-
-    String subInfo = "";
-    if (repair.color != null) subInfo += "Mau: ${repair.color} | ";
-    if (repair.condition != null) subInfo += "Vo: ${repair.condition}";
-    if (subInfo.isNotEmpty) {
+    if (repair.issue.trim().isNotEmpty) {
+      bytes.addAll(
+        generator.text(_removeDiacritics("Tinh trang: ${repair.issue}")),
+      );
+    }
+    final _subInfoParts = <String>[
+      if (repair.color != null && repair.color!.trim().isNotEmpty)
+        'Mau: ${repair.color}',
+      if (repair.condition != null && repair.condition!.trim().isNotEmpty)
+        'Vo: ${repair.condition}',
+    ];
+    if (_subInfoParts.isNotEmpty) {
       bytes.addAll(
         generator.text(
-          _removeDiacritics(subInfo),
+          _removeDiacritics(_subInfoParts.join(' | ')),
           styles: const PosStyles(fontType: PosFontType.fontB),
         ),
       );
     }
+    if (repair.accessories.trim().isNotEmpty) {
+      bytes.addAll(
+        generator.text(
+          _removeDiacritics("Phu kien: ${repair.accessories}"),
+        ),
+      );
+    }
 
-    bytes.addAll(
-      generator.text(_removeDiacritics("PHU KIEN: ${repair.accessories}")),
-    );
-    bytes.addAll(generator.feed(1));
+    // ─── THÔNG TIN DỊCH VỤ + TỔNG ────────────────────────────────────
+    final activeServices =
+        repair.services.where((s) => !s.deleted).toList();
+    if (activeServices.isNotEmpty) {
+      bytes.addAll(generator.hr());
+      bytes.addAll(
+        generator.text(
+          'DICH VU',
+          styles: const PosStyles(bold: true, fontType: PosFontType.fontB),
+        ),
+      );
+      for (final s in activeServices) {
+        final costStr = MoneyUtils.formatVND(s.cost);
+        final name = _removeDiacritics(
+          s.serviceName.length > 22
+              ? s.serviceName.substring(0, 22)
+              : s.serviceName,
+        );
+        bytes.addAll(generator.text('$name $costStr VND'));
+      }
+      final totalServicesCost =
+          activeServices.fold<int>(0, (sum, s) => sum + s.cost);
+      bytes.addAll(generator.feed(1));
+      bytes.addAll(
+        generator.text(
+          "Tong tam tinh: ${MoneyUtils.formatVND(totalServicesCost)} VND",
+          styles: const PosStyles(bold: true),
+        ),
+      );
+    }
 
+    bytes.addAll(generator.hr());
     final priceStr = MoneyUtils.formatVND(repair.price);
     bytes.addAll(
       generator.text(
@@ -1392,11 +1447,17 @@ class UnifiedPrinterService {
         styles: const PosStyles(bold: true, height: PosTextSize.size2),
       ),
     );
-    bytes.addAll(
-      generator.text(_removeDiacritics("Hinh thuc: ${repair.paymentMethod}")),
-    );
-    bytes.addAll(generator.feed(1));
+    if (repair.paymentMethod != null &&
+        repair.paymentMethod!.trim().isNotEmpty) {
+      bytes.addAll(
+        generator.text(
+          _removeDiacritics("Hinh thuc: ${repair.paymentMethod}"),
+        ),
+      );
+    }
 
+    // ─── QR TRA CỨU ────────────────────────────────────────────────────
+    bytes.addAll(generator.feed(1));
     bytes.addAll(
       generator.text(
         _removeDiacritics("Quet ma de tra cuu don hang:"),
@@ -1406,7 +1467,6 @@ class UnifiedPrinterService {
         ),
       ),
     );
-    // Đã sửa lỗi: Gỡ bỏ tham số size: QRSize.size4 gây lỗi
     bytes.addAll(
       generator.qrcode(
         "repair_check:${repair.firestoreId ?? repair.createdAt}",
@@ -1414,6 +1474,7 @@ class UnifiedPrinterService {
     );
     bytes.addAll(generator.feed(1));
 
+    // ─── LƯU Ý + CHỮ KÝ + CAM ƠN ──────────────────────────────────────
     bytes.addAll(
       generator.text(
         _removeDiacritics("- Quy khach vui long giu phieu de nhan may."),

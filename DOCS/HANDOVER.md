@@ -8,7 +8,89 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 **Version:** 3.6.0+557 (AAB đã build 12/09 15:26 — chưa lên store, xem `DOCS/release_notes_2026-09-12.md`; 3.5.0+556 đang live trên store). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.
 **Web:** `https://quanlyshop.web.app` đã build+deploy lại **15/09** (`flutter build web --release` + `firebase deploy --only hosting`) — bao gồm mọi thay đổi từ `[2026-09-14f..h]` (Tổng tài sản, danh sách "Chờ NH tất toán", fix crash sửa đơn, fix popup Nhận tiền NH tràn màn hình, fix hồ sơ khách vãng lai). Trước đó web đứng ở bản 12/09, thiếu hết các thay đổi này — đây là nguyên nhân user thấy "web khác bản mobile" test hôm qua.
-**Last Updated:** 2026-09-15  
+**Last Updated:** 2026-09-17  
+
+**RepairDetailView — redesign + audit fixes (`[2026-09-17a]`):**
+- **Redesign body:** Tabbed layout 3 tab (Tổng quan/Dịch vụ/Lịch sử & Ghi chú).
+  Header card (thumbnail + model + status badges + meta rows + action buttons) +
+  Timeline card (4 bước với dots + connector lines) + Tab selector (pill 32px).
+- **Tab 0 (Tổng quan):** Storage location + Finance card + Parts card + Customer
+  card (chỉ contact + Gọi/Zalo/Nhắn tin — KHÔNG stage actors/images trùng History).
+- **Tab 1 (Dịch vụ):** Chỉ danh sách dịch vụ — KHÔNG finance summary trùng Tab 0.
+- **Tab 2 (Lịch sử & Ghi chú):** Stage actors + Ghi chú + Bảo hành + Ảnh nhận máy.
+- **Bug 1:** `$_orderCode` → `${_orderCode()}` — overdue banner hiển thị mã đơn.
+- **Bug 2:** Bỏ PK + Hẹn giao trùng lặp giữa header card và customer card.
+- **Compact:** padding 10, margin 6, fontSize 10-11, tab height 32px.
+- Verify: analyze 0 error, 15 warnings pre-existing; flutter test 665/1/2 (±0).
+
+**Màn "DANH SÁCH ĐƠN SỬA" đã thiết kế lại UI theo đặc tả A-X + đặc tả mới + tối ưu xoay ngang/web (`[2026-09-16b]` + `[2026-09-16c]` + `[2026-09-16d]` + `[2026-09-16e]`).**
+OrderListView nay có: header "DANH SÁCH ĐƠN SỬA" + "N đơn"+ nút [?] mở lại
+guide; search radius16/cao50; 1 hàng filter chip (Tất cả/Tiếp nhận/Đang sửa/
+Y/c duyệt/**Sửa xong**/Giao/Quá hạn) có đếm thật; sort mặc định "Ưu tiên"
+(Tiếp nhận→Đang sửa→Xong→Y/c duyệt→Giao; QUÁ HẠN không phải nhóm sort, chỉ
+cảnh báo UI computed theo deadline, không đổi status DB; đơn mới hơn đứng trước
+trong cùng trạng thái); nút [↻ Đồng bộ] gọi `syncAllToCloud()` + banner "Ngoại
+tuyến"/"Không thể đồng bộ"+"Thử lại"; **card mới theo mockup 3 hàng** (khác
+bản [c/d]):
+- H1 (header): vòng STT 28px màu status + badge status **kèm icon**
+  (`_getStatusIcon`: 1⬇/2🔧/3⊘,3✓/4🚚) + ⏱ thời gian ("⏰ Quá hạn N ngày" đỏ) +
+  `#mã đơn` + chevron → — bỏ hẳn KTV khỏi card.
+- H2 (nội dung): ảnh 52px + MODEL đậm + lỗi 1 dòng xám + 👤 tên/"Thêm khách
+  hàng" + ☎ SĐT + **giá thu khách phải** (#0068FF, "YC …đ" khi chờ duyệt).
+- H3 (chips): **chỉ phụ tùng 🔩 + dịch vụ 🛠️** (≤3 +"+N"); đã bỏ chip vốn/
+  lãi-lỗ/nhắc vốn 0đ/ghi chú/phụ kiện/lưu kho/IMEI (đúng chủ trương chặn giá
+  vốn ở UI).
+**PHIẾU TIẾP NHẬN (preview + file share):** đã bỏ khối "THÔNG TIN DỊCH VỤ" +
+"Tổng tạm tính" — dịch vụ KHÔNG hiển thị trên phiếu nhưng dữ liệu `repair.services`
+trong DB **không bị xóa/sửa** (custom template giữ nguyên `data['services']`).
+**Share sheet Android:** đã fix — share() có `mimeType: 'image/png'`, validate
+file, `.timeout(45s)` + thử lại 1 lần, `finally` luôn reset loading (không kẹt
+spinner); đã xác nhận Sharesheet hệ thống thực sự mở trên máy Oppo qua poll
+`dumpsys window` (test tạm, đã xóa).
+**Đã verify (`[2026-09-16c/e]`):** on-device integration test PASS (portrait
+`02:19 +1`, landscape `02:18–02:19 +1` — chạy lại pass; fail đầu là first-frame
+giữa lúc xoay, không có exception/overflow trong log), flutter test 665/1/2
+(2 fail pre-existing kiotviet), analyze 0 lỗi mới (18 warning pre-existing ở
+file khác). Lưu ý: màu trạng thái giữ nguyên `AppColors` (không đổi sang tím/
+vàng như spec); "Quá hạn" không phải nhóm sort riêng (chỉ cảnh báo UI);
+screenshot mới của màn list/preview tại `build/screenshots/`
+(`1_order_list.png` 292.109 B — layout card mới, chụp lúc lưới ngang).
+**Xoay ngang & web (`[2026-09-16d]`):** breakpoint `useGrid = width>=900 ||
+(landscape && width>=700)`; mobile dọc giữ 1 cột, màn rộng/xoay ngang chuyển
+sang **2 cột chia parity** (STT toàn cục 1,2,3…; footer chung SyncStatusBar +
+Tải thêm; ô tìm kiếm giới hạn 460px trong header gọn cùng sort+sync). Đã chạy
+regression + drive ở chế độ xoay ngang trên máy thật PASS (`02:09`/drive
+`All tests passed!`, screenshot list mới 274.239 B), quay dọc cũng PASS
+(`02:19`).
+
+**✅ Nghiệm thu toàn bộ phiên 2026-09-16 (tự chạy — incl. [b/c/d/e] card 3 hàng)**
+*Release APK* — built `app-release.apk` 123,7 MB, cài + khởi động trên CPH2203
+(PID 19247) không crash, logcat sạch; splash "QUẢN LÝ SHOP" render OK.
+*Integration acceptance* (debug) — portrait: `02:19 +1`; landscape (xoay ngang
+`user-rotation lock 1`, 2400×1080 ≈ 719dp → grid 2 cột): `02:09 +1`;
+landscape drive screenshot refresh: `All tests passed!` (`1_order_list.png`
+274.239 B).
+*Card 3 hàng `[2026-09-16e]`* — analyze/file: No issues; repos 0 error +
+18 warning cũ; `flutter test` 665/1/2 (±0); on-device dọc `02:19 +1`, ngang
+`02:18 +1` (re-run pass; fail đầu do first-frame sau xoay, log không có
+overflow/exception); drive `02:19 +2` pass kèm screenshot list mới 292.109 B.
+*Web release* — `flutter build web --release` xong; serve local + headless
+Chrome load: `exit=0`, DOM 18KB chứa render `QUẢN LÝ`, `flt-` nodes × 3;
+JS console: **không lỗi**; `main.dart.js` 12,1 MB.
+Phát hiện: `flutter drive -d chrome` chờ chromedriver nhưng WebDriver session
+treo (>15m không output) → bỏ;ODO Chrome headless smoke + HTTP checks
+thay thế; browser-acceptance thực sự cần dùng hosted site (chưa deploy —
+chờ quyết định).
+Mọi assert: `{ plan ✓ done | 0 error/warning mới | ±0 fail so baseline |
+±0 flutter test regress | sharesheet showed dumpsys CONFIRMED }`.
+
+**Nghiệm thu module "Đơn sửa" (P3-P6 redesign) bằng integration test trên máy thật (`[2026-09-16a]`).**
+Toàn luồng list → detail → 3 tab → phiếu preview chạy **PASS** trên CPH2203
+(`flutter test` lẫn `flutter drive`: "All tests passed!"), 5 screenshot nghiệm
+thu tại `build/screenshots/` (`1_order_list` .. `5_preview`). Lưu ý: guide
+"hướng dẫn sử dụng lần đầu" hiện trên **TỪNG màn** (list/detail/preview) —
+test phải đóng lần lượt bằng 'ĐÃ HIỂU, BẮT ĐẦU!'; "Tổng tạm tính" chỉ render
+khi đơn có dịch vụ (đơn không dịch vụ hiện "Chưa có dịch vụ nào").  
 
 **🔴 ĐÃ VÁ popup "Nhận tiền NH" tràn màn hình (không bấm được Xác nhận) +
 mời tạo hồ sơ khách khi đơn "vãng lai" báo không tìm thấy (`[2026-09-14h]`).**

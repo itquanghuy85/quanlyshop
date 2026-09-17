@@ -247,41 +247,65 @@ class _RepairInvoicePreviewViewState extends State<RepairInvoicePreviewView> {
     final oldDebt =
         (customerTotalDebt - remainingDebt).clamp(0, customerTotalDebt);
     final createdAt = DateTime.fromMillisecondsSinceEpoch(r.createdAt);
+
     String subInfo = '';
-    if (r.color != null && r.color!.isNotEmpty) subInfo += 'Màu: ${r.color} | ';
-    if (r.condition != null && r.condition!.isNotEmpty) subInfo += 'Vỏ: ${r.condition}';
+    if (r.color != null && r.color!.trim().isNotEmpty) {
+      subInfo += 'Màu: ${r.color} | ';
+    }
+    if (r.condition != null && r.condition!.trim().isNotEmpty) {
+      subInfo += 'Vỏ: ${r.condition}';
+    }
 
     return [
+      // ─── HEADER SHOP ─────────────────────────────────────────────────
       receiptTitle(widget.shopInfo['shopName']?.toString() ?? 'SHOP NEW'),
       receiptCenter(widget.shopInfo['shopAddr']?.toString() ?? ''),
-      receiptCenter('Hotline: ${widget.shopInfo['shopPhone']?.toString() ?? ''}', bold: true),
+      receiptCenter(
+        'Hotline: ${widget.shopInfo['shopPhone']?.toString() ?? ''}',
+        bold: true,
+      ),
       receiptDivider(),
       receiptTitle('PHIẾU TIẾP NHẬN MÁY', fontSize: 17),
       receiptCenter('Mã đơn: ${r.firestoreId ?? r.createdAt}'),
-      receiptCenter('Ngày nhận: ${DateFormat('dd/MM/yyyy HH:mm').format(createdAt)}'),
+      receiptCenter(
+        'Ngày nhận: ${DateFormat('dd/MM/yyyy HH:mm').format(createdAt)}',
+      ),
       receiptGap(),
-      receiptLeft('Khách hàng: ${r.customerName}', bold: true),
+
+      // ─── THÔNG TIN KHÁCH HÀNG ──────────────────────────────────────
+      receiptLeft('THÔNG TIN KHÁCH HÀNG', bold: true, fontSize: 12.5),
+      receiptLeft('Khách hàng: ${r.customerName}'),
       receiptLeft('SĐT: ${r.phone}'),
-      receiptGap(),
+      receiptDivider(),
+
+      // ─── THÔNG TIN MÁY ─────────────────────────────────────────────
+      receiptLeft('THÔNG TIN MÁY', bold: true, fontSize: 12.5),
       receiptLeft('Máy: ${r.model}', bold: true),
-      if (r.imei != null && r.imei!.isNotEmpty) receiptLeft('IMEI/SN: ${r.imei}'),
-      receiptLeft('Tình trạng: ${r.issue}'),
-      if (subInfo.trim().isNotEmpty) receiptSmall(subInfo),
-      receiptLeft('Phụ kiện: ${r.accessories}'),
+      if (r.imei != null && r.imei!.trim().isNotEmpty)
+        receiptLeft('IMEI/SN: ${r.imei}'),
+      if (r.issue.trim().isNotEmpty) receiptLeft('Tình trạng: ${r.issue}'),
+      if (subInfo.trim().isNotEmpty) receiptSmall(subInfo.trim()),
+      if (r.accessories.trim().isNotEmpty)
+        receiptLeft('Phụ kiện: ${r.accessories}'),
+      receiptDivider(),
+      receiptLeft(
+        'Giá dự kiến: ${MoneyUtils.formatVND(r.price)} đ',
+        bold: true,
+        fontSize: 17,
+      ),
+      if (r.paymentMethod.trim().isNotEmpty) receiptLeft('Hình thức: ${r.paymentMethod}'),
       receiptGap(),
-      receiptLeft('Giá dự kiến: ${MoneyUtils.formatVND(r.price)} đ', bold: true, fontSize: 17),
-      receiptLeft('Hình thức: ${r.paymentMethod}'),
-      receiptGap(),
-      // Công nợ khách — chỉ hiện khi thực sự còn nợ.
+
+      // ─── CÔNG NỢ ────────────────────────────────────────────────────
       if (customerTotalDebt > 0) ...[
-        receiptDivider(),
+        receiptLeft('CÔNG NỢ', bold: true, fontSize: 12.5),
         receiptLeft('Nợ cũ: ${MoneyUtils.formatVND(oldDebt)} đ'),
         receiptLeft('Lần này: ${MoneyUtils.formatVND(remainingDebt)} đ'),
         receiptLeft(
           'Tổng nợ: ${MoneyUtils.formatVND(customerTotalDebt)} đ',
           bold: true,
         ),
-        receiptGap(),
+        receiptDivider(),
       ],
       receiptSmall('- Quý khách vui lòng giữ phiếu để nhận máy.'),
       receiptSmall('- Shop không chịu trách nhiệm về dữ liệu trong máy.'),
@@ -297,8 +321,16 @@ Future<File?> _captureReceiptFile() async {
     final code = widget.repair.firestoreId?.toString() ?? 'don_sua';
     final file = File('${dir.path}/phieu_sua_$code.png');
     await file.writeAsBytes(bytes);
+    if (!await file.exists() || file.lengthSync() <= 0) {
+      throw Exception('File ảnh phiếu sửa không hợp lệ');
+    }
     return file;
   }
+
+  // Khoảng an toàn: nếu hệ thống chia sẻ không trả kết quả trong 45 giây
+  // (một số ROM hay "nuốt" intent chia sẻ đầu tiên), coi như vô hiệu để
+  // loading luôn được reset và thử lại.
+  static const Duration _shareTimeout = Duration(seconds: 45);
 
   /// Gửi cho khách — chia sẻ trực tiếp qua share sheet hệ thống (Zalo,
   /// Messenger, lưu ảnh...), giữ đúng hành vi gốc: 1 chạm là ra ngay share
@@ -311,8 +343,34 @@ Future<File?> _captureReceiptFile() async {
     try {
       final file = await _captureReceiptFile();
       if (file == null) return;
-      final result = await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
-      if (mounted && result.status == ShareResultStatus.success) {
+      debugPrint(
+        'share: ${file.path} size=${file.lengthSync()}B '
+        'mime=image/png',
+      );
+      final xf = XFile(file.path, mimeType: 'image/png');
+      ShareResultStatus shareStatus = ShareResultStatus.dismissed;
+      var shown = false;
+      for (var attempt = 0; attempt < 2; attempt++) {
+        try {
+          final result = await SharePlus.instance.share(ShareParams(files: [xf]))
+              .timeout(_shareTimeout);
+          shareStatus = result.status;
+          shown = true;
+          break;
+        } on TimeoutException {
+          debugPrint('share attempt ${attempt + 1}/2 timed out');
+        }
+      }
+      if (!shown) {
+        if (mounted) {
+          NotificationService.showSnackBar(
+            'Không mở được hệ thống chia sẻ, vui lòng thử lại',
+            color: Colors.red,
+          );
+        }
+        return;
+      }
+      if (mounted && shareStatus == ShareResultStatus.success) {
         NotificationService.showSnackBar('Đã chia sẻ ảnh phiếu sửa', color: Colors.green);
       }
       final code = widget.repair.firestoreId?.toString() ?? 'don_sua';
@@ -324,7 +382,7 @@ Future<File?> _captureReceiptFile() async {
       ));
     } catch (e) {
       if (mounted) {
-        NotificationService.showSnackBar('Không tạo được ảnh: $e', color: Colors.red);
+        NotificationService.showSnackBar('Chia sẻ thất bại: $e', color: Colors.red);
       }
     } finally {
       if (mounted) setState(() => _sharing = false);

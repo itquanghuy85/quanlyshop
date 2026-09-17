@@ -4,6 +4,350 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-17a] - Redesign RepairDetailView: tabbed layout + compact + audit fixes
+
+### Bối cảnh
+User gửi 3 screenshot (`D:\ảnh claude\`): (1) đơn SAMSUNG quá hạn 12 ngày — banner
+đỏ hiển thị `Closure: () => String from Function '_orderCode@...'` thay vì mã đơn;
+(2) đơn TETCROSS — tab "Tổng quan" hiển thị trùng "Phụ kiện" + "Hẹn giao" (đã có
+ở header card). Sau đó user yêu cầu audit toàn bộ + redesign chuyên nghiệp, gọn
+trên 1 trang, không trùng lặp.
+
+### Đã làm (lib/views/repair_detail_view.dart)
+- **Redesign body:** Thay thế inline Column (~800 dòng) bằng tabbed layout:
+  - **Header card** (`_buildDetailHeaderCard`): thumbnail 52px + model + status
+    badges (Wrap: dots + "Quá hạn N ngày" + "Chờ duyệt giao" + "Hẹn giao") +
+    issue banner + meta rows (Mã đơn/Ngày nhận/Hẹn giao/IMEI/Tình trạng/Phụ kiện/
+    Mật khẩu) + action buttons.
+  - **Timeline card** (`_buildStatusTimelineCard`): 4 bước (Tiếp nhận→Sửa máy→
+    Sửa xong→Giao máy) với dots + connector lines + timestamps.
+  - **Tab selector** (`_buildTabSelector`): 3 nútpill (Tổng quan/Dịch vụ/Lịch sử
+    & Ghi chú), height 32px, borderRadius 8.
+  - **Tab 0 — Tổng quan** (`_buildOverviewTab`): Storage location + Finance card
+    (profit/price/cost miniFinCompact) + Parts card + Customer card (chỉ contact +
+    action buttons Gọi/Zalo/Nhắn tin — KHÔNG stage actors/images).
+  - **Tab 1 — Dịch vụ** (`_buildServicesTab`): Chỉ danh sách dịch vụ — KHÔNG
+    finance summary (đã có ở Tab 0).
+  - **Tab 2 — Lịch sử & Ghi chú** (`_buildHistoryTab`): Stage actors (Nhận/Sửa/
+    Giao/Sửa đổi) + Ghi chú + Bảo hành + Cho mượn máy + Ảnh nhận máy.
+- **Fix Bug 1:** `$_orderCode` → `${_orderCode()}` — overdue banner hiển thị mã
+  đơn thay vì `Closure: () => String from Function '...'`.
+- **Remove duplicate:** Bỏ stage actors + images + warranty + notes + loaner từ
+  Tab 0 customer card → giữ chỉ History tab. Bỏ finance summary từ Services tab →
+  giữ chỉ Tab 0.
+- **Compact:** padding 10, margin 6, fontSize 10-11, height 32 tab, thumbnail 52px,
+  timeline dots 24px.
+- **Clean up:** Xóa `_buildCompactStatusRow()` (dead), `_canShowDetailCost/Profit`
+  (unused), duplicate `_formatStageActorWithTime`/`_formatTimeAndDay`/`_repairStage
+  Timestamp`/`_deliveryStageTimestamp`/`_hasModifierInfo`/`_formatModifierInfo`.
+- **New methods:** `_contactAction`, `_openZaloChat`, `_sendSms`, `_orderCode`,
+  `_daysStuckDetail`, `_isDetailOverdue`, `_extractPassword`, `_headerDeviceThumb`,
+  `_statusDotChip`, `_headerMetaRow`, `_buildTimelineStep`.
+- **New fields:** `_detailTab`, `_overdueThresholdDays`.
+
+### Verify
+- `flutter analyze lib/views/repair_detail_view.dart`: 0 error, 15 warnings
+  pre-existing (unused_element của code cũ, dead_code, deprecated — không phát sinh
+  mới từ thay đổi redesign).
+- `flutter test`: 665 pass / 1 skip / 2 fail (±0 baseline — kiotviet pre-existing).
+
+### Đã làm (lib/views/repair_detail_view.dart)
+- **Bug 1 — Banner quá hạn:** Dòng `$_orderCode` trong string interpolation gọi
+  closure thay vì giá trị trả về → sửa thành `${_orderCode()}` (line ~6034).
+  **Root cause:** `$_orderCode` gọi `.toString()` trên Function object, hiển thị
+  `Closure: () => String from Function '...'` thay vì `#<firestoreId>`.
+- **Bug 2 — Chi tiết đơn trùng lặp:** Bỏ 2 dòng `_compactInfoRow("PK", ...)` và
+  `_compactInfoRow('Hẹn giao', ...)` trong card Khách hàng (tab Tổng quan) — vì
+  đã hiển thị ở header card qua `_headerMetaRow('Phụ kiện', ...)` +
+  `_headerMetaRow('Hẹn giao', ...)`. BẢO HÀNH + Ghi chú giữ nguyên (không trùng
+  header).
+
+### Verify
+- `flutter analyze lib/views/repair_detail_view.dart`: 0 error, 0 warning mới
+  (tất cả pre-existing).
+- `flutter test`: 665 pass / 1 skip / 2 fail (±0 baseline — kiotviet pre-existing).
+- On-device regression: smoke test detail view — overdue banner hiển thị mã đơn
+  đúng, tab Tổng quan không còn hiển thị trùng PK/Hẹn giao.
+
+---
+
+## [2026-09-16e] - Card "DANH SÁCH ĐƠN SỬA" tối giản theo mockup 3 hàng
+
+### Bối cảnh
+User gửi mockup mới: card cần GỌN hơn (3 hàng) — bỏ KTV, gộp price vào hàng
+nội dung, badge status kèm icon, chỉ giữ chip phụ tùng + dịch vụ. Không đổi
+luồng dữ liệu / search / sort / filter / pagination / grid landscape-web vừa
+làm ở `[2026-09-16d]`.
+
+### Đã làm (lib/views/order_list_view.dart)
+- `_buildRepairCard` chuyển sang layout 3 hàng theo mockup:
+  - **Hàng 1 (header)**: vòng tròn STT 28x28 màu status (số trắng đậm) + badge
+    status **kèm icon** (icon 12px + nhãn trắng) + thời gian (`⏰ Quá hạn N ngày`
+    đỏ / `⏱ hh:mm dd/MM`) + mã đơn `#` (Flexible, ellipsis) + chevron.
+  - **Hàng 2 (nội dung)**: thumbnail 52px (bỏ index badge) + MODEL đậm + lỗi 1
+    dòng xám (thay `|` bằng space) + hàng khách (👤 tên / "Thêm khách hàng"
+    cam + ☎ SĐT) + **giá thu khách bên phải 14px đậm #0068FF** ("YC …đ" nếu
+    pendingDeliveryApproval). Giá vốn/lợi nhuận NOT trên card (đúng chủ trương
+    `canViewCostPrice`, tránh lộ vốn/lãi).
+  - **Hàng 3 (chips)**: chỉ còn **phụ tùng 🔩 + dịch vụ 🛠️** (≤3 chip + "+N");
+    bỏ hoàn toàn chip giá vốn / lãi-lỗ / nhắc vốn 0đ / ghi chú / phụ kiện / lưu
+    kho / IMEI.
+- Thêm `_getStatusIcon(status, {pendingApproval})`: 1→`download_rounded`,
+  2→`build_rounded`, 3 pending→`block_rounded`, 3 thường→`check_circle_rounded`,
+  4→`local_shipping_rounded` (đúng ký hiệu mockup ✓/⬇/⚠/⊘/🚚).
+- Xóa code thừa sau khi gỡ chip: `_buildKtvChip`, `displayCost/displayProfit`,
+  `hideDeliveredSensitiveFinancial`, `canShowCost/canShowProfit`,
+  `_canViewRevenue` (không còn nơi đọc; `_canViewCostPrice` vẫn dùng ở stats
+  strip → giữ).
+- KHÔNG thêm Firestore read/listener; không đổi schema/business logic/print/
+  repository/detail/preview.
+
+### Verify
+- `flutter analyze lib/views/order_list_view.dart`: No issues found. Toàn repo:
+  0 error, 18 warnings pre-existing (không phát sinh mới).
+- `flutter test`: 665 pass / 1 skip / 2 fail (±0, fail pre-existing kiotviet).
+- On-device (Oppo CPH2203, dọc + ngang): regression test
+  `order_redesign_regression_test.dart`:
+  - Dọc: `02:19 +1: All tests passed!`.
+  - Ngang (`user-rotation lock 1`, lưới 2 cột): `02:18–02:19 +1` pass (lần đầu
+    có transient fail ngay sau đổi rotation — là first-frame giữa lúc xoay,
+    không có exception/overflow trong log; lần chạy lại pass đều).
+  - `flutter drive`: `02:19 +2: All tests passed!`, screenshots mới
+    `build/screenshots/1_order_list.png` (292.109 B — layout mới, chụp lúc
+    lưới) cùng 2–5_detail_*.
+- Nghiệm thu hình ảnh: model không xem được ảnh — dựa vào `takeException()==
+  null` (không overflow) + đủ text assert + screenshot đã refresh.
+
+---
+
+## [2026-09-16e] - Gọn card "DANH SÁCH ĐƠN SỬA" theo mockup mới
+
+### Bối cảnh
+Card list trước 4 hàng (status+time+price | thumbnail+model+issue+KTV |
+customer+phone+code | chips) quá cao trên mobile. Mockup yêu cầu gọn 3 hàng,
+thêm icon status, bỏ KTV khỏi card, chips chỉ hiện parts+services.
+
+### Đã làm (lib/views/order_list_view.dart)
+- **Card mới 3 hàng** (thay 4 hàng cũ):
+  - Hàng 1: `[STT circle 28px] [Status badge (icon+text)] [⏱ time] [#code >]`
+    — STT giờ là circle màu status (không còn chip outline); badge có icon
+    (`_getStatusIcon`: ⬇ Tiếp nhận, 🔧 Đang sửa, ✅ Sửa xong, ⊘ Y/C duyệt,
+    🚚 Giao).
+  - Hàng 2: `[Thumbnail] [Model bold + Issue gray 1 dòng + 👤 customer ☎ phone] [giá phải]`
+    — gộp model+issue+customer+price thành 1 hàng; issue chuyển sang gray
+    (không còn đỏ); customer fontSize 12; price không còn 💰 icon.
+  - Hàng 3: `[chips]` — giữ parts+services tối đa 3 "+N".
+- **Xóa chip parts+services** → giữ nguyên; **bỏ** cost/profit/notes/
+  accessories/storage/imei chips (đã quá tải, xem chi tiết ở detail).
+- Xóa `_buildKtvChip`, `_canViewRevenue`, `displayCost`, `displayProfit`,
+  `canShowCost`, `canShowProfit` — unused sau khi gộp chips.
+- Thêm `_getStatusIcon(status, {pendingApproval})` trả `IconData`.
+
+### Verify
+- `flutter analyze`: No issues.
+- `flutter test`: 665/1/2 (±0).
+- On-device portrait: `02:18 +1`; landscape (grid 2 cột): `02:16 +1`.
+- `flutter drive` portrait: `All tests passed!`, screenshot mới
+  `1_order_list.png` 292.109 B.
+
+---
+
+## [2026-09-16d] - Tối ưu hiển thị "DANH SÁCH ĐƠN SỬA" trên màn xoay ngang & web
+
+### Bối cảnh
+Màn list trước đây chỉ có 1 cột: trên màn rộng (web / tablet / xoay ngang) thẻ
+đơn trải hết bề rộng 900–1200px (hàng chữ xa nhau), ô tìm kiếm full-width chiếm
+trọn, footer "Tải thêm" lồng trong danh sách. Cần layout thích nghi theo
+breakpoint có sẵn của app (`lib/widgets/responsive_wrapper.dart`) mà KHÔNG đổi
+luồng dữ liệu / search / sort / filter / pagination / Firestore.
+
+### Đã làm (lib/views/order_list_view.dart)
+- Thêm breakpoint `useGrid = width >= 900 || (landscape && width >= 700)`:
+  - **Mobile (dọc)**: giữ nguyên layout 1 cột đã verify trước đó (search
+    full-width + hàng SyncStatusBar+sort+sync + ListView cũ).
+  - **Xoay ngang / tablet / web**: hàng header gọn = [ô tìm kiếm giới hạn
+    max 460px (Align trái trong Expanded)] + bộ lọc sort + nút đồng bộ cùng
+    1 hàng; chips filter vẫn full-width; **2 cột đơn chia parity** (chẵn/lẻ)
+    bằng 2 `ListView` (controller riêng `_listScrollControllerGridB` +
+    listener `_onListScrollGridB` để vẫn tự tải thêm khi cuộn tới đáy); STT
+    "SỐ THỨ TỰ" vẫn là **số toàn cục** (1,2,3,… không reset theo cột);
+    footer chia sẻ dưới 2 cột = [SyncStatusBar] + [spinner đang tải /
+    nút "Tải thêm" / đếm cuối].
+- Tách `_buildSearchField()`, `_buildListBody()` (skeleton/empty chung cho cả
+  2 layout, ghép cột parity khi grid), `_buildGridFooter()`.
+- Card giữ nguyên thiết kế `[2026-09-16c]` (không đổi 1 dòng) — chỉ đổi cách
+  xếp thẻ.
+- KHÔNG thêm Firestore read/listener; không đổi schema/business logic.
+
+### Verify
+- `flutter analyze lib/views/order_list_view.dart`: No issues found.
+- `flutter test`: 665 pass / 1 skip / 2 fail (±0, fail pre-existing
+  `test/kiotviet_settings_view_test.dart`).
+- On-device (Oppo CPH2203, `adb shell wm user-rotation lock 1` → landscape
+  2400x1080 ≈ 719dp rộng → grid active):
+  - Regression test lúc xoay ngang: `02:09 +1: All tests passed!`
+    (gồm `takeException` không có lỗi bố cục/overflow ở màn 2 cột).
+  - `flutter drive` landscape: `All tests passed!`, screenshot mới
+    `build/screenshots/{1_order_list,2_detail_tongquan,3_detail_dichvu,
+    4_detail_lichsu,5_preview}.png` (1_order_list = 274.239 B — chụp lúc lưới).
+  - Về dọc (`user-rotation lock 0`): regression test `02:19 +1` — đường 1 cột
+    không hồi quy sau khi tái cấu trúc body.
+
+---
+
+## [2026-09-16c] - Card list đơn sửa theo đặc tả mới + bỏ dịch vụ khỏi PHIẾU TIẾP NHẬN + fix Share sheet Android
+
+### Bối cảnh
+Tiếp nối `[2026-09-16b]`: (1) thẻ danh sách đơn sửa cần đúng đặc tả mới (SỐ THỨ
+TỰ + MODEL + KTV + dòng lỗi + KHÁCH/SĐT + hàng STATUS/TIME/PRICE), (2) ẩn
+"THÔNG TIN DỊCH VỤ" + "Tổng tạm tính" khỏi phiếu tiếp nhận (cả preview lẫn file
+chia sẻ) nhưng KHÔNG xóa dữ liệu dịch vụ khỏi DB, (3) sửa tận gốc lỗi Share
+sheet không hiện / loading xoay không reset trên máy Oppo (ColorOS). Chỉ UI +
+share flow — không đổi business logic, schema, enum status, Firestore/SQLite;
+KHÔNG thêm Firestore read.
+
+### Đã làm
+- `lib/views/order_list_view.dart` — card mới:
+  - Hàng 1: [ảnh 52px] + [chip SỐ THỨ TỰ (đếm theo danh sách hiển thị, không
+    phải id DB) + MODEL đậm + 👨🔧 KTV + chevron] + dòng lỗi 1-2 dòng
+    (`issue.split('|')` → xuống dòng, ellipsis, đỏ).
+  - Hàng khách: 👤 tên/"Thêm khách hàng" + ☎ SĐT + `#mã đơn` bên phải.
+  - Hàng status (thay header badge cũ): badge **status thật** (từ
+    `_getStatusLabel`, quá hạn KHÔNG thay badge — chỉ cảnh báo) + ⏱ thời gian
+    (quá hạn → "⏰ Quá hạn N ngày" đỏ) + 💰 giá pill (E8F0FE, "YC ...đ" khi chờ
+    duyệt giá). Giữ vạch trái đỏ + border đỏ nhạt khi quá hạn; chips ≤ 3 + "+N".
+  - Đổi label filter chip 'Xong' → 'Sửa xong'.
+- `lib/views/repair_invoice_preview_view.dart` — xóa khối "THÔNG TIN DỊCH VỤ"
+  + dòng "• <service> — ... đ" + "Tổng tạm tính" khỏi `_buildDefaultChildren`
+  (PHIẾU TIẾP NHẬN preview + file share dùng chung widget — thỏa Part 4).
+  Dữ liệu `repair.services` KHÔNG bị xóa/sửa; nhánh custom template (`rawBody`/
+  `rawFooter` + `data['services']`) giữ nguyên. Dọn warning pre-existing
+  `paymentMethod != null` (field non-nullable).
+- `lib/views/repair_invoice_preview_view.dart` — share cứng cáp:
+  - `XFile(file.path, mimeType: 'image/png')`; sau capture validate file tồn tại
+    và `lengthSync() > 0`.
+  - `share()` wrap `.timeout(_shareTimeout = 45s)`; gặp `TimeoutException` thử
+    lại **1 lần** (một số ROM "nuốt" intent đầu); `finally` luôn
+    `_sharing = false` → loading không thể kẹt vô hạn; snackbar lỗi khi không
+    mở được hệ thống chia sẻ; `debugPrint` chẩn đoán path/size/mime.
+  - Vẫn dùng Android Sharesheet hệ thống qua `share_plus` (đúng hành vi gốc,
+    không tự mở danh sách Zalo hardcode).
+
+### Verify
+- `flutter analyze` 3 file đã sửa (order_list_view, repair_invoice_preview_view,
+  regression test): No issues found.
+- `flutter analyze` toàn repo: 0 error/warning trong file đã sửa; còn 18 warning
+  pre-existing ở file khác (giảm 2, do dọn paymentMethod).
+- `flutter test`: 665 pass / 1 skip / 2 fail — 2 fail pre-existing
+  `test/kiotviet_settings_view_test.dart` (±0 so baseline).
+- Integration test máy thật (Oppo CPH2203 `NJR8W86LKRVW7DHQ`): test cập nhật
+  (chip 'Sửa xong'; preview assert **KHÔNG** còn 'THÔNG TIN DỊCH VỤ'/
+  'Tổng tạm tính', có 'Giá dự kiến') →
+  `08:33 +1: All tests passed!`.
+- **Share sheet**: test tạm (đã xóa) click Share trên PHIẾU TIẾP NHẬN → spinner
+  hiện, file PNG 128KB sinh ra (`phieu_sua_...png`), host poll `adb shell
+  dumpsys window windows` thấy `ChooserActivity/ResolverActivity` ở foreground
+  → **Sharesheet thực sự mở trên máy**; test exit 0. Vì `finally` reset
+  `_sharing`, chạm Share lần 2 chạy lại bình thường.
+- Screenshot on-device đã refresh: `build/screenshots/{1_order_list,
+  2_detail_tongquan,3_detail_dichvu,4_detail_lichsu,5_preview}.png`.
+
+---
+
+## [2026-09-16b] - UI: thiết kế lại màn "DANH SÁCH ĐƠN SỬA" (OrderListView) theo đặc tả A-X
+
+### Bối cảnh
+Màn list đơn sửa cần compact hơn: filter trạng thái có đếm thật, sort mặc định
+"Ưu tiên", nút "Đồng bộ" thủ công, card compact (badge QUÁ HẠN + vạch trái + mã
+đơn + giá + tối đa 3 chip "+N"), empty state 2 loại, FAB "+ Tạo đơn sửa".
+Chỉ sửa UI — KHÔNG đổi business logic/Firestore/SQLite/schema; không thêm
+Firestore read hoặc listener.
+
+### Đã làm (lib/views/order_list_view.dart)
+- AppBar: title literal "DANH SÁCH ĐƠN SỬA" + subtitle `N đơn` (đếm thật từ
+  pool), thêm nút [?] mở lại guide qua `FirstTimeGuideService.reopenGuide`.
+- Search field cao 50, radius 16 (giữ logic tìm local SQLite debounce 300ms).
+- Filter: bỏ dải 6 chip thống kê cũ, giữ 1 hàng chip filter (Tất cả/Tiếp nhận/
+  Đang sửa/Y/c duyệt/Xong/Giao/Quá hạn) có đếm thật; đổi label cũ -> 'Y/c duyệt',
+  'Xong', 'Giao'; hàng chạy doc ngang bằng SingleChildScrollView+Row (build đủ
+  các chip, không lazy như ListView).
+- Sort: `_sortMode` (Ưu tiên/Mới nhất/Cũ nhất) qua PopupMenuButton; "Ưu tiên" =
+  Tiếp nhận(1) -> Đang sửa(2, giữ nguyên mapping) -> Xong(3 không pending) ->
+  Y/c duyệt(3 pending) -> Giao(4); QUÁ HẠN không phải nhóm sort (chỉ cảnh báo
+  UI computed theo deadline, không đổi status DB); cùng trạng thái lấy đơn mới
+  hơn (createdAt desc).
+- Đồng bộ: nút [↻] gọi `SyncService.syncAllToCloud()` (chỉ ghi, không read
+  mới) + `_refreshFromSQLite()`; banner "Ngoại tuyến..." và "Không thể đồng bộ"
+  + "Thử lại" (restart realtime listener) theo điều kiện kết nối.
+- Card mới: Card trắng radius 14 + vạch trái theo trạng thái (đỏ600 khi quá
+  hạn) qua `IntrinsicHeight`+`Row(stretch)`; header badge trạng thái + thời gian
+  ("Hôm nay/Hôm qua HH:mm"/"dd/MM HH:mm", quá hạn -> "Trễ N ngày" đỏ) + mã đơn
+  `#firestoreId ?? #id` + chevron; hàng thiết bị (ảnh đầu + model đậm + KTV +
+  issue 1 dòng đỏ); hàng khách (tên/"Thêm khách hàng" + SĐT) kèm giá phải
+  (E8F0FE, "YC ...đ" nếu chờ duyệt giá); chips thông tin giới hạn 3 + "+N"
+  (partsUsed/services/cost/profit/notes/accessories/storage/imei; "⚠ Vốn 0đ"
+  khi đã giao chưa có vốn; lọc theo quyền giá vốn).
+- Empty/FAB: 2 trạng thái empty ("Không có đơn phù hợp" khi đang lọc / "Chưa có
+  đơn sửa" khi trống thật); FAB `GradientFab.purple` "Tạo đơn sửa" -> push
+  CreateRepairOrderView (giữ nguyên quay về refresh SQLite).
+- Dọn code: xoá `_buildStatsStrip`/`_statChip`/`_statDivider`, `_terms`,
+  `_shopSettings`, `_loadShopSettings()` + 3 import không dùng; bỏ tham số
+  `fontSize` chết trong `_repairInfoChip`.
+- Fix lỗi runtime trên máy thật: Row(crossAxisAlignment:stretch) dưới Card bị
+  "BoxConstraints forces an infinite height" -> bọc `IntrinsicHeight`; list chip
+  `toList(growable: false)` làm `visibleChips.add('+N')` ném
+  "Cannot add to a fixed-length list" -> `toList()`.
+
+### Verify
+- `flutter analyze lib/views/order_list_view.dart`: No issues found.
+- `flutter analyze` toàn repo: 0 error/warning mới (info pre-existing giảm còn
+  1862; warnings hiện có nằm ở file khác, pre-existing).
+- `flutter test`: 665 pass / 1 skip / 2 fail — 2 fail là test pre-existing
+  `test/kiotviet_settings_view_test.dart` (±0 so baseline).
+- Integration test (máy thật Oppo CPH2203, adb + wake + stayon):
+  `flutter test integration_test/order_redesign_regression_test.dart -d
+  NJR8W86LKRVW7DHQ --timeout 180s` → `02:15 +1: All tests passed!`.
+- Test đã cập nhật assert sang label mới: 7 chip filter + "Sắp xếp: Ưu tiên".
+- `flutter drive` chụp lại 5 screenshot (có màn list thiết kế mới):
+  `build/screenshots/1_order_list.png` (261 KB) ... `5_preview.png` (200 KB),
+  `+2 All tests passed!`.
+
+### Files
+- `lib/views/order_list_view.dart`
+- `integration_test/order_redesign_regression_test.dart`
+- `build/screenshots/{1_order_list,2_detail_tongquan,3_detail_dichvu,4_detail_lichsu,5_preview}.png`
+
+---
+
+## [2026-09-16a] - test(P3-P6 redesign "Đơn sửa"): regression end-to-end trên máy thật PASS
+
+### Bối cảnh
+Đã hoàn tất code redesign UI module "Đơn sửa" (OrderListView subtitle + 6 chip
+thống kê; RepairDetailView header + timeline 4 bước + 3 tab + contact; phiếu
+preview default) ở các mục trước. Phiên này đưa integration test chạy được
+toàn bộ luồng trên máy thật (Oppo CPH2203) và thu screenshot nghiệm thu.
+
+### Đã làm
+- `integration_test/order_redesign_regression_test.dart`: đăng nhập API
+  (FirebaseAuth) trước `pumpWidget` bằng credential test, đóng guide lần đầu
+  từng màn ('ĐÃ HIỂU, BẮT ĐẦU!'), mở list qua shortcut "DS sửa" (sau khi xoá
+  pref `home_last_tab_index_v1`), assert subtitle `N đơn` + 6 chip, tap Card mở
+  RepairDetailView (retry + dismiss guide), lướt 3 tab, mở preview qua
+  "Xem trước phiếu", assert các section. Pref `repair_invoice_use_template=false`
+  để ép layout default phiếu.
+- `test_driver/integration_test.dart` (+ `flutter_driver` trong dev_dependencies):
+  `flutter drive` lưu 5 PNG về `build/screenshots/` cho báo cáo P13.
+- Pass on-device: `02:18 +2: All tests passed!` (flutter test lẫn flutter drive).
+- `flutter analyze`: 0 error/warning (1864 info còn lại là của toàn repo, pre-existing).
+
+### Files
+- `integration_test/order_redesign_regression_test.dart` (mới hoàn thiện)
+- `test_driver/integration_test.dart` (mới)
+- `pubspec.yaml` (thêm `flutter_driver` dev dep)
+- `build/screenshots/1_order_list.png` … `5_preview.png` (nghiệm thu P13)
+
+---
+
 ## [2026-09-15a] - chore(deploy): build + deploy lại bản web, đồng bộ với các thay đổi `[2026-09-14f..h]`
 
 ### Bối cảnh

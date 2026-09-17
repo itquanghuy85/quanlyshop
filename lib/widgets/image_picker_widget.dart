@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -149,15 +150,28 @@ class ImagePickerWidget extends StatelessWidget {
     final radius = BorderRadius.circular(12);
 
     if (localPath != null && localPath!.isNotEmpty) {
+      // Web: image_picker trả về blob: URL trong XFile.path, không phải
+      // đường dẫn hệ thống tệp thật — dart:io.File không đọc được. Flutter
+      // web load blob: URL trực tiếp qua Image.network được (cùng cách
+      // StorageService.uploadAndGetUrl đã xử lý blob URL khi upload).
+      // Nhánh mobile (Android/iOS) giữ nguyên Image.file như cũ.
       return ClipRRect(
         borderRadius: radius,
-        child: Image.file(
-          File(localPath!),
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _placeholder(),
-        ),
+        child: kIsWeb
+            ? Image.network(
+                localPath!,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _placeholder(),
+              )
+            : Image.file(
+                File(localPath!),
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _placeholder(),
+              ),
       );
     }
 
@@ -254,6 +268,15 @@ class ImagePickerWidget extends StatelessWidget {
       );
       if (picked == null) return;
 
+      if (kIsWeb) {
+        // Web: path_provider (getTemporaryDirectory) không có bản web nên
+        // không nén được ở đây. Trả thẳng picked.path (blob: URL) —
+        // StorageService.uploadAndGetUrl đã có nhánh kIsWeb đọc bytes từ
+        // blob URL này khi upload lên Storage, không cần nén trước.
+        onImagePicked(picked.path);
+        return;
+      }
+
       final compressed = await _compress(picked.path);
       if (compressed != null) {
         onImagePicked(compressed);
@@ -271,6 +294,10 @@ class ImagePickerWidget extends StatelessWidget {
 
   /// Compress image: max 1600px, JPEG quality 78, target <300KB
   static Future<String?> _compress(String sourcePath) async {
+    // Web: getTemporaryDirectory (path_provider) không có bản web — trả
+    // null, caller (_pick() ở trên và ProductImageService.uploadAndSaveToProduct)
+    // đều đã tự fallback dùng nguyên sourcePath/localPath khi nhận null.
+    if (kIsWeb) return null;
     try {
       final dir = await getTemporaryDirectory();
       final ts = DateTime.now().millisecondsSinceEpoch;
@@ -326,7 +353,11 @@ class FullScreenImageViewer extends StatelessWidget {
   Widget build(BuildContext context) {
     ImageProvider? provider;
     if (localPath != null && localPath!.isNotEmpty) {
-      provider = FileImage(File(localPath!));
+      // Web: localPath là blob: URL (xem ghi chú ở _buildThumbnail phía
+      // trên) — NetworkImage load được, FileImage thì không trên web.
+      provider = kIsWeb
+          ? NetworkImage(localPath!)
+          : FileImage(File(localPath!));
     } else if (imageUrl != null && imageUrl!.isNotEmpty) {
       provider = NetworkImage(imageUrl!);
     }
