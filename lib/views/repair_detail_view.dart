@@ -5152,14 +5152,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         state: r.status >= 1 ? 2 : 0,
       ),
       (
-        name: 'Sửa máy',
-        time: _formatTimeAndDay(_repairStageTimestamp(r)),
-        state: r.status >= 2 ? 2 : (r.status == 1 ? 1 : 0),
-      ),
-      (
         name: 'Sửa xong',
         time: _formatTimeAndDay(r.finishedAt),
-        state: r.status >= 3 ? 2 : 0,
+        state: r.status >= 3 ? 2 : (r.status == 2 ? 1 : 0),
       ),
       (
         name: 'Giao máy',
