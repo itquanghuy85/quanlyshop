@@ -97,6 +97,7 @@ class OrderListViewState extends State<OrderListView> {
   bool _filterOverdue = false;
   bool _canDelete = false;
   bool _canViewCostPrice = false;
+  bool _canViewRevenue = false;
 
   /// Đếm theo trạng thái bằng SQL trên TOÀN BỘ đơn của shop (không phải cửa
   /// sổ 50 đơn đã nạp) — nạp lại cùng lúc với danh sách.
@@ -221,12 +222,14 @@ final results = await Future.wait([
         _canDelete = results[0] as bool;
         final perms = results[1] as Map<String, dynamic>;
         _canViewCostPrice = perms['allowViewCostPrice'] == true;
+        _canViewRevenue = perms['allowViewRevenue'] == true;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _canDelete = widget.role == 'admin' || widget.role == 'owner';
         _canViewCostPrice = false;
+        _canViewRevenue = false;
       });
     }
   }
@@ -320,6 +323,16 @@ final results = await Future.wait([
   // ══════════════════════════════════════════════════════════════════════
 
   /// Load first page from SQLite — called on init or shop change.
+  /// "52 điện thoại · 2 đang xử lý · ⚠ 3 quá hạn" — từ SQL COUNT.
+  String _headerSubtitle(int total) {
+    final processing = (_counts['received'] ?? 0) + (_counts['repairing'] ?? 0);
+    final overdue = _counts['overdue'] ?? 0;
+    final parts = <String>['$total điện thoại'];
+    if (processing > 0) parts.add('$processing đang xử lý');
+    if (overdue > 0) parts.add('⚠ $overdue quá hạn');
+    return parts.join(' · ');
+  }
+
   Future<void> _reloadCounts() async {
     try {
       final c = await db.getRepairStatusCounts(
@@ -1659,8 +1672,8 @@ final results = await Future.wait([
       backgroundColor: const Color(0xFFF0F4F8),
       appBar: CustomAppBar.build(
         guideKey: FirstTimeGuideService.keyOrderList,
-        title: "ĐƠN SỬA",
-        subtitle: '$totalCount đơn',
+        title: "DANH SÁCH ĐIỆN THOẠI",
+        subtitle: _headerSubtitle(totalCount),
         actions: [
           // Nút "?" đã có sẵn qua `guideKey` — bản cũ thêm nút thứ 2 trùng.
           IconButton(
@@ -1816,8 +1829,8 @@ final results = await Future.wait([
       ),
       floatingActionButton: GradientFab.purple(
         onPressed: _openCreateOrder,
-        icon: Icons.add_rounded,
-        label: 'Tạo đơn sửa',
+        icon: Icons.phone_android_rounded,
+        label: 'Nhận điện thoại',
       ),
     );
   }
@@ -2387,34 +2400,60 @@ final results = await Future.wait([
 
 
 
-  /// Thẻ đơn GỌN (2026-09-19): 3 dòng, cao ~78px thay vì ~230px.
-  ///
-  /// ```
-  /// ▌[ảnh]  IPHONE 13                          1,2 Tr
-  /// ▌       ● SỬA XONG · Hôm nay 16:35 · KH LE · 0900…
-  /// ▌       Ép kính
-  /// ```
-  /// Bỏ mã đơn `#rep_…` (có trong chi tiết), bỏ chevron, bỏ viền/bóng;
-  /// quá hạn: vạch trái đỏ + dòng 2 đỏ. Giữ nguyên: vuốt xoá, giữ để xoá,
-  /// bấm mở chi tiết, "Thêm khách hàng".
+  /// Thẻ đơn kiểu "chip" (chủ shop chọn lại 2026-09-19 theo bản cũ): STT +
+  /// ảnh (+N) + model + chip lỗi + chip KTV ở đầu; bên dưới là các chip
+  /// trạng thái · quá hạn · khách · SĐT · giờ · giá thu · vốn/lãi (theo
+  /// quyền) · phụ tùng · dịch vụ · ghi chú · phụ kiện/MK · vị trí. Nền thẻ
+  /// nhạt theo trạng thái. Chỉ vẽ từ dữ liệu đã có trong `Repair` — không
+  /// đọc thêm gì.
   Widget _buildRepairCard(Repair r, int index) {
+    final List<String> images = _collectRepairImages(r);
+    final int displayCost = r.totalCost;
     final int displayPrice = _displayedChargePrice(r);
+    final int displayProfit = displayPrice - displayCost;
+    // CLAUDE.md §9: vốn/lãi chỉ hiện khi có quyền giá vốn (và doanh thu).
+    final bool canShowCost = _canViewCostPrice && _canViewRevenue;
     final bool hasRequestedCharge =
         r.pendingDeliveryApproval && r.requestedDeliveryPrice != null;
     final bool overdue = _isOverdue(r);
-    final Color statusColor = overdue
-        ? Colors.red.shade700
-        : _getStatusColor(r.status, pendingApproval: r.pendingDeliveryApproval);
-    final String statusLabel = _getStatusLabel(
-      r.status,
-      pendingApproval: r.pendingDeliveryApproval,
-    );
-    final String when = overdue
-        ? 'Quá hạn ${_daysStuck(r) ?? ''} ngày'
-        : _timeLabel(r);
-    final String customer = r.customerName.trim();
-    final String phone = r.phone.trim();
-    final String issue = r.issue.replaceAll('|', ' ').trim();
+
+    Color bgColor;
+    Color borderColor;
+    switch (r.status) {
+      case 1:
+        bgColor = const Color(0xFFEAF2FF);
+        borderColor = Colors.blue.shade300;
+        break;
+      case 2:
+        bgColor = Colors.orange.shade50;
+        borderColor = Colors.orange.shade300;
+        break;
+      case 3:
+        bgColor = r.pendingDeliveryApproval
+            ? Colors.deepOrange.shade50
+            : const Color(0xFFEAF7EE);
+        borderColor = r.pendingDeliveryApproval
+            ? Colors.deepOrange.shade300
+            : Colors.green.shade300;
+        break;
+      case 4:
+        bgColor = const Color(0xFFF1F5F9);
+        borderColor = Colors.blueGrey.shade200;
+        break;
+      default:
+        bgColor = Colors.grey.shade50;
+        borderColor = Colors.grey.shade300;
+    }
+    if (overdue) borderColor = Colors.red.shade300;
+
+    final String ktv = (r.repairedBy ?? '').trim();
+    // `accessories` đã chứa cả "… | MK: …" (create_repair_order_view) —
+    // bỏ phần rỗng ("| MK:" khi không nhập gì) để không hiện chip trống.
+    final String accLine = r.accessories
+        .split('|')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty && e.toUpperCase() != 'MK:')
+        .join(' | ');
 
     return Dismissible(
       key: Key(r.firestoreId ?? r.createdAt.toString()),
@@ -2428,17 +2467,18 @@ final results = await Future.wait([
           color: Colors.red,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Icon(Icons.delete_forever, color: Colors.white, size: 22),
+        child: const Icon(Icons.delete_forever, color: Colors.white, size: 24),
       ),
       confirmDismiss: (_) async {
         _confirmDelete(r);
         return false;
       },
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+        margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: bgColor,
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: borderColor, width: 1.2),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -2474,140 +2514,312 @@ final results = await Future.wait([
             }
             _confirmDelete(r);
           },
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 4,
-                  color: overdue
-                      ? Colors.red.shade600
-                      : statusColor.withValues(alpha: 0.7),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(10, 10, 0, 10),
-                  child: _buildRepairThumbnail(r),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(10, 9, 12, 9),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // ── Dòng 1: Model + giá ──
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                r.model.trim().isEmpty ? 'Thiết bị' : r.model,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF0F172A),
-                                ),
-                              ),
-                            ),
-                            if (displayPrice > 0) ...[
-                              const SizedBox(width: 8),
-                              Text(
-                                '${hasRequestedCharge ? 'YC ' : ''}'
-                                '${MoneyUtils.formatCompactCurrency(displayPrice)}',
-                                maxLines: 1,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                  color: hasRequestedCharge
-                                      ? Colors.orange.shade800
-                                      : const Color(0xFF0068FF),
-                                ),
-                              ),
-                            ],
-                          ],
+                // ── Đầu thẻ: STT · ảnh · model + lỗi · KTV ──
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: borderColor.withValues(alpha: 0.25),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '$index',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: borderColor,
                         ),
-                        const SizedBox(height: 4),
-                        // ── Dòng 2: ● trạng thái · thời gian · khách · SĐT ──
-                        Row(
-                          children: [
-                            Container(
-                              width: 7,
-                              height: 7,
-                              decoration: BoxDecoration(
-                                color: statusColor,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              statusLabel,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: statusColor,
-                                letterSpacing: 0.2,
-                              ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                ' · $when'
-                                '${customer.isNotEmpty ? ' · $customer' : ''}'
-                                '${phone.isNotEmpty ? ' · $phone' : ''}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w500,
-                                  color: overdue
-                                      ? Colors.red.shade700
-                                      : const Color(0xFF64748B),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        // ── Dòng 3: lỗi máy / thêm khách ──
-                        if (issue.isNotEmpty || customer.isEmpty) ...[
-                          const SizedBox(height: 3),
-                          Row(
-                            children: [
-                              if (issue.isNotEmpty)
-                                Expanded(
-                                  child: Text(
-                                    issue,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF475569),
-                                    ),
-                                  ),
-                                )
-                              else
-                                const Spacer(),
-                              if (customer.isEmpty)
-                                GestureDetector(
-                                  onTap: () => _addCustomerToRepair(r),
-                                  child: Text(
-                                    '+ Thêm khách',
-                                    style: TextStyle(
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.orange.shade800,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 52,
+                      height: 52,
+                      child: Stack(
+                        children: [
+                          _buildRepairThumbnail(r, size: 52),
+                          if (images.length > 1)
+                            Positioned(
+                              bottom: 2,
+                              right: 2,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                  vertical: 1,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black54,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  '+${images.length - 1}',
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          Text(
+                            r.model.trim().isEmpty ? 'Thiết bị' : r.model,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          if (r.issue.trim().isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFDECEC),
+                                border: Border.all(
+                                  color: const Color(0xFFFFCDD2),
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.build_rounded,
+                                    size: 10,
+                                    color: Color(0xFFD32F2F),
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Flexible(
+                                    child: Text(
+                                      r.issue.split('|').first.trim(),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFFD32F2F),
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    _repairInfoChip(
+                      ktv.isNotEmpty ? '👨‍🔧 $ktv' : '👨‍🔧 Chưa có KTV',
+                      ktv.isNotEmpty ? Colors.purple.shade100 : Colors.grey.shade200,
+                      textColor: ktv.isNotEmpty
+                          ? Colors.purple.shade800
+                          : Colors.grey.shade600,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 7),
+                // ── Các chip thông tin ──
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 5,
+                  children: [
+                    _repairInfoChip(
+                      _getStatusLabel(
+                        r.status,
+                        pendingApproval: r.pendingDeliveryApproval,
+                      ),
+                      _getStatusColor(
+                        r.status,
+                        pendingApproval: r.pendingDeliveryApproval,
+                      ),
+                      textColor: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                    if (overdue)
+                      _repairInfoChip(
+                        '⚠️ QUÁ HẠN ${_daysStuck(r)} NGÀY',
+                        Colors.red.shade100,
+                        textColor: Colors.red.shade900,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11,
+                      ),
+                    if (r.customerName.trim().isNotEmpty)
+                      _repairInfoChip(
+                        '👤 ${r.customerName}',
+                        Colors.blueGrey.shade50,
+                        textColor: Colors.blueGrey.shade800,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      )
+                    else
+                      GestureDetector(
+                        onTap: () => _addCustomerToRepair(r),
+                        child: _repairInfoChip(
+                          '👤 Thêm khách hàng',
+                          Colors.orange.shade50,
+                          textColor: Colors.orange.shade800,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    if (r.phone.trim().isNotEmpty)
+                      _repairInfoChip(
+                        '📞 ${r.phone}',
+                        Colors.blueGrey.shade50,
+                        textColor: Colors.blueGrey.shade800,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    _repairInfoChip(
+                      '⏱ ${_timeLabel(r)}',
+                      Colors.blueGrey.shade50,
+                      textColor: Colors.blueGrey.shade800,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                    if (displayPrice > 0)
+                      _repairInfoChip(
+                        '💰 ${hasRequestedCharge ? 'YC ' : ''}'
+                        '${MoneyUtils.formatCompactCurrency(displayPrice)}đ',
+                        Colors.green.shade100,
+                        textColor: Colors.green.shade800,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    if (canShowCost && displayCost > 0)
+                      _repairInfoChip(
+                        '🏷 Vốn ${MoneyUtils.formatCompactCurrency(displayCost)}đ',
+                        Colors.blue.shade50,
+                        textColor: Colors.blue.shade700,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    if (canShowCost && r.status == 4 && displayCost == 0)
+                      _repairInfoChip(
+                        '⚠ Vốn 0đ — cần bổ sung',
+                        Colors.red.shade50,
+                        textColor: Colors.red.shade700,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                      ),
+                    if (canShowCost && displayPrice > 0 && displayCost > 0)
+                      _repairInfoChip(
+                        displayProfit >= 0
+                            ? '📈 Lãi ${MoneyUtils.formatCompactCurrency(displayProfit)}đ'
+                            : '📉 Lỗ ${MoneyUtils.formatCompactCurrency(displayProfit.abs())}đ',
+                        displayProfit >= 0
+                            ? Colors.green.shade50
+                            : Colors.red.shade50,
+                        textColor: displayProfit >= 0
+                            ? Colors.green.shade700
+                            : Colors.red.shade700,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    if (r.partsUsed.trim().isNotEmpty)
+                      _repairInfoChip(
+                        '🔩 ${r.partsUsed.trim()}',
+                        Colors.cyan.shade50,
+                        textColor: Colors.cyan.shade800,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                        maxLines: 2,
+                      ),
+                    if (r.services.isNotEmpty)
+                      _repairInfoChip(
+                        '🛠️ ${r.services.map((s) => s.serviceName).join(', ')}',
+                        Colors.teal.shade50,
+                        textColor: Colors.teal.shade800,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                        maxLines: 2,
+                      ),
+                    if ((r.notes ?? '').trim().isNotEmpty)
+                      _repairInfoChip(
+                        '📝 ${r.notes!.trim()}',
+                        Colors.amber.shade100,
+                        textColor: Colors.amber.shade900,
+                        fontSize: 11,
+                        maxLines: 2,
+                      ),
+                    if (accLine.isNotEmpty)
+                      _repairInfoChip(
+                        '🧰 $accLine',
+                        Colors.blue.shade100,
+                        textColor: Colors.blue.shade900,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                      ),
+                    if ((r.storageLocationCode ?? '').isNotEmpty)
+                      _repairInfoChip(
+                        '📍 ${r.storageLocationCode}',
+                        Colors.indigo.shade50,
+                        textColor: Colors.indigo.shade700,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                  ],
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _repairInfoChip(
+    String text,
+    Color color, {
+    Color textColor = Colors.black,
+    FontWeight fontWeight = FontWeight.w500,
+    double fontSize = 11,
+    int maxLines = 1,
+  }) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxWidth: (MediaQuery.sizeOf(context).width - 100).clamp(0, 400),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: fontSize,
+            color: textColor,
+            fontWeight: fontWeight,
+            height: 1.2,
+          ),
+          maxLines: maxLines,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );
@@ -2664,13 +2876,13 @@ final results = await Future.wait([
 
   /// Ảnh nhỏ 40px trên card đơn sửa — chỉ UI, resolve local/cloud/gs qua
   /// StorageService; không phải đường đọc Firestore.
-  Widget _buildRepairThumbnail(Repair r) {
+  Widget _buildRepairThumbnail(Repair r, {double size = 36}) {
     final String first = _pickBestPreviewImage(_collectRepairImages(r));
 
     if (first.isEmpty) {
       return Container(
-        width: 36,
-        height: 36,
+        width: size,
+        height: size,
         decoration: BoxDecoration(
           color: Colors.grey.shade100,
           borderRadius: BorderRadius.circular(8),
@@ -2712,8 +2924,8 @@ final results = await Future.wait([
       );
     } else if (kIsWeb) {
       return Container(
-        width: 36,
-        height: 36,
+        width: size,
+        height: size,
         decoration: BoxDecoration(
           color: Colors.grey.shade100,
           borderRadius: BorderRadius.circular(8),
@@ -2749,8 +2961,8 @@ final results = await Future.wait([
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: SizedBox(
-        width: 36,
-        height: 36,
+        width: size,
+        height: size,
         child: Container(color: Colors.grey.shade100, child: content),
       ),
     );

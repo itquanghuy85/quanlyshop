@@ -4,6 +4,20 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-19c] - Danh sách đơn sửa: quay lại thẻ kiểu "chip" theo mẫu chủ shop chọn
+
+Chủ shop gửi ảnh bản cũ (STT · ảnh +N · model · chip lỗi · chip KTV; hàng chip
+trạng thái · quá hạn · khách · SĐT · giờ · giá · vốn/lãi · phụ tùng · dịch vụ · ghi chú ·
+phụ kiện/MK · vị trí; nền thẻ nhạt theo trạng thái) và yêu cầu làm "gần giống". Khôi phục
+từ lịch sử git (bản trước `6ddbf0fb`) và ghép vào kiến trúc SQLite-only hiện tại:
+- Giữ toàn bộ phần `[2026-09-19b]`: đếm SQL, header 1 hàng, banner grace.
+- Vốn/Lãi chỉ hiện khi có `allowViewCostPrice` **và** `allowViewRevenue` (CLAUDE.md §9).
+- Chip phụ kiện bỏ phần rỗng "| MK:"; ảnh 52px + badge "+N"; tiêu đề "DANH SÁCH ĐIỆN
+  THOẠI · N điện thoại · X đang xử lý · ⚠ Y quá hạn"; FAB "Nhận điện thoại".
+- 0 read Firestore (chỉ vẽ từ `Repair` đã có trong SQLite).
+
+---
+
 ## [2026-09-19b] - Danh sách đơn sửa: gọn mắt + đếm trạng thái bằng SQL (không thêm read)
 
 ### Audit
