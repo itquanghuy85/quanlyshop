@@ -533,6 +533,13 @@ class PaymentIntentService {
       if (existingRow != null) {
         final existingIntent = _intentFromDbRow(existingRow);
         if (existingIntent.status == PaymentIntentStatus.completed) {
+          // Idempotent replay: KHÔNG ghi gì thêm. Ghi log rõ để nếu còn chỗ
+          // nào sinh khoá trùng thì thấy ngay trong logcat (xem sự cố
+          // 2026-09-18 ở `_buildDirectIntentId`).
+          debugPrint(
+            '⚠️ executePaymentDirect: intent $intentId đã COMPLETED — '
+            'trả về kết quả cũ, KHÔNG ghi phiếu mới (amount=$amount)',
+          );
           return PaymentExecutionResult.success(
             ledgerEntryId: existingIntent.id,
             updatedIntent: existingIntent,
@@ -602,10 +609,40 @@ class PaymentIntentService {
     }
   }
 
+  /// Độ dài tối đa của phần khoá trong `intentId`.
+  static const int _directKeyMaxLen = 70;
+
+  /// FNV-1a 32-bit — băm ổn định, không phụ thuộc `String.hashCode` của
+  /// từng nền tảng (web/VM khác nhau), để rút gọn khoá dài mà vẫn duy nhất.
+  static String _fnv1a32(String input) {
+    var hash = 0x811C9DC5;
+    for (final unit in input.codeUnits) {
+      hash ^= unit;
+      hash = (hash * 0x01000193) & 0xFFFFFFFF;
+    }
+    return hash.toRadixString(16).padLeft(8, '0');
+  }
+
+  /// Sinh `intentId` từ khoá idempotency.
+  ///
+  /// [2026-09-18] SỰ CỐ: bản cũ CẮT CỤT khoá ở 70 ký tự. Khoá thu/trả nợ là
+  /// `<debt.firestoreId>_<timestamp>`; nợ đối tác / nợ sửa chữa có firestoreId
+  /// rất dài (`debt_partner_debt_rep_…_svc_…_25_900000`) nên phần timestamp
+  /// bị cắt mất ⇒ MỌI lần trả sau trên cùng khoản nợ trùng `intentId` với lần
+  /// đầu ⇒ `executePaymentDirect` gặp intent COMPLETED cũ, trả về "thành
+  /// công" mà KHÔNG ghi phiếu, KHÔNG cập nhật `paidAmount` (đo thật shop M:
+  /// trả 90.000 cho đối tác SC — UI báo xong, thông báo bay, nhưng công nợ và
+  /// sổ quỹ không đổi). Nay khoá dài hơn giới hạn thì giữ 61 ký tự đầu + `_` +
+  /// 8 ký tự băm FNV-1a của TOÀN BỘ khoá ⇒ vẫn ≤ 70, nhưng duy nhất.
+  ///
+  /// Khoá ngắn (≤ 70) sinh ra id Y HỆT bản cũ — không đổi id của phiếu đã có.
+  /// [legacy] = true tái tạo id kiểu cắt cụt cũ, chỉ để dọn bản ghi tạo trước
+  /// ngày sửa (xem `repair_detail_view._cleanupPartnerDirectPaymentForService`).
   static String? _buildDirectIntentId(
     PaymentIntentType type,
-    String? idempotencyKey,
-  ) {
+    String? idempotencyKey, {
+    bool legacy = false,
+  }) {
     if (idempotencyKey == null || idempotencyKey.trim().isEmpty) {
       return null;
     }
@@ -617,25 +654,33 @@ class PaymentIntentService {
     if (normalized.isEmpty) {
       return null;
     }
-    final maxLen = 70;
-    final safe = normalized.length > maxLen
-        ? normalized.substring(0, maxLen)
-        : normalized;
+    final String safe;
+    if (normalized.length <= _directKeyMaxLen) {
+      safe = normalized;
+    } else if (legacy) {
+      safe = normalized.substring(0, _directKeyMaxLen);
+    } else {
+      safe =
+          '${normalized.substring(0, _directKeyMaxLen - 9)}_${_fnv1a32(normalized)}';
+    }
     return 'pi_direct_${type.code.toLowerCase()}_$safe';
   }
 
   static String? buildDirectPaymentIntentId({
     required PaymentIntentType type,
     String? idempotencyKey,
+    bool legacy = false,
   }) {
-    return _buildDirectIntentId(type, idempotencyKey);
+    return _buildDirectIntentId(type, idempotencyKey, legacy: legacy);
   }
 
   static String? buildDirectPaymentRecordFirestoreId({
     required PaymentIntentType type,
     String? idempotencyKey,
+    bool legacy = false,
   }) {
-    final intentId = _buildDirectIntentId(type, idempotencyKey);
+    final intentId =
+        _buildDirectIntentId(type, idempotencyKey, legacy: legacy);
     if (intentId == null || intentId.isEmpty) {
       return null;
     }

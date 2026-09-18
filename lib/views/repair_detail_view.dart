@@ -6651,26 +6651,32 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     }
 
     for (final key in keyCandidates) {
-      final paymentFirestoreId =
-          PaymentIntentService.buildDirectPaymentRecordFirestoreId(
-            type: PaymentIntentType.repairPartnerDebt,
-            idempotencyKey: key,
-          );
-      final intentId = PaymentIntentService.buildDirectPaymentIntentId(
-        type: PaymentIntentType.repairPartnerDebt,
-        idempotencyKey: key,
-      );
-      if (paymentFirestoreId == null || intentId == null) {
-        continue;
-      }
+      // Thử cả id kiểu mới (băm) lẫn kiểu cũ (cắt cụt 70 ký tự) — bản ghi tạo
+      // trước 2026-09-18 mang id cũ. Khoá ngắn thì hai kiểu trùng nhau.
+      for (final legacy in const [false, true]) {
+        final paymentFirestoreId =
+            PaymentIntentService.buildDirectPaymentRecordFirestoreId(
+              type: PaymentIntentType.repairPartnerDebt,
+              idempotencyKey: key,
+              legacy: legacy,
+            );
+        final intentId = PaymentIntentService.buildDirectPaymentIntentId(
+          type: PaymentIntentType.repairPartnerDebt,
+          idempotencyKey: key,
+          legacy: legacy,
+        );
+        if (paymentFirestoreId == null || intentId == null) {
+          continue;
+        }
 
-      final paymentRow = await db.getRepairPartnerPaymentByFirestoreId(
-        paymentFirestoreId,
-      );
-      if (paymentRow != null) {
-        await _deletePartnerPaymentSnapshot(paymentRow);
+        final paymentRow = await db.getRepairPartnerPaymentByFirestoreId(
+          paymentFirestoreId,
+        );
+        if (paymentRow != null) {
+          await _deletePartnerPaymentSnapshot(paymentRow);
+        }
+        await db.deletePaymentIntent(intentId);
       }
-      await db.deletePaymentIntent(intentId);
     }
   }
 

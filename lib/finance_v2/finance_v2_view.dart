@@ -1,6 +1,7 @@
 // ignore_for_file: prefer_const_constructors, use_build_context_synchronously
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
@@ -391,6 +392,19 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       }
       final timelineResult = await _buildTimelineCache(d);
       if (!mounted) return;
+      if (kDebugMode) {
+        // Chẩn đoán/nghiệm thu bằng logcat (không cần chụp màn hình):
+        // một dòng tóm tắt snapshot mỗi lần tải.
+        debugPrint(
+          '📊 [FinanceV2] ${DateFormat('dd/MM').format(_start)}→'
+          '${DateFormat('dd/MM').format(_end)} in=${d.totalIn} out=${d.totalOut} '
+          'net=${d.netCashflow} revSale=${d.incomeFromSales} '
+          'revRepair=${d.incomeFromRepairs} cogsSale=${d.cogsFromSales} '
+          'cogsRepair=${d.cogsFromRepairs} gross=${d.grossProfitTotal} '
+          'opex=${d.operatingExpenseOut} recv=${d.receivableTotal} '
+          'pay=${d.payableTotal} tx=${d.transactions.length}',
+        );
+      }
       setState(() {
         _snap = d;
         _timelineCache = timelineResult.$1;
@@ -2455,7 +2469,9 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       parts.add(t.subtitle.trim());
     }
     final pm = _paymentLabel(t.paymentMethod);
-    if (pm.isNotEmpty) parts.add(pm);
+    // Subtitle của chi phí đã chứa hình thức TT ("… · TIỀN MẶT") — đừng lặp.
+    final joined = parts.join(' ').toUpperCase();
+    if (pm.isNotEmpty && !joined.contains(pm.toUpperCase())) parts.add(pm);
     return FinanceV2Widgets.txTile(
       type: t.type,
       isIncome: t.isIncome,

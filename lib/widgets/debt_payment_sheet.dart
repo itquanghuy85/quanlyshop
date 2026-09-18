@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'keyboard_aware_padding.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -76,6 +77,13 @@ class DebtPaymentSheet {
     final payC = TextEditingController();
     String payMethod = 'TIỀN MẶT';
     bool success = false;
+    // [2026-09-18] `showModalBottomSheet` trả về NGAY khi nút Xác nhận
+    // `Navigator.pop(ctx)` — tức TRƯỚC khi thanh toán chạy — nên bản cũ luôn
+    // `return success == false` dù trả nợ thành công. Màn gọi (tab Nợ Tài
+    // chính, Đối soát…) tưởng không có gì xảy ra: bảng chi tiết đứng im với
+    // số cũ. Nay chờ tới khi luồng thanh toán xong hẳn mới trả kết quả.
+    final done = Completer<bool>();
+    var confirmPressed = false;
 
     if (!context.mounted) return false;
 
@@ -210,6 +218,7 @@ class DebtPaymentSheet {
                               FocusManager.instance.primaryFocus?.unfocus();
                               await Future.delayed(Duration.zero);
                               if (!ctx.mounted) return;
+                              confirmPressed = true;
                               Navigator.pop(ctx);
 
                               final user = FirebaseAuth.instance.currentUser;
@@ -282,6 +291,7 @@ class DebtPaymentSheet {
                                       : (result.errorMessage ?? l10n.debtPaymentGenericError),
                                 );
                               }
+                              if (!done.isCompleted) done.complete(success);
                             },
                             child: Text(l10n.confirmPayButton),
                           ),
@@ -299,7 +309,8 @@ class DebtPaymentSheet {
 
     // KHÔNG dispose ngay — xem dispose_after_transition.dart (crash màn đỏ).
     disposeAfterTransition(payC);
-    return success;
+    if (!confirmPressed) return false; // đóng sheet mà không xác nhận
+    return done.future;
   }
 
   static Widget _statCol(String label, int amount, Color color) => Column(

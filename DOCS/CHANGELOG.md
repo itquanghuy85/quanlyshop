@@ -4,6 +4,62 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-18c] - Nghiệm thu số liệu Tài chính + Chốt quỹ mọi hình thức thanh toán (2 máy) & fix mất phiếu trả nợ do khoá idempotency bị cắt cụt
+
+### Kịch bản chạy thật (Oppo CPH2203 = m@m.com chủ shop M; CPH2239 = n@n.com nhân viên)
+Ghi nhận mốc trước (logcat `📊 [FinanceV2]` / `💰 [CashClosing]` — 2 dòng chẩn đoán MỚI, chỉ
+kDebugMode), tạo từng nghiệp vụ rồi đối chiếu delta trên tab Tiền/Lãi/Nợ/Chốt quỹ:
+
+| Nghiệp vụ | Kết quả |
+|---|---|
+| Bán TM 180k · CK 180k · KẾT HỢP (100k TM + 80k CK) · CÔNG NỢ (trả trước 50k, nợ 130k) · TRẢ GÓP NH (cọc 1 Tr TM, FE vay 20 Tr) | ✅ tiền vào, TM/NH, doanh thu, vốn (trả góp ghi vốn theo tỉ lệ cọc), phải thu đúng từng đồng |
+| Giao máy sửa TM 900k (vốn LK 558k) · CK 900k (600k) · CÔNG NỢ 500k (333k) | ✅ doanh thu SC 1,8 Tr, vốn LK 1,158 Tr, phải thu +500k, CÔNG NỢ không vào tiền |
+| Nhập kho TM 300k · CK 200k · CÔNG NỢ 400k (NCC không xác định) | ✅ tiền ra +500k, phải trả +400k, KHÔNG vào chi phí vận hành |
+| Ghi chi ĐIỆN NƯỚC 123k TM · Ghi thu KHÁC 77k CK | ✅ chi vận hành 123k, lãi thực = lãi gộp − 123k, NH +77k |
+| Thu nợ KH 130k TM · Trả nợ NCC 150k CK · Trả nợ đối tác SC 90k TM | ✅ sau fix bên dưới (lần đầu 90k **mất phiếu**) |
+| NH tất toán trả góp 20 Tr | ✅ NH +20 Tr, doanh thu +20 Tr, vốn ghi nốt 17,14 Tr |
+| Chốt quỹ ngày (có lệch, ghi chú) | ✅ lưu local+cloud, thẻ chuyển ĐÃ CHỐT, kỳ vọng = đầu kỳ + thu − chi khớp |
+| Máy 2 (nhân viên) bán TM 180k | ✅ máy 1 cập nhật tiền vào/doanh thu/vốn/Chốt quỹ sau ~1 giây |
+| SQLite 2 máy | ✅ sales/repairs/debts/debt_payments/supplier_import_history/activity_log giống hệt; máy nhân viên KHÔNG có expenses/cash_closings/repair_partner_payments (rules chỉ manager đọc — đúng thiết kế) |
+
+### 🐛 NGHIÊM TRỌNG đã sửa — `PaymentIntentService._buildDirectIntentId` cắt khoá ở 70 ký tự
+- Khoá thu/trả nợ = `<debt.firestoreId>_<timestamp>`; nợ đối tác / nợ sửa chữa / nợ nhập kho có
+  firestoreId dài (`debt_partner_debt_rep_…_svc_…_25_900000`) ⇒ timestamp bị cắt ⇒ **mọi lần trả
+  sau trên cùng khoản nợ trùng intentId với lần đầu** ⇒ gặp intent COMPLETED cũ → trả về "thành
+  công" mà không ghi `debt_payments`, không đổi `paidAmount`, nhưng vẫn bắn thông báo + trừ mốc
+  "Còn lại". Đo thật: id trong SQLite `pi_direct_supplier_debt_debt_partner_debt_rep_1789152135910_0902222222_svc_1789152048363531_25` (94 ký tự, không còn timestamp).
+- Fix: khoá > 70 ký tự → 61 ký tự đầu + `_` + 8 ký tự FNV-1a của toàn bộ khoá (≤ 70, duy nhất).
+  Khoá ngắn giữ NGUYÊN id cũ. Thêm `legacy:` để `repair_detail_view._cleanupPartnerDirectPaymentForService`
+  dọn được cả bản ghi id cũ. Log `⚠️ … đã COMPLETED` khi replay. Test `test/payment_intent_id_test.dart` (5).
+- **Cần rà shop thật**: thông báo "ĐÃ TRẢ NỢ" đối tác/NCC nào không có `debt_payments` tương ứng ⇒
+  là nạn nhân của lỗi này (công nợ hiển thị CAO hơn thực tế).
+
+### Sửa khác
+- `DebtPaymentSheet.show` trả `false` dù thanh toán xong (sheet pop trước khi chạy thanh toán) →
+  màn gọi không biết → bảng chi tiết nhóm nợ đứng im số cũ. Nay chờ `Completer` tới khi xong.
+- `CashClosingView` keep-alive: đồng bộ lại mốc "Còn lại" (`resetBaseline`) sau mỗi event thay vì
+  chỉ lúc mount; chỉ ghi khi số đổi. Thẻ ĐÃ CHỐT rơi về `createdAt/createdBy` khi thiếu `closedAt`.
+- Tab Tiền: không lặp "TIỀN MẶT · Tiền mặt" ở dòng meta.
+
+### ⚠️ Phát hiện, CHƯA sửa (cần chủ shop quyết)
+- **[ACCOUNTING LOGIC ISSUE FOUND]** Tab Lãi (FinanceV2): đơn bán / đơn sửa **CÔNG NỢ** có
+  `actualPaid = 0` ⇒ không bao giờ vào Doanh thu/Giá vốn/Lãi — kể cả khi khách đã trả hết (tiền
+  về chỉ hiện là "Thu nợ" ở tab Tiền). Trong khi Chốt quỹ / Báo cáo ngày (`DailyFinancialAnalysis`)
+  tính `saleIncome` GỒM cả phần nợ. Hai engine lệch nhau về lãi với shop bán nợ nhiều.
+- Máy nhân viên không đọc được `cash_closings` ⇒ `canEditDirectly` cho phép tạo đơn SAU khi chủ
+  shop đã chốt quỹ ngày (đo thật 20:34 sau chốt 20:30) ⇒ kỳ vọng lệch bản chốt.
+- Mốc "Còn lại" trong thông báo lệch +500k sau khi giao máy CÔNG NỢ (gốc chưa bắt được vì log trôi;
+  đã giảm nhẹ bằng resync theo event).
+- Chi tiết đơn trả góp hiện "Tổng đã thu 21 Tr" khi NH chưa giải ngân.
+- Trang chủ máy nhân viên: thẻ DÒNG TIỀN HÔM NAY = 0 dù shop có giao dịch (có thể cố ý theo quyền).
+
+### Files
+`lib/services/payment_intent_service.dart`, `lib/widgets/debt_payment_sheet.dart`,
+`lib/views/repair_detail_view.dart` (cleanup legacy id), `lib/views/cash_closing_view.dart`,
+`lib/finance_v2/finance_v2_view.dart`, `test/payment_intent_id_test.dart` (mới).
+
+---
+
 ## [2026-09-18b] - Refactor module TÀI CHÍNH: UI kiểu app tài chính + cache snapshot + cắt read Firestore tab Chốt quỹ
 
 ### Mục tiêu

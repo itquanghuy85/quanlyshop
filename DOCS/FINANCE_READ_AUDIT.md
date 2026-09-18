@@ -91,4 +91,4 @@
 | T8 Thoát Tài chính rồi vào lại (< 60 s) | cache hit, không chạy 22 query |
 | T9 Offline | mọi tab đọc SQLite; Chốt quỹ: quét cloud timeout 10 s rơi về local (như cũ) |
 
-**Trạng thái nghiệm thu máy thật:** xem `DOCS/CHANGELOG.md` mục `[2026-09-18]`.
+**Trạng thái nghiệm thu máy thật:** T1–T8 đã chạy 2026-09-18 (Oppo CPH2203 shop M) — xem `DOCS/CHANGELOG.md` `[2026-09-18b]` (read) và `[2026-09-18c]` (số liệu mọi hình thức thanh toán, 2 máy). T9 offline chưa chạy.

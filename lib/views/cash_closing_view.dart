@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../widgets/responsive_wrapper.dart';
@@ -258,13 +259,21 @@ class CashClosingViewState extends State<CashClosingView>
   /// Debounced reload — chỉ đọc local DB (SyncService đã sync Firestore → local)
   void _scheduleReload() {
     _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        _loadAllDataFromLocalDB();
-        _loadAssetSummary();
-      }
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
+      if (!mounted) return;
+      await _loadAllDataFromLocalDB();
+      _loadAssetSummary();
+      // Từ khi tab này keep-alive (2026-09-18) thì `_loadAllData` (nơi đồng
+      // bộ mốc "Còn lại") không còn chạy lại mỗi lần vào tab — phải đồng bộ
+      // lại ở đây sau mỗi biến động, nếu không mốc trong thông báo trôi dần
+      // (đo thật: lệch +500k sau một lần giao máy CÔNG NỢ). Chỉ ghi khi số
+      // thật sự đổi để không tốn write vô ích.
+      if (mounted) _syncCashBalanceCacheFromCurrentState();
     });
   }
+
+  /// Mốc quỹ (cash|bank) đã đồng bộ lần gần nhất — tránh ghi lại cùng số.
+  String? _lastSyncedBaseline;
 
   /// Nạp Phải thu/Phải trả/NH chưa tất toán cho thẻ "TỔNG TÀI SẢN" — dùng
   /// đúng nguồn + công thức với tab "Nợ" của `FinanceV2View`
@@ -1035,6 +1044,9 @@ class CashClosingViewState extends State<CashClosingView>
       final openingBank = _previousDayClosing?['bankEnd'] as int? ?? 0;
       final expectedCash = openingCash + analysis.cashIn - analysis.cashOut;
       final expectedBank = openingBank + analysis.bankIn - analysis.bankOut;
+      final sig = '$expectedCash|$expectedBank';
+      if (sig == _lastSyncedBaseline) return;
+      _lastSyncedBaseline = sig;
       debugPrint(
         '🔄 [CashBalanceSync] shopId=$shopId cash=$expectedCash bank=$expectedBank',
       );
@@ -1298,6 +1310,19 @@ class CashClosingViewState extends State<CashClosingView>
     );
     final isClosed = _todayClosing != null;
     final dateLabel = DateFormat('dd/MM/yyyy').format(_selectedDate);
+    if (kDebugMode) {
+      // Nghiệm thu bằng logcat — chỉ in khi số đổi, không spam mỗi build.
+      final sig =
+          '💰 [CashClosing] $dateLabel from=${DateFormat('dd/MM').format(_analysisStartDate)} '
+          'openCash=$openingCash openBank=$openingBank cashIn=${analysis.cashIn} '
+          'cashOut=${analysis.cashOut} bankIn=${analysis.bankIn} '
+          'bankOut=${analysis.bankOut} expCash=$expectedCash expBank=$expectedBank '
+          'total=$totalFund closed=$isClosed';
+      if (sig != _lastLoggedSig) {
+        _lastLoggedSig = sig;
+        debugPrint(sig);
+      }
+    }
 
     return ResponsiveCenter(
       child: RefreshIndicator(
@@ -1552,8 +1577,11 @@ class CashClosingViewState extends State<CashClosingView>
           ),
           const SizedBox(height: 6),
           if (isClosed && c != null) ...[
+            // Bản ghi local chỉ có `createdAt` (cloud mới có `closedAt`/`closedBy`)
+            // — rơi về createdAt/createdBy thay vì hiện "Chốt lúc  bởi N/A".
             Text(
-              'Chốt lúc ${_formatTime(c['closedAt'])} bởi ${c['closedBy'] ?? 'N/A'}',
+              'Chốt lúc ${_formatTime(c['closedAt'] ?? c['createdAt'])}'
+              '${(c['closedBy'] ?? c['createdBy']) != null ? ' bởi ${c['closedBy'] ?? c['createdBy']}' : ''}',
               style: const TextStyle(fontSize: 12, color: Color(0xFF5D6E8D)),
             ),
             const SizedBox(height: 2),
@@ -1728,6 +1756,7 @@ class CashClosingViewState extends State<CashClosingView>
   /// nghe để vẽ lại theo state của màn này (chip lọc trong tab Thu/Chi gọi
   /// `setState` của State này chứ không có state riêng).
   final ValueNotifier<int> _rebuildTick = ValueNotifier<int>(0);
+  String? _lastLoggedSig;
 
   @override
   void setState(VoidCallback fn) {
