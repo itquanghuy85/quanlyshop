@@ -7857,6 +7857,29 @@ class DBHelper {
     );
   }
 
+  /// Như [getDebtsForFinanceSnapshot] nhưng lọc ngay ở SQL các khoản CÒN DƯ
+  /// (`totalAmount − paidAmount > 0`) — đúng điều kiện `remaining <= 0 →
+  /// continue` mà `FinanceV2DataService.loadSnapshot` vẫn áp trong Dart, chỉ
+  /// đẩy xuống DB để shop lâu năm không phải nạp hàng nghìn nợ đã tất toán
+  /// mỗi lần mở tab Tài chính. KHÔNG lọc theo `status` (khác
+  /// [getOutstandingDebtsRaw]) để giữ nguyên tập kết quả cũ.
+  Future<List<Map<String, dynamic>>> getOutstandingDebtsForFinanceSnapshot() async {
+    final shopId = UserService.getShopIdSync();
+    final db = await database;
+    const cond =
+        "(deleted = 0 OR deleted IS NULL) "
+        "AND (COALESCE(totalAmount, 0) - COALESCE(paidAmount, 0)) > 0";
+    if (shopId != null && shopId.isNotEmpty) {
+      return db.query(
+        'debts',
+        where: '(shopId = ? OR shopId IS NULL) AND $cond',
+        whereArgs: [shopId],
+        orderBy: 'createdAt DESC',
+      );
+    }
+    return db.query('debts', where: cond, orderBy: 'createdAt DESC');
+  }
+
   /// Chỉ các công nợ CÒN DƯ (chưa trả hết, chưa huỷ) — dùng cho màn "Đối soát
   /// tiền về". Lọc ngay ở SQL để shop lâu năm (hàng nghìn nợ đã tất) không phải
   /// nạp cả bảng.

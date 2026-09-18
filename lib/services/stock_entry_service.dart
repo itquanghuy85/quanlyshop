@@ -844,7 +844,7 @@ class StockEntryService {
             await db.insertExpense({
               'firestoreId': 'exp_stock_${entryId}_$now',
               'category': 'NHẬP HÀNG',
-              'title': 'Nhập kho từ ${entry.supplierName}',
+              'title': 'Nhập kho từ ${entry.supplierName ?? 'NCC'}',
               'amount': totalCost,
               'paymentMethod': entry.paymentMethod,
               'note': itemBreakdown.isNotEmpty ? itemBreakdown : 'Nhập ${entry.totalQuantity} sản phẩm',

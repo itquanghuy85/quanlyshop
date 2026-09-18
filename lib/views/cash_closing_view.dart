@@ -92,7 +92,14 @@ class CashClosingView extends StatefulWidget {
 /// `embeddedInTab: true` — 3 hành động này chuyển ra chip ngày/menu "..."
 /// của màn cha thay vì có dòng nút riêng bên trong nữa.
 class CashClosingViewState extends State<CashClosingView>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+  /// Khi nhúng trong TabBarView của Tài chính: giữ State sống khi vuốt sang
+  /// tab khác. Không giữ thì mỗi lần quay lại là một `initState` mới ⇒ chạy
+  /// lại toàn bộ `_loadAllData` + `_loadHistoryClosings` + guide (đo thật
+  /// 2026-09-18: Tiền → Chốt quỹ → Tiền → Chốt quỹ = 2 lần tải trọn).
+  @override
+  bool get wantKeepAlive => widget.embeddedInTab;
+
   final db = DBHelper();
   late TabController _tabController;
   bool _isLoading = true;
@@ -244,6 +251,7 @@ class CashClosingViewState extends State<CashClosingView>
     bankEndCtrl.dispose();
     noteCtrl.dispose();
     _txSearchController.dispose();
+    _rebuildTick.dispose();
     super.dispose();
   }
 
@@ -958,13 +966,38 @@ class CashClosingViewState extends State<CashClosingView>
     }
   }
 
-  /// Load tất cả dữ liệu - local DB trước để hiển thị ngay, Firestore sau để đồng bộ
-  Future<void> _loadAllData() async {
+  /// Mốc lần quét Firestore gần nhất theo `shopId|dateKey` — static để sống
+  /// qua nhiều lần mount (mỗi lần vào tab Chốt quỹ là một `initState` mới).
+  static final Map<String, DateTime> _cloudSweepAt = <String, DateTime>{};
+
+  /// Trong khoảng này, mở lại tab Chốt quỹ chỉ đọc SQLite (đã được
+  /// `SyncService` đồng bộ real-time), KHÔNG quét lại 10 truy vấn Firestore.
+  static const Duration _cloudSweepTtl = Duration(minutes: 10);
+
+  /// Load tất cả dữ liệu - local DB trước để hiển thị ngay, Firestore sau để
+  /// đối chiếu giữa các thiết bị.
+  ///
+  /// [2026-09-18] Lần quét Firestore (`_loadAllDataFromFirestore`, ~10 truy
+  /// vấn bound theo kỳ) chỉ chạy khi: kéo-để-làm-mới ([forceCloud]) HOẶC
+  /// chưa quét cho `shopId|ngày` này trong [_cloudSweepTtl]. Đo thực tế: tab
+  /// Chốt quỹ nằm trong TabBarView của Tài chính nên mỗi lần vào Tài chính →
+  /// vuốt sang là một `initState` mới ⇒ trước đây quét lại toàn bộ mỗi lần.
+  Future<void> _loadAllData({bool forceCloud = false}) async {
     // Load local DB first for instant display
     await _loadAllDataFromLocalDB();
     _syncCashBalanceCacheFromCurrentState();
+    final shopId = UserService.getShopIdSync() ?? '';
+    final key = '$shopId|${DateFormat('yyyy-MM-dd').format(_selectedDate)}';
+    final last = _cloudSweepAt[key];
+    final fresh =
+        last != null && DateTime.now().difference(last) < _cloudSweepTtl;
+    if (!forceCloud && fresh) {
+      debugPrint('💰 [CashClosingView] Bỏ qua quét Firestore ($key còn mới)');
+      return;
+    }
     // Then merge Firestore data in background (non-blocking)
     _loadAllDataFromFirestore().then((_) {
+      _cloudSweepAt[key] = DateTime.now();
       if (mounted) _syncCashBalanceCacheFromCurrentState();
     });
   }
@@ -1089,6 +1122,7 @@ class CashClosingViewState extends State<CashClosingView>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // AutomaticKeepAliveClientMixin
     if (widget.embeddedInTab) {
       return _buildEmbeddedBody();
     }
@@ -1229,12 +1263,15 @@ class CashClosingViewState extends State<CashClosingView>
   }
 
   /// Thân màn khi nhúng làm tab trong Tài chính V2 (`widget.embeddedInTab`).
-  /// KHÔNG Scaffold/SliverAppBar riêng — Finance V2 đã có AppBar +
-  /// TabBar Tiền/Lãi/Nợ/Chốt quỹ của nó rồi. Chỉ còn 1 thanh gọn (ngày + 4
-  /// nút thao tác, giữ NGUYÊN đúng các hàm `_pickDate`/`openMoneyReconcile`/
-  /// `_exportCashClosingExcel`/`_openTransactionSearch` như bản đầy đủ) và
-  /// TabBar con Tổng quan/Thu/Chi/Lịch sử kiểu gạch chân thay vì viên thuốc
-  /// trắng-trên-xanh, cho đỡ giống "2 màn dán vào nhau".
+  ///
+  /// Bản 2026-09-18: KHÔNG còn TabBar con Tổng quan/Thu/Chi/Lịch sử — tab chỉ
+  /// trả lời 3 câu: quỹ hiện tại bao nhiêu (tiền mặt / ngân hàng), hôm nay
+  /// chốt chưa, thu/chi trong ngày bao nhiêu. Mọi thứ khác (danh sách thu,
+  /// chi, lịch sử chốt, tổng tài sản, số dư đầu kỳ) mở qua dòng ">" — vẫn
+  /// dùng đúng các builder cũ (`_buildIncomeTab`, `_buildExpenseTab`,
+  /// `_buildHistoryTab`, `_buildTotalAssetsCard`, `_buildOpeningBalanceCard`)
+  /// nên KHÔNG đổi công thức nào. Công thức quỹ: kỳ vọng = đầu kỳ + thu − chi
+  /// (như `_buildOverviewTab`).
   Widget _buildEmbeddedBody() {
     if (!_hasPermission) {
       return const Center(
@@ -1247,64 +1284,541 @@ class CashClosingViewState extends State<CashClosingView>
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-    // Cùng 2 màu với TabBar Tiền/Lãi/Nợ/Chốt quỹ ở `_buildAdaptiveTabStrip`
-    // (finance_v2_view.dart) — chép giá trị trực tiếp thay vì import chéo
-    // sang `finance_v2/` để giữ nguyên ranh giới thư mục hiện có.
-    const navy = Color(0xFF0D47A1);
-    const grey = Color(0xFF5F6B7A);
+    final analysis = _analyzeTransactions(_analysisStartDate, _selectedDate);
+    final openingCash = _previousDayClosing?['cashEnd'] as int? ?? 0;
+    final openingBank = _previousDayClosing?['bankEnd'] as int? ?? 0;
+    final expectedCash = openingCash + analysis.cashIn - analysis.cashOut;
+    final expectedBank = openingBank + analysis.bankIn - analysis.bankOut;
+    final totalFund = expectedCash + expectedBank;
+    final totalIn = analysis.cashIn + analysis.bankIn;
+    final totalOut = analysis.cashOut + analysis.bankOut;
+    final isToday = _isSameDay(
+      DateTime.now().millisecondsSinceEpoch,
+      _selectedDate,
+    );
+    final isClosed = _todayClosing != null;
+    final dateLabel = DateFormat('dd/MM/yyyy').format(_selectedDate);
+
     return ResponsiveCenter(
-      child: Column(
-        children: [
-          // Ngày + nút thao tác (help/đối soát/xuất Excel/tìm giao dịch) đã
-          // chuyển hết lên `FinanceV2View` (chip ngày thay thanh chọn kỳ +
-          // menu "...") — ở đây chỉ còn TabBar con Tổng quan/Thu/Chi/Lịch sử,
-          // CÙNG kiểu chữ-thuần với TabBar Tiền/Lãi/Nợ/Chốt quỹ ngay phía
-          // trên (không icon-trên-chữ như bản đầu: ở bề ngang chia 4 phần,
-          // "Tổng quan" bị tràn dòng "Tổng qua…" rất xấu).
-          SizedBox(
-            height: 40,
-            child: TabBar(
-              controller: _tabController,
-              isScrollable: false,
-              labelColor: navy,
-              unselectedLabelColor: grey,
-              labelStyle: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
+      child: RefreshIndicator(
+        onRefresh: () => _loadAllData(forceCloud: true),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+          children: [
+            // ── Quỹ hiện tại (thẻ xanh) ──
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF163E84), Color(0xFF1A6BC2)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF163E84).withValues(alpha: 0.25),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
-              unselectedLabelStyle: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.account_balance_wallet_outlined,
+                          size: 17,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          isToday
+                              ? 'QUỸ HIỆN TẠI'
+                              : 'QUỸ CUỐI NGÀY $dateLabel',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.6,
+                            color: Colors.white.withValues(alpha: 0.9),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      MoneyUtils.formatCompactCurrency(totalFund),
+                      style: const TextStyle(
+                        fontSize: 34,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _heroSubTile(
+                          Icons.payments_outlined,
+                          'Tiền mặt',
+                          MoneyUtils.formatCompactCurrency(expectedCash),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _heroSubTile(
+                          Icons.account_balance_outlined,
+                          'Ngân hàng',
+                          MoneyUtils.formatCompactCurrency(expectedBank),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              indicatorSize: TabBarIndicatorSize.label,
-              indicatorColor: navy,
-              indicatorWeight: 2,
-              dividerColor: Colors.transparent,
-              // Chữ dài nhất ("Tổng quan") từng bị cắt "Tổng qua…" khi chia
-              // đều 4 cột với padding mặc định (16 mỗi bên) — giảm padding +
-              // cỡ chữ, bọc trong FittedBox để không bao giờ tràn dòng dù ở
-              // máy màn hình hẹp.
-              labelPadding: const EdgeInsets.symmetric(horizontal: 4),
-              tabs: const [
-                Tab(child: FittedBox(child: Text('Tổng quan'))),
-                Tab(child: FittedBox(child: Text('Thu'))),
-                Tab(child: FittedBox(child: Text('Chi'))),
-                Tab(child: FittedBox(child: Text('Lịch sử'))),
-              ],
             ),
+            const SizedBox(height: 12),
+            _ovCard(
+              padding: EdgeInsets.zero,
+              child: _ovLink(
+                icon: Icons.savings_outlined,
+                label: 'Dự kiến cuối ngày',
+                value: MoneyUtils.formatCompactCurrency(totalFund),
+                valueColor: const Color(0xFF0F8A5F),
+                divider: false,
+                onTap: () => _showEmbeddedSheet(
+                  'Số dư dự kiến cuối ngày',
+                  (_) => Column(
+                    children: [
+                      _buildOpeningBalanceCard(openingCash, openingBank),
+                      const SizedBox(height: 12),
+                      _buildSectionCard(
+                        "SỐ DƯ DỰ KIẾN CUỐI NGÀY",
+                        Icons.savings,
+                        Colors.green,
+                        [
+                          _infoRow(
+                            "Tiền mặt",
+                            MoneyUtils.formatCompactCurrency(expectedCash),
+                          ),
+                          _infoRow(
+                            "Ngân hàng",
+                            MoneyUtils.formatCompactCurrency(expectedBank),
+                          ),
+                          const Divider(height: 16),
+                          _infoRow(
+                            "Tổng dự kiến",
+                            MoneyUtils.formatCompactCurrency(totalFund),
+                            bold: true,
+                            color: Colors.green,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // ── Trạng thái chốt quỹ ──
+            _buildEmbeddedClosingStatus(
+              isClosed: isClosed,
+              isToday: isToday,
+              expectedCash: expectedCash,
+              expectedBank: expectedBank,
+            ),
+            const SizedBox(height: 12),
+            _ovCard(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Column(
+                children: [
+                  _ovLink(
+                    icon: Icons.arrow_upward_rounded,
+                    color: const Color(0xFF0F8A5F),
+                    label: 'Thu trong ngày',
+                    value: MoneyUtils.formatCompactCurrency(totalIn),
+                    onTap: () => _pushEmbeddedPage(
+                      'Thu$_scopeSuffix',
+                      _buildIncomeTab,
+                    ),
+                  ),
+                  _ovLink(
+                    icon: Icons.arrow_downward_rounded,
+                    color: const Color(0xFFC0392B),
+                    label: 'Chi trong ngày',
+                    value: MoneyUtils.formatCompactCurrency(totalOut),
+                    onTap: () => _pushEmbeddedPage(
+                      'Chi$_scopeSuffix',
+                      _buildExpenseTab,
+                    ),
+                  ),
+                  _ovLink(
+                    icon: Icons.history_rounded,
+                    color: const Color(0xFF6A1B9A),
+                    label: 'Lịch sử chốt quỹ',
+                    onTap: () => _pushEmbeddedPage(
+                      'Lịch sử chốt quỹ',
+                      _buildHistoryTab,
+                    ),
+                  ),
+                  _ovLink(
+                    icon: Icons.account_balance_outlined,
+                    color: const Color(0xFF164A9E),
+                    label: 'Chi tiết tài chính',
+                    onTap: () => _showEmbeddedSheet(
+                      'Tổng tài sản',
+                      (_) => _buildTotalAssetsCard(expectedCash, expectedBank),
+                    ),
+                  ),
+                  _ovLink(
+                    icon: Icons.table_view_outlined,
+                    color: const Color(0xFF2E7D32),
+                    label: 'Báo cáo quỹ (Excel)',
+                    divider: false,
+                    onTap: _exportCashClosingExcel,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Thẻ trạng thái: cam "CHƯA CHỐT QUỸ NGÀY" (+ khoảng ngày chưa chốt + nút
+  /// xanh) hoặc xanh "ĐÃ CHỐT QUỸ" (giờ, người, số chốt). Nút gọi đúng
+  /// `_showClosingDialog` cũ.
+  Widget _buildEmbeddedClosingStatus({
+    required bool isClosed,
+    required bool isToday,
+    required int expectedCash,
+    required int expectedBank,
+  }) {
+    final c = _todayClosing;
+    final gapText = _hasUnclosedGap
+        ? 'Từ ${DateFormat('dd/MM').format(_analysisStartDate)} đến nay chưa chốt quỹ ngày nào.'
+        : (isToday
+              ? 'Đếm tiền mặt + kiểm tra số dư NH rồi chốt trước khi đóng cửa.'
+              : 'Ngày ${DateFormat('dd/MM/yyyy').format(_selectedDate)} chưa được chốt quỹ.');
+    final color = isClosed ? const Color(0xFF0F8A5F) : const Color(0xFFE67E22);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isClosed ? const Color(0xFFE8F5EE) : const Color(0xFFFFF3E0),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                isClosed ? Icons.check_circle_rounded : Icons.warning_amber_rounded,
+                size: 22,
+                color: color,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  isClosed ? 'ĐÃ CHỐT QUỸ' : 'CHƯA CHỐT QUỸ NGÀY',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: color,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+            ],
           ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildOverviewTab(),
-                _buildIncomeTab(),
-                _buildExpenseTab(),
-                _buildHistoryTab(),
-              ],
+          const SizedBox(height: 6),
+          if (isClosed && c != null) ...[
+            Text(
+              'Chốt lúc ${_formatTime(c['closedAt'])} bởi ${c['closedBy'] ?? 'N/A'}',
+              style: const TextStyle(fontSize: 12, color: Color(0xFF5D6E8D)),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'TM: ${MoneyUtils.formatCompactCurrency(c['cashEnd'] ?? 0)} · NH: ${MoneyUtils.formatCompactCurrency(c['bankEnd'] ?? 0)}',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF0F1F3D),
+              ),
+            ),
+          ] else
+            Text(
+              gapText,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF5D6E8D)),
+            ),
+          if (!isClosed && isToday) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: ElevatedButton.icon(
+                onPressed: () => _showClosingDialog(expectedCash, expectedBank),
+                icon: const Icon(Icons.check_rounded, size: 18),
+                label: const Text(
+                  'Chốt quỹ ngày',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0F8A5F),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _heroSubTile(IconData icon, String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 13, color: Colors.white.withValues(alpha: 0.9)),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.white.withValues(alpha: 0.9),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 3),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Thẻ trắng bo 16 bóng nhẹ (cùng kiểu với `FinanceV2Widgets.card` — chép
+  /// tại chỗ để `views/` không import ngược `finance_v2/`).
+  Widget _ovCard({required Widget child, EdgeInsetsGeometry? padding}) {
+    return Container(
+      padding: padding ?? const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F1F3D).withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _ovLink({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    Color color = const Color(0xFF164A9E),
+    String? value,
+    Color? valueColor,
+    bool divider = true,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, size: 17, color: color),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF0F1F3D),
+                    ),
+                  ),
+                ),
+                if (value != null) ...[
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: valueColor ?? const Color(0xFF0F1F3D),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                ],
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: Color(0xFF5D6E8D),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (divider)
+          const Divider(height: 1, indent: 58, color: Color(0xFFEEF1F7)),
+      ],
+    );
+  }
+
+  /// Tăng mỗi lần `setState` — trang con đẩy bằng `_pushEmbeddedPage` lắng
+  /// nghe để vẽ lại theo state của màn này (chip lọc trong tab Thu/Chi gọi
+  /// `setState` của State này chứ không có state riêng).
+  final ValueNotifier<int> _rebuildTick = ValueNotifier<int>(0);
+
+  @override
+  void setState(VoidCallback fn) {
+    super.setState(fn);
+    if (mounted) _rebuildTick.value++;
+  }
+
+  /// Đẩy một trang con dùng builder của chính State này (Thu / Chi / Lịch
+  /// sử). Dữ liệu đã có trong bộ nhớ — KHÔNG tạo `CashClosingView` mới (tránh
+  /// chạy lại `_loadAllData`).
+  void _pushEmbeddedPage(String title, Widget Function() builder) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: const Color(0xFFF3F7FC),
+          appBar: CustomAppBar.build(
+            title: title,
+            accentColor: AppBarAccents.finance,
+          ),
+          body: ValueListenableBuilder<int>(
+            valueListenable: _rebuildTick,
+            builder: (_, __, ___) => ResponsiveCenter(child: builder()),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showEmbeddedSheet(
+    String title,
+    Widget Function(BuildContext) builder,
+  ) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.35,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (ctx, scrollCtrl) => Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFFF3F7FC),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 38,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDDE3EF),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF0F1F3D),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ValueListenableBuilder<int>(
+                  valueListenable: _rebuildTick,
+                  builder: (_, __, ___) => ListView(
+                    controller: scrollCtrl,
+                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+                    children: [builder(ctx)],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -3467,8 +3981,8 @@ class CashClosingViewState extends State<CashClosingView>
   /// chính `Future` vừa gán, mà `setState` khẳng định callback phải trả `void`
   /// ⇒ màn hình chết cờ đỏ ngay khi mở. Phải dùng thân hàm `{ }`.
   /// Cũng KHÔNG gọi hàm này trong `initState` — xem `initState`.
-  void _refreshHistory() {
-    final future = _loadHistoryClosings();
+  void _refreshHistory({bool forceCloud = false}) {
+    final future = _loadHistoryClosings(forceCloud: forceCloud);
     if (!mounted) {
       _historyFuture = future;
       return;
@@ -3478,8 +3992,20 @@ class CashClosingViewState extends State<CashClosingView>
     });
   }
 
-  /// Load history from Firestore first, fallback to local DB
-  Future<List<Map<String, dynamic>>> _loadHistoryClosings() async {
+  /// Lịch sử chốt quỹ: ĐỌC LOCAL TRƯỚC (`cash_closings` đã được SyncService
+  /// đồng bộ real-time về SQLite). Chỉ hỏi Firestore khi local trống hoặc
+  /// [forceCloud] (kéo-để-làm-mới) — trước đây mỗi `initState` + mỗi event
+  /// `cash_closings_changed` đều tải lại tới 365 doc từ cloud.
+  Future<List<Map<String, dynamic>>> _loadHistoryClosings({
+    bool forceCloud = false,
+  }) async {
+    if (!forceCloud) {
+      final local = await db.getAllCashClosings();
+      if (local.isNotEmpty) {
+        debugPrint('📋 [HISTORY] Loaded ${local.length} closings from local DB');
+        return local;
+      }
+    }
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId != null) {
@@ -3520,7 +4046,7 @@ class CashClosingViewState extends State<CashClosingView>
 
   Widget _buildHistoryTab() {
     return RefreshIndicator(
-      onRefresh: () async => _refreshHistory(),
+      onRefresh: () async => _refreshHistory(forceCloud: true),
       child: FutureBuilder<List<Map<String, dynamic>>>(
         future: _historyFuture,
         builder: (context, snapshot) {

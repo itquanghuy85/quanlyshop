@@ -1276,45 +1276,60 @@ class AppKnowledgeBase {
     ),
     KbEntry(
       id: 'finance-v2',
-      title: 'Tài chính (3 tab: Tiền / Lãi / Nợ)',
+      title: 'Tài chính (4 tab: Tiền / Lãi / Nợ / Chốt quỹ)',
       menuPath: 'Trang chủ → Tài chính',
       whatItDoes:
-          'Màn tài chính chính, chia theo 3 câu hỏi: TIỀN (thu/chi hôm nay gồm '
+          'Màn tài chính chính, chia theo 4 câu hỏi: TIỀN (thu/chi trong kỳ gồm '
           'những giao dịch nào), LÃI (bán/sửa xong còn lại bao nhiêu), NỢ (ai '
-          'nợ mình, mình nợ ai). In và xuất Excel ở menu ⋯.',
+          'nợ mình, mình nợ ai), CHỐT QUỸ (quỹ hiện tại bao nhiêu, hôm nay chốt '
+          'chưa). In và xuất Excel ở menu ⋯.',
       whenToUse: 'Xem sức khoẻ tài chính shop theo ngày / tuần / tháng / kỳ tuỳ chọn.',
       steps: [
         'Vào Tài chính. Thanh chọn kỳ nằm TRÊN CÙNG (Hôm nay / 7 ngày / 30 '
-            'ngày / Tùy chọn) và dùng chung cho cả 3 tab.',
-        '**Tiền** — dải tổng Tiền vào / Tiền ra / Còn lại nằm ngay trên danh '
-            'sách giao dịch. Bấm ô "Tiền vào" hoặc "Tiền ra" là lọc luôn danh '
-            'sách bên dưới. Hàng chip: Tất cả / Thu / Chi / Nhật ký thao tác. '
-            'Có sẵn 3 nút Ghi thu / Ghi chi / Chốt quỹ.',
-        '**Lãi** — khối "Lãi hôm nay/7 ngày qua…" nằm TRÊN CÙNG, đọc từ trên '
-            'xuống: Doanh thu đã thu (bán hàng + sửa chữa) − Vốn hàng đã bán − '
-            'Vốn linh kiện sửa chữa = LÃI GỘP − Chi phí vận hành = LÃI THỰC '
-            '(số in đầy đủ, không rút gọn). Dưới là "So với kỳ trước" (doanh '
-            'thu / vốn / lãi gộp), Cơ cấu tiền thu vào, Chi tiêu theo danh '
-            'mục, lối vào "Báo cáo đầy đủ". Không có quyền xem giá vốn thì '
-            'chỉ thấy doanh thu.',
-        '**Nợ** — chuyển giữa Phải thu / Phải trả, có phân nhóm tuổi nợ.',
+            'ngày / Tùy chọn) và dùng chung cho 3 tab Tiền / Lãi / Nợ; tab Chốt '
+            'quỹ thay bằng chip NGÀY (bấm để chọn ngày khác).',
+        '**Tiền** — thẻ "DÒNG TIỀN · kỳ": ô Tiền vào (xanh) / Tiền ra (đỏ), '
+            'dòng "Còn lại", biểu đồ cột thu/chi theo ngày, 2 nút Ghi thu / Ghi '
+            'chi. Bấm ô Tiền vào/Tiền ra là lọc luôn danh sách bên dưới. Hàng '
+            'chip: Tất cả / Thu / Chi / Khác (thu nợ, trả nợ, hoàn tiền) / 🔍 '
+            '(mở ô tìm) / Nhật ký. Danh sách "Giao dịch": mỗi dòng = tiêu đề, '
+            'ngày giờ · khách, món · hình thức thanh toán, số tiền; bấm dòng để '
+            'xem chi tiết đầy đủ.',
+        '**Lãi** — thẻ "KẾT QUẢ KINH DOANH · kỳ": Doanh thu (Bán hàng / Sửa '
+            'chữa) → Giá vốn → Lãi gộp → Chi phí vận hành → ô LÃI THỰC kèm '
+            'Biên lãi %. Dưới là thẻ "So với kỳ trước" (Doanh thu / Giá vốn / '
+            'Lãi gộp, mũi tên + số kỳ trước + %). Cuối là 3 dòng mở tiếp: Cơ '
+            'cấu doanh thu, Chi tiết chi phí (bảng trượt), Báo cáo đầy đủ (màn '
+            'riêng). Không có quyền xem giá vốn thì chỉ thấy doanh thu.',
+        '**Nợ** — 2 thẻ Phải thu / Phải trả (bấm để đổi bên), 3 ô tuổi nợ '
+            '(0–30 / 31–60 / >60 ngày, chỉ phải thu), danh sách gom theo người '
+            '(có 🔍 tìm tên/SĐT), bấm dòng để xem từng khoản. Dưới có: Xem chi '
+            'tiết công nợ (màn Công nợ), Lịch sử thu/trả nợ (lọc "Khác" ở tab '
+            'Tiền), Xuất Excel.',
+        '**Chốt quỹ** — thẻ xanh "QUỸ HIỆN TẠI" (tổng, Tiền mặt, Ngân hàng), '
+            'dòng "Dự kiến cuối ngày >" (số dư đầu kỳ + kỳ vọng), thẻ trạng '
+            'thái CHƯA CHỐT (kèm khoảng ngày chưa chốt + nút "Chốt quỹ ngày") '
+            'hoặc ĐÃ CHỐT. Dưới là các dòng mở tiếp: Thu trong ngày, Chi trong '
+            'ngày, Lịch sử chốt quỹ, Chi tiết tài chính (tổng tài sản, NH chưa '
+            'tất toán, phải thu/trả), Báo cáo quỹ (Excel).',
         'Menu ⋯ góc trên: Báo cáo đầy đủ, Đối soát tiền về, In tab đang xem, '
             'Xuất Excel tab đang xem, Xuất báo cáo ngày, Tải lại.',
-        'Bấm ⓘ ở góc để xem giải thích khái niệm.',
+        'Bấm ⓘ ở thẻ Kết quả kinh doanh để xem giải thích công thức.',
       ],
       notes: [
         'Các số ở đây là DÒNG TIỀN (tiền đã thu / đã chi), không phải lợi nhuận kế toán.',
         'Tab **Nợ KHÔNG theo khoảng thời gian đang chọn** — nợ là số dư còn lại '
-            'tới hiện tại, không phải phát sinh trong kỳ. Vì vậy tab này có '
-            'dòng nhắc "Toàn bộ công nợ chưa tất toán — không theo kỳ đang chọn".',
+            'tới hiện tại, không phải phát sinh trong kỳ (có dòng nhắc ở cuối tab).',
         '"Giao dịch tiền" khác "Nhật ký thao tác": cái đầu là tiền thật đã '
             'vào/ra, cái sau là lịch sử thao tác của nhân viên (kể cả thao tác '
-            'không sinh ra tiền). Đổi bằng chip cuối hàng lọc ở tab Tiền.',
+            'không sinh ra tiền). Đổi bằng chip "Nhật ký" cuối hàng lọc ở tab Tiền.',
         '**Báo cáo đầy đủ** là màn RIÊNG (mở từ tab Lãi hoặc menu ⋯), có bộ '
             'chọn kỳ riêng theo ngày / tháng / năm — cố ý tách ra để không đá '
             'nhau với thanh chọn kỳ chung.',
         'Không có quyền xem giá vốn (`allowViewCostPrice`) thì phần Vốn & lãi '
             'gộp bị ẩn, và các file in / Excel xuất ra cũng không có cột giá vốn.',
+        'Dữ liệu 4 tab đọc từ máy (SQLite) và có cache trong bộ nhớ — đổi tab / '
+            'đổi bộ lọc không tải lại; kéo xuống để làm mới, hoặc dùng "Tải lại" ở menu ⋯.',
       ],
       terms: ['dong-tien', 'don-tich'],
       sampleQuestions: [

@@ -10,6 +10,14 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Web:** `https://quanlyshop.web.app` đã build+deploy lại **15/09** (`flutter build web --release` + `firebase deploy --only hosting`) — bao gồm mọi thay đổi từ `[2026-09-14f..h]` (Tổng tài sản, danh sách "Chờ NH tất toán", fix crash sửa đơn, fix popup Nhận tiền NH tràn màn hình, fix hồ sơ khách vãng lai). Trước đó web đứng ở bản 12/09, thiếu hết các thay đổi này — đây là nguyên nhân user thấy "web khác bản mobile" test hôm qua.
 **Last Updated:** 2026-09-17  
 
+**Refactor Tài chính — UI mockup + cache + cắt read Chốt quỹ (`[2026-09-18b]`) ✅ Oppo OK:**
+- 4 tab Tiền/Lãi/Nợ/Chốt quỹ vẽ lại theo mockup (`finance_v2_widgets.dart`); Chốt quỹ
+  embedded bỏ TabBar con, drill-down qua dòng ">" dùng lại State cha.
+- `FinanceV2Cache` invalidate theo sự kiện; `CashClosingView` keep-alive + quét
+  Firestore tối đa 1 lần/10 phút/(shop, ngày); lịch sử chốt đọc local.
+- Báo cáo read: `DOCS/FINANCE_READ_AUDIT.md`. Còn nợ nghiệm thu máy thật: Ghi
+  thu/chi → UI cập nhật, chốt quỹ thật, offline (T4–T9 trong audit).
+
 **RepairDetailView — redesign + audit fixes (`[2026-09-17a]`):**
 - **Redesign body:** Tabbed layout 3 tab (Tổng quan/Dịch vụ/Lịch sử & Ghi chú).
   Header card (thumbnail + model + status badges + meta rows + action buttons) +

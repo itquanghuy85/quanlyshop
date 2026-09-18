@@ -28,10 +28,12 @@ import '../services/user_service.dart';
 import '../services/label_settings_service.dart';
 import '../services/unified_printer_service.dart';
 import '../models/printer_types.dart';
+import 'finance_v2_cache.dart';
 import 'finance_v2_data_service.dart';
 import 'finance_v2_excel_export.dart';
 import 'finance_v2_reconciliation.dart';
 import 'finance_v2_theme.dart';
+import 'finance_v2_widgets.dart';
 import 'finance_v2_daily_report_view.dart';
 import '../views/monthly_profit_report_view.dart';
 import '../views/money_reconcile_view.dart';
@@ -157,6 +159,14 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   _TimeFilter _timeFilter = _TimeFilter.today;
   String _txFilter = 'ALL';
   String _txQuery = '';
+
+  /// Ô tìm giao dịch chỉ hiện khi bấm chip 🔍 (đỡ chiếm một hàng cố định).
+  bool _txSearchOpen = false;
+
+  /// Tìm người trong tab Nợ — chỉ hiện ô khi bấm 🔍.
+  bool _debtSearchOpen = false;
+  String _debtQuery = '';
+  final _debtCtrl = TextEditingController();
   final String _txPm = '';
   bool _showRec = true;
 
@@ -202,7 +212,12 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     // (`_periodChips`/`_buildToolbarMenu`) — chờ animation dừng hẳn
     // (`!indexIsChanging`) để không setState mỗi frame lúc vuốt tab.
     _tabController.addListener(() {
-      if (!_tabController.indexIsChanging && mounted) setState(() {});
+      if (_tabController.indexIsChanging || !mounted) return;
+      setState(() {});
+      // Tab vừa mở có thể đang dùng bản cache đã bị sự kiện nghiệp vụ làm
+      // bẩn đúng mảng của nó (xem `FinanceV2Cache.invalidate`) — gọi `_load`
+      // để cache tự quyết: còn sạch thì trả ngay, không chạm SQLite.
+      _scheduleLoad();
     });
     _loadCostPermission();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -213,6 +228,13 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       setState(() {
         _txQuery = _txCtrl.text;
         _txPage = 1;
+      });
+    });
+    _debtCtrl.addListener(() {
+      if (!mounted) return;
+      setState(() {
+        _debtQuery = _debtCtrl.text;
+        _debtPage = 1;
       });
     });
     _tlCtrl.addListener(() {
@@ -232,25 +254,55 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         )
         .listen((event) {
           if (!mounted) return;
-          // Quyền gắn theo shop → đổi shop phải đọc lại, nếu không người của
-          // shop mới vẫn nhìn thấy giá vốn theo quyền của shop cũ.
-          if (event == EventBus.shopChanged) _loadCostPermission();
-          if (_syncBatchEvents.contains(event)) {
-            // Sync cloud→local (cài lại máy / máy mới) đổ dữ liệu theo từng
-            // collection và chỉ phát `<collection>_changed`, KHÔNG phát
-            // financialChanged. Mở tab Tài chính trong lúc đó thì số đứng
-            // yên ở bản chụp thiếu (đo thật 2026-09-12: tiền ra 1,25tr thay
-            // vì 17,35tr, phải trả 0) cho tới khi khởi động lại app. Gộp
-            // nhiều batch liên tiếp thành một lần tải lại.
-            _syncReloadTimer?.cancel();
-            _syncReloadTimer = Timer(const Duration(milliseconds: 600), () {
-              if (mounted) _load();
-            });
+          if (event == EventBus.shopChanged) {
+            // Quyền gắn theo shop → đổi shop phải đọc lại, nếu không người
+            // của shop mới vẫn nhìn thấy giá vốn theo quyền của shop cũ.
+            // Cache cũng KHÔNG được dùng xuyên shop.
+            _loadCostPermission();
+            FinanceV2Cache.clear();
+            _scheduleLoad();
             return;
           }
-          _load();
+          // Invalidate CHỌN LỌC: ghi thu/chi không làm bẩn mảng Nợ; sửa nợ
+          // không làm bẩn mảng Lãi. Tab đang mở không bị ảnh hưởng thì giữ
+          // nguyên số đang hiện, tới khi chuyển sang tab bị ảnh hưởng mới tải
+          // lại (listener của `_tabController`).
+          //
+          // Sync cloud→local (cài lại máy / máy mới) đổ dữ liệu theo từng
+          // collection và chỉ phát `<collection>_changed`, KHÔNG phát
+          // financialChanged (đo thật 2026-09-12). Gộp nhiều batch liên tiếp
+          // thành một lần tải lại — `_scheduleLoad` đã debounce.
+          final sections = FinanceV2Cache.sectionsForEvent(event);
+          if (sections != null && sections.isEmpty) return;
+          FinanceV2Cache.invalidate(sections);
+          if (sections == null || sections.contains(_sectionOfTab())) {
+            _scheduleLoad();
+          }
         });
     _load();
+  }
+
+  /// Mảng số liệu mà tab đang mở cần — tab Chốt quỹ tự lo dữ liệu riêng
+  /// (`CashClosingView`) nên coi như tab Tiền.
+  FinanceSection _sectionOfTab() {
+    switch (_tabController.index) {
+      case _tabProfit:
+        return FinanceSection.profit;
+      case _tabDebt:
+        return FinanceSection.debt;
+      default:
+        return FinanceSection.cash;
+    }
+  }
+
+  /// Gộp mọi yêu cầu tải lại trong 300ms thành MỘT lần `_load()`; đang tải
+  /// dở thì ghi nhớ để chạy thêm đúng một lần nữa khi xong (không xếp hàng
+  /// nhiều lần).
+  void _scheduleLoad() {
+    _syncReloadTimer?.cancel();
+    _syncReloadTimer = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) _load();
+    });
   }
 
   /// Sự kiện batch của SyncService ảnh hưởng tới số liệu tài chính.
@@ -272,6 +324,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     _tabController.dispose();
     _txCtrl.dispose();
     _tlCtrl.dispose();
+    _debtCtrl.dispose();
     _cashScroll.dispose();
     super.dispose();
   }
@@ -298,11 +351,29 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     }
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _loadError = null;
-    });
+  bool _loadInFlight = false;
+  bool _loadQueued = false;
+  bool _loadQueuedForce = false;
+
+  /// Tải snapshot cho kỳ đang chọn. Đi qua [FinanceV2Cache]: cùng kỳ, chưa
+  /// bị làm bẩn ⇒ trả bản trong bộ nhớ, không chạm SQLite. [force] = kéo để
+  /// làm mới, bỏ qua cache.
+  ///
+  /// Chỉ hiện vòng xoay khi CHƯA có gì để vẽ (`_snap == null`); có bản cũ thì
+  /// giữ nguyên trên màn hình trong lúc tải, không nháy trắng mỗi lần sync.
+  Future<void> _load({bool force = false}) async {
+    if (_loadInFlight) {
+      _loadQueued = true;
+      _loadQueuedForce = _loadQueuedForce || force;
+      return;
+    }
+    _loadInFlight = true;
+    if (_snap == null || _loadError != null) {
+      setState(() {
+        _loading = true;
+        _loadError = null;
+      });
+    }
     try {
       final prev = _previousPeriod();
       final d = await _service.loadSnapshot(
@@ -310,14 +381,22 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         end: _end,
         previousStart: prev.$1,
         previousEnd: prev.$2,
+        forceRefresh: force,
+        needs: {_sectionOfTab(), FinanceSection.transactions},
       );
       if (!mounted) return;
+      if (identical(d, _snap) && !_loading) {
+        // Cache trả lại đúng object đang hiện — không có gì để vẽ lại.
+        return;
+      }
       final timelineResult = await _buildTimelineCache(d);
+      if (!mounted) return;
       setState(() {
         _snap = d;
         _timelineCache = timelineResult.$1;
         _timelineUsingAuditFallback = timelineResult.$2;
         _loading = false;
+        _loadError = null;
         _txPage = 1;
         _debtPage = 1;
         _timelinePage = 1;
@@ -329,6 +408,14 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         _loading = false;
         _loadError = e.toString();
       });
+    } finally {
+      _loadInFlight = false;
+      if (_loadQueued && mounted) {
+        _loadQueued = false;
+        final f = _loadQueuedForce;
+        _loadQueuedForce = false;
+        _load(force: f);
+      }
     }
   }
 
@@ -447,6 +534,10 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   /// sách nằm ngay trong tab Tiền nên dùng hằng `_tabCash`; đổi thứ tự tab sau
   /// này cũng không âm thầm nhảy sai chỗ nữa.
   void _goTx(String f) {
+    // Đang mở bảng trượt chi tiết (tab Lãi) thì đóng nó trước, nếu không tab
+    // Tiền đổi bên dưới mà người dùng vẫn nhìn thấy sheet cũ.
+    final sheet = _openSheetCtx;
+    if (sheet != null && sheet.mounted) Navigator.of(sheet).pop();
     setState(() {
       _txFilter = f;
       // Đang xem nhật ký mà bấm ô Thu/Chi thì phải quay về danh sách giao dịch,
@@ -573,12 +664,22 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   /// Gom về một chỗ vì trước đây đoạn lọc này được chép lại nguyên văn ở ba
   /// nơi — `_txListBody`, `_exFromTab`, `_buildPrintLinesForTab` — nên sửa một
   /// chỗ là hai chỗ kia lệch theo mà không có gì báo.
+  static const Set<String> _primaryTxTypes = {
+    'SALE',
+    'REPAIR',
+    'EXPENSE',
+    'INCOME',
+  };
+
   List<FinanceV2Txn> _filteredTx(FinanceV2Snapshot s) {
     var tx = s.transactions.toList();
     if (_txFilter == 'IN') {
       tx = tx.where((t) => t.isIncome).toList();
     } else if (_txFilter == 'OUT') {
       tx = tx.where((t) => !t.isIncome).toList();
+    } else if (_txFilter == 'OTHER') {
+      // Không phải bán / sửa / thu-chi ghi tay ⇒ thu nợ, trả nợ, hoàn tiền.
+      tx = tx.where((t) => !_primaryTxTypes.contains(t.type)).toList();
     } else if (_txFilter != 'ALL') {
       tx = tx.where((t) => t.type == _txFilter).toList();
     }
@@ -676,7 +777,6 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   String _signedCmp(int v) => v < 0
       ? '-${MoneyUtils.formatCompactCurrency(v.abs())}'
       : MoneyUtils.formatCompactCurrency(v.abs());
-  String _full(int v) => MoneyUtils.formatCurrency(v.abs());
   int _ti(dynamic v) {
     if (v is int) return v;
     if (v is num) return v.toInt();
@@ -920,7 +1020,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         if (s != null && _canViewCost) _exDailyReportPhone(s);
         break;
       case _ToolbarAction.reload:
-        _load();
+        _load(force: true);
         break;
       case _ToolbarAction.moneyReconcile:
         openMoneyReconcile(context);
@@ -1375,7 +1475,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     // chiếm gần trọn màn hình.
     return ResponsiveCenter(
       child: RefreshIndicator(
-        onRefresh: _load,
+        onRefresh: () => _load(force: true),
         color: FinanceV2Theme.accent,
         child: CustomScrollView(
           controller: _cashScroll,
@@ -1399,185 +1499,128 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     );
   }
 
-  /// Dải tổng: Tiền vào — Tiền ra — Còn lại, kèm thanh tỉ lệ vào/ra.
-  ///
-  /// Thay cho khối `_hero` gradient cao gần nửa màn hình của bản cũ. Ba con số
-  /// đứng cùng một hàng nên đọc được quan hệ `vào − ra = còn lại` bằng mắt,
-  /// không phải nhớ số này rồi cuộn đi tìm số kia.
-  Widget _cashSummary(FinanceV2Snapshot s) {
-    final net = s.netCashflow;
-    return Container(
-      color: AppColors.surface,
-      padding: EdgeInsets.fromLTRB(_hPad, 10, _hPad, 10),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _sumCell(
-                  'Tiền vào',
-                  _cmp(s.totalIn),
-                  FinanceV2Theme.positive,
-                  Icons.arrow_downward_rounded,
-                  () => _goTx('IN'),
-                  selected: !_ledgerShowJournal && _txFilter == 'IN',
-                ),
-              ),
-              Expanded(
-                child: _sumCell(
-                  'Tiền ra',
-                  _cmp(s.totalOut),
-                  FinanceV2Theme.negative,
-                  Icons.arrow_upward_rounded,
-                  () => _goTx('OUT'),
-                  selected: !_ledgerShowJournal && _txFilter == 'OUT',
-                ),
-              ),
-              Expanded(
-                child: _sumCell(
-                  'Còn lại',
-                  _signedCmp(net),
-                  net >= 0 ? FinanceV2Theme.accent : FinanceV2Theme.negative,
-                  net >= 0
-                      ? Icons.savings_outlined
-                      : Icons.warning_amber_rounded,
-                  () => _goTx('ALL'),
-                  selected: !_ledgerShowJournal && _txFilter == 'ALL',
-                ),
-              ),
-            ],
-          ),
-          // Thanh tỉ lệ vào/ra rút còn một vạch mỏng, bỏ chữ số in trong thanh
-          // và bỏ hàng chú thích "● Tiền vào ● Tiền ra": cả hai chỉ nhắc lại
-          // đúng những gì ba con số ngay trên đã nói, mà ngốn ~55px — trên máy
-          // 1080×2400 chừng ấy là hơn nửa một dòng giao dịch.
-          if (s.totalIn + s.totalOut > 0) ...[
-            const SizedBox(height: 8),
-            _cfBar(s),
-          ],
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _actionButton(
-                  Icons.add_circle_outline_rounded,
-                  'Ghi thu',
-                  FinanceV2Theme.positive,
-                  () => _goExp('THU'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _actionButton(
-                  Icons.remove_circle_outline_rounded,
-                  'Ghi chi',
-                  FinanceV2Theme.negative,
-                  () => _goExp('CHI'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _actionButton(
-                  Icons.lock_clock_rounded,
-                  'Chốt quỹ',
-                  FinanceV2Theme.accent,
-                  // THỬ NGHIỆM: Chốt quỹ giờ là tab ngay trong màn này —
-                  // chuyển tab thay vì mở màn riêng (trước đây
-                  // `Navigator.push` + `_load()` lại sau khi đóng).
-                  () => _tabController.animateTo(_tabCashClosing),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+  /// Nhãn kỳ ngắn cho tiêu đề thẻ: "Hôm nay" / "7 ngày" / "30 ngày" / "01/09 - 06/09".
+  String get _periodShort {
+    switch (_timeFilter) {
+      case _TimeFilter.today:
+        return 'Hôm nay';
+      case _TimeFilter.sevenDays:
+        return '7 ngày';
+      case _TimeFilter.thirtyDays:
+        return '30 ngày';
+      case _TimeFilter.custom:
+        return _sub;
+    }
   }
 
-  Widget _sumCell(
-    String label,
-    String value,
-    Color color,
-    IconData icon,
-    VoidCallback onTap, {
-    bool selected = false,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-        decoration: BoxDecoration(
-          color: selected ? color.withValues(alpha: 0.10) : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: selected
-                ? color.withValues(alpha: 0.45)
-                : Colors.transparent,
-          ),
-        ),
+  /// Cột thu/chi theo ngày cho biểu đồ mini — lấp đủ mọi ngày trong kỳ (kể cả
+  /// ngày không có giao dịch) từ `s.byDay` (đã tính sẵn trong snapshot, không
+  /// đọc DB thêm). Kỳ dài hơn 31 ngày thì gom theo tháng cho khỏi vụn.
+  List<({String label, int inAmt, int outAmt})> _chartDays(FinanceV2Snapshot s) {
+    final totalDays = _end.difference(_start).inDays + 1;
+    if (totalDays > 31) {
+      return [
+        for (final b in s.byMonth)
+          (label: b.label, inAmt: b.totalIn, outAmt: b.totalOut),
+      ];
+    }
+    final byKey = {for (final b in s.byDay) b.key: b};
+    final out = <({String label, int inAmt, int outAmt})>[];
+    var d = DateTime(_start.year, _start.month, _start.day);
+    final last = DateTime(_end.year, _end.month, _end.day);
+    while (!d.isAfter(last)) {
+      final key =
+          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+      final b = byKey[key];
+      out.add((
+        label: '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}',
+        inAmt: b?.totalIn ?? 0,
+        outAmt: b?.totalOut ?? 0,
+      ));
+      d = d.add(const Duration(days: 1));
+    }
+    return out;
+  }
+
+  /// Thẻ "DÒNG TIỀN · kỳ": 2 ô Tiền vào / Tiền ra, biểu đồ cột mini theo
+  /// ngày, 2 nút Ghi thu / Ghi chi. Bấm ô Tiền vào/Tiền ra là lọc luôn danh
+  /// sách bên dưới. (Nút "Chốt quỹ" bỏ khỏi đây vì đã là tab thứ 4.)
+  Widget _cashSummary(FinanceV2Snapshot s) {
+    final net = s.netCashflow;
+    final days = _chartDays(s);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(_hPad, 12, _hPad, 0),
+      child: FinanceV2Widgets.card(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            FinanceV2Widgets.sectionLabel(
+              'Dòng tiền · $_periodShort',
+              trailing: Text(
+                'Còn lại ${_signedCmp(net)}',
+                style: FinanceV2Theme.micro.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: net >= 0
+                      ? FinanceV2Theme.accent
+                      : FinanceV2Theme.negative,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 13, color: color),
-                const SizedBox(width: 3),
-                Flexible(
-                  child: Text(
-                    label,
-                    style: FinanceV2Theme.micro,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                Expanded(
+                  child: FinanceV2Widgets.statTile(
+                    label: 'Tiền vào',
+                    value: _cmp(s.totalIn),
+                    color: FinanceV2Theme.positive,
+                    tint: FinanceV2Widgets.tintGreen,
+                    icon: Icons.arrow_upward_rounded,
+                    selected: !_ledgerShowJournal && _txFilter == 'IN',
+                    onTap: () => _goTx(_txFilter == 'IN' ? 'ALL' : 'IN'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FinanceV2Widgets.statTile(
+                    label: 'Tiền ra',
+                    value: _cmp(s.totalOut),
+                    color: FinanceV2Theme.negative,
+                    tint: FinanceV2Widgets.tintRed,
+                    icon: Icons.arrow_downward_rounded,
+                    selected: !_ledgerShowJournal && _txFilter == 'OUT',
+                    onTap: () => _goTx(_txFilter == 'OUT' ? 'ALL' : 'OUT'),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 2),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                value,
-                style: FinanceV2Theme.amountLg.copyWith(color: color),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _actionButton(
-    IconData icon,
-    String label,
-    Color color,
-    VoidCallback onTap,
-  ) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withValues(alpha: 0.25)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 15, color: color),
-            const SizedBox(width: 5),
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: FinanceV2Theme.meta.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w700,
+            if (days.length >= 2 && s.totalIn + s.totalOut > 0) ...[
+              const SizedBox(height: 12),
+              FinanceV2Widgets.miniBars(days),
+            ],
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: FinanceV2Widgets.outlinedAction(
+                    icon: Icons.add_circle_outline_rounded,
+                    label: 'Ghi thu',
+                    color: FinanceV2Theme.positive,
+                    tint: FinanceV2Widgets.tintGreen,
+                    onTap: () => _goExp('THU'),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FinanceV2Widgets.outlinedAction(
+                    icon: Icons.remove_circle_outline_rounded,
+                    label: 'Ghi chi',
+                    color: FinanceV2Theme.negative,
+                    tint: FinanceV2Widgets.tintRed,
+                    onTap: () => _goExp('CHI'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -1585,51 +1628,80 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     );
   }
 
-  /// Một hàng chip duy nhất: lọc danh sách + lối sang nhật ký thao tác.
+
+
+
+
+  /// Hàng lọc dính đầu danh sách: Tất cả / Thu / Chi / Khác / 🔍 / Nhật ký.
   ///
-  /// Bản cũ dùng hai nút phân đoạn to bằng nửa màn cho "Giao dịch tiền / Nhật
-  /// ký thao tác", còn bộ lọc Thu/Chi thì KHÔNG có nút nào — chỉ đặt được gián
-  /// tiếp bằng cách bấm thẻ KPI ở tab khác, và không có cách nào bỏ lọc. Nay cả
-  /// bốn lựa chọn nằm chung một hàng, luôn thấy cái nào đang bật.
+  /// "Khác" = giao dịch KHÔNG phải bán hàng / sửa chữa / thu-chi ghi tay
+  /// (tức thu nợ, trả nợ, hoàn tiền) — xem `_filteredTx`. Mọi chip chỉ lọc
+  /// lại danh sách đã có trong bộ nhớ, không chạm DB/Firestore.
   Widget _cashFilterRow() {
+    final onList = !_ledgerShowJournal;
     return Container(
       alignment: Alignment.centerLeft,
       decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: Color(0xFFEEF1F7))),
+        color: FinanceV2Theme.pageBg,
+        border: Border(bottom: BorderSide(color: Color(0xFFE6ECF5))),
       ),
       padding: EdgeInsets.symmetric(horizontal: _hPad),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            _modeChip(
-              'Tất cả',
-              !_ledgerShowJournal && _txFilter == 'ALL',
-              () => _goTx('ALL'),
+            FinanceV2Widgets.filterChip(
+              label: 'Tất cả',
+              selected: onList && _txFilter == 'ALL',
+              onTap: () => _goTx('ALL'),
             ),
             const SizedBox(width: 6),
-            _modeChip(
-              'Thu',
-              !_ledgerShowJournal && _txFilter == 'IN',
-              () => _goTx('IN'),
+            FinanceV2Widgets.filterChip(
+              label: 'Thu',
+              selected: onList && _txFilter == 'IN',
+              onTap: () => _goTx('IN'),
             ),
             const SizedBox(width: 6),
-            _modeChip(
-              'Chi',
-              !_ledgerShowJournal && _txFilter == 'OUT',
-              () => _goTx('OUT'),
+            FinanceV2Widgets.filterChip(
+              label: 'Chi',
+              selected: onList && _txFilter == 'OUT',
+              onTap: () => _goTx('OUT'),
+            ),
+            const SizedBox(width: 6),
+            FinanceV2Widgets.filterChip(
+              label: 'Khác',
+              selected: onList && _txFilter == 'OTHER',
+              onTap: () => _goTx('OTHER'),
+            ),
+            const SizedBox(width: 6),
+            FinanceV2Widgets.filterChip(
+              label: '',
+              icon: Icons.search_rounded,
+              selected: _txSearchOpen,
+              onTap: () {
+                setState(() {
+                  _txSearchOpen = !_txSearchOpen;
+                  if (!_txSearchOpen) {
+                    _txCtrl.clear();
+                    _txQuery = '';
+                  }
+                });
+              },
             ),
             const SizedBox(width: 8),
-            Container(width: 1, height: 20, color: const Color(0xFFE3EAF6)),
+            Container(width: 1, height: 18, color: const Color(0xFFDCE3EF)),
             const SizedBox(width: 8),
-            _modeChip('Nhật ký thao tác', _ledgerShowJournal, () {
-              setState(() {
-                _ledgerShowJournal = true;
-                _timelinePage = 1;
-              });
-              _scrollCashToTop();
-            }),
+            FinanceV2Widgets.filterChip(
+              label: 'Nhật ký',
+              selected: _ledgerShowJournal,
+              onTap: () {
+                setState(() {
+                  _ledgerShowJournal = true;
+                  _timelinePage = 1;
+                });
+                _scrollCashToTop();
+              },
+            ),
           ],
         ),
       ),
@@ -1637,85 +1709,130 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   }
 
   // ============================ TAB "LÃI" ============================
-  /// Mọi thứ trả lời câu "có lãi không" gom về đây.
-  ///
-  /// Thứ tự đọc đi từ TIỀN THẬT tới KẾT LUẬN: thu về từ đâu → chi vào việc gì
-  /// → lãi gộp còn lại bao nhiêu → so với kỳ trước.
+  /// Tab Lãi = MỘT thẻ kết quả kinh doanh + thẻ so kỳ trước + 3 dòng mở
+  /// tiếp (Cơ cấu doanh thu / Chi tiết chi phí / Báo cáo đầy đủ). Hai phần
+  /// chi tiết chỉ dựng khi người dùng bấm mở (bottom sheet) — vẫn lấy từ
+  /// snapshot đã có trong bộ nhớ, không tải thêm gì.
   Widget _profitBody() {
     final s = _snap;
     if (s == null) return _empty('Không có dữ liệu');
     return ResponsiveCenter(
       child: RefreshIndicator(
-        onRefresh: _load,
+        onRefresh: () => _load(force: true),
         color: FinanceV2Theme.accent,
         child: ListView(
-          padding: const EdgeInsets.only(top: 12),
-          // Tab tên là "Lãi" thì con số lãi phải là thứ đầu tiên đập vào mắt.
-          // Bản cũ xếp "Cơ cấu tiền thu" + "Chi tiêu theo danh mục" lên trên,
-          // lãi gộp tụt xuống dưới màn hình — chủ tiệm mở tab ra không thấy
-          // lãi đâu (phản hồi 2026-09-12 "nhìn không hiểu gì").
+          padding: EdgeInsets.fromLTRB(_hPad, 12, _hPad, 24),
           children: [
             _profitSection(s),
+            if (_canViewCost) ...[
+              const SizedBox(height: 12),
+              _compSection(s),
+            ],
             const SizedBox(height: 12),
-            _compSection(s),
-            const SizedBox(height: 12),
-            _incomeSection(s),
-            const SizedBox(height: 12),
-            _expCatSection(s),
-            const SizedBox(height: 12),
-            _fullReportLink(),
-            const SizedBox(height: 24),
+            FinanceV2Widgets.card(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Column(
+                children: [
+                  FinanceV2Widgets.linkRow(
+                    icon: Icons.pie_chart_outline_rounded,
+                    label: 'Cơ cấu doanh thu',
+                    onTap: () => _showDetailSheet(
+                      'Cơ cấu doanh thu',
+                      (ctx) => _incomeSection(s),
+                    ),
+                  ),
+                  FinanceV2Widgets.linkRow(
+                    icon: Icons.receipt_long_outlined,
+                    label: 'Chi tiết chi phí',
+                    color: FinanceV2Theme.negative,
+                    onTap: () => _showDetailSheet(
+                      'Chi tiết chi phí',
+                      (ctx) => _expCatSection(s),
+                    ),
+                  ),
+                  FinanceV2Widgets.linkRow(
+                    icon: Icons.assessment_outlined,
+                    label: 'Báo cáo đầy đủ',
+                    color: FinanceV2Theme.positive,
+                    showDivider: false,
+                    onTap: _openFullReport,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  /// Lối vào màn Báo cáo đầy đủ (in / xuất Excel / theo ngày, tháng, năm).
-  ///
-  /// Báo cáo KHÔNG còn là tab: nó có bộ chọn kỳ riêng không đồng bộ với thanh
-  /// chọn kỳ chung, để chung một màn thì hai bộ lọc đá nhau mà người dùng
-  /// không hề được báo. Tách ra màn riêng thì mỗi màn một bộ lọc, rõ ràng.
-  Widget _fullReportLink() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: _hPad),
-      child: InkWell(
-        onTap: _openFullReport,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: FinanceV2Theme.elevatedPanel(),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.assessment_rounded,
-                color: FinanceV2Theme.accent,
-                size: 20,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Báo cáo đầy đủ', style: FinanceV2Theme.titleMd),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Theo ngày / tháng / năm · in & xuất Excel',
-                      style: FinanceV2Theme.micro,
-                    ),
-                  ],
+  /// Context của bottom sheet chi tiết đang mở (nếu có) — để `_goTx` đóng
+  /// sheet trước khi nhảy sang tab Tiền.
+  BuildContext? _openSheetCtx;
+
+  /// Bảng trượt chi tiết dùng chung cho tab Lãi / Chốt quỹ.
+  Future<void> _showDetailSheet(
+    String title,
+    Widget Function(BuildContext) builder,
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        _openSheetCtx = ctx;
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.35,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (ctx, scrollCtrl) => Container(
+            decoration: const BoxDecoration(
+              color: FinanceV2Theme.pageBg,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+            ),
+            child: Column(
+              children: [
+                const SizedBox(height: 8),
+                Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDDE3EF),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: FinanceV2Theme.subInk,
-              ),
-            ],
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(title, style: FinanceV2Theme.titleLg),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.of(ctx).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ListView(
+                    controller: scrollCtrl,
+                    padding: const EdgeInsets.only(bottom: 24),
+                    children: [builder(ctx)],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
+    _openSheetCtx = null;
   }
+
+
 
   void _openFullReport() {
     Navigator.push(
@@ -1726,29 +1843,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     });
   }
 
-  Widget _sectionTitle(String title, String hint) {
-    return Row(
-      children: [
-        Text(title, style: FinanceV2Theme.titleMd),
-        const SizedBox(width: 6),
-        Tooltip(
-          message: hint,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => _showSectionHint(title, hint),
-            child: const Padding(
-              padding: EdgeInsets.all(2),
-              child: Icon(
-                Icons.info_outline_rounded,
-                size: 16,
-                color: FinanceV2Theme.subInk,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+
 
   void _showSectionHint(String title, String hint) {
     showDialog<void>(
@@ -1772,7 +1867,17 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       builder: (_) =>
           ExpenseView(initialMode: m, openCreateDialogOnStart: true),
     ),
-  ).then((_) => _load());
+  ).then((_) {
+    // Màn Thu/Chi có thể vừa ghi giao dịch — làm bẩn đúng 3 mảng bị ảnh
+    // hưởng (PHẦN 10 spec): tiền, lãi (chi phí vận hành), danh sách; KHÔNG
+    // đụng mảng Nợ.
+    FinanceV2Cache.invalidate(const {
+      FinanceSection.cash,
+      FinanceSection.profit,
+      FinanceSection.transactions,
+    });
+    _load();
+  });
 
   Widget _alerts(FinanceV2Snapshot s) {
     final list = <Map<String, dynamic>>[];
@@ -1827,131 +1932,68 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     );
   }
 
-  /// So sánh LÃI với kỳ trước — đây là tab Lãi nên so lãi, không so tiền.
-  ///
-  /// Bản cũ đặt ở đây 3 ô Thu tiền / Chi tiền / Còn lại (tiền ròng sổ quỹ) —
-  /// ngay dưới khối lãi gộp, nên "Còn lại 838 Tr" bị đọc nhầm thành lãi (lãi
-  /// gộp cùng kỳ chỉ 573 Tr). Tiền vào/ra/còn lại đã có sẵn ở tab Tiền.
-  ///
-  /// Không có quyền giá vốn thì chỉ so doanh thu (lãi suy ngược ra được vốn).
-  /// Chỉ MỘT dòng % cho lãi gộp; kỳ trước = 0 thì không in % (tránh
-  /// "+1650%" vô nghĩa).
+  /// Thẻ "So với kỳ trước": 3 cột Doanh thu / Giá vốn / Lãi gộp, mỗi cột có
+  /// mũi tên màu, số kỳ trước và %. CHỈ gọi khi có quyền giá vốn (cột Giá vốn
+  /// và Lãi gộp lộ vốn). Doanh thu kỳ trước = lãi gộp + vốn kỳ trước (snapshot
+  /// không lưu riêng; cùng cash basis, xem data service).
   Widget _compSection(FinanceV2Snapshot s) {
     final revenue = s.incomeFromSales + s.incomeFromRepairs;
     final gross = s.grossProfitTotal;
     final prevGross =
         s.previousGrossProfitFromSales + s.previousGrossProfitFromRepairs;
-    // Snapshot không lưu riêng doanh thu kỳ trước; lãi gộp + vốn = doanh thu
-    // (cùng cash basis, xem `previousGrossProfitFromSales` ở data service).
-    final prevRevenue =
-        prevGross + s.previousCogsFromSales + s.previousCogsFromRepairs;
-    final chg = (!_canViewCost || prevGross <= 0)
-        ? null
-        : ((gross - prevGross) / prevGross) * 100.0;
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: _hPad),
-      child: Container(
-        decoration: FinanceV2Theme.elevatedPanel(),
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _sectionTitle(
-              'So với $_compLabel',
-              'So doanh thu đã thu và lãi gộp của kỳ đang chọn với kỳ liền trước có cùng độ dài.',
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(child: _cs('Doanh thu', revenue, prevRevenue)),
-                if (_canViewCost) ...[
-                  Expanded(
-                    child: _cs('Vốn', revenue - gross, prevRevenue - prevGross),
-                  ),
-                  Expanded(
-                    child: _cs('Lãi gộp', gross, prevGross, net: true),
-                  ),
-                ],
-              ],
-            ),
-            if (chg != null) ...[
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Icon(
-                    chg >= 0
-                        ? Icons.trending_up_rounded
-                        : Icons.trending_down_rounded,
-                    size: 14,
-                    color: chg >= 0
-                        ? FinanceV2Theme.positive
-                        : FinanceV2Theme.negative,
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      'Lãi gộp ${chg >= 0 ? "tăng" : "giảm"} ${chg.abs().toStringAsFixed(0)}% so với $_compLabel',
-                      style: FinanceV2Theme.micro.copyWith(
-                        color: chg >= 0
-                            ? FinanceV2Theme.positive
-                            : FinanceV2Theme.negative,
-                      ),
-                    ),
-                  ),
-                ],
+    final prevCogs = s.previousCogsFromSales + s.previousCogsFromRepairs;
+    final prevRevenue = prevGross + prevCogs;
+    return FinanceV2Widgets.card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'So với $_compLabel',
+            style: FinanceV2Theme.titleMd.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: FinanceV2Widgets.compareColumn(
+                  label: 'Doanh thu',
+                  current: revenue,
+                  previous: prevRevenue,
+                ),
+              ),
+              Expanded(
+                child: FinanceV2Widgets.compareColumn(
+                  label: 'Giá vốn',
+                  current: revenue - gross,
+                  previous: prevCogs,
+                  higherIsBetter: false,
+                ),
+              ),
+              Expanded(
+                child: FinanceV2Widgets.compareColumn(
+                  label: 'Lãi gộp',
+                  current: gross,
+                  previous: prevGross,
+                ),
               ),
             ],
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  /// Một ô so sánh: nhãn + số kỳ này + số kỳ trước (chữ nhỏ, để đối chiếu).
-  ///
-  /// Bản cũ in "%" thay cho số kỳ trước. Với cửa hàng nhỏ, kỳ trước thường rất
-  /// nhỏ hoặc bằng 0 nên phần trăm bung thành "+1650%" — vô nghĩa. Hiện thẳng
-  /// số kỳ trước thì người đọc tự thấy được gốc so sánh.
-  Widget _cs(String lbl, int cur, int prev, {bool net = false}) {
-    final tc = net
-        ? (cur >= 0 ? FinanceV2Theme.positive : FinanceV2Theme.negative)
-        : FinanceV2Theme.ink;
-    return Column(
-      children: [
-        Text(lbl, style: FinanceV2Theme.caption),
-        const SizedBox(height: 2),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            net ? _signedCmp(cur) : _cmp(cur),
-            style: FinanceV2Theme.amountMd.copyWith(color: tc),
-          ),
-        ),
-        const SizedBox(height: 2),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            'trước: ${net ? _signedCmp(prev) : _cmp(prev)}',
-            style: FinanceV2Theme.caption,
-          ),
-        ),
-      ],
-    );
-  }
 
-  /// Lãi — đọc theo **thác nước** từ trên xuống: thu về bao nhiêu, trừ vốn
-  /// còn lãi gộp, trừ chi phí vận hành còn lãi thực. Mỗi phép trừ nhìn thấy
-  /// được nên tự kiểm tra được.
+
+  /// Thẻ "KẾT QUẢ KINH DOANH · kỳ" — đọc theo thác nước: Doanh thu (bán /
+  /// sửa) → Giá vốn → Lãi gộp → Chi phí vận hành → LÃI THỰC (ô nổi bật kèm
+  /// biên lãi). Công thức GIỮ NGUYÊN bản trước: lãi gộp = doanh thu đã thu −
+  /// vốn; lãi thực = lãi gộp − chi phí vận hành (`operatingExpenseOut`, không
+  /// gồm nhập hàng / trả nợ NCC / thanh toán đối tác).
   ///
-  /// Số in ĐẦY ĐỦ (848.200.000) chứ không rút gọn "848.2 Tr": trong app dấu
-  /// chấm là ngăn nghìn, nên "24.43 Tr" đọc thành "24.430 triệu" — chủ tiệm
-  /// đọc không ra (phản hồi 2026-09-12). Dạng rút gọn chỉ còn dùng ở các ô so
-  /// sánh 3 cột phía dưới, và đã đổi sang dấu phẩy thập phân kiểu Việt.
-  ///
-  /// "Lãi thực" = lãi gộp − chi phí vận hành, cùng công thức với dòng
-  /// "Lãi thực (sau chi phí)" trong Báo cáo đầy đủ / in / Excel. Chi vận hành
-  /// KHÔNG gồm nhập hàng, trả nợ NCC, thanh toán đối tác, vốn sửa chữa (đã
-  /// nằm trong vốn) — xem `operatingExpenseOut`.
+  /// CLAUDE.md §9: không có quyền giá vốn thì ẩn cả vốn, lãi gộp, lãi thực,
+  /// biên lãi (từ doanh thu − lãi suy ngược ra vốn được).
   Widget _profitSection(FinanceV2Snapshot s) {
     final revenue = s.incomeFromSales + s.incomeFromRepairs;
     final cogs = s.cogsFromSales + s.cogsFromRepairs;
@@ -1959,107 +2001,136 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final net = gross - s.operatingExpenseOut;
     Color signColor(int v) =>
         v >= 0 ? FinanceV2Theme.positive : FinanceV2Theme.negative;
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: _hPad),
-      child: Container(
-        decoration: FinanceV2Theme.elevatedPanel(),
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _sectionTitle(
-              'Lãi $_periodLabel',
-              'Tính trên phần tiền ĐÃ THU trong kỳ — đơn công nợ chưa thu chưa được tính.\n\n'
-                  'Doanh thu đã thu − vốn hàng/linh kiện = LÃI GỘP.\n'
-                  'Lãi gộp − chi phí vận hành (điện nước, mặt bằng, lương, chi khác…) = LÃI THỰC.\n\n'
-                  'Chi phí vận hành không gồm tiền nhập hàng, trả nợ NCC, thanh toán đối tác '
-                  '(những khoản đó là vốn, đã trừ ở dòng vốn hoặc là tiền tồn kho).',
+    final margin = revenue > 0 ? net * 100 / revenue : null;
+    return FinanceV2Widgets.card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          FinanceV2Widgets.sectionLabel(
+            'Kết quả kinh doanh · $_periodShort',
+            trailing: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => _showSectionHint(
+                'Lãi $_periodLabel',
+                'Tính trên phần tiền ĐÃ THU trong kỳ — đơn công nợ chưa thu chưa được tính.\n\n'
+                    'Doanh thu đã thu − vốn hàng/linh kiện = LÃI GỘP.\n'
+                    'Lãi gộp − chi phí vận hành (điện nước, mặt bằng, lương, chi khác…) = LÃI THỰC.\n\n'
+                    'Chi phí vận hành không gồm tiền nhập hàng, trả nợ NCC, thanh toán đối tác '
+                    '(những khoản đó là vốn, đã trừ ở dòng vốn hoặc là tiền tồn kho).',
+              ),
+              child: const Padding(
+                padding: EdgeInsets.all(2),
+                child: Icon(
+                  Icons.info_outline_rounded,
+                  size: 15,
+                  color: FinanceV2Theme.subInk,
+                ),
+              ),
             ),
-            const SizedBox(height: 12),
-            _wfRow(
-              'Doanh thu đã thu',
-              revenue,
-              FinanceV2Theme.ink,
-              bold: true,
+          ),
+          const SizedBox(height: 6),
+          FinanceV2Widgets.kpiRow(
+            'Doanh thu',
+            revenue,
+            icon: Icons.shopping_cart_outlined,
+            bold: true,
+          ),
+          FinanceV2Widgets.kpiRow('Bán hàng', s.incomeFromSales, sub: true),
+          FinanceV2Widgets.kpiRow('Sửa chữa', s.incomeFromRepairs, sub: true),
+          if (_canViewCost) ...[
+            const Divider(height: 14, color: FinanceV2Widgets.divider),
+            FinanceV2Widgets.kpiRow(
+              'Giá vốn',
+              cogs,
+              icon: Icons.sell_outlined,
             ),
-            _wfRow(
-              'Bán hàng',
-              s.incomeFromSales,
-              FinanceV2Theme.subInk,
-              indent: true,
+            FinanceV2Widgets.kpiRow(
+              'Lãi gộp',
+              gross,
+              icon: Icons.trending_up_rounded,
+              amountColor: signColor(gross),
+              signed: true,
             ),
-            _wfRow(
-              'Sửa chữa',
-              s.incomeFromRepairs,
-              FinanceV2Theme.subInk,
-              indent: true,
+            FinanceV2Widgets.kpiRow(
+              'Chi phí vận hành',
+              s.operatingExpenseOut,
+              icon: Icons.receipt_long_outlined,
+              amountColor: FinanceV2Theme.negative,
             ),
-            if (_canViewCost) ...[
-              const SizedBox(height: 4),
-              _wfRow(
-                '− Vốn hàng đã bán',
-                s.cogsFromSales,
-                FinanceV2Theme.negative,
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: net >= 0
+                    ? FinanceV2Widgets.tintGreen
+                    : FinanceV2Widgets.tintRed,
+                borderRadius: BorderRadius.circular(10),
               ),
-              _wfRow(
-                '− Vốn linh kiện sửa chữa',
-                s.cogsFromRepairs,
-                FinanceV2Theme.negative,
-              ),
-              const Divider(height: 18, thickness: 0.5),
-              _wfRow(
-                '= Lãi gộp',
-                gross,
-                signColor(gross),
-                bold: true,
-                signed: true,
-              ),
-              const SizedBox(height: 4),
-              _wfRow(
-                '− Chi phí vận hành',
-                s.operatingExpenseOut,
-                FinanceV2Theme.negative,
-              ),
-              const Divider(height: 18, thickness: 0.5),
-              _wfRow(
-                '= Lãi thực',
-                net,
-                signColor(net),
-                bold: true,
-                signed: true,
-                hero: true,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                revenue > 0
-                    ? 'Cứ 100đ thu về thì lãi thực ${(net * 100 / revenue).round()}đ.'
-                    : 'Chưa có tiền thu trong kỳ này.',
-                style: FinanceV2Theme.micro,
-              ),
-            ] else if (_costPermissionResolved)
-              // CLAUDE.md §9: chặn giá vốn ở CẢ giao diện lẫn dữ liệu xuất ra.
-              // Ẩn luôn cả lãi gộp, vì "doanh thu − lãi gộp" là suy ra được vốn.
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.lock_outline_rounded,
-                      size: 14,
-                      color: FinanceV2Theme.subInk,
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.savings_outlined,
+                        size: 18,
+                        color: signColor(net),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Lãi thực',
+                          style: FinanceV2Theme.titleMd.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        _signedCmp(net),
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: signColor(net),
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (margin != null) ...[
+                    const SizedBox(height: 4),
+                    Align(
+                      alignment: Alignment.centerRight,
                       child: Text(
-                        'Bạn không có quyền xem giá vốn nên phần vốn & lãi được ẩn.',
-                        style: FinanceV2Theme.micro,
+                        'Biên lãi ${margin.toStringAsFixed(1).replaceAll('.', ',')}%',
+                        style: FinanceV2Theme.micro.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
-                ),
+                ],
               ),
-          ],
-        ),
+            ),
+          ] else if (_costPermissionResolved)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.lock_outline_rounded,
+                    size: 14,
+                    color: FinanceV2Theme.subInk,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Bạn không có quyền xem giá vốn nên phần vốn & lãi được ẩn.',
+                      style: FinanceV2Theme.micro,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -2072,59 +2143,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     return 'kỳ này';
   }
 
-  /// Một dòng của bảng thác nước: nhãn bên trái, số ĐẦY ĐỦ bên phải.
-  /// [indent] = dòng con (thụt vào, chữ nhỏ, số không đậm).
-  /// [hero] = dòng kết (số to hơn).
-  Widget _wfRow(
-    String label,
-    int amount,
-    Color color, {
-    bool bold = false,
-    bool signed = false,
-    bool indent = false,
-    bool hero = false,
-  }) {
-    final text = signed && amount < 0 ? '-${_full(amount)}' : _full(amount);
-    final TextStyle labelStyle;
-    if (hero) {
-      labelStyle = FinanceV2Theme.titleLg;
-    } else if (bold) {
-      labelStyle = FinanceV2Theme.bodyMd.copyWith(fontWeight: FontWeight.w700);
-    } else if (indent) {
-      labelStyle = FinanceV2Theme.bodySm.copyWith(color: FinanceV2Theme.subInk);
-    } else {
-      labelStyle = FinanceV2Theme.bodySm;
-    }
-    final TextStyle amountStyle;
-    if (hero) {
-      amountStyle = FinanceV2Theme.amountLg.copyWith(fontSize: 20, color: color);
-    } else if (bold) {
-      amountStyle = FinanceV2Theme.amountMd.copyWith(
-        fontSize: 15,
-        color: color,
-      );
-    } else if (indent) {
-      amountStyle = FinanceV2Theme.bodySm.copyWith(color: color);
-    } else {
-      amountStyle = FinanceV2Theme.bodyMd.copyWith(
-        color: color,
-        fontWeight: FontWeight.w700,
-      );
-    }
-    return Padding(
-      padding: EdgeInsets.only(top: 3, bottom: 3, left: indent ? 14 : 0),
-      child: Row(
-        children: [
-          Expanded(child: Text(label, style: labelStyle)),
-          const SizedBox(width: 8),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(text, style: amountStyle),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _incomeSection(FinanceV2Snapshot s) {
     if (s.totalIn == 0) return const SizedBox.shrink();
@@ -2227,38 +2246,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     );
   }
 
-  /// Vạch tỉ lệ vào/ra — 8px, không chữ, không chú thích.
-  ///
-  /// Ba con số ngay phía trên đã ghi rõ số tiền và đã tô đúng màu xanh/đỏ, nên
-  /// in lại số vào trong thanh và thêm hàng "● Tiền vào ● Tiền ra" chỉ là nói
-  /// hai lần. Vẫn bấm được từng nửa để lọc như cũ.
-  Widget _cfBar(FinanceV2Snapshot s) {
-    final tot = s.totalIn + s.totalOut;
-    final inR = tot > 0 ? s.totalIn / tot : 0.5;
-    final inF = (inR * 100).round().clamp(1, 99);
-    final outF = (100 - inF).clamp(1, 99);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
-      child: Row(
-        children: [
-          Expanded(
-            flex: inF,
-            child: GestureDetector(
-              onTap: () => _goTx('IN'),
-              child: Container(height: 8, color: FinanceV2Theme.positive),
-            ),
-          ),
-          Expanded(
-            flex: outF,
-            child: GestureDetector(
-              onTap: () => _goTx('OUT'),
-              child: Container(height: 8, color: FinanceV2Theme.negative),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _expCatSection(FinanceV2Snapshot s) {
     if (s.topExpenseCategories.isEmpty) return const SizedBox.shrink();
@@ -2354,20 +2342,25 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final txPageNow = _txPage.clamp(1, txPageMax);
     final txView = _slicePage(tx, txPageNow, _txPageSize);
     return [
+      if (_txSearchOpen)
+        SliverToBoxAdapter(
+          child: Container(
+            color: FinanceV2Theme.pageBg,
+            padding: EdgeInsets.fromLTRB(_hPad, 8, _hPad, 4),
+            child: _sf(_txCtrl, 'Tìm giao dịch...', _txQuery, () {
+              _txCtrl.clear();
+              setState(() => _txQuery = '');
+            }),
+          ),
+        ),
       SliverToBoxAdapter(
-        child: Container(
-          color: AppColors.surface,
-          padding: EdgeInsets.fromLTRB(_hPad, 6, _hPad, 6),
-          child: _sf(_txCtrl, 'Tìm giao dịch...', _txQuery, () {
-            _txCtrl.clear();
-            setState(() => _txQuery = '');
-          }),
+        child: _listMetaRow(
+          'Giao dịch',
+          '${tx.length} giao dịch'
+              '${txPageMax > 1 ? ' · trang $txPageNow/$txPageMax' : ''}',
+          () => _exTx(tx),
         ),
       ),
-      SliverToBoxAdapter(child: _listMetaRow(
-        '${tx.length} giao dịch • Trang $txPageNow/$txPageMax',
-        () => _exTx(tx),
-      )),
       if (tx.isEmpty)
         SliverToBoxAdapter(
           child: Padding(
@@ -2376,10 +2369,26 @@ class _FinanceV2ViewState extends State<FinanceV2View>
           ),
         )
       else
-        SliverList.separated(
-          itemCount: txView.length,
-          separatorBuilder: (_, __) => const Divider(height: 1, indent: 56),
-          itemBuilder: (_, i) => _txRow(txView[i]),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: _hPad),
+            child: FinanceV2Widgets.card(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Column(
+                children: [
+                  for (var i = 0; i < txView.length; i++) ...[
+                    if (i > 0)
+                      const Divider(
+                        height: 1,
+                        indent: 64,
+                        color: FinanceV2Widgets.divider,
+                      ),
+                    _txRow(txView[i]),
+                  ],
+                ],
+              ),
+            ),
+          ),
         ),
       SliverToBoxAdapter(
         child: _pager(
@@ -2395,27 +2404,31 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     ];
   }
 
-  /// Dòng đếm + nút xuất Excel, dùng chung cho danh sách giao dịch và nhật ký.
-  Widget _listMetaRow(String label, VoidCallback onExport) {
-    return Container(
-      color: const Color(0xFFF8F9FA),
-      padding: EdgeInsets.fromLTRB(_hPad, 0, 4, 0),
+  /// Dòng tiêu đề danh sách: "Giao dịch" trái · đếm phải · nút xuất Excel.
+  Widget _listMetaRow(String title, String count, VoidCallback onExport) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(_hPad + 2, 12, _hPad - 4, 4),
       child: Row(
         children: [
-          Expanded(
-            child: Text(
-              label,
-              style: FinanceV2Theme.meta,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+          Text(
+            title,
+            style: FinanceV2Theme.titleMd.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const Spacer(),
+          Text(
+            count,
+            style: FinanceV2Theme.micro,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           IconButton(
             visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
             icon: const Icon(
               Icons.download_rounded,
               color: FinanceV2Theme.accent,
-              size: 20,
+              size: 18,
             ),
             tooltip: 'Xuất Excel',
             onPressed: onExport,
@@ -2424,94 +2437,32 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       ),
     );
   }
+
+  /// Một giao dịch = 3 dòng: tiêu đề · "17/09 14:12 · KHÁCH" · "món · hình
+  /// thức TT"; số tiền to bên phải. Chi tiết đầy đủ (NV, mã, ngân hàng…) chỉ
+  /// mở khi bấm — không nhồi hết vào danh sách.
   Widget _txRow(FinanceV2Txn t) {
     final dt = DateFormat(
       'dd/MM HH:mm',
     ).format(DateTime.fromMillisecondsSinceEpoch(t.createdAt));
-    final c = t.isIncome ? FinanceV2Theme.positive : FinanceV2Theme.negative;
-    final detailParts = <String>[];
-    final methodRaw = (t.paymentMethod ?? '').trim();
-    if ((t.actorName ?? '').isNotEmpty) {
-      detailParts.add('NV: ${t.actorName!}');
+    final who = (t.customerName ?? '').trim();
+    final meta = who.isNotEmpty ? '$dt · ${who.toUpperCase()}' : dt;
+    final parts = <String>[];
+    final item = (t.itemName ?? '').trim();
+    if (item.isNotEmpty) {
+      parts.add(item);
+    } else if (t.subtitle.trim().isNotEmpty && t.subtitle.trim() != who) {
+      parts.add(t.subtitle.trim());
     }
-    if ((t.referenceId ?? '').isNotEmpty) {
-      final ref = t.referenceId!.trim();
-      detailParts.add(
-        ref.length > 10 ? 'Mã: ${ref.substring(0, 10)}' : 'Mã: $ref',
-      );
-    }
-    final bankHint = _extractInstallmentBank(t.subtitle);
-    // Dòng giao dịch gộp còn 2 dòng phụ thay vì 3.
-    //
-    // Bản trước xuống dòng riêng cho huy hiệu hình thức thanh toán, rồi lại
-    // xuống dòng nữa cho "NV: … · Mã: …" — mỗi giao dịch chiếm ~100px, trên máy
-    // 1080×2400 nhìn được đúng 1-2 dòng. Nay huy hiệu và phần "NV/Mã" nằm
-    // CHUNG một hàng, không mất thông tin nào.
-    return ListTile(
-      dense: true,
-      visualDensity: const VisualDensity(vertical: -1),
-      contentPadding: EdgeInsets.symmetric(horizontal: _hPad, vertical: 2),
-      leading: EntityAvatar(
-        imageUrl: t.avatarUrl,
-        name: t.title,
-        radius: 18,
-        tappableToView: false,
-      ),
-      title: Text(
-        t.title,
-        style: FinanceV2Theme.bodyMd,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            t.subtitle,
-            style: FinanceV2Theme.micro,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          if (methodRaw.isNotEmpty || detailParts.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 3),
-              child: Row(
-                children: [
-                  if (methodRaw.isNotEmpty) _paymentBadge(methodRaw),
-                  if (bankHint != null && bankHint.isNotEmpty) ...[
-                    const SizedBox(width: 4),
-                    Flexible(child: _bankBadge(bankHint)),
-                  ],
-                  if (detailParts.isNotEmpty) ...[
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        detailParts.join(' • '),
-                        style: FinanceV2Theme.caption,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-        ],
-      ),
-      trailing: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            '${t.isIncome ? "+" : "-"}${_cmp(t.amount)}',
-            style: FinanceV2Theme.bodyMd.copyWith(
-              fontWeight: FontWeight.w600,
-              color: c,
-            ),
-          ),
-          Text(dt, style: FinanceV2Theme.caption),
-        ],
-      ),
+    final pm = _paymentLabel(t.paymentMethod);
+    if (pm.isNotEmpty) parts.add(pm);
+    return FinanceV2Widgets.txTile(
+      type: t.type,
+      isIncome: t.isIncome,
+      title: t.title,
+      meta: meta,
+      meta2: parts.join(' · '),
+      amount: t.amount,
       onTap: () => _openTL(
         _TLEntry(
           ts: t.createdAt,
@@ -2529,215 +2480,116 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     );
   }
 
-  Widget _paymentBadge(String methodRaw) {
-    final normalized = methodRaw.trim().toUpperCase();
-    String label = methodRaw;
-    Color color = FinanceV2Theme.subInk;
-
-    if (normalized.contains('TRẢ GÓP') || normalized.contains('INSTALLMENT')) {
-      label = 'Trả góp';
-      color = const Color(0xFF6A1B9A);
-    } else if (normalized == 'CÔNG NỢ' || normalized == 'DEBT') {
-      label = 'Công nợ';
-      color = FinanceV2Theme.warn;
-    } else if (normalized == 'TIỀN MẶT' || normalized == 'CASH') {
-      label = 'Tiền mặt';
-      color = FinanceV2Theme.positive;
-    } else if (normalized == 'CHUYỂN KHOẢN' || normalized == 'TRANSFER') {
-      label = 'Chuyển khoản';
-      color = const Color(0xFF1565C0);
-    } else if (normalized == 'KẾT HỢP' || normalized == 'MIXED') {
-      label = 'Kết hợp';
-      color = const Color(0xFF00695C);
+  /// Nhãn ngắn hình thức thanh toán cho dòng meta (rỗng nếu không rõ).
+  String _paymentLabel(String? raw) {
+    final n = (raw ?? '').trim().toUpperCase();
+    if (n.isEmpty) return '';
+    if (n.contains('TRẢ GÓP') || n.contains('TRA GOP') || n.contains('INSTALLMENT')) {
+      return 'Trả góp';
     }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
-      ),
-      child: Text(
-        label,
-        style: FinanceV2Theme.caption.copyWith(
-          color: color,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
+    if (n.contains('KẾT HỢP') || n.contains('KET HOP') || n.contains('MIXED')) {
+      return 'Kết hợp';
+    }
+    if (n.contains('CHUYỂN') || n.contains('CHUYEN') || n.contains('BANK') || n == 'CK') {
+      return 'Chuyển khoản';
+    }
+    if (n.contains('TIỀN MẶT') || n.contains('TIEN MAT') || n == 'CASH' || n == 'TM') {
+      return 'Tiền mặt';
+    }
+    return raw!.trim();
   }
 
-  Widget _bankBadge(String bankName) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: const Color(0xFF4E342E).withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: const Color(0xFF4E342E).withValues(alpha: 0.30),
-        ),
-      ),
-      child: Text(
-        'NH: $bankName',
-        style: FinanceV2Theme.caption.copyWith(
-          color: const Color(0xFF4E342E),
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
 
-  String? _extractInstallmentBank(String subtitle) {
-    const marker = 'NH:';
-    final idx = subtitle.indexOf(marker);
-    if (idx < 0) return null;
-    final bank = subtitle.substring(idx + marker.length).trim();
-    if (bank.isEmpty) return null;
-    return bank;
-  }
+
+
+
+
 
   // TAB 2
+  /// Tab Nợ: 2 thẻ chọn Phải thu / Phải trả (đầy màu khi chọn) → 3 ô tuổi nợ
+  /// → danh sách gom theo người (có tìm) → 3 dòng mở tiếp.
+  ///
+  /// Chỉ render phía đang chọn; cả hai danh sách đều đã nằm trong snapshot
+  /// (một query `debts` còn dư, lọc ở SQL) nên đổi bên KHÔNG chạm DB.
+  /// Tên người, ảnh, SĐT đã được data service gắn sẵn theo tên (batch lookup)
+  /// — không tra customer riêng cho từng dòng.
   Widget _debtBody() {
     final s = _snap;
     if (s == null) return _empty('Không có dữ liệu');
     final items = _showRec ? s.receivables : s.payables;
-    // GOM THEO NGƯỜI. Bản cũ mỗi khoản một dòng nên "LK THẢO LỢI" hiện 5-6
-    // dòng liền nhau, 43 khoản trải 3 trang — nhìn không ra tổng nợ của ai là
-    // bao nhiêu, mà bấm dòng nào cũng chỉ mở lại đúng màn Công nợ.
-    final groups = _groupDebts(items);
+    var groups = _groupDebts(items);
+    if (_debtQuery.trim().isNotEmpty) {
+      final q = VietnameseUtils.normalize(_debtQuery.trim());
+      groups = groups
+          .where(
+            (g) =>
+                VietnameseUtils.normalize(g.name).contains(q) ||
+                (g.phone ?? '').contains(q),
+          )
+          .toList();
+    }
     final debtPageMax = _maxPage(groups.length, _debtPageSize);
     final debtPageNow = _debtPage.clamp(1, debtPageMax);
     final debtView = _slicePage(groups, debtPageNow, _debtPageSize);
-    final total = _showRec ? s.receivableTotal : s.payableTotal;
+    final sideColor = _showRec ? FinanceV2Theme.accent : FinanceV2Theme.negative;
     return ResponsiveCenter(
-      child: Column(
-        children: [
-          // Công nợ là SỐ DƯ tại thời điểm hiện tại, không phải phát sinh trong
-          // kỳ. Thanh chọn kỳ ở header vẫn sáng chip "Hôm nay" nên phải nói
-          // thẳng ở đây, nếu không người xem tưởng con số là của kỳ đang chọn.
-          Container(
-            width: double.infinity,
-            color: const Color(0xFFF4F8FF),
-            padding: EdgeInsets.fromLTRB(_hPad, 8, _hPad, 8),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.all_inclusive_rounded,
-                  size: 14,
-                  color: FinanceV2Theme.accent,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    'Toàn bộ công nợ chưa tất toán — không theo kỳ đang chọn',
-                    style: FinanceV2Theme.caption,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            color: AppColors.surface,
-            padding: EdgeInsets.fromLTRB(_hPad, 8, _hPad, 8),
-            child: Row(
+      child: RefreshIndicator(
+        onRefresh: () => _load(force: true),
+        color: FinanceV2Theme.accent,
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(_hPad, 12, _hPad, 24),
+          children: [
+            Row(
               children: [
                 Expanded(
-                  child: GestureDetector(
+                  child: FinanceV2Widgets.debtToggle(
+                    label: 'Phải thu',
+                    amount: s.receivableTotal,
+                    selected: _showRec,
+                    color: FinanceV2Theme.accent,
                     onTap: () => setState(() {
                       _showRec = true;
                       _debtPage = 1;
                     }),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 9,
-                        horizontal: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _showRec
-                            ? FinanceV2Theme.warn
-                            : const Color(0xFFF0F3F9),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        'Phải thu  ${_cmp(s.receivableTotal)}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: FinanceV2Theme.bodyMd.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: _showRec
-                              ? AppColors.surface
-                              : FinanceV2Theme.subInk,
-                        ),
-                      ),
-                    ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: GestureDetector(
+                  child: FinanceV2Widgets.debtToggle(
+                    label: 'Phải trả',
+                    amount: s.payableTotal,
+                    selected: !_showRec,
+                    color: FinanceV2Theme.negative,
                     onTap: () => setState(() {
                       _showRec = false;
                       _debtPage = 1;
                     }),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 9,
-                        horizontal: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: !_showRec
-                            ? FinanceV2Theme.negative
-                            : const Color(0xFFF0F3F9),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        'Phải trả  ${_cmp(s.payableTotal)}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: FinanceV2Theme.bodyMd.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: !_showRec
-                              ? AppColors.surface
-                              : FinanceV2Theme.subInk,
-                        ),
-                      ),
-                    ),
                   ),
                 ),
               ],
             ),
-          ),
-          if (_showRec && s.totalDebtAging > 0)
-            Container(
-              color: AppColors.surface,
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-              child: Row(
+            if (_showRec) ...[
+              const SizedBox(height: 10),
+              Row(
                 children: [
                   Expanded(
-                    child: _aging(
-                      '0-30 ngày',
+                    child: FinanceV2Widgets.agingTile(
+                      '0–30 ngày',
                       s.debtAging['0-30'] ?? 0,
                       FinanceV2Theme.positive,
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   Expanded(
-                    child: _aging(
-                      '31-60 ngày',
+                    child: FinanceV2Widgets.agingTile(
+                      '31–60 ngày',
                       s.debtAging['30-60'] ?? 0,
                       FinanceV2Theme.warn,
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   Expanded(
-                    child: _aging(
+                    child: FinanceV2Widgets.agingTile(
                       '>60 ngày',
                       s.debtAging['>60'] ?? 0,
                       FinanceV2Theme.negative,
@@ -2745,58 +2597,137 @@ class _FinanceV2ViewState extends State<FinanceV2View>
                   ),
                 ],
               ),
-            ),
-          Container(
-            color: const Color(0xFFF8F9FA),
-            padding: EdgeInsets.fromLTRB(_hPad, 6, _hPad, 6),
-            child: Row(
+            ],
+            const SizedBox(height: 14),
+            Row(
               children: [
                 Expanded(
                   child: Text(
-                    '${groups.length} người • ${items.length} khoản • Trang $debtPageNow/$debtPageMax · Tổng: ${_full(total)}',
-                    style: FinanceV2Theme.meta,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                    _showRec
+                        ? 'Danh sách khách hàng (${groups.length})'
+                        : 'Danh sách đối tác (${groups.length})',
+                    style: FinanceV2Theme.titleMd.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(
-                    Icons.download_rounded,
-                    color: FinanceV2Theme.accent,
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  icon: Icon(
+                    _debtSearchOpen ? Icons.search_off_rounded : Icons.search_rounded,
                     size: 20,
+                    color: FinanceV2Theme.subInk,
                   ),
-                  tooltip: 'Xuất Excel',
-                  onPressed: () => _exDebt(items),
+                  onPressed: () => setState(() {
+                    _debtSearchOpen = !_debtSearchOpen;
+                    if (!_debtSearchOpen) {
+                      _debtCtrl.clear();
+                      _debtQuery = '';
+                      _debtPage = 1;
+                    }
+                  }),
                 ),
               ],
             ),
-          ),
-          Container(height: 1, color: const Color(0xFFEEF1F7)),
-          Expanded(
-            child: items.isEmpty
-                ? _empty(
-                    _showRec
-                        ? 'Không có khoản phải thu'
-                        : 'Không có khoản phải trả',
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    itemCount: debtView.length,
-                    separatorBuilder: (_, __) =>
-                        const Divider(height: 1, indent: 60),
-                    itemBuilder: (_, i) => _debtGroupRow(debtView[i]),
+            if (_debtSearchOpen) ...[
+              const SizedBox(height: 4),
+              _sf(_debtCtrl, 'Tìm theo tên / SĐT...', _debtQuery, () {
+                _debtCtrl.clear();
+                setState(() {
+                  _debtQuery = '';
+                  _debtPage = 1;
+                });
+              }),
+            ],
+            const SizedBox(height: 6),
+            if (groups.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 36),
+                child: _empty(
+                  _showRec
+                      ? 'Không có khoản phải thu'
+                      : 'Không có khoản phải trả',
+                ),
+              )
+            else
+              FinanceV2Widgets.card(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Column(
+                  children: [
+                    for (var i = 0; i < debtView.length; i++) ...[
+                      if (i > 0)
+                        const Divider(
+                          height: 1,
+                          indent: 64,
+                          color: FinanceV2Widgets.divider,
+                        ),
+                      _debtGroupRow(debtView[i], sideColor),
+                    ],
+                  ],
+                ),
+              ),
+            _pager(
+              total: groups.length,
+              page: debtPageNow,
+              pageSize: _debtPageSize,
+              unit: 'người',
+              onChanged: (p) {
+                setState(() => _debtPage = p);
+              },
+            ),
+            const SizedBox(height: 6),
+            FinanceV2Widgets.card(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Column(
+                children: [
+                  FinanceV2Widgets.linkRow(
+                    icon: Icons.account_balance_wallet_outlined,
+                    label: 'Xem chi tiết công nợ',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const DebtView()),
+                    ).then((_) {
+                      _invalidateAfterDebtPayment();
+                      _load();
+                    }),
                   ),
-          ),
-          _pager(
-            total: groups.length,
-            page: debtPageNow,
-            pageSize: _debtPageSize,
-            unit: 'người',
-            onChanged: (p) {
-              setState(() => _debtPage = p);
-            },
-          ),
-        ],
+                  FinanceV2Widgets.linkRow(
+                    icon: Icons.history_rounded,
+                    label: 'Lịch sử thu / trả nợ',
+                    color: FinanceV2Theme.warn,
+                    onTap: () => _goTx('OTHER'),
+                  ),
+                  FinanceV2Widgets.linkRow(
+                    icon: Icons.table_view_outlined,
+                    label: 'Xuất Excel',
+                    color: FinanceV2Theme.positive,
+                    showDivider: false,
+                    onTap: () => _exDebt(items),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(
+                  Icons.all_inclusive_rounded,
+                  size: 13,
+                  color: FinanceV2Theme.subInk,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Công nợ là số dư hiện tại — không theo kỳ đang chọn.',
+                    style: FinanceV2Theme.caption,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2837,74 +2768,70 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     return list;
   }
 
-  /// Một dòng = MỘT NGƯỜI, hiện tổng còn nợ và số khoản. Bấm để xem chi tiết
-  /// từng khoản (nợ vì việc gì, bao nhiêu, lúc nào).
-  Widget _debtGroupRow(_DebtGroup g) {
-    final color = _showRec ? FinanceV2Theme.warn : FinanceV2Theme.negative;
+  /// Một dòng = MỘT NGƯỜI: ảnh · tên · "N khoản · quá hạn X ngày / đã trả Y"
+  /// · số còn nợ. Bấm để xem từng khoản (`_showDebtGroupDetail`).
+  Widget _debtGroupRow(_DebtGroup g, Color color) {
     final age = g.oldestAt > 0
         ? DateTime.now()
               .difference(DateTime.fromMillisecondsSinceEpoch(g.oldestAt))
               .inDays
         : 0;
-    final pct = g.total > 0 ? g.paid / g.total : 0.0;
-    return ListTile(
-      dense: true,
-      visualDensity: const VisualDensity(vertical: -1),
-      contentPadding: EdgeInsets.symmetric(horizontal: _hPad, vertical: 2),
-      leading: EntityAvatar(
-        imageUrl: g.avatarUrl,
-        name: g.name,
-        radius: 18,
-        tappableToView: false,
-      ),
-      title: Text(
-        g.name,
-        style: FinanceV2Theme.bodyMd.copyWith(fontWeight: FontWeight.w600),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '${g.items.length} khoản'
-            '${g.paid > 0 ? ' · đã trả ${_cmp(g.paid)}' : ''}'
-            '${age > 0 ? ' · lâu nhất $age ngày' : ''}',
-            style: FinanceV2Theme.micro,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 3),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: pct.clamp(0.0, 1.0),
-              minHeight: 4,
-              backgroundColor: const Color(0xFFEEF1F7),
-              valueColor: AlwaysStoppedAnimation(color),
-            ),
-          ),
-        ],
-      ),
-      trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(
-            _cmp(g.remaining),
-            style: FinanceV2Theme.amountMd.copyWith(
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
-          ),
-          const Icon(
-            Icons.chevron_right_rounded,
-            size: 16,
-            color: FinanceV2Theme.subInk,
-          ),
-        ],
-      ),
+    final meta = StringBuffer('${g.items.length} khoản');
+    if (age > 0) meta.write(' · ${age > 30 ? 'quá hạn' : 'lâu nhất'} $age ngày');
+    if (g.paid > 0) meta.write(' · đã trả ${_cmp(g.paid)}');
+    return InkWell(
       onTap: () => _showDebtGroupDetail(g),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        child: Row(
+          children: [
+            EntityAvatar(
+              imageUrl: g.avatarUrl,
+              name: g.name,
+              radius: 19,
+              tappableToView: false,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    g.name.toUpperCase(),
+                    style: FinanceV2Theme.bodyMd.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    meta.toString(),
+                    style: FinanceV2Theme.micro,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              _cmp(g.remaining),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: FinanceV2Theme.subInk,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -3058,6 +2985,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     );
     if (!mounted || !paid) return;
     if (sheetCtx.mounted) Navigator.of(sheetCtx).pop();
+    _invalidateAfterDebtPayment();
     await _load();
   }
 
@@ -3109,8 +3037,16 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     // bảng đó, không dùng context của State — `Navigator.of(State.context)` là
     // navigator ngoài, pop bằng nó dễ đóng nhầm màn khác.
     if (sheetCtx.mounted) Navigator.of(sheetCtx).pop();
+    _invalidateAfterDebtPayment();
     await _load();
   }
+
+  /// Thu/trả nợ đổi tiền + công nợ + danh sách giao dịch; KHÔNG đổi lãi.
+  void _invalidateAfterDebtPayment() => FinanceV2Cache.invalidate(const {
+    FinanceSection.cash,
+    FinanceSection.debt,
+    FinanceSection.transactions,
+  });
 
   /// Lịch sử các lần đã trả của một khoản nợ.
   Future<void> _showDebtPaymentHistory(FinanceV2DebtItem d) async {
@@ -3380,31 +3316,6 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     );
   }
 
-  Widget _aging(String lbl, int amt, Color c) => Container(
-    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-    decoration: BoxDecoration(
-      color: c.withValues(alpha: 0.07),
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: c.withValues(alpha: 0.3)),
-    ),
-    child: Column(
-      children: [
-        Text(
-          lbl,
-          style: FinanceV2Theme.micro.copyWith(color: c),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 2),
-        Text(
-          _cmp(amt),
-          style: FinanceV2Theme.bodySm.copyWith(
-            fontWeight: FontWeight.w700,
-            color: c,
-          ),
-        ),
-      ],
-    ),
-  );
 
   // TAB 4
   /// Phần "nhật ký thao tác" của tab Tiền, dưới dạng sliver — xem `_txSlivers`.
@@ -3491,7 +3402,8 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       ),
       SliverToBoxAdapter(
         child: _listMetaRow(
-          '${ents.length} mục • Trang $timelinePageNow/$timelinePageMax',
+          'Nhật ký',
+          '${ents.length} mục · trang $timelinePageNow/$timelinePageMax',
           () => _exTL(ents),
         ),
       ),

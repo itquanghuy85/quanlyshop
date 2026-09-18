@@ -454,6 +454,17 @@ class _ScenarioDb implements DBHelper {
       sc.debts;
 
   @override
+  Future<List<Map<String, dynamic>>> getOutstandingDebtsForFinanceSnapshot() async =>
+      sc.debts
+          .where(
+            (d) =>
+                ((d['totalAmount'] as num?)?.toInt() ?? 0) -
+                    ((d['paidAmount'] as num?)?.toInt() ?? 0) >
+                0,
+          )
+          .toList();
+
+  @override
   Future<List<Map<String, dynamic>>> getFinancialActivities({
     int? startDate,
     int? endDate,

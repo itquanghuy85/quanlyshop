@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import '../data/db_helper.dart';
 import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
+import '../services/user_service.dart';
+import 'finance_v2_cache.dart';
 
 enum FinanceV2Aggregation { day, month, year }
 
@@ -290,11 +292,32 @@ class FinanceV2DataService {
     return merged;
   }
 
+  /// `shopId` hiện tại, an toàn khi không có Firebase (test): trả `null` ⇒
+  /// [FinanceV2Cache] không cache, mỗi lần gọi tính lại từ DB stub.
+  static String? _safeShopId() {
+    try {
+      return UserService.getShopIdSync();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Nạp snapshot cho khoảng kỳ. Có [FinanceV2Cache] phía trước: cùng shop +
+  /// cùng kỳ + chưa bị sự kiện nghiệp vụ làm bẩn mảng đang cần ([needs]) thì
+  /// trả bản trong bộ nhớ, KHÔNG chạm SQLite. [forceRefresh] (kéo để làm mới)
+  /// bỏ qua cache.
   Future<FinanceV2Snapshot> loadSnapshot({
     DateTime? start,
     DateTime? end,
     DateTime? previousStart,
     DateTime? previousEnd,
+    bool forceRefresh = false,
+    Set<FinanceSection> needs = const {
+      FinanceSection.cash,
+      FinanceSection.profit,
+      FinanceSection.debt,
+      FinanceSection.transactions,
+    },
   }) async {
     final now = DateTime.now();
     final rangeStart = DateTime(
@@ -337,6 +360,18 @@ class FinanceV2DataService {
       previousStartMs = previousEndMs - periodMs + 1;
     }
 
+    final cacheKey = FinanceV2Cache.key(
+      shopId: _safeShopId(),
+      startMs: startMs,
+      endMs: endMs,
+      previousStartMs: previousStartMs,
+      previousEndMs: previousEndMs,
+    );
+    if (!forceRefresh) {
+      final cached = FinanceV2Cache.get(cacheKey, needs: needs);
+      if (cached != null) return cached;
+    }
+
     // Start all reads simultaneously so sqflite can pipeline them.
     final salesF = _db.getSalesByDateRange(startMs, endMs);
     final repairsF = _db.getDeliveredRepairsByDateRange(startMs, endMs);
@@ -345,7 +380,7 @@ class FinanceV2DataService {
     final debtPaymentsF = _db.getDebtPaymentsForCashFlowByDateRange(startMs, endMs);
     final salesReturnsF = _db.getSalesReturnsByDateRange(startMs, endMs);
     final importHistoryF = _db.getAllImportHistoryByDateRange(startMs, endMs);
-    final debtsF = _db.getDebtsForFinanceSnapshot();
+    final debtsF = _db.getOutstandingDebtsForFinanceSnapshot();
     final activitiesF = _db.getFinancialActivities(startDate: startMs, endDate: endMs, limit: 500);
     final costFundRepairsF = _db.getRepairsCostFundByDateRange(startMs, endMs);
     // Đơn trả góp NHẬN tiền tất toán trong kỳ — có thể đã bán từ rất lâu nên
@@ -1104,7 +1139,7 @@ class FinanceV2DataService {
       }
     }
 
-    return FinanceV2Snapshot(
+    final snapshot = FinanceV2Snapshot(
       totalIn: totalIn,
       totalOut: totalOut,
       operatingExpenseOut: operatingExpenseOut,
@@ -1142,6 +1177,8 @@ class FinanceV2DataService {
       auditLogs: activities,
       debtAging: debtAging,
     );
+    FinanceV2Cache.put(cacheKey, snapshot);
+    return snapshot;
   }
 
   List<FinanceV2PeriodBucket> _buildBuckets(

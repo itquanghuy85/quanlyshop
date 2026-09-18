@@ -4,6 +4,66 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-18b] - Refactor module TÀI CHÍNH: UI kiểu app tài chính + cache snapshot + cắt read Firestore tab Chốt quỹ
+
+### Mục tiêu
+Theo spec refactor 2026-09-18 (giữ 4 tab Tiền / Lãi / Nợ / Chốt quỹ, Thu/Chi là bộ lọc
+trong tab Tiền, UI gọn theo mockup, local-first, không thêm get()/listener).
+
+### UI (`lib/finance_v2/finance_v2_widgets.dart` MỚI — bộ khối dùng chung, chỉ vẽ)
+- **Tiền:** thẻ "DÒNG TIỀN · kỳ" (ô Tiền vào/Tiền ra nền nhạt, "Còn lại", **biểu đồ
+  cột mini thu/chi theo ngày** từ `s.byDay` — >31 ngày gom theo tháng, 2 nút Ghi
+  thu/Ghi chi). Hàng lọc: Tất cả / Thu / Chi / **Khác** (thu nợ, trả nợ, hoàn tiền) /
+  🔍 (bật ô tìm) / Nhật ký. Danh sách trong 1 thẻ, mỗi dòng: icon tròn theo loại ·
+  tiêu đề · "dd/MM HH:mm · KHÁCH" · "món · hình thức TT" · số tiền — bỏ badge,
+  NV/Mã (xem khi bấm mở).
+- **Lãi:** một thẻ "KẾT QUẢ KINH DOANH · kỳ" (Doanh thu + Bán hàng/Sửa chữa → Giá
+  vốn → Lãi gộp → Chi phí vận hành → ô LÃI THỰC + Biên lãi %), thẻ "So với kỳ trước"
+  3 cột (mũi tên, số trước, % — giấu % khi |%| ≥ 1000), 3 dòng mở tiếp: Cơ cấu
+  doanh thu / Chi tiết chi phí (bottom sheet dùng lại `_incomeSection` /
+  `_expCatSection`) / Báo cáo đầy đủ. Công thức KHÔNG đổi; §9 giá vốn giữ nguyên.
+- **Nợ:** 2 thẻ Phải thu/Phải trả (đầy màu khi chọn), 3 ô tuổi nợ, "Danh sách khách
+  hàng (N)" + 🔍 tìm tên/SĐT (lọc bộ nhớ), dòng gom theo người, 3 dòng mở tiếp (Xem
+  chi tiết công nợ / Lịch sử thu-trả nợ = lọc "Khác" tab Tiền / Xuất Excel).
+- **Chốt quỹ** (`cash_closing_view._buildEmbeddedBody` viết lại): bỏ TabBar con
+  Tổng quan/Thu/Chi/Lịch sử → thẻ gradient "QUỸ HIỆN TẠI" (tổng, Tiền mặt, NH),
+  "Dự kiến cuối ngày >" (sheet: số dư đầu kỳ + kỳ vọng), thẻ CHƯA CHỐT (khoảng ngày
+  chưa chốt + nút "Chốt quỹ ngày") / ĐÃ CHỐT, rồi Thu trong ngày / Chi trong ngày /
+  Lịch sử chốt quỹ / Chi tiết tài chính / Báo cáo quỹ (Excel). Trang con đẩy bằng
+  `_pushEmbeddedPage` dùng lại builder + dữ liệu của State cha (`_rebuildTick`),
+  KHÔNG tạo `CashClosingView` mới. Màn Sổ quỹ độc lập (không embedded) giữ nguyên.
+
+### Đọc dữ liệu / Firestore (chi tiết: `DOCS/FINANCE_READ_AUDIT.md`)
+- `FinanceV2Cache` (MỚI): cache snapshot theo `shopId|kỳ`, TTL 60 s, **invalidate
+  chọn lọc theo sự kiện** (`sectionsForEvent`): ghi thu/chi/bán/sửa → cash+profit+tx;
+  thu/trả nợ → cash+debt+tx (không profit); sửa nợ → debt; đổi shop → `clear()`.
+  `_load()` debounce 300 ms, gộp yêu cầu trùng; chỉ hiện vòng xoay khi chưa có gì.
+- `debts` cho snapshot: `getOutstandingDebtsForFinanceSnapshot()` (lọc còn dư ở SQL,
+  tập kết quả y hệt vì hai vòng lặp vốn `continue` khi `remaining <= 0`).
+- `CashClosingView`: **`AutomaticKeepAliveClientMixin` khi embedded** (không remount
+  mỗi lần vuốt tab); `_loadAllDataFromFirestore()` (11 get) chỉ chạy **1 lần / 10
+  phút / (shop, ngày)** hoặc kéo-để-làm-mới; `_loadHistoryClosings()` đọc local
+  trước, Firestore chỉ khi local trống / kéo làm mới.
+- Fix phụ: `stock_entry_service` tiêu đề chi "Nhập kho từ null" khi NCC trống → "NCC".
+
+### Files
+`lib/finance_v2/finance_v2_view.dart`, `finance_v2_widgets.dart` (mới),
+`finance_v2_cache.dart` (mới), `finance_v2_data_service.dart`,
+`lib/views/cash_closing_view.dart`, `lib/data/db_helper.dart`,
+`lib/services/stock_entry_service.dart`, `lib/data/app_knowledge_base.dart`,
+`test/finance_v2/finance_v2_cache_test.dart` (mới), `test/finance_full_scenario_test.dart`,
+`DOCS/FINANCE_READ_AUDIT.md` (mới).
+
+### Nghiệm thu
+- `flutter analyze` 0 error/warning mới; test tài chính 53 + cache 6 PASS.
+- Oppo CPH2203 (shop test M, build debug): 4 tab hiện đúng mockup; drill-down Chi
+  trong ngày OK; logcat: lịch sử chốt đọc local, quét Firestore chỉ 1 lần khi mở
+  lần đầu, vuốt Tiền↔Nợ↔Chốt quỹ nhiều lần không quét lại, không exception.
+- CHƯA test máy thật: Ghi thu/chi → cập nhật ngay (luồng cũ + invalidate; có unit
+  test invalidation), Chốt quỹ thật, offline.
+
+---
+
 ## [2026-09-17a] - Redesign RepairDetailView: tabbed layout + compact + audit fixes
 
 ### Bối cảnh
