@@ -15,6 +15,7 @@ import 'user_service.dart';
 import 'storage_service.dart';
 import 'firebase_usage_stats_service.dart';
 import '../developer/firestore_audit/firestore_audit_module.dart';
+import 'app_session.dart';
 
 /// Service quản lý yêu cầu đóng tiền - chat-like workflow
 class PaymentRequestService {
@@ -85,6 +86,7 @@ class PaymentRequestService {
     List<File>? images,
     String? customerPaymentMethod,
   }) async {
+    if (!AppSession.syncEnabled) return null; // offline session: no cloud
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return null;
@@ -314,6 +316,7 @@ class PaymentRequestService {
     String?
     paymentMethod, // 'TIỀN MẶT' or 'CHUYỂN KHOẢN' (required when completing)
   }) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return false;
@@ -507,6 +510,7 @@ class PaymentRequestService {
 
   /// Soft delete
   static Future<bool> deleteRequest(String requestId) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
       await _db.collection(_collection).doc(requestId).update({
         'deleted': true,
@@ -527,10 +531,12 @@ class PaymentRequestService {
     PaymentRequestStatus? statusFilter,
     int limit = 50,
   }) async* {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     final effectiveLimit = limit.clamp(1, 200);
     List<PaymentRequest> lastData = const <PaymentRequest>[];
 
     Future<List<PaymentRequest>> fetchOnce(String reason) async {
+      if (!AppSession.syncEnabled) return []; // offline session: no cloud
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return <PaymentRequest>[];
 
@@ -638,9 +644,11 @@ class PaymentRequestService {
 
   /// Đếm yêu cầu chờ xử lý
   static Stream<int> pendingCountStream() async* {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     int lastCount = 0;
 
     Future<int> fetchCount(String reason) async {
+      if (!AppSession.syncEnabled) return 0; // offline session: no cloud
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return 0;
 
@@ -701,6 +709,7 @@ class PaymentRequestService {
 
   /// Lấy 1 request theo ID
   static Future<PaymentRequest?> getById(String requestId) async {
+    if (!AppSession.syncEnabled) return null; // offline session: no cloud
     try {
       final doc = await _db.collection(_collection).doc(requestId).get();
       if (!doc.exists) return null;
@@ -716,6 +725,7 @@ class PaymentRequestService {
     String requestId,
     List<File> images,
   ) async {
+    if (!AppSession.syncEnabled) return null; // offline session: no cloud
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return null;

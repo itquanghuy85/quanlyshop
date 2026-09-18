@@ -8,6 +8,7 @@ import '../models/leave_request_model.dart';
 import '../services/user_service.dart';
 import '../services/encryption_service.dart';
 import 'event_bus.dart';
+import 'app_session.dart';
 
 /// Service for managing attendance approval, leave requests, overtime editing.
 /// Only owner/manager roles can approve/reject.
@@ -21,6 +22,7 @@ class AttendanceApprovalService {
 
   /// Approve an attendance record (confirm it counts toward salary)
   static Future<bool> approveAttendance(Attendance record) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
       final uid = _getCurrentUid();
       if (uid == null) return false;
@@ -43,6 +45,7 @@ class AttendanceApprovalService {
 
   /// Reject an attendance record
   static Future<bool> rejectAttendance(Attendance record, String reason) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
       final uid = _getCurrentUid();
       if (uid == null) return false;
@@ -66,6 +69,7 @@ class AttendanceApprovalService {
 
   /// Bulk approve all pending attendance for a date
   static Future<int> bulkApproveByDate(String dateKey, List<Attendance> records) async {
+    if (!AppSession.syncEnabled) return 0; // offline session: no cloud
     int count = 0;
     for (final record in records) {
       if (record.status == 'pending' && record.checkInAt != null) {
@@ -90,6 +94,7 @@ class AttendanceApprovalService {
     int? checkOutAt,
     String? note,
   }) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
       final shopId = await UserService.getCurrentShopId();
       final record = Attendance(
@@ -148,6 +153,7 @@ class AttendanceApprovalService {
     int? overtimeEndAt,
     String? note,
   }) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
       final uid = _getCurrentUid();
       if (uid == null) return false;
@@ -176,6 +182,7 @@ class AttendanceApprovalService {
     int? checkOutAt,
     String? note,
   }) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
       final uid = _getCurrentUid();
       if (uid == null) return false;
@@ -202,6 +209,7 @@ class AttendanceApprovalService {
 
   /// Create a leave request
   static Future<bool> createLeaveRequest(LeaveRequest request) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
       final shopId = await UserService.getCurrentShopId();
       request.shopId = shopId;
@@ -218,6 +226,7 @@ class AttendanceApprovalService {
 
   /// Approve a leave request
   static Future<bool> approveLeaveRequest(LeaveRequest request) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
       final uid = _getCurrentUid();
       if (uid == null) return false;
@@ -240,6 +249,7 @@ class AttendanceApprovalService {
 
   /// Reject a leave request
   static Future<bool> rejectLeaveRequest(LeaveRequest request, String reason) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
       final uid = _getCurrentUid();
       if (uid == null) return false;
@@ -263,16 +273,19 @@ class AttendanceApprovalService {
 
   /// Get pending leave requests for current shop
   static Future<List<LeaveRequest>> getPendingLeaveRequests() async {
+    if (!AppSession.syncEnabled) return []; // offline session: no cloud
     return _dbHelper.getLeaveRequestsByStatus('pending');
   }
 
   /// Get leave requests by date range
   static Future<List<LeaveRequest>> getLeaveRequestsByDateRange(String start, String end) async {
+    if (!AppSession.syncEnabled) return []; // offline session: no cloud
     return _dbHelper.getLeaveRequestsByDateRange(start, end);
   }
 
   /// Get all leave requests for a user
   static Future<List<LeaveRequest>> getLeaveRequestsByUser(String userId) async {
+    if (!AppSession.syncEnabled) return []; // offline session: no cloud
     return _dbHelper.getLeaveRequestsByUser(userId);
   }
 

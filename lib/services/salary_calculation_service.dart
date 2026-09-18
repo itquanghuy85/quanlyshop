@@ -8,6 +8,7 @@ import '../models/employee_salary_model.dart';
 import '../models/shop_deduction_settings.dart';
 import 'firestore_service.dart';
 import 'user_service.dart';
+import 'app_session.dart';
 
 /// Service tính lương nhân viên tự động
 /// Kết hợp: Cài đặt lương + Chấm công + Doanh số + Thuế + Bảo hiểm + Khấu trừ
@@ -840,6 +841,7 @@ class SalaryCalculationService {
   static Future<bool> saveShopDeductionSettings(
     ShopDeductionSettings settings,
   ) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     var shopId = await UserService.getCurrentShopId();
     if (shopId == null || shopId.isEmpty) {
       try {
@@ -860,6 +862,7 @@ class SalaryCalculationService {
     required int month,
     required int year,
   }) async {
+    if (!AppSession.syncEnabled) return []; // offline session: no cloud
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return [];
@@ -882,6 +885,7 @@ class SalaryCalculationService {
   static Future<bool> addCustomAdjustment(
     CustomSalaryAdjustment adjustment,
   ) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
       var shopId = await UserService.getCurrentShopId();
       if (shopId == null || shopId.isEmpty) {
@@ -905,6 +909,7 @@ class SalaryCalculationService {
 
   /// Xóa khoản thưởng/trừ tùy chỉnh
   static Future<bool> deleteCustomAdjustment(String adjustmentId) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
       var shopId = await UserService.getCurrentShopId();
       if (shopId == null || shopId.isEmpty) {
@@ -932,6 +937,7 @@ class SalaryCalculationService {
     required int month,
     required int year,
   }) async {
+    if (!AppSession.syncEnabled) return []; // offline session: no cloud
     try {
       final data = await FirestoreService.getAllCustomSalaryAdjustments(
         shopId: shopId,
@@ -1024,6 +1030,7 @@ class SalaryCalculationService {
     required int month,
     required int year,
   }) async {
+    if (!AppSession.syncEnabled) return []; // offline session: no cloud
     final results = <SalaryBreakdown>[];
 
     debugPrint('📊 [SalaryCalc] Đang tính lương tháng $month/$year...');

@@ -89,6 +89,7 @@ import '../services/sync_service.dart';
 import '../services/sync_orchestrator.dart';
 import '../services/sync_health_check.dart';
 import '../services/bank_notification_service.dart';
+import '../services/app_session.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
 import '../services/firebase_usage_stats_service.dart';
@@ -2783,6 +2784,7 @@ class _HomeViewState extends State<HomeView>
   }
 
   Future<void> _bootstrapCoreDataFromCloud() async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     if (_cloudBootstrapRunning) return;
     _cloudBootstrapRunning = true;
     try {

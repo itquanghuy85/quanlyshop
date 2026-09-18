@@ -1,7 +1,7 @@
 # Kế hoạch: Dùng app KHÔNG cần đăng nhập (Offline-first, Online là tuỳ chọn)
 
 **Ngày lập:** 2026-09-19
-**Trạng thái:** Bước 1 ✅ (2026-09-19, `[2026-09-19e]`, test 2 máy) · Bước 2 ⏭
+**Trạng thái:** Bước 1 ✅ `[2026-09-19e]` · Bước 2 ✅ `[2026-09-19f]` (test 2 máy online) · Bước 3 ⏭
 **Nhánh:** `feature/offline-first` (tách từ `master` @ `4342e315`, release 3.7.0+559)
 **Nguyên tắc số 1:** app đang live trên Play Store — **người dùng đã đăng nhập không được thấy bất kỳ thay đổi hành vi nào** cho tới khi bật cờ tính năng ở bước 3.
 
@@ -80,7 +80,26 @@ Prefs: `app_session_mode`, `app_session_shop_id`, `app_session_shop_name`, `app_
 - adb 2 máy online: kịch bản CRUD 2 chiều rút gọn từ `DOCS/SYNC_AUDIT_REPORT_2026-09-18.md` (tạo SP máy A → thấy máy B; sửa đơn B → thấy A) → xác nhận online không đổi.
 **Rollback:** revert.
 
-### Bước 3 — Luồng offline lần đầu + màn "Đồng bộ & Tài khoản" — ~2 ngày
+### ⚠️ Phát hiện sau Bước 2 — luồng lõi CLOUD-FIRST (ảnh hưởng Bước 3)
+Khảo sát cho thấy app KHÔNG offline-first đồng đều. Offline-first thật: đơn sửa, đơn bán (có
+fallback local khi SP chưa sync), khách hàng, chi phí/thu, công nợ (PaymentIntentService), chốt quỹ local.
+**Cloud-first (ghi Firestore trước, local sau — offline sẽ treo/lỗi):**
+| Service | Cloud | Ghi chú |
+|---|---|---|
+| `StockEntryService.createEntry/confirmEntry/quickStockIn/correctSupplierAndPayment` | `add()` + `runTransaction` ~300 dòng tạo products/repair_parts/financial_activities/supplier_debts/import_orders | Nhập kho = tính năng cốt lõi, RỦI RO CAO |
+| `ImportOrderService.createFromStockEntry` | set + batch | id lấy từ `_firestore.doc().id` |
+| `SupplierPaymentService`, `RepairPartnerPaymentService` | add/update/delete | |
+| `SalesReturnService` | 3 chỗ | |
+| `create_sale_view.executeSaleTransaction` | transaction | đã có fallback local + dialog "SP chưa đồng bộ" — offline phải bỏ dialog |
+| `repair_detail_view` `getRepairDoc` | get | nay throw `CloudDisabledException` khi offline → cần nhánh local |
+| `PaymentIntentService._syncImportOrderPaymentIfLinked` | update | chỉ chạy khi có firestoreId |
+
+**Cách xử lý (Bước 3b):** mỗi service thêm nhánh `if (!AppSession.syncEnabled)` thực hiện đúng
+các ghi local tương đương (id client `imp_/se_/spay_<ms>_<rand>`, `isSynced = 0`) — nhánh online
+giữ nguyên từng dòng. Bước 4 đẩy các dòng `isSynced = 0` lên. Ước lượng thêm **~2–3 ngày** cho
+StockEntryService (viết test FFI kịch bản nhập kho → tồn kho/giá vốn/nợ NCC khớp với nhánh online).
+
+### Bước 3 — Luồng offline lần đầu + màn "Đồng bộ & Tài khoản" — ~2 ngày (+2–3 ngày Bước 3b)
 **Việc**
 - Bật cờ D5.
 - `AuthGate` (`main.dart:990`): khi `currentUser == null`:

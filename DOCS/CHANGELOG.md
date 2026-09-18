@@ -4,6 +4,34 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-19f] - Offline-first Bước 2/6: hàng rào `AppSession.syncEnabled` cho mọi đường ra cloud (cờ vẫn OFF)
+
+- `FirestoreService`: 79/85 hàm public thêm `if (_cloudOff) return <trung tính>;` ngay dòng đầu
+  (Future<void>→return, String?→null, bool→false, List→[], Map→{}, Stream→`Stream.empty()`;
+  `getRepairDoc` → throw `CloudDisabledException`). 6 hàm bỏ qua: helper private + `repairDocRef`.
+- `SyncService` 10 entry point (`initRealTimeSync/refreshCloudCollections/refreshCollectionNow/
+  syncAllToCloud/downloadAllFromCloud/syncRepairData/syncPaymentRelatedData/forceReinitializeSync/
+  syncQuickInputCodesToCloud/syncCustomersFromCloud`), `SyncOrchestrator.init/syncAll`
+  (trả `skipped`, hàng đợi giữ nguyên trong SQLite cho bước 4), `SyncHealthCheck.runFullCheck/autoFix`,
+  `NotificationService` (FCM init/token/listen/broadcast/sendCloudNotification), `ClaimsService`,
+  `CurrentShopService.init`, `StorageService.upload*`, `BackgroundUploadService`, `VersionGateWrapper`,
+  `HomeView._bootstrapCoreDataFromCloud`, `DBHelper` 4 chỗ "sync ngay" tồn kho products/repair_parts.
+- Service cloud-only gate toàn bộ public API: chat, community, payment_request, shift_swap,
+  attendance_approval, salary_calculation, ai_usage_logger, shop_deletion, super_admin_security.
+- `SyncOrchestrator._firestore`, `ClaimsService._functions/_auth`, `CurrentShopService._db` →
+  `late final` (không chạm Firebase khi khởi tạo singleton ở phiên offline / unit test).
+- Test `test/cloud_gate_test.dart` (9 test, KHÔNG init Firebase — gọi SDK là throw `[core/no-app]`
+  nên pass = hàng rào chạy trước SDK). `flutter analyze`: 0 error, không thêm lint mới.
+- Nghiệm thu adb 2 máy online (CPH2203 m@m.com ↔ CPH2239 q@m.com, shop M): sync khởi động bình
+  thường, tạo khách `GATEB2` máy A → máy B nhận khi resume, xoá → B mất; 0 `E/flutter`. Đã dọn.
+- ⚠️ PHÁT HIỆN cho bước 3: một số luồng lõi là **cloud-first** chứ không offline-first —
+  `StockEntryService` (nhập kho: Firestore transaction ~300 dòng tạo products/repair_parts/
+  financial_activities/supplier_debts), `ImportOrderService`, `SupplierPaymentService`,
+  `RepairPartnerPaymentService`, `SalesReturnService`, `executeSaleTransaction` (có fallback local),
+  `repair_detail_view.getRepairDoc`. Offline mode cần nhánh ghi local cho các luồng này.
+
+---
+
 ## [2026-09-19e] - Offline-first Bước 1/6: `AppSession` + đổi ruột `UserService` (cờ OFF, 0 thay đổi hành vi)
 
 Bắt đầu dự án "dùng app không cần đăng nhập, online là tuỳ chọn" — kế hoạch đầy đủ 6 bước

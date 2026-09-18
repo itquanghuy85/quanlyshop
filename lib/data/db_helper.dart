@@ -18,6 +18,7 @@ import '../models/leave_request_model.dart';
 import '../models/quick_input_code_model.dart';
 import '../models/storage_location_model.dart';
 import '../models/price_catalog_models.dart';
+import '../services/app_session.dart';
 import '../services/user_service.dart';
 import '../utils/vietnamese_utils.dart';
 
@@ -7005,7 +7006,7 @@ class DBHelper {
     final currentQty = (products.first['quantity'] as int? ?? 0);
     final newQty = currentQty + quantity;
     await addProductQuantity(productId, quantity);
-    if (firestoreId.isNotEmpty) {
+    if (AppSession.syncEnabled && firestoreId.isNotEmpty) {
       try {
         await FirebaseFirestore.instance
             .collection('products')
@@ -7137,7 +7138,7 @@ class DBHelper {
     );
 
     // FIX: Sync ngay lập tức để tránh trường hợp 2 thiết bị bán cùng 1 sản phẩm
-    if (firestoreId != null && firestoreId.isNotEmpty) {
+    if (AppSession.syncEnabled && firestoreId != null && firestoreId.isNotEmpty) {
       try {
         await FirebaseFirestore.instance
             .collection('products')
@@ -9016,7 +9017,7 @@ class DBHelper {
     );
 
     // FIX: Sync ngay lập tức để tránh trường hợp 2 thiết bị dùng cùng 1 part
-    if (firestoreId != null && firestoreId.isNotEmpty) {
+    if (AppSession.syncEnabled && firestoreId != null && firestoreId.isNotEmpty) {
       try {
         await FirebaseFirestore.instance
             .collection('repair_parts')
@@ -9072,7 +9073,7 @@ class DBHelper {
     );
 
     // Sync ngay lập tức
-    if (firestoreId != null && firestoreId.isNotEmpty) {
+    if (AppSession.syncEnabled && firestoreId != null && firestoreId.isNotEmpty) {
       try {
         await FirebaseFirestore.instance
             .collection('repair_parts')

@@ -8,6 +8,7 @@ import 'package:sqflite/sqflite.dart';
 import '../data/db_helper.dart';
 import 'storage_service.dart';
 import 'sync_audit_service.dart';
+import 'app_session.dart';
 import 'user_service.dart';
 import 'firestore_write_helper.dart';
 
@@ -136,7 +137,7 @@ class SyncOrchestrator {
   factory SyncOrchestrator() => _instance;
   SyncOrchestrator._internal();
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  late final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final DBHelper _db = DBHelper();
 
   // Stream controller để notify UI về pending count
@@ -470,6 +471,10 @@ class SyncOrchestrator {
 
   /// Khởi tạo orchestrator
   Future<void> init() async {
+    if (!AppSession.syncEnabled) {
+      debugPrint('⏸️ SyncOrchestrator: offline session, not initialising');
+      return;
+    }
     debugPrint('🔄 SyncOrchestrator: Initializing...');
 
     // Load initial pending count
@@ -625,6 +630,13 @@ class SyncOrchestrator {
   /// lượt ghi + 2 thông báo "đơn mới"**, máy khác nhận 3 snapshot (đo 2 máy
   /// thật 2026-09-12).
   Future<SyncResult> syncAll() {
+    if (!AppSession.syncEnabled) {
+      // Offline session: pending items stay queued in SQLite until the shop
+      // is claimed by an account (PLAN_OFFLINE_FIRST step 4).
+      return Future.value(
+        SyncResult(success: 0, failed: 0, total: 0, skipped: true),
+      );
+    }
     final inFlight = _inFlightSync;
     if (inFlight != null) {
       _syncRequestedWhileSyncing = true;

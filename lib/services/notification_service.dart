@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/utils/money_utils.dart';
 import 'cash_balance_cache_service.dart';
+import 'app_session.dart';
 import 'user_service.dart';
 import 'firebase_usage_stats_service.dart';
 import '../developer/firestore_audit/firestore_audit_module.dart';
@@ -122,7 +123,9 @@ class NotificationService {
     // Create notification channels
     await _createNotificationChannels();
 
-    // Initialize FCM
+    // Initialize FCM — only for a signed-in session (offline: nothing to
+    // subscribe to, and no user doc to store the token in).
+    if (!AppSession.syncEnabled) return;
     await _initFirebaseMessaging();
   }
 
@@ -458,6 +461,7 @@ class NotificationService {
   /// Gọi khi app resume từ background hoặc khi cần đảm bảo FCM hoạt động
   /// Kiểm tra và refresh token nếu cần thiết
   static Future<void> ensureFCMTokenValid() async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
@@ -592,6 +596,7 @@ class NotificationService {
 
   /// Kiểm tra FCM token có tồn tại trên server không
   static Future<bool> hasFCMTokenOnServer() async {
+    if (!AppSession.syncEnabled) return false;
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return false;
@@ -607,6 +612,7 @@ class NotificationService {
   }
 
   static Future<void> _saveFCMToken(String token) async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
@@ -972,6 +978,7 @@ class NotificationService {
   static void listenToNotifications(
     Function(String, String) onMessageReceived,
   ) {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
@@ -1085,6 +1092,7 @@ class NotificationService {
     String? targetUserId,
     Map<String, dynamic>? data,
   }) async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     try {
       // Kiểm tra settings trước khi gửi
       final shouldSend = await _shouldSendNotification(type, targetUserId);
@@ -1859,6 +1867,7 @@ class NotificationService {
 
   /// Lắng nghe /broadcasts — hiển thị dialog khi có thông báo hệ thống mới
   static void listenToBroadcasts(BuildContext context) {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     _broadcastSubscription?.cancel();
     _broadcastSubscription = _db
         .collection('broadcasts')

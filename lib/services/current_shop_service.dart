@@ -10,6 +10,7 @@ import 'category_service.dart';
 import 'business_type_helper.dart';
 import 'label_settings_service.dart';
 import '../data/db_helper.dart';
+import 'app_session.dart';
 
 /// CurrentShopService: Quản lý activeShopId cho owner có nhiều shop
 ///
@@ -36,7 +37,7 @@ class CurrentShopService {
   List<Map<String, dynamic>>? _cachedShops;
   bool _initialized = false;
 
-  final _db = FirebaseFirestore.instance;
+  late final _db = FirebaseFirestore.instance;
 
   String _normalizeLegacyShopName(String? rawName) {
     final name = (rawName ?? '').trim();
@@ -87,6 +88,7 @@ class CurrentShopService {
 
   /// Initialize service - call after successful login
   Future<void> init() async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     if (_initialized) return;
 
     try {

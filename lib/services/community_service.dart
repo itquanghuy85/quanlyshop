@@ -9,6 +9,7 @@ import 'storage_service.dart';
 import 'user_service.dart';
 import 'audit_service.dart';
 import '../developer/firestore_audit/firestore_audit_module.dart';
+import 'app_session.dart';
 
 class CommunityService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -24,6 +25,7 @@ class CommunityService {
     required String shopId,
     int limit = 40,
   }) {
+    if (!AppSession.syncEnabled) return const Stream.empty(); // offline session: no cloud
     return _postsRef
         .where('shopId', isEqualTo: shopId)
         .limit(limit)
@@ -46,6 +48,7 @@ class CommunityService {
     required String content,
     File? imageFile,
   }) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) return false;
@@ -123,6 +126,7 @@ class CommunityService {
     required String postId,
     required bool isLiked,
   }) async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
@@ -151,6 +155,7 @@ class CommunityService {
   static Stream<QuerySnapshot<Map<String, dynamic>>> streamComments(
     String postId,
   ) {
+    if (!AppSession.syncEnabled) return const Stream.empty(); // offline session: no cloud
     return _commentsRef(
       postId,
     ).orderBy('createdAt', descending: true).limit(80).snapshots();
@@ -160,6 +165,7 @@ class CommunityService {
     required String postId,
     required String content,
   }) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) return false;
@@ -207,6 +213,7 @@ class CommunityService {
   }
 
   static Future<Map<String, dynamic>?> getUserProfile(String uid) async {
+    if (!AppSession.syncEnabled) return null; // offline session: no cloud
     try {
       final snap = await _db.collection('users').doc(uid).get();
       if (!snap.exists) return null;

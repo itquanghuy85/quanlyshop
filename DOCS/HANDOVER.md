@@ -14,8 +14,11 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 - Kế hoạch 6 bước + quyết định thiết kế: `DOCS/PLAN_OFFLINE_FIRST_2026-09-19.md`.
 - ✅ Bước 1 (`[2026-09-19e]`): `AppSession` + đổi ruột `UserService`, cờ `kOfflineModeEnabled=false`
   → chưa đổi gì cho người dùng. Đã test 2 máy.
-- ⏭ Bước 2: hàng rào `AppSession.syncEnabled` cho `FirestoreService` (85 hàm) / `SyncService` /
-  mọi service cloud. Bước 3 mới bật cờ.
+- ✅ Bước 2 (`[2026-09-19f]`): hàng rào `AppSession.syncEnabled` — FirestoreService 79 hàm,
+  SyncService/Orchestrator/HealthCheck, FCM, claims, storage, 9 service cloud-only. Test 2 máy online OK.
+- ⚠️ Phát hiện: nhập kho / phiếu nhập / trả NCC / trả đối tác / trả hàng là **cloud-first**
+  (Firestore transaction). Bước 3 phải thêm nhánh ghi local cho các luồng này — ước lượng tăng.
+- ⏭ Bước 3: bật cờ, Welcome/AuthGate offline, màn "Đồng bộ & Tài khoản", nhánh local cho service cloud-first.
 - ⚠️ Khi merge về `master` phải kiểm lại `main.dart:_checkAndClearLocalDataIfShopChanged` —
   bước 3 sẽ sửa để KHÔNG xoá SQLite khi offline/claim.
 

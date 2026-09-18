@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'app_session.dart';
 
 class StorageService {
   static final FirebaseStorage _storage = FirebaseStorage.instance;
@@ -87,6 +88,7 @@ class StorageService {
   }
 
   static Future<void> retryPendingUploads({int maxItems = 8}) async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     if (_retryingPendingUploads) return;
     _retryingPendingUploads = true;
     try {
@@ -495,6 +497,7 @@ class StorageService {
     String localPath,
     String folder,
   ) async {
+    if (!AppSession.syncEnabled) return null; // offline session: no cloud
     _clearLastUploadError();
     if (!_retryingPendingUploads) {
       unawaited(retryPendingUploads());
@@ -572,6 +575,7 @@ class StorageService {
     XFile picked,
     String folder,
   ) async {
+    if (!AppSession.syncEnabled) return null; // offline session: no cloud
     _clearLastUploadError();
     if (!_retryingPendingUploads) {
       unawaited(retryPendingUploads());
@@ -747,6 +751,7 @@ class StorageService {
     String localPathsCsv,
     String folder,
   ) async {
+    if (!AppSession.syncEnabled) return ''; // offline session: no cloud
     if (localPathsCsv.isEmpty) return "";
     List<String> paths = localPathsCsv
         .split(',')
