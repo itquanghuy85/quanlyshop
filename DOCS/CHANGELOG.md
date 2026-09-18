@@ -4,6 +4,36 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-19b] - Danh sách đơn sửa: gọn mắt + đếm trạng thái bằng SQL (không thêm read)
+
+### Audit
+- Dữ liệu: list đã SQLite-only (`getRepairsPaged` 50/trang, EventBus `repairsChanged`) từ
+  `[2026-09-17b]` — **0 read Firestore** khi mở/cuộn/lọc. Còn lại: `FutureBuilder` ảnh
+  thumbnail gọi `StorageService.resolveDisplayUrl` (đã có cache URL) — không phải Firestore.
+- Điểm dở: (1) số đếm chip tính trên CỬA SỔ 50 đơn đã nạp ⇒ shop lớn hiện "Tất cả 50";
+  (2) 2 nút "?" trùng trên AppBar, tiêu đề bị cắt; (3) hàng "Realtime Firestore • N đơn |
+  ↻ | Sắp xếp: Ưu tiên" rối và sai (list không đọc Firestore); (4) thẻ đơn 4 dòng + pill +
+  mã `#rep_…` + chevron + viền + bóng, cao ~340px ⇒ 4 đơn/màn; (5) banner "Không thể đồng
+  bộ" nháy cam ngay sau khi mở app vì SyncService chưa kịp lập listener.
+
+### Sửa
+- `DBHelper.getRepairStatusCounts()` — 1 câu `SELECT COUNT/SUM(CASE…)` toàn shop (Tiếp nhận
+  + Đang sửa, Sửa xong, Y/c duyệt, Đã giao, Quá hạn theo đúng công thức `_daysStuck`); nạp
+  cùng lúc với trang đầu / mỗi `repairsChanged`. Chip và phụ đề AppBar dùng số này.
+- AppBar: 1 nút "?" (qua `guideKey`), tiêu đề "ĐƠN SỬA · N đơn".
+- Hàng công cụ: [Tìm……] [Ưu tiên ▾] [↻] trên một hàng; bỏ `SyncStatusBar` ở layout hẹp.
+  Banner "Không thể đồng bộ" chỉ hiện sau 20 s kể từ khi mở màn.
+- Thẻ đơn 3 dòng, ~255px→ 6 đơn/màn: **Model + giá** · **● TRẠNG THÁI · thời gian/Quá hạn N
+  ngày · khách · SĐT** · lỗi máy (+ "Thêm khách" khi thiếu). Bỏ mã đơn, chevron, viền, bóng;
+  vạch trái theo trạng thái (đỏ khi quá hạn). Giữ vuốt/giữ để xoá, bấm mở chi tiết.
+- Commit này gộp luôn phần refactor SQLite-first `[2026-09-17b]` của file (đã nghiệm thu,
+  nằm trong working tree chưa commit).
+
+### Files
+`lib/views/order_list_view.dart`, `lib/data/db_helper.dart`.
+
+---
+
 ## [2026-09-19a] - Phương án A: thu nợ đơn CÔNG NỢ vào Doanh thu/Lãi · khoá ngày khi chốt quỹ · fix hiển thị trả góp
 
 ### 1. Tab Lãi ghi nhận đơn CÔNG NỢ khi khách trả nợ (chủ shop chốt phương án A, 2026-09-18)

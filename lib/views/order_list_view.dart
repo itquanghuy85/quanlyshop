@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -12,12 +12,13 @@ import '../theme/app_text_styles.dart';
 import '../widgets/skeleton_list.dart';
 import '../models/repair_model.dart';
 import '../services/event_bus.dart';
-import '../services/storage_service.dart';
 import '../services/user_service.dart';
 import '../services/encryption_service.dart';
 import '../services/sync_service.dart';
 import '../services/sync_orchestrator.dart';
 import '../services/firestore_service.dart';
+import '../services/storage_service.dart';
+import '../widgets/app_cached_image.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/empty_state_widget.dart';
 import '../utils/vietnamese_utils.dart';
@@ -30,12 +31,10 @@ import 'create_repair_order_view.dart';
 import 'global_search_view.dart';
 import '../theme/app_colors.dart';
 import '../widgets/responsive_wrapper.dart';
-import '../widgets/app_cached_image.dart';
 import '../widgets/sync_status_bar.dart';
 import '../services/connectivity_service.dart';
 import '../services/customer_service.dart';
 import '../models/customer_model.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 class OrderListView extends StatefulWidget {
   final int? initialStatus;
@@ -64,24 +63,14 @@ class OrderListViewState extends State<OrderListView> {
   // Second list controller used by the 2-column grid layout (right column).
   final ScrollController _listScrollControllerGridB = ScrollController();
   StreamSubscription<String>? _eventSubscription;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
-  _repairRealtimeSubscription;
-  final Map<String, Repair> _repairsByFirestoreId = <String, Repair>{};
-  String? _listeningShopId;
-  bool _receivedServerSnapshot = false;
-  bool _isRealtimeConnected = false;
-  bool _useRealtimeIndexFallback = false;
-  final int _indexedFetchLimit = 50;
-  bool _isLoadingMoreRealtime = false;
-  // SQLite-first pagination
+  // SQLite-first pagination. Nguồn dữ liệu DUY NHẤT cho list: toàn bộ thay
+  // đổi cloud do SyncService đổ về SQLite rồi bắn EventBus.repairsChanged.
   List<Repair> _sqliteRepairs = [];
   int _sqliteLoadedCount = 0;
   bool _hasMoreData = false;
   bool _isLoadingMore = false;
   static const int _kPageSize = 50;
-  // Tracks which shopIds have had a full historical backfill this session.
-  // Static so it survives widget rebuilds / navigate-back.
-  static final Set<String> _backfilledShops = {};
+  static const int _kMaxSearchResults = 5000;
   Timer? _searchDebounce;
   bool _isSearchingLocal = false;
   final TextEditingController _searchController = TextEditingController();
@@ -109,12 +98,23 @@ class OrderListViewState extends State<OrderListView> {
   bool _canDelete = false;
   bool _canViewCostPrice = false;
 
+  /// Đếm theo trạng thái bằng SQL trên TOÀN BỘ đơn của shop (không phải cửa
+  /// sổ 50 đơn đã nạp) — nạp lại cùng lúc với danh sách.
+  Map<String, int> _counts = const {};
+
+  /// Sau khi mở app, SyncService cần vài giây mới lập xong listener — trong
+  /// lúc đó `isRealTimeSyncActive` = false. Không hiện banner "Không thể
+  /// đồng bộ" trong khoảng này (trước đây cứ mở list ngay sau khi mở app là
+  /// thấy banner cam dù mạng bình thường).
+  final DateTime _syncBannerGraceUntil =
+      DateTime.now().add(const Duration(seconds: 20));
+
   bool get canDelete => _canDelete;
 
-  // Sort mặc định "Ưu tiên" (business priority) theo đặc tả:
-  // 1. Tiếp nhận → 2. Đang sửa → 3. Y/c duyệt giao → 4. Giao máy →
-  // 5. Quá hạn (UI computed, không đổi status) → 6. Xong. Trong cùng
-  // state: đơn mới hơn trước. Các mode khác chỉ sắp theo createdAt.
+  // Sort mặc định "Ưu tiên" (business priority) theo đặc tả CHỦ SHOP duyệt
+  // 2026-09-17: 1. Tiếp nhận (gộp luôn Đang sửa) → 2. Sửa xong → 3. Y/c duyệt
+  // giao → 4. Quá hạn (UI computed _isOverdue, không đổi status) → 5. Đã giao.
+  // Trong cùng state: đơn mới hơn trước. Các mode khác chỉ sắp theo createdAt.
   int _compareRepairs(Repair a, Repair b) {
     switch (_sortMode) {
       case 'newest':
@@ -123,12 +123,11 @@ class OrderListViewState extends State<OrderListView> {
         return a.createdAt.compareTo(b.createdAt);
     }
     int priority(Repair r) {
-      if (r.status == 1) return 1; // Tiếp nhận
-      if (r.status == 2) return 2; // Đang sửa — giữ nguyên status/mapping có sẵn
-      if (r.status == 3 && !r.pendingDeliveryApproval) return 3; // Xong
-      if (r.status == 3 && r.pendingDeliveryApproval) return 4; // Y/c duyệt
-      if (r.status == 4) return 5; // Giao
-      return 6;
+      if (r.status >= 4) return 5; // Đã giao
+      if (_isOverdue(r)) return 4; // Quá hạn — bất kỳ đơn chưa giao treo > 7 ngày
+      if (r.status == 3 && r.pendingDeliveryApproval) return 3; // Y/c duyệt
+      if (r.status == 3) return 2; // Sửa xong
+      return 1; // Tiếp nhận + Đang sửa (không tách riêng theo đặc tả)
     }
 
     final pa = priority(a);
@@ -147,16 +146,18 @@ class OrderListViewState extends State<OrderListView> {
 
   static const int _overdueThresholdDays = 7;
 
-  /// Số ngày đơn đã treo ở trạng thái hiện tại (Tiếp nhận hoặc Sửa xong chưa
-  /// giao) — null nếu không thuộc 2 trạng thái này hoặc thiếu mốc thời gian.
+  /// Số ngày đơn đã treo ở trạng thái hiện tại (chưa giao) — null nếu không
+  /// thuộc các trạng thái tính quá hạn hoặc thiếu mốc thời gian.
   int? _daysStuck(Repair repair) {
     if (repair.status == 4) return null;
     if (repair.status == 3 && repair.pendingDeliveryApproval) return null;
-    if (repair.status != 1 && repair.status != 3) return null;
+    if (repair.status != 1 && repair.status != 2 && repair.status != 3) {
+      return null;
+    }
 
     final referenceMs = repair.status == 1
         ? repair.createdAt
-        : (repair.finishedAt ?? repair.lastCaredAt ?? repair.createdAt);
+        : (repair.startedAt ?? repair.lastCaredAt ?? repair.createdAt);
     if (referenceMs <= 0) return null;
 
     return DateTime.now()
@@ -164,7 +165,7 @@ class OrderListViewState extends State<OrderListView> {
         .inDays;
   }
 
-  /// Đơn "Tiếp nhận" hoặc "Sửa xong" (chưa giao) bị treo quá
+  /// Đơn chưa giao (Tiếp nhận / Đang sửa / Sửa xong) bị treo quá
   /// [_overdueThresholdDays] ngày mà chưa xử lý tiếp.
   bool _isOverdue(Repair repair) {
     final days = _daysStuck(repair);
@@ -177,31 +178,44 @@ class OrderListViewState extends State<OrderListView> {
     _listScrollController.addListener(_onListScroll);
     _listScrollControllerGridB.addListener(_onListScrollGridB);
     _loadDeletePermission();
-    unawaited(_startRealtimeRepairsListener(forceRestart: true));
+    unawaited(_initFromSQLite());
     WidgetsBinding.instance.addPostFrameCallback((_) => _showFirstTimeGuide());
 
-    // Chỉ rebind listener khi đổi shop — dataRefresh không cần restart vì
-    // watchRepairsByShop đã nhận live updates, restart chỉ tốn thêm Firestore reads.
+    // Nguồn dữ liệu duy nhất là SQLite: SyncService đổ cloud về rồi bắn
+    // repairsChanged; list chỉ đọc lại SQLite, KHÔNG mở listener Firestore.
     _eventSubscription = EventBus().stream.listen((event) {
       if (!mounted) return;
 
       if (event == EventBus.shopChanged) {
-        unawaited(_startRealtimeRepairsListener(forceRestart: true));
+        unawaited(_onShopChanged());
         return;
       }
 
       if (event == EventBus.repairsChanged) {
-        unawaited(_showPendingLocalRepairsWhileWaitingRealtime());
+        unawaited(_refreshFromSQLite());
       }
     });
   }
 
+  /// Chuyển shop (super admin hoặc đổi quyền): reset phân trang rồi nạp lại
+  /// trang đầu từ SQLite cho shop mới.
+  Future<void> _onShopChanged() async {
+    setState(() {
+      _sqliteRepairs = [];
+      _sqliteLoadedCount = 0;
+      _hasMoreData = false;
+      _isLoadingMore = false;
+      _isLoading = true;
+    });
+    await _initFromSQLite();
+  }
+
   Future<void> _loadDeletePermission() async {
     try {
-      final results = await Future.wait([
-        UserService.isCurrentUserAdmin(),
-        UserService.getCurrentUserPermissions(forceRefresh: true),
-      ]);
+final results = await Future.wait([
+      UserService.isCurrentUserAdmin(),
+      UserService.getCurrentUserPermissions(),
+    ]);
       if (!mounted) return;
       setState(() {
         _canDelete = results[0] as bool;
@@ -215,18 +229,6 @@ class OrderListViewState extends State<OrderListView> {
         _canViewCostPrice = false;
       });
     }
-  }
-
-  bool _isGsStoragePath(String path) {
-    return StorageService.isGsStoragePath(path);
-  }
-
-  bool _isStorageRelativePath(String path) {
-    return StorageService.isStorageRelativePath(path);
-  }
-
-  Future<String?> _resolveDisplayImagePath(String path) async {
-    return StorageService.resolveDisplayUrl(path);
   }
 
   Future<void> _showFirstTimeGuide() async {
@@ -275,7 +277,6 @@ class OrderListViewState extends State<OrderListView> {
     _listScrollController.dispose();
     _listScrollControllerGridB.removeListener(_onListScrollGridB);
     _listScrollControllerGridB.dispose();
-    _repairRealtimeSubscription?.cancel();
     _eventSubscription?.cancel();
     _searchDebounce?.cancel();
     _searchController.dispose();
@@ -283,28 +284,21 @@ class OrderListViewState extends State<OrderListView> {
   }
 
   void _onListScroll() {
-    if (!_listScrollController.hasClients ||
-        _isLoadingMoreRealtime ||
-        _isLoadingMore) {
+    if (!_listScrollController.hasClients || _isLoadingMore) {
       return;
     }
 
     final pos = _listScrollController.position;
     if (pos.pixels < pos.maxScrollExtent - 220) return;
 
-    // SQLite pagination: chỉ còn dùng để tải thêm lịch sử ĐÃ GIAO — đơn
-    // CHƯA giao luôn được tải đầy đủ ngay từ đầu qua realtime listener
-    // (watchRepairsByShop không giới hạn số lượng khi activeOnly), nên không
-    // cần "load more" phía Firestore cho phần đó nữa.
+    // SQLite pagination: tải thêm lịch sử cũ hơn (ĐÃ GIAO, đơn cũ) khi cuộn.
     if (_hasMoreData) {
       unawaited(_loadMoreFromSQLite());
     }
   }
 
   void _onListScrollGridB() {
-    if (!_listScrollControllerGridB.hasClients ||
-        _isLoadingMoreRealtime ||
-        _isLoadingMore) {
+    if (!_listScrollControllerGridB.hasClients || _isLoadingMore) {
       return;
     }
 
@@ -316,211 +310,29 @@ class OrderListViewState extends State<OrderListView> {
     }
   }
 
-  Future<void> _startRealtimeRepairsListener({
-    bool forceRestart = false,
-  }) async {
-    final shopId = (await UserService.getCurrentShopId())?.trim();
-    if (!mounted) return;
-
-    if (shopId == null || shopId.isEmpty) {
-      setState(() {
-        _isLoading = false;
-        _isRealtimeConnected = false;
-        _listeningShopId = null;
-        _repairsByFirestoreId.clear();
-        _displayedRepairs = [];
-      });
-      return;
-    }
-
-    if (!forceRestart &&
-        _repairRealtimeSubscription != null &&
-        _listeningShopId == shopId) {
-      return;
-    }
-
-    await _repairRealtimeSubscription?.cancel();
-    _repairRealtimeSubscription = null;
-    _receivedServerSnapshot = false;
-
-    // Reset SQLite pagination when switching shops
-    final isNewShop = shopId != _listeningShopId;
-    _listeningShopId = shopId;
-
-    if (mounted) {
-      setState(() {
-        _isLoading = true;
-        _isRealtimeConnected = false;
-        if (isNewShop) {
-          _sqliteRepairs = [];
-          _sqliteLoadedCount = 0;
-          _hasMoreData = false;
-          _isLoadingMore = false;
-        }
-      });
-    }
-    if (isNewShop) unawaited(_initFromSQLite());
-
-    if (_useRealtimeIndexFallback) {
-      // Fallback mode: avoid limit so newly-created orders are not missed.
-      // We sort/filter on client side after snapshot is received.
-      debugPrint(
-        'ℹ️ [OrderListView] Realtime fallback mode active (no orderBy/limit) due missing index',
-      );
-    }
-
-    _repairRealtimeSubscription =
-        FirestoreService.watchRepairsByShop(
-          shopId,
-          useIndexedQuery: !_useRealtimeIndexFallback,
-          indexedLimit: _indexedFetchLimit,
-          // Chỉ live-listen đơn CHƯA giao — đơn đã giao (phần lớn dữ liệu)
-          // đã được backfill sẵn vào SQLite (_doHistoricalBackfill) và phục vụ
-          // qua _sqliteRepairs/sqliteExtra merge bên dưới, giảm mạnh số document
-          // Firestore phải đọc lại mỗi khi có thay đổi mà vẫn giữ realtime cho
-          // các đơn đang xử lý.
-          activeOnly: true,
-        ).listen(
-          (snapshot) {
-            unawaited(_handleRealtimeSnapshot(snapshot));
-          },
-          onError: (error) {
-            debugPrint('❌ [OrderListView] Realtime listener lỗi: $error');
-
-            final errorText = error.toString().toLowerCase();
-            final isMissingIndex =
-                (error is FirebaseException &&
-                    error.code == 'failed-precondition') ||
-                errorText.contains('requires an index');
-
-            if (isMissingIndex && !_useRealtimeIndexFallback) {
-              debugPrint(
-                '⚠️ [OrderListView] Thiếu index cho query realtime, chuyển sang fallback không orderBy(updatedAt)',
-              );
-              _useRealtimeIndexFallback = true;
-              unawaited(_startRealtimeRepairsListener(forceRestart: true));
-              return;
-            }
-
-            if (!mounted) return;
-            setState(() {
-              _isLoading = false;
-              _isRealtimeConnected = false;
-            });
-
-            unawaited(_showPendingLocalRepairsWhileWaitingRealtime());
-          },
-        );
-
-    unawaited(_showPendingLocalRepairsWhileWaitingRealtime());
-  }
-
-  int _parseTimestampSafe(dynamic value) {
-    if (value is int) return value;
-    if (value is num) return value.toInt();
-    if (value is String) return int.tryParse(value.trim()) ?? 0;
-    return 0;
-  }
-
-  int _extractCloudRepairTimeMs(Map<String, dynamic> cloudData) {
-    final updatedAt = _parseTimestampSafe(cloudData['updatedAt']);
-    if (updatedAt > 0) return updatedAt;
-
-    final lastCaredAt = _parseTimestampSafe(cloudData['lastCaredAt']);
-    if (lastCaredAt > 0) return lastCaredAt;
-
-    final deliveredAt = _parseTimestampSafe(cloudData['deliveredAt']);
-    if (deliveredAt > 0) return deliveredAt;
-
-    final finishedAt = _parseTimestampSafe(cloudData['finishedAt']);
-    if (finishedAt > 0) return finishedAt;
-
-    return _parseTimestampSafe(cloudData['createdAt']);
-  }
-
-  Map<String, dynamic>? _decodeRepairDocPayload(
-    DocumentSnapshot<Map<String, dynamic>> doc,
-  ) {
-    try {
-      final data = doc.data();
-      if (data == null) return null;
-
-      final raw = Map<String, dynamic>.from(data);
-      final decrypted = EncryptionService.decryptMap(raw);
-      if (decrypted['deleted'] == true) return null;
-
-      SyncService.convertTimestampFieldsPublic(decrypted);
-      decrypted['firestoreId'] = doc.id;
-      decrypted['isSynced'] = 1;
-      return decrypted;
-    } catch (e) {
-      debugPrint('⚠️ [OrderListView] Decode repair ${doc.id} lỗi: $e');
-      return null;
-    }
-  }
-
-  Repair? _parseRepairDoc(Map<String, dynamic> payload, String docId) {
-    try {
-      return Repair.fromMap(payload);
-    } catch (e) {
-      debugPrint('⚠️ [OrderListView] Parse repair $docId lỗi: $e');
-      return null;
-    }
-  }
-
-  /// Đơn vừa bị loại khỏi kết quả realtime (activeOnly: status<4) — refetch
-  /// 1 lần để lưu đúng trạng thái mới nhất (VD "Đã giao") vào SQLite, tránh
-  /// hiển thị lại trạng thái active cũ khi rơi về nguồn dữ liệu sqliteExtra.
-  Future<void> _refreshRemovedRepairFromCloud(String firestoreId) async {
-    try {
-      final doc = await FirestoreService.getRepairDoc(firestoreId);
-      if (!doc.exists) return;
-      final payload = _decodeRepairDocPayload(doc);
-      if (payload == null) return;
-      final repair = _parseRepairDoc(payload, firestoreId);
-      if (repair == null) return;
-      await db.upsertRepair(repair);
-    } catch (e) {
-      debugPrint(
-        '⚠️ [OrderListView] Refresh removed repair $firestoreId lỗi: $e',
-      );
-    }
-  }
-
-  Future<Repair?> _preferUnsyncedLocalRepair(
-    String firestoreId,
-    Map<String, dynamic> cloudData,
-  ) async {
-    final localRepair = await db.getRepairByFirestoreId(firestoreId);
-    if (localRepair == null || localRepair.isSynced) {
-      return null;
-    }
-
-    final localTime = localRepair.lastCaredAt ?? localRepair.createdAt;
-    final cloudTime = _extractCloudRepairTimeMs(cloudData);
-
-    // Nếu cloud không rõ ràng mới hơn local, giữ local unsynced để tránh mất
-    // dữ liệu tài chính vừa sửa (price/cost bị bật về 0 từ cloud stale).
-    const toleranceMs = 5000;
-    final cloudClearlyNewer =
-        cloudTime > 0 && cloudTime > localTime + toleranceMs;
-
-    if (!cloudClearlyNewer) {
-      debugPrint(
-        '🛡️ [OrderListView] Keep local unsynced repair $firestoreId (local: $localTime, cloud: $cloudTime)',
-      );
-      return localRepair;
-    }
-
-    return null;
-  }
-
-  Future<void> _showPendingLocalRepairsWhileWaitingRealtime() async {
-    unawaited(_refreshFromSQLite());
-  }
+  // ══════════════════════════════════════════════════════════════════════
+  // Nguồn DỮ LIỆU DUY NHẤT: SQLite.
+  // Mọi thay đổi cloud do SyncService đồng bộ xuống SQLite rồi bắn
+  // EventBus.repairsChanged → list chỉ việc đọc lại SQLite. Không mở thêm
+  // listener/watch Firestore nào phía list (giảm Firestore reads, tránh hai
+  // nguồn sự thật, hết lỗi lệch trạng thái giữa cache realtime vs sqliteExtra).
+  // Backfill lịch sử (đơn cũ thiếu updatedAt) do SyncService lo khi khởi động.
+  // ══════════════════════════════════════════════════════════════════════
 
   /// Load first page from SQLite — called on init or shop change.
+  Future<void> _reloadCounts() async {
+    try {
+      final c = await db.getRepairStatusCounts(
+        overdueDays: _overdueThresholdDays,
+      );
+      if (mounted) setState(() => _counts = c);
+    } catch (e) {
+      debugPrint('⚠️ [OrderListView] _reloadCounts lỗi: $e');
+    }
+  }
+
   Future<void> _initFromSQLite() async {
+    unawaited(_reloadCounts());
     try {
       final repairs = await db.getRepairsPaged(_kPageSize, 0);
       if (!mounted) return;
@@ -542,6 +354,7 @@ class OrderListViewState extends State<OrderListView> {
     // Capture window size before the DB await — load-more may change
     // _sqliteLoadedCount while we are suspended.
     final windowSize = _sqliteLoadedCount.clamp(_kPageSize, 9999);
+    unawaited(_reloadCounts());
     try {
       final repairs = await db.getRepairsPaged(windowSize, 0);
       if (!mounted) return;
@@ -602,159 +415,15 @@ class OrderListViewState extends State<OrderListView> {
     }
   }
 
-  /// One-time backfill: fetch ALL repairs from Firestore (no orderBy → includes
-  /// old docs without updatedAt field) and insert to SQLite so pagination works.
-  /// Uses INSERT OR IGNORE — never overwrites unsynced local repairs.
-  Future<void> _doHistoricalBackfill() async {
-    final shopId = (_listeningShopId ?? '').trim();
-    if (shopId.isEmpty || _backfilledShops.contains(shopId)) return;
-    _backfilledShops.add(shopId);
-
-    try {
-      debugPrint('[OrderListView] Historical backfill start — shopId=$shopId');
-      final docs = await FirestoreService.fetchAllRepairsByShop(shopId);
-      debugPrint(
-        '[OrderListView] Backfill: Firestore returned ${docs.length} docs',
-      );
-
-      if (docs.isEmpty) {
-        if (mounted) unawaited(_refreshFromSQLite());
-        return;
-      }
-
-      // Build repair list — decode once, reuse for both display and DB insert
-      final repairs = <Repair>[];
-      for (final doc in docs) {
-        final payload = _decodeRepairDocPayload(doc);
-        if (payload == null) continue;
-        final repair = _parseRepairDoc(payload, doc.id);
-        if (repair == null) continue;
-        repairs.add(repair);
-      }
-
-      // Fast bulk insert — single schema check, batched transactions,
-      // INSERT OR IGNORE protects unsynced local repairs from being overwritten
-      final inserted = await db.bulkInsertRepairsIfNew(repairs);
-      debugPrint(
-        '[OrderListView] Backfill done: $inserted new repairs inserted (${docs.length} processed)',
-      );
-
-      if (!mounted) return;
-      // Refresh display — SQLite now contains full history
-      unawaited(_refreshFromSQLite());
-    } catch (e) {
-      debugPrint('⚠️ [OrderListView] Historical backfill lỗi: $e');
-      _backfilledShops.remove(shopId); // Allow retry on next snapshot
-    }
-  }
-
-  Future<void> _handleRealtimeSnapshot(
-    QuerySnapshot<Map<String, dynamic>> snapshot,
-  ) async {
-    if (snapshot.metadata.isFromCache && _receivedServerSnapshot) {
-      return;
-    }
-
-    if (!snapshot.metadata.isFromCache) {
-      _receivedServerSnapshot = true;
-      // Trigger one-time historical backfill on first real server snapshot
-      unawaited(_doHistoricalBackfill());
-    }
-
-    final upsertFutures = <Future<void>>[];
-
-    if (_repairsByFirestoreId.isEmpty &&
-        snapshot.docChanges.length == snapshot.docs.length) {
-      _repairsByFirestoreId.clear();
-      for (final doc in snapshot.docs) {
-        final payload = _decodeRepairDocPayload(doc);
-        if (payload == null) continue;
-
-        final preferredLocal = await _preferUnsyncedLocalRepair(
-          doc.id,
-          payload,
-        );
-        if (preferredLocal != null) {
-          _repairsByFirestoreId[doc.id] = preferredLocal;
-          continue;
-        }
-
-        final repair = _parseRepairDoc(payload, doc.id);
-        if (repair == null) continue;
-
-        _repairsByFirestoreId[doc.id] = repair;
-        upsertFutures.add(db.upsertRepair(repair));
-      }
-    } else {
-      for (final change in snapshot.docChanges) {
-        final id = change.doc.id;
-        if (change.type == DocumentChangeType.removed) {
-          _repairsByFirestoreId.remove(id);
-          // Đơn vừa rời khỏi cửa sổ theo dõi realtime (activeOnly: status<4)
-          // — thường do trạng thái vừa chuyển sang "Đã giao" ở THIẾT BỊ
-          // KHÁC. Nếu không làm gì thêm, bản ghi SQLite cũ (còn status active
-          // trước đó, VD "Sửa xong") sẽ tiếp tục hiển thị qua nguồn
-          // sqliteExtra — sai lệch với trạng thái thật trên cloud. Refetch 1
-          // lần để cập nhật đúng trạng thái mới nhất vào SQLite.
-          upsertFutures.add(_refreshRemovedRepairFromCloud(id));
-          continue;
-        }
-
-        final payload = _decodeRepairDocPayload(change.doc);
-        if (payload == null) {
-          _repairsByFirestoreId.remove(id);
-          continue;
-        }
-
-        final preferredLocal = await _preferUnsyncedLocalRepair(id, payload);
-        if (preferredLocal != null) {
-          _repairsByFirestoreId[id] = preferredLocal;
-          continue;
-        }
-
-        final repair = _parseRepairDoc(payload, id);
-        if (repair == null) continue;
-
-        _repairsByFirestoreId[id] = repair;
-        upsertFutures.add(db.upsertRepair(repair));
-      }
-    }
-
-    if (upsertFutures.isNotEmpty) {
-      await Future.wait(upsertFutures);
-    }
-
-    if (!mounted) return;
-
-    // Reload display from SQLite — catches ALL history, not just Firestore window.
-    // This also covers newly-upserted docs and local unsynced repairs.
-    unawaited(_refreshFromSQLite());
-  }
-
-  /// Pool hợp nhất realtime cache + SQLite historical (dedup theo firestoreId)
-  /// — nguồn dữ liệu duy nhất cho mọi tính toán hiển thị (thống kê, chip count).
-  /// Không thêm bất kỳ read/listener Firestore nào.
-  List<Repair> get _allRepairs {
-    final firestoreIds = _repairsByFirestoreId.keys.toSet();
-    final sqliteExtra = _sqliteRepairs.where((r) {
-      final fid = (r.firestoreId ?? '').trim();
-      return fid.isNotEmpty && !firestoreIds.contains(fid);
-    }).toList();
-    return [..._repairsByFirestoreId.values, ...sqliteExtra];
-  }
+  /// Pool hiển thị — chính là cửa sổ SQLite (nguồn dữ liệu duy nhất, đã được
+  /// SyncService đồng bộ realtime từ cloud). KHÔNG merge thêm cache Firestore
+  /// nào → không còn hai nguồn sự thật, không lệch trạng thái.
+  List<Repair> get _allRepairs => _sqliteRepairs;
 
   void _rebuildDisplayedRepairs({bool markLoaded = false}) {
-    // Merge Firestore realtime cache + SQLite historical data (deduped by firestoreId).
-    // Firestore values win for items in both sources.
     final all = _allRepairs..sort(_compareRepairs);
     debugPrint(
-      '[OrderListView] Firestore count: ${_repairsByFirestoreId.length}',
-    );
-    debugPrint(
-      '[OrderListView] SQLite count: ${_sqliteRepairs.length} (extra not in Firestore: ${_allRepairs.length - _repairsByFirestoreId.length})',
-    );
-    debugPrint(
-      '[OrderListView] HasMore: $_hasMoreData | sqliteLoadedCount: $_sqliteLoadedCount',
+      '[OrderListView] SQLite count: ${_sqliteRepairs.length} (window $_sqliteLoadedCount) | HasMore: $_hasMoreData',
     );
     final filtered = _applyFilters(all);
     final keyword = _currentSearch.trim();
@@ -781,18 +450,14 @@ class OrderListViewState extends State<OrderListView> {
     debugPrint('[OrderListView] Displayed count: ${searched.length}');
     setState(() {
       _displayedRepairs = searched;
-      _isLoadingMoreRealtime = false;
-      if (markLoaded || _isLoading || !_isRealtimeConnected) {
-        _isLoading = false;
-        _isRealtimeConnected = true;
-      }
+      if (markLoaded || _isLoading) _isLoading = false;
     });
   }
 
-  void _removeRepairFromRealtimeCache(String? firestoreId) {
+  /// Xoá đơn khỏi danh sách local sau khi xoá trên Firestore (soft delete/skip).
+  void _removeRepairFromLocalCache(String? firestoreId) {
     final id = (firestoreId ?? '').trim();
     if (id.isEmpty) return;
-    _repairsByFirestoreId.remove(id);
     setState(() {
       _sqliteRepairs.removeWhere((r) => (r.firestoreId ?? '').trim() == id);
       _sqliteLoadedCount = _sqliteRepairs.length;
@@ -807,17 +472,25 @@ class OrderListViewState extends State<OrderListView> {
       _rebuildDisplayedRepairs();
       return;
     }
-    // Debounce 300ms then search all local SQLite (bypasses Firestore limit)
+    // Debounce 300ms rồi tìm trong toàn bộ SQLite (không còn giới hạn 200 —
+    // giới hạn cũ bỏ sót đơn cũ khi filter theo status). Kết quả vẫn qua
+    // cùng pipeline sort + lọc để nhất quán với chế độ duyệt thường.
     _searchDebounce = Timer(const Duration(milliseconds: 300), () async {
       final keyword = val.trim();
       if (keyword.isEmpty || !mounted) return;
       final normalized = VietnameseUtils.normalize(keyword);
       if (mounted) setState(() => _isSearchingLocal = true);
       try {
-        final results = await db.searchRepairs(keyword, normalized, limit: 200);
+        final results = await db.searchRepairs(
+          keyword,
+          normalized,
+          limit: _kMaxSearchResults,
+        );
         if (!mounted || _currentSearch != val) return;
+        results.sort(_compareRepairs);
+        final filtered = _applyFilters(results);
         setState(() {
-          _displayedRepairs = results;
+          _displayedRepairs = filtered;
           _isSearchingLocal = false;
         });
       } catch (_) {
@@ -1597,7 +1270,7 @@ class OrderListViewState extends State<OrderListView> {
         }
       }
 
-      _rebuildDisplayedRepairs();
+      await _refreshFromSQLite();
       if (mounted) {
         NotificationService.showSnackBar(
           'Đã cập nhật thông tin khách hàng',
@@ -1931,12 +1604,12 @@ class OrderListViewState extends State<OrderListView> {
 
       // KHÔNG cần enqueue delete nữa vì đã soft delete trực tiếp trên Firestore rồi
       // Việc enqueue delete sẽ tạo pending sync không cần thiết
-      // Realtime listener sẽ tự đồng xóa local khi nhận deleted=true từ Firestore
+      // SyncService sẽ đồng xóa local khi nhận deleted=true từ Firestore
       debugPrint(
         '✅ Repair deleted directly on Firestore - no need for sync queue',
       );
 
-      _removeRepairFromRealtimeCache(repairFirestoreId);
+      _removeRepairFromLocalCache(repairFirestoreId);
       return true;
     } catch (_) {
       return false;
@@ -1973,9 +1646,9 @@ class OrderListViewState extends State<OrderListView> {
 
   @override
   Widget build(BuildContext context) {
-    // Mọi thống kê đều tính từ pool hiển thị thật (không thêm read Firestore).
+    // Danh sách = cửa sổ SQLite đã nạp; số đếm chip = SQL COUNT toàn shop.
     final pool = _allRepairs;
-    final totalCount = pool.length;
+    final totalCount = _counts['total'] ?? pool.length;
 
     // Layout rộng (web / tablet / màn xoay ngang): header gọn + 2 cột đơn.
     final Size size = MediaQuery.sizeOf(context);
@@ -1986,18 +1659,10 @@ class OrderListViewState extends State<OrderListView> {
       backgroundColor: const Color(0xFFF0F4F8),
       appBar: CustomAppBar.build(
         guideKey: FirstTimeGuideService.keyOrderList,
-        title: "DANH SÁCH ĐƠN SỬA",
+        title: "ĐƠN SỬA",
         subtitle: '$totalCount đơn',
         actions: [
-          IconButton(
-            onPressed: () => FirstTimeGuideService.reopenGuide(
-              context,
-              FirstTimeGuideService.keyOrderList,
-            ),
-            icon: const Icon(Icons.help_outline_rounded,
-                color: Colors.white),
-            tooltip: 'Hướng dẫn sử dụng',
-          ),
+          // Nút "?" đã có sẵn qua `guideKey` — bản cũ thêm nút thứ 2 trùng.
           IconButton(
             onPressed: () => Navigator.push(
               context,
@@ -2110,46 +1775,35 @@ class OrderListViewState extends State<OrderListView> {
                     ),
                   )
                 : Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
-                    child: _buildSearchField(),
+                    // Tìm + sắp xếp + đồng bộ trên MỘT hàng; bỏ hàng
+                    // "Realtime Firestore • N đơn" (list đọc SQLite, nhãn
+                    // đó vừa sai vừa chiếm chỗ) — trạng thái mạng chỉ hiện
+                    // khi thực sự có vấn đề (banner bên dưới).
+                    padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+                    child: Row(
+                      children: [
+                        Expanded(child: _buildSearchField()),
+                        const SizedBox(width: 6),
+                        _buildSortSelector(compact: true),
+                        const SizedBox(width: 6),
+                        _buildSyncButton(),
+                      ],
+                    ),
                   ),
             _buildStatusFilterChips(pool: pool),
-            if (!useGrid)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: SyncStatusBar(
-                        isOnline: ConnectivityService.instance.isOnline,
-                        isRealtimeConnected: _isRealtimeConnected,
-                        itemCount: pool.length,
-                        itemLabel: 'đơn',
-                        modeDetail:
-                            _useRealtimeIndexFallback ? 'fallback' : null,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    _buildSyncButton(),
-                    const SizedBox(width: 6),
-                    _buildSortSelector(),
-                  ],
-                ),
-              ),
             if (!ConnectivityService.instance.isOnline)
               _buildSyncBanner(
                 icon: Icons.cloud_off_rounded,
                 text: 'Ngoại tuyến — đang xem dữ liệu đã lưu',
               )
-            else if (!_isRealtimeConnected &&
-                _receivedServerSnapshot &&
+            else if (!SyncService.isRealTimeSyncActive &&
                 !_isLoading &&
-                !_isSearchingLocal)
+                !_isSearchingLocal &&
+                DateTime.now().isAfter(_syncBannerGraceUntil))
               _buildSyncBanner(
                 icon: Icons.sync_problem_rounded,
                 text: 'Không thể đồng bộ',
-                onRetry: () =>
-                    _startRealtimeRepairsListener(forceRestart: true),
+                onRetry: () => SyncService.refreshCollectionNow('repairs'),
               ),
             Expanded(
               child: _buildListBody(
@@ -2373,10 +2027,9 @@ class OrderListViewState extends State<OrderListView> {
           Expanded(
             child: SyncStatusBar(
               isOnline: ConnectivityService.instance.isOnline,
-              isRealtimeConnected: _isRealtimeConnected,
+              isRealtimeConnected: SyncService.isRealTimeSyncActive,
               itemCount: pool.length,
               itemLabel: 'đơn',
-              modeDetail: _useRealtimeIndexFallback ? 'fallback' : null,
             ),
           ),
           const SizedBox(width: 8),
@@ -2418,19 +2071,30 @@ class OrderListViewState extends State<OrderListView> {
 
   // ─── UI Helper: Status Filter Chips Row ────────────────────────────────────
   Widget _buildStatusFilterChips({required List<Repair> pool}) {
-    final int allCount = pool.length;
-    final int receivedCount = pool.where((r) => r.status == 1).length;
-    final int repairingCount = pool.where((r) => r.status == 2).length;
-    final int doneCount = pool.where((r) => r.status == 3 && !r.pendingDeliveryApproval).length;
-    final int pendingCount = pool.where((r) => r.status == 3 && r.pendingDeliveryApproval).length;
-    final int deliveredCount = pool.where((r) => r.status == 4).length;
-    final int overdueCount = pool.where(_isOverdue).length;
+    // SQL COUNT toàn shop (xem `_reloadCounts`); rơi về cửa sổ đã nạp khi
+    // chưa kịp đếm.
+    final bool hasCounts = _counts.isNotEmpty;
+    final int allCount = hasCounts ? _counts['total']! : pool.length;
+    final int receivedCount = hasCounts
+        ? (_counts['received']! + _counts['repairing']!)
+        : pool.where((r) => r.status == 1 || r.status == 2).length;
+    final int doneCount = hasCounts
+        ? _counts['done']!
+        : pool.where((r) => r.status == 3 && !r.pendingDeliveryApproval).length;
+    final int pendingCount = hasCounts
+        ? _counts['pending']!
+        : pool.where((r) => r.status == 3 && r.pendingDeliveryApproval).length;
+    final int deliveredCount = hasCounts
+        ? _counts['delivered']!
+        : pool.where((r) => r.status >= 4).length;
+    final int overdueCount =
+        hasCounts ? _counts['overdue']! : pool.where(_isOverdue).length;
 
     bool isAllSelected = _statusFilters.isEmpty && !_filterPendingApproval && !_filterOverdue;
     bool isPending = _filterPendingApproval;
 
     return SizedBox(
-      height: 52,
+      height: 44,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -2450,18 +2114,6 @@ class OrderListViewState extends State<OrderListView> {
                 _statusFilters.remove(1);
               } else {
                 _statusFilters.add(1);
-              }
-              _filterPendingApproval = false;
-              _filterOverdue = false;
-            });
-            _rebuildDisplayedRepairs();
-          }),
-          _filterChipItem('Đang sửa', repairingCount, AppColors.repairRepairing, _statusFilters.contains(2) && !isPending && !_filterOverdue, () {
-            setState(() {
-              if (_statusFilters.contains(2)) {
-                _statusFilters.remove(2);
-              } else {
-                _statusFilters.add(2);
               }
               _filterPendingApproval = false;
               _filterOverdue = false;
@@ -2525,29 +2177,18 @@ class OrderListViewState extends State<OrderListView> {
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
           decoration: BoxDecoration(
             color: selected ? color : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: selected ? color : Colors.grey.shade300, width: 1.2),
-            boxShadow: selected
-                ? [BoxShadow(color: color.withValues(alpha:0.2), blurRadius: 4, offset: const Offset(0,2))]
-                : [],
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: selected ? color : Colors.grey.shade300),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (selected) ...[
-                const Icon(Icons.check_circle_rounded, size: 13, color: Colors.white),
-                const SizedBox(width: 4),
-              ],
               Text(label, style: TextStyle(color: selected ? Colors.white : AppColors.onSurface, fontWeight: FontWeight.w600, fontSize: 12)),
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                decoration: BoxDecoration(color: selected ? Colors.white.withValues(alpha:0.25) : color.withValues(alpha:0.1), borderRadius: BorderRadius.circular(8)),
-                child: Text('$count', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: selected ? Colors.white : color)),
-            ),
+              const SizedBox(width: 5),
+              Text('$count', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: selected ? Colors.white.withValues(alpha: 0.9) : color)),
           ],
         ),
       ),
@@ -2556,7 +2197,7 @@ class OrderListViewState extends State<OrderListView> {
   }
 
   /// Bộ chọn kiểu sắp xếp (thuần UI — logic sort nằm ở _compareRepairs).
-  Widget _buildSortSelector() {
+  Widget _buildSortSelector({bool compact = false}) {
     return PopupMenuButton<String>(
       tooltip: 'Sắp xếp',
       offset: const Offset(0, 40),
@@ -2580,7 +2221,7 @@ class OrderListViewState extends State<OrderListView> {
         ),
       ],
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 10, vertical: 8),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(10),
@@ -2592,7 +2233,7 @@ class OrderListViewState extends State<OrderListView> {
             const Icon(Icons.sort_rounded, size: 14, color: Color(0xFF2962FF)),
             const SizedBox(width: 4),
             Text(
-              'Sắp xếp: ${_sortLabel(_sortMode)}',
+              compact ? _sortLabel(_sortMode) : 'Sắp xếp: ${_sortLabel(_sortMode)}',
               style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
@@ -2744,125 +2385,36 @@ class OrderListViewState extends State<OrderListView> {
     return DateFormat('dd/MM HH:mm').format(dt);
   }
 
-  /// Mã đơn — dùng cùng công thức với RepairDetailView (firestoreId ?? id)
-  /// để hiển thị nhất quán trên list, detail và phiếu.
-  String _orderCode(Repair r) {
-    final id = r.firestoreId ?? (r.id != null ? r.id.toString() : '');
-    return '#$id';
-  }
 
-  /// Thumbnail ảnh đơn sửa (reused: có thể tách file nếu sau này cần).
-  Widget _buildRepairThumbnail(List<String> images, String firstImage, Color borderColor, int index, {bool showIndexBadge = true}) {
-    return SizedBox(
-      width: 52,
-      height: 52,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(10),
-              image: firstImage.isNotEmpty &&
-                      !_isGsStoragePath(firstImage) &&
-                      !_isStorageRelativePath(firstImage) &&
-                      ((firstImage.startsWith('http') || firstImage.startsWith('blob:') || firstImage.startsWith('data:')) || !kIsWeb)
-                  ? DecorationImage(
-                      image: (firstImage.startsWith('http') || firstImage.startsWith('blob:') || firstImage.startsWith('data:'))
-                          ? CachedNetworkImageProvider(firstImage)
-                          : FileImage(File(firstImage)) as ImageProvider,
-                      fit: BoxFit.cover,
-                    )
-                  : null,
-            ),
-            child: firstImage.isEmpty
-                ? Icon(Icons.phone_android_rounded, color: Colors.grey.shade400, size: 26)
-                : (_isGsStoragePath(firstImage) || _isStorageRelativePath(firstImage))
-                    ? FutureBuilder<String?>(
-                        future: _resolveDisplayImagePath(firstImage),
-                        builder: (context, snap) {
-                          final url = snap.data;
-                          if (url == null || url.isEmpty) return Icon(Icons.broken_image_rounded, color: Colors.grey.shade400, size: 22);
-                          return ClipRRect(borderRadius: BorderRadius.circular(10), child: AppCachedImage(imageUrl: url, fit: BoxFit.cover, memCacheWidth: 104, memCacheHeight: 104));
-                        },
-                      )
-                    : null,
-          ),
-          // STT badge overlay top-left
-          if (showIndexBadge)
-            Positioned(
-            top: -5,
-            left: -5,
-            child: Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(color: borderColor, borderRadius: BorderRadius.circular(6), boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 2)]),
-              child: Center(child: Text('$index', style: AppTextStyles.overline.copyWith(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 0))),
-            ),
-          ),
-          // "+N" photo count badge bottom-right
-          if (images.length > 1)
-            Positioned(
-              bottom: -3,
-              right: -3,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(6)),
-                child: Text('+${images.length - 1}', style: AppTextStyles.overline.copyWith(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 9)),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 
+  /// Thẻ đơn GỌN (2026-09-19): 3 dòng, cao ~78px thay vì ~230px.
+  ///
+  /// ```
+  /// ▌[ảnh]  IPHONE 13                          1,2 Tr
+  /// ▌       ● SỬA XONG · Hôm nay 16:35 · KH LE · 0900…
+  /// ▌       Ép kính
+  /// ```
+  /// Bỏ mã đơn `#rep_…` (có trong chi tiết), bỏ chevron, bỏ viền/bóng;
+  /// quá hạn: vạch trái đỏ + dòng 2 đỏ. Giữ nguyên: vuốt xoá, giữ để xoá,
+  /// bấm mở chi tiết, "Thêm khách hàng".
   Widget _buildRepairCard(Repair r, int index) {
-    final List<String> images = _collectRepairImages(r);
-    final String firstImage = _pickBestPreviewImage(images);
     final int displayPrice = _displayedChargePrice(r);
     final bool hasRequestedCharge =
         r.pendingDeliveryApproval && r.requestedDeliveryPrice != null;
-
     final bool overdue = _isOverdue(r);
     final Color statusColor = overdue
         ? Colors.red.shade700
         : _getStatusColor(r.status, pendingApproval: r.pendingDeliveryApproval);
-
-    // Chip thông tin phụ — chỉ hiện tối đa 3 để card compact, phần dư gom +N.
-    final List<Widget> chips = <Widget>[];
-
-    // Phụ tùng đã dùng
-    if (r.partsUsed.isNotEmpty) {
-      chips.add(_repairInfoChip(
-        '🔩 ${r.partsUsed}',
-        Colors.cyan.shade50,
-        textColor: Colors.cyan.shade800,
-        fontWeight: FontWeight.w600,
-      ));
-    }
-    // Dịch vụ đã dùng
-    if (r.services.isNotEmpty) {
-      chips.add(_repairInfoChip(
-        '🛠️ ${r.services.map((s) => s.serviceName).join(', ')}',
-        Colors.teal.shade50,
-        textColor: Colors.teal.shade800,
-        fontWeight: FontWeight.w600,
-      ));
-    }
-
-    const int chipCap = 3;
-    final List<Widget> visibleChips = chips.take(chipCap).toList();
-    final int hiddenChips = chips.length - visibleChips.length;
-    if (hiddenChips > 0) {
-      visibleChips.add(_repairInfoChip(
-        '+$hiddenChips',
-        Colors.grey.shade200,
-        textColor: Colors.grey.shade700,
-        fontWeight: FontWeight.bold,
-      ));
-    }
+    final String statusLabel = _getStatusLabel(
+      r.status,
+      pendingApproval: r.pendingDeliveryApproval,
+    );
+    final String when = overdue
+        ? 'Quá hạn ${_daysStuck(r) ?? ''} ngày'
+        : _timeLabel(r);
+    final String customer = r.customerName.trim();
+    final String phone = r.phone.trim();
+    final String issue = r.issue.replaceAll('|', ' ').trim();
 
     return Dismissible(
       key: Key(r.firestoreId ?? r.createdAt.toString()),
@@ -2874,342 +2426,199 @@ class OrderListViewState extends State<OrderListView> {
         padding: const EdgeInsets.only(right: 16),
         decoration: BoxDecoration(
           color: Colors.red,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: const Icon(Icons.delete_forever, color: Colors.white, size: 24),
+        child: const Icon(Icons.delete_forever, color: Colors.white, size: 22),
       ),
       confirmDismiss: (_) async {
         _confirmDelete(r);
         return false;
       },
-      child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-        elevation: 1,
-        shadowColor: Colors.black.withValues(alpha: 0.05),
-        color: Colors.white,
-        clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: BorderSide(
-            color: overdue ? Colors.red.shade200 : Colors.grey.shade200,
-            width: 1,
-          ),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: IntrinsicHeight(
-          child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Vạch trạng thái bên trái; đỏ đậm khi quá hạn (cảnh báo, không
-            // tô đỏ toàn card).
-            Container(
-              width: overdue ? 6 : 4,
-              color: overdue
-                  ? Colors.red.shade600
-                  : statusColor.withValues(alpha: 0.55),
-            ),
-            Expanded(
-              child: InkWell(
-                onTap: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => RepairDetailView(repair: r),
-                    ),
-                  );
-                  if (!mounted) return;
-                  // Dùng firestoreId (không dùng r.id cục bộ — đơn đang xử lý
-                  // dựng từ Firestore realtime thường chưa có r.id). Đơn ĐÃ
-                  // GIAO thì bỏ khỏi cache active để rơi về nguồn SQLite.
-                  final fid = (r.firestoreId ?? '').trim();
-                  if (fid.isNotEmpty) {
-                    final fresh = await db.getRepairByFirestoreId(fid);
-                    if (fresh != null) {
-                      if (fresh.status >= 4) {
-                        _repairsByFirestoreId.remove(fid);
-                      } else {
-                        _repairsByFirestoreId[fid] = fresh;
-                      }
-                      _rebuildDisplayedRepairs();
-                    }
-                  }
-                  unawaited(_refreshFromSQLite());
-                },
-                onLongPress: () {
-                  if (!canDelete) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Chỉ quản lý/chủ shop mới có quyền xóa đơn',
-                        ),
-                        backgroundColor: Colors.orange,
-                      ),
-                    );
-                    return;
-                  }
-                  if (r.status >= 4) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          '❌ Không thể xóa đơn ĐÃ GIAO. Chỉ xóa đơn chưa giao.',
-                        ),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                    return;
-                  }
-                  _confirmDelete(r);
-                },
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // ── Row 1: STT + Status badge + Time + Code + chevron ──
-                      Row(
-                        children: [
-                          Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: statusColor,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Center(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => RepairDetailView(repair: r)),
+            );
+            if (!mounted) return;
+            // Đơn có thể đổi trạng thái trong màn chi tiết → đọc lại SQLite.
+            unawaited(_refreshFromSQLite());
+          },
+          onLongPress: () {
+            if (!canDelete) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Chỉ quản lý/chủ shop mới có quyền xóa đơn'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+              return;
+            }
+            if (r.status >= 4) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    '❌ Không thể xóa đơn ĐÃ GIAO. Chỉ xóa đơn chưa giao.',
+                  ),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              return;
+            }
+            _confirmDelete(r);
+          },
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  width: 4,
+                  color: overdue
+                      ? Colors.red.shade600
+                      : statusColor.withValues(alpha: 0.7),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 10, 0, 10),
+                  child: _buildRepairThumbnail(r),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 9, 12, 9),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ── Dòng 1: Model + giá ──
+                        Row(
+                          children: [
+                            Expanded(
                               child: Text(
-                                '$index',
+                                r.model.trim().isEmpty ? 'Thiết bị' : r.model,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF0F172A),
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: statusColor,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  _getStatusIcon(
-                                    r.status,
-                                    pendingApproval:
-                                        r.pendingDeliveryApproval,
-                                  ),
-                                  size: 12,
-                                  color: Colors.white,
+                            if (displayPrice > 0) ...[
+                              const SizedBox(width: 8),
+                              Text(
+                                '${hasRequestedCharge ? 'YC ' : ''}'
+                                '${MoneyUtils.formatCompactCurrency(displayPrice)}',
+                                maxLines: 1,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  color: hasRequestedCharge
+                                      ? Colors.orange.shade800
+                                      : const Color(0xFF0068FF),
                                 ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  _getStatusLabel(
-                                    r.status,
-                                    pendingApproval:
-                                        r.pendingDeliveryApproval,
-                                  ),
-                                  style: const TextStyle(
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    letterSpacing: 0.3,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              overdue
-                                  ? '⏰ Quá hạn ${_daysStuck(r)} ngày'
-                                  : '⏱ ${_timeLabel(r)}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w600,
-                                color: overdue
-                                    ? Colors.red.shade700
-                                    : Colors.grey.shade600,
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        // ── Dòng 2: ● trạng thái · thời gian · khách · SĐT ──
+                        Row(
+                          children: [
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: BoxDecoration(
+                                color: statusColor,
+                                shape: BoxShape.circle,
                               ),
                             ),
-                          ),
-                          Flexible(
-                            child: Text(
-                              _orderCode(r),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.right,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF9AA5B1),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 2),
-                          Icon(
-                            Icons.chevron_right_rounded,
-                            size: 18,
-                            color: Colors.grey.shade400,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      // ── Row 2: Thumbnail + Model + Issue + Customer + Price ──
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildRepairThumbnail(
-                            images,
-                            firstImage,
-                            statusColor,
-                            index,
-                            showIndexBadge: false,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  r.model,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppTextStyles.headline5.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF0F172A),
-                                  ),
-                                ),
-                                if (r.issue.trim().isNotEmpty) ...[
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    r.issue.replaceAll('|', ' ').trim(),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                  ),
-                                ],
-                                const SizedBox(height: 2),
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.person_outline_rounded,
-                                      size: 13,
-                                      color: Color(0xFF78909C),
-                                    ),
-                                    const SizedBox(width: 3),
-                                    Flexible(
-                                      child: r.customerName.trim().isNotEmpty
-                                          ? Text(
-                                              r.customerName,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style:
-                                                  AppTextStyles.body2.copyWith(
-                                                fontWeight: FontWeight.w600,
-                                                color: AppColors.onSurface,
-                                                fontSize: 12,
-                                              ),
-                                            )
-                                          : GestureDetector(
-                                              onTap: () =>
-                                                  _addCustomerToRepair(r),
-                                              child: Text(
-                                                'Thêm khách hàng',
-                                                maxLines: 1,
-                                                overflow:
-                                                    TextOverflow.ellipsis,
-                                                style:
-                                                    AppTextStyles.body2
-                                                        .copyWith(
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Colors
-                                                      .orange.shade800,
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                            ),
-                                    ),
-                                    if (r.phone.trim().isNotEmpty) ...[
-                                      const SizedBox(width: 6),
-                                      const Icon(
-                                        Icons.phone_outlined,
-                                        size: 11,
-                                        color: Colors.blueGrey,
-                                      ),
-                                      const SizedBox(width: 2),
-                                      Flexible(
-                                        child: Text(
-                                          r.phone,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: AppTextStyles.body2
-                                              .copyWith(
-                                            color:
-                                                AppColors.textSecondary,
-                                            fontSize: 11,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (displayPrice > 0) ...[
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 5),
                             Text(
-                              hasRequestedCharge
-                                  ? 'YC ${MoneyUtils.formatCompactCurrency(displayPrice)}đ'
-                                  : '${MoneyUtils.formatCompactCurrency(displayPrice)}đ',
-                              maxLines: 1,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF0068FF),
+                              statusLabel,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: statusColor,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                ' · $when'
+                                '${customer.isNotEmpty ? ' · $customer' : ''}'
+                                '${phone.isNotEmpty ? ' · $phone' : ''}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: overdue
+                                      ? Colors.red.shade700
+                                      : const Color(0xFF64748B),
+                                ),
                               ),
                             ),
                           ],
-                        ],
-                      ),
-                      if (visibleChips.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 4,
-                          children: visibleChips,
                         ),
+                        // ── Dòng 3: lỗi máy / thêm khách ──
+                        if (issue.isNotEmpty || customer.isEmpty) ...[
+                          const SizedBox(height: 3),
+                          Row(
+                            children: [
+                              if (issue.isNotEmpty)
+                                Expanded(
+                                  child: Text(
+                                    issue,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF475569),
+                                    ),
+                                  ),
+                                )
+                              else
+                                const Spacer(),
+                              if (customer.isEmpty)
+                                GestureDetector(
+                                  onTap: () => _addCustomerToRepair(r),
+                                  child: Text(
+                                    '+ Thêm khách',
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.orange.shade800,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
-    ),
     );
   }
 
+  /// Thu ảnh đơn sửa làm thumbnail: ưu tiên ảnh nhận máy (receiveImages),
+  /// bổ sung rơi vào imagePath (JSON array hoặc danh sách ngăn cách , ; \n).
   List<String> _collectRepairImages(Repair r) {
     final result = <String>[];
 
-    void addCandidate(String? value) {
-      if (value == null) return;
+    void addCandidate(String value) {
       var s = value.trim();
       if (s.isEmpty) return;
       if ((s.startsWith('"') && s.endsWith('"')) ||
@@ -3219,90 +2628,130 @@ class OrderListViewState extends State<OrderListView> {
       if (s.startsWith('[') && s.endsWith(']')) {
         s = s.substring(1, s.length - 1).trim();
       }
-      if (s.isEmpty) return;
-      if (!result.contains(s)) {
-        result.add(s);
-      }
+      if (s.isEmpty || result.contains(s)) return;
+      result.add(s);
     }
 
     for (final image in r.receiveImages) {
       addCandidate(image);
     }
-
     final raw = (r.imagePath ?? '').trim();
     if (raw.isNotEmpty) {
-      final parts = raw
-          .split(RegExp(r'[,;\n]'))
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty);
-      for (final part in parts) {
+      for (final part in raw.split(RegExp(r'[,;\n]'))) {
         addCandidate(part);
       }
     }
-
-    return result.where((path) {
-      if (StorageService.isResolvableDisplayPath(path)) return true;
-      return !kIsWeb;
-    }).toList();
+    return result;
   }
 
+  /// Chọn ảnh hiển thị: ưu tiên nguồn render được mọi máy (http/gs/blob/data);
+  /// trên web bỏ path local vì không xuyên máy/session được.
   String _pickBestPreviewImage(List<String> images) {
     if (images.isEmpty) return '';
-
     for (final image in images) {
-      if (_isWebPreviewSource(image)) {
-        return image;
-      }
+      if (_isWebPreviewSource(image)) return image;
     }
-
-    if (kIsWeb) {
-      // On web, local file paths cannot be rendered across sessions/devices.
-      return '';
-    }
-
+    if (kIsWeb) return '';
     return images.first;
   }
 
   bool _isWebPreviewSource(String path) {
     final lower = path.toLowerCase();
-    return lower.startsWith('http://') ||
-        lower.startsWith('https://') ||
-        lower.startsWith('gs://') ||
-        lower.startsWith('repairs/') ||
-        lower.startsWith('/repairs/') ||
+    return StorageService.isDisplayableCloudPath(path) ||
         lower.startsWith('blob:') ||
         lower.startsWith('data:');
   }
 
-  Widget _repairInfoChip(
-    String text,
-    Color color, {
-    Color textColor = Colors.black,
-    FontWeight fontWeight = FontWeight.w500,
-    int maxLines = 1,
-  }) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxWidth: (MediaQuery.sizeOf(context).width - 100).clamp(
-          0,
-          400,
-        ), // Prevent overflow
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+  /// Ảnh nhỏ 40px trên card đơn sửa — chỉ UI, resolve local/cloud/gs qua
+  /// StorageService; không phải đường đọc Firestore.
+  Widget _buildRepairThumbnail(Repair r) {
+    final String first = _pickBestPreviewImage(_collectRepairImages(r));
+
+    if (first.isEmpty) {
+      return Container(
+        width: 36,
+        height: 36,
         decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(12),
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(8),
         ),
-        child: Text(
-          text,
-          style: AppTextStyles.caption.copyWith(
-            color: textColor,
-            fontWeight: fontWeight,
+        alignment: Alignment.center,
+        child: Icon(
+          Icons.phone_android_rounded,
+          size: 20,
+          color: Colors.grey.shade400,
+        ),
+      );
+    }
+
+    Widget content;
+    if (StorageService.isGsStoragePath(first) ||
+        StorageService.isStorageRelativePath(first)) {
+      content = FutureBuilder<String?>(
+        future: StorageService.resolveDisplayUrl(first),
+        builder: (context, snap) {
+          final url = snap.data;
+          if (url == null || url.isEmpty) {
+            return const Icon(Icons.broken_image_rounded,
+                size: 20, color: Colors.grey);
+          }
+          return AppCachedImage(
+            imageUrl: url,
+            fit: BoxFit.cover,
+            memCacheWidth: 160,
+          );
+        },
+      );
+    } else if (first.startsWith('http') ||
+        first.startsWith('blob:') ||
+        first.startsWith('data:')) {
+      content = AppCachedImage(
+        imageUrl: first,
+        fit: BoxFit.cover,
+        memCacheWidth: 160,
+      );
+    } else if (kIsWeb) {
+      return Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        alignment: Alignment.center,
+        child: Icon(
+          Icons.phone_android_rounded,
+          size: 20,
+          color: Colors.grey.shade400,
+        ),
+      );
+    } else {
+      final file = File(first);
+      if (!file.existsSync()) {
+        return Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(8),
           ),
-          maxLines: maxLines,
-          overflow: TextOverflow.ellipsis,
-        ),
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.phone_android_rounded,
+            size: 20,
+            color: Colors.grey.shade400,
+          ),
+        );
+      }
+      content = Image.file(file, fit: BoxFit.cover);
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: SizedBox(
+        width: 36,
+        height: 36,
+        child: Container(color: Colors.grey.shade100, child: content),
       ),
     );
   }
@@ -3343,13 +2792,5 @@ class OrderListViewState extends State<OrderListView> {
     }
   }
 
-  IconData _getStatusIcon(int status, {bool pendingApproval = false}) {
-    if (status == 1) return Icons.download_rounded;
-    if (status == 2) return Icons.build_rounded;
-    if (status == 3) {
-      return pendingApproval ? Icons.block_rounded : Icons.check_circle_rounded;
-    }
-    if (status == 4) return Icons.local_shipping_rounded;
-    return Icons.help_outline_rounded;
-  }
+
 }

@@ -5143,6 +5143,65 @@ class DBHelper {
 
   /// Get repairs with pagination support for lazy loading — scoped by shopId, excludes deleted.
   /// Returns [limit] repairs starting from [offset], ordered by most-recently-updated first.
+  /// Đếm đơn sửa theo trạng thái bằng SQL (1 query, không nạp bản ghi) —
+  /// cho hàng chip lọc của danh sách đơn sửa. Trước đây đếm trên CỬA SỔ đã
+  /// nạp (50 đơn) nên "Tất cả 50" dù shop có hàng nghìn đơn. `overdue` dùng
+  /// đúng công thức `_daysStuck` của OrderListView: chưa giao, không phải
+  /// "Y/c duyệt", treo > [overdueDays] ngày kể từ createdAt (Tiếp nhận) hoặc
+  /// startedAt/lastCaredAt/createdAt (đang sửa / sửa xong).
+  Future<Map<String, int>> getRepairStatusCounts({int overdueDays = 7}) async {
+    final shopId = await _getScopedShopId('getRepairStatusCounts');
+    final db = await database;
+    final cutoff = DateTime.now()
+        .subtract(Duration(days: overdueDays))
+        .millisecondsSinceEpoch;
+    final scope = (shopId != null && shopId.isNotEmpty)
+        ? '(shopId = ? OR shopId IS NULL) AND '
+        : '';
+    // Thứ tự `?`: mốc quá hạn nằm trong SELECT (trước), shopId trong WHERE (sau).
+    final args = <Object?>[cutoff, if (scope.isNotEmpty) shopId];
+    final rows = await db.rawQuery(
+      '''
+      SELECT
+        COUNT(*) AS total,
+        SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS received,
+        SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) AS repairing,
+        SUM(CASE WHEN status = 3 AND COALESCE(pendingDeliveryApproval, 0) = 0
+                 THEN 1 ELSE 0 END) AS done,
+        SUM(CASE WHEN status = 3 AND COALESCE(pendingDeliveryApproval, 0) = 1
+                 THEN 1 ELSE 0 END) AS pending,
+        SUM(CASE WHEN status >= 4 THEN 1 ELSE 0 END) AS delivered,
+        SUM(CASE WHEN status IN (1, 2, 3)
+                  AND NOT (status = 3 AND COALESCE(pendingDeliveryApproval, 0) = 1)
+                  AND COALESCE(
+                        CASE WHEN status = 1 THEN createdAt
+                             ELSE COALESCE(NULLIF(startedAt, 0),
+                                           NULLIF(lastCaredAt, 0), createdAt)
+                        END, 0) > 0
+                  AND COALESCE(
+                        CASE WHEN status = 1 THEN createdAt
+                             ELSE COALESCE(NULLIF(startedAt, 0),
+                                           NULLIF(lastCaredAt, 0), createdAt)
+                        END, 0) < ?
+                 THEN 1 ELSE 0 END) AS overdue
+      FROM repairs
+      WHERE $scope(deleted = 0 OR deleted IS NULL)
+      ''',
+      args,
+    );
+    final r = rows.isEmpty ? const <String, Object?>{} : rows.first;
+    int v(String k) => (r[k] as num?)?.toInt() ?? 0;
+    return {
+      'total': v('total'),
+      'received': v('received'),
+      'repairing': v('repairing'),
+      'done': v('done'),
+      'pending': v('pending'),
+      'delivered': v('delivered'),
+      'overdue': v('overdue'),
+    };
+  }
+
   Future<List<Repair>> getRepairsPaged(int limit, int offset) async {
     final shopId = await _getScopedShopId('getRepairsPaged');
     final db = await database;
