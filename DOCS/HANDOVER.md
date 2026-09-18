@@ -6,9 +6,9 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ## ⚡ Trạng thái hiện tại
 
-**Version:** 3.6.0+557 (AAB đã build 12/09 15:26 — chưa lên store, xem `DOCS/release_notes_2026-09-12.md`; 3.5.0+556 đang live trên store). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.
+**Version:** 3.7.0+559 (build 19/09 — xem `[2026-09-19d]`; trước đó 3.6.0+557 AAB đã build 12/09 15:26 — chưa lên store, xem `DOCS/release_notes_2026-09-12.md`; 3.5.0+556 đang live trên store). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.
 **Web:** `https://quanlyshop.web.app` đã build+deploy lại **15/09** (`flutter build web --release` + `firebase deploy --only hosting`) — bao gồm mọi thay đổi từ `[2026-09-14f..h]` (Tổng tài sản, danh sách "Chờ NH tất toán", fix crash sửa đơn, fix popup Nhận tiền NH tràn màn hình, fix hồ sơ khách vãng lai). Trước đó web đứng ở bản 12/09, thiếu hết các thay đổi này — đây là nguyên nhân user thấy "web khác bản mobile" test hôm qua.
-**Last Updated:** 2026-09-17  
+**Last Updated:** 2026-09-18  
 
 **Phương án A + khoá ngày chốt quỹ (`[2026-09-19a]`) ✅ Oppo 2 máy:**
 - Thu nợ đơn CÔNG NỢ nay vào Doanh thu/Vốn/Lãi theo tỉ lệ; chốt quỹ ghi `isLocked=1` (trước
@@ -28,6 +28,83 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
   Firestore tối đa 1 lần/10 phút/(shop, ngày); lịch sử chốt đọc local.
 - Báo cáo read: `DOCS/FINANCE_READ_AUDIT.md`. Còn nợ nghiệm thu máy thật: Ghi
   thu/chi → UI cập nhật, chốt quỹ thật, offline (T4–T9 trong audit).
+
+**7 màn chính phẳng diện landscape web (`[2026-09-18a]`) ✅ build web OK, Oppo chạy OK:**
+- Mục tiêu: web để ngang hiện đang 1 cột → tận dụng chiều ngang trên `isWideLayout`
+  (desktop ≤1200px). Toàn bộ thay đổi **gated bằng `context.responsive.isWideLayout`**,
+  mobile (width logic ~393dp) chạy đúng nhánh narrow cũ — không đổi layout.
+- home_view hub tabs: Bán/Sửa/Kho quick-action + management card chuyển nhiều cột
+  (`ResponsiveGrid` / GridView `isDesktop?3:2`); Cài đặt nhóm 2 cột xen kẽ khi rộng.
+- sale_list_view: 2 đơn/hàng (compact card) trong từng nhóm ngày khi wide.
+- staff_list_view: 2 nhân viên/hàng (compact card) khi wide.
+- inventory_view: 2 sản phẩm/hàng khi wide (giữ KeyedSubtree + STT thật).
+- finance_v2 đã responsive sẵn (Row 3 ô Expanded + stat cards scroll) → không đụng.
+- Verify: `flutter analyze` 0 error/warning mới; `flutter build web --release` OK;
+  `flutter build apk --debug` + `adb install -r` Oppo → install Success, cold start
+  sạch, session owner/shopId khôi phục, logcat không lỗi. (Lưu ý: uiautomator dump
+  build này không xuất Flutter text — xác minh bằng screenshot pixel + logcat.)
+
+**Bộ đếm Firestore READ chính xác thường trực (`[2026-09-17f]`) ✅ cài trên Oppo:**
+- Thay đếm thiếu cũ: mỗi `get()` giờ đếm đúng billing `1 (query) + docs` và **luôn
+  ghi cả khi rỗng** (`logFetchRead`); đếm tập trung tại `_getQueryWithTimeout`
+  (mọi page, kể cả sweep), gỡ khối poll cũ tránh đếm đúp; giữ đếm listener
+  (`applied`/`docChanges`).
+- Gắn counter mọi đường ngoài sync: expenses/attendance fetchOnce, payment_requests
+  (cả fallback), stock_entries, shift_swap, users_query poll (user_service), user
+  doc ×4 + shop doc (user_service) + shop doc/shop_profile (home_view),
+  shop_notifications + broadcasts listener.
+- `FirebaseRwStatsService._configs` thêm 9 collection (users, shops, shop_profile,
+  shop_notifications, broadcasts, suppliers, stock_entries, shift_swap_requests,
+  attendance); view cập nhật chú thích đếm theo billing.
+- Nghiệm thu Oppo: analyze 0 error; khởi động không FATAL; DB local xác nhận poll
+  rỗng ghi `readCount=1`, `users doc-read 11`, `shops doc-read 3`, `repairs listener
+  15`; **12 phút warm ≈ 92 reads** — khớp phép đo instrument trước (warm ≈ 82).
+- Residual đã biết: chat/community/payroll-stream listeners chỉ phát sinh read khi
+  mở màn tương ứng, chưa gắn counter (chấp nhận, nhỏ).
+
+**Đo Firestore reads Startup+OrderList+Detail (`[2026-09-17e]`) ✅ đo xong (đã gỡ instrument):**
+- Đếm tại ranh giới SDK bằng counter tạm `FirestoreReadCountDebug` trên máy thật
+  (Oppo, shop thật): **Startup warm-cache ≈ 82 reads** (cold/fresh-install ≈ 860),
+  **OrderList = 0**, **RepairDetailView = 0**. Toàn bộ reads thuộc sync nền
+  (35+ collection poll), không có read nào từ UI — xác nhận pipeline SQLite-first.
+- Instrument tạm đã xoá sạch (file `firestore_read_count_debug.dart`,
+  `integration_test/read_count_test.dart`, toàn bộ `add()` trong 8 file); analyze
+  0 error; reinstall app chạy không FATAL.
+
+**RepairDetailView — nối lại nghiệp vụ sau redesign (`[2026-09-17d]`) ✅ Oppo:**
+- Overview tab: link "Lịch sử tương tự" (chạm mở `SimilarRepairHistoryView`) khi có
+  `_historicalPricing`; dòng phụ tùng chạm mở đúng linh kiện trong Kho (`· NCC:`);
+  **Thao tác card** mới: Chọn phụ tùng / Kho PT / Đổi PT / Xóa PT / Sửa KTV /
+  Ghi chú KTV (theo phân quyền cũ).
+- Thumbnail card list hiện **40px** (52px → 40px theo yêu cầu, card gọn hơn).
+- Verify: analyze 0 error; integration test Oppo **PASS** `01:53 +1`; app chạy
+  không FATAL.
+
+**OrderListView — lọc thừa "Đang sửa" gỡ + thumbnail 40px lại (`[2026-09-17c]`) ✅ nghiệm thu Oppo:**
+- Hàng chip lọc còn 6: Tất cả / Tiếp nhận / Y/c duyệt / Sửa xong / Giao / Quá hạn
+  (bỏ "Đang sửa" — sort nhóm 1 đã gộp Tiếp nhận+Đang sửa nên chip này thừa).
+- Thêm lại thumbnail 44px đầu card: `_collectRepairImages`/`_pickBestPreviewImage`/
+  `_buildRepairThumbnail` (gs/relative → `StorageService.resolveDisplayUrl` +
+  `AppCachedImage`; local → `Image.file`; placeholder icon máy nếu không ảnh).
+- Verify: analyze 0 error/warning; integration test trên Oppo CPH2203 **PASS**
+  `01:55 +1`; reinstall app-debug.apk chạy, không FATAL.
+
+**OrderListView + RepairDetailView — SQLite single-source + sort ưu tiên (`[2026-09-17b]`) ✅ nghiệm thu Oppo:**
+- OrderListView bỏ hẳn listener Firestore riêng + merge multi-source; một nguồn
+  sự thật = SQLite; `EventBus.repairsChanged` → đọc lại SQLite, `shopChanged` →
+  reset phân trang. Card 4 dòng (bỏ thumbnail/chips/STT). Search toàn DB qua
+  `searchRepairs` (scope shop + loại deleted + cap 5000).
+- Sort `_compareRepairs` ưu tiên: Tiếp nhận(+Đang sửa) → Sửa xong → Y/c duyệt →
+  Quá hạn (UI computed) → Đã giao; `_daysStuck` mở rộng status 1/2/3.
+- RepairDetailView bỏ `watchRepairDoc` → EventBus (skip khi đang sửa).
+- `SyncService.refreshCollectionNow('repairs')` mới + `'repairs'` trong full sweep.
+- Verify: analyze 0 error/0 warning mới (so baseline qua stash); flutter test
+  665/1/2 (±0, kiotviet pre-existing); **trên máy Oppo CPH2203**: app-debug.apk
+  cài + chạy (PID 31173, logcat sạch) + integration test
+  `order_redesign_regression_test.dart` **PASS** `02:05 +1` (đã ván test stale:
+  "Sửa xong", "Ngày nhận", mở preview bằng `Icons.preview`).
+- Còn lại/chú ý: 2 fail kiotviet pre-existing; `create_repair_order_view` giữ
+  double-push (quyết định — giờ chỉ tốn 1 SQLite query).
 
 **RepairDetailView — redesign + audit fixes (`[2026-09-17a]`):**
 - **Redesign body:** Tabbed layout 3 tab (Tổng quan/Dịch vụ/Lịch sử & Ghi chú).

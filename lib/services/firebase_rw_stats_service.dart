@@ -190,6 +190,51 @@ class FirebaseRwStatsService {
       entityTypes: const [],
       isShopSubcollection: true,
     ),
+    _CollectionConfig(
+      collection: 'users',
+      title: 'Nhân sự / tài khoản',
+      entityTypes: const [],
+    ),
+    _CollectionConfig(
+      collection: 'shops',
+      title: 'Shop doc',
+      entityTypes: const [],
+    ),
+    _CollectionConfig(
+      collection: 'shop_profile',
+      title: 'Cấu hình shop',
+      entityTypes: const [],
+    ),
+    _CollectionConfig(
+      collection: 'shop_notifications',
+      title: 'Thông báo trong app',
+      entityTypes: const [],
+    ),
+    _CollectionConfig(
+      collection: 'broadcasts',
+      title: 'Broadcast hệ thống',
+      entityTypes: const [],
+    ),
+    _CollectionConfig(
+      collection: 'suppliers',
+      title: 'Nhà cung cấp',
+      entityTypes: const [],
+    ),
+    _CollectionConfig(
+      collection: 'stock_entries',
+      title: 'Phiếu nhập kho',
+      entityTypes: const [],
+    ),
+    _CollectionConfig(
+      collection: 'shift_swap_requests',
+      title: 'Đăng ký đổi ca',
+      entityTypes: const [],
+    ),
+    _CollectionConfig(
+      collection: 'attendance',
+      title: 'Chấm công',
+      entityTypes: const [],
+    ),
   ];
 
   static Future<FirebaseRwDashboardSnapshot> buildSnapshot() async {

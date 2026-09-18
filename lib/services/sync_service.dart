@@ -354,6 +354,13 @@ class SyncService {
     // ⇒ shop thật đọc lại 779 doc MỖI lần mở app (đo 2026-09-12). Vào nhóm
     // này để được lập con trỏ sau lượt quét trọn + lưới 24h.
     'payment_intents',
+    // `repairs`: 2026-09-17 OrderListView bỏ listener Firestore riêng, nguồn
+    // duy nhất là SQLite. Lượt quét trọn này (1 lần/24h/shop, kèm lưới an toàn
+    // `_checkCollection`) thay vai trò backfill lịch sử cũ từng nằm trong
+    // OrderListView (_doHistoricalBackfill) — vớt doc THIẾU `updatedAt` (đời
+    // app cũ / payload một phần) mà con trỏ tăng dần không bao giờ chạm tới,
+    // tránh đơn cũ biến mất khỏi list.
+    'repairs',
   };
 
   /// Bảng đã quét trọn xong trong lần mở app này (bộ nhớ) — cộng thêm mốc
@@ -514,6 +521,22 @@ class SyncService {
   static bool get isRealTimeSyncActive =>
       _isInitialized && _subscriptions.isNotEmpty;
 
+  /// Ép chạy một lượt poll cho [collection] ngay (nút retry của màn hình khi
+  /// sync lỗi). Dùng refresher đã đăng ký khi poll thành công — nếu chưa có
+  /// (chưa init xong) hoặc đang poll thì bỏ qua, không tự mở kênh mới.
+  static Future<void> refreshCollectionNow(String collection) async {
+    if (_isRefreshingCollections) return;
+    final refresher = _collectionRefreshers[collection];
+    if (refresher == null) {
+      debugPrint(
+        '⏭️ [SYNC] refreshCollectionNow($collection) bỏ qua: chưa có refresher',
+      );
+      return;
+    }
+    debugPrint('🔄 [SYNC] refreshCollectionNow($collection) — manual refresh');
+    await refresher();
+  }
+
   /// Check if real-time sync setup is currently running.
   static bool get isRealtimeInitializationInProgress => _isInitializingRealtime;
 
@@ -600,7 +623,16 @@ class SyncService {
     final effectiveQuery = limit != null ? query.limit(limit) : query;
     await _acquirePollSlot();
     try {
-      return await effectiveQuery.get().timeout(_cloudReadTimeout);
+      final snap = await effectiveQuery.get().timeout(_cloudReadTimeout);
+      unawaited(
+        FirebaseUsageStatsService.logFetchRead(
+          collection: _readCollectionFromContext(context),
+          shopId: UserService.getShopIdSync(),
+          docs: snap.docs.length,
+          source: 'sync-poll',
+        ),
+      );
+      return snap;
     } on TimeoutException {
       if (_shouldLogCloudReadTimeout()) {
         debugPrint(
@@ -611,6 +643,18 @@ class SyncService {
     } finally {
       _releasePollSlot();
     }
+  }
+
+  /// Maps a `_getQueryWithTimeout` context string back to the Firestore
+  /// collection name, so reads are aggregated per collection in stats.
+  static String _readCollectionFromContext(String context) {
+    if (context.startsWith('poll_')) return context.substring(5);
+    if (context.startsWith('downloadAllFromCloud_')) {
+      return context.substring('downloadAllFromCloud_'.length);
+    }
+    if (context == 'syncAllToCloud_suppliers_dedupe') return 'suppliers';
+    if (context == 'syncCustomersFromCloud') return 'customers';
+    return context;
   }
 
   /// Trigger one-shot cloud fetch for active collections.
@@ -2993,15 +3037,6 @@ class SyncService {
 
             await onChanged(data, doc.id);
           }
-
-          unawaited(
-            FirebaseUsageStatsService.logRealtimeRead(
-              collection: collection,
-              shopId: shopId,
-              readCount: snapshot.docs.length,
-              source: 'poll',
-            ),
-          );
 
           if (sweepResumeKey != null) {
             await _saveSweepResume(sweepResumeKey, lastDoc.id);

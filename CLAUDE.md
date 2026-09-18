@@ -195,6 +195,23 @@
   suýt cộng kho vào sản phẩm sai. Xem `docs/CHANGELOG.md` mục `[2026-09-12j]`
   và `test/sale_snapshot_cross_device_test.dart`.
 
+### 13. Danh sách / chi tiết đơn sửa: SQLite là nguồn sự thật DUY NHẤT
+- `OrderListView` và `RepairDetailView` **KHÔNG đọc Firestore trực tiếp nữa**
+  (từ 2026-09-17, `[2026-09-17b]`). Display pipeline: SQLite → `EventBus`
+  (`repairsChanged` / `shopChanged`). Không viết lại các path `_startRealtimeRepairsListener`,
+  `watchRepairDoc`, `_doHistoricalBackfill` kiểu merge multi-source — đó là
+  nguyên nhân list chậm cũ.
+- Cập nhật realtime do `SyncService` lo (cloud → SQLite → event). Mọi thao tác
+  lưu của chính màn hình cũng phải bắn `EventBus.repairsChanged` sau khi ghi
+  SQLite. Detail view bỏ qua event khi `_isUpdating`.
+- Sort ưu tiên của list (`_compareRepairs`): Tiếp nhận(+Đang sửa) → Sửa xong →
+  Y/c duyệt giao → Quá hạn (UI computed `_isOverdue`, KHÔNG đổi status DB) →
+  Đã giao. `_daysStuck` tính cho status 1/2/3.
+- Search list dùng `DBHelper.searchRepairs` (scope `shopId`, loại `deleted`,
+  cap 5000) trên toàn bộ SQLite — không trả về ở sync đang chạy.
+- Muốn ép một collection sync lại ngay lập tức: `SyncService.refreshCollectionNow('repairs')`
+  (không tạo listener mới).
+
 ---
 
 ## IV. WORKFLOW PHÁT TRIỂN

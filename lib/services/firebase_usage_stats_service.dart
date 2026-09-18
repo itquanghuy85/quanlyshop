@@ -20,6 +20,27 @@ class FirebaseUsageStatsService {
   static const String tableName = 'firebase_read_stats';
   static const Duration _retention = Duration(days: 14);
 
+  /// Counts a single `get()` query + the documents it returned, using the exact
+  /// Firestore billing model: `readCount = 1 (query) + docs`.
+  ///
+  /// Unlike [logRealtimeRead] this ALWAYS records a read (an empty query still
+  /// costs 1 read) — that was the old blind spot: polls returning 0 docs were
+  /// never logged, under-reporting real usage.
+  static Future<void> logFetchRead({
+    required String collection,
+    required String? shopId,
+    required int docs,
+    String source = 'fetch',
+  }) {
+    final readCount = 1 + (docs < 0 ? 0 : docs);
+    return logRealtimeRead(
+      collection: collection,
+      shopId: shopId,
+      readCount: readCount,
+      source: source,
+    );
+  }
+
   static Future<void> logRealtimeRead({
     required String collection,
     required String? shopId,

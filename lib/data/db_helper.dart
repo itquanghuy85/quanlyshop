@@ -5049,16 +5049,34 @@ class DBHelper {
   /// Search repairs, accent- and case-insensitive (e.g. "pham" matches "PHẠM").
   /// SQL LIKE can't fold Vietnamese diacritics, so we scan the (shop-scoped,
   /// recency-capped) candidate set and filter with [VietnameseUtils] in Dart.
+  ///
+  /// Fix R-DATA1 (2026-09-17): truy vấn được scope theo shop giống mọi query
+  /// khác (`_getScopedShopId` — null = super admin được phép mọi shop) và loại
+  /// đơn soft-delete. Trước đây search không filter `shopId`/`deleted` ⇒ máy
+  /// thuộc shop A có thể thấy đơn shop B, và đơn đã xoá vẫn lọt vào kết quả.
   Future<List<Repair>> searchRepairs(
     String query,
     String normalizedQuery, {
     int limit = 25,
   }) async {
     final db = await database;
-    final maps = await db.rawQuery(
-      'SELECT * FROM repairs ORDER BY createdAt DESC LIMIT ?',
-      [5000],
-    );
+    final scopedShopId = await _getScopedShopId('searchRepairs');
+    const caps = 5000; // Recency cap, tương đương các query chủ động khác.
+    final bool useIndex = scopedShopId != null && scopedShopId.isNotEmpty;
+    final maps = useIndex
+        ? await db.rawQuery(
+            'SELECT * FROM repairs '
+            'WHERE (shopId = ? OR shopId IS NULL) '
+            'AND (deleted IS NULL OR deleted = 0) '
+            'ORDER BY createdAt DESC LIMIT ?',
+            [scopedShopId, caps],
+          )
+        : await db.rawQuery(
+            'SELECT * FROM repairs '
+            'WHERE (deleted IS NULL OR deleted = 0) '
+            'ORDER BY createdAt DESC LIMIT ?',
+            [caps],
+          );
     final results = <Repair>[];
     for (final m in maps) {
       final repair = Repair.fromMap(m);

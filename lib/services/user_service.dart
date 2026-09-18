@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'firebase_usage_stats_service.dart';
 import 'firestore_write_helper.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -590,6 +593,14 @@ class UserService {
     try {
       debugPrint("getCurrentShopId: lấy dữ liệu user ${currentUser.uid}");
       final doc = await _db.collection('users').doc(currentUser.uid).get();
+      unawaited(
+        FirebaseUsageStatsService.logFetchRead(
+          collection: 'users',
+          shopId: getShopIdSync(),
+          docs: doc.exists ? 1 : 0,
+          source: 'doc-read',
+        ),
+      );
       final data = doc.data();
       String? shopId;
       if (data != null) {
@@ -645,7 +656,15 @@ class UserService {
       // Nếu shopId hiện tại trỏ tới shop đã bị xóa/không tồn tại, fallback sang shop owner đang active.
       if (shopId != null && shopId.trim().isNotEmpty) {
         try {
-          final shopDoc = await _db.collection('shops').doc(shopId).get();
+final shopDoc = await _db.collection('shops').doc(shopId).get();
+          unawaited(
+            FirebaseUsageStatsService.logFetchRead(
+              collection: 'shops',
+              shopId: shopId,
+              docs: shopDoc.exists ? 1 : 0,
+              source: 'doc-read',
+            ),
+          );
           final shopDeleted = shopDoc.data()?['deleted'] == true;
           final role = (data?['role'] ?? '').toString().trim().toLowerCase();
           final isOwnerRole = role == 'owner';
@@ -712,6 +731,14 @@ class UserService {
     // Fallback to Firestore
     try {
       final doc = await _db.collection('users').doc(uid).get();
+      unawaited(
+        FirebaseUsageStatsService.logFetchRead(
+          collection: 'users',
+          shopId: getShopIdSync(),
+          docs: doc.exists ? 1 : 0,
+          source: 'doc-read',
+        ),
+      );
       final role = doc.data()?['role'] ?? 'user';
       debugPrint("getUserRole: role from firestore = $role");
       return role;
@@ -745,6 +772,14 @@ class UserService {
 
   static Future<Map<String, dynamic>> getUserInfo(String uid) async {
     final doc = await _db.collection('users').doc(uid).get();
+    unawaited(
+      FirebaseUsageStatsService.logFetchRead(
+        collection: 'users',
+        shopId: getShopIdSync(),
+        docs: doc.exists ? 1 : 0,
+        source: 'doc-read',
+      ),
+    );
     return doc.data() ?? {};
   }
 
@@ -758,6 +793,14 @@ class UserService {
         '[SYNC][FETCH] collection=users_query reason=$reason limit=20',
       );
       final snapshot = await query.get();
+      unawaited(
+        FirebaseUsageStatsService.logFetchRead(
+          collection: 'users',
+          shopId: getShopIdSync(),
+          docs: snapshot.docs.length,
+          source: 'sync-poll',
+        ),
+      );
       lastFetchAt = DateTime.now();
       return snapshot;
     }
@@ -1297,6 +1340,14 @@ class UserService {
   ) async {
     try {
       final snap = await _db.collection('users').doc(targetUid).get();
+      unawaited(
+        FirebaseUsageStatsService.logFetchRead(
+          collection: 'users',
+          shopId: getShopIdSync(),
+          docs: snap.exists ? 1 : 0,
+          source: 'doc-read',
+        ),
+      );
       final role = snap.data()?['role']?.toString().trim().toLowerCase();
       if (role == null || role.isEmpty) return 'employee';
 
@@ -1412,6 +1463,14 @@ class UserService {
 
     try {
       final snap = await _db.collection('users').doc(currentUser.uid).get();
+      unawaited(
+        FirebaseUsageStatsService.logFetchRead(
+          collection: 'users',
+          shopId: getShopIdSync(),
+          docs: snap.exists ? 1 : 0,
+          source: 'doc-read',
+        ),
+      );
       final data = snap.data() ?? {};
       final role = (data['role'] as String?) ?? 'user';
       debugPrint('getCurrentUserPermissions: role from firestore = $role');

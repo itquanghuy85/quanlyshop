@@ -130,9 +130,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   // ignore: unused_field
   ShopSettings? _shopSettings;
 
-  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
-  _repairDocSubscription;
-  bool _hasReceivedServerDocSnapshot = false;
+  StreamSubscription<String>? _eventSub;
 
   // Tab module detail: 0 = Tổng quan, 1 = Dịch vụ, 2 = Lịch sử & Ghi chú.
   int _detailTab = 0;
@@ -161,7 +159,15 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         _loadLegacyPartsLookup();
       }),
     );
-    unawaited(_startRepairRealtimeListener(forceRestart: true));
+    // 2026-09-17: bỏ listener watchRepairDoc riêng — nguồn duy nhất là SQLite.
+    // SyncService (cloud→SQLite) và các thao tác lưu của chính màn này đều bắn
+    // EventBus.repairsChanged ⇒ chỉ việc đọc lại SQLite, không tốn Firestore read.
+    _eventSub = EventBus().stream.listen((event) {
+      if (!mounted) return;
+      if (event != EventBus.repairsChanged) return;
+      if (_isUpdating) return; // Đang chính tay sửa → không đè trạng thái màn.
+      unawaited(_loadFreshRepairFromDb().then((_) => _loadLastModifierInfo()));
+    });
     unawaited(_loadLastModifierInfo());
     unawaited(_loadHistoricalPricing());
   }
@@ -311,272 +317,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     } catch (e) {
       debugPrint('_loadFreshRepairFromDb error: $e');
     }
-  }
-
-  Future<void> _startRepairRealtimeListener({bool forceRestart = false}) async {
-    final targetId = (r.firestoreId ?? '').trim();
-    if (targetId.isEmpty) return;
-
-    if (!forceRestart && _repairDocSubscription != null) {
-      return;
-    }
-
-    await _repairDocSubscription?.cancel();
-    _repairDocSubscription = null;
-    _hasReceivedServerDocSnapshot = false;
-
-    _repairDocSubscription = FirestoreService.watchRepairDoc(targetId).listen(
-      (snapshot) {
-        unawaited(_applyRepairDocSnapshot(snapshot));
-      },
-      onError: (error) {
-        debugPrint('❌ [RepairDetailView] Realtime doc listener lỗi: $error');
-      },
-    );
-  }
-
-  Future<void> _applyRepairDocSnapshot(
-    DocumentSnapshot<Map<String, dynamic>> snapshot,
-  ) async {
-    if (!snapshot.exists) return;
-
-    if (snapshot.metadata.isFromCache && _hasReceivedServerDocSnapshot) {
-      return;
-    }
-
-    if (!snapshot.metadata.isFromCache) {
-      _hasReceivedServerDocSnapshot = true;
-    }
-
-    // Echo ghi của chính máy này (chưa được máy chủ xác nhận): dữ liệu đó đã
-    // nằm trong SQLite, `updatedAt` serverTimestamp còn null → đem so với local
-    // chỉ ra kết quả sai. SyncService cũng bỏ qua y hệt.
-    if (snapshot.metadata.hasPendingWrites) return;
-
-    try {
-      final rawData = Map<String, dynamic>.from(snapshot.data() ?? {});
-      final data = EncryptionService.decryptMap(rawData);
-      if (data['deleted'] == true) return;
-
-      SyncService.convertTimestampFieldsPublic(data);
-      data['firestoreId'] = snapshot.id;
-      data['isSynced'] = 1;
-
-      final isPartialSnapshot = _isPartialRepairSnapshot(data);
-      final latest = Repair.fromMap(data);
-      var safeLatest = await _mergeSnapshotWithLocalIfPartial(data, latest);
-      final beforeProtect = safeLatest;
-      safeLatest = await _protectLocalUnsyncedRepairFromStaleCloud(
-        data,
-        safeLatest,
-      );
-      // Giữ bản local chưa sync ⇒ KHÔNG ghi lại SQLite: bản đó vốn đọc từ
-      // SQLite (isSynced=false), ghi lại sau khi hàng đợi vừa đẩy xong sẽ lật
-      // cờ về chưa-sync → SyncService thấy local chưa sync lại enqueue → ghi
-      // cloud lần nữa → echo → lật cờ… Đo 2 máy 2026-09-12: 1 lần bấm XONG =
-      // 4 lượt ghi cloud, máy kia nhận 5 snapshot. Các field cloud gộp thêm
-      // (repairedBy, lastCaredAt…) sẽ về đủ ở snapshot kế tiếp sau khi local
-      // đẩy xong và được chấp nhận.
-      final keptLocalUnsynced = !identical(safeLatest, beforeProtect);
-
-      // Khi đang xử lý thao tác cập nhật và snapshot cloud chỉ là patch trạng thái,
-      // bỏ qua để tránh ghi đè đơn local thành giá 0/thiếu dữ liệu.
-      if (_isUpdating && isPartialSnapshot) {
-        debugPrint(
-          'ℹ️ [RepairDetailView] Skip partial realtime snapshot while updating: ${snapshot.id}',
-        );
-        return;
-      }
-
-      final recoveredLocalData =
-          isPartialSnapshot &&
-          (safeLatest.price > 0 ||
-              safeLatest.cost > 0 ||
-              safeLatest.services.isNotEmpty ||
-              safeLatest.customerName.trim().isNotEmpty ||
-              safeLatest.model.trim().isNotEmpty);
-
-      if (recoveredLocalData) {
-        // Snapshot cloud bị thiếu dữ liệu, giữ bản local đầy đủ và ép sync ngược.
-        safeLatest.isSynced = false;
-      }
-
-      if (!keptLocalUnsynced) {
-        await db.upsertRepair(safeLatest);
-      }
-
-      if (recoveredLocalData && safeLatest.id != null) {
-        try {
-          await SyncOrchestrator().enqueue(
-            entityType: SyncEntityType.repair,
-            entityId: safeLatest.id!,
-            firestoreId: safeLatest.firestoreId,
-            operation: SyncOperation.update,
-            data: safeLatest.toMap(),
-          );
-          // ignore: unawaited_futures
-          unawaited(SyncOrchestrator().syncAll());
-        } catch (e) {
-          debugPrint(
-            '⚠️ [RepairDetailView] enqueue heal partial repair snapshot lỗi: $e',
-          );
-        }
-      }
-
-      if (!mounted || _isUpdating) return;
-      setState(() => r = safeLatest);
-      unawaited(_loadLastModifierInfo());
-    } catch (e) {
-      debugPrint('⚠️ [RepairDetailView] _applyRepairDocSnapshot lỗi: $e');
-    }
-  }
-
-  bool _isPartialRepairSnapshot(Map<String, dynamic> data) {
-    final hasIdentity =
-        (data['customerName']?.toString().trim().isNotEmpty ?? false) ||
-        (data['model']?.toString().trim().isNotEmpty ?? false) ||
-        (data['phone']?.toString().trim().isNotEmpty ?? false);
-    final hasFinancial =
-        data.containsKey('price') ||
-        data.containsKey('cost') ||
-        data.containsKey('totalCost') ||
-        data.containsKey('services') ||
-        data.containsKey('requestedDeliveryPrice');
-    final hasCreatedAt = _parseTimestamp(data['createdAt']) > 0;
-
-    return !hasIdentity && !hasFinancial && !hasCreatedAt;
-  }
-
-  Future<Repair> _mergeSnapshotWithLocalIfPartial(
-    Map<String, dynamic> cloudData,
-    Repair cloudRepair,
-  ) async {
-    if (!_isPartialRepairSnapshot(cloudData)) {
-      return cloudRepair;
-    }
-
-    final firestoreId = (cloudRepair.firestoreId ?? '').trim();
-    if (firestoreId.isEmpty) {
-      return cloudRepair;
-    }
-
-    final localRepair = await db.getRepairByFirestoreId(firestoreId);
-    if (localRepair == null) {
-      return cloudRepair;
-    }
-
-    return localRepair.copyWith(
-      status: cloudRepair.status,
-      pendingDeliveryApproval: cloudRepair.pendingDeliveryApproval,
-      requestedDeliveryPrice: cloudRepair.requestedDeliveryPrice != null
-          ? cloudRepair.requestedDeliveryPrice
-          : localRepair.requestedDeliveryPrice,
-      lastCaredAt: cloudRepair.lastCaredAt ?? localRepair.lastCaredAt,
-      finishedAt: cloudRepair.finishedAt ?? localRepair.finishedAt,
-      deliveredAt: cloudRepair.deliveredAt ?? localRepair.deliveredAt,
-      repairedBy: (cloudRepair.repairedBy ?? '').trim().isNotEmpty
-          ? cloudRepair.repairedBy
-          : localRepair.repairedBy,
-      repairedByUid: (cloudRepair.repairedByUid ?? '').trim().isNotEmpty
-          ? cloudRepair.repairedByUid
-          : localRepair.repairedByUid,
-      deliveredBy: (cloudRepair.deliveredBy ?? '').trim().isNotEmpty
-          ? cloudRepair.deliveredBy
-          : localRepair.deliveredBy,
-      deliveredByUid: (cloudRepair.deliveredByUid ?? '').trim().isNotEmpty
-          ? cloudRepair.deliveredByUid
-          : localRepair.deliveredByUid,
-      paymentMethod: cloudRepair.paymentMethod.trim().isNotEmpty
-          ? cloudRepair.paymentMethod
-          : localRepair.paymentMethod,
-    );
-  }
-
-  int _extractCloudRepairTimeMs(Map<String, dynamic> cloudData) {
-    final updatedAt = _parseTimestamp(cloudData['updatedAt']);
-    if (updatedAt > 0) return updatedAt;
-
-    final lastCaredAt = _parseTimestamp(cloudData['lastCaredAt']);
-    if (lastCaredAt > 0) return lastCaredAt;
-
-    final deliveredAt = _parseTimestamp(cloudData['deliveredAt']);
-    if (deliveredAt > 0) return deliveredAt;
-
-    final finishedAt = _parseTimestamp(cloudData['finishedAt']);
-    if (finishedAt > 0) return finishedAt;
-
-    return _parseTimestamp(cloudData['createdAt']);
-  }
-
-  Future<Repair> _protectLocalUnsyncedRepairFromStaleCloud(
-    Map<String, dynamic> cloudData,
-    Repair cloudRepair,
-  ) async {
-    final firestoreId = (cloudRepair.firestoreId ?? '').trim();
-    if (firestoreId.isEmpty) {
-      return cloudRepair;
-    }
-
-    final localRepair = await db.getRepairByFirestoreId(firestoreId);
-    if (localRepair == null || localRepair.isSynced) {
-      return cloudRepair;
-    }
-
-    // Status 4 (đã giao) là trạng thái cuối — cloud approval luôn thắng.
-    // Tránh trường hợp: staff submit chờ duyệt (local unsynced),
-    // manager duyệt trên máy khác → cloud status=4 bị block bởi protection.
-    if (cloudRepair.status == 4 && localRepair.status < 4) {
-      debugPrint(
-        '🔓 [RepairDetailView] Cloud approved delivery (status 4) overrides local pending for $firestoreId',
-      );
-      return cloudRepair;
-    }
-
-    final localTime = localRepair.lastCaredAt ?? localRepair.createdAt;
-    final cloudTime = _extractCloudRepairTimeMs(cloudData);
-
-    // Cloud chỉ được phép ghi đè khi thật sự mới hơn local unsynced.
-    const toleranceMs = 5000;
-    final cloudClearlyNewer =
-        cloudTime > 0 && cloudTime > localTime + toleranceMs;
-    if (cloudClearlyNewer) {
-      return cloudRepair;
-    }
-
-    debugPrint(
-      '🛡️ [RepairDetailView] Keep local unsynced repair $firestoreId (local: $localTime, cloud: $cloudTime)',
-    );
-
-    // Cloud cũ hơn local — giữ nguyên status và pendingDeliveryApproval của local.
-    // Chỉ merge các field không xung đột (lastCaredAt, repairedBy, v.v.)
-    // KHÔNG copy status/pendingDeliveryApproval từ cloud vì đó là dữ liệu stale
-    // sẽ ghi đè thay đổi local rồi sync ngược lên cloud gây mất trạng thái.
-    return localRepair.copyWith(
-      requestedDeliveryPrice:
-          cloudRepair.requestedDeliveryPrice ??
-          localRepair.requestedDeliveryPrice,
-      lastCaredAt:
-          (cloudRepair.lastCaredAt ?? 0) > (localRepair.lastCaredAt ?? 0)
-          ? cloudRepair.lastCaredAt
-          : localRepair.lastCaredAt,
-      finishedAt: cloudRepair.finishedAt ?? localRepair.finishedAt,
-      deliveredAt: cloudRepair.deliveredAt ?? localRepair.deliveredAt,
-      repairedBy: (cloudRepair.repairedBy ?? '').trim().isNotEmpty
-          ? cloudRepair.repairedBy
-          : localRepair.repairedBy,
-      repairedByUid: (cloudRepair.repairedByUid ?? '').trim().isNotEmpty
-          ? cloudRepair.repairedByUid
-          : localRepair.repairedByUid,
-      deliveredBy: (cloudRepair.deliveredBy ?? '').trim().isNotEmpty
-          ? cloudRepair.deliveredBy
-          : localRepair.deliveredBy,
-      deliveredByUid: (cloudRepair.deliveredByUid ?? '').trim().isNotEmpty
-          ? cloudRepair.deliveredByUid
-          : localRepair.deliveredByUid,
-      paymentMethod: cloudRepair.paymentMethod.trim().isNotEmpty
-          ? cloudRepair.paymentMethod
-          : localRepair.paymentMethod,
-    );
   }
 
   String _normalizeActionText(String rawAction) {
@@ -906,7 +646,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
   @override
   void dispose() {
-    _repairDocSubscription?.cancel();
+    _eventSub?.cancel();
     super.dispose();
   }
 
@@ -5451,6 +5191,34 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                     ),
                   ),
                 ],
+                if ((_canViewRevenue || _canEditRepairCharge) &&
+                    _historicalPricing != null) ...[
+                  const SizedBox(height: 4),
+                  InkWell(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SimilarRepairHistoryView(
+                          repairs: _historicalPricing!.matchedRepairs,
+                          showCost: canShowCost,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      '💡 Lịch sử tương tự (chạm để xem): '
+                      '${MoneyUtils.formatCurrency(_historicalPricing!.minPrice)}đ - '
+                      '${MoneyUtils.formatCurrency(_historicalPricing!.maxPrice)}đ '
+                      '(${_historicalPricing!.sampleCount} đơn, '
+                      'độ tin cậy: ${_historicalPricing!.confidence.label})',
+                      style: AppTextStyles.overline.copyWith(
+                        color: Colors.grey.shade600,
+                        fontSize: 10,
+                        decoration: TextDecoration.underline,
+                        decorationColor: Colors.grey.shade400,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -5482,18 +5250,156 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                 const SizedBox(height: 4),
                 if (r.partsUsedDetailed.isNotEmpty)
                   for (final p in r.partsUsedDetailed)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 1),
-                      child: Text(
-                        '${p.name} x${p.qty}',
-                        style: AppTextStyles.caption.copyWith(fontSize: 11),
-                      ),
-                    )
+                    Builder(builder: (_) {
+                      final sup = (p.supplier ?? '').trim().isNotEmpty
+                          ? p.supplier!.trim()
+                          : (p.productId != null
+                              ? (_partSupplierByPid[p.productId] ?? '')
+                              : (_partSupplierByName[p.name] ?? ''));
+                      return InkWell(
+                        onTap: () => _openPartInInventory(p),
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 2, bottom: 2),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '${p.name} x${p.qty}'
+                                  '${sup.isNotEmpty ? '  ·  NCC: $sup' : ''}',
+                                  style: AppTextStyles.caption.copyWith(
+                                    fontSize: 11,
+                                    color: Colors.blue,
+                                    decoration:
+                                        TextDecoration.underline,
+                                    decorationColor: Colors.blue
+                                        .withValues(alpha: 0.35),
+                                  ),
+                                ),
+                              ),
+                              const Icon(Icons.chevron_right,
+                                  size: 14, color: Colors.blue),
+                            ],
+                          ),
+                        ),
+                      );
+                    })
                 else
-                  Text(
-                    r.partsUsed,
-                    style: AppTextStyles.caption.copyWith(fontSize: 11),
-                  ),
+                  for (final entry in _parsePartsUsedText(r.partsUsed))
+                    Builder(builder: (_) {
+                      final name = entry.$1;
+                      final qty = entry.$2;
+                      final prod = _legacyPartLookup[name];
+                      final prodSup = (prod?.supplier ?? '').trim();
+                      final sup = prodSup.isNotEmpty
+                          ? prodSup
+                          : (_partSupplierByName[name] ?? '');
+                      return InkWell(
+                        onTap: () => _openPartInInventory(
+                          PartUsedDetail(name: name, cost: 0, qty: qty),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 2, bottom: 2),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '$name x$qty'
+                                  '${sup.isNotEmpty ? '  ·  NCC: $sup' : ''}',
+                                  style: AppTextStyles.caption.copyWith(
+                                    fontSize: 11,
+                                    color: Colors.blue,
+                                    decoration:
+                                        TextDecoration.underline,
+                                    decorationColor: Colors.blue
+                                        .withValues(alpha: 0.35),
+                                  ),
+                                ),
+                              ),
+                              const Icon(Icons.chevron_right,
+                                  size: 14, color: Colors.blue),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+              ],
+            ),
+          ),
+        ),
+
+      // Quick actions card — chọn PT / kho lk / đổi lk / xóa PT / KTV.
+      // Luôn hiện khi có quyền để "Chọn phụ tùng" dùng được cả khi đơn chưa có PT.
+      if (_canEditRepairOrder || _canEditRepairNotes)
+        Card(
+          margin: const EdgeInsets.only(bottom: 6),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.flash_on_rounded,
+                        size: 14, color: Colors.amber),
+                    const SizedBox(width: 4),
+                    Text(
+                      'THAO TÁC',
+                      style: AppTextStyles.overline.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
+                  children: [
+                    _quickAction(
+                      loc.partsLabel,
+                      Icons.inventory_2,
+                      Colors.blue,
+                      _selectPartsFromInventory,
+                    ),
+                    _quickAction(
+                      loc.partsInventoryShort,
+                      Icons.warehouse,
+                      Colors.teal,
+                      _navigateToPartsInventory,
+                    ),
+                    if (r.partsUsed.isNotEmpty && _canEditRepairOrder)
+                      _quickAction(
+                        'Đổi PT',
+                        Icons.swap_horiz,
+                        Colors.deepPurple,
+                        _swapPartInRepair,
+                      ),
+                    if (r.partsUsed.isNotEmpty && _canEditRepairOrder)
+                      _quickAction(
+                        'Xóa PT',
+                        Icons.delete_sweep,
+                        Colors.red,
+                        _removePartFromRepair,
+                      ),
+                    if (_canEditRepairOrder)
+                      _quickAction(
+                        'Sửa KTV',
+                        Icons.engineering_rounded,
+                        Colors.indigo,
+                        _editTechnician,
+                      ),
+                    _quickAction(
+                      loc.techShort,
+                      Icons.note_add,
+                      Colors.orange,
+                      _editTechnicianNotes,
+                    ),
+                  ],
+                ),
               ],
             ),
           ),

@@ -194,7 +194,7 @@ class _FirebaseRwStatsViewState extends State<FirebaseRwStatsView> {
           ),
           const SizedBox(height: 10),
           Text(
-            'Lưu ý: Trạng thái ON bên dưới là trạng thái đồng bộ (polling/listener). Reads 24h là tổng đọc từ cloud trong 24 giờ gần nhất nên có thể tăng theo chu kỳ polling hoặc khi sync khởi động lại.',
+            'Lưu ý: Reads 24h đếm theo đúng mô hình billing của Firestore — mỗi lần get() tính 1 read cho query + 1 read cho mỗi doc trả về (kể cả kết quả rỗng), listener tính số doc change, và các get ngoài sync (users/shops/thông báo/…) đều được ghi nhận. Có thể tăng theo chu kỳ polling hoặc khi sync khởi động lại.',
             style: TextStyle(
               fontSize: 12,
               color: Colors.blueGrey.shade700,

@@ -839,6 +839,14 @@ class _SaleListViewState extends State<SaleListView> {
       }
     }
 
+    // Wide layout (web/tablet landscape): pre-build a 2-column row list that
+    // keeps date headers full-width and pairs sale cards side by side. The
+    // narrow path below stays untouched (single column).
+    final bool useWideGrid = context.responsive.isWideLayout;
+    final List<Widget>? salesRows = useWideGrid
+        ? _buildSaleGridRows(groupedItems, indexMap)
+        : null;
+
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -1121,12 +1129,13 @@ class _SaleListViewState extends State<SaleListView> {
                             controller: _scrollController,
                             padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                             itemCount:
-                                groupedItems.length +
+                                (salesRows?.length ?? groupedItems.length) +
                                 (_isLoadingMore ? 1 : 0) +
                                 (!_hasMore && list.isNotEmpty ? 1 : 0),
                             itemBuilder: (ctx, i) {
                               // Footer items (loading / end text)
-                              if (i >= groupedItems.length) {
+                              if (i >=
+                                  (salesRows?.length ?? groupedItems.length)) {
                                 if (_isLoadingMore) {
                                   return const Padding(
                                     padding: EdgeInsets.all(16),
@@ -1149,6 +1158,9 @@ class _SaleListViewState extends State<SaleListView> {
                                   ),
                                 );
                               }
+
+                              // Wide layout: rows are pre-built widgets.
+                              if (salesRows != null) return salesRows[i];
 
                               final item = groupedItems[i];
 
@@ -1702,6 +1714,298 @@ class _SaleListViewState extends State<SaleListView> {
                 ],
               ),
             ),
+    );
+  }
+
+  /// Pre-build 2-column rows for wide layouts: date headers stay full-width,
+  /// sale orders are paired side-by-side (keeps global STT, reuses the compact
+  /// card). Narrow layouts never call this.
+  List<Widget> _buildSaleGridRows(
+    List<dynamic> groupedItems,
+    Map<int?, int> indexMap,
+  ) {
+    final rows = <Widget>[];
+    List<SaleOrder>? pending;
+
+    void flush() {
+      if (pending == null) return;
+      if (pending!.length == 1) {
+        rows.add(_buildSaleCardCompact(pending!.single, indexMap));
+      } else if (pending!.length >= 2) {
+        rows.add(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildSaleCardCompact(pending![0], indexMap),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildSaleCardCompact(pending![1], indexMap),
+              ),
+            ],
+          ),
+        );
+      }
+      pending = null;
+    }
+
+    for (final item in groupedItems) {
+      if (item is String) {
+        flush();
+        rows.add(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 10, 4, 4),
+            child: Text(
+              item,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ),
+        );
+      } else {
+        (pending ??= <SaleOrder>[]).add(item as SaleOrder);
+      }
+    }
+    flush();
+    return rows;
+  }
+
+  /// Compact sale card used by the 2-column wide layout — same data and
+  /// navigation as the full-width card but tighter for side-by-side display.
+  Widget _buildSaleCardCompact(SaleOrder s, Map<int?, int> indexMap) {
+    final l10n = AppLocalizations.of(context)!;
+    final date = _formatSaleDate(s.soldAt);
+    final remain = _effectiveRemainingDebt(s);
+    final index = indexMap[s.id] ?? 0;
+    final isPaid = remain == 0;
+    final isInstallment =
+        s.isInstallment || s.paymentMethod.toUpperCase().contains('TRẢ GÓP');
+    final hasBankSettlement =
+        (s.settlementReceivedAt ?? 0) > 0 || s.settlementAmount > 0;
+    final returnInfo = s.id != null ? _returnInfoMap[s.id] : null;
+    final isFullyReturned = returnInfo?.allReturned == true;
+    final accentColor = isFullyReturned
+        ? Colors.grey.shade500
+        : (isInstallment && !hasBankSettlement)
+            ? Colors.orange.shade600
+            : (isPaid ? Colors.green.shade600 : Colors.orange.shade600);
+    final paidAmount = (s.finalPrice - remain).clamp(0, s.finalPrice);
+
+    return Card(
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: accentColor.withValues(alpha: 0.22), width: 1),
+      ),
+      elevation: 0,
+      color: Colors.white,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => SaleDetailView(sale: s)),
+          ).then((_) => _refresh());
+        },
+        onLongPress: () {
+          HapticFeedback.mediumImpact();
+          _openReturn(s);
+        },
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    constraints: const BoxConstraints(minWidth: 20),
+                    height: 17,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$index',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      s.productNamesDisplay,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                        letterSpacing: -0.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: accentColor,
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: Text(
+                      isFullyReturned
+                          ? l10n.saleListStatusReturned
+                          : (isInstallment && !hasBankSettlement)
+                              ? l10n.saleListStatusBankPending
+                              : (isPaid
+                                    ? l10n.saleListStatusCollected
+                                    : l10n.saleListStatusHasDebt),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  if (s.customerName.isNotEmpty) ...[
+                    const Icon(
+                      Icons.person_outline,
+                      size: 11,
+                      color: Color(0xFF475569),
+                    ),
+                    const SizedBox(width: 3),
+                    Expanded(
+                      child: Text(
+                        s.sellerName.isNotEmpty
+                            ? '${s.customerName}  ·  ${s.sellerName}'
+                            : s.customerName,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF475569),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ] else ...[
+                    GestureDetector(
+                      onTap: () => _addCustomerToSale(s),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orange.shade200),
+                        ),
+                        child: const Text(
+                          'Thêm khách',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.orange,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                  ],
+                  const SizedBox(width: 6),
+                  Text(
+                    date,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Color(0xFF94A3B8),
+                    ),
+                  ),
+                ],
+              ),
+              if (s.finalPrice > 0) ...[
+                const SizedBox(height: 6),
+                _saleInfoRow(
+                  left: _saleChip(
+                    l10n.saleListChipPaid,
+                    MoneyUtils.formatCompactCurrency(paidAmount),
+                    const Color(0xFF0369A1),
+                    const Color(0xFFE0F2FE),
+                  ),
+                  right: remain > 0
+                      ? _saleChip(
+                          l10n.saleListChipDebt,
+                          MoneyUtils.formatCompactCurrency(remain),
+                          const Color(0xFFB45309),
+                          const Color(0xFFFEF3C7),
+                        )
+                      : null,
+                ),
+              ],
+              if (returnInfo != null) ...[
+                const SizedBox(height: 3),
+                _saleChip(
+                  isFullyReturned
+                      ? l10n.saleListReturnFull
+                      : l10n.saleListReturnPartial,
+                  isFullyReturned
+                      ? MoneyUtils.formatCompactCurrency(
+                          returnInfo.totalReturnedAmount,
+                        )
+                      : l10n.saleListReturnTimesCount(
+                          MoneyUtils.formatCompactCurrency(
+                            returnInfo.totalReturnedAmount,
+                          ),
+                          returnInfo.returnCount,
+                        ),
+                  isFullyReturned
+                      ? Colors.grey.shade600
+                      : Colors.orange.shade800,
+                  isFullyReturned
+                      ? Colors.grey.shade100
+                      : Colors.orange.shade50,
+                ),
+              ],
+              if (isInstallment) ...[
+                const SizedBox(height: 3),
+                _saleChip(
+                  l10n.saleListInstallmentLabel,
+                  hasBankSettlement
+                      ? l10n.saleListBankReceivedAmount(
+                          MoneyUtils.formatCompactCurrency(s.settlementAmount),
+                        )
+                      : l10n.saleListBankNotReceived,
+                  hasBankSettlement
+                      ? const Color(0xFF0369A1)
+                      : const Color(0xFF92400E),
+                  hasBankSettlement
+                      ? const Color(0xFFE0F2FE)
+                      : const Color(0xFFFEF3C7),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 

@@ -757,10 +757,15 @@ class _StaffListViewState extends State<StaffListView> {
                     );
                   }
 
+                  final bool wide = context.responsive.isWideLayout;
                   return ListView.builder(
                     padding: const EdgeInsets.all(15),
-                    itemCount: users.length,
+                    itemCount:
+                        wide ? ((users.length + 1) ~/ 2) : users.length,
                     itemBuilder: (ctx, i) {
+                      if (wide) {
+                        return _buildStaffWideRow(users, i);
+                      }
                       final userData = users[i].data() as Map<String, dynamic>;
                       final uid = users[i].id;
                       final email = userData['email'] ?? "Chưa có email";
@@ -949,6 +954,117 @@ class _StaffListViewState extends State<StaffListView> {
                   );
                 },
               ),
+      ),
+    );
+  }
+
+  /// Wide layout (web/tablet landscape): pairs two compact staff cards per row
+  /// so horizontal space is used. Narrow layouts keep the single-column card.
+  Widget _buildStaffWideRow(List<dynamic> users, int rowIndex) {
+    final j = rowIndex * 2;
+    final children = <Widget>[
+      Expanded(child: _buildStaffCardCompact(users, j)),
+    ];
+    if (j + 1 < users.length) {
+      children
+        ..add(const SizedBox(width: 8))
+        ..add(Expanded(child: _buildStaffCardCompact(users, j + 1)));
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
+    );
+  }
+
+  /// Compact staff card for the 2-column wide layout — same data and actions
+  /// as the full card but tighter (no shop name row).
+  Widget _buildStaffCardCompact(List<dynamic> users, int i) {
+    final userData = users[i].data() as Map<String, dynamic>;
+    final uid = users[i].id;
+    final email = userData['email'] ?? 'Chưa có email';
+    final role = userData['role'] ?? 'user';
+    final displayName =
+        userData['displayName'] ?? email.split('@').first.toUpperCase();
+    final phone = userData['phone'] ?? 'Chưa có SĐT';
+    final photoUrl = (userData['photoUrl'] ?? '').toString().trim();
+
+    final roleLabel = role == 'owner'
+        ? 'Chủ shop'
+        : role == 'manager'
+        ? 'Quản lý'
+        : role == 'employee'
+        ? 'Nhân viên'
+        : role == 'technician'
+        ? 'Kỹ thuật'
+        : role == 'admin'
+        ? 'Admin'
+        : role == 'user'
+        ? 'Người dùng'
+        : role;
+    final roleColor = role == 'owner'
+        ? AppColors.primary
+        : role == 'manager'
+        ? AppColors.secondary
+        : role == 'employee'
+        ? AppColors.info
+        : role == 'technician'
+        ? AppColors.success
+        : role == 'admin'
+        ? AppColors.error
+        : AppColors.inactive;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 4,
+        ),
+        leading: CircleAvatar(
+          backgroundImage: _safeImageProvider(photoUrl),
+          backgroundColor: roleColor.withOpacity(0.1),
+          child: photoUrl.isEmpty
+              ? Icon(
+                  role == 'owner'
+                      ? Icons.business
+                      : role == 'manager'
+                      ? Icons.supervisor_account
+                      : role == 'employee'
+                      ? Icons.work
+                      : role == 'technician'
+                      ? Icons.build
+                      : role == 'admin'
+                      ? Icons.admin_panel_settings
+                      : Icons.person,
+                  color: roleColor,
+                )
+              : null,
+        ),
+        title: Text(displayName, style: FinanceV2Theme.titleMd),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(email, style: FinanceV2Theme.bodyMd),
+            Text('SĐT: $phone', style: FinanceV2Theme.bodyMd),
+            Text('Vai trò: $roleLabel', style: FinanceV2Theme.bodyMd),
+          ],
+        ),
+        isThreeLine: true,
+        trailing: const Icon(
+          Icons.edit_note_rounded,
+          color: Colors.blueAccent,
+        ),
+        onTap: () => _showStaffActivityCenter(
+          uid,
+          displayName,
+          email,
+          role,
+          userData,
+        ),
       ),
     );
   }

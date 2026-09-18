@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
@@ -17,6 +19,7 @@ import 'money_validation_service.dart';
 import 'firestore_write_helper.dart';
 import 'event_bus.dart';
 import '../developer/firestore_audit/firestore_audit_module.dart';
+import 'firebase_usage_stats_service.dart';
 
 class FirestoreService {
   static final _db = FirebaseFirestore.instance;
@@ -823,6 +826,14 @@ class FirestoreService {
             .orderBy('date', descending: true)
             .limit(20)
             .get();
+        unawaited(
+          FirebaseUsageStatsService.logFetchRead(
+            collection: 'expenses',
+            shopId: shopId,
+            docs: snap.docs.length,
+            source: 'sync-poll',
+          ),
+        );
         FirestoreAuditModule.logRead(
           collection: 'expenses',
           operation: AuditOperation.get,
@@ -998,6 +1009,14 @@ class FirestoreService {
             .orderBy('createdAt', descending: true)
             .limit(20)
             .get();
+        unawaited(
+          FirebaseUsageStatsService.logFetchRead(
+            collection: 'attendance',
+            shopId: shopId,
+            docs: snap.docs.length,
+            source: 'sync-poll',
+          ),
+        );
         FirestoreAuditModule.logRead(
           collection: 'attendance',
           operation: AuditOperation.get,

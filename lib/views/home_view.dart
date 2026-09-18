@@ -91,6 +91,7 @@ import '../services/sync_health_check.dart';
 import '../services/bank_notification_service.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
+import '../services/firebase_usage_stats_service.dart';
 import '../services/ai_nav_bridge.dart';
 import '../services/notification_service.dart';
 import '../services/storage_service.dart';
@@ -1829,6 +1830,14 @@ class _HomeViewState extends State<HomeView>
               .collection('shops')
               .doc(shopId)
               .get();
+          unawaited(
+            FirebaseUsageStatsService.logFetchRead(
+              collection: 'shops',
+              shopId: shopId,
+              docs: shopDoc.exists ? 1 : 0,
+              source: 'doc-read',
+            ),
+          );
           if (shopDoc.exists) {
             final shopData = shopDoc.data();
             shopName = normalizeLegacyShopName(shopData?['name']?.toString());
@@ -1848,6 +1857,14 @@ class _HomeViewState extends State<HomeView>
                   .collection('settings')
                   .doc('shop_profile')
                   .get();
+              unawaited(
+                FirebaseUsageStatsService.logFetchRead(
+                  collection: 'shop_profile',
+                  shopId: shopId,
+                  docs: profileDoc.exists ? 1 : 0,
+                  source: 'doc-read',
+                ),
+              );
               if (profileDoc.exists) {
                 final profileData = profileDoc.data();
                 final fallbackName = normalizeLegacyShopName(
@@ -5134,40 +5151,45 @@ class _HomeViewState extends State<HomeView>
 
             // Quick Action - Tạo đơn bán
             _buildSectionHeader(loc.quickActions),
-            _financeQuickCard(
-              loc.createNewSaleOrder,
-              Icons.add_shopping_cart,
-              Colors.green,
-              () => _pushRoute(
-                context,
-                MaterialPageRoute(builder: (_) => const CreateSaleView()),
-              ),
-            ),
-            const SizedBox(height: 6),
-            _financeQuickCard(
-              'Bảng giá bán hàng',
-              Icons.sell_outlined,
-              Colors.deepPurple,
-              () => openPriceBook(context, initialTab: 1),
-            ),
-            const SizedBox(height: 6),
-            _financeQuickCard(
-              'Đối soát tiền về',
-              Icons.fact_check_outlined,
-              Colors.indigo,
-              () => openMoneyReconcile(context),
-            ),
-            const SizedBox(height: 6),
-            _financeQuickCard(
-              'Ngân hàng chưa trả góp',
-              Icons.account_balance_rounded,
-              const Color(0xFF303F9F),
-              () => _pushRoute(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const PendingBankSettlementView(),
+            ResponsiveGrid(
+              spacing: 6,
+              runSpacing: 6,
+              maxColumns: 2,
+              minChildWidth: 380,
+              children: [
+                _financeQuickCard(
+                  loc.createNewSaleOrder,
+                  Icons.add_shopping_cart,
+                  Colors.green,
+                  () => _pushRoute(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CreateSaleView()),
+                  ),
                 ),
-              ),
+                _financeQuickCard(
+                  'Bảng giá bán hàng',
+                  Icons.sell_outlined,
+                  Colors.deepPurple,
+                  () => openPriceBook(context, initialTab: 1),
+                ),
+                _financeQuickCard(
+                  'Đối soát tiền về',
+                  Icons.fact_check_outlined,
+                  Colors.indigo,
+                  () => openMoneyReconcile(context),
+                ),
+                _financeQuickCard(
+                  'Ngân hàng chưa trả góp',
+                  Icons.account_balance_rounded,
+                  const Color(0xFF303F9F),
+                  () => _pushRoute(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PendingBankSettlementView(),
+                    ),
+                  ),
+                ),
+              ],
             ),
 
             const SizedBox(height: 10),
@@ -5175,10 +5197,14 @@ class _HomeViewState extends State<HomeView>
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: context.responsive.isMobile ? 1 : 2,
+              crossAxisCount: context.responsive.isMobile
+                  ? 1
+                  : (context.responsive.isDesktop ? 3 : 2),
               mainAxisSpacing: 6,
               crossAxisSpacing: 8,
-              childAspectRatio: context.responsive.isMobile ? 5.5 : 5.0,
+              childAspectRatio: context.responsive.isMobile
+                  ? 5.5
+                  : (context.responsive.isDesktop ? 4.6 : 5.0),
               children: [
                 _tabMenuItem(
                   loc.saleOrderList,
@@ -5263,70 +5289,84 @@ class _HomeViewState extends State<HomeView>
             ),
             const SizedBox(height: 10), // Quick Action - Tạo đơn sửa
             _buildSectionHeader(loc.quickActions),
-            _financeQuickCard(
-              loc.createNewRepairOrder,
-              Icons.build_circle,
-              Colors.blue,
-              () => _pushRoute(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => CreateRepairOrderView(role: widget.role),
+            ResponsiveGrid(
+              spacing: 6,
+              runSpacing: 6,
+              maxColumns: 3,
+              minChildWidth: 350,
+              children: [
+                _financeQuickCard(
+                  loc.createNewRepairOrder,
+                  Icons.build_circle,
+                  Colors.blue,
+                  () => _pushRoute(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CreateRepairOrderView(role: widget.role),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            _financeQuickCard(
-              'Yêu cầu đóng tiền',
-              Icons.receipt_long,
-              const Color(0xFF075E54),
-              () => _pushRoute(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const PaymentRequestChatView(),
+                _financeQuickCard(
+                  'Yêu cầu đóng tiền',
+                  Icons.receipt_long,
+                  const Color(0xFF075E54),
+                  () => _pushRoute(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PaymentRequestChatView(),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            _financeQuickCard(
-              'Bảng giá sửa chữa',
-              Icons.sell_outlined,
-              Colors.deepPurple,
-              () => openPriceBook(context, initialTab: 0),
+                _financeQuickCard(
+                  'Bảng giá sửa chữa',
+                  Icons.sell_outlined,
+                  Colors.deepPurple,
+                  () => openPriceBook(context, initialTab: 0),
+                ),
+              ],
             ),
 
             const SizedBox(height: 10),
             _buildSectionHeader(loc.management),
-            _tabMenuItem(
-              loc.repairOrderList,
-              Icons.list_alt,
-              Colors.indigo,
-              () => _pushRoute(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => OrderListView(role: widget.role),
-                ),
-              ),
-              subtitle: loc.viewSearchTrackRepairs,
-            ),
-            // Parts inventory - requires repair + inventory permission
-            if (hasFullAccess ||
-                (_permissions['allowViewRepairs'] == true &&
-                    _permissions['allowViewInventory'] == true))
-              _tabMenuItem(
-                'Kho phụ tùng / linh kiện',
-                Icons.settings_suggest_outlined,
-                Colors.deepOrange,
-                () => _pushRoute(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => InventoryView(
-                      role: widget.role,
-                      initialFilterType: 'LINH_KIEN',
+            ResponsiveGrid(
+              spacing: 8,
+              runSpacing: 6,
+              maxColumns: 2,
+              minChildWidth: 520,
+              children: [
+                _tabMenuItem(
+                  loc.repairOrderList,
+                  Icons.list_alt,
+                  Colors.indigo,
+                  () => _pushRoute(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => OrderListView(role: widget.role),
                     ),
                   ),
+                  subtitle: loc.viewSearchTrackRepairs,
                 ),
-                subtitle: 'Quản lý linh kiện, giá nhập, tồn kho',
-              ),
+                // Parts inventory - requires repair + inventory permission
+                if (hasFullAccess ||
+                    (_permissions['allowViewRepairs'] == true &&
+                        _permissions['allowViewInventory'] == true))
+                  _tabMenuItem(
+                    'Kho phụ tùng / linh kiện',
+                    Icons.settings_suggest_outlined,
+                    Colors.deepOrange,
+                    () => _pushRoute(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => InventoryView(
+                          role: widget.role,
+                          initialFilterType: 'LINH_KIEN',
+                        ),
+                      ),
+                    ),
+                    subtitle: 'Quản lý linh kiện, giá nhập, tồn kho',
+                  ),
+              ],
+            ),
           ],
         ),
       ),
@@ -5564,10 +5604,14 @@ class _HomeViewState extends State<HomeView>
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: context.responsive.isMobile ? 1 : 2,
+              crossAxisCount: context.responsive.isMobile
+                  ? 1
+                  : (context.responsive.isDesktop ? 3 : 2),
               mainAxisSpacing: 6,
               crossAxisSpacing: 8,
-              childAspectRatio: context.responsive.isMobile ? 5.5 : 5.0,
+              childAspectRatio: context.responsive.isMobile
+                  ? 5.5
+                  : (context.responsive.isDesktop ? 4.6 : 5.0),
               children: [
                 _tabMenuItem(
                   loc.pendingConfirmation,
@@ -6783,6 +6827,7 @@ class _HomeViewState extends State<HomeView>
   /// Thẻ gom nhóm: nền trắng, viền mảnh, các dòng ngăn bằng divider — thay cho
   /// kiểu mỗi dòng một thẻ pastel + tiêu đề nhiều màu (rối mắt, khó đọc).
   Widget _settingsGroupCard(List<_SettingsItem> items) {
+    final wide = context.responsive.isWideLayout && items.length >= 3;
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -6790,14 +6835,42 @@ class _HomeViewState extends State<HomeView>
         border: Border.all(color: AppColors.divider),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          for (var i = 0; i < items.length; i++) ...[
-            if (i > 0) const Divider(height: 1, thickness: 1, indent: 60),
-            items[i].builder?.call(context) ?? _settingsNavRow(items[i]),
-          ],
+      child: wide
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _settingsGroupColumn([
+                    for (var i = 0; i < items.length; i += 2) items[i],
+                  ]),
+                ),
+                const VerticalDivider(
+                  width: 1,
+                  thickness: 1,
+                  indent: 4,
+                  endIndent: 4,
+                ),
+                Expanded(
+                  child: _settingsGroupColumn([
+                    for (var i = 1; i < items.length; i += 2) items[i],
+                  ]),
+                ),
+              ],
+            )
+          : _settingsGroupColumn(items),
+    );
+  }
+
+  /// Single-column renderer for [`_settingsGroupCard`] — rows separated by a
+  /// divider. Extracted so wide layouts can interleave items across columns.
+  Widget _settingsGroupColumn(List<_SettingsItem> items) {
+    return Column(
+      children: [
+        for (var i = 0; i < items.length; i++) ...[
+          if (i > 0) const Divider(height: 1, thickness: 1, indent: 60),
+          items[i].builder?.call(context) ?? _settingsNavRow(items[i]),
         ],
-      ),
+      ],
     );
   }
 

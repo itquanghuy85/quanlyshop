@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../utils/money_utils.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -2273,34 +2272,17 @@ class _InventoryViewState extends State<InventoryView>
     await _loadOrCreateCurrentCheck();
   }
 
-  /// Sync tất cả products từ Firestore vào local DB để đảm bảo dữ liệu mới nhất
+  /// Kéo-xuống-làm-mới: ép SyncService poll lại `products` NGAY bằng con trỏ
+  /// `updatedAt` (chỉ đọc doc đã đổi kể từ lần poll trước) thay vì
+  /// `products.get()` trọn shop như trước (2026-09-19) — shop thật vài trăm
+  /// đến nghìn SP ⇒ mỗi lần kéo là ngần ấy read. Kết quả đổ về SQLite rồi
+  /// bắn `products_changed`; view đọc lại local như mọi lần.
   Future<void> _forceSyncProductsFromFirestore() async {
     try {
-      final shopId = await UserService.getCurrentShopId();
-      if (shopId == null) return;
-
-      debugPrint('🔄 Force syncing products from Firestore...');
-
-      final snapshot = await FirebaseFirestore.instance
-          .collection('products')
-          .where('shopId', isEqualTo: shopId)
-          .where('deleted', isEqualTo: false)
-          .get();
-
-      int updated = 0;
-      for (final doc in snapshot.docs) {
-        final data = doc.data();
-        data['firestoreId'] = doc.id;
-        data['isSynced'] = 1;
-
-        final product = Product.fromMap(data);
-        await db.upsertProduct(product);
-        updated++;
-      }
-
-      debugPrint('✅ Force synced $updated products from Firestore');
+      debugPrint('🔄 Kéo làm mới kho → SyncService.refreshCollectionNow(products)');
+      await SyncService.refreshCollectionNow('products');
     } catch (e) {
-      debugPrint('⚠️ Error force syncing products: $e');
+      debugPrint('⚠️ Error refreshing products: $e');
     }
   }
 
@@ -2938,48 +2920,84 @@ class _InventoryViewState extends State<InventoryView>
                       onRefresh: () => _refresh(
                         forceSync: true,
                       ), // Kéo refresh = force sync Firestore
-                      child: ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 76),
-                        itemCount:
-                            filteredList.length +
-                            (_isLoadingMore ? 1 : 0) +
-                            (!_hasMore && filteredList.isNotEmpty ? 1 : 0),
-                        itemBuilder: (ctx, i) {
-                          if (i >= filteredList.length) {
-                            if (_isLoadingMore) {
-                              return const Padding(
-                                padding: EdgeInsets.all(16),
-                                child: Center(
-                                  child: CircularProgressIndicator(),
-                                ),
+                      child: Builder(
+                        builder: (ctx) {
+                          // Wide layout (web/tablet landscape): pair two
+                          // product cards per row to use horizontal space.
+                          final bool wide = context.responsive.isWideLayout;
+                          final int itemCount = wide
+                              ? ((filteredList.length + 1) ~/ 2)
+                              : filteredList.length;
+                          return ListView.builder(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 76),
+                            itemCount:
+                                itemCount +
+                                (_isLoadingMore ? 1 : 0) +
+                                (!_hasMore && filteredList.isNotEmpty ? 1 : 0),
+                            itemBuilder: (ctx, i) {
+                              if (i >= itemCount) {
+                                if (_isLoadingMore) {
+                                  return const Padding(
+                                    padding: EdgeInsets.all(16),
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  );
+                                }
+                                return Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Center(
+                                    child: Text(
+                                      l10n.inventoryShownCount(
+                                        filteredList.length,
+                                        _terms.productLabel.toLowerCase(),
+                                      ),
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
+                              if (!wide) {
+                                final product = filteredList[i];
+                                final itemKey = ValueKey(
+                                  product.id ??
+                                      product.firestoreId ??
+                                      '${product.name}_${product.createdAt}',
+                                );
+                                return KeyedSubtree(
+                                  key: itemKey,
+                                  child: _buildProfessionalCard(
+                                    product,
+                                    i + 1,
+                                  ),
+                                );
+                              }
+                              final j = i * 2;
+                              final first = _buildInventoryCardKeyed(
+                                filteredList[j],
+                                j + 1,
                               );
-                            }
-                            return Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Center(
-                                child: Text(
-                                  l10n.inventoryShownCount(
-                                    filteredList.length,
-                                    _terms.productLabel.toLowerCase(),
-                                  ),
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }
-                          final product = filteredList[i];
-                          final itemKey = ValueKey(
-                            product.id ??
-                                product.firestoreId ??
-                                '${product.name}_${product.createdAt}',
-                          );
-                          return KeyedSubtree(
-                            key: itemKey,
-                            child: _buildProfessionalCard(product, i + 1),
+                              final second = j + 1 < filteredList.length
+                                  ? _buildInventoryCardKeyed(
+                                      filteredList[j + 1],
+                                      j + 2,
+                                    )
+                                  : null;
+                              return Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(child: first),
+                                  if (second != null) ...[
+                                    const SizedBox(width: 8),
+                                    Expanded(child: second),
+                                  ],
+                                ],
+                              );
+                            },
                           );
                         },
                       ),
@@ -2988,6 +3006,18 @@ class _InventoryViewState extends State<InventoryView>
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildInventoryCardKeyed(Product product, int index) {
+    final itemKey = ValueKey(
+      product.id ??
+          product.firestoreId ??
+          '${product.name}_${product.createdAt}',
+    );
+    return KeyedSubtree(
+      key: itemKey,
+      child: _buildProfessionalCard(product, index),
     );
   }
 

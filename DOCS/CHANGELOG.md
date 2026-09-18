@@ -4,6 +4,22 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-19d] - Phát hành 3.7.0+559 (store + web) · Kho kéo-làm-mới dùng con trỏ sync
+
+- **Kho:** kéo-xuống-làm-mới không còn `products.get()` trọn shop (1 read/SP) mà gọi
+  `SyncService.refreshCollectionNow('products')` — poll theo con trỏ `updatedAt`, chỉ đọc doc
+  đã đổi (đo thật: `count=2` thay vì toàn bộ). Bán hàng / Kho / Đơn sửa / Tài chính: 0 read
+  Firestore khi mở, cuộn, lọc, tìm.
+- Gộp & phát hành mọi thay đổi 17–19/09 (đơn sửa SQLite-first + thẻ chip, chi tiết đơn sửa tabbed,
+  landscape web 2 cột, bộ đếm read, tài chính refactor + cache + fix mất phiếu trả nợ + phương án A,
+  chốt quỹ khoá ngày, rules `cash_closings` cho nhân viên đọc — ĐÃ deploy).
+- Version `3.6.0+558` → **`3.7.0+559`**. `flutter test`: 680 pass; 2 fail trong
+  `kiotviet_settings_view_test` (nút ngoài viewport 800×600 của test, file không ai sửa — lỗi cũ,
+  không liên quan release).
+- `.gitignore` thêm `android/build/`.
+
+---
+
 ## [2026-09-19c] - Danh sách đơn sửa: quay lại thẻ kiểu "chip" theo mẫu chủ shop chọn
 
 Chủ shop gửi ảnh bản cũ (STT · ảnh +N · model · chip lỗi · chip KTV; hàng chip
@@ -204,9 +220,294 @@ trong tab Tiền, UI gọn theo mockup, local-first, không thêm get()/listener
 
 ---
 
-## [2026-09-17a] - Redesign RepairDetailView: tabbed layout + compact + audit fixes
+## [2026-09-18a] - 7 màn chính dùng phẳng diện landscape web (2-cột trên isWideLayout)
+
+### Vấn đề
+Trên web để ngang (desktop full-md desktop ≤1200px), các màn "hub" và 3 danh sách
+chính vẫn dàn 1 cột — thừa không gian ngang, phải cuộn dọc nhiều. Tài chính
+(finance_v2) đã responsive sẵn nên không đụng.
+
+### Sửa đổi (toàn bộ gated bằng `context.responsive.isWideLayout` → mobile KHÔNG đổi)
+- `lib/views/home_view.dart` (7 tab hub):
+  - Bán: 4 quick-action `_financeQuickCard` → `ResponsiveGrid(maxColumns:2, minChildWidth:380)`;
+    quản lý GridView → `isMobile ? 1 : (isDesktop ? 3 : 2)` + aspect `5.5 / 4.6 / 5.0`.
+  - Sửa: 3 card quick → `ResponsiveGrid(maxColumns:3, minChildWidth:350)`;
+    2 mục quản lý (1 conditional) → `ResponsiveGrid(maxColumns:2, minChildWidth:520)`.
+  - Kho: quản lý GridView cùng công thức cột/aspect như Bán.
+  - Cài đặt: `_settingsGroupCard` chia mục ra 2 cột xen kẽ khi
+    `isWideLayout && items.length >= 3` (VerticalDivider ở giữa); tách
+    `_settingsGroupColumn` cho nhánh 1 cột.
+  - Dashboard Home đã dense sẵn (shortcuts 6/8, activity grid tới 6) → không đổi.
+- `lib/views/sale_list_view.dart` (Bán): trong từng nhóm ngày, ghép 2 đơn thành
+  `Row[Expanded compact, SizedBox(8), Expanded compact]` khi wide
+  (`_buildSaleGridRows` + `_buildSaleCardCompact` — STT chip, tên sản phẩm ellipsis,
+  badge trạng thái, khách/nhân viên, ngày, chip tiền/đã trả/còn nợ, chip trả hàng/trả góp);
+  header ngày vẫn full-width; footer (loading/hết) giữ nguyên.
+- `lib/views/staff_list_view.dart` (Nhân viên): ghép 2 nhân viên/hàng khi wide
+  (`_buildStaffWideRow` + `_buildStaffCardCompact` — avatar, role label/color, email/SĐT/
+  Vai trò, icon sửa; onTap mở `_showStaffActivityCenter` như cũ).
+- `lib/views/inventory_view.dart` (Kho): ListView products ghép 2 card/hàng khi wide
+  (mỗi card vẫn bọc KeyedSubtree để giữ key; STT tính lại theo chỉ số thật);
+  builder tách helper `_buildInventoryCardKeyed`.
+
+### Nghiệm thu
+- `flutter analyze`: chỉ info-level có sẵn ở 4 file sửa, 0 error/warning mới.
+- `flutter build web --release` OK (build\web); không có warning compile ảnh hưởng.
+- `flutter build apk --debug` + `adb install -r` Oppo NJR8W86LKRVW7DHQ: install Success,
+  cold start sạch, khôi phục session owner/shopId `geqXPHQJ3nT6XkMbeh6JswTdGbr2`,
+  logcat không lỗi (mobile chạy đúng nhánh narrow vì width logic <600dp).
+
+### Files
+- `lib/views/home_view.dart`
+- `lib/views/sale_list_view.dart`
+- `lib/views/staff_list_view.dart`
+- `lib/views/inventory_view.dart`
+
+---
+
+## [2026-09-17f] - Bộ đếm Firestore READ chính xác thường trực (bỏ đếm thiếu cũ)
+
+### Vấn đề
+`firebase_read_stats` (màn "THỐNG KÊ DỮ LIỆU READ/WRITE") đếm thấp hơn billing thật:
+- Poll chỉ ghi khi page có doc: poll rỗng = 0 read ⇒ lượng query rỗng bị mất.
+- Ghi theo `snapshot.docs.length` nhưng thiếu `+1` read cho chính query mỗi page.
+- Các `get()` NGOÀI sync (users/shops/thông báo/…) không được ghi nhận gì.
+
+### Sửa đổi
+- `lib/services/firebase_usage_stats_service.dart`: thêm `logFetchRead()` — đếm theo đúng
+  mô hình billing Firestore: `readCount = 1 (query) + docs`, **luôn ghi dù kết quả rỗng**
+  (khác `logRealtimeRead` cũ early-return khi `readCount<=0`).
+- `lib/services/sync_service.dart`: đếm tập trung tại chokepoint `_getQueryWithTimeout`
+  (đúng 1 read/query + docs cho MỌI page, kể cả pagination sweep), gỡ khối
+  `logRealtimeRead(collection, source:'poll')` cũ trong vòng lặp để không đếm đúp docs;
+  giữ nguyên đếm listener (`applied` — vốn đã chính xác). Thêm
+  `_readCollectionFromContext()` map context → collection cho thống kê.
+- Gắn counter vào các fetch ngoài sync (đều source `'sync-poll'`, `1+docs`):
+  `firestore_service.dart` (expenses/attendance fetchOnce),
+  `payment_request_service.dart` (ordered query + fallback + pending),
+  `stock_entry_service.dart` (draft entries ×2),
+  `shift_swap_service.dart` (my requests + pending),
+  `user_service.dart` (users_query poll).
+- Gắn counter doc-read 1:1 (source `'doc-read'`, `docs = exists?1:0`):
+  `user_service.dart` (user doc ×4 + shop doc + getUserInfo),
+  `home_view.dart` (shops doc + settings/shop_profile fallback).
+- Gắn counter listener (source `'listener'`, theo `docChanges.length`, loại bỏ cache-only):
+  `notification_service.dart` (shop_notifications + broadcasts).
+- `lib/services/firebase_rw_stats_service.dart`: thêm 9 collection mới vào `_configs`
+  (users, shops, shop_profile, shop_notifications, broadcasts, suppliers,
+  stock_entries, shift_swap_requests, attendance) để xuất hiện trên dashboard.
+- `lib/views/firebase_rw_stats_view.dart`: cập nhật chú thích — Reads 24h đếm theo
+  đúng billing (1 read/query + 1/doc, poll rỗng và get ngoài sync đều được ghi).
+
+### Nghiệm thu (Oppo NJR8W86LKRVW7DHQ, shop thật geqXPHQJ3nT6XkMbeh6JswTdGbr2)
+- `flutter analyze` 0 error; build debug OK; cài + chạy không FATAL.
+- Pull SQLite kiểm tra `firebase_read_stats`: mọi poll rỗng giờ được ghi `readCount=1`;
+  `users doc-read` 11, `shops doc-read` 3, `repairs listener` 15; tổng 12 phút warm
+  ≈ **92 reads**, khớp với phép đo instrument trước (warm ≈ 82–92).
+- Snapshot credit: trước đây poll rỗng không tính → màn thống kê luôn thấp hơn billing.
+
+### Files
+- `lib/services/firebase_usage_stats_service.dart`
+- `lib/services/sync_service.dart`
+- `lib/services/firestore_service.dart`
+- `lib/services/payment_request_service.dart`
+- `lib/services/stock_entry_service.dart`
+- `lib/services/shift_swap_service.dart`
+- `lib/services/user_service.dart`
+- `lib/services/notification_service.dart`
+- `lib/views/home_view.dart`
+- `lib/services/firebase_rw_stats_service.dart`
+- `lib/views/firebase_rw_stats_view.dart`
+
+---
+
+## [2026-09-17d] - RepairDetailView: nối lại lịch sử giá tương tự + thao tác PT/KTV & thumbnail list 40px
 
 ### Bối cảnh
+Nghiệm thu Oppo sau redesign tabbed (`[2026-09-17a]`): màn chi tiết mất các chức
+năng nghiệp vụ — lịch sử giá tương tự, chọn phụ tùng, mở kho linh kiện, đổi lk,
+xoá PT, sửa/gán KTV. Redesign giữ toàn bộ handler (`_openPartInInventory`,
+`_selectPartsFromInventory`, `_swapPartInRepair`, `_removePartFromRepair`,
+`_editTechnician`, `_editTechnicianNotes`, `_quickAction`, `_historicalPricing`)
+nhưng bỏ quên UI gọi tới. Card list gắn lại thumbnail sau `2026-09-17c` còn 52px
+(trước redesign cũng 52px) — user yêu cầu nhỏ lại 1 tí.
+
+### Đã làm
+**lib/views/repair_detail_view.dart** (`_buildOverviewTab`):
+- **Finance card**: hiện lại link "💡 Lịch sử tương tự (chạm để xem): min–max
+  (N đơn, độ tin cậy: …)" → `SimilarRepairHistoryView` khi `_historicalPricing != null`
+  và có quyền xem doanh thu (kế thừa ẩn cost theo `canShowCost`).
+- **Parts card**: dòng phụ tùng quay lại dạng chạm được (InkWell → `_openPartInInventory`,
+  mở đúng linh kiện trong Kho/Kho Linh kiện), hiện `· NCC:` (ưu tiên supplier đã
+  lưu → `_partSupplierByPid` → `_partSupplierByName`) + chevron; fallback đơn cũ
+  `partsUsed` text parse qua `_parsePartsUsedText` + `_legacyPartLookup`.
+- **Thao tác card** (thêm, luôn hiện khi `_canEditRepairOrder || _canEditRepairNotes`):
+  `_quickAction` — Chọn phụ tùng (`_selectPartsFromInventory`), Kho PT
+  (`_navigateToPartsInventory`), Đổi PT (`_swapPartInRepair`), Xóa PT
+  (`_removePartFromRepair`) [2 nút sau chỉ khi có PT + `_canEditRepairOrder`],
+  Sửa KTV (`_editTechnician`), Ghi chú KTV (`_editTechnicianNotes`).
+- Xoá hết warning "unused" cho nhóm handler trên khi analyze.
+
+**lib/views/order_list_view.dart**: thumbnail card → **40px** (user yêu cầu nhỏ lại
+1 tí so với 52px cũ để card gọn; memCacheWidth 160).
+
+### Nghiệm thu
+- `flutter analyze`: 0 error; chỉ còn baseline warnings (không thuộc phần này).
+- Oppo CPH2203: `order_redesign_regression_test.dart` **PASS** `01:53 +1`;
+  reinstall `app-debug.apk`, app chạy, không FATAL.
+
+---
+
+## [2026-09-17e] - Đo Firestore reads: Startup + OrderList + Detail (instrument tạm)
+
+### Bối cảnh
+User yêu cầu "test đếm số lần read" cho 3 flow: khởi động app → danh sách đơn sửa →
+chi tiết đơn sửa, trên máy thật (Oppo CPH2203, shop `geqXPHQJ3nT6XkMbeh6JswTdGbr2`,
+user `m@m.com`). Đã có sẵn `firebase_read_stats` (SyncService poll/listener ghi
+`logRealtimeRead`), nhưng bảng này **đếm thiếu** so với billing: listener đếm số
+doc *applied* (không phải raw `snapshot.docs.length`), poll rỗng (0 doc) không ghi,
+và các read ngoài sync (users/shops/notifications/chat) không ghi.
+
+### Đã làm (đo xong rồi GỠ HẾT — không để lại code)
+- Instrument tạm `FirestoreReadCountDebug` đếm tại ranh giới SDK (`1 + snap.docs.length`
+  mỗi query, tức tính đúng "1 query đọc + số document") trên: `_getQueryWithTimeout`
+  (sync_service), live listeners repairs/sales + shop-doc-snapshot, các fetcher
+  riêng của expense/attendance (`firestore_service`), payment_requests/pending
+  (`payment_request_service`), stock_entries (_count), shift_swap_requests_my/pending,
+  user-doc-read (5 điểm user_service), shop-doc/shop-profile (home_view),
+  notifications + broadcasts (notification_service).
+- Đo cả bằng `integration_test/read_count_test.dart` (chạy trên máy, host màn hình
+  asleep làm test liên tục fail "empty tree", nên chuyển sang lái UI bằng adb
+  `input tap` + `uiautomator dump`) và bằng chạy app thật + logcat.
+
+### Kết quả (máy thật, shop thật)
+| Giai đoạn | Số reads |
+|---|---|
+| Startup — mở lại app bình thường (cache ấm) | **82** |
+| Startup — sau khi cài mới / cache trống (cold) | **~860** |
+| Mở OrderListView (22 đơn, SQLite) | **0** |
+| Mở RepairDetailView chi tiết đơn | **0** |
+
+- Toàn bộ reads thuộc tầng **sync nền** (35+ collection poll mỗi `poll_*`), một ít
+  doc reads 1-lần (users/shops ×7) + live listener repairs ×3 + cloud-upload
+  dedupe ×6. Không có read nào phát sinh từ UI (list/detail đọc SQLite — đúng
+  thiết kế SQLite-first `[2026-09-17b]`).
+- Cold vs ấm khác nhau chỉ vì con trỏ incremental `updatedAt` của SyncService:
+  cache trống quét full collection (finance_activity 224, payment_intents 141,
+  sales 50…); cache có sẵn quét vi phân (đa số trả 0 doc, mỗi query tốn 1 read).
+
+### Nghiệm thu
+- Đã gỡ sạch mọi instrument tạm (`firestore_read_count_debug.dart`,
+  `integration_test/read_count_test.dart`, toàn bộ `FirestoreReadCountDebug.add`
+  ở 8 file service/view + import). `flutter analyze`: 0 error.
+- `flutter build apk --debug` + reinstall: app chạy, không FATAL.
+- Docs: fix title CHANGELOG `[2026-09-17d]` "52px" → "40px" cho khớp nội dung.
+
+---
+
+## [2026-09-17c] - OrderListView: lọc thừa "Đang sửa" gỡ bỏ + gắn lại thumbnail 40px
+
+### Bối cảnh
+Sau rewrite 17b, sort ưu tiên đã gộp chung Tiếp nhận + Đang sửa thành nhóm 1 nên
+chip lọc "Đang sửa" (status 2) là thừa — người dùng chỉ cần lọc "Tất cả" là thấy
+đang sửa ở đầu danh sách. Card mới bỏ luôn ảnh đại diện khiến khó nhận diện máy;
+gắn lại ảnh thu nhỏ nhỏ gọn.
+
+### Đã làm
+**lib/views/order_list_view.dart**:
+- Gỡ chip lọc "Đang sửa" (`repairingCount` + `_filterChipItem` status 2); hàng lọc
+  còn 6 chip: Tất cả / Tiếp nhận / Y/c duyệt / Sửa xong / Giao / Quá hạn. Lọc
+  `_applyFilters` không đổi (vẫn nhận status 2 qua chip khác / search).
+- Thêm lại thumbnail 44px đầu card (sau vạch trạng thái, trước nội dung):
+  `_collectRepairImages` (receiveImages + imagePath hỗ trợ JSON array / , ; \n),
+  `_pickBestPreviewImage` ưu tiên nguồn render mọi máy (http/gs/blob/data, web bỏ
+  path local), `_buildRepairThumbnail` resolve gs/relative qua
+  `StorageService.resolveDisplayUrl` + `AppCachedImage`; local → `Image.file`;
+  không ảnh → placeholder icon máy. Chỉ UI, không thêm đường đọc Firestore.
+- Import lại `dart:io`, `flutter/foundation`, `services/storage_service`,
+  `widgets/app_cached_image`.
+
+**integration_test/order_redesign_regression_test.dart**:
+- Assert chip lọc giảm còn 6 (bỏ 'Đang sửa').
+
+### Nghiệm thu
+- `flutter analyze`: 0 error / 0 warning.
+- Oppo CPH2203 (`flutter test integration_test/order_redesign_regression_test.dart -d CPH2203`):
+  `01:55 +1: All tests passed!`; reinstall `app-debug.apk`, app chạy, không FATAL.
+
+---
+
+## [2026-09-17b] - OrderListView/RepairDetailView: SQLite single-source + hàng đợi sort ưu tiên + nghiệm thu Oppo
+
+### Bối cảnh
+Danh sách đơn chậm vì OrderListView "song nguồn": listener Firestore riêng + luồng
+merge với SQLite (`_repairsByFirestoreId`), mỗi lần đổi shop lại backfill lịch sử
+(`_doHistoricalBackfill`), search offline chờ sync hết mới hiển thị. Dư thừa và
+tốn Firestore reads. Mục tiêu P0: một nguồn sự thật = SQLite, SyncService + EventBus
+cập nhật realtime, bỏ đọc Firestore trực tiếp ở 2 view.
+
+### Đã làm
+**lib/views/order_list_view.dart** (rewrite, −~850 dòng):
+- Bỏ `_startRealtimeRepairsListener`, `_parseRepairDoc/_decodeRepairDocPayload`,
+  `_refreshRemovedRepairFromCloud`, `_preferUnsyncedLocalRepair`, `_doHistoricalBackfill`,
+  `_handleRealtimeSnapshot` và toàn bộ merge multi-source. `_allRepairs` = `_sqliteRepairs`.
+- Sự kiện: `EventBus.repairsChanged` → `_refreshFromSQLite()`; `shopChanged` →
+  `_onShopChanged()` (reset phân trang). Bỏ `_repairRealtimeSubscription` ở dispose.
+- `initState` → `_initFromSQLite()` (bỏ `forceRefresh: true` khi đọc quyền xoá).
+- Search: `_onSearch` chạy `DBHelper.searchRepairs` trên TOÀN bộ SQLite
+  (`_kMaxSearchResults=5000`) → `_compareRepairs` → `_applyFilters`; hết cưỡng
+  "chờ sync xong mới search".
+- Sort `_compareRepairs` ưu tiên: **1. Tiếp nhận(+Đang sửa) → 2. Sửa xong →
+  3. Y/c duyệt giao → 4. Quá hạn (UI `_isOverdue`, không đổi status) → 5. Đã giao**;
+  trong cùng nhóm mới hơn đứng trước. `_daysStuck` mở rộng cho status 1/2/3
+  (reference: `createdAt` cho status 1, còn lại `startedAt ?? lastCaredAt ?? createdAt`).
+- Card mới 4 dòng (bỏ thumbnail/chips/STT/"+N ảnh"): H1 status+⏰/⏱+`#mã đơn`+chevron,
+  H2 model+giá thu khách, H3 👤+☎, H4 lỗi — giữ Dismissible + vạch trạng thái + onTap/onLongPress.
+- Bỏ `_collectRepairImages`, `_pickBestPreviewImage`, `_buildRepairThumbnail`,
+  `_isGsStoragePath`, `_isStorageRelativePath`, `_resolveDisplayImagePath`,
+  `_repairInfoChip` và import không còn dùng (`dart:io`, `storage_service`,
+  `app_cached_image`, `cached_network_image`).
+- SyncStatusBar: bỏ `modeDetail`, `isRealtimeConnected: SyncService.isRealTimeSyncActive`;
+  banner "Không thể đồng bộ" retry → `SyncService.refreshCollectionNow('repairs')`.
+
+**lib/views/repair_detail_view.dart** (−~250 dòng):
+- Bỏ `watchRepairDoc` + `_startRepairRealtimeListener`, `_applyRepairDocSnapshot`,
+  `_isPartialRepairSnapshot`, `_mergeSnapshotWithLocalIfPartial`,
+  `_protectLocalUnsyncedRepairFromStaleCloud` → subscribe `EventBus.repairsChanged`
+  (bỏ qua khi `_isUpdating`) → `_loadFreshRepairFromDb()` + `_loadLastModifierInfo()`.
+
+**lib/services/sync_service.dart**:
+- Thêm `'repairs'` vào `_launchFullSweepCollections` (thay `_doHistoricalBackfill` —
+  mọi máy quét đủ lịch sử đơn khi có mạng, không còn đường "đọc cloud trực tiếp").
+- Thêm `static Future<void> refreshCollectionNow(String collection)` (gọi
+  `_collectionRefreshers[collection]`, guard `_isRefreshingCollections`).
+
+**lib/data/db_helper.dart**:
+- `searchRepairs` scope theo shop (`_getScopedShopId`) + loại soft-deleted
+  (`deleted != true`) + `LIMIT 5000` (130+ dòng xoá bỏ `ORDER BY rank` cũ) —
+  super admin (scopedShopId null) không lọc shop.
+
+**integration_test/order_redesign_regression_test.dart** — ván test stale từ
+`[2026-09-17a]` (bỏ "Sửa máy" khỏi timeline, header meta row giờ render `label:`,
+preview mở bằng icon thay vì more-menu): 'Sửa máy' → 'Sửa xong', 'Ngày nhận' →
+`textContaining`, mở preview bằng `find.byIcon(Icons.preview)`. Quyết định: để
+nguyên `create_repair_order_view` double-push (giờ chỉ tốn 1 query SQLite).
+
+### Verify
+- `flutter analyze`: 0 error; 0 warning mới — so với baseline (stash) tất cả
+  warning ở `repair_detail_view`/`unified_printer_service`/`shop_migration_view`
+  đều có sẵn.
+- `flutter test`: 665 pass / 1 skip / 2 fail (±0 baseline — `kiotviet_settings_view_test`
+  không xác thực được, fail giống hệt trên baseline đã stash).
+- Nghiệm thu trên máy thật **Oppo CPH2203** (Android 13): `app-debug.apk` cài
+  thành công + khởi động (PID 31173), logcat sạch (không FATAL/ANR);
+  `flutter test integration_test/order_redesign_regression_test.dart -d CPH2203`
+  **PASS** `02:05 +1: All tests passed!` — toàn luồng list → detail (header +
+  timeline 3 bước + 3 tab) → phiếu tiếp nhận.
+
+---
+
+## [2026-09-17a] - Redesign RepairDetailView: tabbed layout + compact + audit fixes
 User gửi 3 screenshot (`D:\ảnh claude\`): (1) đơn SAMSUNG quá hạn 12 ngày — banner
 đỏ hiển thị `Closure: () => String from Function '_orderCode@...'` thay vì mã đơn;
 (2) đơn TETCROSS — tab "Tổng quan" hiển thị trùng "Phụ kiện" + "Hẹn giao" (đã có

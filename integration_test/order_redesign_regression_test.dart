@@ -145,11 +145,10 @@ void main() {
     );
     expect(subtitleOk, isTrue, reason: 'AppBar subtitle "<N> đơn" missing.');
 
-    // Status filter chips — all 7 always render (Row inside horizontal scroll).
+    // Status filter chips — all render (Row inside horizontal scroll).
     for (final label in [
       'Tất cả',
       'Tiếp nhận',
-      'Đang sửa',
       'Y/c duyệt',
       'Sửa xong',
       'Giao',
@@ -199,10 +198,11 @@ void main() {
     await dismissGuides(tester);
     await shot(binding, '2_detail_tongquan');
 
-    // Header card + timeline.
+    // Header card + timeline (3 bước: Tiếp nhận → Sửa xong → Giao máy).
     expect(find.textContaining('#'), findsWidgets, reason: 'order code # missing');
-    expect(find.text('Ngày nhận'), findsWidgets);
-    expect(find.text('Sửa máy'), findsWidgets, reason: 'timeline step missing');
+    expect(find.textContaining('Ngày nhận'), findsWidgets,
+        reason: 'Ngày nhận header missing');
+    expect(find.text('Sửa xong'), findsWidgets, reason: 'timeline step missing');
     expect(find.text('Giao máy'), findsWidgets, reason: 'timeline step missing');
 
     // Tab selector.
@@ -235,14 +235,11 @@ void main() {
     expect(find.text('LỊCH SỬ & GHI CHÚ'), findsWidgets);
     await shot(binding, '4_detail_lichsu');
 
-    // 6) More menu -> Xem trước phiếu -> RepairInvoicePreviewView sections.
+    // 6) AppBar preview icon -> RepairInvoicePreviewView sections.
     // Force DEFAULT layout (preview falls back to custom template otherwise).
     await prefs.setBool('repair_invoice_use_template', false);
     await dismissGuides(tester);
-    await tester.tap(find.byIcon(Icons.more_vert_rounded));
-    await tester.pump(const Duration(milliseconds: 500));
-    await dismissGuides(tester);
-    await tester.tap(find.text('Xem trước phiếu'));
+    await tester.tap(find.byIcon(Icons.preview));
     await tester.pump(const Duration(milliseconds: 500));
     await dismissGuides(tester);
 

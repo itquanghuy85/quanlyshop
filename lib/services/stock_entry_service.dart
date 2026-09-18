@@ -15,6 +15,7 @@ import '../services/financial_activity_service.dart';
 import '../services/import_order_service.dart';
 import '../services/sync_service.dart';
 import '../services/product_image_service.dart';
+import '../services/firebase_usage_stats_service.dart';
 import '../data/db_helper.dart';
 import '../utils/money_utils.dart';
 
@@ -1526,6 +1527,14 @@ class StockEntryService {
             .orderBy('createdAt', descending: true)
             .limit(20)
             .get();
+        unawaited(
+          FirebaseUsageStatsService.logFetchRead(
+            collection: 'stock_entries',
+            shopId: shopId,
+            docs: snapshot.docs.length,
+            source: 'sync-poll',
+          ),
+        );
 
         return snapshot.docs
             .map((doc) => StockEntry.fromMap(doc.data(), docId: doc.id))
@@ -1577,6 +1586,14 @@ class StockEntryService {
             .where('status', isEqualTo: 'draft')
             .limit(20)
             .get();
+        unawaited(
+          FirebaseUsageStatsService.logFetchRead(
+            collection: 'stock_entries',
+            shopId: shopId,
+            docs: snapshot.docs.length,
+            source: 'sync-poll',
+          ),
+        );
         return snapshot.docs.length;
       } catch (e) {
         debugPrint('watchPendingCount polling error: $e');

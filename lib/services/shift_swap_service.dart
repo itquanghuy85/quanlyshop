@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -5,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import '../models/shift_swap_request_model.dart';
 import 'event_bus.dart';
 import 'user_service.dart';
+import 'firebase_usage_stats_service.dart';
 
 class ShiftSwapService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -99,6 +102,14 @@ class ShiftSwapService {
             .orderBy('createdAt', descending: true)
             .limit(effectiveLimit)
             .get();
+        unawaited(
+          FirebaseUsageStatsService.logFetchRead(
+            collection: 'shift_swap_requests',
+            shopId: shopId,
+            docs: snap.docs.length,
+            source: 'sync-poll',
+          ),
+        );
 
         return snap.docs.map((doc) {
           final map = doc.data();
@@ -153,6 +164,14 @@ class ShiftSwapService {
             .orderBy('createdAt', descending: true)
             .limit(effectiveLimit)
             .get();
+        unawaited(
+          FirebaseUsageStatsService.logFetchRead(
+            collection: 'shift_swap_requests',
+            shopId: shopId,
+            docs: snap.docs.length,
+            source: 'sync-poll',
+          ),
+        );
 
         return snap.docs.map((doc) {
           final map = doc.data();

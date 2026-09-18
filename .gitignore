@@ -99,3 +99,6 @@ lib/graphify-out/
 analyze*.txt
 logcat.txt
 logs*.txt
+
+# Android gradle build output (từng bị commit nhầm dạng untracked)
+android/build/

@@ -14,6 +14,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../core/utils/money_utils.dart';
 import 'cash_balance_cache_service.dart';
 import 'user_service.dart';
+import 'firebase_usage_stats_service.dart';
 import '../developer/firestore_audit/firestore_audit_module.dart';
 
 class NotificationService {
@@ -1017,6 +1018,15 @@ class NotificationService {
               documentCount: snapshot.metadata.isFromCache ? 0 : snapshot.docChanges.length,
               isActiveListener: true,
             );
+            unawaited(
+              FirebaseUsageStatsService.logRealtimeRead(
+                collection: 'shop_notifications',
+                shopId: effectiveShopId,
+                readCount:
+                    snapshot.metadata.isFromCache ? 0 : snapshot.docChanges.length,
+                source: 'listener',
+              ),
+            );
             for (var change in snapshot.docChanges) {
               if (change.type == DocumentChangeType.added) {
                 final data = change.doc.data() as Map<String, dynamic>;
@@ -1860,6 +1870,15 @@ class NotificationService {
         .limit(5)
         .snapshots()
         .listen((snapshot) async {
+          unawaited(
+            FirebaseUsageStatsService.logRealtimeRead(
+              collection: 'broadcasts',
+              shopId: UserService.getShopIdSync(),
+              readCount:
+                  snapshot.metadata.isFromCache ? 0 : snapshot.docChanges.length,
+              source: 'listener',
+            ),
+          );
           final prefs = await SharedPreferences.getInstance();
           for (final change in snapshot.docChanges) {
             if (change.type != DocumentChangeType.added) continue;

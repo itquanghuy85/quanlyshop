@@ -13,6 +13,7 @@ import '../services/firestore_service.dart';
 import '../services/event_bus.dart';
 import 'user_service.dart';
 import 'storage_service.dart';
+import 'firebase_usage_stats_service.dart';
 import '../developer/firestore_audit/firestore_audit_module.dart';
 
 /// Service quản lý yêu cầu đóng tiền - chat-like workflow
@@ -554,6 +555,14 @@ class PaymentRequestService {
       List<QueryDocumentSnapshot<Map<String, dynamic>>> docs;
       try {
         docs = (await orderedQuery.get()).docs;
+        unawaited(
+          FirebaseUsageStatsService.logFetchRead(
+            collection: _collection,
+            shopId: shopId,
+            docs: docs.length,
+            source: 'sync-poll',
+          ),
+        );
       } catch (e) {
         final msg = e.toString().toLowerCase();
         final canFallback =
@@ -576,6 +585,14 @@ class PaymentRequestService {
           );
         }
         docs = (await fallbackQuery.get()).docs;
+        unawaited(
+          FirebaseUsageStatsService.logFetchRead(
+            collection: _collection,
+            shopId: shopId,
+            docs: docs.length,
+            source: 'sync-poll',
+          ),
+        );
       }
 
       final parsed = <PaymentRequest>[];
@@ -637,6 +654,14 @@ class PaymentRequestService {
           .where('status', isEqualTo: PaymentRequestStatus.pending.name)
           .limit(200)
           .get();
+      unawaited(
+        FirebaseUsageStatsService.logFetchRead(
+          collection: _collection,
+          shopId: shopId,
+          docs: snapshot.docs.length,
+          source: 'sync-poll',
+        ),
+      );
       FirestoreAuditModule.logRead(
         collection: 'payment_requests',
         operation: AuditOperation.get,
