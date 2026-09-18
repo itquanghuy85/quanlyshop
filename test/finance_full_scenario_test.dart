@@ -454,6 +454,28 @@ class _ScenarioDb implements DBHelper {
       sc.debts;
 
   @override
+  Future<Map<String, SaleOrder>> getSalesByFirestoreIds(
+    Iterable<String> firestoreIds,
+  ) async {
+    final ids = firestoreIds.toSet();
+    return {
+      for (final s in sc.salesSoldToday)
+        if (s.firestoreId != null && ids.contains(s.firestoreId)) s.firestoreId!: s,
+    };
+  }
+
+  @override
+  Future<Map<String, Repair>> getRepairsByFirestoreIds(
+    Iterable<String> firestoreIds,
+  ) async {
+    final ids = firestoreIds.toSet();
+    return {
+      for (final r in sc.repairsDelivered)
+        if (r.firestoreId != null && ids.contains(r.firestoreId)) r.firestoreId!: r,
+    };
+  }
+
+  @override
   Future<List<Map<String, dynamic>>> getOutstandingDebtsForFinanceSnapshot() async =>
       sc.debts
           .where(
@@ -737,4 +759,59 @@ void main() {
       }
     });
   });
+
+  /// Phương án A (2026-09-18): thu nợ của đơn CÔNG NỢ = doanh thu đã thu, vốn
+  /// theo tỉ lệ — như trả góp. dp1 (1tr) + dp6 (500k) gắn vào S4 (3tr, vốn 2,4tr).
+  group('Tài chính V2 — thu nợ đơn CÔNG NỢ ghi nhận doanh thu/vốn (phương án A)', () {
+    late FinanceV2Snapshot base;
+    late FinanceV2Snapshot linked;
+
+    setUpAll(() async {
+      base = await FinanceV2DataService(dbHelper: _ScenarioDb(sc))
+          .loadSnapshot(start: _day, end: _day);
+      linked = await FinanceV2DataService(dbHelper: _ScenarioDb(_ScenarioLinked()))
+          .loadSnapshot(start: _day, end: _day);
+    });
+
+    test('tổng tiền vào KHÔNG đổi, chỉ đổi phân loại thu nợ → doanh thu', () {
+      expect(linked.totalIn, base.totalIn);
+      expect(linked.totalOut, base.totalOut);
+      expect(linked.incomeFromSales, base.incomeFromSales + 1500000);
+      // incomeOther vốn đã loại thu nợ (extraIn − debtCollectIn) nên không đổi.
+      expect(linked.incomeOther, base.incomeOther);
+    });
+
+    test('vốn theo tỉ lệ 1.500.000 / 3.000.000 × 2.400.000 = 1.200.000', () {
+      expect(linked.cogsFromSales, base.cogsFromSales + 1200000);
+      expect(linked.grossProfitTotal, base.grossProfitTotal + 300000);
+    });
+
+    test('dòng thu nợ mang vốn/lãi gộp của đơn, không tạo dòng mới', () {
+      expect(linked.transactions.length, base.transactions.length);
+      final rows = linked.transactions
+          .where((t) => t.type == 'DEBT_COLLECT' && t.referenceId == 'D1')
+          .toList();
+      expect(rows.length, 2);
+      expect(rows.map((t) => t.costAmount).toList()..sort(),
+          [400000, 800000]);
+    });
+
+    test('nợ không gắn đơn (D3) vẫn là thu nợ thường', () {
+      final row = linked.transactions
+          .firstWhere((t) => t.type == 'DEBT_COLLECT' && t.referenceId == 'D3');
+      expect(row.costAmount, isNull);
+    });
+  });
+}
+
+/// Như [_Scenario] nhưng dp1 + dp6 (nợ D1 của KH A) gắn với đơn CÔNG NỢ S4 —
+/// cột `linkedDebtLinkedId` mà `getDebtPaymentsForCashFlowByDateRange` JOIN từ
+/// `debts.linkedId`.
+class _ScenarioLinked extends _Scenario {
+  @override
+  List<Map<String, dynamic>> get debtPayments => super.debtPayments
+      .map((p) => (p['firestoreId'] == 'dp1' || p['firestoreId'] == 'dp6')
+          ? {...p, 'linkedDebtLinkedId': 'S4'}
+          : p)
+      .toList();
 }

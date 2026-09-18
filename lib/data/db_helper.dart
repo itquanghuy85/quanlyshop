@@ -5753,6 +5753,57 @@ class DBHelper {
   }
 
   /// Get sales within a date range (by soldAt), for financial report optimization
+  /// Tra một lô đơn bán theo `firestoreId` (1 query, chunk 400 id) — dùng để
+  /// ghi nhận doanh thu/vốn cho đơn CÔNG NỢ khi khách trả nợ (FinanceV2).
+  Future<Map<String, SaleOrder>> getSalesByFirestoreIds(
+    Iterable<String> firestoreIds,
+  ) async {
+    final ids = firestoreIds.where((e) => e.trim().isNotEmpty).toSet().toList();
+    if (ids.isEmpty) return const {};
+    final db = await database;
+    final out = <String, SaleOrder>{};
+    for (var i = 0; i < ids.length; i += 400) {
+      final chunk = ids.sublist(i, i + 400 > ids.length ? ids.length : i + 400);
+      final rows = await db.query(
+        'sales',
+        where:
+            'firestoreId IN (${List.filled(chunk.length, '?').join(',')}) '
+            'AND (deleted = 0 OR deleted IS NULL)',
+        whereArgs: chunk,
+      );
+      for (final r in rows) {
+        final fid = (r['firestoreId'] ?? '').toString();
+        if (fid.isNotEmpty) out[fid] = SaleOrder.fromMap(r);
+      }
+    }
+    return out;
+  }
+
+  /// Như [getSalesByFirestoreIds] cho đơn sửa.
+  Future<Map<String, Repair>> getRepairsByFirestoreIds(
+    Iterable<String> firestoreIds,
+  ) async {
+    final ids = firestoreIds.where((e) => e.trim().isNotEmpty).toSet().toList();
+    if (ids.isEmpty) return const {};
+    final db = await database;
+    final out = <String, Repair>{};
+    for (var i = 0; i < ids.length; i += 400) {
+      final chunk = ids.sublist(i, i + 400 > ids.length ? ids.length : i + 400);
+      final rows = await db.query(
+        'repairs',
+        where:
+            'firestoreId IN (${List.filled(chunk.length, '?').join(',')}) '
+            'AND (deleted = 0 OR deleted IS NULL)',
+        whereArgs: chunk,
+      );
+      for (final r in rows) {
+        final fid = (r['firestoreId'] ?? '').toString();
+        if (fid.isNotEmpty) out[fid] = Repair.fromMap(r);
+      }
+    }
+    return out;
+  }
+
   Future<List<SaleOrder>> getSalesByDateRange(int startMs, int endMs) async {
     final shopId = UserService.getShopIdSync();
     final db = await database;
@@ -9867,7 +9918,8 @@ class DBHelper {
         d.type as linkedDebtType,
         COALESCE(d.deleted, 0) as linkedDebtDeleted,
         COALESCE(NULLIF(p.debtType, ''), d.type, '') as resolvedDebtType,
-        COALESCE(d.personName, '') as debtPersonName
+        COALESCE(d.personName, '') as debtPersonName,
+        COALESCE(d.linkedId, '') as linkedDebtLinkedId
       FROM debt_payments p
       LEFT JOIN debts d
         ON (p.debtId IS NOT NULL AND p.debtId = d.id)

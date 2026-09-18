@@ -4,6 +4,46 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-19a] - Phương án A: thu nợ đơn CÔNG NỢ vào Doanh thu/Lãi · khoá ngày khi chốt quỹ · fix hiển thị trả góp
+
+### 1. Tab Lãi ghi nhận đơn CÔNG NỢ khi khách trả nợ (chủ shop chốt phương án A, 2026-09-18)
+- `FinanceV2DataService.loadSnapshot`: mỗi phiếu `debt_payments` (CUSTOMER_OWES) có
+  `debts.linkedId` trỏ tới đơn bán/đơn sửa **CÔNG NỢ** → ghi nhận **doanh thu đã thu = số
+  tiền thu**, **vốn theo tỉ lệ `tiền thu / giá đơn`** (cùng cách đơn trả góp ghi cọc/tất
+  toán). Tổng tiền vào KHÔNG đổi — chỉ đổi phân loại từ "thu nợ" sang "bán hàng/sửa chữa".
+  Áp cho cả kỳ trước (so sánh). Nợ tay / không gắn đơn giữ như cũ.
+- `DBHelper`: query `getDebtPaymentsForCashFlowByDateRange` JOIN thêm `d.linkedId`;
+  thêm `getSalesByFirestoreIds` / `getRepairsByFirestoreIds` (1 query/400 id).
+- Test: `finance_full_scenario_test` nhóm mới "thu nợ đơn CÔNG NỢ" (4 case, delta +1,5 Tr doanh
+  thu / +1,2 Tr vốn / tổng tiền vào không đổi). Máy thật: 7 ngày revSale 21,72 → 21,92 Tr,
+  cogs +108k đúng bằng các phiếu thu nợ gắn đơn.
+
+### 2. Chốt quỹ KHOÁ NGÀY thật — máy nhân viên cũng bị chặn
+- **Phát hiện gốc**: `AdjustmentService.canEditDirectly` chỉ chặn khi `cash_closings.isLocked = 1`,
+  nhưng từ sau migration v49 không chỗ nào set cờ này cho lần chốt mới ⇒ "chốt quỹ" chưa bao
+  giờ khoá ngày (máy chủ lẫn nhân viên đều bán được sau khi chốt). `_saveClosing` nay ghi
+  `isLocked: 1, lockedAt, lockedBy`. Mở lại bằng "Sửa chốt quỹ" như trước.
+- `firestore.rules` `cash_closings` read → mọi thành viên shop (ghi vẫn manager); `SyncService`
+  gating `cash_closings` → `_isStaffLike`. Đã `firebase deploy --only firestore:rules`.
+- Máy thật: chủ chốt 19/09 lúc 00:04 → máy nhân viên tạo đơn lúc 00:08: `🔒 Ngày 2026-09-19 ĐÃ
+  CHỐT QUỸ … canEdit = false` ✅. Số dư đầu 19/09 = số chốt 18/09 (TM 0 / NH 77,77 Tr) ✅.
+- ⚠️ Hệ quả cho shop thật: sau khi chốt quỹ, cả ngày đó KHÔNG tạo được đơn/thu nợ mới trên mọi
+  máy — đúng thiết kế `AdjustmentService`, nhưng khác thói quen mấy tháng nay.
+
+### 3. Chi tiết đơn trả góp: tách "Khách đã trả (cọc)" / "NH chưa giải ngân" (hoặc "NH đã giải
+ngân") thay cho "Tổng đã thu 21 Tr" khi NH chưa trả.
+
+### 4. Mốc "Còn lại" +500k: tái hiện giao máy CÔNG NỢ lần nữa với logcat sạch — KHÔNG có
+`applyDelta` nào ⇒ gốc không nằm ở luồng giao máy; nghi lần đồng bộ mốc ngay sau quét
+Firestore ở tab Chốt quỹ. Đã có resync theo event ([2026-09-18c]) nên tự về đúng sau giao dịch kế.
+
+### Files
+`lib/finance_v2/finance_v2_data_service.dart`, `lib/data/db_helper.dart`,
+`lib/views/cash_closing_view.dart`, `lib/services/sync_service.dart`, `firestore.rules`,
+`lib/views/sale_detail_view.dart`, `test/finance_full_scenario_test.dart`.
+
+---
+
 ## [2026-09-18c] - Nghiệm thu số liệu Tài chính + Chốt quỹ mọi hình thức thanh toán (2 máy) & fix mất phiếu trả nợ do khoá idempotency bị cắt cụt
 
 ### Kịch bản chạy thật (Oppo CPH2203 = m@m.com chủ shop M; CPH2239 = n@n.com nhân viên)

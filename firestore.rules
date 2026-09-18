@@ -767,7 +767,9 @@ service cloud.firestore {
 
     // ═══════════ 4.4 CASH_CLOSINGS ═══════════
     match /cash_closings/{closingId} {
-      allow read: if isAuth() && docInMyShop() && isManager();
+      // [2026-09-18] Mọi thành viên shop đọc được (chỉ để app biết ngày đã
+      // chốt → chặn tạo đơn sau giờ chốt); ghi/sửa vẫn chỉ manager.
+      allow read: if isAuth() && docInMyShop();
       
       // FIX: Accept either 'date' or 'dateKey' field (app uses dateKey)
       allow create: if isAuth() && 

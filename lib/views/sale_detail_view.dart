@@ -2310,7 +2310,28 @@ class _SaleDetailViewState extends State<SaleDetailView> {
                   _money(s.finalPrice),
                   color: Colors.red,
                 ),
-                if (!_loadingCustomerDebt)
+                if (_isInstallmentNH) ...[
+                  // Đơn trả góp: "đã thu" gồm cọc khách trả + phần NH đã giải
+                  // ngân — trước đây hiện 21 Tr ngay khi bán dù NH chưa trả
+                  // đồng nào (khách hết nghĩa vụ nhưng shop chưa có tiền).
+                  _item(
+                    'Khách đã trả (cọc)',
+                    _money(s.downPayment),
+                    color: Colors.green.shade700,
+                  ),
+                  if (s.settlementReceivedAt != null)
+                    _item(
+                      'NH đã giải ngân',
+                      _money(s.settlementAmount),
+                      color: Colors.green.shade700,
+                    )
+                  else
+                    _item(
+                      'NH chưa giải ngân',
+                      _money(s.loanAmount + s.loanAmount2),
+                      color: Colors.orange.shade800,
+                    ),
+                ] else if (!_loadingCustomerDebt)
                   _item(
                     'Tổng đã thu',
                     _money((s.finalPrice - _orderRemainingDebt).clamp(0, s.finalPrice)),

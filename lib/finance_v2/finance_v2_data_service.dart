@@ -418,6 +418,19 @@ class FinanceV2DataService {
     final partners = await partnersF;
     final customers = await customersF;
 
+    // Đơn bán / đơn sửa CÔNG NỢ mà khách TRẢ NỢ trong kỳ (phương án A,
+    // 2026-09-18): tra một lô theo `debts.linkedId` để ghi nhận doanh thu +
+    // vốn theo tỉ lệ số tiền thu được — xem `_linkedRevenueOf`.
+    // Không lọc theo tiền tố (`sale_` / `rep_`) — id do từng luồng tự đặt,
+    // tra cả hai bảng với cùng tập id (2 query, thường vài chục id).
+    final linkedIds = <String>{};
+    for (final p in [...debtPayments, ...previousDebtPayments]) {
+      final linked = (p['linkedDebtLinkedId'] ?? '').toString().trim();
+      if (linked.isNotEmpty) linkedIds.add(linked);
+    }
+    final linkedSales = await _db.getSalesByFirestoreIds(linkedIds);
+    final linkedRepairs = await _db.getRepairsByFirestoreIds(linkedIds);
+
     final supplierAvatarByName = <String, String>{};
     final supplierPhoneByName = <String, String>{};
     for (final row in suppliers) {
@@ -795,9 +808,24 @@ class FinanceV2DataService {
       final ts = _toInt(p['paidAt']);
       final method = (p['paymentMethod'] ?? '').toString().trim();
 
+      _LinkedRevenue? linked;
       if (isIncome) {
-        extraIn += amount;
-        debtCollectIn += amount;
+        linked = _linkedRevenueOf(p, amount, linkedSales, linkedRepairs);
+        if (linked != null) {
+          // Thu nợ của đơn bán/sửa CÔNG NỢ = DOANH THU đã thu (không phải
+          // "thu khác"), vốn ghi theo tỉ lệ — cùng cách với đơn trả góp.
+          // Tổng tiền vào KHÔNG đổi, chỉ đổi phân loại.
+          if (linked.isSale) {
+            saleIn += amount;
+            saleCogs += linked.cost;
+          } else {
+            repairIn += amount;
+            repairCogs += linked.cost;
+          }
+        } else {
+          extraIn += amount;
+          debtCollectIn += amount;
+        }
       } else {
         expenseOut += amount;
         debtRepayOut += amount; // Ghi nhận riêng phần trả nợ NCC/đối tác
@@ -810,13 +838,17 @@ class FinanceV2DataService {
           type: isIncome ? 'DEBT_COLLECT' : 'DEBT_PAY',
           title: name.isNotEmpty ? name : (isIncome ? 'Thu nợ' : 'Trả nợ'),
           subtitle: isIncome
-              ? 'Thu nợ${method.isNotEmpty ? ' · $method' : ''}'
+              ? 'Thu nợ${linked != null ? ' ${linked.isSale ? 'bán hàng' : 'sửa chữa'}' : ''}'
+                    '${method.isNotEmpty ? ' · $method' : ''}'
               : 'Trả nợ${method.isNotEmpty ? ' · $method' : ''}',
           amount: amount,
           isIncome: isIncome,
           paymentMethod: method,
           referenceId: (p['debtFirestoreId'] ?? p['firestoreId'] ?? '')
               .toString(),
+          itemName: linked?.itemName,
+          costAmount: linked?.cost,
+          grossProfit: linked == null ? null : amount - linked.cost,
         ),
       );
     }
@@ -893,7 +925,16 @@ class FinanceV2DataService {
       if (isShopOwes) {
         previousExpenseOut += amount;
       } else {
-        previousExtraIn += amount;
+        final linked = _linkedRevenueOf(p, amount, linkedSales, linkedRepairs);
+        if (linked == null) {
+          previousExtraIn += amount;
+        } else if (linked.isSale) {
+          previousSaleIn += amount;
+          previousSaleCogs += linked.cost;
+        } else {
+          previousRepairIn += amount;
+          previousRepairCogs += linked.cost;
+        }
       }
     }
 
@@ -1237,6 +1278,62 @@ class FinanceV2DataService {
     if (value is String) return int.tryParse(value) ?? 0;
     return 0;
   }
+}
+
+/// Doanh thu/vốn ghi nhận từ MỘT phiếu thu nợ của đơn bán / đơn sửa CÔNG NỢ.
+class _LinkedRevenue {
+  final bool isSale;
+  final int cost;
+  final String itemName;
+  const _LinkedRevenue({
+    required this.isSale,
+    required this.cost,
+    required this.itemName,
+  });
+}
+
+/// Phương án A (chủ shop chốt 2026-09-18): đơn bán / đơn sửa CÔNG NỢ có
+/// `actualPaid = 0` lúc bán, nên trước đây KHÔNG BAO GIỜ vào Doanh thu / Giá
+/// vốn / Lãi của tab Lãi — kể cả khi khách đã trả hết (tiền về chỉ hiện là
+/// "Thu nợ"), trong khi Chốt quỹ / Báo cáo ngày tính cả phần nợ. Nay mỗi phiếu
+/// thu nợ gắn với đơn (`debts.linkedId` = `sale_…` / `rep_…`) được ghi nhận là
+/// doanh thu đã thu, vốn theo tỉ lệ `amount / giá đơn` — đúng cách đơn trả góp
+/// đang ghi cọc/tất toán. Không gắn được đơn (nợ tay, nợ cũ) thì giữ như cũ.
+_LinkedRevenue? _linkedRevenueOf(
+  Map<String, dynamic> payment,
+  int amount,
+  Map<String, SaleOrder> sales,
+  Map<String, Repair> repairs,
+) {
+  final linked = (payment['linkedDebtLinkedId'] ?? '').toString().trim();
+  if (linked.isEmpty || amount <= 0) return null;
+  final sale = sales[linked];
+  if (sale != null) {
+    if (sale.paymentMethod.toUpperCase() != 'CÔNG NỢ') return null;
+    final price = sale.finalPrice > 0 ? sale.finalPrice : sale.totalPrice;
+    final cost = (sale.totalCost > 0 && price > 0)
+        ? ((sale.totalCost * amount) / price).round()
+        : 0;
+    return _LinkedRevenue(
+      isSale: true,
+      cost: cost < 0 ? 0 : cost,
+      itemName: sale.productNames,
+    );
+  }
+  final repair = repairs[linked];
+  if (repair != null) {
+    if (repair.paymentMethod.toUpperCase() != 'CÔNG NỢ') return null;
+    final price = repair.price;
+    final cost = (repair.totalCost > 0 && price > 0)
+        ? ((repair.totalCost * amount) / price).round()
+        : 0;
+    return _LinkedRevenue(
+      isSale: false,
+      cost: cost < 0 ? 0 : cost,
+      itemName: repair.model,
+    );
+  }
+  return null;
 }
 
 class _BucketAcc {

@@ -199,12 +199,17 @@ class SyncService {
       case 'debt_payments':
       case 'payment_intents':
         return _isStaffLike(role, isSuperAdmin);
+      // Nhân viên cũng cần biết ngày nào ĐÃ CHỐT QUỸ để `canEditDirectly` chặn
+      // tạo đơn/thu nợ sau giờ chốt (trước đây chỉ manager sync ⇒ máy nhân
+      // viên bán được sau khi chủ shop đã chốt). Số tiền trong doc vẫn chỉ
+      // hiện ở màn Sổ quỹ (gated `allowViewRevenue`).
+      case 'cash_closings':
+        return _isStaffLike(role, isSuperAdmin);
       case 'attendance':
       case 'leave_requests':
       case 'audit_logs':
       case 'supplier_payments':
       case 'repair_partner_payments':
-      case 'cash_closings':
       case 'adjustment_entries':
       case 'purchase_orders':
       case 'employee_salary_settings':

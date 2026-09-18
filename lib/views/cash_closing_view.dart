@@ -5007,6 +5007,14 @@ class CashClosingViewState extends State<CashClosingView>
         'createdAt': now,
         'closedAt': now,
         'closedBy': closedBy,
+        // KHOÁ NGÀY ngay khi chốt: `AdjustmentService.canEditDirectly` chỉ chặn
+        // tạo đơn/thu nợ khi `isLocked = 1`, nhưng từ sau migration v49 không
+        // chỗ nào set cờ này cho lần chốt MỚI ⇒ "chốt quỹ" chưa bao giờ khoá
+        // (đo thật 2026-09-18: bán được lúc 20:34 sau khi chốt 20:30, cả máy
+        // chủ lẫn máy nhân viên). Mở lại bằng "Sửa chốt quỹ" (ghi unlockedAt).
+        'isLocked': 1,
+        'lockedAt': now,
+        'lockedBy': closedBy,
         'shopId': shopId,
         'firestoreId': closingFid,
       };

@@ -10,6 +10,11 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Web:** `https://quanlyshop.web.app` đã build+deploy lại **15/09** (`flutter build web --release` + `firebase deploy --only hosting`) — bao gồm mọi thay đổi từ `[2026-09-14f..h]` (Tổng tài sản, danh sách "Chờ NH tất toán", fix crash sửa đơn, fix popup Nhận tiền NH tràn màn hình, fix hồ sơ khách vãng lai). Trước đó web đứng ở bản 12/09, thiếu hết các thay đổi này — đây là nguyên nhân user thấy "web khác bản mobile" test hôm qua.
 **Last Updated:** 2026-09-17  
 
+**Phương án A + khoá ngày chốt quỹ (`[2026-09-19a]`) ✅ Oppo 2 máy:**
+- Thu nợ đơn CÔNG NỢ nay vào Doanh thu/Vốn/Lãi theo tỉ lệ; chốt quỹ ghi `isLocked=1` (trước
+  đây KHÔNG BAO GIỜ khoá) + nhân viên sync/đọc được `cash_closings` → bị chặn tạo đơn sau chốt.
+  **Lưu ý shop thật:** sau chốt quỹ, cả ngày không tạo đơn mới được trên mọi máy.
+
 **Nghiệm thu tài chính mọi hình thức TT 2 máy + fix mất phiếu trả nợ (`[2026-09-18c]`) ✅:**
 - Tất cả delta Tiền/Lãi/Nợ/Chốt quỹ đúng cho bán/sửa/kho/nợ/NH/linh kiện; máy nhân viên bán → máy
   chủ cập nhật ~1 s. **Đã sửa** lỗi khoá idempotency cắt cụt làm lần trả nợ thứ 2 trên nợ đối
