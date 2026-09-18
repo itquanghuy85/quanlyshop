@@ -10,6 +10,15 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Web:** `https://quanlyshop.web.app` đã build+deploy lại **15/09** (`flutter build web --release` + `firebase deploy --only hosting`) — bao gồm mọi thay đổi từ `[2026-09-14f..h]` (Tổng tài sản, danh sách "Chờ NH tất toán", fix crash sửa đơn, fix popup Nhận tiền NH tràn màn hình, fix hồ sơ khách vãng lai). Trước đó web đứng ở bản 12/09, thiếu hết các thay đổi này — đây là nguyên nhân user thấy "web khác bản mobile" test hôm qua.
 **Last Updated:** 2026-09-18  
 
+**🚧 ĐANG LÀM — Offline-first (dùng app không cần đăng nhập), nhánh `feature/offline-first`:**
+- Kế hoạch 6 bước + quyết định thiết kế: `DOCS/PLAN_OFFLINE_FIRST_2026-09-19.md`.
+- ✅ Bước 1 (`[2026-09-19e]`): `AppSession` + đổi ruột `UserService`, cờ `kOfflineModeEnabled=false`
+  → chưa đổi gì cho người dùng. Đã test 2 máy.
+- ⏭ Bước 2: hàng rào `AppSession.syncEnabled` cho `FirestoreService` (85 hàm) / `SyncService` /
+  mọi service cloud. Bước 3 mới bật cờ.
+- ⚠️ Khi merge về `master` phải kiểm lại `main.dart:_checkAndClearLocalDataIfShopChanged` —
+  bước 3 sẽ sửa để KHÔNG xoá SQLite khi offline/claim.
+
 **Phương án A + khoá ngày chốt quỹ (`[2026-09-19a]`) ✅ Oppo 2 máy:**
 - Thu nợ đơn CÔNG NỢ nay vào Doanh thu/Vốn/Lãi theo tỉ lệ; chốt quỹ ghi `isLocked=1` (trước
   đây KHÔNG BAO GIỜ khoá) + nhân viên sync/đọc được `cash_closings` → bị chặn tạo đơn sau chốt.

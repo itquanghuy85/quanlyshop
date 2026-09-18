@@ -4,6 +4,26 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-19e] - Offline-first Bước 1/6: `AppSession` + đổi ruột `UserService` (cờ OFF, 0 thay đổi hành vi)
+
+Bắt đầu dự án "dùng app không cần đăng nhập, online là tuỳ chọn" — kế hoạch đầy đủ 6 bước
+tại `DOCS/PLAN_OFFLINE_FIRST_2026-09-19.md`. Nhánh `feature/offline-first`.
+- **Mới** `lib/services/app_session.dart`: nguồn sự thật `mode` (none/offline/online),
+  `shopId`, `userId` (`local_owner` khi offline), `syncEnabled`; `restore()` chỉ đọc prefs,
+  `startOffline()` sinh `shop_<ms>_<rand>`; cờ `kOfflineModeEnabled = false` (D5).
+- `UserService`: `getShopIdSync/getCurrentShopId/getShopIdFast/ensureShopId/isShopIdReady/
+  getCurrentUserPermissions(Sync)/canViewCostPrice/getUserRole/getRoleFast/isCurrentUserAdmin/
+  getCurrentUserName` — thêm nhánh `AppSession.isOffline` **trước** nhánh đọc FirebaseAuth;
+  nhánh online giữ nguyên từng dòng. Tầng DB (56 chỗ) tự động đi theo.
+- `main.dart`: `AppSession.restore()` sau `initializeDateFormatting`, trước Firebase init.
+- Test `test/app_session_test.dart` (8 test, chạy KHÔNG init Firebase → chứng minh nhánh
+  offline trả về trước khi chạm SDK). `flutter test`: 686 pass, 2 fail cũ kiotviet.
+- Nghiệm thu adb: CPH2239 + CPH2203 cài đè build debug → Home/Kho (có giá vốn)/Tài chính,
+  bootstrap `role=owner` như cũ, số dòng products/repairs/sales/customers/debts/tồn kho
+  trước = sau, 0 `E/flutter`.
+
+---
+
 ## [2026-09-19d] - Phát hành 3.7.0+559 (store + web) · Kho kéo-làm-mới dùng con trỏ sync
 
 - **Kho:** kéo-xuống-làm-mới không còn `products.get()` trọn shop (1 read/SP) mà gọi

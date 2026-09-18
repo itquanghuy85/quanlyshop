@@ -20,6 +20,7 @@ import 'views/sale_detail_view.dart';
 import 'views/splash_view.dart'; // Import màn hình Splash mới
 import 'views/super_admin_console_view.dart'; // Super Admin Console
 import 'theme/app_theme.dart'; // Import theme thống nhất
+import 'services/app_session.dart';
 import 'services/user_service.dart';
 import 'services/notification_service.dart';
 import 'services/connectivity_service.dart';
@@ -261,6 +262,9 @@ Future<void> main() async {
         FlutterNativeSplash.preserve(widgetsBinding: binding);
       }
       await initializeDateFormatting('vi_VN');
+      // Restore offline session (prefs only, no Firebase). Must run before
+      // any UserService.getShopIdSync() call.
+      await AppSession.restore();
       _enforceFirebaseOnlyMode();
 
       // Firestore Audit Monitor — kill switch OFF by default, zero overhead when OFF.
