@@ -46,8 +46,14 @@ thật CPH2239 (offline):
   `lib/views/{sync_account,repair_detail,create_repair_order,create_sale,expense,fast_stock_in,debt,home,
   bank_qr_settings}_view.dart`, `lib/finance_v2/finance_v2_daily_report_view.dart`,
   `lib/data/app_knowledge_base.dart`, `CLAUDE.md` §14, `test/local_image_store_test.dart`.
-- Chưa test máy thật: bước đẩy ảnh lên cloud sau khi kết nối tài khoản (cần tạo tài khoản mới);
-  logic là `_uploadRepairImages` có sẵn (đường online đang dùng hằng ngày).
+- **Nghiệm thu Kết nối tài khoản** (CPH2239 → tài khoản mới kn1909@abc.vn): ảnh đơn sửa offline
+  được đẩy lên (`repairs.imagePath` → URL firebasestorage, `local_images/` trống, `isSynced=1`); shop
+  doc có address/phone (SyncService ghi lại prefs "12 LE LOI, 0900123456").
+- **Phát hiện thêm lỗi CŨ khi claim**: `❌ Batch commit customers failed: permission-denied` — rules
+  `customers` đòi `name` 1–100 ký tự; khách tạo từ đơn sửa chỉ có SĐT (name rỗng) bị từ chối, và vì
+  đẩy theo **batch** nên MỌI khách của shop kẹt `isSynced=0` mãi (online cũng vậy:
+  `FirestoreService.addCustomer` trả null → rơi vào batch → batch chết). Sửa cả 2 đường: name rỗng →
+  dùng SĐT (hoặc "KHÁCH"), cắt 100 ký tự. Test: 3 khách kẹt → synced hết sau khi cài bản mới.
 
 ---
 

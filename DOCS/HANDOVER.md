@@ -13,8 +13,9 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **✅ 2026-09-19 (`[2026-09-19m]`)**: rà soát phiên offline — vá MẤT ẢNH offline sau 24h
 (`LocalImageStore` + đẩy lên sau claim), thông tin shop (địa chỉ/SĐT) cho biên nhận offline, gán KTV
 offline, 2 write Firestore treo (trả nợ NCC không cập nhật phiếu nhập), tên "NV" → "CHỦ SHOP", ẩn vài
-nút cloud. Test CPH2239 offline. **Còn nợ**: nghiệm thu đẩy ảnh lên cloud sau khi Kết nối tài khoản
-(cần tài khoản mới); build release.
+nút cloud. Test CPH2239 offline. Đã nghiệm thu Kết nối tài khoản (ảnh đẩy lên OK). Phát hiện+sửa lỗi cũ: khách name rỗng làm
+CẢ batch customers permission-denied (kẹt isSynced=0). **Còn nợ**: build release; CPH2203 gỡ cờ
+`secure_frp_mode` (user tự chạy).
 **✅ 2026-09-19 (`[2026-09-19l]`)**: 5 báo cáo sau offline-first — sửa 3 (NCC offline không có
 firestoreId → nhập kho báo thiếu NCC; nút "Nhập kho"; ô số lượng không đổi khi bấm + — lỗi cũ), 2 không
 phải lỗi app: (4) nợ trên biên nhận vẫn hiện cả offline/online; (5) share sheet không ra do máy CPH2203

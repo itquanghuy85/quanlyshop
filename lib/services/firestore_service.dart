@@ -1765,6 +1765,16 @@ class FirestoreService {
       customerData['shopId'] = shopId;
       customerData['firestoreId'] = docRef.id;
       customerData['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
+      // Rules require `name` 1–100 chars; a customer created from a repair
+      // with only a phone would be rejected (and later poison the whole
+      // customers batch in syncAllToCloud). Same fallback as the batch path.
+      final rawName = (customerData['name'] ?? '').toString().trim();
+      if (rawName.isEmpty) {
+        final phone = (customerData['phone'] ?? '').toString().trim();
+        customerData['name'] = phone.isNotEmpty ? phone : 'KHÁCH';
+      } else if (rawName.length > 100) {
+        customerData['name'] = rawName.substring(0, 100);
+      }
       await docRef.set(customerData, SetOptions(merge: true));
       EventBus().emit('customers_changed');
       return docRef.id;

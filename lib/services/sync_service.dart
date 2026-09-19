@@ -4682,6 +4682,14 @@ class SyncService {
                 data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
                 data.remove('isSynced');
                 final phone = (cMap['phone'] ?? '').toString();
+                // Rules: `name` 1–100 ký tự. Khách tạo từ đơn sửa chỉ có SĐT
+                // (name rỗng) làm CẢ batch bị permission-denied → mọi khách
+                // của shop kẹt mãi isSynced=0 (thấy khi claim 19/09). Dùng SĐT
+                // làm tên thay thế, cắt 100 ký tự.
+                final rawName = (data['name'] ?? '').toString().trim();
+                data['name'] = rawName.isNotEmpty
+                    ? (rawName.length > 100 ? rawName.substring(0, 100) : rawName)
+                    : (phone.isNotEmpty ? phone : 'KHÁCH');
                 final ts =
                     cMap['createdAt'] ?? DateTime.now().millisecondsSinceEpoch;
                 final existingFid =
