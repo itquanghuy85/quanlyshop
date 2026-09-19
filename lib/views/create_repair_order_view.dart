@@ -931,7 +931,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       // lên cloud bình thường. Dựa vào bộ đếm hàng đợi làm mất hẳn thông báo
       // "nhận máy" của các đơn đó (đơn có ảnh còn bị bỏ qua cả đường ghi thẳng
       // Firestore bên trên nên gần như chắc chắn mất tin).
-      if (!syncResult.noNetwork) {
+      if (!offlineSession && !syncResult.noNetwork) {
         try {
           final cloudDoc = await FirestoreService.getRepairDoc(
             r.firestoreId!,

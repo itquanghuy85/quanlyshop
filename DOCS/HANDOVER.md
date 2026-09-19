@@ -31,7 +31,8 @@ nhập kho luôn được tải danh sách NCC. Đã merge master, chưa build r
   không xoá `sweepAfter_*` (xoá local rồi đăng nhập lại cùng shop → thiếu dữ liệu).
 - Còn trước khi phát hành: rà `firestore.rules` cho `stock_entries` set-by-client-id khi claim; chạy lại
   kịch bản 2 máy `SYNC_AUDIT_REPORT_2026-09-18` sau merge; iOS build; Google/Apple trong màn claim.
-- Máy test cuối phiên: CPH2239 = q@m.com, CPH2203 = m@m.com (cùng shop M, dữ liệu đủ). Prefs QR
+- Nghiệm thu thêm 19/09 11:00: CPH2239 bật MÁY BAY rồi mới "Dùng ngay" → Home offline, tạo đơn sửa OK, 0 lỗi.
+- Máy test cuối phiên: CPH2239 = phiên OFFLINE "Cửa hàng của tôi" (1 đơn sửa test) — muốn về shop M: Cài đặt → Đồng bộ & Tài khoản → Kết nối → m@m.com → Tải dữ liệu về; CPH2203 = m@m.com shop M. Prefs QR
   chuyển khoản còn dính giá trị shop cũ khi sang phiên offline (pre-existing, low).
 - ⚠️ Khi merge về `master` phải kiểm lại `main.dart:_checkAndClearLocalDataIfShopChanged` —
   bước 3 sẽ sửa để KHÔNG xoá SQLite khi offline/claim.
