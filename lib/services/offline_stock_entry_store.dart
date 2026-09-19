@@ -140,8 +140,19 @@ class OfflineStockEntryStore {
   static Future<List<StockEntry>> confirmed({String? shopId}) =>
       where((e) => e.status == StockEntryStatus.confirmed, shopId: shopId);
 
-  /// Test-only.
-  @visibleForTesting
+  /// Claim into an existing shop: move every stored entry to [to].
+  static Future<void> retagShopId({
+    required String from,
+    required String to,
+  }) async {
+    final all = await _load();
+    for (final e in all.values) {
+      if (e['shopId'] == from) e['shopId'] = to;
+    }
+    await _persist();
+  }
+
+  /// Drop everything (replace-local-with-cloud, tests).
   static Future<void> clear() async {
     _cache = {};
     await _persist();

@@ -1035,6 +1035,14 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       builder: (context, snap) {
         final currentUser = snap.data ?? FirebaseAuth.instance.currentUser;
 
+        // Claim in progress (ClaimAccountView on top): a Firebase user now
+        // exists but the shop is not attached yet. Keep the offline HomeView
+        // underneath — running the online bootstrap here would call
+        // syncUserInfo and create a second shop with id = uid.
+        if (AppSession.claimInProgress) {
+          return _buildSignedOut();
+        }
+
         if (snap.connectionState == ConnectionState.waiting) {
           if (currentUser == null &&
               (_showLoggedOutFallback || AppSession.isOffline)) {

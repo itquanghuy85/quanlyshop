@@ -269,6 +269,81 @@ class AppKnowledgeBase {
 
   // ─── MỤC KIẾN THỨC ────────────────────────────────────────────────────────
   static const List<KbEntry> entries = [
+    // ─── Dùng không cần tài khoản / Đồng bộ & Tài khoản (2026-09-19) ───
+    KbEntry(
+      id: 'offline-mode',
+      title: 'Dùng app không cần tài khoản (chế độ Offline)',
+      menuPath: 'Màn hình đầu → "Dùng ngay, không cần tài khoản"',
+      whatItDoes:
+          'Cho phép dùng toàn bộ tính năng (bán, sửa, kho, tài chính…) mà không cần '
+          'đăng nhập. Dữ liệu lưu trên máy này; không tốn kết nối đám mây.',
+      whenToUse:
+          'Cửa hàng 1 máy, muốn dùng ngay. Khi cần nhiều máy / nhân viên / sao lưu '
+          'đám mây thì kết nối tài khoản sau.',
+      steps: [
+        'Mở app lần đầu → nhập tên cửa hàng → bấm "Dùng ngay, không cần tài khoản".',
+        'Dùng bình thường. Icon mây gạch chéo góc phải trên = đang Offline.',
+        'Cài đặt → Đồng bộ & Tài khoản để đổi tên cửa hàng, đặt Mật khẩu bảo vệ, hoặc Kết nối tài khoản.',
+      ],
+      notes: [
+        'Chế độ Offline chỉ có trên điện thoại (Android/iOS); bản web vẫn cần đăng nhập.',
+        'Không có tab Nhân viên, chuông thông báo, chat, chấm công, AI trợ lý — các tính năng này cần tài khoản.',
+        'Mất máy hoặc xoá app là mất dữ liệu — hãy sao lưu định kỳ hoặc kết nối tài khoản.',
+        'Các thao tác xoá sản phẩm/đơn không hỏi mật khẩu trừ khi đã đặt "Mật khẩu bảo vệ".',
+      ],
+      sampleQuestions: [
+        'Không đăng nhập có dùng được không?',
+        'Chế độ offline là gì?',
+        'Icon mây gạch chéo nghĩa là gì?',
+      ],
+      tags: ['offline', 'khong can tai khoan', 'không cần tài khoản', 'dung ngay', 'chua dang nhap'],
+    ),
+    KbEntry(
+      id: 'sync-account',
+      title: 'Đồng bộ & Tài khoản',
+      menuPath: 'Cài đặt → Tài khoản & Đồng bộ → Đồng bộ & Tài khoản',
+      whatItDoes:
+          'Cho biết app đang Offline hay Online, tài khoản đang dùng, lần đồng bộ cuối, '
+          'số bản ghi chờ đẩy lên; có nút Đồng bộ ngay, Đăng xuất, Kết nối tài khoản.',
+      whenToUse: 'Khi muốn biết dữ liệu đã lên đám mây chưa, đổi tên cửa hàng offline, đặt mật khẩu bảo vệ.',
+      steps: [
+        'Cài đặt → Đồng bộ & Tài khoản.',
+        'Offline: sửa tên cửa hàng, đặt Mật khẩu bảo vệ, bấm "Kết nối tài khoản".',
+        'Online: xem tài khoản, "Đồng bộ ngay", hoặc "Đăng xuất".',
+      ],
+      notes: [
+        '3 trạng thái: Chế độ Offline · Online-Chờ mạng · Online-Đã kết nối — mất mạng KHÔNG phải là chưa kết nối.',
+        'Đăng xuất khỏi cửa hàng do chính máy này tạo offline sẽ GIỮ dữ liệu trên máy và quay về Offline.',
+      ],
+      sampleQuestions: ['Dữ liệu đã đồng bộ chưa?', 'Đăng xuất có mất dữ liệu không?', 'Đồng bộ ở đâu?'],
+      tags: ['dong bo', 'đồng bộ', 'tai khoan', 'sync', 'dang xuat', 'online', 'offline'],
+    ),
+    KbEntry(
+      id: 'claim-account',
+      title: 'Kết nối tài khoản (đưa dữ liệu offline lên đám mây)',
+      menuPath: 'Cài đặt → Đồng bộ & Tài khoản → Kết nối tài khoản',
+      whatItDoes:
+          'Gắn cửa hàng đang dùng offline vào một tài khoản: tạo tài khoản mới hoặc đăng nhập '
+          'tài khoản đã có, rồi đưa toàn bộ dữ liệu trên máy lên đám mây và bật đồng bộ 2 chiều.',
+      whenToUse: 'Khi muốn dùng trên nhiều máy, thêm nhân viên, hoặc sao lưu tự động lên đám mây.',
+      steps: [
+        'Cài đặt → Đồng bộ & Tài khoản → Kết nối tài khoản.',
+        'Chọn "Tạo tài khoản mới" (email + mật khẩu) hoặc "Đã có tài khoản".',
+        'Đợi app đưa dữ liệu lên (vài giây đến vài phút tuỳ lượng dữ liệu) → "Về trang chủ".',
+      ],
+      notes: [
+        'Cần internet.',
+        'Nếu tài khoản ĐÃ có cửa hàng có dữ liệu: app KHÔNG tự gộp. Chỉ có thể tải dữ liệu tài khoản về (mất dữ liệu máy — phải xác nhận đã sao lưu) hoặc huỷ. Dùng tài khoản mới để giữ dữ liệu offline.',
+        'Nếu tài khoản có cửa hàng nhưng còn trống: có thể đưa dữ liệu máy lên cửa hàng đó.',
+        'Hiện chỉ hỗ trợ email & mật khẩu; Google/Apple sẽ có sau.',
+      ],
+      sampleQuestions: [
+        'Làm sao đưa dữ liệu offline lên tài khoản?',
+        'Kết nối tài khoản có mất dữ liệu không?',
+        'Tài khoản đã có shop thì sao?',
+      ],
+      tags: ['ket noi tai khoan', 'kết nối tài khoản', 'claim', 'dua du lieu len', 'tao tai khoan'],
+    ),
     // ===== ĐƠN SỬA CHỮA =====
     KbEntry(
       id: 'repair-create',

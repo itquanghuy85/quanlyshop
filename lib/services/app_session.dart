@@ -183,6 +183,19 @@ class AppSession {
     return id;
   }
 
+  /// Claim into an existing (empty) cloud shop: local rows were re-tagged to
+  /// [newShopId]; keep `ownsShop` true for that id so a later sign-out drops
+  /// back to offline instead of wiping.
+  static Future<void> rebindOfflineShopId(String newShopId) async {
+    _offlineShopId = newShopId;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_prefShopId, newShopId);
+      await prefs.setString(prefLastSyncedShopId, newShopId);
+    } catch (_) {}
+    revision.value++;
+  }
+
   /// Rename the offline shop (shown in the header / Welcome).
   static Future<void> setOfflineShopName(String name) async {
     final trimmed = name.trim();

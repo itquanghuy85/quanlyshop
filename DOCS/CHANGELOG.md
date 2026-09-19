@@ -4,6 +4,40 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-19h] - Offline-first Bước 4–6/6: Kết nối tài khoản (claim), tài khoản đã có shop, sao lưu offline
+
+- **`ClaimService`** (nơi DUY NHẤT được gọi Firestore khi `AppSession.claimInProgress`):
+  `precheck` (users/{uid}.shopId hoặc shops.ownerUid → newAccount / existingShop + shop rỗng?);
+  `claimToNewAccount`: tạo `shops/{localShopId}` (+settings) & `users/{uid}` role owner — đúng payload
+  `syncUserInfo`, chỉ khác id; `_finishAttach`: **chờ claims có shopId** (poll `getIdTokenResult(true)`
+  ≤24s — Cloud Function `syncUserClaims` chậm vài giây, không chờ thì mọi write đầu bị permission-denied),
+  ghi `last_synced_*`/`lastUserId`/auth cache, `retagLocalOwner` (`createdBy/*Uid/userId='local_owner'`
+  → uid), lật `claimInProgress=false` → online, đẩy phiếu nhập offline lên `stock_entries`,
+  `syncAllToCloud` ×2 + `SyncOrchestrator.syncAll` (ids client giữ nguyên → §12 không cần backfill).
+- Tài khoản đã có shop (D4): shop cloud RỖNG → `attachToExistingEmptyShop` (`UPDATE OR REPLACE …
+  SET shopId` mọi bảng có shopId + `AppSession.rebindOfflineShopId`); shop có dữ liệu → chỉ
+  "Tải dữ liệu tài khoản về máy" (bắt tick đã sao lưu; `replaceLocalWithCloud` xoá local rồi để
+  AuthGate bootstrap thường) hoặc "Huỷ, giữ nguyên offline" (`abort` = signOut).
+- **`ClaimAccountView`** thật: Tạo tài khoản mới / Đã có tài khoản (email+mật khẩu), tiến độ từng
+  bước, thông báo lỗi FirebaseAuth tiếng Việt, dialog 3 lựa chọn, màn "Đã kết nối".
+- `main.dart` AuthGate: khi `claimInProgress` giữ nguyên HomeView offline bên dưới (không chạy
+  `_getRoleAfterSync` → tránh `syncUserInfo` tạo shop thứ hai id = uid).
+- Sao lưu (bước 6): `BackupRestoreView` offline ẩn tab Firestore, nút "Đưa lên cloud", danh sách
+  cloud; `BackupService.saveSqliteToLocal` chạy `PRAGMA wal_checkpoint(TRUNCATE)` trước khi copy
+  (bug cũ: bản sao thiếu dữ liệu còn trong -wal). Khôi phục có `remapShopIdToCurrentShop` dùng được offline.
+- `app_knowledge_base.dart`: 3 mục mới `offline-mode`, `sync-account`, `claim-account`.
+- Test: `test/claim_retag_test.dart` (FFI: retagLocalOwner, retagShopId với UNIQUE(shopId,phone) →
+  OR REPLACE, rebindOfflineShopId). `flutter test`: 703 pass, 2 fail cũ kiotviet.
+- Nghiệm thu adb CPH2239: offline (1 đơn sửa + 1 KH) → Kết nối → tạo TK mới `of19@m.com` → claims
+  về sau ~8s → upload → "Đã kết nối" → HomeView online (tab NV, chuông, AI), rows isSynced=1,
+  listener kéo lại đúng 1 repair từ cloud; Đăng xuất → giữ SQLite, về offline (keepLocal=true);
+  Kết nối lại bằng m@m.com (shop M có dữ liệu) → dialog đúng, "Huỷ" → offline nguyên vẹn.
+  CPH2203 (online m@m.com): cài đè, số liệu trước = sau, 0 `E/flutter`.
+- Chưa có: Google/Apple sign-in trong màn claim (chỉ email); test máy thật cho B1 (shop rỗng) &
+  B2 (tải cloud về) — mới có FFI/unit; iOS chưa chạy.
+
+---
+
 ## [2026-09-19g] - Offline-first Bước 3/6: dùng app KHÔNG cần đăng nhập (cờ BẬT, chỉ mobile)
 
 **3a — phiên offline:**

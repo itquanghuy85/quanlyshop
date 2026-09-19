@@ -214,6 +214,26 @@
 
 ---
 
+### 14. Phiên offline (dùng app không cần đăng nhập) — `AppSession`
+- **Nguồn sự thật:** `lib/services/app_session.dart`. `mode` = online (có Firebase user, không claim)
+  | offline (không user, có `offlineShopId`, chỉ mobile) | none (Welcome). `UserService.getShopIdSync/
+  getCurrentShopId/permissions/canViewCostPrice` đã đọc `AppSession` trước — **module nghiệp vụ không
+  cần biết đã đăng nhập hay chưa.**
+- **Mọi đường ra Firebase phải qua `AppSession.syncEnabled`**: `FirestoreService` gate sẵn 79 hàm;
+  service/view mới mà gọi `FirebaseFirestore.instance…set/update/delete` trực tiếp thì PHẢI
+  `if (AppSession.syncEnabled)` — write Firestore khi không có auth **treo vô hạn**, không lỗi.
+  Field Firebase trong service dùng `late final` để singleton không chạm SDK khi offline/test.
+- Luồng cloud-first (`StockEntryService`, `ImportOrderService`, `SupplierPayment/RepairPartnerPayment`)
+  có nhánh `AppSession.isOffline` ghi SQLite với client id + `isSynced=0`; `stock_entries` không có
+  bảng SQLite → `OfflineStockEntryStore` (prefs JSON).
+- **Không bao giờ xoá SQLite khi `isOffline || claimInProgress`** (`_checkAndClearLocalDataIfShopChanged`
+  return sớm). Đăng xuất qua `SessionLogoutService.signOut()` — chỉ giữ local khi `AppSession.ownsShop`.
+- Kết nối tài khoản: `ClaimService` là nơi DUY NHẤT gọi Firestore khi `claimInProgress`; shopId cục bộ
+  = id cloud (không re-tag), chỉ re-tag khi claim vào shop cloud RỖNG; không merge tự động (D4).
+- Xác thực mật khẩu trước thao tác nguy hiểm: dùng `OwnerReauthService.verify/shouldSkipPrompt`
+  (online re-auth Firebase, offline PIN cục bộ) — không viết lại `EmailAuthProvider.credential`.
+- Kế hoạch & quyết định: `DOCS/PLAN_OFFLINE_FIRST_2026-09-19.md`.
+
 ## IV. WORKFLOW PHÁT TRIỂN
 
 ### Chạy Ứng Dụng
