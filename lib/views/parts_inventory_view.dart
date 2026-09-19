@@ -5,6 +5,7 @@ import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:intl/intl.dart';
 import '../models/supplier_invoice_models.dart';
 import '../services/supplier_invoice_service.dart';
+import '../services/app_session.dart';
 import '../services/price_book_service.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../widgets/keyboard_aware_padding.dart';
@@ -1873,7 +1874,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
       // Sync to Firestore immediately
       if (firestoreId != null && firestoreId.isNotEmpty) {
         try {
-          await FirebaseFirestore.instance
+          if (AppSession.syncEnabled) await FirebaseFirestore.instance
               .collection('repair_parts')
               .doc(firestoreId)
               .update({

@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../data/db_helper.dart';
 import '../models/repair_partner_payment_model.dart';
+import '../services/app_session.dart';
 import '../services/user_service.dart';
 import '../services/repair_partner_service.dart';
 import '../services/financial_activity_service.dart';
@@ -48,6 +49,7 @@ class RepairPartnerPaymentService {
       whereArgs: [id],
     ));
     // Soft delete in cloud
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     final shopId = await UserService.getCurrentShopId();
     final docId = 'part_pay_${DateTime.now().millisecondsSinceEpoch}';
     await _firestore.collection('repair_partner_payments').doc(docId).set({
@@ -70,6 +72,8 @@ class RepairPartnerPaymentService {
       where: 'id = ?',
       whereArgs: [payment.id],
     ));
+    // Offline session: keep isSynced = 0, the claim step pushes it later.
+    if (!AppSession.syncEnabled) return;
     final mapData = payment.toMap();
     mapData['deleted'] = payment.deleted; // boolean, not integer
     mapData['isSynced'] = true; // for consistency

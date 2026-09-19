@@ -23,6 +23,7 @@ import '../models/repair_model.dart';
 import '../constants/product_constants.dart';
 
 import '../models/printer_types.dart';
+import 'app_session.dart';
 
 /// Model cho element từ Label Designer
 class _LabelElementConfig {
@@ -78,7 +79,9 @@ class UnifiedPrinterService {
 
     // Fallback: fetch directly from Firestore if local cache is empty
     // (first launch before sync_service has run)
-    if (warrantyPolicy.isEmpty && returnPolicy.isEmpty) {
+    if (warrantyPolicy.isEmpty &&
+        returnPolicy.isEmpty &&
+        AppSession.syncEnabled) {
       try {
         final shopId = await UserService.getCurrentShopId();
         if (shopId != null && shopId.isNotEmpty) {

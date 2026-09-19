@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../data/db_helper.dart';
 import '../services/firestore_service.dart';
 import '../services/user_service.dart';
+import '../services/app_session.dart';
 
 class SKUGenerator {
   /// Tạo mã hàng (SKU) duy nhất theo format: [NHOM]-[MODEL]-[THONGTIN]-[STT]
@@ -52,8 +53,8 @@ class SKUGenerator {
       }
     }
 
-    // Kiểm tra Firestore nếu có mạng
-    try {
+    // Kiểm tra Firestore nếu có mạng (bỏ qua ở phiên offline)
+    if (AppSession.syncEnabled) try {
       final shopId = await UserService.getCurrentShopId();
       Query query = FirebaseFirestore.instance.collection('products');
       if (shopId != null) query = query.where('shopId', isEqualTo: shopId);

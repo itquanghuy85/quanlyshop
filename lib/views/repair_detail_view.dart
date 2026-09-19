@@ -2600,7 +2600,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           final collection = p['collection'] as String;
           final newQty = p['newQty'] as int;
           try {
-            await FirebaseFirestore.instance
+            if (AppSession.syncEnabled) await FirebaseFirestore.instance
                 .collection(collection)
                 .doc(fid)
                 .update({
@@ -2698,7 +2698,7 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         final collection = p['collection'] as String;
         final newQty = p['newQty'] as int;
         try {
-          await FirebaseFirestore.instance
+          if (AppSession.syncEnabled) await FirebaseFirestore.instance
               .collection(collection)
               .doc(fid)
               .update({

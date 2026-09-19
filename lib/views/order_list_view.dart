@@ -1228,7 +1228,7 @@ final results = await Future.wait([
           'isWalkIn': newPhone.isEmpty && newName.isEmpty,
           'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
         });
-        await FirebaseFirestore.instance
+        if (AppSession.syncEnabled) await FirebaseFirestore.instance
             .collection('repairs')
             .doc(r.firestoreId)
             .update(encData);

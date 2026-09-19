@@ -1679,7 +1679,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
           // Sync trực tiếp lên cloud (tránh real-time listener ghi đè)
           if (product.firestoreId != null && product.firestoreId!.isNotEmpty) {
             try {
-              await FirebaseFirestore.instance
+              if (AppSession.syncEnabled) await FirebaseFirestore.instance
                   .collection('products')
                   .doc(product.firestoreId)
                   .update({

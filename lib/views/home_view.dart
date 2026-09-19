@@ -7204,57 +7204,83 @@ class _HomeViewState extends State<HomeView>
                 ],
               ),
             ),
-            const Divider(height: 20),
+            if (!AppSession.isOffline) ...[
+              const Divider(height: 20),
 
-            // Linked accounts
-            Row(
-              children: [
-                Icon(Icons.link, color: Colors.indigo.shade400, size: 18),
-                const SizedBox(width: 6),
-                Text(
-                  'Liên kết tài khoản',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: Colors.indigo.shade400,
+              // Linked accounts
+              Row(
+                children: [
+                  Icon(Icons.link, color: Colors.indigo.shade400, size: 18),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Liên kết tài khoản',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Colors.indigo.shade400,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // Email
+              _buildProviderTile(
+                Icons.email,
+                Colors.blue,
+                'Email',
+                passwordLinked,
+                null,
+                null,
+                providerEmail: SocialAuthService.passwordEmail,
+              ),
+              // Google
+              _buildProviderTile(
+                Icons.g_mobiledata,
+                Colors.red,
+                'Google',
+                googleLinked,
+                () => _linkSocialProvider('google'),
+                googleLinked ? () => _unlinkSocialProvider('google') : null,
+                providerEmail: SocialAuthService.googleEmail,
+              ),
+              // Apple
+              if (showApple)
+                _buildProviderTile(
+                  Icons.apple,
+                  Colors.black,
+                  'Apple',
+                  appleLinked,
+                  () => _linkSocialProvider('apple'),
+                  appleLinked ? () => _unlinkSocialProvider('apple') : null,
+                  providerEmail: SocialAuthService.appleEmail,
+                ),
+            ],
+            const Divider(height: 20),
+            // Offline session: no account to sign out of → offer "connect".
+            if (AppSession.isOffline)
+              InkWell(
+                onTap: () => _fadePush(context, const SyncAccountView()),
+                borderRadius: BorderRadius.circular(8),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    children: [
+                      Icon(Icons.cloud_upload_outlined,
+                          color: AppColors.primary, size: 20),
+                      SizedBox(width: 10),
+                      Text(
+                        'KẾT NỐI TÀI KHOẢN',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // Email
-            _buildProviderTile(
-              Icons.email,
-              Colors.blue,
-              'Email',
-              passwordLinked,
-              null,
-              null,
-              providerEmail: SocialAuthService.passwordEmail,
-            ),
-            // Google
-            _buildProviderTile(
-              Icons.g_mobiledata,
-              Colors.red,
-              'Google',
-              googleLinked,
-              () => _linkSocialProvider('google'),
-              googleLinked ? () => _unlinkSocialProvider('google') : null,
-              providerEmail: SocialAuthService.googleEmail,
-            ),
-            // Apple
-            if (showApple)
-              _buildProviderTile(
-                Icons.apple,
-                Colors.black,
-                'Apple',
-                appleLinked,
-                () => _linkSocialProvider('apple'),
-                appleLinked ? () => _unlinkSocialProvider('apple') : null,
-                providerEmail: SocialAuthService.appleEmail,
-              ),
-
-            const Divider(height: 20),
+              )
+            else
             // Logout
             InkWell(
               onTap: () => _confirmAndLogout(),

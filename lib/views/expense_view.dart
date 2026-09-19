@@ -538,7 +538,7 @@ class _ExpenseViewState extends State<ExpenseView> {
           // This prevents the record from being re-synced back
           if (firestoreId != null && firestoreId.isNotEmpty) {
             try {
-              await FirebaseFirestore.instance
+              if (AppSession.syncEnabled) await FirebaseFirestore.instance
                   .collection('expenses')
                   .doc(firestoreId)
                   .update(FirestoreWriteHelper.softDeletePayload());

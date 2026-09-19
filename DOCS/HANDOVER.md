@@ -18,7 +18,10 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
   SyncService/Orchestrator/HealthCheck, FCM, claims, storage, 9 service cloud-only. Test 2 máy online OK.
 - ⚠️ Phát hiện: nhập kho / phiếu nhập / trả NCC / trả đối tác / trả hàng là **cloud-first**
   (Firestore transaction). Bước 3 phải thêm nhánh ghi local cho các luồng này — ước lượng tăng.
-- ⏭ Bước 3: bật cờ, Welcome/AuthGate offline, màn "Đồng bộ & Tài khoản", nhánh local cho service cloud-first.
+- ✅ Bước 3 (`[2026-09-19g]`): cờ BẬT — Welcome, HomeView offline, SyncAccountView + PIN, OwnerReauth,
+  StockEntryService/ImportOrder/… nhánh local, 13 view gate Firestore write. FFI test nhập kho offline.
+  Test adb CPH2239 OK. **Người dùng cũ (có tài khoản) không đổi gì.**
+- ⏭ Bước 4: ClaimAccountView thật (tạo TK mới → shops/{localShopId}, upload isSynced=0, backfill §12).
 - ⚠️ Khi merge về `master` phải kiểm lại `main.dart:_checkAndClearLocalDataIfShopChanged` —
   bước 3 sẽ sửa để KHÔNG xoá SQLite khi offline/claim.
 

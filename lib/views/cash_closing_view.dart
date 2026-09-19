@@ -14,6 +14,7 @@ import '../models/sale_order_model.dart';
 import '../models/repair_model.dart';
 import '../models/shop_settings_model.dart';
 import '../services/user_service.dart';
+import '../services/app_session.dart';
 import '../services/owner_reauth_service.dart';
 import '../services/first_time_guide_service.dart';
 import '../services/audit_service.dart';
@@ -351,6 +352,11 @@ class CashClosingViewState extends State<CashClosingView>
   /// Load dữ liệu trực tiếp từ Firestore để đảm bảo đồng bộ giữa các thiết bị
   Future<void> _loadAllDataFromFirestore() async {
     if (!mounted || _isLoadingFromFirestore) return;
+    if (!AppSession.syncEnabled) {
+      // Offline session: SQLite is the only source.
+      await _loadAllDataFromLocalDB();
+      return;
+    }
     _isLoadingFromFirestore = true;
     // Don't show loading spinner if we already have local data
     if (_sales.isEmpty && _repairs.isEmpty && _expenses.isEmpty) {
@@ -2847,7 +2853,7 @@ class CashClosingViewState extends State<CashClosingView>
             'isSynced': true,
             'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
           };
-          await FirebaseFirestore.instance
+          if (AppSession.syncEnabled) await FirebaseFirestore.instance
               .collection('cash_closings')
               .doc(closingFid)
               .set(firestoreDoc, SetOptions(merge: true));
@@ -4038,7 +4044,7 @@ class CashClosingViewState extends State<CashClosingView>
     }
     try {
       final shopId = await UserService.getCurrentShopId();
-      if (shopId != null) {
+      if (shopId != null && AppSession.syncEnabled) {
         // Try Firestore first
         final snap = await FirebaseFirestore.instance
             .collection('cash_closings')
@@ -4568,7 +4574,7 @@ class CashClosingViewState extends State<CashClosingView>
     }
 
     try {
-      await FirebaseFirestore.instance
+      if (AppSession.syncEnabled) await FirebaseFirestore.instance
           .collection('cash_closings')
           .doc(closingFid)
           .set({
@@ -5038,7 +5044,7 @@ class CashClosingViewState extends State<CashClosingView>
             'date': dateKey, // FIX: Firestore rules require 'date' field
             'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
           };
-          await FirebaseFirestore.instance
+          if (AppSession.syncEnabled) await FirebaseFirestore.instance
               .collection('cash_closings')
               .doc(closingFid)
               .set(firestoreData, SetOptions(merge: true));
