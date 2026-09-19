@@ -948,7 +948,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
                           const Icon(Icons.check, size: 14),
                           const SizedBox(width: 4),
                           Text(
-                            'OK',
+                            'Nhập kho',
                             style: TextStyle(
                               fontSize: AppTextStyles.body1.fontSize,
                             ),

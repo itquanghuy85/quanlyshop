@@ -4,6 +4,42 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-19l] - 5 báo cáo sau offline-first: NCC offline không có id · nút "Nhập kho" · ô số lượng không đổi khi bấm + · (4) nợ trên biên nhận OK · (5) share sheet = máy bị kẹt cờ FRP
+
+Người dùng báo 5 lỗi "lúc trước ổn định"; kết quả nghiệm thu 2 máy thật (CPH2239 offline, CPH2203 online):
+
+1. **Nhập kho offline chọn NCC vẫn báo thiếu NCC / không hiện nút** — LỖI THẬT do offline-first:
+   NCC tạo ở phiên offline đi qua `FirestoreService.addSupplier` (đã gate → trả `null`) nên không có
+   `firestoreId`, trong khi màn nhập kho nhận diện NCC bằng `firestoreId` → coi như "chưa chọn NCC".
+   Sửa `SupplierService.addSupplier/ensureDefaultSuppliers`: cấp client id `supplier_<ms>` ngay khi
+   insert (cùng dạng cloud vẫn cấp), offline `isSynced=0` để claim đẩy sau; `getSuppliers` tự bù id cho
+   NCC cũ chưa có. Ngoài ra trên máy test toggle **"Hiển thị NCC"** (Cài đặt kho) đang TẮT → ô NCC ẩn,
+   đó không phải lỗi. Test: NCCOFF1 → `supplier_1789824123653`, nhập kho CÔNG NỢ tạo SP + nợ SHOP_OWES.
+2. **Nút "OK" ở danh sách nhập kho chờ → "Nhập kho"** (`pending_stock_list_view`).
+3. **Bấm + ở đơn bán phụ kiện: tổng tính 2 nhưng ô số lượng vẫn 1** — lỗi CŨ (không do offline):
+   ô là `TextFormField(initialValue:)`, giá trị chỉ áp 1 lần theo widget identity. Nay
+   `_qtyControllers` (controller theo product id, đồng bộ khi +/-; dispose khi bỏ SP/dispose màn).
+   Test máy thật: + → ô hiện 2, thành tiền 100.000.
+4. **Đơn CÔNG NỢ không thấy nợ ở xem trước hoá đơn** — KHÔNG tái hiện được: cả offline (CPH2239) lẫn
+   online (CPH2203, đơn `sale_1789822931330`) biên nhận đều hiện "Nợ cũ 14.000.000 / Lần này 90.000 /
+   Tổng nợ 14.090.000". Khối này chỉ hiện khi khách có SĐT (nợ tra theo `phone`) — khách vãng lai không
+   SĐT thì không có nợ để hiện (hành vi cũ). Nếu còn gặp: cần biết máy/đơn cụ thể.
+5. **Bấm chia sẻ không ra Zalo / lưu ảnh** — KHÔNG phải lỗi app: logcat CPH2203 khi bấm share:
+   `ChooserActivity: Sharing disabled due to active FRP lock.` + `ANR in android:ui` → Android tự đóng
+   share sheet của **mọi** app. Máy có `settings secure secure_frp_mode = 1` kẹt lại (cờ Factory Reset
+   Protection lẽ ra tắt sau khi setup xong). CPH2239 không có cờ này → share sheet ra bình thường
+   (Zalo/Gmail/Lưu). Cách gỡ: `adb shell settings put secure secure_frp_mode 0` (hoặc khởi động lại máy /
+   kiểm tra tài khoản Google trong Cài đặt). App không đổi gì ở đường share.
+- Kèm theo: phiên offline lưu đơn bán xong hiện trạng thái "Thành công" thay vì "Chờ đồng bộ"
+  (`PaymentResultSheet` — không có mạng nào để chờ); `AppSession.startOffline/setOfflineShopName` ghi
+  prefs `shop_name` (và xoá `shop_address/phone` cũ) để biên nhận offline không in tên shop của tài khoản
+  trước.
+- Files: `lib/services/supplier_service.dart`, `lib/views/create_sale_view.dart`,
+  `lib/views/pending_stock_list_view.dart`, `lib/services/app_session.dart`.
+- Test: `flutter analyze` 0 error; `flutter test` 701 pass (2 kiotviet fail có sẵn).
+
+---
+
 ## [2026-09-19k] - Sửa tên mọi nhân viên · toggle Cài đặt kho không đổi · ẩn Kiểm tra đồng bộ offline · CẮT READ Firestore (suppliers 2.6K, nút đồng bộ header)
 
 - **Sửa tên nhân viên không lưu được** (`staff_list_view._saveStaffInfo`): với user chưa có ảnh đại

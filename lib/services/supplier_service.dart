@@ -8,6 +8,7 @@ import '../services/firestore_service.dart';
 import '../services/user_service.dart';
 import '../services/encryption_service.dart';
 import '../services/event_bus.dart';
+import 'app_session.dart';
 
 class SupplierService {
   final db = DBHelper();
@@ -70,9 +71,13 @@ class SupplierService {
           'createdAt': now,
           'updatedAt': now,
           'isSynced': 0,
+          // Client id up front (same shape FirestoreService.addSupplier
+          // mints): stock-in identifies a supplier by firestoreId, so an
+          // offline-created supplier without one reads as "chưa chọn NCC".
+          'firestoreId': 'supplier_$now',
         };
         final id = await db.insertSupplier(supplierMap);
-        if (id > 0) {
+        if (id > 0 && AppSession.syncEnabled) {
           // Sync to Firestore
           try {
             final firestoreId = await FirestoreService.addSupplier({
@@ -158,9 +163,23 @@ class SupplierService {
         }
       }
 
+      // Offline-created rows before 2026-09-19 have no firestoreId → give
+      // them a client id so stock-in can reference them.
+      String? backfilledFid;
+      if (!hasFirestoreId && s['id'] != null && supplierShopId == shopId) {
+        final fid = 'supplier_${DateTime.now().millisecondsSinceEpoch}_${s['id']}';
+        await db.updateSupplier(s['id'] as int, {'firestoreId': fid});
+        backfilledFid = fid;
+      }
       // Include supplier if shopId matches OR if we just normalized it
       if (supplierShopId == shopId) {
-        suppliers.add(Supplier.fromMap({...s, 'shopId': supplierShopId}));
+        suppliers.add(
+          Supplier.fromMap({
+            ...s,
+            'shopId': supplierShopId,
+            if (backfilledFid != null) 'firestoreId': backfilledFid,
+          }),
+        );
       }
     }
     debugPrint(
@@ -260,9 +279,21 @@ class SupplierService {
     supplierMap['active'] = supplier.active ? 1 : 0;
     // Remove null id to let DB auto-generate
     supplierMap.remove('id');
-
+    // Client id up front — see ensureDefaultSuppliers. Online the cloud doc
+    // reuses this id (addSupplier honours `firestoreId`), offline it is the
+    // id the claim step pushes later.
+    final existingFid = (supplierMap['firestoreId'] ?? '').toString().trim();
+    final localFid = existingFid.isNotEmpty
+        ? existingFid
+        : 'supplier_${DateTime.now().millisecondsSinceEpoch}';
+    supplierMap['firestoreId'] = localFid;
+    supplierMap['isSynced'] = 0;
     final id = await db.insertSupplier(supplierMap);
     debugPrint('SupplierService.addSupplier: local insert id=$id');
+    if (id > 0 && !AppSession.syncEnabled) {
+      EventBus().emit('suppliers_changed');
+      return supplier.copyWith(id: id, firestoreId: localFid, shopId: shopId ?? '');
+    }
 
     if (id > 0) {
       // Try Firestore but don't fail if it doesn't work
@@ -272,7 +303,7 @@ class SupplierService {
           'id': id,
         });
         if (firestoreId != null) {
-          await db.updateSupplier(id, {'firestoreId': firestoreId});
+          await db.updateSupplier(id, {'firestoreId': firestoreId, 'isSynced': 1});
           EventBus().emit('suppliers_changed');
           debugPrint('SupplierService.addSupplier: firestoreId=$firestoreId');
           return supplier.copyWith(

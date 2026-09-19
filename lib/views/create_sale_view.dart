@@ -149,6 +149,26 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   // Focus management cho IMEI fields
   final Map<String, FocusNode> _imeiFocusNodes = {};
   final Map<String, TextEditingController> _imeiControllers = {};
+  /// Quantity boxes per selected product. A plain `initialValue` is applied
+  /// once per widget identity, so +/- changed item['quantity'] and the total
+  /// while the box kept showing the old number (báo 2026-09-19).
+  final Map<String, TextEditingController> _qtyControllers = {};
+
+  TextEditingController _qtyCtrlFor(Map<String, dynamic> item) {
+    final key = (item['product'] as Product).id.toString();
+    final qty = (item['quantity'] as int).toString();
+    final ctrl = _qtyControllers.putIfAbsent(
+      key,
+      () => TextEditingController(text: qty),
+    );
+    if (ctrl.text != qty) {
+      ctrl.value = TextEditingValue(
+        text: qty,
+        selection: TextSelection.collapsed(offset: qty.length),
+      );
+    }
+    return ctrl;
+  }
 
   @override
   void initState() {
@@ -517,6 +537,10 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     searchProdCtrl.dispose();
     downPaymentCtrl.dispose();
     loanAmountCtrl.dispose();
+    for (final c in _qtyControllers.values) {
+      c.dispose();
+    }
+    _qtyControllers.clear();
     bankCtrl.dispose();
     discountCtrl.dispose();
     bankCtrl2.dispose();
@@ -1949,7 +1973,10 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       if (mounted) {
         await PaymentResultSheet.show(
           context: context,
-          state: isLocalOnly ? PaymentResultState.queued : PaymentResultState.success,
+          // Offline session: nothing is waiting for a network — plain success.
+          state: isLocalOnly && !AppSession.isOffline
+              ? PaymentResultState.queued
+              : PaymentResultState.success,
           amount: finalPrice,
           paymentMethod: _paymentMethod,
           personName: sale.customerName,
@@ -3334,6 +3361,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                           _imeiFocusNodes[productId.toString()]?.dispose();
                           _imeiControllers.remove(productId.toString());
                           _imeiFocusNodes.remove(productId.toString());
+                          _qtyControllers.remove(productId.toString())?.dispose();
                           _calculateTotal();
                         });
                       },
@@ -3408,7 +3436,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                     SizedBox(
                       width: 50,
                       child: TextFormField(
-                        initialValue: quantity.toString(),
+                        controller: _qtyCtrlFor(item),
                         keyboardType: TextInputType.number,
                         textAlign: TextAlign.center,
                         readOnly: isPhoneUnit,
@@ -3416,10 +3444,10 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                             ? null
                             : (value) {
                                 final newQuantity = int.tryParse(value) ?? 1;
-                                setState(() {
-                                  item['quantity'] = newQuantity;
-                                  _calculateTotal();
-                                });
+                                // Only the total needs a rebuild; the field
+                                // already holds what the user typed.
+                                item['quantity'] = newQuantity;
+                                setState(_calculateTotal);
                               },
                         decoration: const InputDecoration(
                           isDense: true,

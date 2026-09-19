@@ -175,6 +175,12 @@ class AppSession {
       // logic in main.dart.
       await prefs.setString(prefLastSyncedShopId, id);
       await prefs.setString(prefLastSyncedUserId, localOwnerUid);
+      // Receipts / print header read these keys (written by SyncService
+      // from the cloud shop doc). A device that previously held another
+      // shop would otherwise print that shop's name on offline invoices.
+      await prefs.setString('shop_name', name);
+      await prefs.remove('shop_address');
+      await prefs.remove('shop_phone');
     } catch (e) {
       debugPrint('AppSession.startOffline: persist failed: $e');
     }
@@ -204,6 +210,7 @@ class AppSession {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_prefShopName, trimmed);
+      await prefs.setString('shop_name', trimmed);
     } catch (_) {}
     revision.value++;
   }
