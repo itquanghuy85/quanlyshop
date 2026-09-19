@@ -661,6 +661,11 @@ class AppKnowledgeBase {
       ],
       notes: [
         '"Mặt hàng" ≠ "Sản phẩm tồn" — xem thuật ngữ.',
+        'Linh kiện: bấm vào linh kiện → "Sửa" cho phép sửa tên, dòng máy, '
+            'GIÁ VỐN và giá bán (chỉ người có quyền xem giá vốn mới thấy ô giá vốn). '
+            'Muốn tăng số lượng thì dùng "Nhập thêm", không sửa ở đây.',
+        'Nhân viên được nhập kho luôn thấy đủ danh sách nhà cung cấp khi nhập, '
+            'kể cả khi bị tắt quyền xem màn Nhà cung cấp/công nợ NCC.',
       ],
       terms: ['mat-hang-vs-ton', 'ton-kho-gia-von', 'bien-the'],
       sampleQuestions: [
@@ -1723,6 +1728,8 @@ class AppKnowledgeBase {
       notes: [
         'Số liệu tài chính (doanh thu, lợi nhuận, công nợ) chỉ hiện cho chủ '
             'shop và quản lý. Nhân viên/kỹ thuật không nhận thông báo tài chính.',
+        'Chủ shop sửa được tên / SĐT / địa chỉ của MỌI thành viên trong shop: '
+            'Nhân viên → Danh sách → bấm nhân viên → biểu tượng bút chì → sửa → bấm dấu ✓ để lưu.',
       ],
       terms: ['vai-tro'],
       sampleQuestions: [

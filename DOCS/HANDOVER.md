@@ -10,6 +10,9 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Web:** `https://quanlyshop.web.app` đã build+deploy lại **15/09** (`flutter build web --release` + `firebase deploy --only hosting`) — bao gồm mọi thay đổi từ `[2026-09-14f..h]` (Tổng tài sản, danh sách "Chờ NH tất toán", fix crash sửa đơn, fix popup Nhận tiền NH tràn màn hình, fix hồ sơ khách vãng lai). Trước đó web đứng ở bản 12/09, thiếu hết các thay đổi này — đây là nguyên nhân user thấy "web khác bản mobile" test hôm qua.
 **Last Updated:** 2026-09-18  
 
+**✅ 2026-09-19 (`[2026-09-19k]`)**: sửa tên mọi nhân viên (bug photoUrl rỗng), toggle Cài đặt kho
+cập nhật ngay, ẩn Kiểm tra đồng bộ offline, **cắt read**: suppliers dedupe (2.6K/2h) + icon mây header
+không còn tải trọn. Chưa build release. Theo dõi tiếp: `users` poll không con trỏ (~490/2h shop thật).
 **✅ 2026-09-19 (`[2026-09-19j]`)**: sửa giá vốn linh kiện trong "Sửa linh kiện"; nhân viên có quyền
 nhập kho luôn được tải danh sách NCC. Đã merge master, chưa build release.
 

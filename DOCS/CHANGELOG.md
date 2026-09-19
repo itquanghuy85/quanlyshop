@@ -4,6 +4,35 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-19k] - Sửa tên mọi nhân viên · toggle Cài đặt kho không đổi · ẩn Kiểm tra đồng bộ offline · CẮT READ Firestore (suppliers 2.6K, nút đồng bộ header)
+
+- **Sửa tên nhân viên không lưu được** (`staff_list_view._saveStaffInfo`): với user chưa có ảnh đại
+  diện, `_photoPath` = `""` (photoUrl rỗng) → không `startsWith('http')` → cố upload ảnh rỗng → fail →
+  `return` im lặng: nút ✓ trông như chết, không sửa được tên/SĐT/địa chỉ của ai. Nay chuỗi rỗng =
+  không có ảnh. Tiêu đề sheet cập nhật theo tên mới sau khi lưu (`_savedName`). Test máy thật:
+  chủ shop m@m.com đổi tên chủ shop khác q@m.com → lưu OK, list cập nhật.
+- **Toggle "Cho phép nhập giá vốn sau" / "Hiển thị NCC" ở Cài đặt không đổi trạng thái** dù snackbar
+  báo đã bật/tắt: tab Cài đặt là widget cache trong `IndexedStack` (`_tabWidgets`), `setState` của
+  HomeView không rebuild nó. Nay `_buildTabHost` dựng `_buildSettingsTab()` inline như home/finance.
+  Test máy thật: gạt tắt → công tắc xám + subtitle đổi, gạt bật → xanh.
+- **Kiểm tra đồng bộ** (thẻ SyncHealth cuối tab Cài đặt) ẩn ở phiên offline.
+- **READ Firestore** (ảnh Firestore Audit shop thật 19/09, 128 phút: 4.9K read, `suppliers` 2.6K đứng đầu,
+  `SyncService` 5.1K):
+  1. `syncAllToCloud` khối suppliers: cứ có NCC local là đọc **TRỌN** collection `suppliers` cloud để
+     chống trùng — mỗi lần sync (mở app, resume, lưu đơn, kéo làm mới) tốn N read dù không có gì để đẩy;
+     shop 99 NCC × ~26 lần = 2.6K. Nay chỉ query khi thật sự có NCC chưa có `firestoreId`.
+  2. **Icon mây trên header** (`SimpleSyncIndicator._forceSync`) gọi `downloadAllFromCloud(force:true)`
+     = tải lại **mọi document của mọi bảng** mỗi lần bấm. Nay `refreshCloudCollections` (poll theo
+     con trỏ, chỉ doc đổi) — đo máy thật: 1 lần bấm = 2 collection có thay đổi thay vì 35 bảng full.
+     "Tải trọn từ Cloud" vẫn còn trong Cài đặt → Đồng bộ nâng cao cho trường hợp dựng lại máy.
+  - Còn lại chưa đụng: `users` ~490/2h (poll không con trỏ mỗi 2 phút × số user — doc users không có
+    `updatedAt` chuẩn), `financial_activity_log` 800 & `payment_intents` 329 = quét trọn 24h sau khi
+    đăng nhập lại (hợp lệ, 1 lần/ngày).
+- Hướng dẫn trong app (`app_knowledge_base`): thêm ghi chú sửa giá vốn linh kiện, NCC khi nhân viên
+  nhập kho, cách sửa tên nhân viên.
+
+---
+
 ## [2026-09-19j] - Sửa giá vốn linh kiện + nhân viên nhập kho thấy đủ NCC
 
 - **Sửa linh kiện** (`parts_inventory_view` — cả `_showEditPartDialog` lẫn `_showAddPartDialog` chế độ

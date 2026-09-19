@@ -4539,9 +4539,21 @@ class SyncService {
 
       // Đồng bộ Suppliers
       try {
-        final suppliers = await dbHelper.getSuppliers();
+        final allSuppliers = await dbHelper.getSuppliers();
+        // Chỉ NCC chưa có firestoreId mới cần đẩy. Trước đây cứ có NCC local
+        // là đọc TRỌN collection `suppliers` trên cloud để chống trùng — mỗi
+        // lần syncAllToCloud (mở app, resume, lưu đơn…) tốn N read dù không
+        // có gì để đẩy. Đo shop thật 19/09: suppliers 2.6K read / 2 giờ,
+        // đứng đầu bảng — toàn bộ từ khối này.
+        final suppliers = allSuppliers
+            .where(
+              (m) =>
+                  m['firestoreId'] == null ||
+                  m['firestoreId'].toString().isEmpty,
+            )
+            .toList();
         debugPrint(
-          "syncAllToCloud: có ${suppliers.length} suppliers cần kiểm tra sync",
+          "syncAllToCloud: có ${suppliers.length}/${allSuppliers.length} suppliers chưa có firestoreId",
         );
         if (suppliers.isNotEmpty) {
           // Query existing Firestore suppliers for this shop to avoid duplicates

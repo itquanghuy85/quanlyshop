@@ -1143,6 +1143,8 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
   String? _photoPath;
   String _selectedRole = 'employee'; // Mặc định là employee
   bool _isEditing = false;
+  /// Header name — starts as widget.name, follows what the owner saved.
+  String? _savedName;
   bool _isSavingStaff = false;
 
   String? _staffShopId;
@@ -1764,7 +1766,14 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
     try {
       // Upload photo if it's a local file
       String? photoUrl = _photoPath;
-      if (_photoPath != null && !_photoPath!.startsWith('http')) {
+      // `_photoPath` is "" for users without an avatar (photoUrl: '' in
+      // Firestore). Treating that as a local file made the save try to
+      // upload nothing, fail, and return silently — the ✓ button looked dead
+      // and names could not be edited (báo 2026-09-19).
+      final localPhoto = (_photoPath ?? '').trim();
+      if (localPhoto.isEmpty) {
+        photoUrl = null;
+      } else if (!localPhoto.startsWith('http')) {
         debugPrint('Uploading photo: $_photoPath');
         photoUrl = await StorageService.uploadAndGetUrl(
           _photoPath!,
@@ -1910,7 +1919,10 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
       }
 
       if (!mounted) return;
-      setState(() => _isEditing = keepEditing ? _isEditing : false);
+      setState(() {
+        _isEditing = keepEditing ? _isEditing : false;
+        _savedName = nameCtrl.text.trim().toUpperCase();
+      });
       EventBus().emit('user_profile_changed');
       messenger.showSnackBar(
         const SnackBar(content: Text("ĐÃ CẬP NHẬT HỒ SƠ NHÂN VIÊN!")),
@@ -2079,7 +2091,7 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          widget.name,
+                          _savedName ?? widget.name,
                           style: TextStyle(
                             fontSize: AppTextStyles.headline2.fontSize,
                             fontWeight: FontWeight.bold,

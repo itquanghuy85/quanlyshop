@@ -106,8 +106,15 @@ class _SimpleSyncIndicatorState extends State<SimpleSyncIndicator>
       await _orchestrator.syncAll();
       // Upload local changes
       await SyncService.syncAllToCloud();
-      // Download from cloud (user-triggered)
-      await SyncService.downloadAllFromCloud(force: true);
+      // Pull changes from cloud — cursor-based poll of every collection,
+      // NOT `downloadAllFromCloud` (that re-reads every document of every
+      // table: measured 19/09 on the real shop the header icon alone was
+      // thousands of reads per tap). "Tải trọn từ Cloud" still exists in
+      // Cài đặt → Đồng bộ nâng cao for the rare rebuild case.
+      await SyncService.refreshCloudCollections(
+        reason: 'header_sync_button',
+        force: true,
+      );
 
       if (mounted) {
         // Feedback nhẹ - không dùng SnackBar để tránh spam

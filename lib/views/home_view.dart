@@ -520,6 +520,12 @@ class _HomeViewState extends State<HomeView>
       child = _buildHomeTab();
     } else if (!isLocked && tabId == _financeTabId) {
       child = _buildFinanceTab();
+    } else if (!isLocked && tabId == 'settings') {
+      // Settings tab holds toggles (nhập giá vốn sau / NCC…) whose values live
+      // in this State. A cached widget instance is never rebuilt by setState,
+      // so the switch stayed put while the SnackBar said "đã bật" (báo
+      // 2026-09-19). Build inline like home/finance.
+      child = _buildSettingsTab();
     } else {
       child = _tabWidgets[index];
     }
@@ -6842,8 +6848,12 @@ class _HomeViewState extends State<HomeView>
                   ...sections,
 
                 if (!searching) ...[
-                  _buildSyncHealthStatusCard(),
-                  const SizedBox(height: 16),
+                  // Sync health compares SQLite with the cloud — meaningless
+                  // (and would show "chưa đồng bộ") in the offline session.
+                  if (!AppSession.isOffline) ...[
+                    _buildSyncHealthStatusCard(),
+                    const SizedBox(height: 16),
+                  ],
                   _buildAppVersionFooter(),
                 ],
 
