@@ -4,6 +4,15 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-20a] - FULL AUDIT + TEST PLAN toàn app (không sửa code) — 10 bug, 3 HIGH
+
+- **Tài liệu:** `docs/FULL_TEST_PLAN_2026-09-19.md` (Feature Map 17 module / 127 màn hình / 45 bảng / 57 collection / 21 CF, ~185 test case), `docs/FULL_TEST_REPORT_2026-09-19.md` (58 case có bằng chứng trên 2 máy thật + emulator rules + FFI).
+- **Test mới:** `test/full_audit_db_schema_test.dart` (FFI: schema v111, UNIQUE, FK, trùng, NULL shopId).
+- **HIGH:** BUG-01 đã đăng nhập + mất mạng ⇒ không bán được (`unavailable` không có fallback local); BUG-02 tạo đơn sửa treo vô hạn (`FirestoreService` 67 write / 0 timeout); BUG-04 nhập kho treo "Đang lưu…".
+- **MEDIUM:** BUG-05 máy 2 không nhận products/debts/intents khi app mở liên tục (không có poll timer); BUG-06 FinanceV2Cache không invalidate khi thu nợ; BUG-07 snapshot linh kiện `repair_parts` không có id cloud; BUG-08 snackbar 5s treo >10 phút che nút; BUG-09 hoàn tiền trả hàng không có ledger; BUG-03 SĐT không validate khi lưu đơn sửa.
+- **Code chết:** 13 view + 6 service mồ côi (payroll_view không tới được dù knowledge base ghi menu), `supplier_debts`/`financial_activities` ghi mồ côi trong StockEntryService, thiếu `storage.rules`.
+- Chưa sửa gì — chờ quyết định ưu tiên.
+
 ## [2026-09-19m] - Rà soát phiên OFFLINE: ảnh mất sau 24h · thông tin shop trên biên nhận · gán KTV · 2 write treo · tên "NV"
 
 Rà toàn bộ code theo câu hỏi "phiên offline còn vướng gì?" (quét mọi `FirebaseFirestore.instance`
