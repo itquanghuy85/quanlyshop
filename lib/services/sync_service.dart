@@ -3409,7 +3409,13 @@ class SyncService {
           (k) =>
               k.startsWith(_lastSyncPrefix) ||
               k.startsWith(_realtimeCursorPrefix) ||
-              k.startsWith(_fullSweepAtPrefix),
+              k.startsWith(_fullSweepAtPrefix) ||
+              // Con trỏ "quét trọn nối tiếp" (`sweepAfter_`) cũng phải về 0:
+              // xoá SQLite mà giữ nó thì lượt quét sau đi tiếp từ trang cũ và
+              // các trang đầu KHÔNG BAO GIỜ được tải lại (đo 2026-09-19: đăng
+              // nhập lại cùng shop trên máy vừa xoá dữ liệu → products 4/23,
+              // customers 0/24).
+              k.startsWith(_sweepResumePrefix),
         )
         .toList();
     for (final key in keys) {
@@ -3417,6 +3423,7 @@ class SyncService {
     }
     _lastDownloadTime = null;
     _realtimeCursorCache.clear();
+    _sweepResumeCache.clear();
     _incrementalRealtimeDisabled.clear();
     // Đổi shop / đăng xuất ⇒ dữ liệu shop mới chưa từng được quét trọn.
     _launchFullSweepDone.clear();

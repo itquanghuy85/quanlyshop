@@ -340,13 +340,17 @@ class ClaimService {
       final table = t['name'] as String;
       final cols = await db.rawQuery('PRAGMA table_info($table)');
       if (!cols.any((c) => c['name'] == 'shopId')) continue;
+      final hasSynced = cols.any((c) => c['name'] == 'isSynced');
       try {
         // OR REPLACE: tables such as `customers` carry UNIQUE(shopId, phone).
         // A leftover row of the target shop with the same key would block the
         // whole UPDATE; the local row is the one the user is moving up, so it
-        // wins.
+        // wins. Rows move to a DIFFERENT cloud shop, so whatever was synced
+        // before (e.g. an earlier claim) must be pushed again: isSynced = 0.
         changed += await db.rawUpdate(
-          'UPDATE OR REPLACE $table SET shopId = ? WHERE shopId = ?',
+          hasSynced
+              ? 'UPDATE OR REPLACE $table SET shopId = ?, isSynced = 0 WHERE shopId = ?'
+              : 'UPDATE OR REPLACE $table SET shopId = ? WHERE shopId = ?',
           [to, from],
         );
       } catch (e) {

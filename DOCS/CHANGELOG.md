@@ -4,6 +4,27 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-19i] - Offline-first: nghiệm thu B1/B2 máy thật + 2 fix (re-tag phải reset isSynced; BUG CŨ quét trọn sau khi xoá local)
+
+- **B1 máy thật** (CPH2203 đăng ký `of20@m.com` → shop rỗng `4Skn04jl…`; CPH2239 offline → Kết nối →
+  Đã có tài khoản → precheck "SHOPRONG (chưa có dữ liệu)" → "Đưa dữ liệu trên máy lên"): re-tag 65 dòng,
+  token có shopId sau 1 lần, attach OK. **Phát hiện:** dòng đã `isSynced=1` (từ lần claim trước) không
+  được đẩy lại lên shop mới → `ClaimService.retagShopId` nay `SET shopId=?, isSynced=0` cho bảng có
+  cột isSynced (FFI test `claim_retag_test` bổ sung).
+- **B2 máy thật** (CPH2239 offline → m@m.com có dữ liệu → tick đã sao lưu → "Tải dữ liệu tài khoản về
+  máy"): xoá local + bootstrap online OK — nhưng chỉ tải được products 4/23, customers 0/24.
+  **BUG CŨ, ảnh hưởng cả người dùng hiện tại:** `SyncService.resetSyncTimestamps()` không xoá con trỏ
+  quét trọn nối tiếp `sweepAfter_*` (prefs + `_sweepResumeCache`) → sau khi xoá SQLite và đăng nhập
+  lại CÙNG shop trên cùng máy, lượt quét đi tiếp từ trang cũ, các trang đầu không bao giờ tải lại
+  (cùng họ với sự cố `[2026-09-06d]` 59/89 phiếu). Đã thêm prefix vào reset + clear cache. Kiểm chứng:
+  đăng xuất (xoá) → đăng nhập lại shop M trên CPH2239 → products 28, customers 24, sales 27 = CPH2203.
+- Màn "Đã kết nối" phân biệt thông điệp cho nhánh tải cloud về.
+- Trạng thái máy test cuối phiên: CPH2239 = q@m.com shop M (đầy đủ), CPH2203 = m@m.com shop M
+  (đầy đủ). Tài khoản test tạo thêm trên Firebase: `of19@m.com` (shop `shop_1789783568549_488np7`),
+  `of20@m.com` (shop `4Skn04jlT6clCQ4Nu24YLwoBycx1`, chứa 1 repair + 1 customer re-tag) — có thể xoá.
+
+---
+
 ## [2026-09-19h] - Offline-first Bước 4–6/6: Kết nối tài khoản (claim), tài khoản đã có shop, sao lưu offline
 
 - **`ClaimService`** (nơi DUY NHẤT được gọi Firestore khi `AppSession.claimInProgress`):

@@ -1,7 +1,7 @@
 # Kế hoạch: Dùng app KHÔNG cần đăng nhập (Offline-first, Online là tuỳ chọn)
 
 **Ngày lập:** 2026-09-19
-**Trạng thái:** Bước 1 ✅ `[2026-09-19e]` · Bước 2 ✅ `[2026-09-19f]` · Bước 3 ✅ `[2026-09-19g]` · Bước 4–6 ✅ `[2026-09-19h]` — HOÀN TẤT, chờ nghiệm thu B1/B2 máy thật + merge
+**Trạng thái:** Bước 1 ✅ `[2026-09-19e]` · Bước 2 ✅ `[2026-09-19f]` · Bước 3 ✅ `[2026-09-19g]` · Bước 4–6 ✅ `[2026-09-19h]` · B1/B2 máy thật ✅ `[2026-09-19i]` — HOÀN TẤT
 **Nhánh:** `feature/offline-first` (tách từ `master` @ `4342e315`, release 3.7.0+559)
 **Nguyên tắc số 1:** app đang live trên Play Store — **người dùng đã đăng nhập không được thấy bất kỳ thay đổi hành vi nào** cho tới khi bật cờ tính năng ở bước 3.
 

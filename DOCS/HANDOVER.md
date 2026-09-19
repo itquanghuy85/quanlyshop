@@ -24,11 +24,12 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 - ✅ Bước 4–6 (`[2026-09-19h]`): ClaimService/ClaimAccountView (tạo TK mới ✅ máy thật; TK có shop →
   dialog D4 ✅; shop rỗng re-tag ✅ FFI), Backup offline + WAL checkpoint. Nhánh `feature/offline-first`
   HOÀN TẤT 6/6 bước — **chưa merge master, chưa build release**.
-- Trước khi merge/phát hành: (1) test B1/B2 máy thật, (2) rà `firestore.rules` cho `stock_entries`
-  set-by-client-id khi claim, (3) chạy lại kịch bản 2 máy `SYNC_AUDIT_REPORT_2026-09-18`, (4) iOS build.
-- Lưu ý test device: CPH2239 đang ở phiên offline `shop_1789783568549_488np7` (TIEM_OFLINE_A) đã
-  claim vào `of19@m.com/123123` rồi đăng xuất (giữ local). Shop M trên CPH2239 đã bị wipe (đăng nhập
-  lại q@m.com sẽ tải về). Prefs QR chuyển khoản còn dính giá trị shop cũ (pre-existing, low).
+- ✅ B1/B2 máy thật (`[2026-09-19i]`) + fix re-tag reset isSynced + **fix bug cũ** resetSyncTimestamps
+  không xoá `sweepAfter_*` (xoá local rồi đăng nhập lại cùng shop → thiếu dữ liệu).
+- Còn trước khi phát hành: rà `firestore.rules` cho `stock_entries` set-by-client-id khi claim; chạy lại
+  kịch bản 2 máy `SYNC_AUDIT_REPORT_2026-09-18` sau merge; iOS build; Google/Apple trong màn claim.
+- Máy test cuối phiên: CPH2239 = q@m.com, CPH2203 = m@m.com (cùng shop M, dữ liệu đủ). Prefs QR
+  chuyển khoản còn dính giá trị shop cũ khi sang phiên offline (pre-existing, low).
 - ⚠️ Khi merge về `master` phải kiểm lại `main.dart:_checkAndClearLocalDataIfShopChanged` —
   bước 3 sẽ sửa để KHÔNG xoá SQLite khi offline/claim.
 

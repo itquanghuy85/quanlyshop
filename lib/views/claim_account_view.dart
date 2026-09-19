@@ -35,6 +35,7 @@ class _ClaimAccountViewState extends State<ClaimAccountView> {
   String? _step;
   String? _error;
   bool _done = false;
+  bool _replacedWithCloud = false;
 
   @override
   void dispose() {
@@ -93,6 +94,7 @@ class _ClaimAccountViewState extends State<ClaimAccountView> {
           return;
         case _ExistingChoice.replaceWithCloud:
           await ClaimService.replaceLocalWithCloud(user, onStep: _setStep);
+          _replacedWithCloud = true;
           _finish();
           return;
         case _ExistingChoice.cancel:
@@ -280,8 +282,11 @@ class _ClaimAccountViewState extends State<ClaimAccountView> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Dữ liệu trên máy đã được đưa lên đám mây. Từ giờ ứng dụng tự động '
-          'đồng bộ 2 chiều; bạn có thể đăng nhập cùng tài khoản trên máy khác.',
+          _replacedWithCloud
+              ? 'Dữ liệu của tài khoản đang được tải về máy (có thể mất vài '
+                    'phút tuỳ lượng dữ liệu). Từ giờ ứng dụng tự động đồng bộ 2 chiều.'
+              : 'Dữ liệu trên máy đã được đưa lên đám mây. Từ giờ ứng dụng tự động '
+                    'đồng bộ 2 chiều; bạn có thể đăng nhập cùng tài khoản trên máy khác.',
           textAlign: TextAlign.center,
           style: TextStyle(color: Colors.grey[700]),
         ),

@@ -42,7 +42,7 @@ void main() {
       'phone': '0900000777',
       'shopId': localShop,
       'createdAt': now,
-      'isSynced': 0,
+      'isSynced': 1, // as if synced under the old shop already
     });
     await db.insert('repair_parts', {
       'firestoreId': 'part_retag_$now',
@@ -76,6 +76,13 @@ void main() {
     )).first;
     expect(cust['shopId'], cloudShop);
     expect(cust['name'], 'RETAG');
+    expect(cust['isSynced'], 0, reason: 'must be re-uploaded to the new shop');
+    final partAfter = (await db.query(
+      'repair_parts',
+      where: 'firestoreId = ?',
+      whereArgs: ['part_retag_$now'],
+    )).first;
+    expect(partAfter['isSynced'], 0);
     expect(
       (await db.query(
         'customers',
