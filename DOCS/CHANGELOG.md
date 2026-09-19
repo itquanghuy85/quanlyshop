@@ -36,7 +36,10 @@ Người dùng báo 5 lỗi "lúc trước ổn định"; kết quả nghiệm t
   trước.
 - Files: `lib/services/supplier_service.dart`, `lib/views/create_sale_view.dart`,
   `lib/views/pending_stock_list_view.dart`, `lib/services/app_session.dart`.
-- Test: `flutter analyze` 0 error; `flutter test` 701 pass (2 kiotviet fail có sẵn).
+- Test: `flutter analyze` 0 error; `flutter test` **703 pass / 0 fail** — 2 test kiotviet đỏ từ trước là lỗi
+  của test, không phải app: nút "Kết nối KiotViet" nằm ngoài viewport 800x600 của harness (tap rơi ngoài
+  render tree) → `ensureVisible` trước khi bấm; thông báo lỗi hiện ở cả thẻ lỗi lẫn nhật ký (2 widget) →
+  `findsAtLeastNWidgets(1)`.
 
 ---
 

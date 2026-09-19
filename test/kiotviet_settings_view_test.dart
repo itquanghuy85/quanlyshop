@@ -159,6 +159,12 @@ void main() {
       find.byKey(const ValueKey('kiotvietRetailerField')),
       'https://huymobile.kiotviet.vn',
     );
+    // Nút nằm dưới đáy viewport test 800x600 (y≈734) → phải cuộn vào tầm nhìn
+    // trước khi bấm, nếu không tap rơi ngoài render tree và không gọi connect.
+    await tester.ensureVisible(
+      find.widgetWithText(ElevatedButton, 'Kết nối KiotViet'),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(
       find.widgetWithText(ElevatedButton, 'Kết nối KiotViet'),
     );
@@ -186,15 +192,23 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byKey(const ValueKey('kiotvietRetailerField')), 'huymobile');
+    // Nút nằm dưới đáy viewport test 800x600 (y≈734) → phải cuộn vào tầm nhìn
+    // trước khi bấm, nếu không tap rơi ngoài render tree và không gọi connect.
+    await tester.ensureVisible(
+      find.widgetWithText(ElevatedButton, 'Kết nối KiotViet'),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(
       find.widgetWithText(ElevatedButton, 'Kết nối KiotViet'),
     );
     await tester.pump();
     await tester.pumpAndSettle();
 
+    // Thông báo hiện ở cả thẻ lỗi lẫn dòng nhật ký tiến trình (2 widget) —
+    // yêu cầu là "không blank screen", nên chỉ cần có ít nhất 1.
     expect(
       find.textContaining('Không thể xác thực với KiotViet'),
-      findsOneWidget,
+      findsAtLeastNWidgets(1),
     );
     expect(tester.takeException(), isNull);
   });
