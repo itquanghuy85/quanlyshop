@@ -9,6 +9,8 @@ import 'package:path/path.dart' as p;
 import 'package:photo_view/photo_view.dart';
 
 import 'app_cached_image.dart';
+import '../services/app_session.dart';
+import '../services/local_image_store.dart';
 
 /// Reusable image picker widget for product/repair images.
 /// Supports: camera capture, gallery pick, delete, full-screen view.
@@ -278,11 +280,14 @@ class ImagePickerWidget extends StatelessWidget {
       }
 
       final compressed = await _compress(picked.path);
-      if (compressed != null) {
-        onImagePicked(compressed);
-      } else {
-        onImagePicked(picked.path);
+      var result = compressed ?? picked.path;
+      if (!AppSession.syncEnabled) {
+        // Offline: the compressed file sits in the temp dir that is purged
+        // after 24h while the record keeps pointing at it. Keep a durable
+        // copy until the account is connected and the upload runs.
+        result = await LocalImageStore.persist(XFile(result), prefix: 'pick');
       }
+      onImagePicked(result);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

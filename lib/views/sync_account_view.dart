@@ -121,38 +121,82 @@ class _SyncAccountViewState extends State<SyncAccountView> {
     if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
   }
 
+  /// Name + address + phone: the receipt header. Offline there is no
+  /// "Thông tin cửa hàng" screen (cloud-only), so this is the only place
+  /// to set what gets printed.
   Future<void> _renameOfflineShop() async {
     final ctrl = TextEditingController(
       text: AppSession.offlineShopName ?? AppSession.defaultOfflineShopName,
     );
-    final name = await showDialog<String>(
+    final addrCtrl = TextEditingController(
+      text: AppSession.offlineShopAddress ?? '',
+    );
+    final phoneCtrl = TextEditingController(
+      text: AppSession.offlineShopPhone ?? '',
+    );
+    final saved = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Tên cửa hàng'),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(border: OutlineInputBorder()),
+        title: const Text('Thông tin cửa hàng'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: ctrl,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Tên cửa hàng',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: addrCtrl,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Địa chỉ (in trên biên nhận)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: phoneCtrl,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: 'Số điện thoại / Hotline',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Huỷ'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(ctx, ctrl.text),
+            onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Lưu'),
           ),
         ],
       ),
     );
+    final name = ctrl.text;
+    final address = addrCtrl.text;
+    final phone = phoneCtrl.text;
     // Dispose after the route transition — see feedback_modal_sheet_dependents_crash.
-    Future.delayed(const Duration(milliseconds: 400), ctrl.dispose);
-    if (name != null && name.trim().isNotEmpty) {
+    Future.delayed(const Duration(milliseconds: 400), () {
+      ctrl.dispose();
+      addrCtrl.dispose();
+      phoneCtrl.dispose();
+    });
+    if (saved != true) return;
+    if (name.trim().isNotEmpty) {
       await AppSession.setOfflineShopName(name);
-      if (mounted) setState(() {});
     }
+    await AppSession.setOfflineShopContact(address: address, phone: phone);
+    if (mounted) setState(() {});
   }
 
   Future<void> _editOfflinePin() async {
@@ -292,7 +336,17 @@ class _SyncAccountViewState extends State<SyncAccountView> {
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.storefront_outlined),
               title: Text(shopName),
-              subtitle: const Text('Tên cửa hàng'),
+              subtitle: Text(
+                [
+                  AppSession.offlineShopAddress ?? '',
+                  AppSession.offlineShopPhone ?? '',
+                ].where((s) => s.isNotEmpty).join(' · ').isEmpty
+                    ? 'Tên, địa chỉ, SĐT in trên biên nhận'
+                    : [
+                        AppSession.offlineShopAddress ?? '',
+                        AppSession.offlineShopPhone ?? '',
+                      ].where((s) => s.isNotEmpty).join(' · '),
+              ),
               trailing: const Icon(Icons.edit_outlined, size: 20),
               onTap: _renameOfflineShop,
             ),

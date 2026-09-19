@@ -232,6 +232,12 @@
   = id cloud (không re-tag), chỉ re-tag khi claim vào shop cloud RỖNG; không merge tự động (D4).
 - Xác thực mật khẩu trước thao tác nguy hiểm: dùng `OwnerReauthService.verify/shouldSkipPrompt`
   (online re-auth Firebase, offline PIN cục bộ) — không viết lại `EmailAuthProvider.credential`.
+- Ảnh chọn ở phiên offline PHẢI đi qua `LocalImageStore.persist` (thư mục documents) — file của
+  `ImagePicker`/nén nằm ở cache, bị `cleanupOldTempFiles` xoá sau 24h. `BackgroundUploadService.
+  uploadPendingLocalRepairImages` + `ProductImageService.retryPendingProductImages` đẩy lên sau khi
+  kết nối (gọi trong `syncAllToCloud` và khi mở Home online).
+- Tên người thao tác: dùng `AppSession.actorName` (offline = `CHỦ SHOP`), không lặp lại
+  `currentUser?.email?.split('@').first ?? "NV"`.
 - Kế hoạch & quyết định: `DOCS/PLAN_OFFLINE_FIRST_2026-09-19.md`.
 
 ## IV. WORKFLOW PHÁT TRIỂN

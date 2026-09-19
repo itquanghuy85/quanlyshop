@@ -42,12 +42,16 @@ class AppSession {
   static const String _prefMode = 'app_session_mode';
   static const String _prefShopId = 'app_session_shop_id';
   static const String _prefShopName = 'app_session_shop_name';
+  static const String _prefShopAddress = 'app_session_shop_address';
+  static const String _prefShopPhone = 'app_session_shop_phone';
   static const String _prefCreatedAt = 'app_session_created_at';
 
   static const String defaultOfflineShopName = 'Cửa hàng của tôi';
 
   static String? _offlineShopId;
   static String? _offlineShopName;
+  static String? _offlineShopAddress;
+  static String? _offlineShopPhone;
   static bool _restored = false;
 
   /// Bumped whenever the session shape changes without a Firebase auth event
@@ -79,6 +83,8 @@ class AppSession {
   /// Locally generated shop id (null when the device never started offline).
   static String? get offlineShopId => _offlineShopId;
   static String? get offlineShopName => _offlineShopName;
+  static String? get offlineShopAddress => _offlineShopAddress;
+  static String? get offlineShopPhone => _offlineShopPhone;
 
   static AppSessionMode get mode {
     if (_hasFirebaseUser && !claimInProgress) return AppSessionMode.online;
@@ -117,6 +123,18 @@ class AppSession {
 
   static String? get userEmail => isOffline ? null : _firebaseUser?.email;
 
+  /// Short display name of whoever is acting right now — the email prefix
+  /// online, the owner label offline. Replaces the scattered
+  /// `currentUser?.email?.split('@').first.toUpperCase() ?? "NV"` so offline
+  /// records don't all read "NV".
+  static const String offlineActorName = 'CHỦ SHOP';
+  static String get actorName {
+    if (isOffline) return offlineActorName;
+    final email = _firebaseUser?.email;
+    if (email == null || email.isEmpty) return 'NV';
+    return email.split('@').first.toUpperCase();
+  }
+
   static User? get _firebaseUser {
     if (debugIgnoreFirebaseUser) return null;
     try {
@@ -140,6 +158,8 @@ class AppSession {
         if (id != null && id.isNotEmpty) {
           _offlineShopId = id;
           _offlineShopName = prefs.getString(_prefShopName);
+          _offlineShopAddress = prefs.getString(_prefShopAddress);
+          _offlineShopPhone = prefs.getString(_prefShopPhone);
         }
       }
     } catch (e) {
@@ -211,6 +231,25 @@ class AppSession {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_prefShopName, trimmed);
       await prefs.setString('shop_name', trimmed);
+    } catch (_) {}
+    revision.value++;
+  }
+
+  /// Address / phone printed on offline receipts (`shop_address` /
+  /// `shop_phone` are the keys the receipt views read; online they are
+  /// written by SyncService from the cloud shop doc).
+  static Future<void> setOfflineShopContact({
+    required String address,
+    required String phone,
+  }) async {
+    _offlineShopAddress = address.trim();
+    _offlineShopPhone = phone.trim();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_prefShopAddress, _offlineShopAddress!);
+      await prefs.setString(_prefShopPhone, _offlineShopPhone!);
+      await prefs.setString('shop_address', _offlineShopAddress!);
+      await prefs.setString('shop_phone', _offlineShopPhone!);
     } catch (_) {}
     revision.value++;
   }

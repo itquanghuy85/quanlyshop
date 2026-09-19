@@ -560,8 +560,7 @@ class _ExpenseViewState extends State<ExpenseView> {
 
           await db.logAction(
             userId: AppSession.userId ?? "0",
-            userName:
-                AppSession.userEmail?.split('@').first.toUpperCase() ?? "NV",
+            userName: AppSession.actorName,
             action: isIncome ? "XÓA THU PHÁT SINH" : "XÓA CHI PHÍ",
             type: "FINANCE",
             desc:
@@ -1110,6 +1109,8 @@ class _ExpenseViewState extends State<ExpenseView> {
             ),
             tooltip: l10n.stockIn,
           ),
+          // Offline session: no cloud to sync with — hide the status + button.
+          if (!AppSession.isOffline)
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [

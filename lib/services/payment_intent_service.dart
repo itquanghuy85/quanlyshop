@@ -27,6 +27,7 @@ import 'notification_service.dart';
 import '../constants/financial_constants.dart';
 import 'user_service.dart';
 import 'sync_service.dart';
+import 'app_session.dart';
 import 'sync_orchestrator.dart';
 import 'event_bus.dart';
 
@@ -1116,7 +1117,9 @@ class PaymentIntentService {
       final newStatus = newPaid >= total ? 'PAID' : 'DEBT';
       final now = DateTime.now().millisecondsSinceEpoch;
 
-      try {
+      // Offline session: a Firestore write without auth never completes, so
+      // the local upsert below would be skipped forever.
+      if (AppSession.syncEnabled) try {
         await FirebaseFirestore.instance
             .collection('import_orders')
             .doc(firestoreId)
@@ -1177,7 +1180,7 @@ class PaymentIntentService {
         if (paidDebt == null) continue;
 
         final now = DateTime.now().millisecondsSinceEpoch;
-        try {
+        if (AppSession.syncEnabled) try {
           await FirebaseFirestore.instance
               .collection('import_orders')
               .doc(firestoreId)

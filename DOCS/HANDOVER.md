@@ -10,6 +10,11 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Web:** `https://quanlyshop.web.app` đã build+deploy lại **15/09** (`flutter build web --release` + `firebase deploy --only hosting`) — bao gồm mọi thay đổi từ `[2026-09-14f..h]` (Tổng tài sản, danh sách "Chờ NH tất toán", fix crash sửa đơn, fix popup Nhận tiền NH tràn màn hình, fix hồ sơ khách vãng lai). Trước đó web đứng ở bản 12/09, thiếu hết các thay đổi này — đây là nguyên nhân user thấy "web khác bản mobile" test hôm qua.
 **Last Updated:** 2026-09-18  
 
+**✅ 2026-09-19 (`[2026-09-19m]`)**: rà soát phiên offline — vá MẤT ẢNH offline sau 24h
+(`LocalImageStore` + đẩy lên sau claim), thông tin shop (địa chỉ/SĐT) cho biên nhận offline, gán KTV
+offline, 2 write Firestore treo (trả nợ NCC không cập nhật phiếu nhập), tên "NV" → "CHỦ SHOP", ẩn vài
+nút cloud. Test CPH2239 offline. **Còn nợ**: nghiệm thu đẩy ảnh lên cloud sau khi Kết nối tài khoản
+(cần tài khoản mới); build release.
 **✅ 2026-09-19 (`[2026-09-19l]`)**: 5 báo cáo sau offline-first — sửa 3 (NCC offline không có
 firestoreId → nhập kho báo thiếu NCC; nút "Nhập kho"; ô số lượng không đổi khi bấm + — lỗi cũ), 2 không
 phải lỗi app: (4) nợ trên biên nhận vẫn hiện cả offline/online; (5) share sheet không ra do máy CPH2203

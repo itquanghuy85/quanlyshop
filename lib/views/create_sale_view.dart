@@ -1192,8 +1192,9 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       final currentUser = FirebaseAuth.instance.currentUser;
       String seller = widget.editSale?.sellerName.isNotEmpty == true
           ? widget.editSale!.sellerName
-          : currentUser?.email?.split('@').first.toUpperCase() ?? "NV";
-      final sellerUid = widget.editSale?.sellerUid ?? currentUser?.uid;
+          : AppSession.actorName;
+      final sellerUid =
+          widget.editSale?.sellerUid ?? currentUser?.uid ?? AppSession.userId;
       int totalPrice = _parseCurrency(priceCtrl.text);
 
       // Parse discount và tính finalPrice (thành tiền sau giảm giá)
@@ -1612,7 +1613,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
 
       // Notify quản lý nếu bán thiếu giá vốn
       if (sale.totalCost == 0 && _selectedItems.isNotEmpty) {
-        final sellerName = FirebaseAuth.instance.currentUser?.email?.split('@').first.toUpperCase() ?? 'NV';
+        final sellerName = AppSession.actorName;
         // ignore: unawaited_futures
         NotificationService.sendCloudNotification(
           title: '⚠️ BÁN HÀNG THIẾU GIÁ VỐN',
@@ -1649,12 +1650,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       try {
         final saleRef = sale.firestoreId ?? 'sale_${sale.soldAt}';
         final now = DateTime.now().millisecondsSinceEpoch;
-        final userName =
-            FirebaseAuth.instance.currentUser?.email
-                ?.split('@')
-                .first
-                .toUpperCase() ??
-            'NV';
+        final userName = AppSession.actorName;
         final downPaymentAmount = _parseCurrency(downPaymentCtrl.text);
         final payerName = sale.walkInName ?? sale.customerName;
         final payerPhone = sale.walkInPhone ?? sale.phone;

@@ -50,6 +50,7 @@ import '../services/financial_activity_service.dart';
 import '../services/history/history_service.dart';
 import '../services/storage_service.dart';
 import '../services/background_upload_service.dart';
+import '../services/local_image_store.dart';
 import '../services/encryption_service.dart';
 import 'package:image_picker/image_picker.dart';
 import '../data/db_helper.dart';
@@ -3967,6 +3968,37 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   /// Cho phép KTV ghi chú cho đơn sửa (vd: kt thay ic hay sàng main ...)
   /// Đổi / gán lại kỹ thuật viên (repairedBy) — dùng được cả khi đơn đã giao,
   /// để sửa nhầm người hoặc bổ sung KTV. Ảnh hưởng hoa hồng lương của KTV.
+  /// Offline: technicians have no account — take a free-text name.
+  Future<String?> _promptTechnicianName(BuildContext ctx) async {
+    final ctrl = TextEditingController();
+    final name = await showDialog<String>(
+      context: ctx,
+      builder: (d) => AlertDialog(
+        title: const Text('Tên kỹ thuật viên'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(border: OutlineInputBorder()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(d),
+            child: const Text('Huỷ'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(d, ctrl.text.trim()),
+            child: const Text('Chọn'),
+          ),
+        ],
+      ),
+    );
+    // See feedback_modal_sheet_dependents_crash: dispose after transition.
+    Future.delayed(const Duration(milliseconds: 400), ctrl.dispose);
+    if (name == null || name.isEmpty) return null;
+    return name;
+  }
+
   Future<void> _editTechnician() async {
     if (!_ensureCanEditRepairOrder()) return;
     final shopId = await UserService.getCurrentShopId();
@@ -3982,6 +4014,17 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     try {
       staff = await FirestoreService.getShopStaffList(shopId);
     } catch (_) {}
+    if (AppSession.isOffline) {
+      // No staff accounts offline: the owner plus a free-text name so a
+      // technician can still be recorded on the order.
+      staff = [
+        {
+          'uid': AppSession.localOwnerUid,
+          'name': AppSession.offlineActorName,
+          'role': 'Chủ cửa hàng',
+        },
+      ];
+    }
     if (!mounted) return;
 
     final currentUid = (r.repairedByUid ?? '').trim();
@@ -4036,6 +4079,20 @@ class _RepairDetailViewState extends State<RepairDetailView> {
                           'uid': (s['uid'] ?? '').toString(),
                           'name': nameOf(s),
                         }),
+                      ),
+                    if (AppSession.isOffline)
+                      ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.edit_outlined),
+                        title: const Text('Nhập tên KTV khác…'),
+                        onTap: () async {
+                          final name = await _promptTechnicianName(ctx);
+                          if (name == null || !ctx.mounted) return;
+                          Navigator.pop(
+                            ctx,
+                            <String, String>{'uid': '', 'name': name},
+                          );
+                        },
                       ),
                   ],
                 ),
@@ -5690,7 +5747,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     if (mounted) setState(() => _isUpdating = true);
     try {
       // Local-first: append local path first, upload cloud in background.
-      final localPath = picked.path;
+      // Offline: durable copy (see LocalImageStore).
+      final localPath = AppSession.syncEnabled
+          ? picked.path
+          : await LocalImageStore.persist(picked, prefix: 'repair');
       final existing = r.imagePath ?? '';
       final updated = existing.isEmpty ? localPath : '$existing,$localPath';
       r.imagePath = updated;

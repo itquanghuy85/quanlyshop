@@ -18,6 +18,7 @@ import '../models/leave_request_model.dart';
 import '../models/quick_input_code_model.dart';
 import 'storage_service.dart';
 import 'product_image_service.dart';
+import 'background_upload_service.dart';
 import 'payment_intent_service.dart';
 import 'app_session.dart';
 import 'user_service.dart';
@@ -4317,6 +4318,15 @@ class SyncService {
           await ProductImageService.retryPendingProductImages(shopId);
         } catch (e) {
           debugPrint("Lỗi retry ảnh sản phẩm còn kẹt ở local: $e");
+        }
+        // Ảnh đơn sửa chụp ở phiên offline (LocalImageStore) — đẩy ngay
+        // sau khi kết nối tài khoản, không đợi lần mở app sau.
+        try {
+          await BackgroundUploadService.uploadPendingLocalRepairImages(
+            shopId: shopId,
+          );
+        } catch (e) {
+          debugPrint("Lỗi đẩy ảnh đơn sửa offline: $e");
         }
 
         // Sửa lại các phiếu nhập kho bị lệch: đã trả nợ xong (bảng debts)

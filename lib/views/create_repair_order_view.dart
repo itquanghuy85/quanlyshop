@@ -10,6 +10,7 @@ import '../models/repair_model.dart';
 import '../services/notification_service.dart';
 import '../services/app_session.dart';
 import '../services/background_upload_service.dart';
+import '../services/local_image_store.dart';
 import '../services/sync_service.dart';
 import '../services/sync_orchestrator.dart';
 import '../services/firestore_service.dart';
@@ -761,6 +762,14 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       if (_images.isNotEmpty) {
         if (kIsWeb) {
           cloudImagePaths = '';
+        } else if (!AppSession.syncEnabled) {
+          // Offline: nothing uploads now, and picker files sit in the cache
+          // dir that gets purged — keep durable copies until the account is
+          // connected (BackgroundUploadService.uploadPendingLocalRepairImages).
+          cloudImagePaths = (await LocalImageStore.persistAll(
+            _images,
+            prefix: 'repair',
+          )).join(',');
         } else {
           cloudImagePaths = _images.map((e) => e.path).join(',');
         }
@@ -802,8 +811,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         // round-trip anyway; offline there is no round-trip (step 3).
         shopId: UserService.getShopIdSync(),
         createdByUid: AppSession.userId,
-        createdBy:
-            AppSession.userEmail?.split('@').first.toUpperCase() ?? "NV",
+        createdBy: AppSession.actorName,
         services: _services,
         notes: notesCtrl.text.trim().isNotEmpty ? notesCtrl.text.trim() : null,
         loanerDevice: loanerDeviceCtrl.text.trim().isNotEmpty
@@ -1209,7 +1217,10 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       );
 
       // Upload images in background after navigation
-      if (imagesToUpload.isNotEmpty && r.id != null && r.firestoreId != null) {
+      if (imagesToUpload.isNotEmpty &&
+          r.id != null &&
+          r.firestoreId != null &&
+          AppSession.syncEnabled) {
         NotificationService.showSnackBar(
           loc.orderSavedUploadingImages,
           color: Colors.blue,
@@ -1250,7 +1261,10 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       }
 
       // Upload images in background after navigation
-      if (imagesToUpload.isNotEmpty && r.id != null && r.firestoreId != null) {
+      if (imagesToUpload.isNotEmpty &&
+          r.id != null &&
+          r.firestoreId != null &&
+          AppSession.syncEnabled) {
         NotificationService.showSnackBar(
           loc.uploadingImagesToSystem,
           color: Colors.blue,

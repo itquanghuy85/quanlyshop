@@ -61,7 +61,7 @@ class _BankQrSettingsViewState extends State<BankQrSettingsView> {
 
       final shopId = await UserService.getCurrentShopId();
       _shopId = shopId;
-      if (shopId != null && shopId.isNotEmpty) {
+      if (shopId != null && shopId.isNotEmpty && AppSession.syncEnabled) {
         final doc = await FirebaseFirestore.instance
             .collection('shops')
             .doc(shopId)

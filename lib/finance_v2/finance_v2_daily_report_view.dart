@@ -13,6 +13,7 @@ import 'finance_v2_data_service.dart';
 import 'finance_v2_theme.dart';
 import 'finance_v2_excel_export.dart';
 import '../services/label_settings_service.dart';
+import '../services/app_session.dart';
 import '../services/user_service.dart';
 import '../services/event_bus.dart';
 import '../services/first_time_guide_service.dart';
@@ -487,6 +488,8 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     required DateTime start,
     required DateTime end,
   }) async {
+    // Offline session: attendance lives on the cloud only.
+    if (!AppSession.syncEnabled) return <String, _StaffAttendanceStats>{};
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null || shopId.isEmpty) return <String, _StaffAttendanceStats>{};

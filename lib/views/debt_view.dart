@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../utils/money_utils.dart';
 import '../widgets/currency_text_field.dart';
 import '../data/db_helper.dart';
+import '../services/app_session.dart';
 import '../services/notification_service.dart';
 import '../widgets/custom_app_bar.dart';
 import '../services/sync_service.dart';
@@ -624,6 +625,8 @@ class _DebtViewState extends State<DebtView>
         ],
         accentColor: AppBarAccents.customer,
         actions: [
+          // Offline session: no cloud to sync with — hide the status + button.
+          if (!AppSession.isOffline)
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../data/db_helper.dart';
 import '../models/product_model.dart';
+import '../services/local_image_store.dart';
 import '../services/storage_service.dart';
 import '../services/user_service.dart';
 import '../widgets/image_picker_widget.dart';
@@ -62,6 +63,8 @@ class ProductImageService {
         isSynced: false,
       );
       await db.upsertProduct(updated);
+      // Durable offline copy (LocalImageStore) is no longer needed.
+      await LocalImageStore.remove(localPath);
     }
 
     return url;

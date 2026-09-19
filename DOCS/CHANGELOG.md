@@ -4,6 +4,53 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-19m] - Rà soát phiên OFFLINE: ảnh mất sau 24h · thông tin shop trên biên nhận · gán KTV · 2 write treo · tên "NV"
+
+Rà toàn bộ code theo câu hỏi "phiên offline còn vướng gì?" (quét mọi `FirebaseFirestore.instance`
+write không gate, mọi `currentUser == null` return sớm, mọi chỗ upload ảnh), sửa 8 điểm, test máy
+thật CPH2239 (offline):
+
+1. **MẤT ẢNH đơn sửa / sản phẩm chụp khi offline** (lỗi dữ liệu thật): `ImagePicker` và bước nén trả
+   file trong thư mục **cache**; `StorageService.cleanupOldTempFiles` xoá `.jpg/.png` cũ hơn 24h ở đó
+   (chạy mỗi lần mở app / có mạng). Online thì upload trong vài giây nên không sao; offline thì bản ghi
+   giữ đường dẫn tới file đã bị xoá → ảnh mất vĩnh viễn, và sau khi kết nối tài khoản cũng không có gì
+   để đẩy lên. Sửa: `LocalImageStore` (mới, `documents/local_images/`) — `ImagePickerWidget`
+   (ảnh SP/KH/NCC), tạo đơn sửa và thêm ảnh ở chi tiết đơn đều copy vào đó khi `!syncEnabled`;
+   `BackgroundUploadService.uploadPendingLocalRepairImages` (mới) quét đơn còn ảnh local → upload +
+   gộp URL cloud + xoá bản copy; gọi trong `syncAllToCloud` (ngay sau claim) và khi mở Home online.
+   Ảnh SP dùng lại `ProductImageService.retryPendingProductImages` có sẵn, thêm xoá bản copy.
+   Test: tạo đơn offline có ảnh → `repairs.imagePath` =
+   `/data/user/0/…/app_flutter/local_images/repair_….png` (file tồn tại). Unit test
+   `test/local_image_store_test.dart` (fake path_provider).
+2. **Biên nhận offline không có địa chỉ / hotline** — màn "Thông tin cửa hàng" là cloud-only. Nay
+   Đồng bộ & Tài khoản → bấm tên cửa hàng = dialog tên + địa chỉ + SĐT
+   (`AppSession.setOfflineShopContact` ghi prefs `shop_address/shop_phone` mà biên nhận đọc);
+   `ClaimService` đẩy address/phone lên `shops/{id}` khi kết nối. Test: biên nhận hiện
+   "12 LE LOI / Hotline: 0900123456".
+3. **Gán KTV offline chỉ có "Bỏ gán"** (`getShopStaffList` gated → rỗng). Nay offline list = "CHỦ SHOP"
+   + "Nhập tên KTV khác…" (nhập tay). Test: gán "TUAN" → "Đã đổi KTV: TUAN", DB `repairedBy=TUAN`.
+4. **2 write Firestore không gate → treo vô hạn offline**: `PaymentIntentService.
+   _syncImportOrderPaymentIfLinked` + khối reconcile (cập nhật `import_orders.paidAmount` sau khi trả
+   nợ NCC) — `await` treo nên **upsert SQLite phía sau không bao giờ chạy** → phiếu nhập không ghi
+   nhận đã trả. Test: trả 10.000 nợ NCCOFF1 → `import_orders.paidAmount=10000`. Thêm gate ở
+   `DataReconciliationService.deleteRepairWithReversal` (cập nhật quantity cloud).
+5. Tên người thao tác offline = "NV" ở mọi nơi (NV bán hàng trên biên nhận, createdBy đơn sửa, nhật
+   ký, phiếu chi, nhập kho) → `AppSession.actorName` (offline "CHỦ SHOP", online = email prefix như cũ).
+6. Ẩn ở phiên offline: "Yêu cầu đóng tiền" (tab Sửa chữa — chat cloud), nhãn "Đã đồng bộ" + nút sync
+   ở header Công nợ / Chi phí, snackbar "đang tải ảnh lên" sau khi lưu đơn sửa.
+7. Gate read Firestore ở `finance_v2_daily_report._loadAttendanceSummary` và `bank_qr_settings_view`
+   (offline: không chờ request thất bại).
+- Files: `lib/services/local_image_store.dart` (mới), `background_upload_service.dart`,
+  `product_image_service.dart`, `sync_service.dart`, `app_session.dart`, `claim_service.dart`,
+  `payment_intent_service.dart`, `data_reconciliation_service.dart`, `lib/widgets/image_picker_widget.dart`,
+  `lib/views/{sync_account,repair_detail,create_repair_order,create_sale,expense,fast_stock_in,debt,home,
+  bank_qr_settings}_view.dart`, `lib/finance_v2/finance_v2_daily_report_view.dart`,
+  `lib/data/app_knowledge_base.dart`, `CLAUDE.md` §14, `test/local_image_store_test.dart`.
+- Chưa test máy thật: bước đẩy ảnh lên cloud sau khi kết nối tài khoản (cần tạo tài khoản mới);
+  logic là `_uploadRepairImages` có sẵn (đường online đang dùng hằng ngày).
+
+---
+
 ## [2026-09-19l] - 5 báo cáo sau offline-first: NCC offline không có id · nút "Nhập kho" · ô số lượng không đổi khi bấm + · (4) nợ trên biên nhận OK · (5) share sheet = máy bị kẹt cờ FRP
 
 Người dùng báo 5 lỗi "lúc trước ổn định"; kết quả nghiệm thu 2 máy thật (CPH2239 offline, CPH2203 online):

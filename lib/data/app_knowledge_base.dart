@@ -283,9 +283,11 @@ class AppKnowledgeBase {
       steps: [
         'Mở app lần đầu → nhập tên cửa hàng → bấm "Dùng ngay, không cần tài khoản".',
         'Dùng bình thường. Icon mây gạch chéo góc phải trên = đang Offline.',
-        'Cài đặt → Đồng bộ & Tài khoản để đổi tên cửa hàng, đặt Mật khẩu bảo vệ, hoặc Kết nối tài khoản.',
+        'Cài đặt → Đồng bộ & Tài khoản → bấm tên cửa hàng để sửa tên, địa chỉ, SĐT in trên biên nhận; đặt Mật khẩu bảo vệ; hoặc Kết nối tài khoản.',
       ],
       notes: [
+        'Ảnh đơn sửa / sản phẩm chụp khi Offline được giữ trên máy và tự tải lên đám mây sau khi Kết nối tài khoản.',
+        'Gán kỹ thuật viên cho đơn sửa khi Offline: chọn "Chủ shop" hoặc "Nhập tên KTV khác…" (chưa có tài khoản nhân viên).',
         'Chế độ Offline chỉ có trên điện thoại (Android/iOS); bản web vẫn cần đăng nhập.',
         'Không có tab Nhân viên, chuông thông báo, chat, chấm công, AI trợ lý — các tính năng này cần tài khoản.',
         'Mất máy hoặc xoá app là mất dữ liệu — hãy sao lưu định kỳ hoặc kết nối tài khoản.',
@@ -308,7 +310,7 @@ class AppKnowledgeBase {
       whenToUse: 'Khi muốn biết dữ liệu đã lên đám mây chưa, đổi tên cửa hàng offline, đặt mật khẩu bảo vệ.',
       steps: [
         'Cài đặt → Đồng bộ & Tài khoản.',
-        'Offline: sửa tên cửa hàng, đặt Mật khẩu bảo vệ, bấm "Kết nối tài khoản".',
+        'Offline: bấm tên cửa hàng để sửa tên / địa chỉ / SĐT (in trên biên nhận), đặt Mật khẩu bảo vệ, bấm "Kết nối tài khoản".',
         'Online: xem tài khoản, "Đồng bộ ngay", hoặc "Đăng xuất".',
       ],
       notes: [

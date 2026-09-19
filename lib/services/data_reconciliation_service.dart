@@ -5,6 +5,7 @@ import '../data/db_helper.dart';
 import '../models/product_model.dart';
 import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
+import 'app_session.dart';
 import 'audit_service.dart';
 import 'customer_service.dart';
 import 'financial_activity_service.dart';
@@ -291,7 +292,9 @@ class DataReconciliationService {
           product.status = 1;
           await _db.updateProductStatus(product.id!, 1);
         }
-        if (product.firestoreId != null && product.firestoreId!.isNotEmpty) {
+        if (AppSession.syncEnabled &&
+            product.firestoreId != null &&
+            product.firestoreId!.isNotEmpty) {
           try {
             await FirebaseFirestore.instance
                 .collection('products')

@@ -1099,7 +1099,7 @@ class _FastStockInViewState extends State<FastStockInView> {
 
       // Log action
       final user = FirebaseAuth.instance.currentUser;
-      final userName = user?.email?.split('@').first.toUpperCase() ?? "NV";
+      final userName = AppSession.actorName;
       await db.logAction(
         userId: user?.uid ?? "0",
         userName: userName,
@@ -1259,7 +1259,7 @@ class _FastStockInViewState extends State<FastStockInView> {
 
       if (savedEntry != null) {
         final user = FirebaseAuth.instance.currentUser;
-        final userName = user?.email?.split('@').first.toUpperCase() ?? "NV";
+        final userName = AppSession.actorName;
 
         // Log action
         await db.logAction(

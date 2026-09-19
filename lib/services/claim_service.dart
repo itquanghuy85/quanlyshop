@@ -123,6 +123,10 @@ class ClaimService {
       'ownerUid': user.uid,
       'ownerEmail': email,
       'name': shopName,
+      if ((AppSession.offlineShopAddress ?? '').isNotEmpty)
+        'address': AppSession.offlineShopAddress,
+      if ((AppSession.offlineShopPhone ?? '').isNotEmpty)
+        'phone': AppSession.offlineShopPhone,
       'businessType': 'electronics',
       'createdAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));

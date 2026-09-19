@@ -97,6 +97,7 @@ import '../services/firebase_usage_stats_service.dart';
 import '../services/ai_nav_bridge.dart';
 import '../services/notification_service.dart';
 import '../services/storage_service.dart';
+import '../services/background_upload_service.dart';
 import '../services/encryption_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
@@ -307,6 +308,7 @@ class _HomeViewState extends State<HomeView>
     unawaited(_loadHomeCommunityDashboardPref());
     unawaited(_refreshHomeCommunityStream());
     unawaited(StorageService.retryPendingUploads());
+    unawaited(BackgroundUploadService.uploadPendingLocalRepairImages());
     _quickActionController = QuickActionController(
       enableRepair: _enableRepair,
       role: widget.role,
@@ -5323,7 +5325,9 @@ class _HomeViewState extends State<HomeView>
                     ),
                   ),
                 ),
-                _financeQuickCard(
+                // Cloud chat between staff — nothing to show offline.
+                if (!AppSession.isOffline)
+                  _financeQuickCard(
                   'Yêu cầu đóng tiền',
                   Icons.receipt_long,
                   const Color(0xFF075E54),

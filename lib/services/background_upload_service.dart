@@ -10,6 +10,9 @@ import '../services/encryption_service.dart';
 import '../services/event_bus.dart';
 import 'firestore_write_helper.dart';
 import 'app_session.dart';
+import 'local_image_store.dart';
+import 'user_service.dart';
+import 'dart:io';
 
 /// Service to upload images in the background after saving records.
 /// Allows screens to pop immediately while uploads continue.
@@ -102,6 +105,71 @@ class BackgroundUploadService {
       }
     }
     return merged;
+  }
+
+  static bool _pendingLocalScanRunning = false;
+
+  /// Push repair photos that are still local files — repairs created in an
+  /// offline session (LocalImageStore copies) or whose upload failed
+  /// earlier. Runs once per call; safe to call on every online start.
+  static Future<int> uploadPendingLocalRepairImages({
+    int maxRepairs = 20,
+    String? shopId,
+  }) async {
+    if (!AppSession.syncEnabled || kIsWeb) return 0;
+    if (_pendingLocalScanRunning) return 0;
+    _pendingLocalScanRunning = true;
+    var started = 0;
+    try {
+      shopId ??= UserService.getShopIdSync();
+      if (shopId == null || shopId.isEmpty) return 0;
+      final dbConn = await DBHelper().database;
+      final rows = await dbConn.query(
+        'repairs',
+        columns: ['id', 'firestoreId', 'imagePath'],
+        where:
+            "shopId = ? AND (deleted IS NULL OR deleted = 0) AND imagePath IS NOT NULL AND imagePath != '' AND firestoreId IS NOT NULL AND firestoreId != ''",
+        whereArgs: [shopId],
+        orderBy: 'id DESC',
+        limit: 500,
+      );
+      for (final row in rows) {
+        if (started >= maxRepairs) break;
+        final paths = _splitPaths((row['imagePath'] ?? '').toString());
+        final localFiles = paths
+            .where((p) => !_isCloudPath(p) && File(p).existsSync())
+            .toList();
+        if (localFiles.isEmpty) continue;
+        final id = row['id'] as int?;
+        final fid = (row['firestoreId'] ?? '').toString();
+        if (id == null || fid.isEmpty) continue;
+        started++;
+        await _uploadRepairImages(id, fid, localFiles.map(XFile.new).toList());
+        // Drop the durable copies only once the row no longer points at them
+        // (upload failed ⇒ the local path is still the only copy).
+        final after = await dbConn.query(
+          'repairs',
+          columns: ['imagePath'],
+          where: 'id = ?',
+          whereArgs: [id],
+          limit: 1,
+        );
+        final stillRef = after.isEmpty
+            ? const <String>[]
+            : _splitPaths((after.first['imagePath'] ?? '').toString());
+        for (final p in localFiles) {
+          if (!stillRef.contains(p)) await LocalImageStore.remove(p);
+        }
+      }
+      if (started > 0) {
+        debugPrint('📸 BackgroundUpload: pushed local images of $started repair(s)');
+      }
+    } catch (e) {
+      debugPrint('📸 BackgroundUpload: uploadPendingLocalRepairImages error: $e');
+    } finally {
+      _pendingLocalScanRunning = false;
+    }
+    return started;
   }
 
   static Future<bool> _hasPendingRepairQueue(
