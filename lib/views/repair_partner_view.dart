@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../models/repair_partner_model.dart';
 import '../services/user_service.dart';
+import '../services/app_session.dart';
+import '../services/owner_reauth_service.dart';
 import '../services/event_bus.dart';
 import '../services/repair_partner_service.dart';
 import '../widgets/gradient_fab.dart';
@@ -94,12 +96,13 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
     final messenger = ScaffoldMessenger.of(context);
 
     // Yêu cầu xác thực mật khẩu trước khi xóa
-    final password = await _showPasswordDialog();
-    if (password == null || password.isEmpty) return;
+    // Offline session without a local PIN: no prompt (OwnerReauthService).
+    final skipPrompt = await OwnerReauthService.shouldSkipPrompt();
+    final password = skipPrompt ? '' : await _showPasswordDialog();
+    if (password == null || (!skipPrompt && password.isEmpty)) return;
 
     // Xác thực mật khẩu
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
+    if (!AppSession.isOffline && FirebaseAuth.instance.currentUser == null) {
       messenger.showSnackBar(
         SnackBar(
           content: Text('Vui lòng đăng nhập lại', style: AppTextStyles.body2.copyWith(color: AppColors.onError)),
@@ -111,13 +114,7 @@ class _RepairPartnerViewState extends State<RepairPartnerView> {
       return;
     }
 
-    try {
-      final credential = EmailAuthProvider.credential(
-        email: currentUser.email!,
-        password: password,
-      );
-      await currentUser.reauthenticateWithCredential(credential);
-    } catch (e) {
+    if (!await OwnerReauthService.verify(password)) {
       messenger.showSnackBar(
         SnackBar(
           content: Text('Mật khẩu không đúng!', style: AppTextStyles.body2.copyWith(color: AppColors.onError)),

@@ -3,10 +3,11 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../data/db_helper.dart';
 import '../services/first_time_guide_service.dart';
+import '../services/app_session.dart';
+import '../services/owner_reauth_service.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/skeleton_list.dart';
@@ -1451,16 +1452,20 @@ final results = await Future.wait([
                 ),
 
               const SizedBox(height: 8),
-              TextField(
-                controller: passCtrl,
-                obscureText: true,
-                enabled: !submitting,
-                decoration: const InputDecoration(
-                  hintText: "Nhập mật khẩu quản lý để xác nhận",
-                  border: OutlineInputBorder(),
-                  isDense: true,
+              // Offline session without a local PIN: no password to ask for.
+              if (!OwnerReauthService.shouldSkipPromptSync)
+                TextField(
+                  controller: passCtrl,
+                  obscureText: true,
+                  enabled: !submitting,
+                  decoration: InputDecoration(
+                    hintText: AppSession.isOffline
+                        ? "Nhập mật khẩu bảo vệ để xác nhận"
+                        : "Nhập mật khẩu quản lý để xác nhận",
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                  ),
                 ),
-              ),
               if (errorText != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
@@ -1551,15 +1556,10 @@ final results = await Future.wait([
   /// này trả về, để tránh đóng dialog xác thực sớm (crash _dependents khi
   /// route dialog có TextField focus bị gỡ giữa chừng).
   Future<bool> _executeDelete(Repair r, String password) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null || user.email == null) return false;
+    // Online: Firebase re-auth. Offline: local PIN (or nothing configured).
+    if (!await OwnerReauthService.verify(password)) return false;
 
     try {
-      final cred = EmailAuthProvider.credential(
-        email: user.email!,
-        password: password,
-      );
-      await user.reauthenticateWithCredential(cred);
 
       // === HOÀN TRẢ PHỤ TÙNG VỀ KHO ===
       if (r.partsUsed.isNotEmpty) {
@@ -1602,8 +1602,9 @@ final results = await Future.wait([
           ? loc.returnedParts(r.partsUsed)
           : '';
       await db.logAction(
-        userId: user.uid,
-        userName: user.email?.split('@').first.toUpperCase() ?? 'NV',
+        userId: AppSession.userId ?? '0',
+        userName:
+            AppSession.userEmail?.split('@').first.toUpperCase() ?? 'NV',
         action: loc.deleteRepairAction,
         type: 'REPAIR',
         targetId: repairFirestoreId,

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../models/stock_entry_model.dart';
 import '../models/expense_model.dart';
 import '../services/user_service.dart';
+import 'app_session.dart';
 import '../services/notification_service.dart';
 import '../services/event_bus.dart';
 import '../services/sync_orchestrator.dart';
@@ -222,6 +223,7 @@ class StockEntryService {
 
   /// Đếm số phiếu chờ xác nhận
   Future<int> getPendingCount() async {
+    if (!AppSession.syncEnabled) return 0; // offline session: no cloud
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return 0;

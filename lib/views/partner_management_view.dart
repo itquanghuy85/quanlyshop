@@ -14,6 +14,8 @@ import '../models/supplier_payment_model.dart';
 import '../models/repair_partner_payment_model.dart';
 import '../controllers/fast_inventory_input_controller.dart';
 import '../services/event_bus.dart';
+import '../services/app_session.dart';
+import '../services/owner_reauth_service.dart';
 import '../services/supplier_service.dart';
 import '../services/repair_partner_service.dart';
 import '../services/repair_partner_payment_service.dart';
@@ -1179,25 +1181,19 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
   }
 
   Future<bool> _verifyOwnerPassword(String action) async {
-    final password = await _showPasswordDialog(action);
-    if (password == null || password.isEmpty) return false;
+    // Offline session without a local PIN: no prompt (OwnerReauthService).
+    final skipPrompt = await OwnerReauthService.shouldSkipPrompt();
+    final password = skipPrompt ? '' : await _showPasswordDialog(action);
+    if (password == null || (!skipPrompt && password.isEmpty)) return false;
 
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
+    if (!AppSession.isOffline && FirebaseAuth.instance.currentUser == null) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Vui lòng đăng nhập lại')));
       return false;
     }
 
-    try {
-      final credential = EmailAuthProvider.credential(
-        email: currentUser.email!,
-        password: password,
-      );
-      await currentUser.reauthenticateWithCredential(credential);
-      return true;
-    } catch (e) {
+    if (!await OwnerReauthService.verify(password)) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -1205,6 +1201,7 @@ class _PartnerManagementViewState extends State<PartnerManagementView>
       }
       return false;
     }
+    return true;
   }
 
   // ============ VERIFY AND EDIT/DELETE PARTNER ============

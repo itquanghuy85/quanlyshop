@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart';
 import '../data/db_helper.dart';
 import '../models/payment_request_model.dart';
+import 'app_session.dart';
 import 'user_service.dart';
 import 'stock_entry_service.dart';
 
@@ -641,6 +642,7 @@ class ReminderService {
   /// Đếm phiếu nhập kho draft (chờ xác nhận) — Firestore
   static Future<int> _countPendingStock() async {
     try {
+      if (!AppSession.syncEnabled) return 0; // offline: draft entries are cloud-only
       return await StockEntryService().getPendingCount();
     } catch (e) {
       debugPrint('ReminderService._countPendingStock error: $e');
@@ -688,6 +690,7 @@ class ReminderService {
 
   /// Đếm yêu cầu đóng tiền pending — Firestore real-time
   static Future<int> _countPendingPaymentRequests() async {
+    if (!AppSession.syncEnabled) return 0; // offline session: no cloud
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return 0;

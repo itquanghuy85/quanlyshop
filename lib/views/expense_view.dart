@@ -10,6 +10,8 @@ import '../widgets/currency_text_field.dart';
 import '../widgets/keyboard_aware_padding.dart';
 import '../data/db_helper.dart';
 import '../services/notification_service.dart';
+import '../services/app_session.dart';
+import '../services/owner_reauth_service.dart';
 import '../services/sync_service.dart';
 import '../services/sync_orchestrator.dart';
 import '../services/user_service.dart';
@@ -439,6 +441,9 @@ class _ExpenseViewState extends State<ExpenseView> {
     }
 
     final passC = TextEditingController();
+    // Offline session without a local PIN: confirm without a password.
+    final skipPrompt = await OwnerReauthService.shouldSkipPrompt();
+    if (!mounted) return;
     final bool? result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -464,14 +469,15 @@ class _ExpenseViewState extends State<ExpenseView> {
                     ),
             ),
             const SizedBox(height: 15),
-            TextField(
-              controller: passC,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: l10n.enterPasswordToDeleteLabel,
-                border: const OutlineInputBorder(),
+            if (!skipPrompt)
+              TextField(
+                controller: passC,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: l10n.enterPasswordToDeleteLabel,
+                  border: const OutlineInputBorder(),
+                ),
               ),
-            ),
           ],
         ),
         actions: [
@@ -498,18 +504,14 @@ class _ExpenseViewState extends State<ExpenseView> {
     );
 
     if (result == true) {
-      if (passC.text.isEmpty) return;
+      if (!skipPrompt && passC.text.isEmpty) return;
       setState(() => _isLoading = true);
       try {
-        final email = FirebaseAuth.instance.currentUser?.email;
-        if (email != null) {
-          AuthCredential credential = EmailAuthProvider.credential(
-            email: email,
-            password: passC.text,
-          );
-          await FirebaseAuth.instance.currentUser?.reauthenticateWithCredential(
-            credential,
-          );
+        final authed = await OwnerReauthService.verify(passC.text);
+        if (!authed) {
+          throw Exception('wrong-password');
+        }
+        {
 
           final expenseId = exp['id'] as int?;
           final firestoreId = exp['firestoreId'] as String?;
@@ -556,10 +558,10 @@ class _ExpenseViewState extends State<ExpenseView> {
             }
           }
 
-          final user = FirebaseAuth.instance.currentUser;
           await db.logAction(
-            userId: user?.uid ?? "0",
-            userName: email.split('@').first.toUpperCase(),
+            userId: AppSession.userId ?? "0",
+            userName:
+                AppSession.userEmail?.split('@').first.toUpperCase() ?? "NV",
             action: isIncome ? "XÓA THU PHÁT SINH" : "XÓA CHI PHÍ",
             type: "FINANCE",
             desc:

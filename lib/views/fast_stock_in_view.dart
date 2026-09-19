@@ -12,6 +12,8 @@ import '../models/quick_input_code_model.dart';
 import '../models/supplier_model.dart';
 import '../models/stock_entry_model.dart';
 import '../services/notification_service.dart';
+import '../services/app_session.dart';
+import '../services/owner_reauth_service.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
 import '../services/sync_orchestrator.dart';
@@ -635,12 +637,13 @@ class _FastStockInViewState extends State<FastStockInView> {
     }
 
     // Xác nhận mật khẩu trước khi xóa
-    final password = await _showPasswordDialog();
-    if (password == null || password.isEmpty) return;
+    // Offline session without a local PIN: no prompt (OwnerReauthService).
+    final skipPrompt = await OwnerReauthService.shouldSkipPrompt();
+    final password = skipPrompt ? '' : await _showPasswordDialog();
+    if (password == null || (!skipPrompt && password.isEmpty)) return;
 
     // Xác thực mật khẩu
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
+    if (!AppSession.isOffline && FirebaseAuth.instance.currentUser == null) {
       NotificationService.showSnackBar(
         "Vui lòng đăng nhập lại",
         color: Colors.red,
@@ -648,13 +651,7 @@ class _FastStockInViewState extends State<FastStockInView> {
       return;
     }
 
-    try {
-      final credential = EmailAuthProvider.credential(
-        email: currentUser.email!,
-        password: password,
-      );
-      await currentUser.reauthenticateWithCredential(credential);
-    } catch (e) {
+    if (!await OwnerReauthService.verify(password)) {
       NotificationService.showSnackBar(
         "Mật khẩu không đúng!",
         color: Colors.red,

@@ -8,6 +8,7 @@ import '../models/product_model.dart';
 import '../models/repair_model.dart';
 import '../models/sale_order_model.dart';
 import '../services/data_reconciliation_service.dart';
+import '../services/owner_reauth_service.dart';
 import '../services/notification_service.dart';
 import '../services/kv_duplicate_cleanup_service.dart';
 import '../theme/app_colors.dart';
@@ -125,6 +126,8 @@ class _DataReconciliationViewState extends State<DataReconciliationView>
 /// Yêu cầu nhập lại mật khẩu đăng nhập trước khi thực thi hành động nguy
 /// hiểm. Trả về true nếu xác thực đúng.
 Future<bool> _confirmPassword(BuildContext context) async {
+  // Offline session without a local PIN: nothing to verify.
+  if (await OwnerReauthService.shouldSkipPrompt()) return true;
   final passCtrl = TextEditingController();
   final ok = await showDialog<bool>(
     context: context,
@@ -155,21 +158,13 @@ Future<bool> _confirmPassword(BuildContext context) async {
   );
   if (ok != true) return false;
 
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null || user.email == null) return false;
-  try {
-    final cred = EmailAuthProvider.credential(
-      email: user.email!,
-      password: passCtrl.text,
-    );
-    await user.reauthenticateWithCredential(cred);
-    return true;
-  } catch (_) {
+  if (!await OwnerReauthService.verify(passCtrl.text)) {
     if (context.mounted) {
       NotificationService.showSnackBar('❌ Mật khẩu sai', color: Colors.red);
     }
     return false;
   }
+  return true;
 }
 
 /// Hiện tóm tắt trước khi thực thi, trả về true nếu user bấm tiếp tục.

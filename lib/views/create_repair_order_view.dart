@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../models/repair_model.dart';
 import '../services/notification_service.dart';
+import '../services/app_session.dart';
 import '../services/background_upload_service.dart';
 import '../services/sync_service.dart';
 import '../services/sync_orchestrator.dart';
@@ -797,13 +798,12 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         cost: totalCost,
         createdAt: now,
         imagePath: cloudImagePaths,
-        createdByUid: FirebaseAuth.instance.currentUser?.uid,
+        // Set shopId locally too: online it is echoed back by the cloud
+        // round-trip anyway; offline there is no round-trip (step 3).
+        shopId: UserService.getShopIdSync(),
+        createdByUid: AppSession.userId,
         createdBy:
-            FirebaseAuth.instance.currentUser?.email
-                ?.split('@')
-                .first
-                .toUpperCase() ??
-            "NV",
+            AppSession.userEmail?.split('@').first.toUpperCase() ?? "NV",
         services: _services,
         notes: notesCtrl.text.trim().isNotEmpty ? notesCtrl.text.trim() : null,
         loanerDevice: loanerDeviceCtrl.text.trim().isNotEmpty
@@ -867,6 +867,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
           !syncResult.noNetwork &&
           syncResult.failed == 0 &&
           syncResult.success > 0;
+      // Offline session: the queue keeps the item until the shop is claimed —
+      // no cloud check, no direct upload, no "chưa đồng bộ" warning.
+      final offlineSession = AppSession.isOffline;
 
       // Nếu sync thất bại (có mạng nhưng ghi lỗi), thử upload trực tiếp lên Firestore.
       // Khi không có mạng (noNetwork) thì bỏ qua hoàn toàn, tránh treo màn hình.
@@ -875,7 +878,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       // `success==0` có thể do lượt sync khác vừa đẩy đơn này lên. Hỏi cloud
       // trước — doc đã có thì tuyệt đối không ghi thẳng thêm lần nữa
       // (mỗi lần ghi thừa = máy khác nhận thêm 1 snapshot + 1 thông báo trùng).
-      if (!syncedToCloud && !syncResult.noNetwork) {
+      if (!offlineSession && !syncedToCloud && !syncResult.noNetwork) {
         try {
           final existing = await FirestoreService.getRepairDoc(
             r.firestoreId!,
@@ -889,7 +892,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
         }
       }
 
-      if (!syncedToCloud && !syncResult.noNetwork) {
+      if (!offlineSession && !syncedToCloud && !syncResult.noNetwork) {
         debugPrint(
           '🔧 Queue sync did not confirm cloud doc, trying direct Firestore upload...',
         );
@@ -947,7 +950,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
 
       final rWithCloudId = savedRepair;
       await db.logAction(
-        userId: FirebaseAuth.instance.currentUser?.uid ?? "0",
+        userId: AppSession.userId ?? "0",
         userName: r.createdBy ?? "NV",
         action: loc.repairInputAction,
         type: "REPAIR",
@@ -1147,6 +1150,7 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
   /// Đơn tạo lúc mạng chập chờn / ảnh chưa upload xong sẽ lên cloud trễ.
   /// Theo dõi tối đa ~2 phút, đơn có mặt trên cloud là bắn thông báo đúng 1 lần.
   Future<void> _notifyRepairWhenSynced(Repair repair) async {
+    if (!AppSession.syncEnabled) return; // offline session: nothing to watch
     final firestoreId = repair.firestoreId;
     if (firestoreId == null || firestoreId.isEmpty) return;
 

@@ -33,7 +33,7 @@ class AppSession {
 
   /// Feature flag (decision D5). Steps 1–2 of the plan ship with this OFF so
   /// nothing changes for anyone; step 3 turns it on.
-  static const bool kOfflineModeEnabled = false;
+  static const bool kOfflineModeEnabled = true;
 
   /// Pseudo user id written into `createdBy` / `userId` columns while offline.
   /// Replaced by the real uid when the local shop is claimed by an account.
@@ -49,6 +49,19 @@ class AppSession {
   static String? _offlineShopId;
   static String? _offlineShopName;
   static bool _restored = false;
+
+  /// Bumped whenever the session shape changes without a Firebase auth event
+  /// (start offline, clear offline, claim). AuthGate rebuilds on it.
+  static final ValueNotifier<int> revision = ValueNotifier<int>(0);
+
+  /// True while a local shop is being attached to an account (step 4).
+  /// While set, the app must behave as offline for data purposes and must
+  /// never wipe SQLite.
+  static bool claimInProgress = false;
+
+  /// Prefs keys shared with `main.dart` `_checkAndClearLocalDataIfShopChanged`.
+  static const String prefLastSyncedShopId = 'last_synced_shop_id';
+  static const String prefLastSyncedUserId = 'last_synced_user_id';
 
   /// Test-only: pretend there is no Firebase user even if one exists.
   @visibleForTesting
@@ -68,7 +81,7 @@ class AppSession {
   static String? get offlineShopName => _offlineShopName;
 
   static AppSessionMode get mode {
-    if (_hasFirebaseUser) return AppSessionMode.online;
+    if (_hasFirebaseUser && !claimInProgress) return AppSessionMode.online;
     if (_offlineFlagOn &&
         _offlineShopId != null &&
         _offlineShopId!.isNotEmpty) {
@@ -83,6 +96,14 @@ class AppSession {
   /// Whether any code path may talk to Firebase (Firestore/Storage/FCM/...).
   /// Offline and `none` sessions never do.
   static bool get syncEnabled => isOnline;
+
+  /// Offline mode is only offered on mobile (decision D2).
+  static bool get offlineModeAvailable => kOfflineModeEnabled && !kIsWeb;
+
+  /// Whether [shopId] is the shop this device created offline. Used to decide
+  /// if a logout may keep SQLite (drop back to offline) or must wipe it.
+  static bool ownsShop(String? shopId) =>
+      shopId != null && shopId.isNotEmpty && shopId == _offlineShopId;
 
   /// Effective shopId for the offline session, null otherwise. UserService
   /// falls through to its normal uid-based logic when this is null.
@@ -149,11 +170,29 @@ class AppSession {
       if (!prefs.containsKey(_prefCreatedAt)) {
         await prefs.setString(_prefCreatedAt, DateTime.now().toIso8601String());
       }
+      // Mark this shop as the one SQLite currently holds so a later claim /
+      // login into the same shop never triggers the "shop changed → wipe"
+      // logic in main.dart.
+      await prefs.setString(prefLastSyncedShopId, id);
+      await prefs.setString(prefLastSyncedUserId, localOwnerUid);
     } catch (e) {
       debugPrint('AppSession.startOffline: persist failed: $e');
     }
     debugPrint('AppSession.startOffline: shopId=$id');
+    revision.value++;
     return id;
+  }
+
+  /// Rename the offline shop (shown in the header / Welcome).
+  static Future<void> setOfflineShopName(String name) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return;
+    _offlineShopName = trimmed;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_prefShopName, trimmed);
+    } catch (_) {}
+    revision.value++;
   }
 
   /// Forget the offline session (does NOT touch SQLite — callers decide that).
@@ -169,6 +208,7 @@ class AppSession {
     } catch (e) {
       debugPrint('AppSession.clearOffline: persist failed: $e');
     }
+    revision.value++;
   }
 
   /// Same shape as other local ids in the app (`rep_<ms>_<rand>`), no extra
@@ -185,6 +225,7 @@ class AppSession {
     _offlineShopId = null;
     _offlineShopName = null;
     _restored = false;
+    claimInProgress = false;
     debugIgnoreFirebaseUser = false;
     debugForceOfflineFlag = false;
   }

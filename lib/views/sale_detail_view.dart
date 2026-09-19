@@ -7,6 +7,8 @@ import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firestore_write_helper.dart';
+import '../services/app_session.dart';
+import '../services/owner_reauth_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../utils/money_utils.dart';
 import '../widgets/currency_text_field.dart';
@@ -512,7 +514,7 @@ class _SaleDetailViewState extends State<SaleDetailView> {
   Future<void> _unlockManager() async {
     final l10n = AppLocalizations.of(context)!;
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    if (user == null && !AppSession.isOffline) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.needManagerLogin)));
@@ -540,7 +542,12 @@ class _SaleDetailViewState extends State<SaleDetailView> {
     // nhập lại (trước đây dialog đóng mất rồi mới hiện SnackBar báo sai).
     String? errorText;
     bool submitting = false;
-    final ok = await showDialog<bool>(
+    // Offline session without a local PIN: unlock without a prompt.
+    final skipPrompt = await OwnerReauthService.shouldSkipPrompt();
+    if (!mounted) return;
+    final ok = skipPrompt
+        ? true
+        : await showDialog<bool>(
       context: context,
       builder: (ctx) {
         final dialogL10n = AppLocalizations.of(ctx)!;
@@ -617,17 +624,9 @@ class _SaleDetailViewState extends State<SaleDetailView> {
 
   /// Xác thực lại mật khẩu quản lý. Trả về false khi sai mật khẩu / lỗi mạng —
   /// không ném ra ngoài để dialog tự hiện lỗi inline và giữ nguyên trạng thái.
-  Future<bool> _reauthenticate(User user, String password) async {
-    try {
-      final cred = EmailAuthProvider.credential(
-        email: user.email ?? '',
-        password: password,
-      );
-      await user.reauthenticateWithCredential(cred);
-      return true;
-    } catch (_) {
-      return false;
-    }
+  Future<bool> _reauthenticate(User? user, String password) async {
+    // Online: Firebase re-auth. Offline: local PIN (or nothing configured).
+    return OwnerReauthService.verify(password);
   }
 
   Future<void> _printWifi() async {

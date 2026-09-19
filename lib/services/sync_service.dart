@@ -255,6 +255,11 @@ class SyncService {
   static String? _lastRealtimeInitSignature;
   static const _downloadCooldown = Duration(seconds: 60);
   static bool _isSyncingAllToCloud = false;
+
+  /// Last moment any cloud ⇄ local exchange completed (cursor advanced or a
+  /// push pass finished). Shown in "Đồng bộ & Tài khoản".
+  static final ValueNotifier<DateTime?> lastCloudSyncAt =
+      ValueNotifier<DateTime?>(null);
   static DateTime? _lastSyncAllToCloudAt;
   static const _syncAllToCloudCooldown = Duration(seconds: 12);
   static const int _collectionPollLimit = 20;
@@ -920,6 +925,7 @@ class SyncService {
     if (normalizedMs <= currentMs) return;
 
     _realtimeCursorCache[key] = normalizedMs;
+    lastCloudSyncAt.value = DateTime.now();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(key, normalizedMs);
   }
@@ -5315,6 +5321,7 @@ class SyncService {
       debugPrint("Lỗi syncAllToCloud: $e");
     } finally {
       _isSyncingAllToCloud = false;
+      lastCloudSyncAt.value = DateTime.now();
     }
   }
 

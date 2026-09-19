@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/customer_model.dart';
 import '../services/customer_service.dart';
+import '../services/app_session.dart';
+import '../services/owner_reauth_service.dart';
 import '../services/first_time_guide_service.dart';
 import '../services/sync_service.dart';
 import '../services/event_bus.dart';
@@ -343,25 +345,19 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
   }
 
   Future<bool> _verifyOwnerPassword(String action) async {
-    final password = await _showPasswordDialog(action);
-    if (password == null || password.isEmpty) return false;
+    // Offline session without a local PIN: no prompt (OwnerReauthService).
+    final skipPrompt = await OwnerReauthService.shouldSkipPrompt();
+    final password = skipPrompt ? '' : await _showPasswordDialog(action);
+    if (password == null || (!skipPrompt && password.isEmpty)) return false;
 
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
+    if (!AppSession.isOffline && FirebaseAuth.instance.currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.pleaseLoginAgain)),
       );
       return false;
     }
 
-    try {
-      final credential = EmailAuthProvider.credential(
-        email: currentUser.email!,
-        password: password,
-      );
-      await currentUser.reauthenticateWithCredential(credential);
-      return true;
-    } catch (e) {
+    if (!await OwnerReauthService.verify(password)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -371,6 +367,7 @@ class _CustomerManagementViewState extends State<CustomerManagementView> {
       }
       return false;
     }
+    return true;
   }
 
   Future<void> _viewCustomerHistory(Customer customer) async {

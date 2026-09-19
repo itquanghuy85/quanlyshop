@@ -14,6 +14,7 @@ import '../models/sale_order_model.dart';
 import '../models/repair_model.dart';
 import '../models/shop_settings_model.dart';
 import '../services/user_service.dart';
+import '../services/owner_reauth_service.dart';
 import '../services/first_time_guide_service.dart';
 import '../services/audit_service.dart';
 import '../services/notification_service.dart';
@@ -4297,6 +4298,8 @@ class CashClosingViewState extends State<CashClosingView>
   /// Yêu cầu nhập lại mật khẩu đăng nhập trước khi sửa chốt quỹ — cùng cơ
   /// chế `_confirmPassword` của `data_reconciliation_view.dart`.
   Future<bool> _confirmPasswordForClosingEdit(BuildContext context) async {
+    // Offline session without a local PIN: nothing to verify.
+    if (await OwnerReauthService.shouldSkipPrompt()) return true;
     final passCtrl = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
@@ -4327,21 +4330,13 @@ class CashClosingViewState extends State<CashClosingView>
     );
     if (ok != true) return false;
 
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null || user.email == null) return false;
-    try {
-      final cred = EmailAuthProvider.credential(
-        email: user.email!,
-        password: passCtrl.text,
-      );
-      await user.reauthenticateWithCredential(cred);
-      return true;
-    } catch (_) {
+    if (!await OwnerReauthService.verify(passCtrl.text)) {
       if (context.mounted) {
         NotificationService.showSnackBar('❌ Mật khẩu sai', color: Colors.red);
       }
       return false;
     }
+    return true;
   }
 
   /// Sửa lại 1 lần chốt quỹ đã chốt — CHỈ cho ngày chốt GẦN NHẤT (xác định

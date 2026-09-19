@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import '../models/shop_settings_model.dart';
 import '../data/db_helper.dart';
+import 'app_session.dart';
 import 'user_service.dart';
 
 /// Service quản lý danh mục sản phẩm và cài đặt shop
@@ -31,6 +32,8 @@ class CategoryService {
   }
 
   bool _isRemoteWriteCooldownActive() {
+    // Offline session: never write to Firestore (behaves like a cooldown).
+    if (!AppSession.syncEnabled) return true;
     final lastDeniedAt = _remoteWriteDeniedAt;
     if (lastDeniedAt == null) return false;
     return DateTime.now().difference(lastDeniedAt) < _remoteWriteDeniedCooldown;
@@ -94,6 +97,8 @@ class CategoryService {
       debugPrint('Error getting shop settings locally: $e');
     }
 
+    // Offline session: no cloud copy to fall back to.
+    if (!AppSession.syncEnabled) return null;
     // Try Firestore
     try {
       final doc = await _firestore

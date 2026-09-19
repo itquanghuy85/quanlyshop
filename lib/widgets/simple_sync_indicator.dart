@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../services/app_session.dart';
 import '../services/sync_orchestrator.dart';
 import '../services/sync_service.dart';
 import '../theme/app_colors.dart';
+import '../views/sync_account_view.dart';
 
 /// Widget hiển thị trạng thái sync đơn giản
 /// - Tự động sync ở background
@@ -138,6 +140,20 @@ class _SimpleSyncIndicatorState extends State<SimpleSyncIndicator>
 
   @override
   Widget build(BuildContext context) {
+    // Offline session (no account): nothing to sync — the icon opens the
+    // "Đồng bộ & Tài khoản" screen instead of forcing a sync.
+    if (AppSession.isOffline) {
+      return IconButton(
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const SyncAccountView()),
+        ),
+        icon: const Icon(Icons.cloud_off, size: 22, color: Colors.white70),
+        tooltip: 'Chế độ Offline — chạm để kết nối tài khoản',
+        padding: const EdgeInsets.all(8),
+        constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+      );
+    }
+
     // Xác định icon và màu theo trạng thái
     IconData icon;
     Color iconColor;

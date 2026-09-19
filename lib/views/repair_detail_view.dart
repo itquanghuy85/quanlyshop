@@ -22,6 +22,7 @@ import '../models/part_used_detail_model.dart';
 import '../models/product_model.dart';
 import '../constants/product_constants.dart';
 import '../services/pricing_engine_service.dart';
+import '../services/app_session.dart';
 import '../services/price_book_service.dart';
 import '../models/price_book_models.dart';
 import 'similar_repair_history_view.dart';
@@ -563,6 +564,8 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     int? requestedDeliveryPrice,
     bool includeRequestedDeliveryPrice = false,
   }) async {
+    // Offline session: SQLite + SyncOrchestrator queue only (pushed on claim).
+    if (!AppSession.syncEnabled) return;
     final targetId = (r.firestoreId ?? '').trim();
     if (targetId.isEmpty) return;
 
