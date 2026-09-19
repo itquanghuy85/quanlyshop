@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 import '../services/notification_service.dart';
+import '../services/app_session.dart';
 import '../services/bluetooth_printer_service.dart';
 import '../services/network_printer_scanner.dart';
 import '../services/user_service.dart';
@@ -66,7 +67,7 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
     // If policies are empty, try loading from Firestore (new device)
     String warranty = prefs.getString('warranty_policy') ?? '';
     String returnP = prefs.getString('return_policy') ?? '';
-    if (warranty.isEmpty && returnP.isEmpty) {
+    if (warranty.isEmpty && returnP.isEmpty && AppSession.syncEnabled) {
       try {
         final shopId = await UserService.getCurrentShopId();
         if (shopId != null && shopId.isNotEmpty) {
@@ -120,7 +121,7 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId != null && shopId.isNotEmpty) {
-        await FirebaseFirestore.instance
+        if (AppSession.syncEnabled) await FirebaseFirestore.instance
             .collection('shops')
             .doc(shopId)
             .set({

@@ -7,6 +7,9 @@ import 'package:flutter/material.dart';
 import '../models/stock_entry_model.dart';
 import '../models/expense_model.dart';
 import '../services/user_service.dart';
+import 'app_session.dart';
+import 'offline_stock_entry_store.dart';
+import '../models/product_model.dart';
 import '../services/notification_service.dart';
 import '../services/event_bus.dart';
 import '../services/sync_orchestrator.dart';
@@ -21,8 +24,8 @@ import '../utils/money_utils.dart';
 
 /// Service quản lý phiếu nhập kho (Staging Inventory)
 class StockEntryService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  late final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  late final FirebaseAuth _auth = FirebaseAuth.instance;
 
   static const String _collection = 'stock_entries';
   static int _pendingEntriesFetchCount = 0;
@@ -56,7 +59,7 @@ class StockEntryService {
         return null;
       }
 
-      final userId = _auth.currentUser?.uid;
+      final userId = AppSession.userId;
 
       // Tính tổng giá vốn
       final totalCost = entry.items.fold<double>(
@@ -76,6 +79,18 @@ class StockEntryService {
         '📦 createEntry: status=${mapData['status']}, entryType=${mapData['entryType']}, shopId=$shopId',
       );
       debugPrint('📦 createEntry map: $mapData');
+
+      if (AppSession.isOffline) {
+        // Offline session (step 3b): no Firestore — keep the entry in the
+        // local store so drafts / confirm keep working without an account.
+        final offlineEntry = newEntry.copyWith(
+          firestoreId: OfflineStockEntryStore.newEntryId(),
+        );
+        await OfflineStockEntryStore.put(offlineEntry);
+        debugPrint('✅ createEntry (offline): id=${offlineEntry.firestoreId}');
+        EventBus().emit('stock_entries_changed');
+        return offlineEntry;
+      }
 
       final docRef = await _firestore.collection(_collection).add(mapData);
 
@@ -118,10 +133,29 @@ class StockEntryService {
       debugPrint('📝 updateEntry map keys: ${updateMap.keys.toList()}');
       debugPrint('📝 updateEntry map: $updateMap');
 
-      await _firestore
-          .collection(_collection)
-          .doc(entry.firestoreId)
-          .update(updateMap);
+      if (AppSession.isOffline) {
+        final current = await OfflineStockEntryStore.get(entry.firestoreId!);
+        if (current == null) {
+          _showError('Không tìm thấy phiếu');
+          return false;
+        }
+        await OfflineStockEntryStore.put(
+          current.copyWith(
+            items: updatedEntry.items,
+            supplierId: updatedEntry.supplierId,
+            supplierName: updatedEntry.supplierName,
+            totalCost: updatedEntry.totalCost,
+            paymentMethod: updatedEntry.paymentMethod,
+            notes: updatedEntry.notes,
+            updatedAt: updatedEntry.updatedAt,
+          ),
+        );
+      } else {
+        await _firestore
+            .collection(_collection)
+            .doc(entry.firestoreId)
+            .update(updateMap);
+      }
 
       _showSuccess('Đã cập nhật phiếu');
       EventBus().emit('stock_entries_changed');
@@ -136,6 +170,21 @@ class StockEntryService {
   /// Hủy phiếu (chỉ cho DRAFT)
   Future<bool> cancelEntry(String entryId) async {
     try {
+      if (AppSession.isOffline) {
+        final entry = await OfflineStockEntryStore.get(entryId);
+        if (entry == null) {
+          _showError('Không tìm thấy phiếu');
+          return false;
+        }
+        if (entry.locked || entry.isConfirmed) {
+          _showError('Phiếu đã khóa, không thể hủy');
+          return false;
+        }
+        await OfflineStockEntryStore.remove(entryId);
+        _showSuccess('Đã hủy phiếu');
+        EventBus().emit('stock_entries_changed');
+        return true;
+      }
       DocumentSnapshot<Map<String, dynamic>> doc;
       try {
         doc = await _firestore
@@ -181,6 +230,7 @@ class StockEntryService {
 
   /// Lấy phiếu theo ID
   Future<StockEntry?> getEntry(String entryId) async {
+    if (AppSession.isOffline) return OfflineStockEntryStore.get(entryId);
     try {
       final doc = await _firestore.collection(_collection).doc(entryId).get();
       if (!doc.exists) return null;
@@ -196,6 +246,9 @@ class StockEntryService {
       final shopId = await UserService.getCurrentShopId();
       debugPrint('📋 getPendingEntries: shopId=$shopId');
       if (shopId == null) return [];
+      if (AppSession.isOffline) {
+        return OfflineStockEntryStore.drafts(shopId: shopId);
+      }
 
       final query = await _firestore
           .collection(_collection)
@@ -222,6 +275,7 @@ class StockEntryService {
 
   /// Đếm số phiếu chờ xác nhận
   Future<int> getPendingCount() async {
+    if (!AppSession.syncEnabled) return 0; // offline session: no cloud
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return 0;
@@ -289,6 +343,13 @@ class StockEntryService {
   /// Stock accumulation: phụ kiện/linh kiện trùng tên+thuộc tính → cộng dồn SL
   Future<bool> confirmEntry(String entryId, {bool allowPendingCost = false, bool requireSupplier = true}) async {
     debugPrint('🔄 confirmEntry: START entryId=$entryId');
+    if (AppSession.isOffline) {
+      return _confirmEntryOffline(
+        entryId,
+        allowPendingCost: allowPendingCost,
+        requireSupplier: requireSupplier,
+      );
+    }
     try {
       // === PRE-READ: Lấy entry + query existing products/parts TRƯỚC transaction ===
       DocumentSnapshot<Map<String, dynamic>> entryDoc;
@@ -789,242 +850,26 @@ class StockEntryService {
         }
         final entry = result['entry'] as StockEntry;
         final totalCost = (result['totalCost'] as double).round();
-        // direction used for debugging
         final partFirestoreIds =
             result['partFirestoreIds'] as Map<String, String>;
         final userName =
             _auth.currentUser?.email?.split('@').first.toUpperCase() ?? 'NV';
         final now = DateTime.now().millisecondsSinceEpoch;
-
-        try {
-          final db = DBHelper();
-          final itemSummary = entry.items
-              .map((i) => '${i.name} x${i.quantity}')
-              .join(', ');
-
-          if (entry.paymentMethod == 'CÔNG NỢ') {
-            // === TẠO DEBT TRONG LOCAL DB ===
-            // Normalize supplierName để đảm bảo match khi query
-            final normalizedSupplierName = (entry.supplierName ?? 'NCC')
-                .toUpperCase()
-                .trim();
-
-            debugPrint(
-              '🔔 confirmEntry: Creating debt for supplier: $normalizedSupplierName, amount: $totalCost',
-            );
-
-            final debtId = await PaymentIntentService.createDebtRecord(
-              debtType: 'SHOP_OWES',
-              amount: totalCost,
-              personName: normalizedSupplierName,
-              note: itemSummary.isNotEmpty
-                  ? 'Nợ nhập $itemSummary - ${MoneyUtils.formatCurrency(totalCost)}đ'
-                  : 'Nợ nhập ${entry.totalQuantity} sản phẩm - ${MoneyUtils.formatCurrency(totalCost)}đ',
-              linkedId: entryId,
-              linkedType: 'stock_entry',
-              debtFirestoreId: 'debt_stock_${entryId}_$now',
-              notify: true,
-            );
-            debugPrint(
-              '✅ confirmEntry: Created local DEBT id=$debtId for CÔNG NỢ: $totalCost, supplier: $normalizedSupplierName',
-            );
-
-            // KHÔNG tạo PaymentIntent cho CÔNG NỢ vì:
-            // 1. Debt record đã được tạo (đây là financial record chính)
-            // 2. PaymentIntentService.createIntent() chỉ chấp nhận status=pending
-            // 3. Khi thanh toán công nợ, user sẽ tạo PaymentIntent mới từ trang NCC
-            debugPrint(
-              '✅ confirmEntry: CÔNG NỢ debt created, no PaymentIntent needed',
-            );
-          } else {
-            // === TIỀN MẶT / CHUYỂN KHOẢN - Tạo EXPENSE ===
-            // Ghi expense vào local DB
-            final itemBreakdown = entry.items
-                .map((i) => '${i.name} x${i.quantity} = ${MoneyUtils.formatVND(((i.cost ?? 0) * i.quantity).toInt())}')
-                .join('; ');
-            await db.insertExpense({
-              'firestoreId': 'exp_stock_${entryId}_$now',
-              'category': 'NHẬP HÀNG',
-              'title': 'Nhập kho từ ${entry.supplierName ?? 'NCC'}',
-              'amount': totalCost,
-              'paymentMethod': entry.paymentMethod,
-              'note': itemBreakdown.isNotEmpty ? itemBreakdown : 'Nhập ${entry.totalQuantity} sản phẩm',
-              'date': now,
-              'createdBy': userName,
-              'shopId': entry.shopId,
-              'isSynced': 0,
-            });
-            debugPrint(
-              '✅ confirmEntry: Created local EXPENSE for ${entry.paymentMethod}: $totalCost',
-            );
-
-            // Log to financial activity for reporting
-            try {
-              final productNames = entry.items
-                  .map((i) => '${i.name} x${i.quantity}')
-                  .join(', ');
-              await FinancialActivityService.logPurchase(
-                firestoreId: 'stock_${entryId}_$now',
-                amount: totalCost,
-                paymentMethod: entry.paymentMethod ?? 'TIỀN MẶT',
-                productName: productNames,
-                supplierName: entry.supplierName ?? 'NCC',
-                quantity: entry.totalQuantity,
-                createdAt: now,
-                createdBy: userName,
-              );
-              debugPrint('📝 Logged stock entry to financial activity');
-            } catch (e) {
-              debugPrint('⚠️ Failed to log stock entry activity: $e');
-            }
-
-            // KHÔNG tạo PaymentIntent cho TIỀN MẶT/CK vì:
-            // 1. Expense record đã được ghi (đây là financial record chính)
-            // 2. PaymentIntentService.createIntent() chỉ chấp nhận status=pending
-            debugPrint(
-              '✅ confirmEntry: Expense created, no PaymentIntent needed',
-            );
-          }
-
-          // === GHI LINH KIỆN VÀO LOCAL repair_parts ===
-          for (final item in entry.items) {
-            if (item.productType == 'LINH_KIEN') {
-              final firestoreId = partFirestoreIds[item.name];
-              if (firestoreId == null) {
-                debugPrint('⚠️ Missing firestoreId for part: ${item.name}');
-                continue;
-              }
-
-              final localDb = await db.database;
-              final existingPartRows = await localDb.query(
-                'repair_parts',
-                where: 'firestoreId = ?',
-                whereArgs: [firestoreId],
-                limit: 1,
-              );
-              final existingQty = existingPartRows.isNotEmpty
-                  ? (existingPartRows.first['quantity'] as int? ?? 0)
-                  : 0;
-              final existingCost = existingPartRows.isNotEmpty
-                  ? (existingPartRows.first['cost'] as int? ?? 0)
-                  : 0;
-              final importQty = item.quantity;
-              final importCost = (item.cost ?? 0).toInt();
-              final totalQty = existingQty + importQty;
-              final weightedCost = totalQty > 0
-                  ? ((existingQty * existingCost) + (importQty * importCost)) ~/
-                        totalQty
-                  : importCost;
-
-              await db.upsertRepairPart({
-                'firestoreId': firestoreId,
-                'partName': item.name,
-                'compatibleModels': item.model ?? '',
-                'cost': weightedCost,
-                'price': (item.price ?? 0).toInt(),
-                'quantity': totalQty,
-                'paymentMethod': entry.paymentMethod,
-                'createdBy': userName,
-                'createdAt': now,
-                'updatedAt': now,
-                'shopId': entry.shopId,
-                'isSynced': 1,
-                'deleted': 0,
-              });
-              debugPrint(
-                '✅ confirmEntry: Local repair_part saved for ${item.name} with firestoreId=$firestoreId',
-              );
-            }
-          }
-        } catch (e) {
-          debugPrint(
-            '⚠️ confirmEntry: Failed to create local financial records: $e',
-          );
-          // Không fail cả flow, chỉ log warning
-        }
+        await _writeLocalFinancialRecords(
+          entry: entry,
+          entryId: entryId,
+          totalCost: totalCost,
+          partFirestoreIds: partFirestoreIds,
+          userName: userName,
+          now: now,
+          synced: true,
+        );
       }
 
       // === GHI SUPPLIER_IMPORT_HISTORY VÀO LOCAL DB ===
       if (result['success'] == true) {
         final entry = result['entry'] as StockEntry;
-        // Note: userName and now not needed as we sync from Firestore
-
-        try {
-          final db = DBHelper();
-
-          // Ghi supplier_import_history vào local DB
-          // Lookup supplier local ID từ name hoặc firestoreId với fuzzy matching
-          int? supplierLocalId;
-          if (entry.supplierName != null || entry.supplierId != null) {
-            final suppliers = await db.getSuppliers();
-            final supplierNameUpper = entry.supplierName?.toUpperCase().trim();
-
-            // Thử match theo nhiều cách
-            final matchedSupplier = suppliers.firstWhere((s) {
-              // Match by firestoreId first (most reliable)
-              if (entry.supplierId != null &&
-                  s['firestoreId'] == entry.supplierId) {
-                return true;
-              }
-              // Match by exact name (uppercase)
-              if (supplierNameUpper != null &&
-                  s['name']?.toString().toUpperCase().trim() ==
-                      supplierNameUpper) {
-                return true;
-              }
-              // Match by name contains (fuzzy)
-              if (supplierNameUpper != null &&
-                  s['name']?.toString().toUpperCase().contains(
-                        supplierNameUpper,
-                      ) ==
-                      true) {
-                return true;
-              }
-              return false;
-            }, orElse: () => {});
-            supplierLocalId = matchedSupplier['id'] as int?;
-
-            debugPrint(
-              '📦 confirmEntry: Supplier lookup - name="${entry.supplierName}", fsId="${entry.supplierId}", localId=$supplierLocalId',
-            );
-          }
-
-          // Write supplier_import_history to local DB immediately so the
-          // supplier detail tab shows data before SyncService runs.
-          // upsertSupplierImportHistory deduplicates by referenceId+productName+imei
-          // so the later Firestore sync only updates the firestoreId, no duplicate.
-          final importNow = DateTime.now().millisecondsSinceEpoch;
-          final importerName =
-              _auth.currentUser?.email?.split('@').first.toUpperCase() ?? 'NV';
-          for (final item in entry.items) {
-            final history = {
-              'supplierId': supplierLocalId ?? entry.supplierId ?? 0,
-              'supplierName': entry.supplierName ?? '',
-              'productName': item.name,
-              'productBrand': item.brand ?? '',
-              'productModel': item.model ?? '',
-              'imei': item.imei ?? '',
-              'quantity': item.quantity,
-              'costPrice': (item.cost ?? 0).toInt(),
-              'totalAmount': item.totalCost.toInt(),
-              'paymentMethod': entry.paymentMethod,
-              'importDate': importNow,
-              'importedBy': importerName,
-              'importedByUid': _auth.currentUser?.uid ?? '',
-              'notes': entry.notes ?? '',
-              'referenceId': entryId,
-              'shopId': entry.shopId,
-              'isSynced': 0,
-            };
-            await db.upsertSupplierImportHistory(history);
-          }
-          debugPrint(
-            '✅ confirmEntry: Wrote ${entry.items.length} supplier_import_history rows to local DB',
-          );
-        } catch (e) {
-          debugPrint('⚠️ confirmEntry: Failed to save local data: $e');
-          // Không fail cả flow, chỉ log warning
-        }
+        await _writeLocalSupplierImportHistory(entry: entry, entryId: entryId);
       }
 
       // === TẠO PHIẾU NHẬP KHO (Import Order) ===
@@ -1088,6 +933,498 @@ class StockEntryService {
   /// tính công nợ/sổ quỹ, nên phải sửa ở đây thì số liệu mới khớp.
   /// Không sửa lại các bản ghi nhật ký cũ (financial_activity, supplier_import_history)
   /// — chỉ ghi thêm 1 dòng "đã điều chỉnh" mới, giữ nguyên lịch sử đã xảy ra.
+
+  // ===========================================================================
+  // Local mirror of a confirmed entry — shared by the online path (after the
+  // Firestore transaction) and the offline path (PLAN_OFFLINE_FIRST step 3b).
+  // Bodies moved verbatim from `confirmEntry`; `synced` marks repair_parts
+  // rows that already exist on the cloud (online) vs. local-only (offline).
+  // ===========================================================================
+
+  Future<void> _writeLocalFinancialRecords({
+    required StockEntry entry,
+    required String entryId,
+    required int totalCost,
+    required Map<String, String> partFirestoreIds,
+    required String userName,
+    required int now,
+    required bool synced,
+  }) async {
+    try {
+      final db = DBHelper();
+      final itemSummary = entry.items
+          .map((i) => '${i.name} x${i.quantity}')
+          .join(', ');
+
+      if (entry.paymentMethod == 'CÔNG NỢ') {
+        // === TẠO DEBT TRONG LOCAL DB ===
+        // Normalize supplierName để đảm bảo match khi query
+        final normalizedSupplierName = (entry.supplierName ?? 'NCC')
+            .toUpperCase()
+            .trim();
+
+        debugPrint(
+          '🔔 confirmEntry: Creating debt for supplier: $normalizedSupplierName, amount: $totalCost',
+        );
+
+        final debtId = await PaymentIntentService.createDebtRecord(
+          debtType: 'SHOP_OWES',
+          amount: totalCost,
+          personName: normalizedSupplierName,
+          note: itemSummary.isNotEmpty
+              ? 'Nợ nhập $itemSummary - ${MoneyUtils.formatCurrency(totalCost)}đ'
+              : 'Nợ nhập ${entry.totalQuantity} sản phẩm - ${MoneyUtils.formatCurrency(totalCost)}đ',
+          linkedId: entryId,
+          linkedType: 'stock_entry',
+          debtFirestoreId: 'debt_stock_${entryId}_$now',
+          notify: true,
+        );
+        debugPrint(
+          '✅ confirmEntry: Created local DEBT id=$debtId for CÔNG NỢ: $totalCost, supplier: $normalizedSupplierName',
+        );
+
+        // KHÔNG tạo PaymentIntent cho CÔNG NỢ vì:
+        // 1. Debt record đã được tạo (đây là financial record chính)
+        // 2. PaymentIntentService.createIntent() chỉ chấp nhận status=pending
+        // 3. Khi thanh toán công nợ, user sẽ tạo PaymentIntent mới từ trang NCC
+        debugPrint(
+          '✅ confirmEntry: CÔNG NỢ debt created, no PaymentIntent needed',
+        );
+      } else {
+        // === TIỀN MẶT / CHUYỂN KHOẢN - Tạo EXPENSE ===
+        // Ghi expense vào local DB
+        final itemBreakdown = entry.items
+            .map((i) => '${i.name} x${i.quantity} = ${MoneyUtils.formatVND(((i.cost ?? 0) * i.quantity).toInt())}')
+            .join('; ');
+        await db.insertExpense({
+          'firestoreId': 'exp_stock_${entryId}_$now',
+          'category': 'NHẬP HÀNG',
+          'title': 'Nhập kho từ ${entry.supplierName ?? 'NCC'}',
+          'amount': totalCost,
+          'paymentMethod': entry.paymentMethod,
+          'note': itemBreakdown.isNotEmpty ? itemBreakdown : 'Nhập ${entry.totalQuantity} sản phẩm',
+          'date': now,
+          'createdBy': userName,
+          'shopId': entry.shopId,
+          'isSynced': 0,
+        });
+        debugPrint(
+          '✅ confirmEntry: Created local EXPENSE for ${entry.paymentMethod}: $totalCost',
+        );
+
+        // Log to financial activity for reporting
+        try {
+          final productNames = entry.items
+              .map((i) => '${i.name} x${i.quantity}')
+              .join(', ');
+          await FinancialActivityService.logPurchase(
+            firestoreId: 'stock_${entryId}_$now',
+            amount: totalCost,
+            paymentMethod: entry.paymentMethod ?? 'TIỀN MẶT',
+            productName: productNames,
+            supplierName: entry.supplierName ?? 'NCC',
+            quantity: entry.totalQuantity,
+            createdAt: now,
+            createdBy: userName,
+          );
+          debugPrint('📝 Logged stock entry to financial activity');
+        } catch (e) {
+          debugPrint('⚠️ Failed to log stock entry activity: $e');
+        }
+
+        // KHÔNG tạo PaymentIntent cho TIỀN MẶT/CK vì:
+        // 1. Expense record đã được ghi (đây là financial record chính)
+        // 2. PaymentIntentService.createIntent() chỉ chấp nhận status=pending
+        debugPrint(
+          '✅ confirmEntry: Expense created, no PaymentIntent needed',
+        );
+      }
+
+      // === GHI LINH KIỆN VÀO LOCAL repair_parts ===
+      for (final item in entry.items) {
+        if (item.productType == 'LINH_KIEN') {
+          final firestoreId = partFirestoreIds[item.name];
+          if (firestoreId == null) {
+            debugPrint('⚠️ Missing firestoreId for part: ${item.name}');
+            continue;
+          }
+
+          final localDb = await db.database;
+          final existingPartRows = await localDb.query(
+            'repair_parts',
+            where: 'firestoreId = ?',
+            whereArgs: [firestoreId],
+            limit: 1,
+          );
+          final existingQty = existingPartRows.isNotEmpty
+              ? (existingPartRows.first['quantity'] as int? ?? 0)
+              : 0;
+          final existingCost = existingPartRows.isNotEmpty
+              ? (existingPartRows.first['cost'] as int? ?? 0)
+              : 0;
+          final importQty = item.quantity;
+          final importCost = (item.cost ?? 0).toInt();
+          final totalQty = existingQty + importQty;
+          final weightedCost = totalQty > 0
+              ? ((existingQty * existingCost) + (importQty * importCost)) ~/
+                    totalQty
+              : importCost;
+
+          await db.upsertRepairPart({
+            'firestoreId': firestoreId,
+            'partName': item.name,
+            'compatibleModels': item.model ?? '',
+            'cost': weightedCost,
+            'price': (item.price ?? 0).toInt(),
+            'quantity': totalQty,
+            'paymentMethod': entry.paymentMethod,
+            'createdBy': userName,
+            'createdAt': now,
+            'updatedAt': now,
+            'shopId': entry.shopId,
+            'isSynced': synced ? 1 : 0,
+            'deleted': 0,
+          });
+          debugPrint(
+            '✅ confirmEntry: Local repair_part saved for ${item.name} with firestoreId=$firestoreId',
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint(
+        '⚠️ confirmEntry: Failed to create local financial records: $e',
+      );
+      // Không fail cả flow, chỉ log warning
+    }
+  }
+
+  Future<void> _writeLocalSupplierImportHistory({
+    required StockEntry entry,
+    required String entryId,
+  }) async {
+    try {
+      final db = DBHelper();
+
+      // Ghi supplier_import_history vào local DB
+      // Lookup supplier local ID từ name hoặc firestoreId với fuzzy matching
+      int? supplierLocalId;
+      if (entry.supplierName != null || entry.supplierId != null) {
+        final suppliers = await db.getSuppliers();
+        final supplierNameUpper = entry.supplierName?.toUpperCase().trim();
+
+        // Thử match theo nhiều cách
+        final matchedSupplier = suppliers.firstWhere((s) {
+          // Match by firestoreId first (most reliable)
+          if (entry.supplierId != null &&
+              s['firestoreId'] == entry.supplierId) {
+            return true;
+          }
+          // Match by exact name (uppercase)
+          if (supplierNameUpper != null &&
+              s['name']?.toString().toUpperCase().trim() ==
+                  supplierNameUpper) {
+            return true;
+          }
+          // Match by name contains (fuzzy)
+          if (supplierNameUpper != null &&
+              s['name']?.toString().toUpperCase().contains(
+                    supplierNameUpper,
+                  ) ==
+                  true) {
+            return true;
+          }
+          return false;
+        }, orElse: () => {});
+        supplierLocalId = matchedSupplier['id'] as int?;
+
+        debugPrint(
+          '📦 confirmEntry: Supplier lookup - name="${entry.supplierName}", fsId="${entry.supplierId}", localId=$supplierLocalId',
+        );
+      }
+
+      // Write supplier_import_history to local DB immediately so the
+      // supplier detail tab shows data before SyncService runs.
+      // upsertSupplierImportHistory deduplicates by referenceId+productName+imei
+      // so the later Firestore sync only updates the firestoreId, no duplicate.
+      final importNow = DateTime.now().millisecondsSinceEpoch;
+      final importerName =
+          AppSession.userEmail?.split('@').first.toUpperCase() ?? 'NV';
+      for (final item in entry.items) {
+        final history = {
+          'supplierId': supplierLocalId ?? entry.supplierId ?? 0,
+          'supplierName': entry.supplierName ?? '',
+          'productName': item.name,
+          'productBrand': item.brand ?? '',
+          'productModel': item.model ?? '',
+          'imei': item.imei ?? '',
+          'quantity': item.quantity,
+          'costPrice': (item.cost ?? 0).toInt(),
+          'totalAmount': item.totalCost.toInt(),
+          'paymentMethod': entry.paymentMethod,
+          'importDate': importNow,
+          'importedBy': importerName,
+          'importedByUid': AppSession.userId ?? '',
+          'notes': entry.notes ?? '',
+          'referenceId': entryId,
+          'shopId': entry.shopId,
+          'isSynced': 0,
+        };
+        await db.upsertSupplierImportHistory(history);
+      }
+      debugPrint(
+        '✅ confirmEntry: Wrote ${entry.items.length} supplier_import_history rows to local DB',
+      );
+    } catch (e) {
+      debugPrint('⚠️ confirmEntry: Failed to save local data: $e');
+      // Không fail cả flow, chỉ log warning
+    }
+  }
+
+
+  // ===========================================================================
+  // OFFLINE confirm (PLAN_OFFLINE_FIRST step 3b) — same effects as the
+  // Firestore transaction above, applied to SQLite only. Rows are written with
+  // client ids + isSynced = 0 so the claim step (4) can push them later.
+  // ===========================================================================
+  Future<bool> _confirmEntryOffline(
+    String entryId, {
+    required bool allowPendingCost,
+    required bool requireSupplier,
+  }) async {
+    try {
+      final entry = await OfflineStockEntryStore.get(entryId);
+      if (entry == null) {
+        _showError('Không tìm thấy phiếu');
+        return false;
+      }
+      if (entry.status != StockEntryStatus.draft) {
+        _showError('Phiếu đã được xử lý');
+        return false;
+      }
+      final missing = entry.missingInfoWithSettings(
+        allowPendingCost: allowPendingCost,
+        requireSupplier: requireSupplier,
+      );
+      if (missing.isNotEmpty) {
+        _showError('Chưa đủ thông tin: ${missing.join(", ")}');
+        return false;
+      }
+
+      final db = DBHelper();
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final userId = AppSession.userId;
+      final userName =
+          AppSession.userEmail?.split('@').first.toUpperCase() ?? 'NV';
+      final shopId = entry.shopId;
+      final Map<String, String> partFirestoreIds = {};
+      final localDb = await db.database;
+      final allProducts = await db.getAllProducts();
+      var createdProducts = 0; // running suffix → unique client ids per entry
+
+      for (final item in entry.items) {
+        // ---- LINH_KIEN → repair_parts (weighted cost is done in the shared
+        // local mirror; here we only resolve / mint the part id).
+        if (item.productType == 'LINH_KIEN') {
+          final partNameUpper = item.name.toUpperCase().trim();
+          final modelUpper = (item.model ?? '').toUpperCase().trim();
+          final rows = await localDb.query(
+            'repair_parts',
+            where:
+                'shopId = ? AND UPPER(TRIM(partName)) = ? AND (deleted = 0 OR deleted IS NULL)',
+            whereArgs: [shopId, partNameUpper],
+          );
+          Map<String, dynamic>? match;
+          for (final r in rows) {
+            final m = (r['compatibleModels'] ?? '')
+                .toString()
+                .toUpperCase()
+                .trim();
+            if (m == modelUpper) {
+              match = r;
+              break;
+            }
+          }
+          if (match != null) {
+            var fid = (match['firestoreId'] ?? '').toString();
+            if (fid.isEmpty) {
+              fid = 'part_${now}_${match['id']}';
+              await localDb.update(
+                'repair_parts',
+                {'firestoreId': fid},
+                where: 'id = ?',
+                whereArgs: [match['id']],
+              );
+            }
+            partFirestoreIds[item.name] = fid;
+          } else {
+            partFirestoreIds[item.name] =
+                'part_${now}_${partFirestoreIds.length + 1}';
+          }
+          continue;
+        }
+
+        // ---- Existing non-phone product → merge quantity + weighted cost.
+        if (item.productType != 'DIEN_THOAI') {
+          final nameUpper = item.name.toUpperCase().trim();
+          final color = (item.color ?? '').toUpperCase().trim();
+          final size = (item.size ?? '').toUpperCase().trim();
+          final capacity = (item.capacity ?? '').toUpperCase().trim();
+          Product? existing;
+          for (final p in allProducts) {
+            if (p.status != 1) continue;
+            if (p.name.toUpperCase().trim() != nameUpper) continue;
+            if ((p.color ?? '').toUpperCase().trim() != color) continue;
+            if ((p.size ?? '').toUpperCase().trim() != size) continue;
+            if ((p.capacity ?? '').toUpperCase().trim() != capacity) continue;
+            existing = p;
+            break;
+          }
+          if (existing != null) {
+            final existingQty = existing.quantity;
+            final existingCost = existing.cost;
+            final newQty = item.quantity;
+            final newCost = (item.cost ?? 0).round();
+            final totalQty = existingQty + newQty;
+            final weightedCost = totalQty > 0
+                ? ((existingQty * existingCost + newQty * newCost) / totalQty)
+                      .round()
+                : newCost;
+            await db.upsertProduct(
+              existing.copyWith(
+                quantity: totalQty,
+                cost: weightedCost,
+                updatedAt: now,
+                isSynced: false,
+              ),
+            );
+            debugPrint(
+              '🔄 (offline) UPSERT product: $nameUpper qty $existingQty+$newQty=$totalQty',
+            );
+            continue;
+          }
+        }
+
+        // ---- New product row(s) (phones may be split into a batch).
+        final bool isPhoneWithBatch =
+            item.productType == 'DIEN_THOAI' &&
+            (item.imei == null || item.imei!.isEmpty) &&
+            item.quantity > 1;
+        final int productsToCreate = isPhoneWithBatch ? item.quantity : 1;
+        final int quantityPerProduct = isPhoneWithBatch ? 1 : item.quantity;
+        for (int i = 0; i < productsToCreate; i++) {
+          String productName = item.name;
+          String detail = '';
+          if (item.productType == 'DIEN_THOAI') {
+            final parts = <String>[item.name];
+            if (item.capacity != null && item.capacity!.isNotEmpty) {
+              parts.add(item.capacity!);
+            }
+            if (item.color != null && item.color!.isNotEmpty) {
+              parts.add(item.color!);
+            }
+            productName = parts.join(' ');
+            final detailParts = <String>[];
+            if (item.capacity != null && item.capacity!.isNotEmpty) {
+              detailParts.add(item.capacity!);
+            }
+            if (item.color != null && item.color!.isNotEmpty) {
+              detailParts.add(item.color!);
+            }
+            if (item.condition != null && item.condition!.isNotEmpty) {
+              detailParts.add(item.condition!);
+            }
+            detail = detailParts.join(' - ');
+          }
+          String productImei = item.imei ?? '';
+          if (isPhoneWithBatch) {
+            productImei = 'PENDING_${now}_${i + 1}';
+          }
+          String finalProductName = productName;
+          if (isPhoneWithBatch && productsToCreate > 1) {
+            finalProductName = '$productName #${i + 1}';
+          }
+          final product = Product(
+            firestoreId:
+                'prod_${now}_${entryId.hashCode.abs()}_${++createdProducts}',
+            shopId: shopId,
+            name: finalProductName,
+            description: detail,
+            type: item.productType,
+            imei: productImei,
+            brand: item.brand ?? '',
+            model: item.model ?? '',
+            labelInfo: item.labelInfo,
+            labelNote: item.labelNote,
+            cost: (item.cost ?? 0).round(),
+            price: (item.price ?? 0).round(),
+            quantity: quantityPerProduct,
+            supplier: entry.supplierName ?? '',
+            paymentMethod: entry.paymentMethod,
+            status: 1,
+            createdAt: now,
+            updatedAt: now,
+            condition: item.condition ?? 'Mới',
+            color: item.color,
+            capacity: item.capacity,
+            size: item.size,
+            sku: item.sku,
+            unit: item.unit,
+            locationCode: item.locationCode,
+            locationId: item.locationId,
+            locationName: item.locationName,
+            localImagePath: item.localImagePath,
+            isSynced: false,
+          );
+          await db.upsertProduct(product);
+        }
+      }
+
+      final totalCost = entry.calculatedTotalCost.round();
+      await _writeLocalFinancialRecords(
+        entry: entry,
+        entryId: entryId,
+        totalCost: totalCost,
+        partFirestoreIds: partFirestoreIds,
+        userName: userName,
+        now: now,
+        synced: false,
+      );
+      await _writeLocalSupplierImportHistory(entry: entry, entryId: entryId);
+      try {
+        await ImportOrderService.createFromStockEntry(
+          entry: entry,
+          entryId: entryId,
+        );
+      } catch (e) {
+        debugPrint(
+          '⚠️ (offline) confirmEntry: Failed to create import order: $e',
+        );
+      }
+
+      await OfflineStockEntryStore.put(
+        entry.copyWith(
+          status: StockEntryStatus.confirmed,
+          locked: true,
+          totalCost: totalCost.toDouble(),
+          confirmedAt: DateTime.now(),
+          confirmedBy: userId,
+        ),
+      );
+
+      debugPrint('✅ (offline) confirmEntry: SUCCESS');
+      _showSuccess('Đã xác nhận nhập kho');
+      EventBus().emit('stock_entries_changed');
+      EventBus().emit('products_changed');
+      EventBus().emit('parts_changed');
+      EventBus().emit('expenses_changed');
+      return true;
+    } catch (e) {
+      debugPrint('❌ (offline) confirmEntry ERROR: $e');
+      _showError('Lỗi xác nhận: $e');
+      return false;
+    }
+  }
+
   Future<bool> correctSupplierAndPayment({
     required String entryId,
     String? newSupplierId,
@@ -1150,7 +1487,7 @@ class StockEntryService {
             // Ghi Firestore NGAY (không chỉ queue) để tránh bị listener đồng bộ
             // real-time ghi đè ngược lại bản cũ trước khi hàng đợi kịp đẩy lên
             // (đúng pattern đã dùng khi xoá expense ở expense_view.dart).
-            try {
+            if (AppSession.syncEnabled) try {
               await _firestore.collection('debts').doc(debtFirestoreId).update({
                 'personName': normalizedNewSupplierName,
                 'note': newNote,
@@ -1173,7 +1510,7 @@ class StockEntryService {
           await db.softDeleteDebt(debtId, reason: cancelNote);
           if (debtFirestoreId != null) {
             // Ghi Firestore NGAY — lý do tương tự nhánh đổi tên NCC ở trên.
-            try {
+            if (AppSession.syncEnabled) try {
               await _firestore.collection('debts').doc(debtFirestoreId).update({
                 ...FirestoreWriteHelper.softDeletePayload(),
                 'note': '${debt['note'] ?? ''}\n$cancelNote',
@@ -1230,7 +1567,7 @@ class StockEntryService {
           ));
           if (expFirestoreId != null) {
             // Ghi Firestore NGAY — tránh bị listener real-time ghi đè ngược.
-            try {
+            if (AppSession.syncEnabled) try {
               await _firestore.collection('expenses').doc(expFirestoreId).update({
                 'title': newTitle,
                 'note': newNote,
@@ -1305,7 +1642,7 @@ class StockEntryService {
         final orderTotalAmount = (importOrderRow['totalAmount'] as num?)?.toInt() ?? 0;
         final newPaidAmount = newPaymentStatus == 'PAID' ? orderTotalAmount : 0;
         if (orderFirestoreId != null) {
-          try {
+          if (AppSession.syncEnabled) try {
             await _firestore.collection('import_orders').doc(orderFirestoreId).update({
               'supplierId': newSupplierId,
               'supplierName': newSupplierName,

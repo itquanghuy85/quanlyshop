@@ -8,6 +8,7 @@ import '../models/shift_swap_request_model.dart';
 import 'event_bus.dart';
 import 'user_service.dart';
 import 'firebase_usage_stats_service.dart';
+import 'app_session.dart';
 
 class ShiftSwapService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -30,6 +31,7 @@ class ShiftSwapService {
     String? targetUserName,
     String? note,
   }) async {
+    if (!AppSession.syncEnabled) return ''; // offline session: no cloud
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       throw Exception('Vui lòng đăng nhập lại để gửi yêu cầu đổi ca.');
@@ -73,6 +75,9 @@ class ShiftSwapService {
   }
 
   static Stream<List<ShiftSwapRequest>> watchMyRequests({int limit = 100}) {
+    if (!AppSession.syncEnabled) {
+      return const Stream.empty(); // offline session: no cloud
+    }
     return (() async* {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
@@ -90,6 +95,7 @@ class ShiftSwapService {
       List<ShiftSwapRequest> lastData = const <ShiftSwapRequest>[];
 
       Future<List<ShiftSwapRequest>> fetchOnce(String reason) async {
+        if (!AppSession.syncEnabled) return []; // offline session: no cloud
         _myRequestsFetchCount += 1;
         debugPrint(
           '[SYNC][FETCH] collection=shift_swap_requests_my count=$_myRequestsFetchCount reason=$reason limit=$effectiveLimit',
@@ -141,6 +147,9 @@ class ShiftSwapService {
   static Stream<List<ShiftSwapRequest>> watchPendingRequests({
     int limit = 120,
   }) {
+    if (!AppSession.syncEnabled) {
+      return const Stream.empty(); // offline session: no cloud
+    }
     return (() async* {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null || shopId.isEmpty) {
@@ -152,6 +161,7 @@ class ShiftSwapService {
       List<ShiftSwapRequest> lastData = const <ShiftSwapRequest>[];
 
       Future<List<ShiftSwapRequest>> fetchOnce(String reason) async {
+        if (!AppSession.syncEnabled) return []; // offline session: no cloud
         _pendingRequestsFetchCount += 1;
         debugPrint(
           '[SYNC][FETCH] collection=shift_swap_requests_pending count=$_pendingRequestsFetchCount reason=$reason limit=$effectiveLimit',
@@ -203,6 +213,7 @@ class ShiftSwapService {
   }
 
   static Future<void> approveRequest(ShiftSwapRequest request) async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     await _updateStatus(request: request, status: 'approved');
   }
 
@@ -210,6 +221,7 @@ class ShiftSwapService {
     ShiftSwapRequest request, {
     required String reason,
   }) async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     await _updateStatus(
       request: request,
       status: 'rejected',
@@ -218,6 +230,7 @@ class ShiftSwapService {
   }
 
   static Future<void> cancelRequest(ShiftSwapRequest request) async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || user.uid != request.requesterId) {
       throw Exception('Bạn không có quyền huỷ yêu cầu này.');
@@ -236,6 +249,7 @@ class ShiftSwapService {
   }
 
   static Future<List<Map<String, String>>> getShopStaffOptions() async {
+    if (!AppSession.syncEnabled) return []; // offline session: no cloud
     final shopId = await UserService.getCurrentShopId();
     if (shopId == null || shopId.isEmpty) return const [];
 
@@ -298,6 +312,7 @@ class ShiftSwapService {
   }
 
   static void debugLog(Object message) {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     debugPrint('ShiftSwapService: $message');
   }
 }

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../l10n/app_localizations.dart';
 import '../utils/file_picker_types.dart';
 import '../theme/app_colors.dart';
+import '../services/app_session.dart';
 import '../services/backup_service.dart';
 import '../services/notification_service.dart';
 import '../theme/app_text_styles.dart';
@@ -134,7 +135,7 @@ class _BackupRestoreViewState extends State<BackupRestoreView>
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 3, vsync: this);
+    _tab = TabController(length: AppSession.isOffline ? 2 : 3, vsync: this);
   }
 
   @override
@@ -209,17 +210,18 @@ class _BackupRestoreViewState extends State<BackupRestoreView>
           dividerColor: Colors.white24,
           tabs: [
             Tab(icon: const Icon(Icons.storage_outlined, size: 18), text: l10n.backupSqliteTabLabel),
-            Tab(icon: const Icon(Icons.cloud_outlined, size: 18), text: l10n.backupFirestoreTabLabel),
+            if (!AppSession.isOffline)
+              Tab(icon: const Icon(Icons.cloud_outlined, size: 18), text: l10n.backupFirestoreTabLabel),
             const Tab(icon: Icon(Icons.photo_library_outlined, size: 18), text: 'Đơn sửa + Ảnh'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tab,
-        children: const [
-          _SqliteTab(),
-          _FirestoreTab(),
-          _RepairImagesTab(),
+        children: [
+          const _SqliteTab(),
+          if (!AppSession.isOffline) const _FirestoreTab(),
+          const _RepairImagesTab(),
         ],
       ),
     );
@@ -251,6 +253,10 @@ class _SqliteTabState extends State<_SqliteTab> {
   }
 
   Future<void> _loadCloudBackups() async {
+    if (AppSession.isOffline) {
+      if (mounted) setState(() => _backupsLoaded = true);
+      return;
+    }
     try {
       final backups = await BackupService.listFirebaseBackups();
       if (mounted) {
@@ -801,8 +807,10 @@ class _SqliteTabState extends State<_SqliteTab> {
                     ),
                   ),
                 ],
-                AppSpacing.gapSm,
-                _ActionButton(label: l10n.backupUploadToCloud, icon: Icons.cloud_upload, onTap: _loading ? null : _backupToCloud, color: const Color(0xFF0A56C2)),
+                if (!AppSession.isOffline) ...[
+                  AppSpacing.gapSm,
+                  _ActionButton(label: l10n.backupUploadToCloud, icon: Icons.cloud_upload, onTap: _loading ? null : _backupToCloud, color: const Color(0xFF0A56C2)),
+                ],
               ],
             ),
             AppSpacing.gapMd,
@@ -846,25 +854,26 @@ class _SqliteTabState extends State<_SqliteTab> {
               ],
             ),
             AppSpacing.gapMd,
-            _SectionCard(
-              title: l10n.backupCloudListTitle,
-              icon: Icons.cloud,
-              children: [
-                if (!_backupsLoaded)
-                  const Center(child: CircularProgressIndicator())
-                else if (_storageUnauthorized)
-                  _StorageAuthWarning()
-                else if (_cloudBackups.isEmpty)
-                  Text(l10n.backupNoCloudBackups, style: TextStyle(fontSize: AppTextStyles.subtitle1Size, color: AppColors.textSecondary))
-                else
-                  ..._cloudBackups.map((b) => _SqliteBackupItem(
-                        name: b['name'] ?? '',
-                        timestamp: b['timestamp'] ?? '',
-                        onRestore: () => _restoreFromCloudBackup(b['name'] ?? ''),
-                        onDelete: () => _deleteCloudBackup(b['name'] ?? ''),
-                      )),
-              ],
-            ),
+            if (!AppSession.isOffline)
+              _SectionCard(
+                title: l10n.backupCloudListTitle,
+                icon: Icons.cloud,
+                children: [
+                  if (!_backupsLoaded)
+                    const Center(child: CircularProgressIndicator())
+                  else if (_storageUnauthorized)
+                    _StorageAuthWarning()
+                  else if (_cloudBackups.isEmpty)
+                    Text(l10n.backupNoCloudBackups, style: TextStyle(fontSize: AppTextStyles.subtitle1Size, color: AppColors.textSecondary))
+                  else
+                    ..._cloudBackups.map((b) => _SqliteBackupItem(
+                          name: b['name'] ?? '',
+                          timestamp: b['timestamp'] ?? '',
+                          onRestore: () => _restoreFromCloudBackup(b['name'] ?? ''),
+                          onDelete: () => _deleteCloudBackup(b['name'] ?? ''),
+                        )),
+                ],
+              ),
             AppSpacing.gapMd,
             _SectionCard(
               title: l10n.backupRestoreFromFileTitle,

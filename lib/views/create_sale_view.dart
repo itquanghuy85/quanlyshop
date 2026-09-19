@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firestore_write_helper.dart';
+import '../services/app_session.dart';
 import '../utils/money_utils.dart';
 import '../data/db_helper.dart';
 import '../models/product_model.dart';
@@ -999,7 +1000,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         // Sync trực tiếp lên cloud (tránh real-time listener ghi đè)
         if (product.firestoreId != null && product.firestoreId!.isNotEmpty) {
           try {
-            await FirebaseFirestore.instance
+            if (AppSession.syncEnabled) await FirebaseFirestore.instance
                 .collection('products')
                 .doc(product.firestoreId)
                 .update({
@@ -1331,6 +1332,8 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       // Tránh race condition khi 2 nhân viên bán cùng 1 món
 
       // Refresh token và claims để đảm bảo shopId được cập nhật trước transaction
+      // (bỏ qua ở phiên offline — không có tài khoản).
+      if (AppSession.syncEnabled) {
       try {
         // Gọi Cloud Function để sync claims từ Firestore lên JWT
         final claimsResult = await ClaimsService().refreshMyClaims();
@@ -1342,6 +1345,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       } catch (e) {
         debugPrint('⚠️ Could not refresh claims/token: $e');
         // Tiếp tục thử transaction, có thể vẫn hoạt động nếu claims đã đúng
+      }
       }
 
       // Kiểm tra xem tất cả sản phẩm đã có firestoreId chưa
@@ -1381,7 +1385,11 @@ class _CreateSaleViewState extends State<CreateSaleView> {
 
       // Thực hiện Firestore transaction (chỉ khi tất cả sản phẩm đã sync)
       Map<String, dynamic> transactionResult;
-      if (allHaveFirestoreId) {
+      if (AppSession.isOffline) {
+        // Offline session: every sale is local-first by design — no cloud
+        // transaction and no "chưa đồng bộ" prompt.
+        transactionResult = {'success': true, 'localOnly': true};
+      } else if (allHaveFirestoreId) {
         transactionResult = await FirestoreService.executeSaleTransaction(
           items: transactionItems,
           saleData: sale.toMap(),

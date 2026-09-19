@@ -15,8 +15,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../core/utils/money_utils.dart';
 import '../l10n/app_localizations.dart';
 import '../services/event_bus.dart';
-import '../services/current_shop_service.dart';
 import 'order_list_view.dart';
+import 'sync_account_view.dart';
 
 import 'inventory_view.dart';
 import 'missing_info_products_view.dart';
@@ -89,6 +89,8 @@ import '../services/sync_service.dart';
 import '../services/sync_orchestrator.dart';
 import '../services/sync_health_check.dart';
 import '../services/bank_notification_service.dart';
+import '../services/app_session.dart';
+import '../services/session_logout_service.dart';
 import '../services/user_service.dart';
 import '../services/firestore_service.dart';
 import '../services/firebase_usage_stats_service.dart';
@@ -707,16 +709,18 @@ class _HomeViewState extends State<HomeView>
         ),
         'widget': _buildInventoryTab(),
       },
-      {
-        'id': 'staff',
-        'permission': null, // Staff tab is always visible; gate actions inside
-        'item': BottomNavigationBarItem(
-          icon: const Icon(Icons.people_outline),
-          activeIcon: const Icon(Icons.people_rounded),
-          label: loc.staffTab,
-        ),
-        'widget': _buildStaffTab(),
-      },
+      // Staff/attendance/chat need an account → hidden in the offline session.
+      if (!AppSession.isOffline)
+        {
+          'id': 'staff',
+          'permission': null, // Staff tab is always visible; gate actions inside
+          'item': BottomNavigationBarItem(
+            icon: const Icon(Icons.people_outline),
+            activeIcon: const Icon(Icons.people_rounded),
+            label: loc.staffTab,
+          ),
+          'widget': _buildStaffTab(),
+        },
       {
         'id': 'finance',
         'permission':
@@ -1730,6 +1734,13 @@ class _HomeViewState extends State<HomeView>
 
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
+        if (AppSession.isOffline && mounted) {
+          setState(() {
+            _userName = 'Chủ cửa hàng';
+            _shopName =
+                AppSession.offlineShopName ?? AppSession.defaultOfflineShopName;
+          });
+        }
         return;
       }
 
@@ -2783,6 +2794,7 @@ class _HomeViewState extends State<HomeView>
   }
 
   Future<void> _bootstrapCoreDataFromCloud() async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     if (_cloudBootstrapRunning) return;
     _cloudBootstrapRunning = true;
     try {
@@ -2904,6 +2916,7 @@ class _HomeViewState extends State<HomeView>
               : const Icon(Icons.store_rounded, color: Colors.white, size: 20),
         ),
         actions: [
+          if (!AppSession.isOffline)
           NotificationBadge(
             unreadCount: _unreadCountStream,
             child: IconButton(
@@ -2944,10 +2957,11 @@ class _HomeViewState extends State<HomeView>
           ),
           // Simple sync indicator - tự động sync, tap để force sync
           const SimpleSyncIndicator(),
-          IconButton(
-            onPressed: () => _handleLogout(context),
-            icon: const Icon(Icons.logout_rounded, color: AppColors.error),
-          ),
+          if (!AppSession.isOffline)
+            IconButton(
+              onPressed: () => _handleLogout(context),
+              icon: const Icon(Icons.logout_rounded, color: AppColors.error),
+            ),
         ],
       ),
       body: _buildResponsiveBody(),
@@ -2999,14 +3013,16 @@ class _HomeViewState extends State<HomeView>
     // InheritedWidget dependencies, so no _dependents.isEmpty assertion.
     // It naturally disappears when sub-views are pushed (they cover HomeView).
     final ctrl = _quickActionController;
+    // AI chat runs on Cloud Functions → not available in the offline session.
+    final aiOverlay = AppSession.isOffline ? null : const AiChatOverlay();
     if (ctrl == null) {
-      return Stack(children: [rootWidget, const AiChatOverlay()]);
+      return Stack(children: [rootWidget, if (aiOverlay != null) aiOverlay]);
     }
     return Stack(
       children: [
         rootWidget,
         QuickActionBubble(controller: ctrl),
-        const AiChatOverlay(),
+        if (aiOverlay != null) aiOverlay,
       ],
     );
   }
@@ -3112,30 +3128,9 @@ class _HomeViewState extends State<HomeView>
       }
     } catch (e) {}
 
-    // Always sign out — cleanup failures must not block logout
-    try {
-      await SyncService.cancelAllSubscriptions();
-    } catch (_) {}
-    try {
-      EncryptionService.reset();
-    } catch (_) {}
-    try {
-      UserService.clearCache();
-    } catch (_) {}
-    try {
-      CurrentShopService().clear();
-    } catch (_) {}
-    try {
-      UserService.setAdminSelectedShop(null);
-    } catch (_) {}
-    try {
-      await DBHelper().clearAllData();
-      // Bắt buộc đi kèm: xem ghi chú ở `main.dart` / [2026-09-06d].
-      await SyncService.resetSyncTimestamps();
-    } catch (_) {}
-    try {
-      await FirebaseAuth.instance.signOut();
-    } catch (e) {}
+    // Always sign out — cleanup failures must not block logout.
+    // Sequence (and the offline "keep SQLite" rule) lives in one place.
+    await SessionLogoutService.signOut();
   }
 
   /// Responsive body: NavigationRail on wide screens, IndexedStack on mobile
@@ -3206,7 +3201,8 @@ class _HomeViewState extends State<HomeView>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        AiCommandBar(role: widget.role),
+        // AI assistant runs on Cloud Functions → needs an account.
+        if (!AppSession.isOffline) AiCommandBar(role: widget.role),
         if (nav != null) nav,
       ],
     );
@@ -3432,6 +3428,10 @@ class _HomeViewState extends State<HomeView>
       case DashboardCardType.alerts: // no widget
       case DashboardCardType.dailyReport:
         return false;
+      // Cloud-only cards: nothing to show in the offline session.
+      case DashboardCardType.chat:
+      case DashboardCardType.community:
+        return !AppSession.isOffline;
       default:
         return true;
     }
@@ -4465,6 +4465,17 @@ class _HomeViewState extends State<HomeView>
 
   /// Check if current user has permission for a shortcut
   bool _hasShortcutPermission(ShortcutConfig config) {
+    // Offline session: shortcuts that need an account are never shown.
+    if (AppSession.isOffline) {
+      switch (config.type) {
+        case ShortcutType.attendance:
+        case ShortcutType.staff:
+        case ShortcutType.paymentRequest:
+          return false;
+        default:
+          break;
+      }
+    }
     // Admin/Owner/SuperAdmin always have full access
     if (hasFullAccess) return true;
     final perm = config.requiredPermission;
@@ -4759,7 +4770,7 @@ class _HomeViewState extends State<HomeView>
               MaterialPageRoute(builder: (_) => finance_v2.FinanceV2View()),
             ),
           ),
-        if (_ok('allowViewAttendance'))
+        if (!AppSession.isOffline && _ok('allowViewAttendance'))
           _ShortcutItem(
             Icons.access_time,
             'Chấm công',
@@ -6402,9 +6413,28 @@ class _HomeViewState extends State<HomeView>
             ? loc.english
             : loc.vietnamese;
 
+        // Offline session: features that only exist on the cloud are hidden
+        // (PLAN_OFFLINE_FIRST step 3). `SyncAccountView` is the way back.
+        final cloudOnly = !AppSession.isOffline;
+
         final allItems = <_SettingsItem>[
+          // === Tài khoản ===
+          _SettingsItem(
+            group: 'account',
+            title: 'Đồng bộ & Tài khoản',
+            subtitle: AppSession.isOffline
+                ? 'Chế độ Offline — dữ liệu chỉ trên máy này'
+                : 'Trạng thái đồng bộ, tài khoản, đăng xuất',
+            icon: AppSession.isOffline
+                ? Icons.cloud_off_rounded
+                : Icons.cloud_done_rounded,
+            color: AppSession.isOffline ? Colors.grey : Colors.green,
+            keywords: 'đăng nhập đăng xuất tài khoản đồng bộ offline online cloud',
+            onTap: () => _fadePush(context, const SyncAccountView()),
+          ),
+
           // === Cửa hàng ===
-          if (hasFullAccess)
+          if (hasFullAccess && cloudOnly)
             _SettingsItem(
               group: 'shop',
               title: loc.shopSettings,
@@ -6545,7 +6575,7 @@ class _HomeViewState extends State<HomeView>
           ),
 
           // === Nhân sự & Chấm công ===
-          if (hasFullAccess)
+          if (hasFullAccess && cloudOnly)
             _SettingsItem(
               group: 'staff',
               title: 'Cài đặt lương',
@@ -6555,7 +6585,7 @@ class _HomeViewState extends State<HomeView>
               keywords: 'lương thưởng kpi hoa hồng phụ cấp khấu trừ',
               onTap: () => _fadePush(context, const HRSalarySettingsView()),
             ),
-          if (hasFullAccess)
+          if (hasFullAccess && cloudOnly)
             _SettingsItem(
               group: 'staff',
               title: 'Lịch làm việc',
@@ -6567,15 +6597,16 @@ class _HomeViewState extends State<HomeView>
             ),
 
           // === Thông báo ===
-          _SettingsItem(
-            group: 'notifications',
-            title: loc.notifications,
-            subtitle: loc.notificationSettingsDescription,
-            icon: Icons.notifications_rounded,
-            color: const Color(0xFF9C27B0),
-            keywords: 'âm thanh rung push notification nhắc việc',
-            onTap: () => _fadePush(context, const NotificationSettingsView()),
-          ),
+          if (cloudOnly)
+            _SettingsItem(
+              group: 'notifications',
+              title: loc.notifications,
+              subtitle: loc.notificationSettingsDescription,
+              icon: Icons.notifications_rounded,
+              color: const Color(0xFF9C27B0),
+              keywords: 'âm thanh rung push notification nhắc việc',
+              onTap: () => _fadePush(context, const NotificationSettingsView()),
+            ),
 
           // === Hướng dẫn ===
           _SettingsItem(
@@ -6638,7 +6669,7 @@ class _HomeViewState extends State<HomeView>
               keywords: 'excel xuất file nhập file import export',
               onTap: () => _fadePush(context, const ImportExportView()),
             ),
-          if (hasFullAccess)
+          if (hasFullAccess && cloudOnly)
             _SettingsItem(
               group: 'system',
               title: 'Kết nối KiotViet',
@@ -6708,6 +6739,7 @@ class _HomeViewState extends State<HomeView>
         ];
 
         const groupTitles = <String, String>{
+          'account': 'Tài khoản & Đồng bộ',
           'shop': 'Cửa hàng',
           'inventory': 'Kho hàng',
           'interface': 'Giao diện & Ngôn ngữ',
@@ -7172,57 +7204,83 @@ class _HomeViewState extends State<HomeView>
                 ],
               ),
             ),
-            const Divider(height: 20),
+            if (!AppSession.isOffline) ...[
+              const Divider(height: 20),
 
-            // Linked accounts
-            Row(
-              children: [
-                Icon(Icons.link, color: Colors.indigo.shade400, size: 18),
-                const SizedBox(width: 6),
-                Text(
-                  'Liên kết tài khoản',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: Colors.indigo.shade400,
+              // Linked accounts
+              Row(
+                children: [
+                  Icon(Icons.link, color: Colors.indigo.shade400, size: 18),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Liên kết tài khoản',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Colors.indigo.shade400,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // Email
+              _buildProviderTile(
+                Icons.email,
+                Colors.blue,
+                'Email',
+                passwordLinked,
+                null,
+                null,
+                providerEmail: SocialAuthService.passwordEmail,
+              ),
+              // Google
+              _buildProviderTile(
+                Icons.g_mobiledata,
+                Colors.red,
+                'Google',
+                googleLinked,
+                () => _linkSocialProvider('google'),
+                googleLinked ? () => _unlinkSocialProvider('google') : null,
+                providerEmail: SocialAuthService.googleEmail,
+              ),
+              // Apple
+              if (showApple)
+                _buildProviderTile(
+                  Icons.apple,
+                  Colors.black,
+                  'Apple',
+                  appleLinked,
+                  () => _linkSocialProvider('apple'),
+                  appleLinked ? () => _unlinkSocialProvider('apple') : null,
+                  providerEmail: SocialAuthService.appleEmail,
+                ),
+            ],
+            const Divider(height: 20),
+            // Offline session: no account to sign out of → offer "connect".
+            if (AppSession.isOffline)
+              InkWell(
+                onTap: () => _fadePush(context, const SyncAccountView()),
+                borderRadius: BorderRadius.circular(8),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    children: [
+                      Icon(Icons.cloud_upload_outlined,
+                          color: AppColors.primary, size: 20),
+                      SizedBox(width: 10),
+                      Text(
+                        'KẾT NỐI TÀI KHOẢN',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // Email
-            _buildProviderTile(
-              Icons.email,
-              Colors.blue,
-              'Email',
-              passwordLinked,
-              null,
-              null,
-              providerEmail: SocialAuthService.passwordEmail,
-            ),
-            // Google
-            _buildProviderTile(
-              Icons.g_mobiledata,
-              Colors.red,
-              'Google',
-              googleLinked,
-              () => _linkSocialProvider('google'),
-              googleLinked ? () => _unlinkSocialProvider('google') : null,
-              providerEmail: SocialAuthService.googleEmail,
-            ),
-            // Apple
-            if (showApple)
-              _buildProviderTile(
-                Icons.apple,
-                Colors.black,
-                'Apple',
-                appleLinked,
-                () => _linkSocialProvider('apple'),
-                appleLinked ? () => _unlinkSocialProvider('apple') : null,
-                providerEmail: SocialAuthService.appleEmail,
-              ),
-
-            const Divider(height: 20),
+              )
+            else
             // Logout
             InkWell(
               onTap: () => _confirmAndLogout(),
@@ -7474,29 +7532,7 @@ class _HomeViewState extends State<HomeView>
       ),
     );
     if (confirm == true) {
-      try {
-        await SyncService.cancelAllSubscriptions();
-      } catch (_) {}
-      try {
-        EncryptionService.reset();
-      } catch (_) {}
-      try {
-        UserService.clearCache();
-      } catch (_) {}
-      try {
-        CurrentShopService().clear();
-      } catch (_) {}
-      try {
-        UserService.setAdminSelectedShop(null);
-      } catch (_) {}
-      try {
-        await DBHelper().clearAllData();
-        // Bắt buộc đi kèm: xem ghi chú ở `main.dart` / [2026-09-06d].
-        await SyncService.resetSyncTimestamps();
-      } catch (_) {}
-      try {
-        await FirebaseAuth.instance.signOut();
-      } catch (e) {}
+      await SessionLogoutService.signOut();
     }
   }
 

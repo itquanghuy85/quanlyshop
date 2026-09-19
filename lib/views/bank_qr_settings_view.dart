@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/user_service.dart';
+import '../services/app_session.dart';
 import '../services/notification_service.dart';
 import '../utils/vietqr_builder.dart';
 import '../widgets/custom_app_bar.dart';
@@ -117,7 +118,7 @@ class _BankQrSettingsViewState extends State<BankQrSettingsView> {
 
     setState(() => _saving = true);
     try {
-      await FirebaseFirestore.instance
+      if (AppSession.syncEnabled) await FirebaseFirestore.instance
           .collection('shops')
           .doc(shopId)
           .collection('settings')

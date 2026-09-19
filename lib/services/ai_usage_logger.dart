@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'user_service.dart';
+import 'app_session.dart';
 
 /// Loại tương tác AI
 enum AiCallType {
@@ -25,6 +26,7 @@ class AiUsageLogger {
     int estimatedTokens = 0,
     List<String> matchedKb = const [],
   }) async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
@@ -54,6 +56,7 @@ class AiUsageLogger {
 
   /// Đếm số cloud AI calls của một user trong ngày hôm nay.
   static Future<int> countCloudCallsToday(String userId, String shopId) async {
+    if (!AppSession.syncEnabled) return 0; // offline session: no cloud
     try {
       final start = DateTime.now().copyWith(
         hour: 0, minute: 0, second: 0, millisecond: 0,
@@ -74,6 +77,7 @@ class AiUsageLogger {
 
   /// Tổng hợp usage theo ngày cho dashboard Owner.
   static Future<Map<String, dynamic>> getShopSummaryToday(String shopId) async {
+    if (!AppSession.syncEnabled) return {}; // offline session: no cloud
     try {
       final start = DateTime.now().copyWith(
         hour: 0, minute: 0, second: 0, millisecond: 0,

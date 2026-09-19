@@ -4,6 +4,155 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-19i] - Offline-first: nghiệm thu B1/B2 máy thật + 2 fix (re-tag phải reset isSynced; BUG CŨ quét trọn sau khi xoá local)
+
+- **B1 máy thật** (CPH2203 đăng ký `of20@m.com` → shop rỗng `4Skn04jl…`; CPH2239 offline → Kết nối →
+  Đã có tài khoản → precheck "SHOPRONG (chưa có dữ liệu)" → "Đưa dữ liệu trên máy lên"): re-tag 65 dòng,
+  token có shopId sau 1 lần, attach OK. **Phát hiện:** dòng đã `isSynced=1` (từ lần claim trước) không
+  được đẩy lại lên shop mới → `ClaimService.retagShopId` nay `SET shopId=?, isSynced=0` cho bảng có
+  cột isSynced (FFI test `claim_retag_test` bổ sung).
+- **B2 máy thật** (CPH2239 offline → m@m.com có dữ liệu → tick đã sao lưu → "Tải dữ liệu tài khoản về
+  máy"): xoá local + bootstrap online OK — nhưng chỉ tải được products 4/23, customers 0/24.
+  **BUG CŨ, ảnh hưởng cả người dùng hiện tại:** `SyncService.resetSyncTimestamps()` không xoá con trỏ
+  quét trọn nối tiếp `sweepAfter_*` (prefs + `_sweepResumeCache`) → sau khi xoá SQLite và đăng nhập
+  lại CÙNG shop trên cùng máy, lượt quét đi tiếp từ trang cũ, các trang đầu không bao giờ tải lại
+  (cùng họ với sự cố `[2026-09-06d]` 59/89 phiếu). Đã thêm prefix vào reset + clear cache. Kiểm chứng:
+  đăng xuất (xoá) → đăng nhập lại shop M trên CPH2239 → products 28, customers 24, sales 27 = CPH2203.
+- Màn "Đã kết nối" phân biệt thông điệp cho nhánh tải cloud về.
+- Trạng thái máy test cuối phiên: CPH2239 = q@m.com shop M (đầy đủ), CPH2203 = m@m.com shop M
+  (đầy đủ). Tài khoản test tạo thêm trên Firebase: `of19@m.com` (shop `shop_1789783568549_488np7`),
+  `of20@m.com` (shop `4Skn04jlT6clCQ4Nu24YLwoBycx1`, chứa 1 repair + 1 customer re-tag) — có thể xoá.
+
+---
+
+## [2026-09-19h] - Offline-first Bước 4–6/6: Kết nối tài khoản (claim), tài khoản đã có shop, sao lưu offline
+
+- **`ClaimService`** (nơi DUY NHẤT được gọi Firestore khi `AppSession.claimInProgress`):
+  `precheck` (users/{uid}.shopId hoặc shops.ownerUid → newAccount / existingShop + shop rỗng?);
+  `claimToNewAccount`: tạo `shops/{localShopId}` (+settings) & `users/{uid}` role owner — đúng payload
+  `syncUserInfo`, chỉ khác id; `_finishAttach`: **chờ claims có shopId** (poll `getIdTokenResult(true)`
+  ≤24s — Cloud Function `syncUserClaims` chậm vài giây, không chờ thì mọi write đầu bị permission-denied),
+  ghi `last_synced_*`/`lastUserId`/auth cache, `retagLocalOwner` (`createdBy/*Uid/userId='local_owner'`
+  → uid), lật `claimInProgress=false` → online, đẩy phiếu nhập offline lên `stock_entries`,
+  `syncAllToCloud` ×2 + `SyncOrchestrator.syncAll` (ids client giữ nguyên → §12 không cần backfill).
+- Tài khoản đã có shop (D4): shop cloud RỖNG → `attachToExistingEmptyShop` (`UPDATE OR REPLACE …
+  SET shopId` mọi bảng có shopId + `AppSession.rebindOfflineShopId`); shop có dữ liệu → chỉ
+  "Tải dữ liệu tài khoản về máy" (bắt tick đã sao lưu; `replaceLocalWithCloud` xoá local rồi để
+  AuthGate bootstrap thường) hoặc "Huỷ, giữ nguyên offline" (`abort` = signOut).
+- **`ClaimAccountView`** thật: Tạo tài khoản mới / Đã có tài khoản (email+mật khẩu), tiến độ từng
+  bước, thông báo lỗi FirebaseAuth tiếng Việt, dialog 3 lựa chọn, màn "Đã kết nối".
+- `main.dart` AuthGate: khi `claimInProgress` giữ nguyên HomeView offline bên dưới (không chạy
+  `_getRoleAfterSync` → tránh `syncUserInfo` tạo shop thứ hai id = uid).
+- Sao lưu (bước 6): `BackupRestoreView` offline ẩn tab Firestore, nút "Đưa lên cloud", danh sách
+  cloud; `BackupService.saveSqliteToLocal` chạy `PRAGMA wal_checkpoint(TRUNCATE)` trước khi copy
+  (bug cũ: bản sao thiếu dữ liệu còn trong -wal). Khôi phục có `remapShopIdToCurrentShop` dùng được offline.
+- `app_knowledge_base.dart`: 3 mục mới `offline-mode`, `sync-account`, `claim-account`.
+- Test: `test/claim_retag_test.dart` (FFI: retagLocalOwner, retagShopId với UNIQUE(shopId,phone) →
+  OR REPLACE, rebindOfflineShopId). `flutter test`: 703 pass, 2 fail cũ kiotviet.
+- Nghiệm thu adb CPH2239: offline (1 đơn sửa + 1 KH) → Kết nối → tạo TK mới `of19@m.com` → claims
+  về sau ~8s → upload → "Đã kết nối" → HomeView online (tab NV, chuông, AI), rows isSynced=1,
+  listener kéo lại đúng 1 repair từ cloud; Đăng xuất → giữ SQLite, về offline (keepLocal=true);
+  Kết nối lại bằng m@m.com (shop M có dữ liệu) → dialog đúng, "Huỷ" → offline nguyên vẹn.
+  CPH2203 (online m@m.com): cài đè, số liệu trước = sau, 0 `E/flutter`.
+- Chưa có: Google/Apple sign-in trong màn claim (chỉ email); test máy thật cho B1 (shop rỗng) &
+  B2 (tải cloud về) — mới có FFI/unit; iOS chưa chạy.
+
+---
+
+## [2026-09-19g] - Offline-first Bước 3/6: dùng app KHÔNG cần đăng nhập (cờ BẬT, chỉ mobile)
+
+**3a — phiên offline:**
+- `AppSession.kOfflineModeEnabled = true`; thêm `revision` (AuthGate rebuild không cần auth event),
+  `claimInProgress`, `ownsShop`, `setOfflineShopName`; `startOffline` ghi `last_synced_shop_id/user_id`.
+- `main.dart` AuthGate: offline → `HomeView(role: 'owner')` bỏ qua toàn bộ bootstrap cloud; mobile
+  không phiên → `WelcomeView` (Dùng ngay / Đăng nhập — LoginView render in-place, không push);
+  `_checkAndClearLocalDataIfShopChanged` return sớm khi offline/claim.
+- `SessionLogoutService`: 1 nơi đăng xuất cho cả 2 nút; **chỉ giữ SQLite khi shop là shop offline của
+  máy** (`ownsShop`) — nhân viên đăng xuất shop cloud vẫn xoá như cũ (không lộ giá vốn offline).
+- `SyncAccountView` (Cài đặt → Đồng bộ & Tài khoản): 3 trạng thái Offline / Online·Chờ mạng /
+  Online·Đã kết nối, đổi tên shop, **Mật khẩu bảo vệ** (PIN cục bộ), Đồng bộ ngay, Đăng xuất.
+  `SyncService.lastCloudSyncAt` mới.
+- `OwnerReauthService`: 13 site xác thực mật khẩu (xoá SP/đơn/chi phí, sửa đơn bán, chốt quỹ…) →
+  online Firebase re-auth như cũ; offline PIN cục bộ, chưa đặt PIN thì bỏ prompt.
+- HomeView offline: ẩn tab Nhân viên, chuông, AI bar/overlay, Chấm công/Nhân sự/Yêu cầu đóng tiền,
+  thẻ Chat/Cộng đồng, mục Cài đặt cloud-only, "Liên kết tài khoản"; nút Đăng xuất → "Kết nối tài khoản".
+- `create_sale_view`: offline bỏ transaction + dialog "SP chưa đồng bộ" + refresh claims;
+  `create_repair_order_view`: bỏ cloud-verify/direct upload/watcher, set `shopId`/`createdBy` từ
+  AppSession; `repair_detail_view._pushRepairStatusToCloud` return sớm.
+
+**3b — luồng cloud-first có nhánh local:**
+- `StockEntryService`: `OfflineStockEntryStore` (SharedPreferences JSON, vì `stock_entries` không có
+  bảng SQLite) cho create/update/cancel/getEntry/getPendingEntries; `_confirmEntryOffline` tạo
+  products (batch điện thoại, gộp phụ kiện theo tên+màu+size+dung lượng, giá vốn bình quân),
+  repair_parts (gộp theo tên+model), expense/debt, financial_activity, supplier_import_history,
+  import_orders(+items) — client id, `isSynced=0`. Khối local-mirror của nhánh online tách thành
+  `_writeLocalFinancialRecords` / `_writeLocalSupplierImportHistory` dùng chung (giữ nguyên dòng).
+- `ImportOrderService.createFromStockEntry` nhánh offline (`imp_/impi_` id, không Firestore);
+  `SupplierPaymentService` / `RepairPartnerPaymentService` giữ `isSynced=0`; `SalesReturnService`,
+  `AuditService`, `CategoryService`, `ReminderService` gate.
+- 13 chỗ `await FirebaseFirestore.instance…update/set` trong view lõi (order_list, sale_detail,
+  sale_list, create_sale, parts_inventory, expense, repair_detail, cash_closing×3, printer/bank_qr)
+  → `if (AppSession.syncEnabled)` (Firestore write offline không auth sẽ treo vô hạn).
+- `late final` cho field Firebase của StockEntryService/ImportOrderService/ClaimsService/
+  CurrentShopService/SyncOrchestrator để phiên offline & unit test không chạm SDK.
+- Test: `test/offline_stock_in_test.dart` (FFI thật, 3 test: draft→pending→confirm đủ 7 bảng; gộp
+  SP/PT với giá vốn bình quân + CÔNG NỢ tạo debt; cancel). Phát hiện & sửa bug trùng client id
+  giữa các item trong 1 phiếu (SP #1 bị ghi đè).
+- Nghiệm thu adb CPH2239: đăng xuất → Welcome → Dùng ngay → Home offline (không tab NV/chuông/AI),
+  tạo đơn sửa, NHẬP MỚI → LƯU TẠM → hàng chờ hiện → Huỷ, Đồng bộ & Tài khoản, kill/mở lại giữ
+  phiên; logcat 0 `E/flutter`, 0 `permission-denied`.
+- Còn lại: Bước 4 (claim vào tài khoản — `ClaimAccountView` đang là placeholder), 5, 6.
+
+---
+
+## [2026-09-19f] - Offline-first Bước 2/6: hàng rào `AppSession.syncEnabled` cho mọi đường ra cloud (cờ vẫn OFF)
+
+- `FirestoreService`: 79/85 hàm public thêm `if (_cloudOff) return <trung tính>;` ngay dòng đầu
+  (Future<void>→return, String?→null, bool→false, List→[], Map→{}, Stream→`Stream.empty()`;
+  `getRepairDoc` → throw `CloudDisabledException`). 6 hàm bỏ qua: helper private + `repairDocRef`.
+- `SyncService` 10 entry point (`initRealTimeSync/refreshCloudCollections/refreshCollectionNow/
+  syncAllToCloud/downloadAllFromCloud/syncRepairData/syncPaymentRelatedData/forceReinitializeSync/
+  syncQuickInputCodesToCloud/syncCustomersFromCloud`), `SyncOrchestrator.init/syncAll`
+  (trả `skipped`, hàng đợi giữ nguyên trong SQLite cho bước 4), `SyncHealthCheck.runFullCheck/autoFix`,
+  `NotificationService` (FCM init/token/listen/broadcast/sendCloudNotification), `ClaimsService`,
+  `CurrentShopService.init`, `StorageService.upload*`, `BackgroundUploadService`, `VersionGateWrapper`,
+  `HomeView._bootstrapCoreDataFromCloud`, `DBHelper` 4 chỗ "sync ngay" tồn kho products/repair_parts.
+- Service cloud-only gate toàn bộ public API: chat, community, payment_request, shift_swap,
+  attendance_approval, salary_calculation, ai_usage_logger, shop_deletion, super_admin_security.
+- `SyncOrchestrator._firestore`, `ClaimsService._functions/_auth`, `CurrentShopService._db` →
+  `late final` (không chạm Firebase khi khởi tạo singleton ở phiên offline / unit test).
+- Test `test/cloud_gate_test.dart` (9 test, KHÔNG init Firebase — gọi SDK là throw `[core/no-app]`
+  nên pass = hàng rào chạy trước SDK). `flutter analyze`: 0 error, không thêm lint mới.
+- Nghiệm thu adb 2 máy online (CPH2203 m@m.com ↔ CPH2239 q@m.com, shop M): sync khởi động bình
+  thường, tạo khách `GATEB2` máy A → máy B nhận khi resume, xoá → B mất; 0 `E/flutter`. Đã dọn.
+- ⚠️ PHÁT HIỆN cho bước 3: một số luồng lõi là **cloud-first** chứ không offline-first —
+  `StockEntryService` (nhập kho: Firestore transaction ~300 dòng tạo products/repair_parts/
+  financial_activities/supplier_debts), `ImportOrderService`, `SupplierPaymentService`,
+  `RepairPartnerPaymentService`, `SalesReturnService`, `executeSaleTransaction` (có fallback local),
+  `repair_detail_view.getRepairDoc`. Offline mode cần nhánh ghi local cho các luồng này.
+
+---
+
+## [2026-09-19e] - Offline-first Bước 1/6: `AppSession` + đổi ruột `UserService` (cờ OFF, 0 thay đổi hành vi)
+
+Bắt đầu dự án "dùng app không cần đăng nhập, online là tuỳ chọn" — kế hoạch đầy đủ 6 bước
+tại `DOCS/PLAN_OFFLINE_FIRST_2026-09-19.md`. Nhánh `feature/offline-first`.
+- **Mới** `lib/services/app_session.dart`: nguồn sự thật `mode` (none/offline/online),
+  `shopId`, `userId` (`local_owner` khi offline), `syncEnabled`; `restore()` chỉ đọc prefs,
+  `startOffline()` sinh `shop_<ms>_<rand>`; cờ `kOfflineModeEnabled = false` (D5).
+- `UserService`: `getShopIdSync/getCurrentShopId/getShopIdFast/ensureShopId/isShopIdReady/
+  getCurrentUserPermissions(Sync)/canViewCostPrice/getUserRole/getRoleFast/isCurrentUserAdmin/
+  getCurrentUserName` — thêm nhánh `AppSession.isOffline` **trước** nhánh đọc FirebaseAuth;
+  nhánh online giữ nguyên từng dòng. Tầng DB (56 chỗ) tự động đi theo.
+- `main.dart`: `AppSession.restore()` sau `initializeDateFormatting`, trước Firebase init.
+- Test `test/app_session_test.dart` (8 test, chạy KHÔNG init Firebase → chứng minh nhánh
+  offline trả về trước khi chạm SDK). `flutter test`: 686 pass, 2 fail cũ kiotviet.
+- Nghiệm thu adb: CPH2239 + CPH2203 cài đè build debug → Home/Kho (có giá vốn)/Tài chính,
+  bootstrap `role=owner` như cũ, số dòng products/repairs/sales/customers/debts/tồn kho
+  trước = sau, 0 `E/flutter`.
+
+---
+
 ## [2026-09-19d] - Phát hành 3.7.0+559 (store + web) · Kho kéo-làm-mới dùng con trỏ sync
 
 - **Kho:** kéo-xuống-làm-mới không còn `products.get()` trọn shop (1 read/SP) mà gọi

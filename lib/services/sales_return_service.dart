@@ -5,6 +5,7 @@ import '../data/db_helper.dart';
 import '../models/product_model.dart';
 import '../models/sales_return_model.dart';
 import '../services/user_service.dart';
+import 'app_session.dart';
 import '../services/audit_service.dart';
 import '../utils/money_utils.dart';
 import '../constants/product_constants.dart';
@@ -428,7 +429,7 @@ class SalesReturnService {
 
         // Sync debt to Firestore
         final debtFid = debt['firestoreId'] as String?;
-        if (debtFid != null) {
+        if (debtFid != null && AppSession.syncEnabled) {
           try {
             await _firestore.collection('debts').doc(debtFid).update({
               'totalAmount': newTotal,

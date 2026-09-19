@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../data/db_helper.dart';
 import '../services/user_service.dart';
+import 'app_session.dart';
 
 class AuditService {
   static final _db = DBHelper();
@@ -36,6 +37,7 @@ class AuditService {
         'isSynced': 0,
       };
       await _db.insertAuditLog(localData);
+      if (!AppSession.syncEnabled) return; // offline session: local log only
       
       // 2. Ghi lên Firestore (async, không chặn)
       FirebaseFirestore.instance.collection('audit_logs').doc(firestoreId).set({

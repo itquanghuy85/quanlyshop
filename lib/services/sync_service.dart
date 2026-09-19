@@ -19,6 +19,7 @@ import '../models/quick_input_code_model.dart';
 import 'storage_service.dart';
 import 'product_image_service.dart';
 import 'payment_intent_service.dart';
+import 'app_session.dart';
 import 'user_service.dart';
 import 'encryption_service.dart';
 import 'sync_orchestrator.dart';
@@ -254,6 +255,11 @@ class SyncService {
   static String? _lastRealtimeInitSignature;
   static const _downloadCooldown = Duration(seconds: 60);
   static bool _isSyncingAllToCloud = false;
+
+  /// Last moment any cloud ⇄ local exchange completed (cursor advanced or a
+  /// push pass finished). Shown in "Đồng bộ & Tài khoản".
+  static final ValueNotifier<DateTime?> lastCloudSyncAt =
+      ValueNotifier<DateTime?>(null);
   static DateTime? _lastSyncAllToCloudAt;
   static const _syncAllToCloudCooldown = Duration(seconds: 12);
   static const int _collectionPollLimit = 20;
@@ -525,6 +531,7 @@ class SyncService {
   /// sync lỗi). Dùng refresher đã đăng ký khi poll thành công — nếu chưa có
   /// (chưa init xong) hoặc đang poll thì bỏ qua, không tự mở kênh mới.
   static Future<void> refreshCollectionNow(String collection) async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     if (_isRefreshingCollections) return;
     final refresher = _collectionRefreshers[collection];
     if (refresher == null) {
@@ -668,6 +675,7 @@ class SyncService {
     bool force = false,
     Set<String>? only,
   }) async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     if (_collectionRefreshers.isEmpty) {
       debugPrint('⏭️ refreshCloudCollections: no active collections');
       return;
@@ -917,6 +925,7 @@ class SyncService {
     if (normalizedMs <= currentMs) return;
 
     _realtimeCursorCache[key] = normalizedMs;
+    lastCloudSyncAt.value = DateTime.now();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(key, normalizedMs);
   }
@@ -1342,6 +1351,7 @@ class SyncService {
 
   /// Khởi tạo đồng bộ thời gian thực
   static Future<void> initRealTimeSync(VoidCallback onDataChanged) async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     if (_isInitializingRealtime) {
       debugPrint('⏸️ initRealTimeSync: đang khởi tạo, bỏ qua lần gọi trùng');
       return;
@@ -3399,7 +3409,13 @@ class SyncService {
           (k) =>
               k.startsWith(_lastSyncPrefix) ||
               k.startsWith(_realtimeCursorPrefix) ||
-              k.startsWith(_fullSweepAtPrefix),
+              k.startsWith(_fullSweepAtPrefix) ||
+              // Con trỏ "quét trọn nối tiếp" (`sweepAfter_`) cũng phải về 0:
+              // xoá SQLite mà giữ nó thì lượt quét sau đi tiếp từ trang cũ và
+              // các trang đầu KHÔNG BAO GIỜ được tải lại (đo 2026-09-19: đăng
+              // nhập lại cùng shop trên máy vừa xoá dữ liệu → products 4/23,
+              // customers 0/24).
+              k.startsWith(_sweepResumePrefix),
         )
         .toList();
     for (final key in keys) {
@@ -3407,6 +3423,7 @@ class SyncService {
     }
     _lastDownloadTime = null;
     _realtimeCursorCache.clear();
+    _sweepResumeCache.clear();
     _incrementalRealtimeDisabled.clear();
     // Đổi shop / đăng xuất ⇒ dữ liệu shop mới chưa từng được quét trọn.
     _launchFullSweepDone.clear();
@@ -3418,6 +3435,7 @@ class SyncService {
 
   /// Force reinitialize real-time sync (useful when sync appears broken)
   static Future<void> forceReinitializeSync() async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     debugPrint('🔄 Force reinitializing real-time sync...');
     await cancelAllSubscriptions();
     // Reset sync timestamps để force full re-download
@@ -3434,6 +3452,7 @@ class SyncService {
   /// Targets: payment_intents, debt_payments, expenses, financial_activity_log
   /// Much faster than syncAllToCloud() since it only syncs payment-related tables
   static Future<void> syncPaymentRelatedData() async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
@@ -3786,6 +3805,7 @@ class SyncService {
   /// Targets: repairs table only - much faster than syncAllToCloud()
   /// Ensures status updates (chờ duyệt, giao máy, etc.) sync to other devices immediately
   static Future<void> syncRepairData() async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
@@ -3906,6 +3926,7 @@ class SyncService {
 
   /// Đẩy dữ liệu từ Local lên Cloud (Dùng khi có mạng trở lại)
   static Future<void> syncAllToCloud({bool force = false}) async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     final now = DateTime.now();
     if (_isSyncingAllToCloud) {
       debugPrint('⏭️ syncAllToCloud: already running, skip duplicate trigger');
@@ -5307,6 +5328,7 @@ class SyncService {
       debugPrint("Lỗi syncAllToCloud: $e");
     } finally {
       _isSyncingAllToCloud = false;
+      lastCloudSyncAt.value = DateTime.now();
     }
   }
 
@@ -5452,6 +5474,7 @@ class SyncService {
   /// Tải toàn bộ dữ liệu từ Cloud về (Dùng khi cài lại app hoặc đổi máy)
   /// [force] = true bỏ qua cooldown (dùng khi user chủ động bấm sync)
   static Future<void> downloadAllFromCloud({bool force = false}) async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     // ═══════════════════════════════════════════════════════════════════════
     // THROTTLE: Chặn gọi liên tục (tối thiểu 60s giữa các lần)
     // ═══════════════════════════════════════════════════════════════════════
@@ -5795,6 +5818,7 @@ class SyncService {
 
   /// Đồng bộ Quick Input Codes lên Cloud
   static Future<void> syncQuickInputCodesToCloud() async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     debugPrint("Bắt đầu syncQuickInputCodesToCloud...");
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -5877,6 +5901,7 @@ class SyncService {
 
   /// Đồng bộ customers từ Cloud xuống local DB
   static Future<void> syncCustomersFromCloud() async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     debugPrint("Bắt đầu syncCustomersFromCloud...");
     try {
       final user = FirebaseAuth.instance.currentUser;

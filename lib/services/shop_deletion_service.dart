@@ -7,6 +7,7 @@ import 'current_shop_service.dart';
 import 'user_service.dart';
 import 'event_bus.dart';
 import '../data/db_helper.dart';
+import 'app_session.dart';
 
 /// Service xử lý việc xóa shop an toàn
 /// 
@@ -30,6 +31,7 @@ class ShopDeletionService {
   
   /// Kiểm tra shop có đang bị xóa không
   static bool isShopBeingDeleted(String? shopId) {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     if (shopId == null) return false;
     return _deletingShopIds.contains(shopId);
   }
@@ -266,6 +268,7 @@ class ShopDeletionService {
 
   /// Kiểm tra user có quyền xóa shop không
   static Future<bool> canDeleteShop(String shopId) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     // Chỉ owner hoặc super admin mới được xóa
     if (UserService.isCurrentUserSuperAdmin()) return true;
     
@@ -284,6 +287,7 @@ class ShopDeletionService {
   
   /// Lấy danh sách shops có thể xóa (không phải shop đang dùng)
   static Future<List<Map<String, dynamic>>> getDeletableShops() async {
+    if (!AppSession.syncEnabled) return []; // offline session: no cloud
     try {
       final currentShopId = await CurrentShopService().getActiveShopId();
       final shops = await CurrentShopService().getOwnedShops();

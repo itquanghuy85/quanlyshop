@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../services/app_session.dart';
 import '../services/notification_service.dart';
 import '../utils/app_info.dart';
 
@@ -35,6 +36,8 @@ class _VersionGateWrapperState extends State<VersionGateWrapper> {
   }
 
   Future<void> _checkVersion() async {
+    // Offline session (no Firebase user): nothing to check against.
+    if (!AppSession.syncEnabled) return;
     try {
       final doc = await FirebaseFirestore.instance
           .collection('app_config')

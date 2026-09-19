@@ -11,6 +11,7 @@ import '../models/sale_order_model.dart';
 import '../models/purchase_order_model.dart';
 import '../models/attendance_model.dart';
 import '../models/quick_input_code_model.dart';
+import 'app_session.dart';
 import 'user_service.dart';
 import 'notification_service.dart';
 import 'encryption_service.dart';
@@ -21,7 +22,20 @@ import 'event_bus.dart';
 import '../developer/firestore_audit/firestore_audit_module.dart';
 import 'firebase_usage_stats_service.dart';
 
+/// Thrown by cloud-only calls that cannot return a neutral value while the
+/// app runs without a Firebase session (AppSession.syncEnabled == false).
+class CloudDisabledException implements Exception {
+  @override
+  String toString() =>
+      'CloudDisabledException: cloud access is disabled (offline session)';
+}
+
 class FirestoreService {
+  /// Global cloud gate (PLAN_OFFLINE_FIRST step 2): when the app runs in an
+  /// offline session nothing in this class may reach Firebase. Every public
+  /// method returns a neutral value before touching the SDK.
+  static bool get _cloudOff => !AppSession.syncEnabled;
+
   static final _db = FirebaseFirestore.instance;
   static int _expenseFetchCount = 0;
   static int _attendanceFetchCount = 0;
@@ -51,6 +65,7 @@ class FirestoreService {
   static Stream<DocumentSnapshot<Map<String, dynamic>>> watchRepairDoc(
     String firestoreId,
   ) {
+    if (_cloudOff) return const Stream.empty();
     return repairDocRef(firestoreId).snapshots().map((snap) {
       FirestoreAuditModule.logRead(
         collection: 'repairs',
@@ -70,6 +85,7 @@ class FirestoreService {
     int indexedLimit = 50,
     bool activeOnly = false,
   }) {
+    if (_cloudOff) return const Stream.empty();
     assert(shopId.isNotEmpty, 'watchRepairsByShop: shopId must not be empty');
     if (shopId.isEmpty) return const Stream.empty();
     Query<Map<String, dynamic>> query = _db
@@ -121,6 +137,7 @@ class FirestoreService {
   static Future<DocumentSnapshot<Map<String, dynamic>>> getRepairDoc(
     String firestoreId,
   ) {
+    if (_cloudOff) throw CloudDisabledException();
     return repairDocRef(firestoreId).get();
   }
 
@@ -145,6 +162,7 @@ class FirestoreService {
     String firestoreId,
     Map<String, dynamic> payload,
   ) {
+    if (_cloudOff) return Future.value();
     return repairDocRef(firestoreId).set(payload, SetOptions(merge: true));
   }
 
@@ -153,6 +171,7 @@ class FirestoreService {
   static Future<Map<String, Map<String, dynamic>>> fetchProductsByFirestoreIds(
     List<String> firestoreIds,
   ) async {
+    if (_cloudOff) return {};
     if (firestoreIds.isEmpty) return {};
     final result = <String, Map<String, dynamic>>{};
     const batchSize = 10;
@@ -211,6 +230,7 @@ class FirestoreService {
 
   // --- QUẢN LÝ ĐƠN NHẬP HÀNG (MỚI BỔ SUNG ĐỂ SỬA LỖI BUILD) ---
   static Future<String?> addPurchaseOrder(PurchaseOrder order) async {
+    if (_cloudOff) return null;
     try {
       // --- MONEY VALIDATION ---
       try {
@@ -330,6 +350,7 @@ class FirestoreService {
 
   // --- CÁC HÀM CỐ LÕI KHÁC (KHÔNG THAY ĐỔI LOGIC) ---
   static Future<String?> addRepair(Repair r) async {
+    if (_cloudOff) return null;
     try {
       // --- MONEY VALIDATION ---
       // allowZero: giống upsertRepair bên dưới — đơn sửa MỚI gần như luôn có
@@ -373,6 +394,7 @@ class FirestoreService {
   }
 
   static Future<void> upsertRepair(Repair r) async {
+    if (_cloudOff) return;
     if (r.firestoreId == null) return;
     try {
       // --- MONEY VALIDATION ---
@@ -397,6 +419,7 @@ class FirestoreService {
   }
 
   static Future<void> deleteRepair(String firestoreId) async {
+    if (_cloudOff) return;
     // Không nuốt lỗi ở đây — caller cần biết cloud delete thất bại để xóa
     // local đúng cách (giữ lại hoặc xếp hàng đợi retry), tránh mồ côi vĩnh
     // viễn document trên cloud trong khi local đã xóa sạch.
@@ -407,6 +430,7 @@ class FirestoreService {
   }
 
   static Future<String?> addSale(SaleOrder s) async {
+    if (_cloudOff) return null;
     try {
       var shopId = await UserService.getCurrentShopId();
       debugPrint('📤 addSale: shopId=$shopId');
@@ -486,6 +510,7 @@ class FirestoreService {
   }
 
   static Future<void> updateSaleCloud(SaleOrder s) async {
+    if (_cloudOff) return;
     if (s.firestoreId == null) return;
     try {
       // --- MONEY VALIDATION ---
@@ -519,6 +544,7 @@ class FirestoreService {
   }
 
   static Future<void> deleteSale(String firestoreId) async {
+    if (_cloudOff) return;
     // Không nuốt lỗi — xem lý do ở deleteRepair() ngay trên.
     await _db.collection('sales').doc(firestoreId).update({
       'deleted': true,
@@ -528,6 +554,7 @@ class FirestoreService {
   }
 
   static Future<String?> addProduct(Product p) async {
+    if (_cloudOff) return null;
     try {
       // --- MONEY VALIDATION ---
       // allowZero: kho cho phép hàng CHƯA định giá bán (price=0) và
@@ -556,6 +583,7 @@ class FirestoreService {
   }
 
   static Future<void> updateProductCloud(Product p) async {
+    if (_cloudOff) return;
     if (p.firestoreId == null) return;
     try {
       // --- MONEY VALIDATION ---
@@ -581,6 +609,7 @@ class FirestoreService {
   }
 
   static Future<void> deleteProduct(String firestoreId) async {
+    if (_cloudOff) return;
     try {
       await _db.collection('products').doc(firestoreId).update({
         'deleted': true,
@@ -600,6 +629,7 @@ class FirestoreService {
     String? linkedKey,
     String? linkedSummary,
   }) async {
+    if (_cloudOff) return;
     try {
       final shopId = await UserService.getCurrentShopId();
       await _db.collection('chats').add({
@@ -620,6 +650,7 @@ class FirestoreService {
     String? shopId,
     int limit = 20,
   }) {
+    if (_cloudOff) return const Stream.empty();
     Query<Map<String, dynamic>> q = _db.collection('chats');
     if (shopId != null) q = q.where('shopId', isEqualTo: shopId);
     return q
@@ -629,6 +660,7 @@ class FirestoreService {
   }
 
   static Future<void> addAuditLogCloud(Map<String, dynamic> logData) async {
+    if (_cloudOff) return;
     try {
       final shopId = await UserService.getCurrentShopId();
       final String docId = "log_${logData['createdAt']}_${logData['userId']}";
@@ -643,6 +675,7 @@ class FirestoreService {
   }
 
   static Future<void> addDebtCloud(Map<String, dynamic> debtData) async {
+    if (_cloudOff) return;
     try {
       // --- MONEY VALIDATION ---
       try {
@@ -673,6 +706,7 @@ class FirestoreService {
   static Future<void> addDebtPaymentCloud(
     Map<String, dynamic> paymentData,
   ) async {
+    if (_cloudOff) return;
     try {
       final shopId = await UserService.getCurrentShopId();
       final String docId =
@@ -711,6 +745,7 @@ class FirestoreService {
   }
 
   static Future<void> addExpenseCloud(Map<String, dynamic> expData) async {
+    if (_cloudOff) return;
     try {
       if (((expData['amount'] as int?) ?? 0) <= 0) return;
       final shopId = await UserService.getCurrentShopId();
@@ -731,6 +766,7 @@ class FirestoreService {
   }
 
   static Future<void> updateExpenseCloud(Map<String, dynamic> expData) async {
+    if (_cloudOff) return;
     if (expData['firestoreId'] == null) return;
     try {
       final shopId = await UserService.getCurrentShopId();
@@ -748,6 +784,7 @@ class FirestoreService {
   }
 
   static Future<void> deleteExpenseCloud(String firestoreId) async {
+    if (_cloudOff) return;
     try {
       await _db.collection('expenses').doc(firestoreId).update({
         'deleted': true,
@@ -761,6 +798,7 @@ class FirestoreService {
 
   // --- SALVAGE PHONES (Kho máy xác) ---
   static Future<void> addSalvagePhoneCloud(Map<String, dynamic> data) async {
+    if (_cloudOff) return;
     try {
       final shopId = await UserService.getCurrentShopId();
       final String docId =
@@ -780,6 +818,7 @@ class FirestoreService {
   }
 
   static Future<void> updateSalvagePhoneCloud(Map<String, dynamic> data) async {
+    if (_cloudOff) return;
     if (data['firestoreId'] == null) return;
     try {
       final shopId = await UserService.getCurrentShopId();
@@ -796,6 +835,7 @@ class FirestoreService {
   }
 
   static Future<void> deleteSalvagePhoneCloud(String firestoreId) async {
+    if (_cloudOff) return;
     try {
       await _db.collection('salvage_phones').doc(firestoreId).update({
         'deleted': true,
@@ -807,6 +847,7 @@ class FirestoreService {
   }
 
   static Stream<QuerySnapshot> getExpenseStream() async* {
+    if (_cloudOff) return;
     try {
       final shopId = await UserService.getCurrentShopId();
       Query query = _db.collection('expenses');
@@ -873,6 +914,7 @@ class FirestoreService {
 
   // --- ATTENDANCE CRUD METHODS ---
   static Future<String?> addAttendance(Attendance attendance) async {
+    if (_cloudOff) return null;
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null && !UserService.isCurrentUserSuperAdmin()) {
@@ -899,6 +941,7 @@ class FirestoreService {
   }
 
   static Future<void> updateAttendanceCloud(Attendance attendance) async {
+    if (_cloudOff) return;
     if (attendance.firestoreId == null) return;
     try {
       final shopId = await UserService.getCurrentShopId();
@@ -917,6 +960,7 @@ class FirestoreService {
   }
 
   static Future<void> deleteAttendance(String firestoreId) async {
+    if (_cloudOff) return;
     try {
       await _db.collection('attendance').doc(firestoreId).update({
         'deleted': true,
@@ -932,6 +976,7 @@ class FirestoreService {
   static Future<void> upsertCashClosingCloud(
     Map<String, dynamic> closingData,
   ) async {
+    if (_cloudOff) return;
     try {
       final shopId = await UserService.getCurrentShopId();
       final dateKey = closingData['dateKey'] as String;
@@ -954,6 +999,7 @@ class FirestoreService {
   static Future<Map<String, dynamic>?> getCashClosingFromCloud(
     String dateKey,
   ) async {
+    if (_cloudOff) return null;
     try {
       final shopId = await UserService.getCurrentShopId();
       final docId = "closing_${shopId}_$dateKey";
@@ -969,6 +1015,7 @@ class FirestoreService {
   }
 
   static Stream<DocumentSnapshot> getCashClosingStream(String dateKey) async* {
+    if (_cloudOff) return;
     try {
       final shopId = await UserService.getCurrentShopId();
       final docId = "closing_${shopId}_$dateKey";
@@ -982,6 +1029,7 @@ class FirestoreService {
     String? userId,
     String? dateKey,
   }) async* {
+    if (_cloudOff) return;
     try {
       final shopId = await UserService.getCurrentShopId();
       Query query = _db.collection('attendance');
@@ -1110,6 +1158,7 @@ class FirestoreService {
     List<String>? selectedCollections,
     List<String>? selectedStorageRoots,
   }) async {
+    if (_cloudOff) return null;
     try {
       final shopId = (shopIdOverride ?? await UserService.getCurrentShopId())
           ?.trim();
@@ -1181,6 +1230,7 @@ class FirestoreService {
   }
 
   static Future<void> deleteCustomer(String firestoreId) async {
+    if (_cloudOff) return;
     try {
       await _db.collection('customers').doc(firestoreId).delete();
       EventBus().emit('customers_changed');
@@ -1189,6 +1239,7 @@ class FirestoreService {
 
   /// Xóa supplier theo firestoreId - soft delete với deleted: true để tránh sync lại
   static Future<void> deleteSupplier(String firestoreId) async {
+    if (_cloudOff) return;
     try {
       // Soft delete: đánh dấu deleted = true thay vì xóa hẳn
       await _db.collection('suppliers').doc(firestoreId).update({
@@ -1208,6 +1259,7 @@ class FirestoreService {
 
   // --- QUẢN LÝ MÃ NHẬP NHANH (Đồng bộ giữa các thiết bị trong shop) ---
   static Future<String?> addQuickInputCode(QuickInputCode code) async {
+    if (_cloudOff) return null;
     try {
       final shopId = await UserService.getCurrentShopId();
       final docId =
@@ -1230,6 +1282,7 @@ class FirestoreService {
   }
 
   static Future<void> updateQuickInputCode(QuickInputCode code) async {
+    if (_cloudOff) return;
     try {
       if (code.firestoreId == null) return;
       final docRef = _db.collection('quick_input_codes').doc(code.firestoreId);
@@ -1245,6 +1298,7 @@ class FirestoreService {
   }
 
   static Future<void> deleteQuickInputCode(String firestoreId) async {
+    if (_cloudOff) return;
     try {
       await _db.collection('quick_input_codes').doc(firestoreId).update({
         'deleted': true,
@@ -1257,6 +1311,7 @@ class FirestoreService {
   }
 
   static Future<List<QuickInputCode>> getQuickInputCodesForShop() async {
+    if (_cloudOff) return [];
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return [];
@@ -1288,6 +1343,7 @@ class FirestoreService {
     Map<String, dynamic>? data,
     String priority = 'normal',
   }) async {
+    if (_cloudOff) return;
     try {
       final shopId = await UserService.getCurrentShopId();
       final currentUser = FirebaseAuth.instance.currentUser;
@@ -1359,6 +1415,7 @@ class FirestoreService {
   }
 
   static Stream<List<Map<String, dynamic>>> getUserNotifications() {
+    if (_cloudOff) return const Stream.empty();
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return Stream.value([]);
 
@@ -1392,10 +1449,8 @@ class FirestoreService {
               return snapshot.docs
                   .map((doc) => {...doc.data(), 'id': doc.id})
                   .where(
-                    (data) => _canViewNotificationType(
-                      data['type'] as String?,
-                      role,
-                    ),
+                    (data) =>
+                        _canViewNotificationType(data['type'] as String?, role),
                   )
                   .toList();
             })
@@ -1408,6 +1463,7 @@ class FirestoreService {
   }
 
   static Future<void> markNotificationAsRead(String notificationId) async {
+    if (_cloudOff) return;
     try {
       await _db.collection('shop_notifications').doc(notificationId).update({
         'isRead': true,
@@ -1419,6 +1475,7 @@ class FirestoreService {
   }
 
   static Stream<int> getUnreadCount() {
+    if (_cloudOff) return const Stream.empty();
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return Stream.value(0);
 
@@ -1470,6 +1527,7 @@ class FirestoreService {
   static Future<String?> addRepairPartner(
     Map<String, dynamic> partnerData,
   ) async {
+    if (_cloudOff) return null;
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null && !UserService.isCurrentUserSuperAdmin()) {
@@ -1501,6 +1559,7 @@ class FirestoreService {
   static Future<void> updateRepairPartner(
     Map<String, dynamic> partnerData,
   ) async {
+    if (_cloudOff) return;
     try {
       final firestoreId = partnerData['firestoreId'];
       if (firestoreId == null) return;
@@ -1516,6 +1575,7 @@ class FirestoreService {
   }
 
   static Future<void> deleteRepairPartner(int partnerId) async {
+    if (_cloudOff) return;
     try {
       // Note: We need to get the firestoreId from the local DB first
       // This method assumes the caller has the firestoreId
@@ -1532,6 +1592,7 @@ class FirestoreService {
   static Future<void> deleteRepairPartnerByFirestoreId(
     String firestoreId,
   ) async {
+    if (_cloudOff) return;
     try {
       // Soft delete: đánh dấu deleted = true thay vì xóa hẳn để tránh sync lại
       await _db.collection('repair_partners').doc(firestoreId).update({
@@ -1555,6 +1616,7 @@ class FirestoreService {
   static Future<String?> addPartnerRepairHistory(
     Map<String, dynamic> historyData,
   ) async {
+    if (_cloudOff) return null;
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null && !UserService.isCurrentUserSuperAdmin()) {
@@ -1581,6 +1643,7 @@ class FirestoreService {
   static Future<void> deletePartnerRepairHistoryByFirestoreId(
     String firestoreId,
   ) async {
+    if (_cloudOff) return;
     try {
       await _db.collection('partner_repair_history').doc(firestoreId).update({
         'deleted': true,
@@ -1599,6 +1662,7 @@ class FirestoreService {
 
   // --- SUPPLIERS ---
   static Future<String?> addSupplier(Map<String, dynamic> supplierData) async {
+    if (_cloudOff) return null;
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null && !UserService.isCurrentUserSuperAdmin()) {
@@ -1623,6 +1687,7 @@ class FirestoreService {
   }
 
   static Future<void> updateSupplier(Map<String, dynamic> supplierData) async {
+    if (_cloudOff) return;
     try {
       final firestoreId = supplierData['firestoreId'];
       if (firestoreId == null) return;
@@ -1638,6 +1703,7 @@ class FirestoreService {
   static Future<String?> addSupplierImportHistory(
     Map<String, dynamic> historyData,
   ) async {
+    if (_cloudOff) return null;
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null && !UserService.isCurrentUserSuperAdmin()) {
@@ -1664,6 +1730,7 @@ class FirestoreService {
   static Future<String?> addSupplierProductPrices(
     Map<String, dynamic> pricesData,
   ) async {
+    if (_cloudOff) return null;
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null && !UserService.isCurrentUserSuperAdmin()) {
@@ -1688,6 +1755,7 @@ class FirestoreService {
 
   // ========== CUSTOMER METHODS ==========
   static Future<String?> addCustomer(Map<String, dynamic> customerData) async {
+    if (_cloudOff) return null;
     try {
       final shopId = await UserService.getCurrentShopId();
       final docId =
@@ -1707,6 +1775,7 @@ class FirestoreService {
   }
 
   static Future<bool> updateCustomer(Map<String, dynamic> customerData) async {
+    if (_cloudOff) return false;
     try {
       final shopId = await UserService.getCurrentShopId();
       final firestoreId = customerData['firestoreId'];
@@ -1729,6 +1798,7 @@ class FirestoreService {
   /// [addCustomer]), nên đây là đường tra duy nhất chắc chắn đúng — giống hệt
   /// cách [updateCustomer] vẫn làm.
   static Future<bool> deleteCustomerByFirestoreId(String firestoreId) async {
+    if (_cloudOff) return false;
     if (firestoreId.isEmpty) return false;
     try {
       await _db.collection('customers').doc(firestoreId).update({
@@ -1751,6 +1821,7 @@ class FirestoreService {
   /// hàng" trong khi cloud vẫn `deleted=false`, rồi `syncCustomersFromCloud`
   /// upsert đè lại và khách hiện về. Nay trả về đúng số document đã cập nhật.
   static Future<bool> deleteCustomerById(int customerId) async {
+    if (_cloudOff) return false;
     try {
       final shopId = await UserService.getCurrentShopId();
       final snapshot = await _db
@@ -1792,6 +1863,7 @@ class FirestoreService {
     required String createdBy,
     String? note,
   }) async {
+    if (_cloudOff) return {};
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) {
@@ -1948,6 +2020,7 @@ class FirestoreService {
     required Map<String, dynamic> saleData,
     Map<String, dynamic>? debtData,
   }) async {
+    if (_cloudOff) return {};
     try {
       var shopId = await UserService.getCurrentShopId();
       final currentUser = FirebaseAuth.instance.currentUser;
@@ -2131,6 +2204,7 @@ class FirestoreService {
 
   /// Lấy tất cả cài đặt lương nhân viên của shop
   static Future<List<Map<String, dynamic>>> getEmployeeSalarySettings() async {
+    if (_cloudOff) return [];
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return [];
@@ -2156,6 +2230,7 @@ class FirestoreService {
   static Future<Map<String, dynamic>?> getEmployeeSalarySettingByStaffId(
     String staffId,
   ) async {
+    if (_cloudOff) return null;
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return null;
@@ -2184,6 +2259,7 @@ class FirestoreService {
   static Future<String?> saveEmployeeSalarySettings(
     Map<String, dynamic> settings,
   ) async {
+    if (_cloudOff) return null;
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return null;
@@ -2237,6 +2313,7 @@ class FirestoreService {
 
   /// Xóa cài đặt lương (soft delete)
   static Future<bool> deleteEmployeeSalarySettings(String staffId) async {
+    if (_cloudOff) return false;
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return false;
@@ -2265,6 +2342,7 @@ class FirestoreService {
 
   /// Lấy cài đặt mặc định của shop (cho nhân viên mới)
   static Future<Map<String, dynamic>?> getShopDefaultSalarySettings() async {
+    if (_cloudOff) return null;
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return null;
@@ -2286,6 +2364,7 @@ class FirestoreService {
   static Future<bool> saveShopDefaultSalarySettings(
     Map<String, dynamic> settings,
   ) async {
+    if (_cloudOff) return false;
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return false;
@@ -2312,6 +2391,7 @@ class FirestoreService {
   static Future<List<Map<String, dynamic>>?> getStaffByShopId(
     String shopId,
   ) async {
+    if (_cloudOff) return null;
     try {
       // Lấy từ collection users với shopId
       final snapshot = await _db
@@ -2351,6 +2431,7 @@ class FirestoreService {
   static Future<List<Map<String, dynamic>>> getShopStaffList(
     String shopId,
   ) async {
+    if (_cloudOff) return [];
     return await getStaffByShopId(shopId) ?? [];
   }
 
@@ -2362,6 +2443,7 @@ class FirestoreService {
   static Future<Map<String, dynamic>?> getShopDeductionSettings(
     String shopId,
   ) async {
+    if (_cloudOff) return null;
     try {
       final snapshot = await _db
           .collection('shop_deduction_settings')
@@ -2381,6 +2463,7 @@ class FirestoreService {
     String shopId,
     Map<String, dynamic> settings,
   ) async {
+    if (_cloudOff) return false;
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       debugPrint(
@@ -2418,6 +2501,7 @@ class FirestoreService {
     required int month,
     required int year,
   }) async {
+    if (_cloudOff) return [];
     try {
       final snapshot = await _db
           .collection('shops')
@@ -2448,6 +2532,7 @@ class FirestoreService {
     required int month,
     required int year,
   }) async {
+    if (_cloudOff) return [];
     try {
       final snapshot = await _db
           .collection('shops')
@@ -2476,6 +2561,7 @@ class FirestoreService {
     String shopId,
     Map<String, dynamic> adjustment,
   ) async {
+    if (_cloudOff) return false;
     try {
       adjustment['createdAt'] = FieldValue.serverTimestamp();
       adjustment['createdBy'] =
@@ -2501,6 +2587,7 @@ class FirestoreService {
     String adjustmentId,
     Map<String, dynamic> adjustment,
   ) async {
+    if (_cloudOff) return false;
     try {
       adjustment['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       adjustment['updatedBy'] =
@@ -2526,6 +2613,7 @@ class FirestoreService {
     String shopId,
     String adjustmentId,
   ) async {
+    if (_cloudOff) return false;
     try {
       await _db
           .collection('shops')
@@ -2545,6 +2633,7 @@ class FirestoreService {
   // ─── Storage Locations ──────────────────────────────────────────────────────
 
   static Future<String?> addStorageLocation(StorageLocation loc) async {
+    if (_cloudOff) return null;
     try {
       final shopId = loc.shopId ?? await UserService.getCurrentShopId();
       final docId = loc.firestoreId ?? 'loc_${loc.createdAt}_${loc.code}';
@@ -2566,6 +2655,7 @@ class FirestoreService {
   }
 
   static Future<void> updateStorageLocation(StorageLocation loc) async {
+    if (_cloudOff) return;
     if (loc.firestoreId == null) return;
     try {
       final data = loc.toMap()
@@ -2582,6 +2672,7 @@ class FirestoreService {
   }
 
   static Future<void> deleteStorageLocation(String firestoreId) async {
+    if (_cloudOff) return;
     try {
       await _db.collection('storage_locations').doc(firestoreId).update({
         'deleted': true,

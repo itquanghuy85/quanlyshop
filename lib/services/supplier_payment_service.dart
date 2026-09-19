@@ -3,6 +3,7 @@ import 'firestore_write_helper.dart';
 import '../data/db_helper.dart';
 import '../models/supplier_payment_model.dart';
 import '../services/user_service.dart';
+import 'app_session.dart';
 
 class SupplierPaymentService {
   final DBHelper _db = DBHelper();
@@ -46,6 +47,7 @@ class SupplierPaymentService {
       whereArgs: [id],
     ));
     // Soft delete in cloud
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     final shopId = await UserService.getCurrentShopId();
     final docId = 'sup_pay_${DateTime.now().millisecondsSinceEpoch}';
     await _firestore.collection('supplier_payments').doc(docId).set({
@@ -69,6 +71,8 @@ class SupplierPaymentService {
       where: 'id = ?',
       whereArgs: [payment.id],
     ));
+    // Offline session: keep isSynced = 0, the claim step pushes it later.
+    if (!AppSession.syncEnabled) return;
     await _firestore.collection('supplier_payments').doc(docId).set({
       ...payment.toMap(),
       'shopId': shopId,

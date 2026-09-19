@@ -5,11 +5,12 @@ import 'package:flutter/material.dart';
 import '../data/db_helper.dart';
 import '../models/import_order_model.dart';
 import '../models/stock_entry_model.dart';
+import '../services/app_session.dart';
 import '../services/user_service.dart';
 
 /// Service quản lý lịch sử phiếu nhập kho (Import Orders)
 class ImportOrderService {
-  static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static late final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final DBHelper _db = DBHelper();
 
   /// Tạo phiếu nhập kho từ StockEntry đã xác nhận
@@ -21,7 +22,7 @@ class ImportOrderService {
     try {
       final shopId = entry.shopId;
       final userName = await UserService.getCurrentUserName();
-      final userId = FirebaseAuth.instance.currentUser?.uid;
+      final userId = AppSession.userId;
       // Use confirmedAt if available (backfill), otherwise now
       final importDateMs = entry.confirmedAt?.millisecondsSinceEpoch
           ?? entry.createdAt?.millisecondsSinceEpoch
@@ -42,9 +43,16 @@ class ImportOrderService {
       final paymentStatus =
           entry.paymentMethod == 'CÔNG NỢ' ? 'DEBT' : 'PAID';
 
+      // Offline session (PLAN_OFFLINE_FIRST step 3b): client ids, SQLite only,
+      // isSynced = 0 — pushed to Firestore by the claim step.
+      final offline = AppSession.isOffline;
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+
       // 1. Create import_order doc in Firestore
-      final orderRef = _firestore.collection('import_orders').doc();
-      final orderFirestoreId = orderRef.id;
+      final orderRef = offline
+          ? null
+          : _firestore.collection('import_orders').doc();
+      final orderFirestoreId = orderRef?.id ?? 'imp_${nowMs}_$entryId';
 
       final orderData = <String, dynamic>{
         'shopId': shopId,
@@ -67,17 +75,21 @@ class ImportOrderService {
         'deleted': false,
       };
 
-      await orderRef.set(orderData);
+      if (orderRef != null) await orderRef.set(orderData);
 
       // 2. Create import_order_items docs in Firestore
-      final batch = _firestore.batch();
+      final batch = offline ? null : _firestore.batch();
       final itemFirestoreIds = <String>[];
 
       for (final item in entry.items) {
+        if (offline) {
+          itemFirestoreIds.add('impi_${nowMs}_${itemFirestoreIds.length + 1}');
+          continue;
+        }
         final itemRef = _firestore.collection('import_order_items').doc();
         itemFirestoreIds.add(itemRef.id);
 
-        batch.set(itemRef, {
+        batch!.set(itemRef, {
           'importOrderFirestoreId': orderFirestoreId,
           'productType': item.productType,
           'productName': item.name,
@@ -101,7 +113,7 @@ class ImportOrderService {
         });
       }
 
-      await batch.commit();
+      if (batch != null) await batch.commit();
 
       // 3. Save to local DB
       final localOrderData = {
@@ -123,7 +135,7 @@ class ImportOrderService {
         'notes': entry.notes ?? '',
         'createdAt': importDateMs,
         'updatedAt': importDateMs,
-        'isSynced': 1,
+        'isSynced': offline ? 0 : 1,
         'deleted': 0,
       };
 
@@ -151,7 +163,7 @@ class ImportOrderService {
           'condition': item.condition ?? '',
           'notes': '',
           'shopId': shopId,
-          'isSynced': 1,
+          'isSynced': offline ? 0 : 1,
           'deleted': 0,
         };
         await _db.insertImportOrderItem(itemData);
@@ -201,6 +213,7 @@ class ImportOrderService {
   /// Chạy 1 lần khi mở trang lịch sử nhập kho lần đầu
   static bool _backfillDone = false;
   static Future<int> backfillFromFirestore() async {
+    if (!AppSession.syncEnabled) return 0; // offline session: no cloud
     if (_backfillDone) return 0;
     _backfillDone = true;
 

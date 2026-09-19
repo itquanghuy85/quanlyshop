@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/app_localizations.dart';
+import 'app_session.dart';
 import 'encryption_service.dart';
 import 'claims_service.dart';
 import 'event_bus.dart';
@@ -109,7 +110,16 @@ class UserService {
     _cachedPermissionsTime = DateTime.now();
   }
 
+  /// Permissions for the offline (not signed in) session: the device owner
+  /// is the shop owner. See AppSession / PLAN_OFFLINE_FIRST.
+  static Map<String, dynamic> _offlineOwnerPermissions() => {
+        ..._defaultPermissionsForRole('owner'),
+        'role': 'owner',
+        'isManagerLike': true,
+      };
+
   static Map<String, dynamic>? getCurrentUserPermissionsSync() {
+    if (AppSession.isOffline) return _offlineOwnerPermissions();
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
       return {
@@ -147,6 +157,7 @@ class UserService {
 
   /// Check if shopId is currently valid and ready for data operations
   static bool isShopIdReady() {
+    if (AppSession.isOffline) return true;
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return false;
     if (_isSuperAdmin(currentUser)) {
@@ -160,6 +171,9 @@ class UserService {
   /// Get shopId synchronously (returns cached value or null)
   /// Use this for quick checks, use getCurrentShopId() for guaranteed fetch
   static String? getShopIdSync() {
+    // Offline session (no Firebase user): shopId is generated locally.
+    final offlineShopId = AppSession.shopId;
+    if (offlineShopId != null) return offlineShopId;
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return null;
     if (_isSuperAdmin(currentUser)) return _adminSelectedShopId;
@@ -339,6 +353,7 @@ class UserService {
 
   /// Kiểm tra user hiện tại có phải admin (owner/manager/super admin)
   static Future<bool> isCurrentUserAdmin() async {
+    if (AppSession.isOffline) return true;
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return false;
     if (_isSuperAdmin(user)) return true;
@@ -349,6 +364,9 @@ class UserService {
 
   /// Lấy tên hiển thị của user hiện tại
   static Future<String> getCurrentUserName() async {
+    if (AppSession.isOffline) {
+      return AppSession.offlineShopName ?? AppSession.defaultOfflineShopName;
+    }
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return '';
 
@@ -552,6 +570,8 @@ class UserService {
   }
 
   static Future<String?> getCurrentShopId() async {
+    final offlineShopId = AppSession.shopId;
+    if (offlineShopId != null) return offlineShopId;
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
       debugPrint("getCurrentShopId: không có currentUser");
@@ -705,6 +725,7 @@ final shopDoc = await _db.collection('shops').doc(shopId).get();
   // Lấy quyền của người dùng (Có nhận diện Admin đặc biệt)
   // NOTE: Prefer using ClaimsService().getRoleFromClaims() for faster access
   static Future<String> getUserRole(String uid) async {
+    if (AppSession.isOffline && uid == AppSession.localOwnerUid) return 'owner';
     final currentUser = FirebaseAuth.instance.currentUser;
 
     // Try to get role from Custom Claims first (faster, no Firestore read)
@@ -750,6 +771,7 @@ final shopDoc = await _db.collection('shops').doc(shopId).get();
 
   /// Fast role check using Custom Claims (no Firestore read)
   static Future<String> getRoleFast() async {
+    if (AppSession.isOffline) return 'owner';
     final claims = await ClaimsService().getClaimsFromToken();
     final isSuperAdminClaim =
         claims?['isSuperAdmin'] == true || claims?['role'] == 'super_admin';
@@ -764,6 +786,8 @@ final shopDoc = await _db.collection('shops').doc(shopId).get();
 
   /// Fast shopId check using Custom Claims (no Firestore read)
   static Future<String?> getShopIdFast() async {
+    final offlineShopId = AppSession.shopId;
+    if (offlineShopId != null) return offlineShopId;
     if (isCurrentUserSuperAdmin()) {
       return _adminSelectedShopId;
     }
@@ -1435,6 +1459,7 @@ final shopDoc = await _db.collection('shops').doc(shopId).get();
   static Future<Map<String, dynamic>> getCurrentUserPermissions({
     bool forceRefresh = false,
   }) async {
+    if (AppSession.isOffline) return _offlineOwnerPermissions();
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
       return {
@@ -2063,6 +2088,8 @@ final shopDoc = await _db.collection('shops').doc(shopId).get();
   /// Kiểm tra xem user hiện tại có quyền xem giá vốn không
   /// Sử dụng cache 5 phút để tránh gọi Firestore liên tục
   static Future<bool> canViewCostPrice() async {
+    // Offline session: the device owner IS the shop owner.
+    if (AppSession.isOffline) return true;
     // Super admin luôn được xem
     if (isCurrentUserSuperAdmin()) return true;
 

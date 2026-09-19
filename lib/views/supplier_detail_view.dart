@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../models/supplier_model.dart';
 import '../services/supplier_service.dart';
+import '../services/app_session.dart';
+import '../services/owner_reauth_service.dart';
 import '../services/user_service.dart';
 import '../data/db_helper.dart';
 import '../utils/money_utils.dart';
@@ -214,23 +216,18 @@ class _SupplierDetailViewState extends State<SupplierDetailView> with TickerProv
 
   Future<void> _deleteSupplier() async {
     final messenger = ScaffoldMessenger.of(context);
-    final password = await _showPasswordDialog();
-    if (password == null || password.isEmpty) return;
+    // Offline session without a local PIN: no prompt (OwnerReauthService).
+    final skipPrompt = await OwnerReauthService.shouldSkipPrompt();
+    final password = skipPrompt ? '' : await _showPasswordDialog();
+    if (password == null || (!skipPrompt && password.isEmpty)) return;
 
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
+    if (!AppSession.isOffline && FirebaseAuth.instance.currentUser == null) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Vui lòng đăng nhập lại'), backgroundColor: Colors.red),
       );
       return;
     }
-    try {
-      final credential = EmailAuthProvider.credential(
-        email: currentUser.email!,
-        password: password,
-      );
-      await currentUser.reauthenticateWithCredential(credential);
-    } catch (_) {
+    if (!await OwnerReauthService.verify(password)) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Mật khẩu không đúng!'), backgroundColor: Colors.red),
       );

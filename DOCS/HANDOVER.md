@@ -10,6 +10,29 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Web:** `https://quanlyshop.web.app` đã build+deploy lại **15/09** (`flutter build web --release` + `firebase deploy --only hosting`) — bao gồm mọi thay đổi từ `[2026-09-14f..h]` (Tổng tài sản, danh sách "Chờ NH tất toán", fix crash sửa đơn, fix popup Nhận tiền NH tràn màn hình, fix hồ sơ khách vãng lai). Trước đó web đứng ở bản 12/09, thiếu hết các thay đổi này — đây là nguyên nhân user thấy "web khác bản mobile" test hôm qua.
 **Last Updated:** 2026-09-18  
 
+**🚧 ĐANG LÀM — Offline-first (dùng app không cần đăng nhập), nhánh `feature/offline-first`:**
+- Kế hoạch 6 bước + quyết định thiết kế: `DOCS/PLAN_OFFLINE_FIRST_2026-09-19.md`.
+- ✅ Bước 1 (`[2026-09-19e]`): `AppSession` + đổi ruột `UserService`, cờ `kOfflineModeEnabled=false`
+  → chưa đổi gì cho người dùng. Đã test 2 máy.
+- ✅ Bước 2 (`[2026-09-19f]`): hàng rào `AppSession.syncEnabled` — FirestoreService 79 hàm,
+  SyncService/Orchestrator/HealthCheck, FCM, claims, storage, 9 service cloud-only. Test 2 máy online OK.
+- ⚠️ Phát hiện: nhập kho / phiếu nhập / trả NCC / trả đối tác / trả hàng là **cloud-first**
+  (Firestore transaction). Bước 3 phải thêm nhánh ghi local cho các luồng này — ước lượng tăng.
+- ✅ Bước 3 (`[2026-09-19g]`): cờ BẬT — Welcome, HomeView offline, SyncAccountView + PIN, OwnerReauth,
+  StockEntryService/ImportOrder/… nhánh local, 13 view gate Firestore write. FFI test nhập kho offline.
+  Test adb CPH2239 OK. **Người dùng cũ (có tài khoản) không đổi gì.**
+- ✅ Bước 4–6 (`[2026-09-19h]`): ClaimService/ClaimAccountView (tạo TK mới ✅ máy thật; TK có shop →
+  dialog D4 ✅; shop rỗng re-tag ✅ FFI), Backup offline + WAL checkpoint. Nhánh `feature/offline-first`
+  HOÀN TẤT 6/6 bước — **chưa merge master, chưa build release**.
+- ✅ B1/B2 máy thật (`[2026-09-19i]`) + fix re-tag reset isSynced + **fix bug cũ** resetSyncTimestamps
+  không xoá `sweepAfter_*` (xoá local rồi đăng nhập lại cùng shop → thiếu dữ liệu).
+- Còn trước khi phát hành: rà `firestore.rules` cho `stock_entries` set-by-client-id khi claim; chạy lại
+  kịch bản 2 máy `SYNC_AUDIT_REPORT_2026-09-18` sau merge; iOS build; Google/Apple trong màn claim.
+- Máy test cuối phiên: CPH2239 = q@m.com, CPH2203 = m@m.com (cùng shop M, dữ liệu đủ). Prefs QR
+  chuyển khoản còn dính giá trị shop cũ khi sang phiên offline (pre-existing, low).
+- ⚠️ Khi merge về `master` phải kiểm lại `main.dart:_checkAndClearLocalDataIfShopChanged` —
+  bước 3 sẽ sửa để KHÔNG xoá SQLite khi offline/claim.
+
 **Phương án A + khoá ngày chốt quỹ (`[2026-09-19a]`) ✅ Oppo 2 máy:**
 - Thu nợ đơn CÔNG NỢ nay vào Doanh thu/Vốn/Lãi theo tỉ lệ; chốt quỹ ghi `isLocked=1` (trước
   đây KHÔNG BAO GIỜ khoá) + nhân viên sync/đọc được `cash_closings` → bị chặn tạo đơn sau chốt.

@@ -163,6 +163,15 @@ class BackupService {
   /// Lưu một bản sao SQLite vào thư mục backup cục bộ của ứng dụng.
   static Future<String> saveSqliteToLocal() async {
     final dbPath = await _getDbPath();
+    // SQLite runs in WAL mode: recent writes live in `-wal` until a
+    // checkpoint. Copying only the main file would silently drop them
+    // (đo thật 2026-09-12: kéo SQLite phải kèm -wal). Fold the WAL in first.
+    try {
+      final db = await DBHelper().database;
+      await db.rawQuery('PRAGMA wal_checkpoint(TRUNCATE)');
+    } catch (e) {
+      debugPrint('⚠️ saveSqliteToLocal: wal_checkpoint failed: $e');
+    }
     final dbFile = File(dbPath);
     if (!await dbFile.exists()) {
       throw Exception('Không tìm thấy file database');

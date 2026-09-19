@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 import '../data/db_helper.dart';
 import '../services/first_time_guide_service.dart';
+import '../services/app_session.dart';
 import '../models/sale_order_model.dart';
 import '../services/event_bus.dart';
 import '../services/category_service.dart';
@@ -2176,7 +2177,7 @@ class _SaleListViewState extends State<SaleListView> {
           'isWalkIn': newPhone.isEmpty && newName.isEmpty,
           'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
         });
-        await FirebaseFirestore.instance
+        if (AppSession.syncEnabled) await FirebaseFirestore.instance
             .collection('sales')
             .doc(s.firestoreId)
             .update(encData);

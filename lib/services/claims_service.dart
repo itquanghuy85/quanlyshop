@@ -1,5 +1,6 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'app_session.dart';
 
 /// Service quản lý Custom Claims cho Firebase Auth
 /// 
@@ -12,8 +13,11 @@ class ClaimsService {
   factory ClaimsService() => _instance;
   ClaimsService._internal();
 
-  final _functions = FirebaseFunctions.instanceFor(region: 'asia-southeast1');
-  final _auth = FirebaseAuth.instance;
+  // Lazy so an offline session (or a unit test) never touches Firebase.
+  late final _functions = FirebaseFunctions.instanceFor(
+    region: 'asia-southeast1',
+  );
+  late final _auth = FirebaseAuth.instance;
 
   /// Cache claims để tránh gọi lại liên tục
   Map<String, dynamic>? _cachedClaims;
@@ -87,6 +91,7 @@ class ClaimsService {
   /// 
   /// QUAN TRỌNG: Sau khi gọi, user cần logout và login lại để áp dụng.
   Future<Map<String, dynamic>> refreshMyClaims() async {
+    if (!AppSession.syncEnabled) return {}; // offline session: no cloud
     try {
       final callable = _functions.httpsCallable('refreshMyClaimsV2');
       final result = await callable.call();
@@ -232,6 +237,7 @@ class ClaimsService {
 
   /// Force clear cache và refresh token
   Future<void> forceRefresh() async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     _clearCache();
     await _auth.currentUser?.getIdToken(true);
     await getClaimsFromToken(forceRefresh: true);
@@ -239,6 +245,7 @@ class ClaimsService {
 
   /// Start claims sync - placeholder for future implementation
   void startClaimsSync() {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     // Future: Add listener for claims changes
     _clearCache();
   }

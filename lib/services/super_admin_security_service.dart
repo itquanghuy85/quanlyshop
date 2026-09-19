@@ -6,6 +6,7 @@ import 'firestore_write_helper.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'app_session.dart';
 
 /// Security service for super admin account.
 /// Provides:
@@ -60,6 +61,7 @@ class SuperAdminSecurityService {
   /// khẩu, mà màn Cài đặt còn báo "Chưa thiết lập PIN" rồi ghi đè hash cũ nếu
   /// người dùng đặt lại. Vì vậy prefs trống thì phải hỏi cloud.
   static Future<bool> isPinSetup() async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
       final prefs = await SharedPreferences.getInstance();
       if (prefs.getBool(_pinSetKey) ?? false) return true;
@@ -90,6 +92,7 @@ class SuperAdminSecurityService {
 
   /// Set up or change PIN (4-6 digits)
   static Future<bool> setupPin(String pin) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     if (pin.length < 4 || pin.length > 6 || !RegExp(r'^\d+$').hasMatch(pin)) {
       return false;
     }
@@ -122,6 +125,7 @@ class SuperAdminSecurityService {
   /// 30s→1p→5p→15p→30p) — PIN chỉ 4–6 chữ số nên không chặn thì dò cạn được.
   /// Trong lúc bị khoá, hàm trả `false` ngay mà KHÔNG so hash.
   static Future<bool> verifyPin(String pin) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
       final prefs = await SharedPreferences.getInstance();
 
@@ -187,6 +191,7 @@ class SuperAdminSecurityService {
 
   /// Remove PIN
   static Future<bool> removePin() async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_pinHashKey);
@@ -219,6 +224,7 @@ class SuperAdminSecurityService {
 
   /// Update activity timestamp (call on user interaction)
   static void touchActivity() {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     if (_isSessionVerified) {
       _lastActivityTime = DateTime.now();
     }
@@ -226,6 +232,7 @@ class SuperAdminSecurityService {
 
   /// Check if current session is still valid
   static bool isSessionValid() {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     if (!_isSessionVerified) return false;
     if (_lastActivityTime == null) return false;
     return DateTime.now().difference(_lastActivityTime!) < _sessionTimeout;
@@ -233,12 +240,14 @@ class SuperAdminSecurityService {
 
   /// Lock the session (require PIN again)
   static void lockSession() {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     _isSessionVerified = false;
     _lastActivityTime = null;
   }
 
   /// Clear all session state (on logout)
   static void clearSession() {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     _isSessionVerified = false;
     _lastActivityTime = null;
   }
@@ -265,11 +274,13 @@ class SuperAdminSecurityService {
 
   /// Log shop selection
   static Future<void> logShopAccess(String shopId, String? shopName) async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     await _logAdminAction('shop_access: $shopId ($shopName)');
   }
 
   /// Log super admin login
   static Future<void> logLogin() async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     await _logAdminAction('super_admin_login');
   }
 
@@ -281,6 +292,7 @@ class SuperAdminSecurityService {
     Map<String, dynamic>? metadata,
     bool success = true,
   }) async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     try {
       final user = _auth.currentUser;
       if (user == null) return;
@@ -302,6 +314,7 @@ class SuperAdminSecurityService {
 
   /// Get recent audit logs
   static Future<List<Map<String, dynamic>>> getRecentAuditLogs({int limit = 50}) async {
+    if (!AppSession.syncEnabled) return []; // offline session: no cloud
     try {
       final user = _auth.currentUser;
       if (user == null) return [];

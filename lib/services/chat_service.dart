@@ -10,6 +10,7 @@ import 'user_service.dart';
 import 'notification_service.dart';
 import 'storage_service.dart';
 import 'audit_service.dart';
+import 'app_session.dart';
 
 /// Service quản lý Chat nâng cao với đầy đủ tính năng
 class ChatService {
@@ -64,6 +65,7 @@ class ChatService {
     List<String>? mentions,
     int priority = 0,
   }) async {
+    if (!AppSession.syncEnabled) return null; // offline session: no cloud
     if (message.trim().isEmpty || message.length > _kMaxMessageLength) return null;
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -130,6 +132,7 @@ class ChatService {
     required String linkedSummary,
     Map<String, dynamic>? linkedData,
   }) async {
+    if (!AppSession.syncEnabled) return null; // offline session: no cloud
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return null;
@@ -183,6 +186,7 @@ class ChatService {
     required String message,
     int priority = 0,
   }) async {
+    if (!AppSession.syncEnabled) return null; // offline session: no cloud
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return null;
@@ -213,6 +217,7 @@ class ChatService {
     required List<File> images,
     String? caption,
   }) async {
+    if (!AppSession.syncEnabled) return null; // offline session: no cloud
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return null;
@@ -275,6 +280,7 @@ class ChatService {
 
   /// Thêm reaction vào tin nhắn
   static Future<bool> addReaction(String messageId, String emoji) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return false;
@@ -293,6 +299,7 @@ class ChatService {
 
   /// Xóa reaction khỏi tin nhắn
   static Future<bool> removeReaction(String messageId, String emoji) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return false;
@@ -314,6 +321,7 @@ class ChatService {
     String emoji,
     bool hasReacted,
   ) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     if (hasReacted) {
       return removeReaction(messageId, emoji);
     } else {
@@ -323,6 +331,7 @@ class ChatService {
 
   /// Chỉnh sửa tin nhắn
   static Future<bool> editMessage(String messageId, String newMessage) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return false;
@@ -349,6 +358,7 @@ class ChatService {
 
   /// Xóa tin nhắn (soft delete)
   static Future<bool> deleteMessage(String messageId) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return false;
@@ -378,6 +388,7 @@ class ChatService {
 
   /// Ghim tin nhắn — chỉ Manager trở lên
   static Future<bool> pinMessage(String messageId, bool isPinned) async {
+    if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
       final perms = await UserService.getCurrentUserPermissions();
       if (perms['allowPinChat'] != true) {
@@ -397,6 +408,7 @@ class ChatService {
 
   /// Đánh dấu đã đọc
   static Future<void> markAsRead(String messageId) async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
@@ -411,6 +423,7 @@ class ChatService {
 
   /// Đánh dấu tất cả đã đọc
   static Future<void> markAllAsRead() async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
@@ -447,6 +460,7 @@ class ChatService {
     int limit = 20,
     String? beforeMessageId,
   }) async* {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     final shopId = await UserService.getCurrentShopId();
     if (shopId == null) {
       yield [];
@@ -468,6 +482,7 @@ class ChatService {
     File imageFile,
     String folder,
   ) async {
+    if (!AppSession.syncEnabled) return null; // offline session: no cloud
     try {
       return await StorageService.uploadXFileAndGetUrl(
         XFile(imageFile.path),
@@ -481,6 +496,7 @@ class ChatService {
 
   /// Stream tin nhắn đã ghim
   static Stream<List<ChatMessage>> pinnedMessagesStream() async* {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     final shopId = await UserService.getCurrentShopId();
     if (shopId == null) {
       yield [];
@@ -503,6 +519,7 @@ class ChatService {
 
   /// Đếm tin nhắn chưa đọc
   static Future<int> getUnreadCount() async {
+    if (!AppSession.syncEnabled) return 0; // offline session: no cloud
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return 0;
@@ -531,6 +548,7 @@ class ChatService {
 
   /// Stream số tin chưa đọc
   static Stream<int> unreadCountStream() async* {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       yield 0;
@@ -562,6 +580,7 @@ class ChatService {
 
   /// Set trạng thái đang gõ
   static Future<void> setTypingStatus(bool isTyping) async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
@@ -600,6 +619,7 @@ class ChatService {
 
   /// Stream người đang gõ
   static Stream<List<TypingUser>> typingUsersStream() async* {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     final user = FirebaseAuth.instance.currentUser;
     final shopId = await UserService.getCurrentShopId();
     if (shopId == null) {
@@ -624,6 +644,7 @@ class ChatService {
 
   /// Cập nhật trạng thái online
   static Future<void> setOnlineStatus(bool isOnline) async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
@@ -647,6 +668,7 @@ class ChatService {
 
   /// Stream users online
   static Stream<List<OnlineUser>> onlineUsersStream() async* {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     final shopId = await UserService.getCurrentShopId();
     if (shopId == null) {
       yield [];
@@ -670,6 +692,7 @@ class ChatService {
 
   /// Tìm kiếm tin nhắn
   static Future<List<ChatMessage>> searchMessages(String query) async {
+    if (!AppSession.syncEnabled) return []; // offline session: no cloud
     try {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return [];
@@ -714,6 +737,7 @@ class ChatService {
 
   /// Lấy tin nhắn theo ID
   static Future<ChatMessage?> getMessageById(String messageId) async {
+    if (!AppSession.syncEnabled) return null; // offline session: no cloud
     try {
       final doc = await _db.collection(_collectionChats).doc(messageId).get();
       if (!doc.exists) return null;
@@ -726,6 +750,7 @@ class ChatService {
 
   /// Xóa tin nhắn cũ (admin only)
   static Future<int> deleteOldMessages(int daysOld) async {
+    if (!AppSession.syncEnabled) return 0; // offline session: no cloud
     try {
       final isAdmin = await UserService.isCurrentUserAdmin();
       if (!isAdmin) return 0;
@@ -758,6 +783,7 @@ class ChatService {
 
   /// Cleanup khi dispose
   static void cleanup() {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     _typingTimer?.cancel();
     setTypingStatus(false);
     setOnlineStatus(false);

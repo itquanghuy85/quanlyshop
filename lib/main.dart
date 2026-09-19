@@ -15,11 +15,14 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'firebase_options.dart';
 import 'views/home_view.dart';
 import 'views/login_view.dart';
+import 'views/welcome_view.dart';
 import 'views/repair_detail_view.dart';
 import 'views/sale_detail_view.dart';
 import 'views/splash_view.dart'; // Import màn hình Splash mới
 import 'views/super_admin_console_view.dart'; // Super Admin Console
 import 'theme/app_theme.dart'; // Import theme thống nhất
+import 'services/app_session.dart';
+import 'services/owner_reauth_service.dart';
 import 'services/user_service.dart';
 import 'services/notification_service.dart';
 import 'services/connectivity_service.dart';
@@ -261,6 +264,10 @@ Future<void> main() async {
         FlutterNativeSplash.preserve(widgetsBinding: binding);
       }
       await initializeDateFormatting('vi_VN');
+      // Restore offline session (prefs only, no Firebase). Must run before
+      // any UserService.getShopIdSync() call.
+      await AppSession.restore();
+      await OwnerReauthService.warmUp();
       _enforceFirebaseOnlyMode();
 
       // Firestore Audit Monitor — kill switch OFF by default, zero overhead when OFF.
@@ -937,6 +944,12 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   Future<void> _checkAndClearLocalDataIfShopChanged(
     String? currentShopId,
   ) async {
+    // Offline session / claim in progress: SQLite IS the user's data, never
+    // wipe it here (PLAN_OFFLINE_FIRST step 3, decision "logout không xoá").
+    if (AppSession.isOffline || AppSession.claimInProgress) {
+      debugPrint('⏸️ _checkAndClearLocalDataIfShopChanged: skip (offline/claim)');
+      return;
+    }
     if (currentShopId == null || currentShopId.isEmpty) {
       return; // Super admin chưa chọn shop hoặc chưa có shopId
     }
@@ -986,29 +999,66 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     );
   }
 
+  /// What to show when there is no Firebase user (PLAN_OFFLINE_FIRST step 3):
+  /// - offline session already started → HomeView straight from SQLite
+  ///   (no role fetch, no cloud bootstrap, no local-data wipe);
+  /// - mobile without any session → WelcomeView (use offline / sign in);
+  /// - web → historical LoginView.
+  Widget _buildSignedOut() {
+    if (AppSession.isOffline) {
+      return HomeView(
+        key: const ValueKey('home_view_offline'),
+        role: 'owner',
+        setLocale: widget.setLocale,
+      );
+    }
+    if (AppSession.offlineModeAvailable) {
+      return WelcomeView(setLocale: widget.setLocale);
+    }
+    return LoginView(setLocale: widget.setLocale);
+  }
+
   @override
   Widget build(BuildContext context) {
+    // AppSession.revision changes when an offline session starts/ends
+    // without any Firebase auth event → rebuild the gate.
+    return ValueListenableBuilder<int>(
+      valueListenable: AppSession.revision,
+      builder: (context, _, __) => _buildAuthStream(),
+    );
+  }
+
+  Widget _buildAuthStream() {
     return StreamBuilder<User?>(
       initialData: FirebaseAuth.instance.currentUser,
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snap) {
         final currentUser = snap.data ?? FirebaseAuth.instance.currentUser;
 
+        // Claim in progress (ClaimAccountView on top): a Firebase user now
+        // exists but the shop is not attached yet. Keep the offline HomeView
+        // underneath — running the online bootstrap here would call
+        // syncUserInfo and create a second shop with id = uid.
+        if (AppSession.claimInProgress) {
+          return _buildSignedOut();
+        }
+
         if (snap.connectionState == ConnectionState.waiting) {
-          if (_showLoggedOutFallback && currentUser == null) {
-            return LoginView(setLocale: widget.setLocale);
+          if (currentUser == null &&
+              (_showLoggedOutFallback || AppSession.isOffline)) {
+            return _buildSignedOut();
           }
           return _buildLoadingScreen('Đang kiểm tra phiên đăng nhập...');
         }
 
-        // Không có user = đã đăng xuất
+        // Không có user = đã đăng xuất (hoặc phiên offline)
         if (snap.hasError || currentUser == null) {
           if (currentUser == null) {
             UserService.clearCache();
             _notificationListenerUid = null;
           }
           _resetCache(); // Reset cache khi đăng xuất
-          return LoginView(setLocale: widget.setLocale);
+          return _buildSignedOut();
         }
 
         _loggedOutFallbackTimer?.cancel();

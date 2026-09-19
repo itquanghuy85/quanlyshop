@@ -17,6 +17,7 @@ import '../models/attendance_model.dart';
 import '../models/quick_input_code_model.dart';
 import 'user_service.dart';
 import 'sync_service.dart';
+import 'app_session.dart';
 import 'sync_orchestrator.dart';
 import 'encryption_service.dart';
 
@@ -160,6 +161,17 @@ class SyncHealthCheck {
   /// [force] = true bỏ qua throttle — dùng cho nút bấm tay trong Trung tâm
   /// đồng bộ. Đường gọi tự động (`main.dart`) để mặc định false.
   static Future<SyncHealthReport> runFullCheck({bool force = false}) async {
+    if (!AppSession.syncEnabled) {
+      return SyncHealthReport(
+        checkedAt: DateTime.now(),
+        shopId: null,
+        results: const [],
+        isFullyHealthy: true,
+        totalLocalRecords: 0,
+        totalCloudRecords: 0,
+        totalMismatches: 0,
+      );
+    }
     final cached = _cachedReport;
     final last = _lastFullCheckAt;
     if (!force && cached != null && last != null) {
@@ -744,6 +756,7 @@ class SyncHealthCheck {
 
   /// Tự động sửa các vấn đề sync (download + upload + mark synced)
   static Future<int> autoFix() async {
+    if (!AppSession.syncEnabled) return 0;
     debugPrint('🔧 Bắt đầu Auto Fix Sync...');
 
     int fixedCount = 0;

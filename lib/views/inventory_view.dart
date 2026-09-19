@@ -15,6 +15,7 @@ import '../models/product_model.dart';
 import '../models/inventory_check_model.dart';
 import 'create_sale_view.dart';
 import '../services/sync_orchestrator.dart';
+import '../services/owner_reauth_service.dart';
 import '../services/payment_intent_service.dart';
 import '../services/sync_service.dart';
 import '../services/unified_printer_service.dart';
@@ -1996,18 +1997,19 @@ class _InventoryViewState extends State<InventoryView>
                 const SizedBox(height: 16),
 
                 // Mật khẩu xác nhận
-                TextField(
-                  controller: passwordCtrl,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: l10n.inventoryAccountPassword,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                if (!OwnerReauthService.shouldSkipPromptSync)
+                  TextField(
+                    controller: passwordCtrl,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      labelText: l10n.inventoryAccountPassword,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      isDense: true,
+                      prefixIcon: const Icon(Icons.lock, size: 20),
                     ),
-                    isDense: true,
-                    prefixIcon: const Icon(Icons.lock, size: 20),
                   ),
-                ),
               ],
             ),
           ),
@@ -2021,7 +2023,8 @@ class _InventoryViewState extends State<InventoryView>
             ),
             ElevatedButton(
               onPressed: () async {
-                if (passwordCtrl.text.isEmpty) {
+                final skipPrompt = OwnerReauthService.shouldSkipPromptSync;
+                if (!skipPrompt && passwordCtrl.text.isEmpty) {
                   NotificationService.showSnackBar(
                     l10n.inventoryEnterPasswordError,
                     color: AppColors.error,
@@ -2030,15 +2033,12 @@ class _InventoryViewState extends State<InventoryView>
                 }
 
                 try {
-                  final user = FirebaseAuth.instance.currentUser;
-                  if (user?.email != null) {
-                    // Re-authenticate với mật khẩu tài khoản
-                    AuthCredential credential = EmailAuthProvider.credential(
-                      email: user!.email!,
-                      password: passwordCtrl.text,
-                    );
-                    await user.reauthenticateWithCredential(credential);
-
+                  // Online: Firebase re-auth. Offline: local PIN / none.
+                  final authed = await OwnerReauthService.verify(
+                    passwordCtrl.text,
+                  );
+                  if (!authed) throw Exception('wrong-password');
+                  if (ctx.mounted) {
                     Navigator.pop(ctx);
                     await _deleteProductWithOptions(
                       p,
@@ -2376,14 +2376,15 @@ class _InventoryViewState extends State<InventoryView>
             const SizedBox(height: 15),
             Text(l10n.inventoryEnterPasswordToDelete),
             const SizedBox(height: 10),
-            TextField(
-              controller: passwordCtrl,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: l10n.inventoryAccountPassword,
-                border: const OutlineInputBorder(),
+            if (!OwnerReauthService.shouldSkipPromptSync)
+              TextField(
+                controller: passwordCtrl,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: l10n.inventoryAccountPassword,
+                  border: const OutlineInputBorder(),
+                ),
               ),
-            ),
           ],
         ),
         actions: [
@@ -2396,7 +2397,8 @@ class _InventoryViewState extends State<InventoryView>
           ),
           ElevatedButton(
             onPressed: () async {
-              if (passwordCtrl.text.isEmpty) {
+              final skipPrompt = OwnerReauthService.shouldSkipPromptSync;
+              if (!skipPrompt && passwordCtrl.text.isEmpty) {
                 NotificationService.showSnackBar(
                   l10n.inventoryEnterPasswordError,
                   color: Colors.red,
@@ -2405,16 +2407,12 @@ class _InventoryViewState extends State<InventoryView>
               }
 
               try {
-                final user = FirebaseAuth.instance.currentUser;
-                if (user?.email != null) {
-                  AuthCredential credential = EmailAuthProvider.credential(
-                    email: user!.email!,
-                    password: passwordCtrl.text,
-                  );
-                  await user.reauthenticateWithCredential(credential);
-
-                  Navigator.pop(ctx, true);
-                }
+                // Online: Firebase re-auth. Offline: local PIN / none.
+                final authed = await OwnerReauthService.verify(
+                  passwordCtrl.text,
+                );
+                if (!authed) throw Exception('wrong-password');
+                if (ctx.mounted) Navigator.pop(ctx, true);
               } catch (e) {
                 NotificationService.showSnackBar(
                   l10n.inventoryWrongPasswordError,

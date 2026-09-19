@@ -9,6 +9,7 @@ import '../services/storage_service.dart';
 import '../services/encryption_service.dart';
 import '../services/event_bus.dart';
 import 'firestore_write_helper.dart';
+import 'app_session.dart';
 
 /// Service to upload images in the background after saving records.
 /// Allows screens to pop immediately while uploads continue.
@@ -120,6 +121,7 @@ class BackgroundUploadService {
     required String firestoreId,
     required List<XFile> images,
   }) {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     if (images.isEmpty) return;
     unawaited(_uploadRepairImages(localRepairId, firestoreId, images));
   }
@@ -261,6 +263,7 @@ class BackgroundUploadService {
     required bool isCheckIn,
     required String? shopId,
   }) {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
     unawaited(_uploadAttendancePhoto(firestoreId, photo, isCheckIn, shopId));
   }
 
