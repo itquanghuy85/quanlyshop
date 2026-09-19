@@ -4,6 +4,22 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-19j] - Sửa giá vốn linh kiện + nhân viên nhập kho thấy đủ NCC
+
+- **Sửa linh kiện** (`parts_inventory_view` — cả `_showEditPartDialog` lẫn `_showAddPartDialog` chế độ
+  sửa): ô "Giá vốn" nay nhập được (trước là read-only / "Giá vốn (không sửa)"), chỉ hiện khi có
+  `allowViewCostPrice` (CLAUDE.md §9). Lưu ghi `cost` vào SQLite, enqueue cloud kèm `costPrice`
+  (doc cloud có cả 2 trường), audit log `cost/oldCost`. Test máy thật: CAM12 800.000 → 750.000,
+  máy nhân viên nhận 750.000 sau ~10s.
+- **NCC khi nhân viên nhập kho**: `SyncService` chỉ tải `suppliers` khi có `allowViewSuppliers`;
+  chủ shop tắt quyền xem NCC ⇒ máy nhân viên không có NCC ⇒ ô "Nhà cung cấp" chỉ còn KHO TỔNG
+  (tạo cục bộ). Nay tải khi `allowViewSuppliers || allowViewInventory`. Màn Quản lý NCC/công nợ NCC
+  vẫn gate theo `allowViewSuppliers` như cũ. (Trường hợp thứ hai của cùng hiện tượng — máy thiếu
+  dữ liệu do bug quét trọn — đã sửa ở `[2026-09-19i]`.) Test máy thật n@n.com (employee): dropdown
+  đủ 5 NCC.
+
+---
+
 ## [2026-09-19i] - Offline-first: nghiệm thu B1/B2 máy thật + 2 fix (re-tag phải reset isSynced; BUG CŨ quét trọn sau khi xoá local)
 
 - **B1 máy thật** (CPH2203 đăng ký `of20@m.com` → shop rỗng `4Skn04jl…`; CPH2239 offline → Kết nối →

@@ -2339,6 +2339,10 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
     final priceC = TextEditingController(
       text: CurrencyTextField.formatDisplay(p['price'] ?? 0),
     );
+    // Giá vốn sửa được (yêu cầu chủ shop 2026-09-19) — chỉ khi có quyền xem.
+    final costC = TextEditingController(
+      text: CurrencyTextField.formatDisplay(p['cost'] ?? 0),
+    );
     final formKey = GlobalKey<FormState>();
     int? selectedSupplierId = p['supplierId'] as int?;
 
@@ -2390,7 +2394,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Chỉ sửa thông tin & giá bán. Muốn nhập thêm số lượng → dùng nút NHẬP THÊM.',
+                            'Sửa thông tin, giá vốn & giá bán. Muốn nhập thêm số lượng → dùng nút NHẬP THÊM.',
                             style: AppTextStyles.body2.copyWith(
                               color: Colors.blue,
                               height: 1.3,
@@ -2400,33 +2404,15 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                       ],
                     ),
                   ),
-                  // Read-only cost
-                  if (_canViewCostPrice)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      margin: const EdgeInsets.only(bottom: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.attach_money,
-                            size: 18,
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Giá vốn: ${NumberFormat('#,###').format(p['cost'] ?? 0)}đ',
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
+                  // Editable cost (only for users allowed to see it)
+                  if (_canViewCostPrice) ...[
+                    CurrencyTextField(
+                      controller: costC,
+                      label: "Giá vốn",
+                      icon: Icons.attach_money,
                     ),
+                    const SizedBox(height: 8),
+                  ],
                   CurrencyTextField(
                     controller: priceC,
                     label: "Giá bán",
@@ -2509,12 +2495,16 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                 final price = CurrencyTextField.parseValueWithMultiply(
                   priceC.text,
                 );
+                final int? newCost = _canViewCostPrice
+                    ? CurrencyTextField.parseValueWithMultiply(costC.text)
+                    : null;
                 final now = DateTime.now().millisecondsSinceEpoch;
 
                 final editData = {
                   'partName': partName,
                   'compatibleModels': modelC.text.toUpperCase(),
                   'price': price,
+                  if (newCost != null) 'cost': newCost,
                   'supplierId': selectedSupplierId,
                   'updatedAt': now,
                   'isSynced': 0,
@@ -2526,7 +2516,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                   whereArgs: [partId],
                 );
 
-                // Sync to cloud
+                // Sync to cloud (cloud docs carry both cost and costPrice)
                 final firestoreId = p['firestoreId'] as String?;
                 if (firestoreId != null && firestoreId.isNotEmpty) {
                   await SyncOrchestrator().enqueue(
@@ -2536,6 +2526,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                     operation: SyncOperation.update,
                     data: {
                       ...editData,
+                      if (newCost != null) 'costPrice': newCost,
                       'id': partId,
                       'firestoreId': firestoreId,
                     },
@@ -2551,6 +2542,8 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
                     'partName': partName,
                     'price': price,
                     'oldPrice': p['price'],
+                    if (newCost != null) 'cost': newCost,
+                    if (newCost != null) 'oldCost': p['cost'],
                     'supplierName': _getSupplierName(selectedSupplierId),
                   },
                 );
@@ -3411,7 +3404,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Chỉ sửa thông tin & giá bán. Muốn nhập thêm số lượng → dùng nút NHẬP THÊM ở danh sách.',
+                                  'Sửa thông tin, giá vốn & giá bán. Muốn nhập thêm số lượng → dùng nút NHẬP THÊM ở danh sách.',
                                   style: AppTextStyles.body1.copyWith(
                                     color: Colors.blue,
                                     height: 1.3,
@@ -3549,11 +3542,8 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                             Expanded(
                               child: CurrencyTextField(
                                 controller: costC,
-                                label: isEdit
-                                    ? "Giá vốn (không sửa)"
-                                    : "Giá vốn",
+                                label: "Giá vốn",
                                 icon: Icons.attach_money,
-                                enabled: !isEdit,
                               ),
                             ),
                           if (_canViewCostPrice) const SizedBox(width: 10),
@@ -3900,14 +3890,15 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                         }
                       }
                     } else {
-                      // ===== EDIT MODE: Chỉ cập nhật thông tin & giá bán =====
-                      // Không cho sửa giá vốn, số lượng, NCC, hình thức TT
+                      // ===== EDIT MODE: cập nhật thông tin, giá vốn & giá bán =====
+                      // Không cho sửa số lượng, NCC, hình thức TT
                       // Muốn nhập thêm → dùng _showAddStockDialog
                       final partId = part['id'] as int;
                       final editData = {
                         'partName': partName,
                         'compatibleModels': modelC.text.toUpperCase(),
                         'price': price,
+                        if (_canViewCostPrice) 'cost': cost,
                         'updatedAt': now,
                         'isSynced': 0,
                         if (capLoc != null) ...{
@@ -3938,6 +3929,7 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                           operation: SyncOperation.update,
                           data: {
                             ...editData,
+                            if (_canViewCostPrice) 'costPrice': cost,
                             'id': partId,
                             'firestoreId': partFirestoreId,
                           },
@@ -3954,6 +3946,8 @@ class _PartsInventoryViewState extends State<PartsInventoryView> {
                           'partName': partName,
                           'price': price,
                           'oldPrice': part['price'],
+                          if (_canViewCostPrice) 'cost': cost,
+                          if (_canViewCostPrice) 'oldCost': part['cost'],
                           'oldLocationCode': part['locationCode'] ?? '',
                           'newLocationCode': capLoc?.code ?? '',
                         },

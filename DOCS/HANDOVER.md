@@ -10,7 +10,10 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 **Web:** `https://quanlyshop.web.app` đã build+deploy lại **15/09** (`flutter build web --release` + `firebase deploy --only hosting`) — bao gồm mọi thay đổi từ `[2026-09-14f..h]` (Tổng tài sản, danh sách "Chờ NH tất toán", fix crash sửa đơn, fix popup Nhận tiền NH tràn màn hình, fix hồ sơ khách vãng lai). Trước đó web đứng ở bản 12/09, thiếu hết các thay đổi này — đây là nguyên nhân user thấy "web khác bản mobile" test hôm qua.
 **Last Updated:** 2026-09-18  
 
-**🚧 ĐANG LÀM — Offline-first (dùng app không cần đăng nhập), nhánh `feature/offline-first`:**
+**✅ 2026-09-19 (`[2026-09-19j]`)**: sửa giá vốn linh kiện trong "Sửa linh kiện"; nhân viên có quyền
+nhập kho luôn được tải danh sách NCC. Đã merge master, chưa build release.
+
+**✅ Offline-first (dùng app không cần đăng nhập) — ĐÃ MERGE master `ef40e5a6`:**
 - Kế hoạch 6 bước + quyết định thiết kế: `DOCS/PLAN_OFFLINE_FIRST_2026-09-19.md`.
 - ✅ Bước 1 (`[2026-09-19e]`): `AppSession` + đổi ruột `UserService`, cờ `kOfflineModeEnabled=false`
   → chưa đổi gì cho người dùng. Đã test 2 máy.

@@ -184,7 +184,12 @@ class SyncService {
       case 'import_order_items':
         return _hasPermission(permissions, 'allowViewInventory');
       case 'suppliers':
-        return _hasPermission(permissions, 'allowViewSuppliers');
+        // Nhân viên được nhập kho (allowViewInventory) vẫn cần DANH SÁCH NCC
+        // để chọn khi nhập hàng — dù bị tắt quyền xem màn NCC/công nợ NCC.
+        // Trước đây tắt allowViewSuppliers ⇒ máy nhân viên không tải NCC ⇒
+        // ô "Nhà cung cấp" khi nhập kho chỉ còn KHO TỔNG (báo 2026-09-19).
+        return _hasPermission(permissions, 'allowViewSuppliers') ||
+            _hasPermission(permissions, 'allowViewInventory');
       // Danh mục giá từ hoá đơn NCC: nhân viên VẪN cần tải về để tra Giá thu
       // khách khi báo giá. Giá vốn nằm cùng bản ghi nhưng bị che ở tầng
       // service/UI (PriceCatalogService.canViewCost) — quyền xem giá vốn KHÔNG
