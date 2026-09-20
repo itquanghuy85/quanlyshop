@@ -33,6 +33,7 @@ import '../widgets/responsive_wrapper.dart';
 import '../finance_v2/finance_v2_theme.dart';
 import '../theme/popup_theme.dart';
 import '../widgets/app_popup.dart';
+import '../services/cloud_write_policy.dart';
 
 class AttendanceView extends StatefulWidget {
   const AttendanceView({super.key});
@@ -553,10 +554,10 @@ class _AttendanceViewState extends State<AttendanceView>
       data.remove('id');
       data.remove('isSynced');
 
-      await FirebaseFirestore.instance
+      await CloudWritePolicy.guard(() => FirebaseFirestore.instance
           .collection('attendance')
           .doc(attendance.firestoreId)
-          .set(data, SetOptions(merge: true));
+          .set(data, SetOptions(merge: true)), context: 'attendance');
     } catch (e) {
       debugPrint('Error syncing attendance to cloud: $e');
     }

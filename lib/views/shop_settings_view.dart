@@ -30,6 +30,7 @@ import '../theme/app_colors.dart';
 import 'adjustment_history_view.dart';
 import 'label_designer_view.dart';
 import 'import_export_view.dart';
+import '../services/cloud_write_policy.dart';
 
 class ShopSettingsView extends StatefulWidget {
   const ShopSettingsView({super.key});
@@ -337,12 +338,12 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
       'updatedBy': FirebaseAuth.instance.currentUser?.uid,
     };
 
-    await FirebaseFirestore.instance
+    await CloudWritePolicy.guard(() => FirebaseFirestore.instance
         .collection('shops')
         .doc(shopId)
         .collection('settings')
         .doc('shop_profile')
-        .set(safePayload, SetOptions(merge: true));
+        .set(safePayload, SetOptions(merge: true)), context: 'shops');
   }
 
   Future<void> _saveMainShopProfile(
@@ -355,16 +356,16 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
     final payload = <String, dynamic>{...shopData, 'shopId': shopId};
 
     if (shopDoc.exists) {
-      await shopRef.set(payload, SetOptions(merge: true));
+      await CloudWritePolicy.guard(() => shopRef.set(payload, SetOptions(merge: true)), context: 'shops');
       return;
     }
 
-    await shopRef.set({
+    await CloudWritePolicy.guard(() => shopRef.set({
       ...payload,
       'ownerUid': currentUser?.uid,
       'ownerEmail': currentUser?.email,
       'createdAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    }, SetOptions(merge: true)), context: 'shops');
   }
 
   Future<void> _refreshClaimsForShopSave() async {

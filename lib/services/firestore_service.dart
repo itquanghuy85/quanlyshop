@@ -44,7 +44,7 @@ class FirestoreService {
   /// (gate mạng + timeout 12 s + phân loại lỗi — BUG-01/02/04). Thành công
   /// thì bump [SyncSignalService] để máy khác kéo về ngay bảng vừa đổi.
   static Future<T> _cw<T>(Future<T> Function() op, String context) async {
-    final result = await CloudWritePolicy.guard(op, context: context);
+    final result = await CloudWritePolicy.guard(op, context: context, bump: false);
     SyncSignalService.bump([context]);
     return result;
   }

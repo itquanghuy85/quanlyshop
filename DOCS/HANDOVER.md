@@ -6,6 +6,8 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ## ⚡ Trạng thái hiện tại
 
+**2026-09-20 (đợt 3) — QA tiếp:** 31 case chạy (26 PASS), NEW-04 & D-1 đã sửa; **NEW-02 (MEDIUM: sửa giá đơn sửa sau giao không tạo bút toán) đang chờ quyết định**; máy B đang đăng nhập **n@n.com (employee)**, máy A m@m.com. Còn BLOCKED: stress, crash CR-01/02/04–07, ~20 case khác (xem QA_TEST_EXECUTION đợt 3).
+
 **2026-09-20 (chiều) — ĐÃ SỬA nhóm lỗi nền tảng** (`[2026-09-20b]`): CloudWritePolicy + SyncSignal + BUG-01…09/D-03. Regression 2 máy 12 PASS / 4 BLOCKED, unit 718 PASS. Còn mở: BUG-10 (ACTIVE/UNPAID), L-02…L-06, ~127 case chưa chạy (`docs/QA_FULL_TEST_PLAN.md`). Chưa build release.
 
 **2026-09-20 (sáng) — FULL AUDIT xong (không sửa code).** Xem `docs/FULL_TEST_REPORT_2026-09-19.md`: 3 HIGH (mất mạng khi đã đăng nhập ⇒ bán/tạo đơn sửa/nhập kho hỏng hoặc treo — gốc chung: `FirestoreService`/`StockEntryService` không timeout, không rơi về hàng đợi), 7 MEDIUM. Việc tiếp theo: quyết định fix chung "online-mất-mạng ⇒ local-first" trước, rồi BUG-09 (ledger hoàn tiền) và BUG-06 (cache tài chính). 2 máy test đang đăng nhập m@m.com; dữ liệu test liệt kê ở mục 6 của report.

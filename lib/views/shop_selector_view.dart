@@ -10,6 +10,7 @@ import '../services/super_admin_security_service.dart';
 import '../data/db_helper.dart';
 import 'home_view.dart';
 import '../widgets/custom_app_bar.dart';
+import '../services/cloud_write_policy.dart';
 
 /// Màn hình chọn shop cho Super Admin
 /// Super admin phải chọn shop trước khi xem dữ liệu
@@ -214,11 +215,11 @@ class _ShopSelectorViewState extends State<ShopSelectorView> {
       // 2. Update shopId trong Firestore user document để claims được sync đúng
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        await CloudWritePolicy.guard(() => FirebaseFirestore.instance.collection('users').doc(user.uid).set({
           'shopId': shopId,
           'email': user.email,
           'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-        }, SetOptions(merge: true));
+        }, SetOptions(merge: true)), context: 'users');
         debugPrint('✅ Đã update shopId trong Firestore user doc');
 
         // 2.1 Refresh claims để token có shopId mới

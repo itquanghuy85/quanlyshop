@@ -4,6 +4,13 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-20c] - QA đợt 3: gỡ chặn regression + chạy tiếp plan (31 case) + 2 fix nhỏ đồng bộ liên máy
+
+- RG-09c/RG-10 PASS trên máy; RG-14/RG-15 BLOCKED có lý do (không root/proxy; employee không có thao tác bị rules cấm).
+- Sửa chữa 10 case, Bán hàng 5, Kho/Nợ 4, 2 máy 2, Crash 1: 26 PASS. Chi tiết `docs/QA_TEST_EXECUTION.md` đợt 3.
+- Fix: `PaymentIntentService` 2 write `import_orders` qua guard + `isSynced` theo kết quả cloud (NEW-04); `CloudWritePolicy.guard` tự bump tín hiệu (context = collection), `DBHelper` restore context đúng tên bảng (D-1); bọc guard các write trực tiếp còn sót ở views.
+- Lỗi mới mở: NEW-02 (MEDIUM) sửa giá sau giao không tạo bút toán chênh lệch — chờ quyết định; NEW-03/NEW-01/L-07 LOW.
+
 ## [2026-09-20b] - Sửa lỗi nền tảng offline/sync sau full audit — CloudWritePolicy + SyncSignal + ledger hoàn tiền
 
 - **Chính sách chung** `lib/services/cloud_write_policy.dart`: gate mạng trước write, timeout 12 s (tương tác) / 25 s (nền), phân loại OFFLINE vs PERMANENT. Áp cho `FirestoreService` (60 write), `SyncService.syncAllToCloud` (30 commit + precheck mạng — trước đây mất mạng giữa chừng là `_isSyncingAllToCloud` kẹt tới khi restart), `StockEntryService`, `ImportOrderService`, `SalesReturnService`, `DBHelper` (4), 11 service phụ.

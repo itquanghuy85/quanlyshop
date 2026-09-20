@@ -51,6 +51,7 @@ class SyncService {
       op,
       context: context,
       timeout: CloudWritePolicy.background,
+      bump: false,
     );
     // Batch rỗng vẫn commit (không đổi gì) — không bump để máy khác khỏi kéo
     // thừa (đo 08:40: một lượt sync rỗng bump 6 bảng).

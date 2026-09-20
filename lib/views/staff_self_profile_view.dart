@@ -29,6 +29,7 @@ import '../widgets/entity_avatar.dart';
 import '../widgets/responsive_wrapper.dart';
 import 'repair_detail_view.dart';
 import 'sale_detail_view.dart';
+import '../services/cloud_write_policy.dart';
 
 class StaffSelfProfileView extends StatefulWidget {
   const StaffSelfProfileView({super.key});
@@ -228,10 +229,10 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
         NotificationService.showSnackBar('Không thể tải ảnh đại diện', color: Colors.red);
         return;
       }
-      await FirebaseFirestore.instance.collection('users').doc(_uid).set({
+      await CloudWritePolicy.guard(() => FirebaseFirestore.instance.collection('users').doc(_uid).set({
         'photoUrl': uploadedUrl,
         'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      }, SetOptions(merge: true)), context: 'users');
       if (!mounted) return;
       setState(() => _avatarUrl = uploadedUrl);
       EventBus().emit('user_profile_changed');
@@ -394,12 +395,12 @@ class _StaffSelfProfileViewState extends State<StaffSelfProfileView> {
         loc: loc,
         photoUrl: _avatarUrl,
       );
-      await FirebaseFirestore.instance.collection('users').doc(_uid).set({
+      await CloudWritePolicy.guard(() => FirebaseFirestore.instance.collection('users').doc(_uid).set({
         'coverUrl': finalCoverUrl,
         'coverOriginalUrl': finalCoverOriginalUrl,
         'coverAspectRatio': _coverAspectRatio,
         'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      }, SetOptions(merge: true)), context: 'users');
       _coverUrl = finalCoverUrl;
       _coverOriginalUrl = finalCoverOriginalUrl;
       _selectedCover = null;

@@ -12,6 +12,7 @@ import '../services/user_service.dart';
 import '../services/event_bus.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/custom_app_bar.dart';
+import '../services/cloud_write_policy.dart';
 
 class WorkScheduleSettingsView extends StatefulWidget {
   const WorkScheduleSettingsView({super.key});
@@ -566,10 +567,10 @@ class _WorkScheduleSettingsViewState extends State<WorkScheduleSettingsView> {
 
       // Sync to Firestore (với shopId)
       if (shopId != null) {
-        await FirebaseFirestore.instance
+        await CloudWritePolicy.guard(() => FirebaseFirestore.instance
             .collection('work_schedules')
             .doc('shop_general_$shopId')
-            .set(scheduleData, SetOptions(merge: true));
+            .set(scheduleData, SetOptions(merge: true)), context: 'work_schedules');
       }
 
       EventBus().emit('work_schedules_changed');
@@ -1140,10 +1141,10 @@ class _WorkScheduleSettingsViewState extends State<WorkScheduleSettingsView> {
 
                 // Sync to Firestore
                 if (_currentShopId != null) {
-                  await FirebaseFirestore.instance
+                  await CloudWritePolicy.guard(() => FirebaseFirestore.instance
                       .collection('work_schedules')
                       .doc('staff_${staff['id']}_$_currentShopId')
-                      .set(newSchedule, SetOptions(merge: true));
+                      .set(newSchedule, SetOptions(merge: true)), context: 'work_schedules');
                 }
 
                 EventBus().emit('work_schedules_changed');

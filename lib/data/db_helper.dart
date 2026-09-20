@@ -7042,7 +7042,7 @@ class DBHelper {
               'quantity': newQty,
               'status': newQty <= 0 ? 0 : 1,
               'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-            }), context: 'db_helper/restore');
+            }), context: 'products/restore');
         await db.rawUpdate(
           'UPDATE products SET isSynced = 1 WHERE id = ? AND shopId = ?',
           [productId, shopId],
@@ -7174,7 +7174,7 @@ class DBHelper {
               'quantity': newQty < 0 ? 0 : newQty,
               'status': newQty <= 0 ? 0 : 1,
               'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-            }), context: 'db_helper/restore');
+            }), context: 'products/restore');
         // Đánh dấu đã sync
         await db.rawUpdate(
           'UPDATE products SET isSynced = 1 WHERE id = ? AND shopId = ?',
@@ -9052,7 +9052,7 @@ class DBHelper {
             .update({
               'quantity': newQty,
               'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-            }), context: 'db_helper/restore');
+            }), context: 'repair_parts/restore');
         // Đánh dấu đã sync
         await db.update(
           'repair_parts',
@@ -9150,7 +9150,7 @@ class DBHelper {
             .update({
               'quantity': newQty,
               'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-            }), context: 'db_helper/restore');
+            }), context: 'repair_parts/restore');
         await db.update(
           'repair_parts',
           {'isSynced': 1},

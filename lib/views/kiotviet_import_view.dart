@@ -11,6 +11,7 @@ import '../services/user_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/custom_app_bar.dart';
+import '../services/cloud_write_policy.dart';
 
 class KiotVietImportView extends StatefulWidget {
   const KiotVietImportView({super.key});
@@ -319,7 +320,7 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
         for (final doc in chunk) {
           batch.update(doc.reference, {'deleted': false, 'updatedAt': FieldValue.serverTimestamp()});
         }
-        await batch.commit();
+        await CloudWritePolicy.guard(() => batch.commit(), context: 'products');
         restored += chunk.length;
       }
 
@@ -409,7 +410,7 @@ class _KiotVietImportViewState extends State<KiotVietImportView> {
             SetOptions(merge: true),
           );
         }
-        await batch.commit();
+        await CloudWritePolicy.guard(() => batch.commit(), context: 'products');
         pushed += chunk.length;
       }
 

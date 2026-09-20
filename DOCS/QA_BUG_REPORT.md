@@ -25,3 +25,16 @@ Chi tiết phát hiện gốc: `docs/FULL_TEST_REPORT_2026-09-19.md` §2. Root c
 | D-01/02/04/05/06 code chết | INFO | OPEN | | | |
 
 **Rủi ro còn lại:** (1) `SyncSignalService` ghi 1 doc `meta/sync_signal` mỗi lượt ghi cloud (gộp 1,5 s) — tăng ~1 write/lượt; (2) timeout 12 s với mạng có nhưng chập chờn chưa đo máy thật; (3) phiếu nhập trên đám mây khi mất mạng bị từ chối xác nhận (thông báo rõ) thay vì làm offline; (4) BUG-08 sửa bằng termination path, chưa xác định 100% nguyên nhân gốc trong Flutter.
+
+## Lỗi mới phát hiện đợt 3 (2026-09-20 09:15–10:50)
+
+| BUG | Sev | Trạng thái | Mô tả | Root cause | File | Evidence |
+|---|---|---|---|---|---|---|
+| NEW-02 | **MEDIUM** | OPEN — chờ quyết định | Sửa giá đơn sửa SAU KHI ĐÃ GIAO (500→600) không tạo bút toán chênh lệch (thu thêm / nợ / adjustment); phiếu thu vẫn 500, tab Tiền/Lãi cash-basis 500 ⇒ 100đ "khách còn thiếu" không xuất hiện ở đâu | dialog TÀI CHÍNH ĐƠN SỬA chỉ `upsertRepair(price)`; không gọi `PaymentIntentService`/`createDebtRecord`/`HistoryService` khi status=4 | `lib/views/repair_detail_view.dart` (dialog "Sửa" tài chính) | REP-20 09:44: `repairs.price=600`, `payment_intents` 500, `adjustment_entries` 0 |
+| NEW-04 | MEDIUM | **FIXED** | Trả nợ NCC theo phiếu: máy B không nhận `import_orders.paidAmount` (0 vs 150k); mất mạng thì cloud không bao giờ nhận | write trực tiếp không guard/bump; upsert local `isSynced=1` bất kể cloud | `payment_intent_service.dart` `_syncImportOrderPaymentIfLinked`, `reconcileStaleImportOrderDebts` | INV-08 10:28 → retest 10:36 B=250k |
+| D-1 | LOW | **FIXED** | Hoàn kho từ `DBHelper` (xoá đơn/đổi PT) không bump tín hiệu ⇒ B không nhận `repair_parts` tới khi resume | context `db_helper/restore` không phải tên collection | `db_helper.dart` 4 write; `cloud_write_policy.guard` tự bump | REP-21b 09:53 |
+| NEW-03 | LOW | OPEN | Thứ tự ô Tên/SĐT ngược nhau giữa tạo đơn bán (Tên trái) và tạo đơn sửa (SĐT trái) ⇒ nhập nhầm, validate báo "SĐT 9–12 số" khó hiểu | UX | `create_sale_view.dart:2262`, `create_repair_order_view.dart` | 10:07 |
+| NEW-01 | LOW | OPEN (quan sát 1/2) | B khoá màn hình lúc A cập nhật đơn; B mở lại thì listener realtime đưa bản cũ, chỉ đúng sau bấm đồng bộ tay | chưa rõ (cache Firestore + listener cửa sổ) | `sync_service.dart` `_liveWindowCollections` | 09:1x; tái hiện 09:22 không lặp |
+| L-07 | LOW | OPEN (thiết kế) | Đăng xuất chủ shop trên máy nối bằng "Tải dữ liệu tài khoản về máy" ⇒ SQLite bị xoá (máy A nối bằng claim thì giữ) | `ownsShop` chỉ set ở luồng claim offline | `session_logout_service.dart` | 09:30 B |
+
+Không phát hiện lỗi CRITICAL/HIGH mới. NEW-02 (MEDIUM, tài chính) dừng lại chờ quyết định theo yêu cầu.

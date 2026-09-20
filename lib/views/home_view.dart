@@ -136,6 +136,7 @@ import '../widgets/app_cached_image.dart';
 import '../utils/app_info.dart';
 import '../utils/internal_tools.dart';
 import 'kiotviet_settings_view.dart';
+import '../services/cloud_write_policy.dart';
 
 class HomeView extends StatefulWidget {
   final String role;
@@ -2029,10 +2030,10 @@ class _HomeViewState extends State<HomeView>
         return;
       }
 
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+      await CloudWritePolicy.guard(() => FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'photoUrl': uploadedUrl,
         'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      }, SetOptions(merge: true)), context: 'users');
 
       try {
         await user.updatePhotoURL(uploadedUrl);

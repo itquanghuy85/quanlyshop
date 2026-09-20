@@ -22,6 +22,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 
+import 'sync_signal_service.dart';
+
 /// Write không thể tới cloud vì lý do MẠNG (không phải lỗi dữ liệu/quyền).
 /// Caller phải coi như "đã lưu trên máy, sẽ đồng bộ sau".
 class CloudOfflineException implements Exception {
@@ -94,13 +96,18 @@ class CloudWritePolicy {
     required String context,
     Duration timeout = interactive,
     bool precheck = true,
+    /// Ghi thành công thì báo máy khác kéo về bảng [context] (BUG-05).
+    /// Caller tự bump có điều kiện (batch rỗng…) thì truyền false.
+    bool bump = true,
   }) async {
     if (precheck && !await hasNetwork()) {
       debugPrint('📴 CloudWritePolicy: không có mạng, bỏ qua write $context');
       throw CloudOfflineException(context);
     }
     try {
-      return await op().timeout(timeout);
+      final result = await op().timeout(timeout);
+      if (bump) SyncSignalService.bump([context]);
+      return result;
     } on TimeoutException catch (e) {
       debugPrint(
         '⏱️ CloudWritePolicy: timeout ${timeout.inSeconds}s tại $context',

@@ -6,6 +6,7 @@ import '../services/user_service.dart';
 import '../services/shop_deletion_service.dart';
 import '../models/shop_settings_model.dart';
 import '../l10n/app_localizations.dart';
+import '../services/cloud_write_policy.dart';
 
 /// ShopSwitcherWidget: Dropdown để owner chọn shop đang quản lý
 ///
@@ -480,7 +481,7 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
       final newShopRef = FirebaseFirestore.instance.collection('shops').doc();
       final shopId = newShopRef.id;
       
-      await newShopRef.set({
+      await CloudWritePolicy.guard(() => newShopRef.set({
         'name': name,
         'address': address,
         'ownerUid': currentUser.uid,
@@ -488,7 +489,7 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
         'createdAt': FieldValue.serverTimestamp(),
         'shopId': shopId,
         'businessType': businessType,
-      });
+      }), context: 'shops');
       debugPrint('✅ Shop document created: $shopId');
 
       // Step 2: Create shop_settings (rules check isShopOwner which needs shop to exist)
@@ -499,7 +500,7 @@ class _ShopSwitcherWidgetState extends State<ShopSwitcherWidget> {
             .doc(shopId)
             .collection('settings')
             .doc('shop_settings');
-        await settingsRef.set(settings.toFirestoreMap());
+        await CloudWritePolicy.guard(() => settingsRef.set(settings.toFirestoreMap()), context: 'settings');
         debugPrint('✅ Shop settings created for $shopId');
       } catch (e) {
         // Settings creation failed but shop was created - non-critical

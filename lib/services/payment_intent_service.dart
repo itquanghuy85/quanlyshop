@@ -30,6 +30,7 @@ import 'sync_service.dart';
 import 'app_session.dart';
 import 'sync_orchestrator.dart';
 import 'event_bus.dart';
+import 'cloud_write_policy.dart';
 
 /// Result of a payment execution
 class PaymentExecutionResult {
@@ -1129,15 +1130,19 @@ class PaymentIntentService {
 
       // Offline session: a Firestore write without auth never completes, so
       // the local upsert below would be skipped forever.
+      // Mất mạng/timeout ⇒ ghi local isSynced=0 để syncAllToCloud đẩy sau
+      // (trước đây upsert mặc định giữ isSynced=1 ⇒ cloud không bao giờ nhận).
+      var cloudOk = false;
       if (AppSession.syncEnabled) try {
-        await FirebaseFirestore.instance
+        await CloudWritePolicy.guard(() => FirebaseFirestore.instance
             .collection('import_orders')
             .doc(firestoreId)
             .update({
           'paidAmount': newPaid,
           'paymentStatus': newStatus,
           'updatedAt': FieldValue.serverTimestamp(),
-        });
+        }), context: 'import_orders');
+        cloudOk = true;
       } catch (e) {
         debugPrint('⚠️ Không cập nhật được import_orders trên Firestore: $e');
       }
@@ -1146,6 +1151,7 @@ class PaymentIntentService {
         'paidAmount': newPaid,
         'paymentStatus': newStatus,
         'updatedAt': now,
+        'isSynced': cloudOk ? 1 : 0,
       });
     } catch (e) {
       debugPrint('⚠️ Lỗi đồng bộ import_orders khi trả nợ NCC: $e');
@@ -1190,19 +1196,22 @@ class PaymentIntentService {
         if (paidDebt == null) continue;
 
         final now = DateTime.now().millisecondsSinceEpoch;
+        var cloudOk = false;
         if (AppSession.syncEnabled) try {
-          await FirebaseFirestore.instance
+          await CloudWritePolicy.guard(() => FirebaseFirestore.instance
               .collection('import_orders')
               .doc(firestoreId)
               .update({
             'paidAmount': total,
             'paymentStatus': 'PAID',
             'updatedAt': FieldValue.serverTimestamp(),
-          });
+          }), context: 'import_orders');
+          cloudOk = true;
         } catch (e) {
           debugPrint('⚠️ Không cập nhật được import_orders (reconcile) trên Firestore: $e');
         }
         await _db.upsertImportOrder({
+          'isSynced': cloudOk ? 1 : 0,
           'firestoreId': firestoreId,
           'paidAmount': total,
           'paymentStatus': 'PAID',

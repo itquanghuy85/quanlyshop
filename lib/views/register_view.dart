@@ -9,6 +9,7 @@ import '../models/shop_settings_model.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../widgets/custom_app_bar.dart';
+import '../services/cloud_write_policy.dart';
 
 class RegisterView extends StatefulWidget {
   final Function(Locale)? setLocale;
@@ -104,13 +105,13 @@ class _RegisterViewState extends State<RegisterView> {
           if (_isJoinShop) {
             final success = await UserService.useInviteCode(_inviteCodeC.text.trim(), cred.user!.uid);
             if (!success) throw loc.invalidOrExpiredInviteCode;
-            await FirebaseFirestore.instance.collection('users').doc(cred.user!.uid).set({
+            await CloudWritePolicy.guard(() => FirebaseFirestore.instance.collection('users').doc(cred.user!.uid).set({
               'displayName': name.toUpperCase(),
               'email': email,
               'phone': _phoneC.text.trim(),
               'address': _addressC.text.trim().toUpperCase(),
               'role': _selectedRole,
-            }, SetOptions(merge: true));
+            }, SetOptions(merge: true)), context: 'users');
             await cred.user!.updateDisplayName(name.toUpperCase());
           } else {
             await UserService.syncUserInfo(cred.user!.uid, email, extra: {

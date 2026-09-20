@@ -32,6 +32,7 @@ import '../widgets/permission_gate.dart';
 import 'community_view.dart';
 import 'staff_public_profile_view.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../services/cloud_write_policy.dart';
 
 /// Chat View đẳng cấp với đầy đủ tính năng
 class AdvancedChatView extends StatefulWidget {
@@ -271,10 +272,10 @@ class _AdvancedChatViewState extends State<AdvancedChatView>
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('advanced_chat_background_image_url', url);
-      await FirebaseFirestore.instance.collection('users').doc(uid).set({
+      await CloudWritePolicy.guard(() => FirebaseFirestore.instance.collection('users').doc(uid).set({
         'chatBackgroundUrl': url,
         'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      }, SetOptions(merge: true)), context: 'users');
 
       if (!mounted) return;
       setState(() => _chatBackgroundImageUrl = url);
