@@ -10066,7 +10066,8 @@ class DBHelper {
         COALESCE(d.deleted, 0) as linkedDebtDeleted,
         COALESCE(NULLIF(p.debtType, ''), d.type, '') as resolvedDebtType,
         COALESCE(d.personName, '') as debtPersonName,
-        COALESCE(d.linkedId, '') as linkedDebtLinkedId
+        COALESCE(d.linkedId, '') as linkedDebtLinkedId,
+        COALESCE(d.linkedType, '') as linkedDebtLinkedType
       FROM debt_payments p
       LEFT JOIN debts d
         ON (p.debtId IS NOT NULL AND p.debtId = d.id)

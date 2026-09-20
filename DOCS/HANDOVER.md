@@ -6,6 +6,8 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ## ⚡ Trạng thái hiện tại
 
+**2026-09-20 (đợt 4):** NEW-02 đã sửa (`RepairPriceAdjustmentService`). **NEW-05 HIGH đang mở, chờ quyết định:** bán hàng local-first (mất mạng / phiên offline) không kiểm tồn ⇒ tồn âm; đề xuất ở QA_BUG_REPORT. Test plan còn ~15 case chưa chạy (dừng theo constraint).
+
 **2026-09-20 (đợt 3) — QA tiếp:** 31 case chạy (26 PASS), NEW-04 & D-1 đã sửa; **NEW-02 (MEDIUM: sửa giá đơn sửa sau giao không tạo bút toán) đang chờ quyết định**; máy B đang đăng nhập **n@n.com (employee)**, máy A m@m.com. Còn BLOCKED: stress, crash CR-01/02/04–07, ~20 case khác (xem QA_TEST_EXECUTION đợt 3).
 
 **2026-09-20 (chiều) — ĐÃ SỬA nhóm lỗi nền tảng** (`[2026-09-20b]`): CloudWritePolicy + SyncSignal + BUG-01…09/D-03. Regression 2 máy 12 PASS / 4 BLOCKED, unit 718 PASS. Còn mở: BUG-10 (ACTIVE/UNPAID), L-02…L-06, ~127 case chưa chạy (`docs/QA_FULL_TEST_PLAN.md`). Chưa build release.

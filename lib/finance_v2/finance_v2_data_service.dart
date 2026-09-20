@@ -1333,7 +1333,14 @@ _LinkedRevenue? _linkedRevenueOf(
   }
   final repair = repairs[linked];
   if (repair != null) {
-    if (repair.paymentMethod.toUpperCase() != 'CÔNG NỢ') return null;
+    // [NEW-02] Nợ chênh lệch sửa giá sau giao (linkedType REPAIR_PRICE_ADJUST)
+    // là doanh thu sửa chữa dù đơn gốc thu TIỀN MẶT; vốn vẫn theo tỉ lệ.
+    final isPriceAdjust =
+        (payment['linkedDebtLinkedType'] ?? '').toString() ==
+        'REPAIR_PRICE_ADJUST';
+    if (!isPriceAdjust && repair.paymentMethod.toUpperCase() != 'CÔNG NỢ') {
+      return null;
+    }
     final price = repair.price;
     final cost = (repair.totalCost > 0 && price > 0)
         ? ((repair.totalCost * amount) / price).round()

@@ -99,3 +99,34 @@ Máy A = CPH2203 (m@m.com, chủ shop) · Máy B = CPH2239 (**n@n.com, nhân vi�
 ## G. Tổng đợt 3
 Đã chạy **31** mục · **PASS 26** · **FAIL 3** (REP-20→NEW-02 mở; NEW-03 mở; NEW-04 đã sửa & retest PASS) · **BLOCKED 2** cứng (RG-14, RG-15) + các case ghi BLOCKED chưa chạy.
 Unit: 718 PASS / 0 FAIL, analyze 0 error.
+
+---
+
+# ĐỢT 4 — 2026-09-20 (12:50–13:30): NEW-02 + chạy tiếp plan (DỪNG ở NEW-05 HIGH)
+
+Máy A = CPH2203 m@m.com (chủ) · B = CPH2239 n@n.com (nhân viên). Build working tree (commit sau `9f50fe02`), cài 12:58 / 13:15.
+
+## A. NEW-02 — sửa giá đơn sửa ĐÃ GIAO (Phần A)
+| Test ID | Action | Expected | Actual | Kết quả | Evidence |
+|---|---|---|---|---|---|
+| NEW-02-U1 | unit: đơn status 3 | không tạo nợ | null, không debts | PASS | `test/repair_price_adjustment_test.dart` |
+| NEW-02-U2 | unit: giao TIỀN MẶT 500 → 600 → 700 → (khách trả 50) → 500 → 550 → 400 | tăng: 1 nợ khách 100 rồi 200 (không trùng); về 500 sau khi trả 50: nợ khách PAID + shop nợ khách 50; 550: đóng; 400: shop nợ 150 (mở lại cùng bản ghi) | đúng, `COUNT(debts WHERE linkedId)`=1 mỗi loại | PASS | unit |
+| NEW-02-U3 | unit: giao CÔNG NỢ 500 đã trả 200 → 600 → 150 → 500 | 600: nợ giao = 600 ACTIVE; 150: nợ giao = 200 (=đã trả) PAID + shop nợ 50; 500: về ACTIVE 500, shop-nợ đóng | đúng | PASS | unit |
+| NEW-02-D1 | A: đơn TÉTNEG (đã giao, thu 500) giá 600→700 | nợ khách `debt_adj_cust_…` 200 ACTIVE, sync, B nhận | log `💱 RepairPriceAdjust … price=700 collected=500 outstanding=200`, `Successfully synced debt#107`; SQLite A: CUSTOMER_OWES 200/0 ACTIVE isSynced 1; snackbar "Khách còn phải trả thêm 200 — đã ghi vào Công nợ" | PASS | A 13:05 |
+| NEW-02-D2 | 700 → 500 (về giá cũ) | đóng nợ (xoá mềm), không trùng | `outstanding=0`; debt total 0 PAID deleted=1; queue delete synced | PASS | A 13:07 |
+| NEW-02-D3 | 500 → 400 | shop nợ khách `debt_adj_shop_…` 100 ACTIVE | `outstanding=-100`; SHOP_OWES 100 ACTIVE; B sau khi mở app: chỉ còn SHOP_OWES 100 (cust đã xoá); màn Công nợ → Phải trả hiện "1 khoản / 100" | PASS | A 13:09, B 13:12 |
+| NEW-02-F | tài chính | thu nợ chênh lệch của đơn TIỀN MẶT tính là doanh thu sửa (không phải "thu khác") | `finance_v2_data_service._linkedRevenueOf` nhận `linkedDebtLinkedType=REPAIR_PRICE_ADJUST`; scenario/comprehensive tests PASS | PASS (unit) | |
+
+## B. Chạy tiếp plan
+| Test ID | Action | Expected | Actual | Kết quả | Evidence |
+|---|---|---|---|---|---|
+| REP-15c | Tạo đơn NOKIA X + dịch vụ đối tác SC 300k **CÔNG NỢ** | 1 nợ SHOP_OWES đối tác, không phiếu chi, không trùng | `debt_partner_debt_rep_1789885188261_…_svc_…_300000` SC 300000/0 ACTIVE SHOP_OWES; intents mới = 0; log `Partner debt recorded` + `Created doc with existing ID` | PASS | A 13:19 |
+| REP-24 | Màn Bảo hành | workflow BH | chỉ là danh sách theo dõi (sửa/bán có BH) → mở chi tiết đơn gốc; không có luồng "đơn BH 0đ" riêng (= tạo đơn thường giá 0, đã phủ bởi REP-01/05) | PASS-partial | A 13:20 |
+| SALE-09 (online) | CAPLIGHTNING tồn 18, số lượng 120, TIỀN MẶT | chặn | UI cho nhập 120 (14,4 Tr) nhưng transaction cloud chặn `OUT_OF_STOCK:CAPLIGHTNING (còn: 18, cần: 120)`; kho 18, 0 sale | PASS (server) / LOW: UI không chặn trước | A 13:23 |
+| SALE-09 (offline) | cùng đơn, mạng OFF | chặn theo tồn local | **Lưu local-first, `Deducted CAPLIGHTNING quantity by 120` ⇒ `products.quantity = -102`, sale 14,4 Tr tạo, isSynced 0→1 khi có mạng (đẩy số âm lên cloud)** | **FAIL → NEW-05 HIGH** | A 13:24; đã xoá đơn để hoàn kho 18 (13:27) |
+
+**DỪNG theo constraint (HIGH mới) — các case còn lại (SALE-16/22/23, INV-13/14/15/16/18/20, DEBT-05/06/11, MD-10, CR-01/02/04–07) chưa chạy, chờ quyết định.**
+
+## C. Tổng đợt 4
+Đã chạy **11** mục (7 NEW-02 + 4 plan) · **PASS 10** · **FAIL 1** (NEW-05) · BLOCKED 0 (còn lại chưa chạy do dừng).
+Unit 721 PASS / 0 FAIL (thêm `repair_price_adjustment_test` 3), analyze 0 error.

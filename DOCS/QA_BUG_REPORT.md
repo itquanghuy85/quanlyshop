@@ -38,3 +38,12 @@ Chi tiết phát hiện gốc: `docs/FULL_TEST_REPORT_2026-09-19.md` §2. Root c
 | L-07 | LOW | OPEN (thiết kế) | Đăng xuất chủ shop trên máy nối bằng "Tải dữ liệu tài khoản về máy" ⇒ SQLite bị xoá (máy A nối bằng claim thì giữ) | `ownsShop` chỉ set ở luồng claim offline | `session_logout_service.dart` | 09:30 B |
 
 Không phát hiện lỗi CRITICAL/HIGH mới. NEW-02 (MEDIUM, tài chính) dừng lại chờ quyết định theo yêu cầu.
+
+## Đợt 4 (2026-09-20 12:50–13:30)
+
+| BUG | Sev | Trạng thái | Mô tả | Root cause | File | Evidence |
+|---|---|---|---|---|---|---|
+| NEW-02 | MEDIUM | **FIXED** | Sửa giá đơn sửa đã giao ⇒ nợ chênh lệch 2 chiều, idempotent | — | `lib/services/repair_price_adjustment_service.dart` (mới), `repair_detail_view._editFinancials`, `finance_v2_data_service._linkedRevenueOf`, `db_helper` join `linkedDebtLinkedType` | đợt 4 A/B |
+| **NEW-05** | **HIGH** | **OPEN — DỪNG CHỜ QUYẾT ĐỊNH** | Bán hàng khi mất mạng (đường local-first — cả phiên online mất mạng lẫn phiên offline) **không kiểm tồn**: bán 120 khi tồn 18 ⇒ `products.quantity = -102`, đơn 14,4 Tr được tạo, khi có mạng số âm được đẩy lên cloud và các máy khác. Trước fix BUG-01, đường này chỉ đi khi `permission-denied`/SP chưa có firestoreId; nay mọi lần mất mạng đều đi ⇒ mức độ phơi nhiễm tăng | `create_sale_view._processSale` nhánh `isLocalOnly` gọi `db.deductProductQuantity(p.id!, quantity)` thẳng, không so `quantity` với tồn local; UI ô số lượng cũng không giới hạn theo tồn | `lib/views/create_sale_view.dart` (~dòng 1540–1560 nhánh `isLocalOnly`), `db_helper.deductProductQuantity` | A 13:24: log `Deducted CAPLIGHTNING quantity by 120`, SQLite qty −102 |
+
+**Đề xuất sửa NEW-05 (chờ duyệt):** (1) trước khi lưu local-first, kiểm `quantity ≤ tồn local` cho từng SP (điện thoại IMEI: `status == 1`), thiếu thì báo "Không đủ hàng (còn N)" và không lưu — cùng thông điệp với nhánh OUT_OF_STOCK online; (2) `deductProductQuantity` không cho âm (clamp 0 + log) như lưới an toàn; (3) ô số lượng giới hạn theo tồn (LOW, UX). Cần quyết định vì (1) thay đổi hành vi phiên offline (trước đây cho bán vượt tồn).

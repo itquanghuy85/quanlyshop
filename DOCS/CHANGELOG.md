@@ -4,6 +4,12 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-20d] - NEW-02: sửa giá đơn sửa đã giao ⇒ công nợ chênh lệch 2 chiều; QA đợt 4 dừng ở NEW-05 HIGH
+
+- `lib/services/repair_price_adjustment_service.dart`: đơn status 4 đổi giá ⇒ tính lại phần còn phải thu/trả từ số đã thu (idempotent): nợ giao máy CÔNG NỢ đổi tổng (không dưới đã trả); đơn TIỀN MẶT ⇒ nợ điều chỉnh `debt_adj_cust_<rep>` / `debt_adj_shop_<rep>`; về giá cũ ⇒ đóng/xoá mềm. Ghi local + SyncOrchestrator (CloudWritePolicy/SyncSignal có sẵn), emit `debts_changed`. Hook ở `repair_detail_view._editFinancials`. Finance: thu nợ điều chỉnh tính là doanh thu sửa (`linkedDebtLinkedType`).
+- Test: `test/repair_price_adjustment_test.dart` (3), máy thật 700→500→400 + B nhận. 721 unit PASS.
+- QA đợt 4: REP-15c, REP-24 (partial), SALE-09 online PASS; **SALE-09 offline FAIL → NEW-05 HIGH** (bán local-first không kiểm tồn ⇒ tồn âm −102) — DỪNG chờ quyết định, đã xoá đơn test để hoàn kho.
+
 ## [2026-09-20c] - QA đợt 3: gỡ chặn regression + chạy tiếp plan (31 case) + 2 fix nhỏ đồng bộ liên máy
 
 - RG-09c/RG-10 PASS trên máy; RG-14/RG-15 BLOCKED có lý do (không root/proxy; employee không có thao tác bị rules cấm).

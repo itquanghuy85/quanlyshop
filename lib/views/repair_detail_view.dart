@@ -23,6 +23,7 @@ import '../models/product_model.dart';
 import '../constants/product_constants.dart';
 import '../services/pricing_engine_service.dart';
 import '../services/app_session.dart';
+import '../services/repair_price_adjustment_service.dart';
 import '../services/cloud_write_policy.dart';
 import '../services/price_book_service.dart';
 import '../models/price_book_models.dart';
@@ -3620,6 +3621,30 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         final repairRef = r.firestoreId ?? r.id?.toString() ?? 'unknown';
         if (priceChanged) {
           final delta = parsedPrice - oldPrice;
+          // [NEW-02] Đơn ĐÃ GIAO: phần chênh lệch phải thành công nợ (khách
+          // nợ thêm / shop trả lại) — tính lại từ số đã thu, idempotent.
+          if (r.status == 4 && (r.firestoreId ?? '').trim().isNotEmpty) {
+            final adj =
+                await RepairPriceAdjustmentService.applyDeliveredPriceChange(
+              repairFirestoreId: r.firestoreId!,
+              status: r.status,
+              newPrice: parsedPrice,
+              customerName: r.customerName,
+              phone: r.phone,
+              model: r.model,
+            );
+            if (adj != null && mounted) {
+              final o = adj.outstanding;
+              NotificationService.showSnackBar(
+                o > 0
+                    ? 'Khách còn phải trả thêm ${MoneyUtils.formatVND(o)} — đã ghi vào Công nợ'
+                    : o < 0
+                        ? 'Shop phải trả lại khách ${MoneyUtils.formatVND(-o)} — đã ghi vào Công nợ'
+                        : 'Giá mới bằng số đã thu — đã đóng nợ chênh lệch',
+                color: o == 0 ? Colors.green : Colors.orange,
+              );
+            }
+          }
           await HistoryService.recordCorrection(
             activityType: 'REPAIR_PRICE_ADJUST',
             amount: delta.abs(),
