@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -15,7 +16,9 @@ class ConnectivityService {
   final Connectivity _connectivity = Connectivity();
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   List<ConnectivityResult> _currentStatus = [];
-  bool _isOnline = false;
+  // Mặc định coi là online cho tới khi XÁC NHẬN mất mạng — tránh hiện banner
+  // "Ngoại tuyến" giả khi plugin chưa init xong hoặc báo sai.
+  bool _isOnline = true;
   Timer? _networkRestoredDebounce;
   DateTime? _lastNetworkRestoredSyncAt;
   static const Duration _networkRestoredSyncCooldown = Duration(seconds: 30);
@@ -59,11 +62,11 @@ class ConnectivityService {
     _currentStatus = results;
     _updateOnlineStatus(results);
 
-    if (_isOnline) {
+    if (!results.contains(ConnectivityResult.none)) {
       // Có mạng trở lại: debounce để tránh spam khi OS bắn nhiều event liên tiếp.
       _scheduleNetworkRestoredSync();
     } else {
-      // Mất mạng
+      // Mất mạng (theo OS báo; trạng thái thật do _verifyOffline chốt)
       _onNetworkLost();
     }
   }
@@ -86,10 +89,40 @@ class ConnectivityService {
   /// Cập nhật trạng thái online
   void _updateOnlineStatus(List<ConnectivityResult> results) {
     final wasOnline = _isOnline;
-    _isOnline = !results.contains(ConnectivityResult.none);
+    final reportedOffline = results.contains(ConnectivityResult.none);
 
+    if (reportedOffline) {
+      // iOS (Reachability) đôi khi báo `none` dù đang có 4G/5G — xác minh
+      // bằng DNS lookup thật trước khi chuyển sang offline.
+      unawaited(_verifyOffline());
+      return;
+    }
+
+    _isOnline = true;
     if (wasOnline != _isOnline) {
       debugPrint('Online status changed: $_isOnline');
+    }
+  }
+
+  Future<void> _verifyOffline() async {
+    final reachable = await _probeInternet();
+    if (reachable) {
+      if (!_isOnline) debugPrint('Online status changed: true (probe)');
+      _isOnline = true;
+      return;
+    }
+    if (_isOnline) debugPrint('Online status changed: false');
+    _isOnline = false;
+  }
+
+  Future<bool> _probeInternet() async {
+    try {
+      final result = await InternetAddress.lookup(
+        'firestore.googleapis.com',
+      ).timeout(const Duration(seconds: 3));
+      return result.isNotEmpty && result.first.rawAddress.isNotEmpty;
+    } catch (_) {
+      return false;
     }
   }
 
