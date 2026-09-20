@@ -8,6 +8,10 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 **2026-09-20 (đợt 4):** NEW-02 đã sửa (`RepairPriceAdjustmentService`). **NEW-05 HIGH đang mở, chờ quyết định:** bán hàng local-first (mất mạng / phiên offline) không kiểm tồn ⇒ tồn âm; đề xuất ở QA_BUG_REPORT. Test plan còn ~15 case chưa chạy (dừng theo constraint).
 
+**2026-09-20 (đợt 5):** NEW-05 FIXED (`SaleStockGuard`), NEW-06 FIXED (queue delete permission-denied). **NEW-08 HIGH đang mở, chờ quyết định:** Miễn nợ (Công cụ điều chỉnh dữ liệu) chỉ xoá mềm local, không bao giờ lên cloud (`writeOffDebt` không enqueue; `syncAllToCloud` bỏ qua row deleted) ⇒ máy khác vẫn thấy nợ, có thể ghi đè làm nợ sống lại. NEW-07 MEDIUM: thiếu công tắc GIÁ VỐN trong sheet phân quyền nhân viên. Còn 10 case (DEBT-11, MD-10, CR-01→07, SALE-23) + Phần C (release build, báo cáo bàn giao) chưa làm.
+
+**2026-09-20 (đợt 6, cuối):** NEW-08 FIXED (miễn nợ enqueue + syncAllToCloud dọn nợ deleted chưa sync), NEW-10 FIXED (cash_closings qua CloudWritePolicy). Toàn bộ plan đã chạy (149 mục/6 đợt). Còn mở: NEW-09 MEDIUM (kill app giữa transaction bán ⇒ không có phiếu thu), NEW-07 MEDIUM (thiếu công tắc GIÁ VỐN), D-08 MEDIUM (7 write view trực tiếp), 12 LOW. Release **3.7.1+560** đã build (aab+apk, chưa đăng Play); iOS chưa build (cần Mac). Báo cáo bàn giao: `docs/QA_FINAL_HANDOVER_2026-09-20.md`.
+
 **2026-09-20 (đợt 3) — QA tiếp:** 31 case chạy (26 PASS), NEW-04 & D-1 đã sửa; **NEW-02 (MEDIUM: sửa giá đơn sửa sau giao không tạo bút toán) đang chờ quyết định**; máy B đang đăng nhập **n@n.com (employee)**, máy A m@m.com. Còn BLOCKED: stress, crash CR-01/02/04–07, ~20 case khác (xem QA_TEST_EXECUTION đợt 3).
 
 **2026-09-20 (chiều) — ĐÃ SỬA nhóm lỗi nền tảng** (`[2026-09-20b]`): CloudWritePolicy + SyncSignal + BUG-01…09/D-03. Regression 2 máy 12 PASS / 4 BLOCKED, unit 718 PASS. Còn mở: BUG-10 (ACTIVE/UNPAID), L-02…L-06, ~127 case chưa chạy (`docs/QA_FULL_TEST_PLAN.md`). Chưa build release.

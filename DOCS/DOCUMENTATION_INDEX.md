@@ -71,3 +71,4 @@ Test tự động: `test/*_test.dart` (chạy `flutter test`).
 - `FULL_TEST_PLAN_2026-09-19.md` — Feature Map + Full Test Plan sinh từ code (2026-09-19)
 - `FULL_TEST_REPORT_2026-09-19.md` — Kết quả full audit 2 máy thật + rules emulator + FFI (2026-09-20)
 - `QA_FULL_TEST_PLAN.md`, `QA_OFFLINE_SYNC_AUDIT.md`, `QA_TEST_EXECUTION.md`, `QA_BUG_REPORT.md`, `QA_FINANCE_RECONCILIATION.md` — bộ QA sau sửa nền tảng (2026-09-20)
+- `QA_FINAL_HANDOVER_2026-09-20.md` — báo cáo bàn giao cuối (39 lỗi / 19 fixed / 20 mở, file build 3.7.1+560, hướng dẫn đăng tải)

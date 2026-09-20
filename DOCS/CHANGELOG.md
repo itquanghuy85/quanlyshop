@@ -4,6 +4,21 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-20f] - release 3.7.1+560: NEW-08 (miễn nợ lên cloud) + NEW-10 (chốt quỹ qua CloudWritePolicy) + QA đợt 6 hoàn tất + báo cáo bàn giao
+
+- `data_reconciliation_service.writeOffDebt` (+ nợ kèm khi xoá đơn sửa): enqueue `SyncOrchestrator` delete sau xoá mềm; `sync_service.syncAllToCloud` lấy thêm `DBHelper.getUnsyncedDeletedDebts()` (deleted=1 & isSynced=0 & có firestoreId) để dọn khoản kẹt, ép `deleted` bool. Test `test/debt_write_off_sync_test.dart` (2) + 2 máy (khoản kẹt được dọn, miễn mới sang B trong 4 s).
+- `cash_closing_view`: 3 write `cash_closings` (chốt, số dư đầu kỳ, sửa chốt) qua `CloudWritePolicy.guard(context: 'cash_closings')` ⇒ có timeout + bump; B nhận chốt quỹ ngay (trước: không bao giờ tới lần poll).
+- QA đợt 6: 17 mục, 14 PASS; mở NEW-09 MEDIUM (kill app giữa transaction bán ⇒ thiếu phiếu thu), D-08 MEDIUM (7 write view trực tiếp còn lại). Tổng cả đợt: 39 lỗi, 19 fixed (6/6 HIGH), 20 mở (3 MEDIUM/12 LOW/5 INFO).
+- `pubspec.yaml` 3.7.0+559 → **3.7.1+560**; build `app-release.aab` + `app-release.apk` (ký release). iOS BLOCKED (Windows). Báo cáo: `docs/QA_FINAL_HANDOVER_2026-09-20.md`.
+- Unit 725 PASS, analyze 0 error.
+
+## [2026-09-20e] - NEW-05 (SaleStockGuard) + NEW-06 (queue delete permission-denied) + QA đợt 5 dừng ở NEW-08 HIGH
+
+- `lib/services/sale_stock_guard.dart` (mới) + `create_sale_view`: bán local-first (mất mạng/phiên offline) kiểm tồn SQLite trước khi lưu (gộp dòng trùng SP, ĐT IMEI theo status), thiếu ⇒ "Không đủ hàng!" không lưu; ô số lượng/nút + kẹp theo tồn; `db_helper.deductProductQuantity` không cho xuống dưới 0 (log). Test `test/sale_stock_guard_test.dart` (2) + máy thật offline.
+- `sync_orchestrator._handleDelete`: `permission-denied` khi xoá doc chưa từng lên cloud ⇒ bỏ qua (log) thay vì retry mãi làm header kẹt "Lỗi đồng bộ" (NEW-06).
+- QA đợt 5: 16 mục, 11 PASS; phát hiện **NEW-08 HIGH** (Miễn nợ qua Công cụ điều chỉnh dữ liệu không bao giờ lên cloud; nợ có thể sống lại khi máy khác ghi đè) — DỪNG chờ quyết định; NEW-07 MEDIUM (không có công tắc GIÁ VỐN trong sheet phân quyền), L-08 (inventory_checks không sync), D-07, L-09. Chi tiết `docs/QA_TEST_EXECUTION.md` đợt 5, `docs/QA_BUG_REPORT.md`.
+- Unit 723 PASS, analyze 0 error. Chưa build release (Phần C chờ sau quyết định NEW-08).
+
 ## [2026-09-20d] - NEW-02: sửa giá đơn sửa đã giao ⇒ công nợ chênh lệch 2 chiều; QA đợt 4 dừng ở NEW-05 HIGH
 
 - `lib/services/repair_price_adjustment_service.dart`: đơn status 4 đổi giá ⇒ tính lại phần còn phải thu/trả từ số đã thu (idempotent): nợ giao máy CÔNG NỢ đổi tổng (không dưới đã trả); đơn TIỀN MẶT ⇒ nợ điều chỉnh `debt_adj_cust_<rep>` / `debt_adj_shop_<rep>`; về giá cũ ⇒ đóng/xoá mềm. Ghi local + SyncOrchestrator (CloudWritePolicy/SyncSignal có sẵn), emit `debts_changed`. Hook ở `repair_detail_view._editFinancials`. Finance: thu nợ điều chỉnh tính là doanh thu sửa (`linkedDebtLinkedType`).

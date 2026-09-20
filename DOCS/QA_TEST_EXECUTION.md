@@ -130,3 +130,75 @@ Máy A = CPH2203 m@m.com (chủ) · B = CPH2239 n@n.com (nhân viên). Build wor
 ## C. Tổng đợt 4
 Đã chạy **11** mục (7 NEW-02 + 4 plan) · **PASS 10** · **FAIL 1** (NEW-05) · BLOCKED 0 (còn lại chưa chạy do dừng).
 Unit 721 PASS / 0 FAIL (thêm `repair_price_adjustment_test` 3), analyze 0 error.
+
+---
+
+# ĐỢT 5 — 2026-09-20 (13:40–14:50): NEW-05 + chạy nốt plan (DỪNG ở NEW-08 HIGH)
+
+Máy A = CPH2203 m@m.com (chủ) · B = CPH2239 n@n.com (nhân viên). Build working tree: `9955ade7` (cài 13:55) và bản có NEW-06 (cài 14:33).
+
+## A. NEW-05 — bán local-first không kiểm tồn (Phần A)
+| Test ID | Action | Expected | Actual | Kết quả | Evidence |
+|---|---|---|---|---|---|
+| NEW-05-U1 | unit `deductProductQuantity` trừ 120 khi tồn 18 | tồn = 0, không âm | 0 | PASS | `test/sale_stock_guard_test.dart` |
+| NEW-05-U2 | unit `SaleStockGuard.shortages` (2 dòng cùng SP 10+10 khi tồn 18; điện thoại IMEI status≠1) | báo "CAPLIGHTNING (còn: 18, cần: 20)"; ĐT đã bán maxSellable = 0 | đúng | PASS | unit |
+| NEW-05-D1 | A **mất mạng**, Tạo đơn bán → CAPLIGHTNING (tồn 18) → gõ số lượng 120 | ô số lượng kẹp về 18 + cảnh báo | snackbar "⚠️ CAPLIGHTNING: chỉ còn 18 trong kho", ô = 18; nút "+" không tăng quá 18 | PASS | A 13:57 |
+| NEW-05-D2 | (cùng phiên mất mạng) bán đúng 18 (toàn bộ tồn) TIỀN MẶT | lưu local, tồn = 0, không âm | "Đã ghi nhận — chờ đồng bộ"; `products.quantity=0,status=0`; sale 2.160.000 isSynced 0; có mạng → sync; xoá đơn test → tồn về 18/status 1 (A & B) | PASS | A 13:58–14:01 |
+| NEW-05-D3 | hàng rào lưu (`_checkLocalStock`) khi tồn đổi giữa lúc chọn và lúc lưu | báo "Không đủ hàng! … (còn N, cần M)" và không lưu | không tái hiện được qua UI (ô số lượng đã kẹp) — phủ bằng NEW-05-U2 | PASS (unit) | |
+
+## B. Chạy nốt plan
+| Test ID | Action | Expected | Actual | Kết quả | Evidence |
+|---|---|---|---|---|---|
+| SALE-16 | A xoá đơn tiền mặt CAPLIGHTNING 120k (08:39) | đơn xoá mềm, hoàn kho, phiếu thu xoá, B nhận | A: sale deleted=1, kho +1, intent deleted; B nhận sau bump `sales,products,payment_intents` | PASS | A/B 14:05 |
+| SALE-22 | Xem trước biên nhận + QR chuyển khoản | hiển thị đúng số tiền/STK | biên nhận + QR hiện đúng; **in vật lý BLOCKED** (không máy in) | PASS / BLOCKED (in) | A 14:08 |
+| INV-13 | A sửa giá bán SP (→110k) | B nhận | B `products.price=110000` sau signal | PASS | 14:10 |
+| INV-14 | A xoá SP có tồn (CAP SAC Y, tồn 7) | xoá mềm, lịch sử bán giữ, B ẩn SP | `deleted=1`, sales cũ vẫn tra được; B ẩn | PASS | 14:12 |
+| INV-15 | Kiểm kho (đối chiếu tồn thực tế) rồi lưu | phiếu kiểm kho lưu + sync | lưu local `inventory_checks` id 8 **`firestoreId NULL`, `isSynced 0`**, không có bảng nào đẩy lên cloud ⇒ B không thấy | **FAIL → L-08 LOW** | A 14:15 |
+| INV-16 | A tạo vị trí kho QA-KE1 | B nhận | `loc_1789889057749_QA-KE1` isSynced 1, bump `storage_locations`, B có QA-KE1 | PASS | 14:23 |
+| INV-18 | Đơn đặt hàng NCC (PurchaseOrderListView) | vào từ menu Kho | **không có lối vào từ menu Kho**; chỉ tới được qua Nhắc việc (`reminders_view.dart:490`) | **FAIL → D-07 LOW** (điều hướng) | 14:24 |
+| INV-20 | Chủ shop tắt quyền xem giá vốn của n@n.com | có công tắc GIÁ VỐN trong Nhân viên → sửa → phân quyền | sheet "PHÂN QUYỀN NỘI DUNG" (`staff_list_view`) có 11 công tắc, **không có GIÁ VỐN**; `_canViewCostPrice` được lưu nhưng không có widget; màn có công tắc (`staff_permissions_view`) mồ côi | **FAIL → NEW-07 MEDIUM** | A 14:27 |
+| NEW-06 (mới) | Hàng đợi `sync_queue` có mục delete `sales/sale_…` mà doc chưa từng lên cloud (đơn offline đã xoá trước khi sync) | không kẹt "Lỗi đồng bộ" | trước: `permission-denied` retry mãi, badge đỏ; sau sửa `_handleDelete` bỏ qua permission-denied: log `⏭️ Delete sales/…: permission-denied (doc chưa có trên cloud), bỏ qua`, queue rỗng, header "Đã đồng bộ" | **FIXED** | A 14:36 |
+| DEBT-05 | Thu gộp 2 khoản TÉTCONGNO (30k còn + 200k) nhập 100k TIỀN MẶT | phân bổ cũ→mới: 30k đóng khoản 1, 70k vào khoản 2; 2 phiếu thu; B nhận | preview đúng; A: debt78 PAID 50/50, debt79 70/200; 2 `payment_intents` CUSTOMER_DEBT_COLLECT 30k/70k, 2 `debt_payments` (`debtFirestoreId` đúng); B (đang ngủ) vẫn nhận cả 3 bảng | PASS | A/B 14:38 |
+| DEBT-06 | Miễn nợ 100đ (`debt_adj_shop_…TÉTNEG`) qua Công cụ điều chỉnh dữ liệu (lý do, tóm tắt, mật khẩu) | nợ xoá mềm, audit, đẩy cloud, B ẩn nợ | A: `deleted=1, isSynced=0`, audit `RECONCILE_WRITE_OFF_DEBT`; **không đẩy cloud** (không bump, không enqueue); sau resume A `syncAllToCloud` "Synced 2 debts" nhưng là 78/79 — nợ 108 **vẫn isSynced=0** vì `getAllDebts()` lọc `deleted=0`; B sau 3 phút vẫn ACTIVE | **FAIL → NEW-08 HIGH** | A 14:43–14:47, B 14:47 |
+| DEBT-11, MD-10, CR-01→07, SALE-23 | | | **chưa chạy — dừng theo constraint (HIGH mới)** | — | |
+
+## C. Quan sát thêm (LOW)
+- `sync_service.dart` ~3590 (đẩy debts sau thanh toán): ghi cloud nhưng **không đánh dấu isSynced=1** ⇒ mỗi lần thanh toán đẩy lại toàn bộ nợ chưa đánh dấu (log "Synced 2 debts" 2 lần) tới khi `syncAllToCloud` chạy. Không sai dữ liệu, chỉ thừa write → L-09.
+
+## D. Tổng đợt 5
+Đã chạy **16** mục · **PASS 11** · **FAIL 4** (INV-15 L-08, INV-18 D-07, INV-20 NEW-07, DEBT-06 NEW-08) · BLOCKED 1 (in vật lý) · NEW-06 FIXED. Còn 10 case chưa chạy.
+
+---
+
+# ĐỢT 6 — 2026-09-20 (15:00–18:30): NEW-08 + chạy nốt plan (HOÀN TẤT)
+
+Máy A = CPH2203 m@m.com (chủ) · B = CPH2239 n@n.com (nhân viên). Build working tree cài 15:09 (NEW-08) và 18:19 (NEW-10).
+
+## A. NEW-08 — miễn nợ không lên cloud (Phần A)
+| Test ID | Action | Expected | Actual | Kết quả | Evidence |
+|---|---|---|---|---|---|
+| NEW-08-U1 | unit `writeOffDebt` | xoá mềm local + 1 mục `sync_queue` delete đúng firestoreId | `deleted=1,isSynced=0`, note "Miễn nợ: …", queue 1 mục `delete` | PASS | `test/debt_write_off_sync_test.dart` |
+| NEW-08-U2 | unit `getUnsyncedDeletedDebts` | chỉ row deleted=1 & isSynced=0 & có firestoreId | đúng (loại row đã sync, row còn sống, row không firestoreId) | PASS | unit |
+| NEW-08-D1 | A mở app bản mới, bấm đồng bộ (dọn khoản kẹt #108 đã miễn ở đợt 5) | `syncAllToCloud` đẩy `deleted:true`, B ẩn nợ | log `Synced 1 debts to cloud` + `bump debts`; echo cloud xoá row local A; B poll 1 doc → không còn nợ | PASS | A/B 15:11 |
+| NEW-08-D2 | A miễn nợ mới (SC 300k, lý do QA-NEW08, tóm tắt, mật khẩu) | enqueue → cloud → B ẩn trong vài giây | `Enqueued debt#109 (delete)` → `Successfully synced` → `bump debts` 15:14:25; B `SyncSignal: nhận debts` 15:14:26, `Polled debts: 1 docs`, row biến mất | PASS | A/B 15:14 |
+
+## B. Chạy nốt plan
+| Test ID | Action | Expected | Actual | Kết quả | Evidence |
+|---|---|---|---|---|---|
+| DEBT-11 | Xoá/sửa phiếu thu nợ | có cho phép? | Sheet "Lịch sử trả nợ" chỉ xem, không có xoá/sửa (không long-press, không nút); chỉ Công cụ điều chỉnh → TÀI CHÍNH xoá phiếu **mồ côi**. Muốn sửa phải xoá nợ/đơn ⇒ N/A theo thiết kế | PASS (N/A) | A 15:17 |
+| MD-10 | A nhập thêm OP LUNG Y +3 (NHẬP THÊM, TIỀN MẶT) | B nhận tồn mới, 1 phiếu chi | A 18→21, `confirmEntry … Created local EXPENSE 150000`; B 21 sau ~15 s. Ghi chú: SP "Chưa NCC" (CAPLIGHTNING) bị chặn nhập nhanh "không tìm thấy NCC" — đúng thiết kế nhưng snackbar biến mất nhanh | PASS | A/B 15:22 |
+| CR-01a | Tap HOÀN TẤT rồi kill ngay (0–0,9 s, trước transaction cloud) | không có gì được ghi | 30 đơn, tồn 21, queue 0, cloud không có; mở lại sạch | PASS | 15:25 / 15:27 |
+| CR-01b | kill **giữa** `executeSaleTransaction` (2,2 s) | cloud commit hoặc không; mở lại nhất quán | cloud ĐÃ commit (sale + tồn 22); mở lại A kéo về sale #31 + tồn 22, B có sale. **Nhưng phiếu thu `SALE_PAYMENT` 200k không được tạo** (tạo ở bước sau transaction, đã bị kill) ⇒ tab Tiền thiếu 200k; B tồn vẫn 23 tới lần poll sau (bump products cũng bị kill) | **FAIL → NEW-09 MEDIUM** | A 15:29, B 15:30 |
+| CR-02 | NHẬP THÊM +2, kill 0,4 s sau xác nhận | không trùng, phục hồi được | kill sau `createEntry` (draft lên cloud) trước `confirmEntry`: tồn không đổi, Kho hiện "1 Xác nhận nhập vào kho"; xác nhận tay → 23 (A & B), 1 phiếu chi 100k, không trùng | PASS | 15:31–15:33 |
+| CR-03 | kill giữa syncAll → item `processing` kẹt? | tự retry | static: `syncAll` lấy `status IN ('pending','processing')` (`sync_orchestrator.dart:616`) ⇒ item processing được chạy lại | PASS (static) | |
+| CR-04 | Back khi dialog "Bán offline" | không lưu, nút mở lại | dialog chỉ hiện khi SP chưa có firestoreId (không tái hiện được trên dữ liệu hiện tại); static: `showDialog` trả null ⇒ `_isSaving=false`, return | PASS (static) | `create_sale_view.dart:1454–1483` |
+| CR-05 | wifi → 4G giữa listener | re-attach | **BLOCKED** — cả 2 máy không SIM (`gsm.sim.state=ABSENT`); wifi tắt/bật đã phủ ở RG-01b/03c | BLOCKED | |
+| CR-06 | B khoá màn hình 2,5 h (15:33→18:06); A sửa giá OP LUNG Y 200k→210k lúc 15:34 | B mở lại nhận đúng, không trùng | B: price 210000, qty 22; 31 sales = 31 distinct; 1 lượt refresh 20 bảng | PASS | B 18:07 |
+| CR-07 | A background 2,5 h (15:35→18:08); B tạo đơn sửa QACR7 lúc 18:07 | A resume kéo về, không trùng | A: 29 repairs = 29 distinct (có QACR7), 31 sales distinct, payment_intents 173 không đổi, queue 0 | PASS | A 18:08 |
+| SALE-23 | A chốt quỹ ngày 20/09 (TM 220.400 / NH 105.767.000) rồi tạo đơn bán | chặn | `cash_closings` isLocked=1 synced; `_processSale: canEdit = false` ⇒ không lưu (31 đơn giữ nguyên, tồn 22) | PASS | A 18:12–18:14 |
+| SALE-23b | B có nhận chốt quỹ không? | B có row 20/09 ⇒ cũng bị chặn | **B không có row** sau >5 phút: 3 write `cash_closings` trong `cash_closing_view` ghi thẳng Firestore, không qua CloudWritePolicy (không timeout, không bump) | **FAIL → NEW-10 MEDIUM, ĐÃ SỬA** | B 18:16 |
+| NEW-10-D | Sau sửa: A "Sửa chốt quỹ" 220.400→221.400 (lý do QA) | bump `cash_closings`, B nhận | A `bump cash_closings`; B `refreshCollectionNow(cash_closings)` → `Polled 1 docs` → row 20/09 isLocked=1 cashEnd 221400 | PASS | A/B 18:26 |
+
+## C. Tổng đợt 6
+Đã chạy **17** mục · **PASS 14** (3 static/N-A) · **FAIL 2** (CR-01b NEW-09 mở, SALE-23b NEW-10 đã sửa) · BLOCKED 1 (CR-05). Unit 725 PASS, analyze 0 error.
+Dữ liệu test để lại trên shop M: ngày 20/09 đã chốt quỹ (dùng "Sửa chốt quỹ" nếu cần bán tiếp), nợ SC 300k và nợ điều chỉnh TÉTNEG đã miễn, đơn sửa QACR7 (B tạo), sale #31 OP LUNG Y 200k không có phiếu thu (NEW-09).
