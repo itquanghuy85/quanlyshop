@@ -75,6 +75,7 @@ class DataReconciliationService {
           debtId,
           reason: 'Xóa kèm hoàn tài chính từ Công cụ điều chỉnh dữ liệu',
         );
+        await _enqueueDebtSoftDelete(debtId, debt['firestoreId'] as String?);
         debtDeleted++;
       }
     }
@@ -158,6 +159,23 @@ class DataReconciliationService {
 
     return ReconciliationResult(
       note: 'Đã xóa đơn, giữ nguyên công nợ/tài chính liên quan',
+    );
+  }
+
+  /// Xếp hàng đẩy xoá mềm 1 công nợ lên cloud (SyncOrchestrator → soft delete
+  /// `deleted:true`, qua CloudWritePolicy + SyncSignal). Nợ chưa có firestoreId
+  /// thì chưa từng lên cloud — không có gì để xoá.
+  static Future<void> _enqueueDebtSoftDelete(
+    int debtId,
+    String? firestoreId,
+  ) async {
+    if (firestoreId == null || firestoreId.isEmpty) return;
+    await SyncOrchestrator().enqueue(
+      entityType: SyncEntityType.debt,
+      entityId: debtId,
+      firestoreId: firestoreId,
+      operation: SyncOperation.delete,
+      data: {'firestoreId': firestoreId, 'deleted': true},
     );
   }
 
@@ -462,7 +480,12 @@ class DataReconciliationService {
     required String reason,
     required String personName,
   }) async {
+    final row = await _db.getDebtById(debtId);
     await _db.softDeleteDebt(debtId, reason: 'Miễn nợ: $reason');
+    // [NEW-08 2026-09-20] Xoá mềm local xong PHẢI xếp hàng đẩy cloud như mọi
+    // thao tác khác trong công cụ này — trước đây chỉ ghi SQLite, máy khác vẫn
+    // thấy nợ ACTIVE và có thể ghi đè làm nợ đã miễn sống lại.
+    await _enqueueDebtSoftDelete(debtId, row?['firestoreId'] as String?);
     await AuditService.logAction(
       action: 'RECONCILE_WRITE_OFF_DEBT',
       entityType: 'debt',

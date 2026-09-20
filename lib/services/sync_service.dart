@@ -4965,7 +4965,14 @@ class SyncService {
 
       // Đồng bộ Debts (Công nợ)
       try {
-        final debts = await dbHelper.getAllDebts();
+        // [NEW-08 2026-09-20] getAllDebts() lọc deleted=0 ⇒ nợ đã miễn/xoá
+        // mềm mà chưa kịp lên cloud bị bỏ qua vĩnh viễn (máy khác vẫn thấy
+        // ACTIVE, có thể ghi đè làm nợ sống lại). Lấy thêm các row
+        // deleted=1 AND isSynced=0 đã có firestoreId để đẩy `deleted:true`.
+        final debts = [
+          ...await dbHelper.getAllDebts(),
+          ...await dbHelper.getUnsyncedDeletedDebts(),
+        ];
         debugPrint(
           "syncAllToCloud: có ${debts.length} debts cần kiểm tra sync",
         );
@@ -4990,6 +4997,8 @@ class SyncService {
               data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
               data.remove('isSynced');
               data.remove('firestoreId');
+              data['deleted'] =
+                  data['deleted'] == 1 || data['deleted'] == true;
 
               final docId =
                   firestoreId ??

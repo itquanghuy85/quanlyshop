@@ -8268,6 +8268,32 @@ class DBHelper {
   }
 
   /// Lấy debt theo firestoreId - dùng cho conflict resolution
+  /// Nợ đã xoá mềm nhưng chưa đẩy cloud (NEW-08): chỉ row đã có firestoreId
+  /// (row chưa từng lên cloud thì không có gì để xoá trên đó).
+  Future<List<Map<String, dynamic>>> getUnsyncedDeletedDebts() async {
+    final shopId = UserService.getShopIdSync();
+    final db = await database;
+    final scope = (shopId != null && shopId.isNotEmpty)
+        ? ' AND (shopId = ? OR shopId IS NULL)'
+        : '';
+    return db.query(
+      'debts',
+      where:
+          "deleted = 1 AND (isSynced = 0 OR isSynced IS NULL) AND firestoreId IS NOT NULL AND firestoreId != ''$scope",
+      whereArgs: (shopId != null && shopId.isNotEmpty) ? [shopId] : null,
+    );
+  }
+
+  Future<Map<String, dynamic>?> getDebtById(int id) async {
+    final res = await (await database).query(
+      'debts',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    return res.isNotEmpty ? res.first : null;
+  }
+
   Future<Map<String, dynamic>?> getDebtByFirestoreId(String firestoreId) async {
     final res = await (await database).query(
       'debts',
