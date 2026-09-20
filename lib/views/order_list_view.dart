@@ -12,6 +12,7 @@ import '../l10n/app_localizations.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/skeleton_list.dart';
 import '../models/repair_model.dart';
+import '../models/part_used_detail_model.dart';
 import '../services/event_bus.dart';
 import '../services/user_service.dart';
 import '../services/encryption_service.dart';
@@ -1563,7 +1564,7 @@ final results = await Future.wait([
 
       // === HOÀN TRẢ PHỤ TÙNG VỀ KHO ===
       if (r.partsUsed.isNotEmpty) {
-        await _restorePartsToInventory(r.partsUsed);
+        await _restorePartsToInventory(r.partsUsed, r.partsUsedDetailed);
       }
 
       // Lưu id trước khi xóa để dùng cho sync
@@ -1632,7 +1633,10 @@ final results = await Future.wait([
 
   /// Hoàn trả phụ tùng về kho
   /// Format partsUsed: "Part1 x1, Part2 x2, ..."
-  Future<void> _restorePartsToInventory(String partsUsed) async {
+  Future<void> _restorePartsToInventory(
+    String partsUsed, [
+    List<PartUsedDetail> detailed = const [],
+  ]) async {
     if (partsUsed.isEmpty) return;
 
     // Parse partsUsed
@@ -1653,8 +1657,16 @@ final results = await Future.wait([
 
       if (partName.isEmpty) continue;
 
-      // Tìm part trong kho và cộng số lượng
-      await db.restorePartQuantityByName(partName, quantity);
+      // Tìm part trong kho và cộng số lượng — ưu tiên khoá cloud trong
+      // snapshot (BUG-07); đơn cũ không có snapshot thì theo tên như trước.
+      PartUsedDetail? detail;
+      for (final d in detailed) {
+        if (d.name.trim().toUpperCase() == partName.toUpperCase()) {
+          detail = d;
+          break;
+        }
+      }
+      await db.restorePartQuantityByDetail(detail, partName, quantity);
     }
   }
 

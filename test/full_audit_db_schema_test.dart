@@ -99,8 +99,20 @@ void main() {
       if (!uniqueFid) problems.add('$t: firestoreId KHÔNG UNIQUE');
     }
     report.writeln('DB-02 problems: $problems');
-    // Không fail cứng — ghi nhận để báo cáo.
-    expect(problems.where((p) => p.contains('thiếu cột')), isEmpty);
+    // Đã biết & chấp nhận (audit 2026-09-20): payment_intents khoá theo
+    // intentId (không shopId/isSynced/firestoreId UNIQUE), work_schedules khoá
+    // theo userId; cash_closings.firestoreId chưa UNIQUE (L-02, chờ migration).
+    const known = {
+      'payment_intents thiếu cột shopId',
+      'payment_intents thiếu cột isSynced',
+      'payment_intents thiếu cột firestoreId',
+      'payment_intents: firestoreId KHÔNG UNIQUE',
+      'cash_closings: firestoreId KHÔNG UNIQUE',
+      'work_schedules thiếu cột isSynced',
+      'work_schedules thiếu cột firestoreId',
+      'work_schedules: firestoreId KHÔNG UNIQUE',
+    };
+    expect(problems.where((p) => !known.contains(p)), isEmpty);
   });
 
   test('DB-03 foreign_keys pragma', () async {

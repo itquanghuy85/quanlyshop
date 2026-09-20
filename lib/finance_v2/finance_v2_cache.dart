@@ -140,6 +140,9 @@ class FinanceV2Cache {
       case 'debt_payments_changed':
       case 'repair_partner_payments_changed':
       case 'supplier_payments_changed':
+      // Phát tại nguồn bởi PaymentIntentService.executePayment (BUG-06):
+      // mọi thu/chi/thu nợ/trả NCC đều đi qua đây ⇒ Tiền + Giao dịch + Nợ.
+      case 'payment_intents_changed':
         return const {
           FinanceSection.cash,
           FinanceSection.debt,

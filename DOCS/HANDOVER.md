@@ -6,7 +6,9 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ## ⚡ Trạng thái hiện tại
 
-**2026-09-20 — FULL AUDIT xong (không sửa code).** Xem `docs/FULL_TEST_REPORT_2026-09-19.md`: 3 HIGH (mất mạng khi đã đăng nhập ⇒ bán/tạo đơn sửa/nhập kho hỏng hoặc treo — gốc chung: `FirestoreService`/`StockEntryService` không timeout, không rơi về hàng đợi), 7 MEDIUM. Việc tiếp theo: quyết định fix chung "online-mất-mạng ⇒ local-first" trước, rồi BUG-09 (ledger hoàn tiền) và BUG-06 (cache tài chính). 2 máy test đang đăng nhập m@m.com; dữ liệu test liệt kê ở mục 6 của report.
+**2026-09-20 (chiều) — ĐÃ SỬA nhóm lỗi nền tảng** (`[2026-09-20b]`): CloudWritePolicy + SyncSignal + BUG-01…09/D-03. Regression 2 máy 12 PASS / 4 BLOCKED, unit 718 PASS. Còn mở: BUG-10 (ACTIVE/UNPAID), L-02…L-06, ~127 case chưa chạy (`docs/QA_FULL_TEST_PLAN.md`). Chưa build release.
+
+**2026-09-20 (sáng) — FULL AUDIT xong (không sửa code).** Xem `docs/FULL_TEST_REPORT_2026-09-19.md`: 3 HIGH (mất mạng khi đã đăng nhập ⇒ bán/tạo đơn sửa/nhập kho hỏng hoặc treo — gốc chung: `FirestoreService`/`StockEntryService` không timeout, không rơi về hàng đợi), 7 MEDIUM. Việc tiếp theo: quyết định fix chung "online-mất-mạng ⇒ local-first" trước, rồi BUG-09 (ledger hoàn tiền) và BUG-06 (cache tài chính). 2 máy test đang đăng nhập m@m.com; dữ liệu test liệt kê ở mục 6 của report.
 
 
 **Version:** 3.7.0+559 (AAB đã build 19/09 00:58 `build/app/outputs/bundle/release/app-release.aab` 79,7 MB — CHƯA upload store; web đã deploy 19/09 01:00; trước đó 3.6.0+557 AAB đã build 12/09 15:26 — chưa lên store, xem `DOCS/release_notes_2026-09-12.md`; 3.5.0+556 đang live trên store). Trước đó là 3.5.1+555 (đóng gói lên store — `[2026-08-29e..s]` + `[2026-08-30a..e]`; 3.4.0+545 đang live). Các build +546..+553 chưa upload store → bỏ, dùng +554.

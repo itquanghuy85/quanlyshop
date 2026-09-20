@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firestore_write_helper.dart';
 import '../services/app_session.dart';
+import '../services/cloud_write_policy.dart';
 import '../utils/money_utils.dart';
 import '../data/db_helper.dart';
 import '../models/product_model.dart';
@@ -1356,9 +1357,15 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       // === FIRESTORE TRANSACTION: KIỂM TRA + TRỪ KHO + TẠO SALE (ATOMIC) ===
       // Tránh race condition khi 2 nhân viên bán cùng 1 món
 
+      // Phiên online nhưng KHÔNG có mạng (BUG-01, 2026-09-20): không gọi
+      // claims/transaction (treo hoặc `unavailable`), đi thẳng đường local-first
+      // — đơn lưu SQLite `isSynced=0`, `syncAllToCloud` đẩy khi có mạng.
+      final cloudReachable =
+          AppSession.syncEnabled && await CloudWritePolicy.hasNetwork();
+
       // Refresh token và claims để đảm bảo shopId được cập nhật trước transaction
       // (bỏ qua ở phiên offline — không có tài khoản).
-      if (AppSession.syncEnabled) {
+      if (cloudReachable) {
       try {
         // Gọi Cloud Function để sync claims từ Firestore lên JWT
         final claimsResult = await ClaimsService().refreshMyClaims();
@@ -1414,6 +1421,9 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         // Offline session: every sale is local-first by design — no cloud
         // transaction and no "chưa đồng bộ" prompt.
         transactionResult = {'success': true, 'localOnly': true};
+      } else if (!cloudReachable) {
+        debugPrint('📴 _processSale: không có mạng → lưu local-first');
+        transactionResult = {'success': true, 'localOnly': true};
       } else if (allHaveFirestoreId) {
         transactionResult = await FirestoreService.executeSaleTransaction(
           items: transactionItems,
@@ -1467,8 +1477,13 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         final needRelogin = transactionResult['needRelogin'] == true;
         final errorMsg = transactionResult['error']?.toString() ?? '';
 
-        // Nếu lỗi permission-denied, cho phép bán local và sync sau
-        if (errorMsg.contains('permission-denied') || needRelogin) {
+        // Lỗi MẠNG (unavailable / timeout / mất kết nối giữa chừng): không
+        // phải lỗi dữ liệu ⇒ tự động lưu local-first, không hỏi, không mất đơn.
+        if (CloudWritePolicy.isOfflineError(errorMsg)) {
+          debugPrint('📴 _processSale: lỗi mạng ($errorMsg) → local-first');
+            transactionResult = {'success': true, 'localOnly': true};
+        } else if (errorMsg.contains('permission-denied') || needRelogin) {
+          // Nếu lỗi permission-denied, cho phép bán local và sync sau
           debugPrint(
             '⚠️ Firestore permission denied, falling back to local-first sale',
           );

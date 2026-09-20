@@ -11,6 +11,7 @@ import 'business_type_helper.dart';
 import 'label_settings_service.dart';
 import '../data/db_helper.dart';
 import 'app_session.dart';
+import 'cloud_write_policy.dart';
 
 /// CurrentShopService: Quản lý activeShopId cho owner có nhiều shop
 ///
@@ -139,12 +140,12 @@ class CurrentShopService {
 
           // Also persist selection to user profile so app reinstall/new device keeps same active shop.
           try {
-            await _db.collection('users').doc(currentUid).set({
+            await CloudWritePolicy.guard(() => _db.collection('users').doc(currentUid).set({
               'activeShopId': _activeShopId,
               // Keep shopId aligned for legacy flows that still read only shopId.
               'shopId': _activeShopId,
               'lastShopSwitchedAt': FieldValue.serverTimestamp(),
-            }, SetOptions(merge: true));
+            }, SetOptions(merge: true)), context: 'users');
           } catch (e) {
             debugPrint(
               'CurrentShopService: failed to persist active shop during init: $e',
@@ -321,12 +322,12 @@ class CurrentShopService {
 
       // 2.1 Persist active shop on user profile so reinstall/new device still uses the selected shop
       try {
-        await _db.collection('users').doc(currentUser.uid).set({
+        await CloudWritePolicy.guard(() => _db.collection('users').doc(currentUser.uid).set({
           'activeShopId': newShopId,
           // Keep shopId aligned for legacy flows that still read only shopId.
           'shopId': newShopId,
           'lastShopSwitchedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+        }, SetOptions(merge: true)), context: 'users');
       } catch (e) {
         debugPrint(
           'CurrentShopService: failed to persist activeShopId on user profile: $e',

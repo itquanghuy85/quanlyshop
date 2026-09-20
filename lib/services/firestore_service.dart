@@ -21,6 +21,8 @@ import 'firestore_write_helper.dart';
 import 'event_bus.dart';
 import '../developer/firestore_audit/firestore_audit_module.dart';
 import 'firebase_usage_stats_service.dart';
+import 'cloud_write_policy.dart';
+import 'sync_signal_service.dart';
 
 /// Thrown by cloud-only calls that cannot return a neutral value while the
 /// app runs without a Firebase session (AppSession.syncEnabled == false).
@@ -37,6 +39,15 @@ class FirestoreService {
   static bool get _cloudOff => !AppSession.syncEnabled;
 
   static final _db = FirebaseFirestore.instance;
+
+  /// Mọi lệnh ghi trực tiếp của service này đi qua [CloudWritePolicy.guard]
+  /// (gate mạng + timeout 12 s + phân loại lỗi — BUG-01/02/04). Thành công
+  /// thì bump [SyncSignalService] để máy khác kéo về ngay bảng vừa đổi.
+  static Future<T> _cw<T>(Future<T> Function() op, String context) async {
+    final result = await CloudWritePolicy.guard(op, context: context);
+    SyncSignalService.bump([context]);
+    return result;
+  }
   static int _expenseFetchCount = 0;
   static int _attendanceFetchCount = 0;
 
@@ -138,7 +149,8 @@ class FirestoreService {
     String firestoreId,
   ) {
     if (_cloudOff) throw CloudDisabledException();
-    return repairDocRef(firestoreId).get();
+    // Không để caller chờ vô hạn khi mất mạng (Firestore get() không cache).
+    return repairDocRef(firestoreId).get().timeout(const Duration(seconds: 8));
   }
 
   /// One-time fetch of ALL repairs for a shop — no orderBy so old repairs
@@ -214,7 +226,7 @@ class FirestoreService {
         type: 'system',
       );
       final shopId = await UserService.getCurrentShopId();
-      await _db.collection('chats').add({
+      await _cw(() => _db.collection('chats').add({
         'shopId': shopId,
         'message': "$title: $body",
         'senderId': 'SYSTEM',
@@ -224,7 +236,7 @@ class FirestoreService {
         'linkedSummary': summary,
         'readBy': ['SYSTEM'],
         'createdAt': FieldValue.serverTimestamp(),
-      });
+      }), 'chats');
     } catch (_) {}
   }
 
@@ -249,7 +261,7 @@ class FirestoreService {
       data['firestoreId'] = docId;
       data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
 
-      await docRef.set(data, SetOptions(merge: true));
+      await _cw(() => docRef.set(data, SetOptions(merge: true)), 'purchase_orders');
 
       // CẬP NHẬT INVENTORY SAU KHI NHẬP HÀNG
       await _updateInventoryFromPurchaseOrder(order, shopId!);
@@ -336,7 +348,7 @@ class FirestoreService {
             'isSynced': true,
           };
 
-          await _db.collection('products').add(newProduct);
+          await _cw(() => _db.collection('products').add(newProduct), 'products');
           debugPrint(
             'Tạo sản phẩm mới: ${item.productName}, SL: ${item.quantity}, Chi phí: ${item.unitCost}',
           );
@@ -378,7 +390,7 @@ class FirestoreService {
       data['firestoreId'] = docRef.id;
       // Mã hóa dữ liệu nhạy cảm trước khi upload
       final encryptedData = EncryptionService.encryptMap(data);
-      await docRef.set(encryptedData, SetOptions(merge: true));
+      await _cw(() => docRef.set(encryptedData, SetOptions(merge: true)), 'repairs');
       _notifyAll(
         "🔧 MÁY NHẬN MỚI",
         "${r.createdBy} nhận ${r.model} của khách ${r.customerName}",
@@ -409,10 +421,10 @@ class FirestoreService {
       final data = r.toMap();
       data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       final encryptedData = EncryptionService.encryptMap(data);
-      await _db
+      await _cw(() => _db
           .collection('repairs')
           .doc(r.firestoreId)
-          .set(encryptedData, SetOptions(merge: true));
+          .set(encryptedData, SetOptions(merge: true)), 'repairs');
     } catch (e) {
       debugPrint('Firestore upsertRepair error: $e');
     }
@@ -423,10 +435,10 @@ class FirestoreService {
     // Không nuốt lỗi ở đây — caller cần biết cloud delete thất bại để xóa
     // local đúng cách (giữ lại hoặc xếp hàng đợi retry), tránh mồ côi vĩnh
     // viễn document trên cloud trong khi local đã xóa sạch.
-    await _db.collection('repairs').doc(firestoreId).update({
+    await _cw(() => _db.collection('repairs').doc(firestoreId).update({
       'deleted': true,
       'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-    });
+    }), 'repairs');
   }
 
   static Future<String?> addSale(SaleOrder s) async {
@@ -483,7 +495,7 @@ class FirestoreService {
       final encryptedData = EncryptionService.encryptMap(data);
       debugPrint('📤 addSale: writing to Firestore docId=$docId');
 
-      await docRef.set(encryptedData, SetOptions(merge: true));
+      await _cw(() => docRef.set(encryptedData, SetOptions(merge: true)), 'sales');
       debugPrint('✅ addSale: success docId=$docId');
       EventBus().emit('sales_changed');
 
@@ -533,10 +545,10 @@ class FirestoreService {
       data['shopId'] = shopId;
       data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       final encryptedData = EncryptionService.encryptMap(data);
-      await _db
+      await _cw(() => _db
           .collection('sales')
           .doc(s.firestoreId)
-          .set(encryptedData, SetOptions(merge: true));
+          .set(encryptedData, SetOptions(merge: true)), 'sales');
       EventBus().emit('sales_changed');
     } catch (e) {
       debugPrint('Firestore updateSaleCloud error: $e');
@@ -546,10 +558,10 @@ class FirestoreService {
   static Future<void> deleteSale(String firestoreId) async {
     if (_cloudOff) return;
     // Không nuốt lỗi — xem lý do ở deleteRepair() ngay trên.
-    await _db.collection('sales').doc(firestoreId).update({
+    await _cw(() => _db.collection('sales').doc(firestoreId).update({
       'deleted': true,
       'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-    });
+    }), 'sales');
     EventBus().emit('sales_changed');
   }
 
@@ -575,7 +587,7 @@ class FirestoreService {
       // Remove firestoreId from data since it's already in docId
       data.remove('firestoreId');
       final encryptedData = EncryptionService.encryptMap(data);
-      await docRef.set(encryptedData, SetOptions(merge: true));
+      await _cw(() => docRef.set(encryptedData, SetOptions(merge: true)), 'products');
       return docRef.id;
     } catch (e) {
       return null;
@@ -599,10 +611,10 @@ class FirestoreService {
       final data = p.toMap();
       data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       final encryptedData = EncryptionService.encryptMap(data);
-      await _db
+      await _cw(() => _db
           .collection('products')
           .doc(p.firestoreId)
-          .set(encryptedData, SetOptions(merge: true));
+          .set(encryptedData, SetOptions(merge: true)), 'products');
     } catch (e) {
       debugPrint('Firestore updateProductCloud error: $e');
     }
@@ -611,11 +623,11 @@ class FirestoreService {
   static Future<void> deleteProduct(String firestoreId) async {
     if (_cloudOff) return;
     try {
-      await _db.collection('products').doc(firestoreId).update({
+      await _cw(() => _db.collection('products').doc(firestoreId).update({
         'deleted': true,
         'status': 0,
         'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-      });
+      }), 'products');
     } catch (e) {
       debugPrint('Firestore deleteProduct error: $e');
     }
@@ -632,7 +644,7 @@ class FirestoreService {
     if (_cloudOff) return;
     try {
       final shopId = await UserService.getCurrentShopId();
-      await _db.collection('chats').add({
+      await _cw(() => _db.collection('chats').add({
         'shopId': shopId,
         'message': message,
         'senderId': senderId,
@@ -642,7 +654,7 @@ class FirestoreService {
         'linkedSummary': linkedSummary,
         'readBy': [senderId],
         'createdAt': FieldValue.serverTimestamp(),
-      });
+      }), 'chats');
     } catch (_) {}
   }
 
@@ -667,10 +679,10 @@ class FirestoreService {
       logData['shopId'] = shopId;
       logData['firestoreId'] = docId;
       logData['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
-      await _db
+      await _cw(() => _db
           .collection('audit_logs')
           .doc(docId)
-          .set(logData, SetOptions(merge: true));
+          .set(logData, SetOptions(merge: true)), 'audit_logs');
     } catch (_) {}
   }
 
@@ -692,10 +704,10 @@ class FirestoreService {
       debtData['firestoreId'] = docId;
       debtData['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       final encryptedData = EncryptionService.encryptMap(debtData);
-      await _db
+      await _cw(() => _db
           .collection('debts')
           .doc(docId)
-          .set(encryptedData, SetOptions(merge: true));
+          .set(encryptedData, SetOptions(merge: true)), 'debts');
       EventBus().emit('debts_changed');
     } catch (e) {
       debugPrint('Error adding debt to cloud: $e');
@@ -733,10 +745,10 @@ class FirestoreService {
       paymentData['firestoreId'] = docId;
       paymentData['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       final encryptedData = EncryptionService.encryptMap(paymentData);
-      await _db
+      await _cw(() => _db
           .collection('debt_payments')
           .doc(docId)
-          .set(encryptedData, SetOptions(merge: true));
+          .set(encryptedData, SetOptions(merge: true)), 'debt_payments');
       EventBus().emit('debt_payments_changed');
       EventBus().emit('debts_changed');
     } catch (e) {
@@ -757,10 +769,10 @@ class FirestoreService {
       expData['firestoreId'] = docId;
       expData['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       final encryptedData = EncryptionService.encryptMap(expData);
-      await _db
+      await _cw(() => _db
           .collection('expenses')
           .doc(docId)
-          .set(encryptedData, SetOptions(merge: true));
+          .set(encryptedData, SetOptions(merge: true)), 'expenses');
       EventBus().emit('expenses_changed');
     } catch (_) {}
   }
@@ -773,10 +785,10 @@ class FirestoreService {
       expData['shopId'] = shopId;
       expData['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       final encryptedData = EncryptionService.encryptMap(expData);
-      await _db
+      await _cw(() => _db
           .collection('expenses')
           .doc(expData['firestoreId'])
-          .set(encryptedData, SetOptions(merge: true));
+          .set(encryptedData, SetOptions(merge: true)), 'expenses');
       EventBus().emit('expenses_changed');
     } catch (e) {
       debugPrint('Firestore updateExpenseCloud error: $e');
@@ -786,10 +798,10 @@ class FirestoreService {
   static Future<void> deleteExpenseCloud(String firestoreId) async {
     if (_cloudOff) return;
     try {
-      await _db.collection('expenses').doc(firestoreId).update({
+      await _cw(() => _db.collection('expenses').doc(firestoreId).update({
         'deleted': true,
         'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-      });
+      }), 'expenses');
       EventBus().emit('expenses_changed');
     } catch (e) {
       debugPrint('Firestore deleteExpenseCloud error: $e');
@@ -808,10 +820,10 @@ class FirestoreService {
       data['firestoreId'] = docId;
       data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       final encryptedData = EncryptionService.encryptMap(data);
-      await _db
+      await _cw(() => _db
           .collection('salvage_phones')
           .doc(docId)
-          .set(encryptedData, SetOptions(merge: true));
+          .set(encryptedData, SetOptions(merge: true)), 'salvage_phones');
     } catch (e) {
       debugPrint('Firestore addSalvagePhoneCloud error: $e');
     }
@@ -825,10 +837,10 @@ class FirestoreService {
       data['shopId'] = shopId;
       data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       final encryptedData = EncryptionService.encryptMap(data);
-      await _db
+      await _cw(() => _db
           .collection('salvage_phones')
           .doc(data['firestoreId'])
-          .set(encryptedData, SetOptions(merge: true));
+          .set(encryptedData, SetOptions(merge: true)), 'salvage_phones');
     } catch (e) {
       debugPrint('Firestore updateSalvagePhoneCloud error: $e');
     }
@@ -837,10 +849,10 @@ class FirestoreService {
   static Future<void> deleteSalvagePhoneCloud(String firestoreId) async {
     if (_cloudOff) return;
     try {
-      await _db.collection('salvage_phones').doc(firestoreId).update({
+      await _cw(() => _db.collection('salvage_phones').doc(firestoreId).update({
         'deleted': true,
         'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-      });
+      }), 'salvage_phones');
     } catch (e) {
       debugPrint('Firestore deleteSalvagePhoneCloud error: $e');
     }
@@ -931,7 +943,7 @@ class FirestoreService {
       data['firestoreId'] = docId;
       data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       final encryptedData = EncryptionService.encryptMap(data);
-      await docRef.set(encryptedData, SetOptions(merge: true));
+      await _cw(() => docRef.set(encryptedData, SetOptions(merge: true)), 'attendance');
       EventBus().emit('attendance_changed');
       return docId;
     } catch (e) {
@@ -949,10 +961,10 @@ class FirestoreService {
       data['shopId'] = shopId;
       data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       final encryptedData = EncryptionService.encryptMap(data);
-      await _db
+      await _cw(() => _db
           .collection('attendance')
           .doc(attendance.firestoreId)
-          .set(encryptedData, SetOptions(merge: true));
+          .set(encryptedData, SetOptions(merge: true)), 'attendance');
       EventBus().emit('attendance_changed');
     } catch (e) {
       debugPrint('Firestore updateAttendanceCloud error: $e');
@@ -962,10 +974,10 @@ class FirestoreService {
   static Future<void> deleteAttendance(String firestoreId) async {
     if (_cloudOff) return;
     try {
-      await _db.collection('attendance').doc(firestoreId).update({
+      await _cw(() => _db.collection('attendance').doc(firestoreId).update({
         'deleted': true,
         'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-      });
+      }), 'attendance');
       EventBus().emit('attendance_changed');
     } catch (e) {
       debugPrint('Firestore deleteAttendance error: $e');
@@ -986,10 +998,10 @@ class FirestoreService {
       closingData['firestoreId'] = docId;
       closingData['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
 
-      await _db
+      await _cw(() => _db
           .collection('cash_closings')
           .doc(docId)
-          .set(closingData, SetOptions(merge: true));
+          .set(closingData, SetOptions(merge: true)), 'cash_closings');
       debugPrint('Cash closing synced to cloud: $docId');
     } catch (e) {
       debugPrint('Error syncing cash closing to cloud: $e');
@@ -1188,7 +1200,7 @@ class FirestoreService {
               for (int j = i; j < end; j++) {
                 batch.delete(snapshots.docs[j].reference);
               }
-              await batch.commit();
+              await _cw(() => batch.commit(), 'reset.batch');
             }
             debugPrint(
               'Reset: deleted ${snapshots.docs.length} docs from $colName',
@@ -1232,7 +1244,7 @@ class FirestoreService {
   static Future<void> deleteCustomer(String firestoreId) async {
     if (_cloudOff) return;
     try {
-      await _db.collection('customers').doc(firestoreId).delete();
+      await _cw(() => _db.collection('customers').doc(firestoreId).delete(), 'customers');
       EventBus().emit('customers_changed');
     } catch (_) {}
   }
@@ -1242,16 +1254,16 @@ class FirestoreService {
     if (_cloudOff) return;
     try {
       // Soft delete: đánh dấu deleted = true thay vì xóa hẳn
-      await _db.collection('suppliers').doc(firestoreId).update({
+      await _cw(() => _db.collection('suppliers').doc(firestoreId).update({
         'deleted': true,
         'active': 0,
         'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-      });
+      }), 'suppliers');
       debugPrint('Firestore deleteSupplier: $firestoreId soft deleted');
     } catch (e) {
       // Nếu doc không tồn tại hoặc lỗi update, thử xóa hẳn
       try {
-        await _db.collection('suppliers').doc(firestoreId).delete();
+        await _cw(() => _db.collection('suppliers').doc(firestoreId).delete(), 'suppliers');
       } catch (_) {}
       debugPrint('Firestore deleteSupplier error: $e');
     }
@@ -1273,7 +1285,7 @@ class FirestoreService {
       data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       final encryptedData = EncryptionService.encryptMap(data);
 
-      await docRef.set(encryptedData, SetOptions(merge: true));
+      await _cw(() => docRef.set(encryptedData, SetOptions(merge: true)), 'quick_input_codes');
       return docId;
     } catch (e) {
       debugPrint('Error adding quick input code: $e');
@@ -1291,7 +1303,7 @@ class FirestoreService {
       data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       final encryptedData = EncryptionService.encryptMap(data);
 
-      await docRef.update(encryptedData);
+      await _cw(() => docRef.update(encryptedData), 'quick_input_codes');
     } catch (e) {
       debugPrint('Error updating quick input code: $e');
     }
@@ -1300,11 +1312,11 @@ class FirestoreService {
   static Future<void> deleteQuickInputCode(String firestoreId) async {
     if (_cloudOff) return;
     try {
-      await _db.collection('quick_input_codes').doc(firestoreId).update({
+      await _cw(() => _db.collection('quick_input_codes').doc(firestoreId).update({
         'deleted': true,
         'isActive': false,
         'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-      });
+      }), 'quick_input_codes');
     } catch (e) {
       debugPrint('Error deleting quick input code: $e');
     }
@@ -1368,7 +1380,7 @@ class FirestoreService {
         ),
       };
 
-      await _db.collection('notifications').add(notificationData);
+      await _cw(() => _db.collection('notifications').add(notificationData), 'notifications');
 
       // Đồng thời gửi FCM push
       await NotificationService.sendCloudNotification(
@@ -1465,10 +1477,10 @@ class FirestoreService {
   static Future<void> markNotificationAsRead(String notificationId) async {
     if (_cloudOff) return;
     try {
-      await _db.collection('shop_notifications').doc(notificationId).update({
+      await _cw(() => _db.collection('shop_notifications').doc(notificationId).update({
         'isRead': true,
         'readAt': FieldValue.serverTimestamp(),
-      });
+      }), 'shop_notifications');
     } catch (e) {
       debugPrint('Error marking notification as read: $e');
     }
@@ -1548,7 +1560,7 @@ class FirestoreService {
       partnerData['firestoreId'] = existingFirestoreId;
       partnerData['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       final encryptedData = EncryptionService.encryptMap(partnerData);
-      await docRef.set(encryptedData, SetOptions(merge: true));
+      await _cw(() => docRef.set(encryptedData, SetOptions(merge: true)), 'repair_partners');
       return existingFirestoreId;
     } catch (e) {
       debugPrint('Firestore addRepairPartner error: $e');
@@ -1565,10 +1577,10 @@ class FirestoreService {
       if (firestoreId == null) return;
       partnerData['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       final encryptedData = EncryptionService.encryptMap(partnerData);
-      await _db
+      await _cw(() => _db
           .collection('repair_partners')
           .doc(firestoreId)
-          .update(encryptedData);
+          .update(encryptedData), 'repair_partners');
     } catch (e) {
       debugPrint('Firestore updateRepairPartner error: $e');
     }
@@ -1595,18 +1607,18 @@ class FirestoreService {
     if (_cloudOff) return;
     try {
       // Soft delete: đánh dấu deleted = true thay vì xóa hẳn để tránh sync lại
-      await _db.collection('repair_partners').doc(firestoreId).update({
+      await _cw(() => _db.collection('repair_partners').doc(firestoreId).update({
         'deleted': true,
         'active': 0,
         'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-      });
+      }), 'repair_partners');
       debugPrint(
         'Firestore deleteRepairPartnerByFirestoreId: $firestoreId deleted',
       );
     } catch (e) {
       // Nếu doc không tồn tại, thử xóa hẳn
       try {
-        await _db.collection('repair_partners').doc(firestoreId).delete();
+        await _cw(() => _db.collection('repair_partners').doc(firestoreId).delete(), 'repair_partners');
       } catch (_) {}
       debugPrint('Firestore deleteRepairPartnerByFirestoreId error: $e');
     }
@@ -1632,7 +1644,7 @@ class FirestoreService {
       historyData['firestoreId'] = docRef.id;
       historyData['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       final encryptedData = EncryptionService.encryptMap(historyData);
-      await docRef.set(encryptedData, SetOptions(merge: true));
+      await _cw(() => docRef.set(encryptedData, SetOptions(merge: true)), 'partner_repair_history');
       return docRef.id;
     } catch (e) {
       debugPrint('Firestore addPartnerRepairHistory error: $e');
@@ -1645,16 +1657,16 @@ class FirestoreService {
   ) async {
     if (_cloudOff) return;
     try {
-      await _db.collection('partner_repair_history').doc(firestoreId).update({
+      await _cw(() => _db.collection('partner_repair_history').doc(firestoreId).update({
         'deleted': true,
         'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-      });
+      }), 'partner_repair_history');
     } catch (e) {
       try {
-        await _db
+        await _cw(() => _db
             .collection('partner_repair_history')
             .doc(firestoreId)
-            .delete();
+            .delete(), 'partner_repair_history');
       } catch (_) {}
       debugPrint('Firestore deletePartnerRepairHistoryByFirestoreId error: $e');
     }
@@ -1678,7 +1690,7 @@ class FirestoreService {
       supplierData['firestoreId'] = docRef.id;
       supplierData['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       final encryptedData = EncryptionService.encryptMap(supplierData);
-      await docRef.set(encryptedData, SetOptions(merge: true));
+      await _cw(() => docRef.set(encryptedData, SetOptions(merge: true)), 'suppliers');
       return docRef.id;
     } catch (e) {
       debugPrint('Firestore addSupplier error: $e');
@@ -1693,7 +1705,7 @@ class FirestoreService {
       if (firestoreId == null) return;
       supplierData['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       final encryptedData = EncryptionService.encryptMap(supplierData);
-      await _db.collection('suppliers').doc(firestoreId).update(encryptedData);
+      await _cw(() => _db.collection('suppliers').doc(firestoreId).update(encryptedData), 'suppliers');
     } catch (e) {
       debugPrint('Firestore updateSupplier error: $e');
     }
@@ -1718,7 +1730,7 @@ class FirestoreService {
       historyData['shopId'] = shopId;
       historyData['firestoreId'] = docRef.id;
       historyData['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
-      await docRef.set(historyData, SetOptions(merge: true));
+      await _cw(() => docRef.set(historyData, SetOptions(merge: true)), 'supplier_import_history');
       return docRef.id;
     } catch (e) {
       debugPrint('Firestore addSupplierImportHistory error: $e');
@@ -1745,7 +1757,7 @@ class FirestoreService {
       pricesData['shopId'] = shopId;
       pricesData['firestoreId'] = docRef.id;
       pricesData['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
-      await docRef.set(pricesData, SetOptions(merge: true));
+      await _cw(() => docRef.set(pricesData, SetOptions(merge: true)), 'supplier_product_prices');
       return docRef.id;
     } catch (e) {
       debugPrint('Firestore addSupplierProductPrices error: $e');
@@ -1775,7 +1787,7 @@ class FirestoreService {
       } else if (rawName.length > 100) {
         customerData['name'] = rawName.substring(0, 100);
       }
-      await docRef.set(customerData, SetOptions(merge: true));
+      await _cw(() => docRef.set(customerData, SetOptions(merge: true)), 'customers');
       EventBus().emit('customers_changed');
       return docRef.id;
     } catch (e) {
@@ -1793,7 +1805,7 @@ class FirestoreService {
 
       customerData['shopId'] = shopId;
       customerData['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
-      await _db.collection('customers').doc(firestoreId).update(customerData);
+      await _cw(() => _db.collection('customers').doc(firestoreId).update(customerData), 'customers');
       EventBus().emit('customers_changed');
       return true;
     } catch (e) {
@@ -1811,10 +1823,10 @@ class FirestoreService {
     if (_cloudOff) return false;
     if (firestoreId.isEmpty) return false;
     try {
-      await _db.collection('customers').doc(firestoreId).update({
+      await _cw(() => _db.collection('customers').doc(firestoreId).update({
         'deleted': true,
         'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-      });
+      }), 'customers');
       EventBus().emit('customers_changed');
       return true;
     } catch (e) {
@@ -1887,7 +1899,7 @@ class FirestoreService {
       String phone = '';
       int paidAt = DateTime.now().millisecondsSinceEpoch;
 
-      await _db.runTransaction((transaction) async {
+      await _cw(() => _db.runTransaction((transaction) async {
         // PHASE 1: Đọc debt document
         final debtRef = _db.collection('debts').doc(debtFirestoreId);
         final debtSnapshot = await transaction.get(debtRef);
@@ -1953,7 +1965,7 @@ class FirestoreService {
         };
 
         transaction.set(paymentRef, EncryptionService.encryptMap(paymentData));
-      });
+      }), 'debts.tx');
 
       debugPrint(
         '✅ Debt payment transaction completed: $debtFirestoreId, paid: $payAmount, total paid: $newPaidAmount',
@@ -2064,7 +2076,7 @@ class FirestoreService {
       String? saleDocId;
       List<String> outOfStockItems = [];
 
-      await _db.runTransaction((transaction) async {
+      await _cw(() => _db.runTransaction((transaction) async {
         // PHASE 1: Đọc tất cả products và kiểm tra stock
         Map<String, DocumentSnapshot> productDocs = {};
 
@@ -2164,7 +2176,8 @@ class FirestoreService {
           final encryptedDebtData = EncryptionService.encryptMap(debtData);
           transaction.set(debtDocRef, encryptedDebtData);
         }
-      });
+      }), 'products.tx');
+      SyncSignalService.bump(['products', 'debts']);
 
       debugPrint('✅ Sale transaction completed successfully: $saleDocId');
       return {'success': true, 'saleDocId': saleDocId};
@@ -2307,10 +2320,10 @@ class FirestoreService {
         settings['isActive'] = true;
       }
 
-      await _db
+      await _cw(() => _db
           .collection('employee_salary_settings')
           .doc(docId)
-          .set(settings, SetOptions(merge: true));
+          .set(settings, SetOptions(merge: true)), 'employee_salary_settings');
 
       EventBus().emit('employee_salary_settings_changed');
       debugPrint('✅ Saved employee salary settings for $staffId');
@@ -2383,10 +2396,10 @@ class FirestoreService {
       settings['updatedBy'] =
           FirebaseAuth.instance.currentUser?.email ?? 'unknown';
 
-      await _db
+      await _cw(() => _db
           .collection('shop_salary_defaults')
           .doc(shopId)
-          .set(settings, SetOptions(merge: true));
+          .set(settings, SetOptions(merge: true)), 'shop_salary_defaults');
 
       EventBus().emit('employee_salary_settings_changed');
       debugPrint('✅ Saved shop default salary settings');
@@ -2485,10 +2498,10 @@ class FirestoreService {
       settings['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       settings['updatedBy'] = currentUser?.email ?? 'unknown';
 
-      await _db
+      await _cw(() => _db
           .collection('shop_deduction_settings')
           .doc(shopId)
-          .set(settings, SetOptions(merge: true));
+          .set(settings, SetOptions(merge: true)), 'shop_deduction_settings');
 
       debugPrint('✅ Saved shop deduction settings for shop: $shopId');
       return true;
@@ -2577,11 +2590,11 @@ class FirestoreService {
       adjustment['createdBy'] =
           FirebaseAuth.instance.currentUser?.email ?? 'unknown';
 
-      await _db
+      await _cw(() => _db
           .collection('shops')
           .doc(shopId)
           .collection('custom_salary_adjustments')
-          .add(adjustment);
+          .add(adjustment), 'shops');
 
       debugPrint('✅ Added custom salary adjustment');
       return true;
@@ -2603,12 +2616,12 @@ class FirestoreService {
       adjustment['updatedBy'] =
           FirebaseAuth.instance.currentUser?.email ?? 'unknown';
 
-      await _db
+      await _cw(() => _db
           .collection('shops')
           .doc(shopId)
           .collection('custom_salary_adjustments')
           .doc(adjustmentId)
-          .update(adjustment);
+          .update(adjustment), 'shops');
 
       debugPrint('✅ Updated custom salary adjustment');
       return true;
@@ -2625,12 +2638,12 @@ class FirestoreService {
   ) async {
     if (_cloudOff) return false;
     try {
-      await _db
+      await _cw(() => _db
           .collection('shops')
           .doc(shopId)
           .collection('custom_salary_adjustments')
           .doc(adjustmentId)
-          .delete();
+          .delete(), 'shops');
 
       debugPrint('✅ Deleted custom salary adjustment');
       return true;
@@ -2653,10 +2666,10 @@ class FirestoreService {
         ..['shopId'] = shopId
         ..['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt()
         ..['deleted'] = false;
-      await _db
+      await _cw(() => _db
           .collection('storage_locations')
           .doc(docId)
-          .set(data, SetOptions(merge: true));
+          .set(data, SetOptions(merge: true)), 'storage_locations');
       return docId;
     } catch (e) {
       debugPrint('❌ addStorageLocation: $e');
@@ -2672,10 +2685,10 @@ class FirestoreService {
         ..remove('id')
         ..remove('firestoreId')
         ..['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
-      await _db
+      await _cw(() => _db
           .collection('storage_locations')
           .doc(loc.firestoreId)
-          .update(data);
+          .update(data), 'storage_locations');
     } catch (e) {
       debugPrint('❌ updateStorageLocation: $e');
     }
@@ -2684,10 +2697,10 @@ class FirestoreService {
   static Future<void> deleteStorageLocation(String firestoreId) async {
     if (_cloudOff) return;
     try {
-      await _db.collection('storage_locations').doc(firestoreId).update({
+      await _cw(() => _db.collection('storage_locations').doc(firestoreId).update({
         'deleted': true,
         'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-      });
+      }), 'storage_locations');
     } catch (e) {
       debugPrint('❌ deleteStorageLocation: $e');
     }

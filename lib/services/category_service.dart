@@ -6,6 +6,7 @@ import '../models/shop_settings_model.dart';
 import '../data/db_helper.dart';
 import 'app_session.dart';
 import 'user_service.dart';
+import 'cloud_write_policy.dart';
 
 /// Service quản lý danh mục sản phẩm và cài đặt shop
 /// Hỗ trợ multi-industry expansion
@@ -201,12 +202,12 @@ class CategoryService {
       );
     } else {
       try {
-        await _firestore
+        await CloudWritePolicy.guard(() => _firestore
             .collection('shops')
             .doc(shopId)
             .collection('settings')
             .doc('shop_settings')
-            .set(settingsWithShop.toFirestoreMap(), SetOptions(merge: true));
+            .set(settingsWithShop.toFirestoreMap(), SetOptions(merge: true)), context: 'shops');
         debugPrint('💾 CategoryService: Saved to Firestore successfully');
       } catch (e) {
         _markRemoteWriteDenied('save shop_settings', e);
@@ -221,7 +222,7 @@ class CategoryService {
       );
     } else {
       try {
-        await _firestore.collection('shops').doc(shopId).set({
+        await CloudWritePolicy.guard(() => _firestore.collection('shops').doc(shopId).set({
           'businessType': settingsWithShop.businessType,
           'businessTypeName': settingsWithShop.businessTypeName,
           'enableRepair': settingsWithShop.enableRepair,
@@ -232,7 +233,7 @@ class CategoryService {
           'enableVariants': settingsWithShop.enableVariants,
           'defaultUnit': settingsWithShop.defaultUnit,
           'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-        }, SetOptions(merge: true));
+        }, SetOptions(merge: true)), context: 'shops');
         debugPrint('💾 CategoryService: Updated shop doc businessType');
       } catch (e) {
         _markRemoteWriteDenied('update shop doc businessType', e);

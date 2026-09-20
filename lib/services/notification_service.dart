@@ -17,6 +17,7 @@ import 'app_session.dart';
 import 'user_service.dart';
 import 'firebase_usage_stats_service.dart';
 import '../developer/firestore_audit/firestore_audit_module.dart';
+import 'cloud_write_policy.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _localNotifications =
@@ -258,7 +259,7 @@ class NotificationService {
 
         final messenger = messengerKey.currentState;
         if (messenger != null) {
-          messenger.showSnackBar(
+          final fcmCtrl = messenger.showSnackBar(
             SnackBar(
               content: Row(
                 children: [
@@ -302,6 +303,12 @@ class NotificationService {
               ),
             ),
           );
+          // Termination path (BUG-08): tự đóng dù animation bị route cắt ngang.
+          Timer(const Duration(seconds: 9), () {
+            try {
+              fcmCtrl.close();
+            } catch (_) {}
+          });
         }
         return false;
       }
@@ -663,7 +670,7 @@ class NotificationService {
         }
 
         if (hasDuplicates) {
-          await batch.commit();
+          await CloudWritePolicy.guard(() => batch.commit(), context: 'unknown');
           debugPrint('Cleaned up duplicate FCM tokens');
         }
       } catch (e) {
@@ -672,13 +679,13 @@ class NotificationService {
       }
 
       // Save the new token
-      await _db.collection('users').doc(user.uid).set({
+      await CloudWritePolicy.guard(() => _db.collection('users').doc(user.uid).set({
         'fcmToken': token,
         'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
         'fcmTokenShopId': shopId,
         'devicePlatform': _getDevicePlatform(),
         'lastTokenUpdate': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      }, SetOptions(merge: true)), context: 'users');
 
       debugPrint('FCM token saved successfully for user: ${user.uid}');
     } catch (e) {
@@ -1128,7 +1135,7 @@ class NotificationService {
       };
 
       debugPrint('Creating shop notification: $notificationData');
-      await docRef.set(notificationData);
+      await CloudWritePolicy.guard(() => docRef.set(notificationData), context: 'shop_notifications');
       debugPrint('Shop notification created successfully');
 
       // Send FCM push notification
@@ -1311,7 +1318,13 @@ class NotificationService {
     try {
       final messenger = messengerKey.currentState;
       if (messenger != null) {
-        messenger.showSnackBar(
+        // [BUG-08 2026-09-20] SnackBar `duration: 5s` từng treo >10 phút và
+        // che nút đáy màn: timer của SnackBar chỉ chạy khi animation vào tới
+        // `completed`; đổi route (đóng sheet, push chi tiết) đúng lúc đó thì
+        // không bao giờ tới ⇒ không tự đóng (Flutter #93999). Bắt buộc có
+        // đường kết thúc riêng: dọn snackbar cũ + tự đóng sau duration+1s.
+        messenger.clearSnackBars();
+        final controller = messenger.showSnackBar(
           SnackBar(
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1363,6 +1376,11 @@ class NotificationService {
             ),
           ),
         );
+        Timer(const Duration(seconds: 6), () {
+          try {
+            controller.close();
+          } catch (_) {}
+        });
       }
     } catch (e) {
       debugPrint('Error showing in-app notification: $e');

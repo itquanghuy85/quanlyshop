@@ -529,10 +529,12 @@ void main() {
 
     test('tiền vào: bán 49.850.000 + sửa 3.750.000 + thu nợ 2.100.000 + thu khác 300.000',
         () {
-      expect(snap.incomeFromSales, 49850000, reason: 'bán hàng thực thu (đã trừ trả hàng 150k)');
+      expect(snap.incomeFromSales, 49850000, reason: 'doanh thu bán NET (đã trừ trả hàng 150k)');
       expect(snap.incomeFromRepairs, 3750000, reason: 'sửa chữa thực thu, loại R3 CÔNG NỢ');
       expect(snap.incomeOther, 300000, reason: 'thu khác KHÔNG gồm thu nợ');
-      expect(snap.totalIn, 56000000);
+      // [2026-09-20 BUG-09] Dòng tiền GROSS như Sổ quỹ: tiền bán 50.000.000
+      // vẫn là Tiền vào, hoàn 150.000 là Tiền ra (trước: trừ thẳng vào Tiền vào).
+      expect(snap.totalIn, 56150000);
     });
 
     test('tiền ra: 17.350.000 tách đúng 5 nhóm', () {
@@ -540,15 +542,16 @@ void main() {
       expect(snap.importExpenseOut, 4000000, reason: 'I1 + I2, KHÔNG gồm I3/I4 công nợ');
       expect(snap.partnerPaymentOut, 700000, reason: 'R5 trả đối tác trực tiếp');
       expect(snap.debtRepayOut, 5900000, reason: 'dp2 + dp4 + dp5');
-      expect(snap.totalOut, 17350000);
-      expect(snap.netCashflow, 38650000);
+      // 17.350.000 chi + 150.000 hoàn tiền trả hàng (BUG-09: refundOut).
+      expect(snap.totalOut, 17500000);
+      expect(snap.netCashflow, 38650000, reason: 'ròng không đổi: 56.150.000 − 17.500.000');
     });
 
     test('nhập kho có expense mirror KHÔNG bị cộng 2 lần (I1 hai dòng, I2 một dòng)',
         () {
       // Nếu canonical reference lệch → importExpenseOut sẽ là 8.000.000.
       expect(snap.importExpenseOut, 4000000);
-      expect(snap.totalOut, 17350000);
+      expect(snap.totalOut, 17500000);
     });
 
     test('trả đối tác trực tiếp: rpp_p1 + exp_partner_p1 chỉ tính 1 lần', () {
@@ -635,15 +638,16 @@ void main() {
       }
     });
 
-    test('tổng dòng thu trong sổ = totalIn, tổng dòng chi (trừ REFUND) = totalOut', () {
+    test('tổng dòng thu trong sổ = totalIn, tổng dòng chi (gồm REFUND) = totalOut', () {
       final inSum = snap.transactions
           .where((t) => t.isIncome)
           .fold<int>(0, (a, t) => a + t.amount);
       final outSum = snap.transactions
-          .where((t) => !t.isIncome && t.type != 'REFUND')
+          .where((t) => !t.isIncome)
           .fold<int>(0, (a, t) => a + t.amount);
-      // REFUND đã trừ thẳng vào incomeFromSales nên totalIn = inSum − 150.000
-      expect(inSum - 150000, snap.totalIn);
+      // [BUG-09] Sổ giao dịch và thẻ tổng cùng một cách trình bày (gross):
+      // dòng REFUND nằm trong Tiền ra, không trừ ngầm vào Tiền vào.
+      expect(inSum, snap.totalIn);
       expect(outSum, snap.totalOut);
     });
   });

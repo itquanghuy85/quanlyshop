@@ -16,6 +16,7 @@ import 'storage_service.dart';
 import 'firebase_usage_stats_service.dart';
 import '../developer/firestore_audit/firestore_audit_module.dart';
 import 'app_session.dart';
+import 'cloud_write_policy.dart';
 
 /// Service quản lý yêu cầu đóng tiền - chat-like workflow
 class PaymentRequestService {
@@ -122,7 +123,7 @@ class PaymentRequestService {
       map['createdAt'] = Timestamp.fromDate(DateTime.now());
       map['createdAtServer'] = FieldValue.serverTimestamp();
 
-      final docRef = await _db.collection(_collection).add(map);
+      final docRef = await CloudWritePolicy.guard(() => _db.collection(_collection).add(map), context: 'unknown');
       debugPrint('✅ PaymentRequest created: ${docRef.id}');
       EventBus().emit('payment_requests_changed');
 
@@ -294,10 +295,10 @@ class PaymentRequestService {
       }
       _warmNetworkImageCache(urls);
       if (urls.isNotEmpty) {
-        await _db.collection(_collection).doc(docId).update({
+        await CloudWritePolicy.guard(() => _db.collection(_collection).doc(docId).update({
           'imageUrls': FieldValue.arrayUnion(urls),
           'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-        });
+        }), context: 'unknown');
         debugPrint('✅ PaymentRequest $docId: ${urls.length} images uploaded');
         EventBus().emit('payment_requests_changed');
       }
@@ -344,7 +345,7 @@ class PaymentRequestService {
         update['paymentMethod'] = paymentMethod;
       }
 
-      await _db.collection(_collection).doc(requestId).update(update);
+      await CloudWritePolicy.guard(() => _db.collection(_collection).doc(requestId).update(update), context: 'unknown');
       debugPrint('✅ PaymentRequest $requestId → ${newStatus.name}');
       EventBus().emit('payment_requests_changed');
 
@@ -512,10 +513,10 @@ class PaymentRequestService {
   static Future<bool> deleteRequest(String requestId) async {
     if (!AppSession.syncEnabled) return false; // offline session: no cloud
     try {
-      await _db.collection(_collection).doc(requestId).update({
+      await CloudWritePolicy.guard(() => _db.collection(_collection).doc(requestId).update({
         'deleted': true,
         'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-      });
+      }), context: 'unknown');
       EventBus().emit('payment_requests_changed');
       return true;
     } catch (e) {
@@ -745,10 +746,10 @@ class PaymentRequestService {
         urls.add(url);
       }
 
-      await _db.collection(_collection).doc(requestId).update({
+      await CloudWritePolicy.guard(() => _db.collection(_collection).doc(requestId).update({
         'imageUrls': FieldValue.arrayUnion(urls),
         'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-      });
+      }), context: 'unknown');
 
       return urls;
     } catch (e) {

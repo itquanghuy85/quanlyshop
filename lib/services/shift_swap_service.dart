@@ -9,6 +9,7 @@ import 'event_bus.dart';
 import 'user_service.dart';
 import 'firebase_usage_stats_service.dart';
 import 'app_session.dart';
+import 'cloud_write_policy.dart';
 
 class ShiftSwapService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -46,7 +47,7 @@ class ShiftSwapService {
     final now = DateTime.now().millisecondsSinceEpoch;
     final docRef = _db.collection('shift_swap_requests').doc();
 
-    await docRef.set({
+    await CloudWritePolicy.guard(() => docRef.set({
       'firestoreId': docRef.id,
       'shopId': shopId,
       'requesterId': user.uid,
@@ -67,7 +68,7 @@ class ShiftSwapService {
       'rejectReason': null,
       'deleted': false,
       'serverUpdatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    }, SetOptions(merge: true)), context: 'shift_swap_requests');
 
     EventBus().emit('shift_swap_requests_changed');
 
@@ -240,11 +241,11 @@ class ShiftSwapService {
     }
 
     final now = DateTime.now().millisecondsSinceEpoch;
-    await _db.collection('shift_swap_requests').doc(request.firestoreId).set({
+    await CloudWritePolicy.guard(() => _db.collection('shift_swap_requests').doc(request.firestoreId).set({
       'status': 'cancelled',
       'updatedAt': now,
       'serverUpdatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    }, SetOptions(merge: true)), context: 'shift_swap_requests');
     EventBus().emit('shift_swap_requests_changed');
   }
 
@@ -297,7 +298,7 @@ class ShiftSwapService {
 
     final reviewerName = await UserService.getCurrentUserName();
     final now = DateTime.now().millisecondsSinceEpoch;
-    await _db.collection('shift_swap_requests').doc(request.firestoreId).set({
+    await CloudWritePolicy.guard(() => _db.collection('shift_swap_requests').doc(request.firestoreId).set({
       'status': status,
       'reviewedBy': user.uid,
       'reviewedByName': reviewerName.isEmpty
@@ -307,7 +308,7 @@ class ShiftSwapService {
       'rejectReason': rejectReason,
       'updatedAt': now,
       'serverUpdatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    }, SetOptions(merge: true)), context: 'shift_swap_requests');
     EventBus().emit('shift_swap_requests_changed');
   }
 

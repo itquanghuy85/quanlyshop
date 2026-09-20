@@ -7,6 +7,7 @@ import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firestore_write_helper.dart';
 import '../models/repair_model.dart';
+import '../models/part_used_detail_model.dart';
 import '../models/product_model.dart';
 import '../constants/product_constants.dart';
 import '../models/sale_order_model.dart';
@@ -19,6 +20,7 @@ import '../models/quick_input_code_model.dart';
 import '../models/storage_location_model.dart';
 import '../models/price_catalog_models.dart';
 import '../services/app_session.dart';
+import '../services/cloud_write_policy.dart';
 import '../services/user_service.dart';
 import '../utils/vietnamese_utils.dart';
 
@@ -674,6 +676,11 @@ class DBHelper {
       },
 
       onCreate: (db, version) async {
+        // [2026-09-20 L-01] `payment_intents` trước đây chỉ được tạo lười ở
+        // các hàm DBHelper (`_ensurePaymentIntentsSchema`); máy cài mới mà
+        // SyncHealthCheck / DataReconciliation raw-query trước lần ghi đầu sẽ
+        // gặp "no such table". Tạo ngay lúc onCreate (IF NOT EXISTS, vô hại).
+        await _ensurePaymentIntentsSchema(db);
         await db.execute(
           'CREATE TABLE IF NOT EXISTS repairs(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, customerName TEXT, phone TEXT, isWalkIn INTEGER DEFAULT 0, walkInName TEXT, walkInPhone TEXT, model TEXT, issue TEXT, accessories TEXT, address TEXT, imagePath TEXT, deliveredImage TEXT, warranty TEXT, partsUsed TEXT, status INTEGER, price INTEGER, cost INTEGER, paymentMethod TEXT, createdAt INTEGER, startedAt INTEGER, finishedAt INTEGER, deliveredAt INTEGER, createdBy TEXT, createdByUid TEXT, repairedBy TEXT, repairedByUid TEXT, deliveredBy TEXT, deliveredByUid TEXT, lastCaredAt INTEGER, isSynced INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0, color TEXT, imei TEXT, condition TEXT, services TEXT, notes TEXT, pendingDeliveryApproval INTEGER DEFAULT 0, requestedDeliveryPrice INTEGER, costRecordedInFund INTEGER DEFAULT 0, costPaymentMethod TEXT, costRecordedAt INTEGER, costRecordedAmount INTEGER DEFAULT 0, shopId TEXT, storageLocationId TEXT, storageLocationCode TEXT, storageLocationName TEXT, pickupSchedule TEXT, partsUsedDetailed TEXT, loanerDevice TEXT, loanerDeviceReturned INTEGER DEFAULT 0)',
         );
@@ -6773,6 +6780,7 @@ class DBHelper {
       }
       result.add({
         'id': p['id'],
+        'firestoreId': p['firestoreId'], // khoá dùng chung giữa các máy (BUG-07)
         'source': 'repair_parts', // Đánh dấu nguồn
         'partName': p['partName'] ?? '',
         'compatibleModels': p['compatibleModels'] ?? '',
@@ -7003,19 +7011,38 @@ class DBHelper {
 
     final productId = products.first['id'] as int;
     final firestoreId = (products.first['firestoreId'] ?? '').toString();
-    final currentQty = (products.first['quantity'] as int? ?? 0);
+    return _restoreProductQuantityById(productId, firestoreId, quantity, partName);
+  }
+
+  Future<bool> _restoreProductQuantityById(
+    int productId,
+    String firestoreId,
+    int quantity,
+    String partName,
+  ) async {
+    final shopId = await _getScopedShopId('restoreProductQuantityById');
+    if (shopId == null) return false;
+    final db = await database;
+    final rows = await db.query(
+      'products',
+      columns: ['quantity'],
+      where: 'id = ?',
+      whereArgs: [productId],
+      limit: 1,
+    );
+    final currentQty = rows.isEmpty ? 0 : (rows.first['quantity'] as int? ?? 0);
     final newQty = currentQty + quantity;
     await addProductQuantity(productId, quantity);
     if (AppSession.syncEnabled && firestoreId.isNotEmpty) {
       try {
-        await FirebaseFirestore.instance
+        await CloudWritePolicy.guard(() => FirebaseFirestore.instance
             .collection('products')
             .doc(firestoreId)
             .update({
               'quantity': newQty,
               'status': newQty <= 0 ? 0 : 1,
               'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-            });
+            }), context: 'db_helper/restore');
         await db.rawUpdate(
           'UPDATE products SET isSynced = 1 WHERE id = ? AND shopId = ?',
           [productId, shopId],
@@ -7140,14 +7167,14 @@ class DBHelper {
     // FIX: Sync ngay lập tức để tránh trường hợp 2 thiết bị bán cùng 1 sản phẩm
     if (AppSession.syncEnabled && firestoreId != null && firestoreId.isNotEmpty) {
       try {
-        await FirebaseFirestore.instance
+        await CloudWritePolicy.guard(() => FirebaseFirestore.instance
             .collection('products')
             .doc(firestoreId)
             .update({
               'quantity': newQty < 0 ? 0 : newQty,
               'status': newQty <= 0 ? 0 : 1,
               'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-            });
+            }), context: 'db_helper/restore');
         // Đánh dấu đã sync
         await db.rawUpdate(
           'UPDATE products SET isSynced = 1 WHERE id = ? AND shopId = ?',
@@ -9019,13 +9046,13 @@ class DBHelper {
     // FIX: Sync ngay lập tức để tránh trường hợp 2 thiết bị dùng cùng 1 part
     if (AppSession.syncEnabled && firestoreId != null && firestoreId.isNotEmpty) {
       try {
-        await FirebaseFirestore.instance
+        await CloudWritePolicy.guard(() => FirebaseFirestore.instance
             .collection('repair_parts')
             .doc(firestoreId)
             .update({
               'quantity': newQty,
               'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-            });
+            }), context: 'db_helper/restore');
         // Đánh dấu đã sync
         await db.update(
           'repair_parts',
@@ -9043,6 +9070,38 @@ class DBHelper {
     return true;
   }
 
+  /// Hoàn kho theo SNAPSHOT linh kiện (BUG-07, 2026-09-20): ưu tiên khoá
+  /// cloud (`partFirestoreId` cho Kho phụ tùng, `productFirestoreId` cho
+  /// products) — đúng dòng trên mọi máy kể cả trùng tên; đơn cũ không có khoá
+  /// thì rơi về [restorePartQuantityByNameUnified] như trước.
+  Future<bool> restorePartQuantityByDetail(
+    PartUsedDetail? detail,
+    String partName,
+    int quantity,
+  ) async {
+    final partFid = (detail?.partFirestoreId ?? '').trim();
+    if (partFid.isNotEmpty) {
+      final db = await database;
+      final rows = await db.query(
+        'repair_parts',
+        where: 'firestoreId = ? AND (deleted = 0 OR deleted IS NULL)',
+        whereArgs: [partFid],
+        limit: 1,
+      );
+      if (rows.isNotEmpty) return _restoreRepairPartRow(rows.first, quantity);
+      debugPrint('⚠️ restorePartQuantityByDetail: không thấy repair_parts $partFid → tra tên');
+    }
+    final prodFid = (detail?.productFirestoreId ?? '').trim();
+    if (prodFid.isNotEmpty) {
+      final prod = await getProductByFirestoreId(prodFid);
+      if (prod != null && prod.id != null) {
+        return _restoreProductQuantityById(prod.id!, prodFid, quantity, partName);
+      }
+      debugPrint('⚠️ restorePartQuantityByDetail: không thấy product $prodFid → tra tên');
+    }
+    return restorePartQuantityByNameUnified(partName, quantity);
+  }
+
   /// Khôi phục số lượng phụ tùng theo tên (khi xóa đơn sửa chữa)
   Future<bool> restorePartQuantityByName(String partName, int quantity) async {
     final db = await database;
@@ -9058,7 +9117,17 @@ class DBHelper {
       return false;
     }
 
-    final part = parts.first;
+    return _restoreRepairPartRow(parts.first, quantity);
+  }
+
+  /// Cộng [quantity] vào một dòng `repair_parts` đã tra được + đẩy cloud ngay
+  /// nếu tới được (mất mạng thì giữ isSynced=0 cho lượt sync sau).
+  Future<bool> _restoreRepairPartRow(
+    Map<String, dynamic> part,
+    int quantity,
+  ) async {
+    final db = await database;
+    final partName = (part['partName'] ?? '').toString();
     final partId = part['id'] as int;
     final currentQty = part['quantity'] as int? ?? 0;
     final newQty = currentQty + quantity;
@@ -9075,13 +9144,13 @@ class DBHelper {
     // Sync ngay lập tức
     if (AppSession.syncEnabled && firestoreId != null && firestoreId.isNotEmpty) {
       try {
-        await FirebaseFirestore.instance
+        await CloudWritePolicy.guard(() => FirebaseFirestore.instance
             .collection('repair_parts')
             .doc(firestoreId)
             .update({
               'quantity': newQty,
               'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-            });
+            }), context: 'db_helper/restore');
         await db.update(
           'repair_parts',
           {'isSynced': 1},

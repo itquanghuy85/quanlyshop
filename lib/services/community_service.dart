@@ -10,6 +10,7 @@ import 'user_service.dart';
 import 'audit_service.dart';
 import '../developer/firestore_audit/firestore_audit_module.dart';
 import 'app_session.dart';
+import 'cloud_write_policy.dart';
 
 class CommunityService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -85,7 +86,7 @@ class CommunityService {
       final role = (userInfo['role'] ?? 'employee').toString();
       final photoUrl = (userInfo['photoUrl'] ?? '').toString().trim();
 
-      final docRef = await _postsRef.add({
+      final docRef = await CloudWritePolicy.guard(() => _postsRef.add({
         'shopId': shopId,
         'authorUid': currentUser.uid,
         'authorName': displayName.isEmpty
@@ -101,7 +102,7 @@ class CommunityService {
         'deleted': false,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      }), context: 'unknown');
 
       await AuditService.logAction(
         action: 'COMMUNITY_POST_CREATED',
@@ -131,7 +132,7 @@ class CommunityService {
     if (uid == null) return;
 
     final docRef = _postsRef.doc(postId);
-    await _db.runTransaction((tx) async {
+    await CloudWritePolicy.guard(() => _db.runTransaction((tx) async {
       final snap = await tx.get(docRef);
       if (!snap.exists) return;
       final data = snap.data() ?? const <String, dynamic>{};
@@ -149,7 +150,7 @@ class CommunityService {
         'likeCount': likedBy.length,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
-    });
+    }), context: 'unknown');
   }
 
   static Stream<QuerySnapshot<Map<String, dynamic>>> streamComments(
@@ -179,7 +180,7 @@ class CommunityService {
       final role = (userInfo['role'] ?? 'employee').toString();
       final photoUrl = (userInfo['photoUrl'] ?? '').toString().trim();
 
-      await _commentsRef(postId).add({
+      await CloudWritePolicy.guard(() => _commentsRef(postId).add({
         'authorUid': currentUser.uid,
         'authorName': displayName.isEmpty
             ? (currentUser.email ?? 'Nhân viên')
@@ -188,12 +189,12 @@ class CommunityService {
         'authorPhotoUrl': photoUrl,
         'content': trimmed,
         'createdAt': FieldValue.serverTimestamp(),
-      });
+      }), context: 'unknown');
 
-      await _postsRef.doc(postId).set({
+      await CloudWritePolicy.guard(() => _postsRef.doc(postId).set({
         'commentCount': FieldValue.increment(1),
         'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      }, SetOptions(merge: true)), context: 'unknown');
 
       await AuditService.logAction(
         action: 'COMMUNITY_COMMENT_CREATED',

@@ -23,6 +23,7 @@ import '../models/product_model.dart';
 import '../constants/product_constants.dart';
 import '../services/pricing_engine_service.dart';
 import '../services/app_session.dart';
+import '../services/cloud_write_policy.dart';
 import '../services/price_book_service.dart';
 import '../models/price_book_models.dart';
 import 'similar_repair_history_view.dart';
@@ -194,6 +195,16 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     }
     if (p.name.trim().isNotEmpty) {
       return db.getProductByNameFlexible(p.name.trim());
+    }
+    return null;
+  }
+
+  /// Snapshot linh kiện khớp tên (để hoàn kho theo khoá cloud). Đơn cũ không
+  /// có `partsUsedDetailed` ⇒ null ⇒ hoàn kho theo tên.
+  PartUsedDetail? _partDetailByName(String partName) {
+    final upper = partName.trim().toUpperCase();
+    for (final p in r.partsUsedDetailed) {
+      if (p.name.trim().toUpperCase() == upper) return p;
     }
     return null;
   }
@@ -567,6 +578,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   }) async {
     // Offline session: SQLite + SyncOrchestrator queue only (pushed on claim).
     if (!AppSession.syncEnabled) return;
+    // Phiên online mất mạng: bỏ đường ghi thẳng, hàng đợi (enqueue ngay sau
+    // hàm này) sẽ đẩy khi có mạng — không chờ get()/set() treo (BUG-02).
+    if (!await CloudWritePolicy.hasNetwork()) return;
     final targetId = (r.firestoreId ?? '').trim();
     if (targetId.isEmpty) return;
 
@@ -2543,6 +2557,12 @@ class _RepairDetailViewState extends State<RepairDetailView> {
               productFirestoreId: p['source'] == 'products'
                   ? p['firestoreId'] as String?
                   : null,
+              // Kho phụ tùng (repair_parts): giữ cloud id để hoàn kho / đổi
+              // PT đúng dòng trên mọi máy (BUG-07).
+              partFirestoreId: p['source'] == 'repair_parts'
+                  ? p['firestoreId'] as String?
+                  : null,
+              source: p['source'] as String?,
               cost: p['cost'] as int? ?? 0,
               qty: p['qty'] as int? ?? 1,
               supplier: (p['supplier'] ?? '').toString().trim().isEmpty
@@ -2969,8 +2989,10 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         }
       }
 
-      // 2. Restore part quantity to inventory
-      final restored = await db.restorePartQuantityByNameUnified(
+      // 2. Restore part quantity to inventory — ưu tiên khoá cloud trong
+      //    snapshot (BUG-07), đơn cũ không có khoá thì tra tên như trước.
+      final restored = await db.restorePartQuantityByDetail(
+        _partDetailByName(partName),
         partName,
         partQty,
       );
@@ -3152,8 +3174,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     // guard này khiến 1 snapshot cloud cũ đè lại partsUsed vừa đổi.
     if (mounted) setState(() => _isUpdating = true);
     try {
-      // Bước 2: Xóa phụ tùng cũ + trả kho
-      final restored = await db.restorePartQuantityByNameUnified(
+      // Bước 2: Xóa phụ tùng cũ + trả kho (ưu tiên khoá cloud, BUG-07)
+      final restored = await db.restorePartQuantityByDetail(
+        _partDetailByName(partName),
         partName,
         partQty,
       );

@@ -1028,7 +1028,14 @@ class FinanceV2DataService {
       }
     }
 
-    // Trả hàng (sales_returns) — chỉ phương thức tiền mặt/CK mới ảnh hưởng dòng tiền
+    // Trả hàng (sales_returns) — chỉ phương thức tiền mặt/CK mới ảnh hưởng dòng tiền.
+    // [2026-09-20 BUG-09] Dòng tiền trình bày GROSS như Sổ quỹ: tiền bán vẫn
+    // là "Tiền vào", tiền hoàn là "Tiền ra" (refundOut). Lãi vẫn tính NET
+    // (doanh thu − hoàn, vốn − vốn thu hồi). Trước đây trừ thẳng vào saleIn
+    // ⇒ tab Tiền "vào 1,6 / ra 0" trong khi Sổ quỹ "thu 1,72 / chi 0,12".
+    int refundOut = 0;
+    int refundRevenue = 0;
+    int refundCost = 0;
     for (final ret in salesReturns) {
       final method = (ret['refundMethod'] as String? ?? 'TIỀN MẶT')
           .toString()
@@ -1040,8 +1047,9 @@ class FinanceV2DataService {
       final cost = _toInt(ret['totalReturnCost']);
 
       // Doanh thu ròng = doanh thu bán - hoàn trả; vốn cũng được thu hồi.
-      saleIn = (saleIn - amount).clamp(0, saleIn > 0 ? saleIn : amount);
-      saleCogs = (saleCogs - cost).clamp(0, saleCogs > 0 ? saleCogs : cost);
+      refundOut += amount;
+      refundRevenue += amount;
+      refundCost += cost;
 
       // Hiện trả hàng trong tab Giao dịch để dễ audit (isIncome=false → Chi).
       final retCustomer =
@@ -1066,7 +1074,10 @@ class FinanceV2DataService {
     transactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     final totalIn = saleIn + repairIn + extraIn;
-    final totalOut = expenseOut;
+    final totalOut = expenseOut + refundOut;
+    // Doanh thu / vốn bán hàng NET (sau hoàn trả) — dùng cho lãi.
+    final saleRevenueNet = (saleIn - refundRevenue).clamp(0, saleIn);
+    final saleCogsNet = (saleCogs - refundCost).clamp(0, saleCogs);
     final operatingExpenseOut =
         expenseOut -
         debtRepayOut -
@@ -1075,7 +1086,7 @@ class FinanceV2DataService {
         repairCostMirrorOut; // chi vận hành thuần, loại trả nợ NCC, nhập hàng, TT đối tác, vốn SC đã nằm trong COGS
     final netCashflow = totalIn - totalOut;
     // Lãi gộp bán hàng theo cash basis — nhất quán với incomeFromSales (saleIn)
-    final grossProfitFromSales = saleIn - saleCogs;
+    final grossProfitFromSales = saleRevenueNet - saleCogsNet;
     // Lãi gộp sửa chữa theo cash basis — nhất quán với incomeFromRepairs (repairIn)
     final grossProfitFromRepairs = repairIn - repairCogs;
     final grossProfitTotal = grossProfitFromSales + grossProfitFromRepairs;
@@ -1190,9 +1201,9 @@ class FinanceV2DataService {
       receivableTotal: receivableTotal,
       payableTotal: payableTotal,
       netCashflow: netCashflow,
-      incomeFromSales: saleIn,
+      incomeFromSales: saleRevenueNet,
       incomeFromRepairs: repairIn,
-      cogsFromSales: saleCogs,
+      cogsFromSales: saleCogsNet,
       cogsFromRepairs: repairCogs,
       grossProfitFromSales: grossProfitFromSales,
       grossProfitFromRepairs: grossProfitFromRepairs,

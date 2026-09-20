@@ -9,6 +9,9 @@ import '../data/db_helper.dart';
 import 'storage_service.dart';
 import 'sync_audit_service.dart';
 import 'app_session.dart';
+import 'cloud_write_policy.dart';
+import 'stock_entry_service.dart';
+import 'sync_signal_service.dart';
 import 'user_service.dart';
 import 'firestore_write_helper.dart';
 
@@ -486,6 +489,12 @@ class SyncOrchestrator {
       results,
     ) {
       final hasConnection = results.any((r) => r != ConnectivityResult.none);
+      CloudWritePolicy.invalidateNetworkCache();
+      if (hasConnection) {
+        // Phiếu nhập kho lưu tạm trên máy khi mất mạng (BUG-04) — đẩy lên
+        // ngay khi có mạng, độc lập với sync_queue.
+        unawaited(StockEntryService().pushPendingLocalEntries());
+      }
       if (hasConnection && _pendingCount > 0) {
         debugPrint('🔄 SyncOrchestrator: Network restored, auto-syncing...');
         // Auto sync when network is restored
@@ -793,6 +802,10 @@ class SyncOrchestrator {
 
     // Mark as completed and remove from queue
     await db.delete('sync_queue', where: 'id = ?', whereArgs: [item.id]);
+
+    // Báo máy khác kéo về đúng bảng vừa đổi (BUG-05).
+    final bumpCol = _getCollectionName(item.entityType);
+    if (bumpCol != null) SyncSignalService.bump([bumpCol]);
 
     await SyncAuditService.logSuccess(
       entityType: item.entityType.name,

@@ -6,6 +6,7 @@ import '../data/db_helper.dart';
 import '../models/import_order_model.dart';
 import '../models/stock_entry_model.dart';
 import '../services/app_session.dart';
+import '../services/cloud_write_policy.dart';
 import '../services/user_service.dart';
 
 /// Service quản lý lịch sử phiếu nhập kho (Import Orders)
@@ -45,7 +46,10 @@ class ImportOrderService {
 
       // Offline session (PLAN_OFFLINE_FIRST step 3b): client ids, SQLite only,
       // isSynced = 0 — pushed to Firestore by the claim step.
-      final offline = AppSession.isOffline;
+      // [2026-09-20] Cũng đi đường local (client id, isSynced=0) khi phiên
+      // online mất mạng — `syncAllToCloud` đẩy import_orders/items sau.
+      var offline =
+          AppSession.isOffline || !await CloudWritePolicy.hasNetwork();
       final nowMs = DateTime.now().millisecondsSinceEpoch;
 
       // 1. Create import_order doc in Firestore
@@ -75,7 +79,19 @@ class ImportOrderService {
         'deleted': false,
       };
 
-      if (orderRef != null) await orderRef.set(orderData);
+      if (orderRef != null) {
+        try {
+          await CloudWritePolicy.guard(
+            () => orderRef.set(orderData),
+            context: 'import_orders',
+            precheck: false,
+          );
+        } on CloudOfflineException {
+          // Mất mạng đúng lúc ghi: giữ nguyên id (docId cố định của doc()),
+          // ghi local isSynced=0 để lượt sync sau đẩy — không treo, không trùng.
+          offline = true;
+        }
+      }
 
       // 2. Create import_order_items docs in Firestore
       final batch = offline ? null : _firestore.batch();
@@ -113,7 +129,17 @@ class ImportOrderService {
         });
       }
 
-      if (batch != null) await batch.commit();
+      if (batch != null && !offline) {
+        try {
+          await CloudWritePolicy.guard(
+            () => batch.commit(),
+            context: 'import_order_items',
+            precheck: false,
+          );
+        } on CloudOfflineException {
+          offline = true;
+        }
+      }
 
       // 3. Save to local DB
       final localOrderData = {

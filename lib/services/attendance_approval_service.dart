@@ -9,6 +9,7 @@ import '../services/user_service.dart';
 import '../services/encryption_service.dart';
 import 'event_bus.dart';
 import 'app_session.dart';
+import 'cloud_write_policy.dart';
 
 /// Service for managing attendance approval, leave requests, overtime editing.
 /// Only owner/manager roles can approve/reject.
@@ -306,10 +307,10 @@ class AttendanceApprovalService {
       data['firestoreId'] = docId;
       data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       final encryptedData = EncryptionService.encryptMap(data);
-      await _db.collection('attendance').doc(docId).set(
+      await CloudWritePolicy.guard(() => _db.collection('attendance').doc(docId).set(
         encryptedData,
         SetOptions(merge: true),
-      );
+      ), context: 'attendance');
     } catch (e) {
       debugPrint('Error syncing attendance to cloud: $e');
     }
@@ -324,10 +325,10 @@ class AttendanceApprovalService {
       data['firestoreId'] = docId;
       data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       final encryptedData = EncryptionService.encryptMap(data);
-      await _db.collection('leave_requests').doc(docId).set(
+      await CloudWritePolicy.guard(() => _db.collection('leave_requests').doc(docId).set(
         encryptedData,
         SetOptions(merge: true),
-      );
+      ), context: 'leave_requests');
     } catch (e) {
       debugPrint('Error syncing leave request to cloud: $e');
     }

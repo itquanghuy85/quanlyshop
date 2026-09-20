@@ -178,7 +178,7 @@ Bất biến: với mọi khoản nợ, `paidAmount == Σ debt_payments` (D1 = 1
 | Chủ đề | Tài chính V2 | Chốt quỹ / Báo cáo ngày |
 |---|---|---|
 | Đơn CÔNG NỢ (S4, R3) | không tính doanh thu/vốn cho tới khi thu tiền (cash basis) | tính đủ doanh thu + vốn ngay (accrual), tiền chỉ vào khi có phiếu thu |
-| Trả hàng S8 | trừ thẳng vào doanh thu bán (net) — không nằm trong "tiền ra" | ghi tiền ra 150.000 + trừ doanh thu |
+| Trả hàng S8 | **(từ 2026-09-20 BUG-09) giống Chốt quỹ:** tiền ra 150.000 (`refundOut`) + doanh thu bán NET; trước đó trừ thẳng vào tiền vào | ghi tiền ra 150.000 + trừ doanh thu |
 | Dịch vụ nội bộ R4 (50.000) | hiện 1 dòng chi mirror `repair_cost_*` trong sổ (nằm trong tiền ra, **loại** khỏi chi vận hành) | chỉ tính vào vốn sửa, **không** tính tiền ra |
 
 ## 5. Lỗi thật kịch bản đã tìm ra (đã sửa `[2026-09-11e]`)

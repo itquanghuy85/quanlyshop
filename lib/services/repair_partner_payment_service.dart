@@ -8,6 +8,7 @@ import '../services/app_session.dart';
 import '../services/user_service.dart';
 import '../services/repair_partner_service.dart';
 import '../services/financial_activity_service.dart';
+import 'cloud_write_policy.dart';
 
 class RepairPartnerPaymentService {
   final DBHelper _db = DBHelper();
@@ -32,32 +33,32 @@ class RepairPartnerPaymentService {
   }
 
   Future<void> updatePartnerPayment(RepairPartnerPayment payment) async {
-    await _db.database.then((db) => db.update(
+    await CloudWritePolicy.guard(() => _db.database.then((db) => db.update(
       'repair_partner_payments',
       payment.toMap(),
       where: 'id = ?',
       whereArgs: [payment.id],
-    ));
+    )), context: 'unknown');
     await _syncToCloud(payment);
   }
 
   Future<void> deletePartnerPayment(int id) async {
-    await _db.database.then((db) => db.update(
+    await CloudWritePolicy.guard(() => _db.database.then((db) => db.update(
       'repair_partner_payments',
       {'deleted': 1},
       where: 'id = ?',
       whereArgs: [id],
-    ));
+    )), context: 'unknown');
     // Soft delete in cloud
     if (!AppSession.syncEnabled) return; // offline session: no cloud
     final shopId = await UserService.getCurrentShopId();
     final docId = 'part_pay_${DateTime.now().millisecondsSinceEpoch}';
-    await _firestore.collection('repair_partner_payments').doc(docId).set({
+    await CloudWritePolicy.guard(() => _firestore.collection('repair_partner_payments').doc(docId).set({
       'partnerId': id,
       'deleted': true,
       'shopId': shopId,
       'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-    }, SetOptions(merge: true));
+    }, SetOptions(merge: true)), context: 'repair_partner_payments');
   }
 
   Future<void> _syncToCloud(RepairPartnerPayment payment) async {
@@ -66,30 +67,30 @@ class RepairPartnerPaymentService {
     payment.firestoreId = docId;
     // P1-FIX: Ghi firestoreId trước nhưng giữ isSynced=0.
     // Chỉ đặt isSynced=1 SAU KHI Firestore xác nhận thành công.
-    await _db.database.then((db) => db.update(
+    await CloudWritePolicy.guard(() => _db.database.then((db) => db.update(
       'repair_partner_payments',
       {'firestoreId': docId, 'isSynced': 0},
       where: 'id = ?',
       whereArgs: [payment.id],
-    ));
+    )), context: 'repair_partner_payments');
     // Offline session: keep isSynced = 0, the claim step pushes it later.
     if (!AppSession.syncEnabled) return;
     final mapData = payment.toMap();
     mapData['deleted'] = payment.deleted; // boolean, not integer
     mapData['isSynced'] = true; // for consistency
     mapData.remove('id'); // Firestore doesn't need local ID
-    await _firestore.collection('repair_partner_payments').doc(docId).set({
+    await CloudWritePolicy.guard(() => _firestore.collection('repair_partner_payments').doc(docId).set({
       ...mapData,
       'shopId': shopId,
       'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-    }, SetOptions(merge: true));
+    }, SetOptions(merge: true)), context: 'repair_partner_payments');
     // P1-FIX: Firestore đã xác nhận → đánh dấu đã sync
-    await _db.database.then((db) => db.update(
+    await CloudWritePolicy.guard(() => _db.database.then((db) => db.update(
       'repair_partner_payments',
       {'isSynced': 1},
       where: 'id = ?',
       whereArgs: [payment.id],
-    ));
+    )), context: 'repair_partner_payments');
   }
 
   Future<Map<String, int>> getPaymentStats(int partnerId) async {

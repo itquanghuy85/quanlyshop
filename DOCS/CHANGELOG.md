@@ -4,6 +4,17 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-20b] - Sửa lỗi nền tảng offline/sync sau full audit — CloudWritePolicy + SyncSignal + ledger hoàn tiền
+
+- **Chính sách chung** `lib/services/cloud_write_policy.dart`: gate mạng trước write, timeout 12 s (tương tác) / 25 s (nền), phân loại OFFLINE vs PERMANENT. Áp cho `FirestoreService` (60 write), `SyncService.syncAllToCloud` (30 commit + precheck mạng — trước đây mất mạng giữa chừng là `_isSyncingAllToCloud` kẹt tới khi restart), `StockEntryService`, `ImportOrderService`, `SalesReturnService`, `DBHelper` (4), 11 service phụ.
+- **BUG-01** bán hàng mất mạng ⇒ local-first tự động (`create_sale_view`). **BUG-02** tạo đơn sửa không còn treo. **BUG-04** phiếu nhập kho lưu tạm trên máy khi mất mạng (`OfflineStockEntryStore` cho cả phiên online), hợp nhất danh sách chờ, xác nhận đường offline, `pushPendingLocalEntries` khi có mạng.
+- **BUG-05** `lib/services/sync_signal_service.dart`: 1 doc `shops/{id}/meta/sync_signal`, máy khác kéo đúng bảng đổi bằng `refreshCollectionNow` — không thêm listener/poll.
+- **BUG-06** `PaymentIntentService.executePayment` emit `payment_intents_changed` (+`debt_payments_changed`/`expenses_changed`); `FinanceV2Cache` map event này.
+- **BUG-07** `PartUsedDetail` +`partFirestoreId`/`source`; hoàn kho theo khoá cloud (`DBHelper.restorePartQuantityByDetail`); `getAllPartsUnified` trả firestoreId cho repair_parts.
+- **BUG-08** snackbar in-app có termination path (clear + Timer). **BUG-09** FinanceV2 dòng tiền gross (`refundOut`), lãi net — khớp Sổ quỹ. **BUG-03** validate SĐT khi lưu đơn sửa. **D-03** bỏ write mồ côi `supplier_debts`/`financial_activities`. **L-01** `payment_intents` tạo trong onCreate.
+- Test: +`cloud_write_policy_test`, `restore_part_by_detail_test`; `finance_full_scenario_test` cập nhật gross; 718 PASS.
+- Docs: `docs/QA_OFFLINE_SYNC_AUDIT.md`, `QA_TEST_EXECUTION.md`, `QA_BUG_REPORT.md`, `QA_FINANCE_RECONCILIATION.md`, `QA_FULL_TEST_PLAN.md`.
+
 ## [2026-09-20a] - FULL AUDIT + TEST PLAN toàn app (không sửa code) — 10 bug, 3 HIGH
 
 - **Tài liệu:** `docs/FULL_TEST_PLAN_2026-09-19.md` (Feature Map 17 module / 127 màn hình / 45 bảng / 57 collection / 21 CF, ~185 test case), `docs/FULL_TEST_REPORT_2026-09-19.md` (58 case có bằng chứng trên 2 máy thật + emulator rules + FFI).

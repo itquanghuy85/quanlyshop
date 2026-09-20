@@ -21,6 +21,9 @@ import 'product_image_service.dart';
 import 'background_upload_service.dart';
 import 'payment_intent_service.dart';
 import 'app_session.dart';
+import 'cloud_write_policy.dart';
+import 'sync_signal_service.dart';
+import 'stock_entry_service.dart';
 import 'user_service.dart';
 import 'encryption_service.dart';
 import 'sync_orchestrator.dart';
@@ -33,6 +36,27 @@ import '../utils/perf_monitor.dart';
 
 class SyncService {
   static final _db = FirebaseFirestore.instance;
+
+  /// Ghi cloud NỀN theo chính sách chung (gate mạng + timeout 25 s + phân
+  /// loại lỗi). Trước đây `batch.commit()` không timeout: mất mạng giữa
+  /// `syncAllToCloud` ⇒ commit treo ⇒ `_isSyncingAllToCloud` kẹt true tới
+  /// khi restart app (mọi lượt đẩy sau bị bỏ qua). Thành công thì bump tín
+  /// hiệu liên máy cho bảng vừa ghi.
+  static Future<T> _cwBg<T>(
+    Future<T> Function() op,
+    String context, {
+    bool bump = true,
+  }) async {
+    final result = await CloudWritePolicy.guard(
+      op,
+      context: context,
+      timeout: CloudWritePolicy.background,
+    );
+    // Batch rỗng vẫn commit (không đổi gì) — không bump để máy khác khỏi kéo
+    // thừa (đo 08:40: một lượt sync rỗng bump 6 bảng).
+    if (bump) SyncSignalService.bump([context]);
+    return result;
+  }
   static final List<StreamSubscription> _subscriptions = [];
   static final List<Timer> _pollingTimers = [];
   static final Map<String, Future<void> Function()> _collectionRefreshers = {};
@@ -536,6 +560,10 @@ class SyncService {
   /// Ép chạy một lượt poll cho [collection] ngay (nút retry của màn hình khi
   /// sync lỗi). Dùng refresher đã đăng ký khi poll thành công — nếu chưa có
   /// (chưa init xong) hoặc đang poll thì bỏ qua, không tự mở kênh mới.
+  /// Đang chạy lượt refresh gộp (resume / bấm đồng bộ)? SyncSignalService
+  /// dùng để hoãn tín hiệu thay vì để `refreshCollectionNow` nuốt mất.
+  static bool get isRefreshingCollections => _isRefreshingCollections;
+
   static Future<void> refreshCollectionNow(String collection) async {
     if (!AppSession.syncEnabled) return; // offline session: no cloud
     if (_isRefreshingCollections) return;
@@ -1816,6 +1844,10 @@ class SyncService {
           EventBus().emit('users_changed');
         },
       );
+
+      // 6b. Tín hiệu liên máy: 1 doc `shops/{id}/meta/sync_signal` — máy khác
+      // ghi cloud xong thì bump, máy này kéo đúng bảng đổi (BUG-05).
+      unawaited(SyncSignalService.listen(shopId));
 
       // 7. Đồng bộ SHOPS (subscribe trực tiếp vào document, không query by shopId)
       // Collection 'shops' sử dụng document ID = shopId, không có field 'shopId'
@@ -3393,6 +3425,7 @@ class SyncService {
     }
     _subscriptions.clear();
     _pollingTimers.clear();
+    await SyncSignalService.stop();
     _liveWindowActive.clear();
     _collectionRefreshers.clear();
     _collectionFetchCounts.clear();
@@ -3504,7 +3537,7 @@ class SyncService {
             );
             await dbHelper.updatePaymentIntentSynced(localId, docId);
           }
-          await batch.commit();
+          await _cwBg(() => batch.commit(), 'payment_intents.batch');
           debugPrint('  -> Synced ${paymentIntents.length} payment intents');
         }
       } catch (e) {
@@ -3545,7 +3578,7 @@ class SyncService {
             count++;
           }
           if (count > 0) {
-            await batch.commit();
+            await _cwBg(() => batch.commit(), 'debt_payments.batch');
             debugPrint('  -> Synced $count debt payments');
           }
         }
@@ -3582,7 +3615,7 @@ class SyncService {
             count++;
           }
           if (count > 0) {
-            await batch.commit();
+            await _cwBg(() => batch.commit(), 'debts.batch');
             debugPrint('  -> Synced $count debts');
           }
         }
@@ -3628,7 +3661,7 @@ class SyncService {
             count++;
           }
           if (count > 0) {
-            await batch.commit();
+            await _cwBg(() => batch.commit(), 'expenses.batch');
             debugPrint('  -> Synced $count expenses');
           }
         }
@@ -3670,7 +3703,7 @@ class SyncService {
             count++;
           }
           if (count > 0) {
-            await batch.commit();
+            await _cwBg(() => batch.commit(), 'financial_activity_log.batch');
             debugPrint('  -> Synced $count financial activities');
           }
         }
@@ -3711,7 +3744,7 @@ class SyncService {
             count++;
           }
           if (count > 0) {
-            await batch.commit();
+            await _cwBg(() => batch.commit(), 'supplier_payments.batch', bump: toMarkSynced.isNotEmpty);
             // Mark as synced in local DB after successful Firestore commit
             for (var item in toMarkSynced) {
               await dbHelper.updateSupplierPayment(item['localId'] as int, {
@@ -3759,7 +3792,7 @@ class SyncService {
             count++;
           }
           if (count > 0) {
-            await batch.commit();
+            await _cwBg(() => batch.commit(), 'repair_partner_payments.batch', bump: toMarkSynced.isNotEmpty);
             // Mark as synced in local DB after successful Firestore commit
             for (var item in toMarkSynced) {
               await dbHelper.updateRepairPartnerPayment(
@@ -3885,7 +3918,7 @@ class SyncService {
       }
 
       try {
-        await batch.commit();
+        await _cwBg(() => batch.commit(), 'repairs.batch', bump: toMarkSynced.isNotEmpty);
         for (var r in toMarkSynced) {
           r.isSynced = true;
           await dbHelper.updateRepair(r);
@@ -3948,9 +3981,15 @@ class SyncService {
       }
     }
 
+    if (!await CloudWritePolicy.hasNetwork()) {
+      debugPrint('📴 syncAllToCloud: không có mạng, để lại cho lần sau');
+      return;
+    }
     _isSyncingAllToCloud = true;
     _lastSyncAllToCloudAt = now;
     debugPrint("Bắt đầu syncAllToCloud...");
+    // Phiếu nhập kho lưu tạm trên máy (mất mạng) — đẩy trước, không chờ.
+    unawaited(StockEntryService().pushPendingLocalEntries());
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
@@ -3998,7 +4037,7 @@ class SyncService {
         Future<void> commitRepairsBatch() async {
           if (repairsToMarkSynced.isEmpty) return;
           try {
-            await repairBatch.commit();
+            await _cwBg(() => repairBatch.commit(), 'repairs.batch');
             for (var r in repairsToMarkSynced) {
               try {
                 r.isSynced = true;
@@ -4078,7 +4117,7 @@ class SyncService {
         Future<void> commitSalesBatch() async {
           if (salesToMarkSynced.isEmpty) return;
           try {
-            await saleBatch.commit();
+            await _cwBg(() => saleBatch.commit(), 'sales.batch', bump: salesToMarkSynced.isNotEmpty);
             final saleIds = salesToMarkSynced
                 .map((s) => s.id)
                 .whereType<int>()
@@ -4187,7 +4226,7 @@ class SyncService {
             }
           }
           try {
-            await expenseBatch.commit();
+            await _cwBg(() => expenseBatch.commit(), 'expenses.batch', bump: expensesToMarkSynced.isNotEmpty);
             for (var expense in expensesToMarkSynced) {
               expense.isSynced = true;
               await dbHelper.updateExpense(expense);
@@ -4218,7 +4257,7 @@ class SyncService {
         Future<void> commitProductsBatch() async {
           if (productsToMarkSynced.isEmpty) return;
           try {
-            await productBatch.commit();
+            await _cwBg(() => productBatch.commit(), 'products.batch', bump: productsToMarkSynced.isNotEmpty);
             // Bulk update isSynced=1 bằng 1 SQL thay vì N round-trips
             final ids = productsToMarkSynced
                 .map((p) => p.id)
@@ -4362,7 +4401,7 @@ class SyncService {
             }
           }
           try {
-            await deletedBatch.commit();
+            await _cwBg(() => deletedBatch.commit(), 'products.batch', bump: deletedIds.isNotEmpty);
             if (deletedIds.isNotEmpty) {
               final placeholders = List.filled(
                 deletedIds.length,
@@ -4478,7 +4517,7 @@ class SyncService {
           }
         }
         try {
-          await attendanceBatch.commit();
+          await _cwBg(() => attendanceBatch.commit(), 'attendance.batch', bump: attendanceToMarkSynced.isNotEmpty);
           for (var a in attendanceToMarkSynced) {
             await dbHelper.updateAttendance(a);
           }
@@ -4531,7 +4570,7 @@ class SyncService {
             }
           }
           try {
-            await quickInputBatch.commit();
+            await _cwBg(() => quickInputBatch.commit(), 'quick_input_codes.batch', bump: qicToMarkSynced.isNotEmpty);
             for (var code in qicToMarkSynced) {
               code.isSynced = true;
               await dbHelper.updateQuickInputCode(code);
@@ -4630,7 +4669,7 @@ class SyncService {
             }
           }
           try {
-            await supplierBatch.commit();
+            await _cwBg(() => supplierBatch.commit(), 'suppliers.batch', bump: suppliersToMarkSynced.isNotEmpty);
             for (var item in suppliersToMarkSynced) {
               final updateData = Map<String, dynamic>.from(item['supplierMap']);
               updateData['firestoreId'] = item['docId'];
@@ -4711,7 +4750,7 @@ class SyncService {
               }
             }
             try {
-              await batch.commit();
+              await _cwBg(() => batch.commit(), 'customers.batch');
               // Direct update by original SQLite id — tránh match sai qua phone/firestoreId
               final db = await dbHelper.database;
               for (final c in toMark) {
@@ -4781,7 +4820,7 @@ class SyncService {
             }
           }
           try {
-            await partnerBatch.commit();
+            await _cwBg(() => partnerBatch.commit(), 'repair_partners.batch', bump: partnersToMarkSynced.isNotEmpty);
             for (var item in partnersToMarkSynced) {
               final updateData = Map<String, dynamic>.from(item['partnerMap']);
               updateData['firestoreId'] = item['docId'];
@@ -4841,7 +4880,7 @@ class SyncService {
             }
           }
           try {
-            await supplierPaymentBatch.commit();
+            await _cwBg(() => supplierPaymentBatch.commit(), 'supplier_payments.batch', bump: supPayToMarkSynced.isNotEmpty);
             for (var item in supPayToMarkSynced) {
               await dbHelper.updateSupplierPayment(item['id'], {
                 'firestoreId': item['docId'],
@@ -4905,7 +4944,7 @@ class SyncService {
             }
           }
           try {
-            await partnerPaymentBatch.commit();
+            await _cwBg(() => partnerPaymentBatch.commit(), 'repair_partner_payments.batch', bump: partPayToMarkSynced.isNotEmpty);
             for (var item in partPayToMarkSynced) {
               await dbHelper.updateRepairPartnerPayment(item['id'], {
                 'firestoreId': item['docId'],
@@ -4966,7 +5005,7 @@ class SyncService {
             }
           }
           try {
-            await debtBatch.commit();
+            await _cwBg(() => debtBatch.commit(), 'debts.batch', bump: debtsToMarkSynced.isNotEmpty);
             for (var item in debtsToMarkSynced) {
               await dbHelper.updateDebtSynced(item['id'], item['docId']);
             }
@@ -5022,7 +5061,7 @@ class SyncService {
             }
           }
           try {
-            await paymentBatch.commit();
+            await _cwBg(() => paymentBatch.commit(), 'debt_payments.batch', bump: debtPayToMarkSynced.isNotEmpty);
             for (var item in debtPayToMarkSynced) {
               await dbHelper.updateDebtPaymentSynced(item['id'], item['docId']);
             }
@@ -5067,7 +5106,7 @@ class SyncService {
           Future<void> commitAuditBatch() async {
             if (auditToMark.isEmpty) return;
             try {
-              await auditBatch.commit();
+              await _cwBg(() => auditBatch.commit(), 'audit_logs.batch', bump: auditLogs.isNotEmpty);
               for (var item in auditToMark) {
                 try {
                   await dbHelper.updateAuditLogSynced(item['docId']);
@@ -5084,10 +5123,10 @@ class SyncService {
                 final docId = item['docId'] as String;
                 final data = item['data'] as Map<String, dynamic>;
                 try {
-                  await _db
+                  await _cwBg(() => _db
                       .collection('audit_logs')
                       .doc(docId)
-                      .set(data, SetOptions(merge: true));
+                      .set(data, SetOptions(merge: true)), 'audit_logs');
                   await dbHelper.updateAuditLogSynced(docId);
                   totalAuditSynced++;
                 } catch (individualError) {
@@ -5157,7 +5196,7 @@ class SyncService {
           Future<void> commitPartsBatch() async {
             if (partsToMarkSynced.isEmpty) return;
             try {
-              await partsBatch.commit();
+              await _cwBg(() => partsBatch.commit(), 'repair_parts.batch', bump: repairParts.isNotEmpty);
               for (var item in partsToMarkSynced) {
                 try {
                   await dbHelper.updateRepairPartSynced(
@@ -5261,7 +5300,7 @@ class SyncService {
             }
           }
           try {
-            await intentBatch.commit();
+            await _cwBg(() => intentBatch.commit(), 'payment_intents.batch', bump: intentsToMarkSynced.isNotEmpty);
             for (var item in intentsToMarkSynced) {
               await dbHelper.updatePaymentIntentSynced(
                 item['localId'],
@@ -5317,7 +5356,7 @@ class SyncService {
             }
           }
           try {
-            await adjustmentBatch.commit();
+            await _cwBg(() => adjustmentBatch.commit(), 'adjustment_entries.batch', bump: adjustmentsToMarkSynced.isNotEmpty);
             for (var entry in adjustmentsToMarkSynced) {
               final localId = entry['id'] as int?;
               final docId = entry['_docId'] as String;
@@ -5400,7 +5439,7 @@ class SyncService {
     Future<void> commitBatch() async {
       if (syncedIds.isEmpty) return;
       try {
-        await batch.commit();
+        await _cwBg(() => batch.commit(), '$collection.batch');
         final placeholders = List.filled(syncedIds.length, '?').join(',');
         await db.rawUpdate(
           'UPDATE $tableName SET isSynced = 1 WHERE id IN ($placeholders)',
@@ -5474,7 +5513,7 @@ class SyncService {
     Future<void> commitBatch() async {
       if (syncedIds.isEmpty) return;
       try {
-        await batch.commit();
+        await _cwBg(() => batch.commit(), '$collection.batch', bump: syncedIds.isNotEmpty);
         final ph = List.filled(syncedIds.length, '?').join(',');
         await db.rawUpdate(
           'UPDATE $tableName SET isSynced = 1 WHERE id IN ($ph)',
@@ -5916,7 +5955,7 @@ class SyncService {
         }
 
         // Commit batch trước — chỉ cập nhật local DB khi Firestore thành công
-        await batch.commit();
+        await _cwBg(() => batch.commit(), 'quick_input_codes.batch');
 
         for (final code in toUpdate) {
           await dbHelper.updateQuickInputCode(code);

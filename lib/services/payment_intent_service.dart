@@ -783,6 +783,13 @@ class PaymentIntentService {
 
       debugPrint('✅ Payment executed: ${intent.id} - ${intent.amount}đ');
 
+      // 7b. Invalidation TẠI NGUỒN (BUG-06, 2026-09-20): mọi read model của
+      // tiền (FinanceV2Cache mảng Tiền/Giao dịch, Sổ quỹ, Trang chủ) nghe
+      // `payment_intents_changed`; các caller trước đây chỉ emit
+      // `debts_changed` nên tab Tiền giữ cache cũ. `_updateRelatedEntities`
+      // tự emit `debt_payments_changed` / `expenses_changed` khi ghi bảng đó.
+      EventBus().emit('payment_intents_changed');
+
       // 8. Immediately sync to Firestore so other devices see the change
       _syncToCloudAfterPayment();
 
@@ -868,6 +875,7 @@ class PaymentIntentService {
       }
     }
     await _db.insertExpense(row);
+    EventBus().emit('expenses_changed');
   }
 
   /// Update related entities after payment execution
@@ -910,6 +918,7 @@ class PaymentIntentService {
             if (paymentGroupId != null) 'paymentGroupId': paymentGroupId,
             'isSynced': 0,
           });
+          EventBus().emit('debt_payments_changed');
 
           // Update debt paidAmount — ưu tiên định vị theo firestoreId.
           int? localDebtId;
@@ -1003,6 +1012,7 @@ class PaymentIntentService {
             if (paymentGroupId != null) 'paymentGroupId': paymentGroupId,
             'isSynced': 0,
           });
+          EventBus().emit('debt_payments_changed');
           
           // Update debt paidAmount — ưu tiên định vị theo firestoreId.
           int? localDebtId;

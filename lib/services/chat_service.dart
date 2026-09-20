@@ -11,6 +11,7 @@ import 'notification_service.dart';
 import 'storage_service.dart';
 import 'audit_service.dart';
 import 'app_session.dart';
+import 'cloud_write_policy.dart';
 
 /// Service quản lý Chat nâng cao với đầy đủ tính năng
 class ChatService {
@@ -93,9 +94,9 @@ class ChatService {
         priority: priority,
       );
 
-      final docRef = await _db
+      final docRef = await CloudWritePolicy.guard(() => _db
           .collection(_collectionChats)
-          .add(chatMessage.toMap());
+          .add(chatMessage.toMap()), context: 'unknown');
 
       unawaited(
         AuditService.logAction(
@@ -158,9 +159,9 @@ class ChatService {
         createdAt: DateTime.now(),
       );
 
-      final docRef = await _db
+      final docRef = await CloudWritePolicy.guard(() => _db
           .collection(_collectionChats)
-          .add(chatMessage.toMap());
+          .add(chatMessage.toMap()), context: 'unknown');
 
       unawaited(
         AuditService.logAction(
@@ -202,9 +203,9 @@ class ChatService {
         priority: priority,
       );
 
-      final docRef = await _db
+      final docRef = await CloudWritePolicy.guard(() => _db
           .collection(_collectionChats)
-          .add(chatMessage.toMap());
+          .add(chatMessage.toMap()), context: 'unknown');
       return docRef.id;
     } catch (e) {
       debugPrint('❌ Chat sendSystemMessage error: $e');
@@ -256,9 +257,9 @@ class ChatService {
         createdAt: DateTime.now(),
       );
 
-      final docRef = await _db
+      final docRef = await CloudWritePolicy.guard(() => _db
           .collection(_collectionChats)
-          .add(chatMessage.toMap());
+          .add(chatMessage.toMap()), context: 'unknown');
 
       unawaited(
         AuditService.logAction(
@@ -285,9 +286,9 @@ class ChatService {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return false;
 
-      await _db.collection(_collectionChats).doc(messageId).update({
+      await CloudWritePolicy.guard(() => _db.collection(_collectionChats).doc(messageId).update({
         'reactions.$emoji': FieldValue.arrayUnion([user.uid]),
-      });
+      }), context: 'unknown');
 
       debugPrint('👍 Chat: Added reaction $emoji to $messageId');
       return true;
@@ -304,9 +305,9 @@ class ChatService {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return false;
 
-      await _db.collection(_collectionChats).doc(messageId).update({
+      await CloudWritePolicy.guard(() => _db.collection(_collectionChats).doc(messageId).update({
         'reactions.$emoji': FieldValue.arrayRemove([user.uid]),
-      });
+      }), context: 'unknown');
 
       return true;
     } catch (e) {
@@ -343,11 +344,11 @@ class ChatService {
         return false;
       }
 
-      await _db.collection(_collectionChats).doc(messageId).update({
+      await CloudWritePolicy.guard(() => _db.collection(_collectionChats).doc(messageId).update({
         'message': newMessage,
         'isEdited': true,
         'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-      });
+      }), context: 'unknown');
 
       return true;
     } catch (e) {
@@ -373,11 +374,11 @@ class ChatService {
         return false;
       }
 
-      await _db.collection(_collectionChats).doc(messageId).update({
+      await CloudWritePolicy.guard(() => _db.collection(_collectionChats).doc(messageId).update({
         'isDeleted': true,
         'message': '🗑️ Tin nhắn đã bị xóa',
         'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-      });
+      }), context: 'unknown');
 
       return true;
     } catch (e) {
@@ -395,10 +396,10 @@ class ChatService {
         debugPrint('❌ Chat pinMessage: no permission');
         return false;
       }
-      await _db.collection(_collectionChats).doc(messageId).update({
+      await CloudWritePolicy.guard(() => _db.collection(_collectionChats).doc(messageId).update({
         'isPinned': isPinned,
         'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-      });
+      }), context: 'unknown');
       return true;
     } catch (e) {
       debugPrint('❌ Chat pinMessage error: $e');
@@ -413,9 +414,9 @@ class ChatService {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      await _db.collection(_collectionChats).doc(messageId).update({
+      await CloudWritePolicy.guard(() => _db.collection(_collectionChats).doc(messageId).update({
         'readBy': FieldValue.arrayUnion([user.uid]),
-      });
+      }), context: 'unknown');
     } catch (e) {
       debugPrint('❌ Chat markAsRead error: $e');
     }
@@ -445,7 +446,7 @@ class ChatService {
           });
         }
       }
-      await batch.commit();
+      await CloudWritePolicy.guard(() => batch.commit(), context: 'unknown');
 
       debugPrint('✅ Chat: Marked all as read');
     } catch (e) {
@@ -590,7 +591,7 @@ class ChatService {
 
       if (isTyping) {
         final userName = user.email?.split('@').first.toUpperCase() ?? 'USER';
-        await _db
+        await CloudWritePolicy.guard(() => _db
             .collection(_collectionTyping)
             .doc('${shopId}_${user.uid}')
             .set({
@@ -598,7 +599,7 @@ class ChatService {
               'userId': user.uid,
               'userName': userName,
               'startedAt': FieldValue.serverTimestamp(),
-            });
+            }), context: 'unknown');
 
         // Auto clear after 5s
         _typingTimer?.cancel();
@@ -606,10 +607,10 @@ class ChatService {
           setTypingStatus(false);
         });
       } else {
-        await _db
+        await CloudWritePolicy.guard(() => _db
             .collection(_collectionTyping)
             .doc('${shopId}_${user.uid}')
-            .delete();
+            .delete(), context: 'unknown');
         _typingTimer?.cancel();
       }
     } catch (e) {
@@ -654,13 +655,13 @@ class ChatService {
 
       final userName = user.email?.split('@').first.toUpperCase() ?? 'USER';
 
-      await _db.collection(_collectionOnline).doc('${shopId}_${user.uid}').set({
+      await CloudWritePolicy.guard(() => _db.collection(_collectionOnline).doc('${shopId}_${user.uid}').set({
         'shopId': shopId,
         'userId': user.uid,
         'userName': userName,
         'lastSeen': FieldValue.serverTimestamp(),
         'isOnline': isOnline,
-      }, SetOptions(merge: true));
+      }, SetOptions(merge: true)), context: 'unknown');
     } catch (e) {
       debugPrint('❌ Chat setOnlineStatus error: $e');
     }
@@ -771,7 +772,7 @@ class ChatService {
       for (final doc in snapshot.docs) {
         batch.delete(doc.reference);
       }
-      await batch.commit();
+      await CloudWritePolicy.guard(() => batch.commit(), context: 'unknown');
 
       debugPrint('🗑️ Chat: Deleted ${snapshot.docs.length} old messages');
       return snapshot.docs.length;

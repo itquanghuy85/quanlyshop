@@ -749,6 +749,23 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       return null;
     }
 
+    // SĐT (nếu nhập) phải hợp lệ — BUG-03 2026-09-20: trước đây chỉ
+    // `_addCustomerQuick` kiểm, còn LƯU ĐƠN ghi thẳng chữ vào `customers.phone`.
+    // SĐT trống vẫn cho phép (khách vãng lai / bổ sung khi giao máy).
+    final phoneInput = phoneCtrl.text.trim();
+    if (phoneInput.isNotEmpty) {
+      final phoneError = UserService.validatePhone(phoneInput, loc);
+      final hasLetters = !RegExp(r'^[\d\s+().-]+$').hasMatch(phoneInput);
+      if (phoneError != null || hasLetters) {
+        debugPrint('🔧 _saveOrderProcess: Validation failed - phone invalid');
+        NotificationService.showSnackBar(
+          phoneError ?? loc.phoneLengthInvalid,
+          color: Colors.red,
+        );
+        return null;
+      }
+    }
+
     debugPrint('🔧 _saveOrderProcess: Validation passed, starting save...');
 
     setState(() {

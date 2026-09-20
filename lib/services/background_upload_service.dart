@@ -13,6 +13,7 @@ import 'app_session.dart';
 import 'local_image_store.dart';
 import 'user_service.dart';
 import 'dart:io';
+import 'cloud_write_policy.dart';
 
 /// Service to upload images in the background after saving records.
 /// Allows screens to pop immediately while uploads continue.
@@ -287,7 +288,7 @@ class BackgroundUploadService {
           'imagePath': cloudPaths,
           'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
         });
-        await _db.collection('repairs').doc(firestoreId).update(encData);
+        await CloudWritePolicy.guard(() => _db.collection('repairs').doc(firestoreId).update(encData), context: 'repairs');
         cloudUpdated = true;
       } catch (e) {
         debugPrint(
@@ -376,11 +377,11 @@ class BackgroundUploadService {
 
       // Update Firestore
       try {
-        await _db.collection('attendance').doc(firestoreId).update({
+        await CloudWritePolicy.guard(() => _db.collection('attendance').doc(firestoreId).update({
           field: cloudUrl,
           'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
           'syncedAt': FieldValue.serverTimestamp(),
-        });
+        }), context: 'attendance');
       } catch (e) {
         debugPrint(
           '📸 BackgroundUpload: Firestore attendance update failed: $e',

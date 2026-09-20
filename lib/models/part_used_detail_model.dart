@@ -13,6 +13,15 @@ class PartUsedDetail {
   /// Cloud id của sản phẩm (products.firestoreId) — khoá dùng chung mọi máy.
   /// Đơn thêm phụ tùng trước 2026-09-12 không có trường này.
   final String? productFirestoreId;
+
+  /// Cloud id của dòng `repair_parts` (Kho phụ tùng) — khoá dùng chung mọi
+  /// máy cho linh kiện KHÔNG nằm trong `products`. [2026-09-20 BUG-07] Trước
+  /// đây linh kiện nguồn Kho phụ tùng chỉ lưu tên ⇒ hoàn kho / đổi PT tra
+  /// theo tên, sai khi trùng tên. Đơn cũ không có trường này ⇒ rơi về tên.
+  final String? partFirestoreId;
+
+  /// Nguồn lúc chọn: 'products' | 'repair_parts' (null với đơn cũ).
+  final String? source;
   final int cost;
   final int qty;
 
@@ -24,6 +33,8 @@ class PartUsedDetail {
     required this.name,
     this.productId,
     this.productFirestoreId,
+    this.partFirestoreId,
+    this.source,
     required this.cost,
     this.qty = 1,
     this.supplier,
@@ -35,6 +46,9 @@ class PartUsedDetail {
       'productId': productId,
       if (productFirestoreId != null && productFirestoreId!.trim().isNotEmpty)
         'productFirestoreId': productFirestoreId!.trim(),
+      if (partFirestoreId != null && partFirestoreId!.trim().isNotEmpty)
+        'partFirestoreId': partFirestoreId!.trim(),
+      if (source != null && source!.trim().isNotEmpty) 'source': source,
       'cost': cost,
       'qty': qty,
       if (supplier != null && supplier!.trim().isNotEmpty) 'supplier': supplier,
@@ -50,6 +64,13 @@ class PartUsedDetail {
       productFirestoreId:
           (map['productFirestoreId'] as String?)?.trim().isNotEmpty == true
           ? (map['productFirestoreId'] as String).trim()
+          : null,
+      partFirestoreId:
+          (map['partFirestoreId'] as String?)?.trim().isNotEmpty == true
+          ? (map['partFirestoreId'] as String).trim()
+          : null,
+      source: (map['source'] as String?)?.trim().isNotEmpty == true
+          ? (map['source'] as String).trim()
           : null,
       cost: map['cost'] is num ? (map['cost'] as num).toInt() : 0,
       qty: map['qty'] is num ? (map['qty'] as num).toInt() : 1,

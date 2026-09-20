@@ -8,7 +8,9 @@ import '../models/stock_entry_model.dart';
 import '../models/expense_model.dart';
 import '../services/user_service.dart';
 import 'app_session.dart';
+import 'cloud_write_policy.dart';
 import 'offline_stock_entry_store.dart';
+import 'sync_signal_service.dart';
 import '../models/product_model.dart';
 import '../services/notification_service.dart';
 import '../services/event_bus.dart';
@@ -25,6 +27,69 @@ import '../utils/money_utils.dart';
 /// Service quản lý phiếu nhập kho (Staging Inventory)
 class StockEntryService {
   late final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  /// `stock_entries` không có bảng SQLite. Khi KHÔNG tới được cloud (phiên
+  /// offline HOẶC phiên online mất mạng — BUG-04), phiếu nằm trong
+  /// [OfflineStockEntryStore] (id `se_…` cố định) và được đẩy lên bằng
+  /// [pushPendingLocalEntries] khi có mạng (SyncOrchestrator gọi khi mạng
+  /// trở lại, `syncAllToCloud` gọi mỗi lượt). Chính sách chung:
+  /// docs/QA_OFFLINE_SYNC_AUDIT.md §2.
+  Future<bool> _cloudUnavailable() async {
+    if (AppSession.isOffline) return true;
+    return !await CloudWritePolicy.hasNetwork();
+  }
+
+  static bool _pushingLocal = false;
+
+  /// Đẩy phiếu lưu tạm trên máy (phiên online) lên cloud. Idempotent: docId cố
+  /// định + set(merge); chỉ xoá khỏi kho local sau khi cloud ack.
+  Future<int> pushPendingLocalEntries() async {
+    if (!AppSession.syncEnabled) return 0; // phiên offline: ClaimService lo
+    if (_pushingLocal) return 0;
+    if (!await CloudWritePolicy.hasNetwork()) return 0;
+    _pushingLocal = true;
+    var pushed = 0;
+    try {
+      final all = await OfflineStockEntryStore.where((_) => true);
+      if (all.isEmpty) return 0;
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null) return 0;
+      for (final e in all) {
+        final id = e.firestoreId;
+        if (id == null || id.isEmpty) continue;
+        if (e.shopId.isNotEmpty && e.shopId != shopId) {
+          continue; // phiếu của shop khác (đổi tài khoản) — không đẩy nhầm
+        }
+        try {
+          final map = e.toMap();
+          map['shopId'] = shopId;
+          await CloudWritePolicy.guard(
+            () => _firestore
+                .collection(_collection)
+                .doc(id)
+                .set(map, SetOptions(merge: true)),
+            context: 'stock_entries/push',
+            timeout: CloudWritePolicy.background,
+            precheck: false,
+          );
+          await OfflineStockEntryStore.remove(id);
+          pushed++;
+        } on CloudOfflineException {
+          break; // mất mạng giữa chừng: dừng, lần sau đẩy tiếp
+        } catch (err) {
+          debugPrint('⚠️ push stock entry $id thất bại: $err');
+        }
+      }
+      if (pushed > 0) {
+        debugPrint('☁️ Đã đẩy $pushed phiếu nhập kho lưu tạm lên cloud');
+        SyncSignalService.bump(['stock_entries']);
+        EventBus().emit('stock_entries_changed');
+      }
+      return pushed;
+    } finally {
+      _pushingLocal = false;
+    }
+  }
   late final FirebaseAuth _auth = FirebaseAuth.instance;
 
   static const String _collection = 'stock_entries';
@@ -80,23 +145,38 @@ class StockEntryService {
       );
       debugPrint('📦 createEntry map: $mapData');
 
-      if (AppSession.isOffline) {
-        // Offline session (step 3b): no Firestore — keep the entry in the
-        // local store so drafts / confirm keep working without an account.
-        final offlineEntry = newEntry.copyWith(
-          firestoreId: OfflineStockEntryStore.newEntryId(),
-        );
-        await OfflineStockEntryStore.put(offlineEntry);
-        debugPrint('✅ createEntry (offline): id=${offlineEntry.firestoreId}');
+      // docId cố định cả 2 đường: cloud ghi ngay hay lưu tạm rồi đẩy sau đều
+      // cùng id ⇒ retry/replay không tạo phiếu trùng.
+      final entryId = OfflineStockEntryStore.newEntryId();
+      final localEntry = newEntry.copyWith(firestoreId: entryId);
+
+      if (await _cloudUnavailable()) {
+        // Phiên offline (step 3b) HOẶC phiên online mất mạng: giữ phiếu trong
+        // kho local; phiên online sẽ đẩy lên khi có mạng.
+        await OfflineStockEntryStore.put(localEntry);
+        debugPrint('✅ createEntry (local): id=$entryId');
         EventBus().emit('stock_entries_changed');
-        return offlineEntry;
+        return localEntry;
       }
 
-      final docRef = await _firestore.collection(_collection).add(mapData);
+      try {
+        await CloudWritePolicy.guard(
+          () => _firestore.collection(_collection).doc(entryId).set(mapData),
+          context: 'stock_entries/create',
+          precheck: false,
+        );
+      } on CloudOfflineException {
+        // Mất mạng đúng lúc ghi / timeout: lưu tạm trên máy, không treo UI.
+        await OfflineStockEntryStore.put(localEntry);
+        debugPrint('📴 createEntry: mất mạng, lưu tạm trên máy id=$entryId');
+        EventBus().emit('stock_entries_changed');
+        return localEntry;
+      }
 
-      debugPrint('✅ createEntry SUCCESS: docId=${docRef.id}');
+      debugPrint('✅ createEntry SUCCESS: docId=$entryId');
+      SyncSignalService.bump(['stock_entries']);
       EventBus().emit('stock_entries_changed');
-      return newEntry.copyWith(firestoreId: docRef.id);
+      return localEntry;
     } catch (e) {
       _showError('Lỗi tạo phiếu: $e');
       return null;
@@ -133,8 +213,9 @@ class StockEntryService {
       debugPrint('📝 updateEntry map keys: ${updateMap.keys.toList()}');
       debugPrint('📝 updateEntry map: $updateMap');
 
-      if (AppSession.isOffline) {
-        final current = await OfflineStockEntryStore.get(entry.firestoreId!);
+      final localCurrent = await OfflineStockEntryStore.get(entry.firestoreId!);
+      if (AppSession.isOffline || localCurrent != null) {
+        final current = localCurrent;
         if (current == null) {
           _showError('Không tìm thấy phiếu');
           return false;
@@ -151,10 +232,20 @@ class StockEntryService {
           ),
         );
       } else {
-        await _firestore
-            .collection(_collection)
-            .doc(entry.firestoreId)
-            .update(updateMap);
+        try {
+          await CloudWritePolicy.guard(
+            () => _firestore
+                .collection(_collection)
+                .doc(entry.firestoreId)
+                .update(updateMap),
+            context: 'stock_entries/update',
+          );
+        } on CloudOfflineException {
+          _showError(
+            'Không có mạng — phiếu này nằm trên đám mây, thử lại khi có kết nối',
+          );
+          return false;
+        }
       }
 
       _showSuccess('Đã cập nhật phiếu');
@@ -170,8 +261,9 @@ class StockEntryService {
   /// Hủy phiếu (chỉ cho DRAFT)
   Future<bool> cancelEntry(String entryId) async {
     try {
-      if (AppSession.isOffline) {
-        final entry = await OfflineStockEntryStore.get(entryId);
+      final localEntry = await OfflineStockEntryStore.get(entryId);
+      if (AppSession.isOffline || localEntry != null) {
+        final entry = localEntry;
         if (entry == null) {
           _showError('Không tìm thấy phiếu');
           return false;
@@ -214,10 +306,18 @@ class StockEntryService {
         return false;
       }
 
-      await _firestore.collection(_collection).doc(entryId).update({
-        'status': 'cancelled', // lowercase để match với toMap()
-        'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-      });
+      try {
+        await CloudWritePolicy.guard(
+          () => _firestore.collection(_collection).doc(entryId).update({
+            'status': 'cancelled', // lowercase để match với toMap()
+            'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
+          }),
+          context: 'stock_entries/cancel',
+        );
+      } on CloudOfflineException {
+        _showError('Không có mạng — thử lại khi có kết nối');
+        return false;
+      }
 
       _showSuccess('Đã hủy phiếu');
       EventBus().emit('stock_entries_changed');
@@ -230,9 +330,14 @@ class StockEntryService {
 
   /// Lấy phiếu theo ID
   Future<StockEntry?> getEntry(String entryId) async {
-    if (AppSession.isOffline) return OfflineStockEntryStore.get(entryId);
+    final local = await OfflineStockEntryStore.get(entryId);
+    if (AppSession.isOffline || local != null) return local;
     try {
-      final doc = await _firestore.collection(_collection).doc(entryId).get();
+      final doc = await _firestore
+          .collection(_collection)
+          .doc(entryId)
+          .get()
+          .timeout(const Duration(seconds: 8));
       if (!doc.exists) return null;
       return StockEntry.fromMap(doc.data()!, docId: doc.id);
     } catch (e) {
@@ -246,27 +351,35 @@ class StockEntryService {
       final shopId = await UserService.getCurrentShopId();
       debugPrint('📋 getPendingEntries: shopId=$shopId');
       if (shopId == null) return [];
-      if (AppSession.isOffline) {
-        return OfflineStockEntryStore.drafts(shopId: shopId);
+      final localDrafts = await OfflineStockEntryStore.drafts(shopId: shopId);
+      if (AppSession.isOffline) return localDrafts;
+
+      List<StockEntry> cloud = const [];
+      if (await CloudWritePolicy.hasNetwork()) {
+        try {
+          final query = await _firestore
+              .collection(_collection)
+              .where('shopId', isEqualTo: shopId)
+              .where('status', isEqualTo: 'draft') // lowercase để match với toMap()
+              .orderBy('createdAt', descending: true)
+              .get()
+              .timeout(const Duration(seconds: 8));
+          cloud = query.docs
+              .map((doc) => StockEntry.fromMap(doc.data(), docId: doc.id))
+              .toList();
+          debugPrint('📋 getPendingEntries: found ${query.docs.length} docs');
+        } catch (e) {
+          debugPrint(
+            '📋 getPendingEntries: cloud lỗi/mất mạng ($e) — chỉ hiện phiếu trên máy',
+          );
+        }
       }
-
-      final query = await _firestore
-          .collection(_collection)
-          .where('shopId', isEqualTo: shopId)
-          .where('status', isEqualTo: 'draft') // lowercase để match với toMap()
-          .orderBy('createdAt', descending: true)
-          .get();
-
-      debugPrint('📋 getPendingEntries: found ${query.docs.length} docs');
-      for (final doc in query.docs) {
-        debugPrint(
-          '   - doc ${doc.id}: status=${doc.data()['status']}, items=${(doc.data()['items'] as List?)?.length ?? 0}',
-        );
-      }
-
-      return query.docs
-          .map((doc) => StockEntry.fromMap(doc.data(), docId: doc.id))
-          .toList();
+      // Phiếu lưu tạm trên máy (chưa đẩy) đứng trước; bỏ trùng theo id.
+      final localIds = localDrafts.map((e) => e.firestoreId).toSet();
+      return [
+        ...localDrafts,
+        ...cloud.where((e) => !localIds.contains(e.firestoreId)),
+      ];
     } catch (e) {
       debugPrint('❌ Error getting pending entries: $e');
       return [];
@@ -275,10 +388,15 @@ class StockEntryService {
 
   /// Đếm số phiếu chờ xác nhận
   Future<int> getPendingCount() async {
-    if (!AppSession.syncEnabled) return 0; // offline session: no cloud
+    final shopId0 = await UserService.getCurrentShopId();
+    final localCount = shopId0 == null
+        ? 0
+        : (await OfflineStockEntryStore.drafts(shopId: shopId0)).length;
+    if (!AppSession.syncEnabled) return localCount; // offline session: no cloud
+    if (!await CloudWritePolicy.hasNetwork()) return localCount;
     try {
       final shopId = await UserService.getCurrentShopId();
-      if (shopId == null) return 0;
+      if (shopId == null) return localCount;
 
       final query = await _firestore
           .collection(_collection)
@@ -287,9 +405,9 @@ class StockEntryService {
           .count()
           .get();
 
-      return query.count ?? 0;
+      return (query.count ?? 0) + localCount;
     } catch (e) {
-      return 0;
+      return localCount;
     }
   }
 
@@ -343,12 +461,23 @@ class StockEntryService {
   /// Stock accumulation: phụ kiện/linh kiện trùng tên+thuộc tính → cộng dồn SL
   Future<bool> confirmEntry(String entryId, {bool allowPendingCost = false, bool requireSupplier = true}) async {
     debugPrint('🔄 confirmEntry: START entryId=$entryId');
-    if (AppSession.isOffline) {
+    // Phiếu đang nằm trên máy (phiên offline, hoặc lưu tạm lúc mất mạng):
+    // xác nhận theo đường local (SQLite isSynced=0 → hàng đợi), không cần cloud.
+    if (AppSession.isOffline ||
+        await OfflineStockEntryStore.get(entryId) != null) {
       return _confirmEntryOffline(
         entryId,
         allowPendingCost: allowPendingCost,
         requireSupplier: requireSupplier,
       );
+    }
+    if (!await CloudWritePolicy.hasNetwork()) {
+      // Phiếu trên đám mây cần transaction cloud (kiểm tra status draft +
+      // trừ/cộng tồn atomic) — không có mạng thì báo rõ, không treo.
+      _showError(
+        'Không có mạng — phiếu này nằm trên đám mây, xác nhận lại khi có kết nối',
+      );
+      return false;
     }
     try {
       // === PRE-READ: Lấy entry + query existing products/parts TRƯỚC transaction ===
@@ -733,56 +862,17 @@ class StockEntryService {
           } // End for loop products
         }
 
-        // 4. Ghi financial_activity
+        // 4./5. (D-03, 2026-09-20) BỎ ghi `financial_activities` và
+        // `supplier_debts` trên cloud: hai collection này không có bảng SQLite,
+        // không màn nào đọc, và trùng với `_writeLocalFinancialRecords`
+        // (financial_activity_log + debts → sync) ⇒ mỗi phiếu CÔNG NỢ từng tạo
+        // 1 doc nợ mồ côi trên cloud. Tổng chi vẫn tính theo entry.calculatedTotalCost.
         final totalCost = entry.calculatedTotalCost;
-        final activityRef = _firestore.collection('financial_activities').doc();
-
-        // Xác định loại giao dịch dựa trên payment method
-        String direction = 'OUT'; // Chi tiền mua hàng
-        if (entry.paymentMethod == 'CÔNG NỢ') {
-          direction = 'DEBT'; // Ghi nợ, không chi tiền ngay
-        }
-
-        // Lấy tên người dùng để hiển thị
+        // Nhập CÔNG NỢ: ghi nợ, không chi tiền ngay.
+        final direction = entry.paymentMethod == 'CÔNG NỢ' ? 'DEBT' : 'OUT';
+        // Tên người dùng để hiển thị (thay vì ID)
         final userName =
             _auth.currentUser?.email?.split('@').first.toUpperCase() ?? 'NV';
-
-        transaction.set(activityRef, {
-          'type': 'STOCK_IN',
-          'subType': 'NHAP_KHO',
-          'amount': totalCost,
-          'direction': direction,
-          'referenceId': entryId,
-          'referenceType': 'stock_entry',
-          'description':
-              'Nhập kho: ${entry.totalQuantity} sản phẩm từ ${entry.supplierName}',
-          'paymentMethod': entry.paymentMethod,
-          'supplierId': entry.supplierId,
-          'supplierName': entry.supplierName,
-          'shopId': entry.shopId,
-          'createdAt': FieldValue.serverTimestamp(),
-          'createdBy': userName, // Tên thay vì ID
-          'createdByUid': userId, // Giữ lại UID để tra cứu
-        });
-
-        // 5. Cập nhật công nợ NCC (nếu ghi nợ)
-        if (entry.paymentMethod == 'CÔNG NỢ' && entry.supplierId != null) {
-          final debtRef = _firestore.collection('supplier_debts').doc();
-          transaction.set(debtRef, {
-            'supplierId': entry.supplierId,
-            'supplierName': entry.supplierName,
-            'amount': totalCost,
-            'remainingAmount': totalCost,
-            'type': 'STOCK_IN',
-            'referenceId': entryId,
-            'status': 'PENDING',
-            'shopId': entry.shopId,
-            'createdAt': FieldValue.serverTimestamp(),
-            'createdBy': userName,
-            'createdByUid': userId,
-            'notes': 'Nhập kho: ${entry.totalQuantity} sản phẩm',
-          });
-        }
 
         // 5.5 Ghi lịch sử nhập hàng vào supplier_import_history
         for (final item in entry.items) {
@@ -894,6 +984,7 @@ class StockEntryService {
       // Emit expenses_changed: cập nhật sổ quỹ / cash_closing_view
       EventBus().emit('expenses_changed');
       debugPrint('✅ [StockEntryService] Đã emit: stock_entries_changed, products_changed, parts_changed, expenses_changed');
+      SyncSignalService.bump(['stock_entries', 'products', 'repair_parts', 'supplier_import_history']);
       // Chỉ kéo về đúng các bảng transaction vừa ghi trên cloud — trước đây
       // poll cả 35 bảng (~50 read) cho mỗi lần xác nhận nhập kho.
       await SyncService.refreshCloudCollections(

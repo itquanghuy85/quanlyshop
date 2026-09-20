@@ -6,6 +6,8 @@ import '../models/product_model.dart';
 import '../models/sales_return_model.dart';
 import '../services/user_service.dart';
 import 'app_session.dart';
+import 'cloud_write_policy.dart';
+import 'sync_signal_service.dart';
 import '../services/audit_service.dart';
 import '../utils/money_utils.dart';
 import '../constants/product_constants.dart';
@@ -429,14 +431,25 @@ class SalesReturnService {
 
         // Sync debt to Firestore
         final debtFid = debt['firestoreId'] as String?;
+        // Local đã ghi isSynced=0 ⇒ mất mạng thì `syncAllToCloud` đẩy sau;
+        // ở đây chỉ cố ghi ngay khi tới được cloud (gate + timeout, không treo).
         if (debtFid != null && AppSession.syncEnabled) {
           try {
-            await _firestore.collection('debts').doc(debtFid).update({
-              'totalAmount': newTotal,
-              'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-            });
+            await CloudWritePolicy.guard(
+              () => _firestore.collection('debts').doc(debtFid).update({
+                'totalAmount': newTotal,
+                'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
+              }),
+              context: 'debts/return',
+            );
+            await database.update(
+              'debts',
+              {'isSynced': 1},
+              where: 'id = ?',
+              whereArgs: [debt['id']],
+            );
           } catch (e) {
-            debugPrint('⚠️ Debt cloud sync failed: $e');
+            debugPrint('⚠️ Debt cloud sync failed (giữ isSynced=0): $e');
           }
         }
         debugPrint('✅ Debt reduced by $amount for sale $saleFirestoreId');
@@ -453,6 +466,29 @@ class SalesReturnService {
     int localId,
   ) async {
     bool headerSynced = false;
+    // Phiên offline: không chạm Firestore (write không auth treo vô hạn) —
+    // xếp hàng đợi, ClaimService/syncAll đẩy sau khi có tài khoản.
+    if (!AppSession.syncEnabled) {
+      await SyncOrchestrator().enqueue(
+        entityType: SyncEntityType.salesReturn,
+        entityId: localId,
+        firestoreId: returnHeader.firestoreId,
+        operation: SyncOperation.create,
+        data: returnHeader.toMap(),
+      );
+      for (final item in items) {
+        if (item.salesReturnId != null) {
+          await SyncOrchestrator().enqueue(
+            entityType: SyncEntityType.salesReturnItem,
+            entityId: item.id ?? item.salesReturnId!,
+            firestoreId: item.firestoreId,
+            operation: SyncOperation.create,
+            data: item.toMap(),
+          );
+        }
+      }
+      return;
+    }
     try {
       final shopId = UserService.getShopIdSync();
       if (shopId == null) return;
@@ -463,10 +499,13 @@ class SalesReturnService {
       headerData['shopId'] = shopId;
       headerData['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
       final encryptedHeader = EncryptionService.encryptMap(headerData);
-      await _firestore
-          .collection('sales_returns')
-          .doc(returnHeader.firestoreId)
-          .set(encryptedHeader);
+      await CloudWritePolicy.guard(
+        () => _firestore
+            .collection('sales_returns')
+            .doc(returnHeader.firestoreId)
+            .set(encryptedHeader),
+        context: 'sales_returns',
+      );
       headerSynced = true;
 
       // Sync items
@@ -475,10 +514,14 @@ class SalesReturnService {
         itemData.remove('id');
         itemData['shopId'] = shopId;
         final encryptedItem = EncryptionService.encryptMap(itemData);
-        await _firestore
-            .collection('sales_return_items')
-            .doc(item.firestoreId)
-            .set(encryptedItem);
+        await CloudWritePolicy.guard(
+          () => _firestore
+              .collection('sales_return_items')
+              .doc(item.firestoreId)
+              .set(encryptedItem),
+          context: 'sales_return_items',
+          precheck: false,
+        );
       }
 
       // Mark local records synced
@@ -490,6 +533,7 @@ class SalesReturnService {
         whereArgs: [localId],
       );
 
+      SyncSignalService.bump(['sales_returns', 'sales_return_items', 'debts']);
       debugPrint('☁️ Sales return synced to Firestore: ${returnHeader.firestoreId}');
     } catch (e) {
       debugPrint('⚠️ Firestore sync failed for return, queuing: $e');
