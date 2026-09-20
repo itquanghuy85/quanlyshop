@@ -15,6 +15,7 @@ import '../models/repair_model.dart';
 import '../models/shop_settings_model.dart';
 import '../services/user_service.dart';
 import '../services/app_session.dart';
+import '../services/cloud_write_policy.dart';
 import '../services/owner_reauth_service.dart';
 import '../services/first_time_guide_service.dart';
 import '../services/audit_service.dart';
@@ -2853,10 +2854,17 @@ class CashClosingViewState extends State<CashClosingView>
             'isSynced': true,
             'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
           };
-          if (AppSession.syncEnabled) await FirebaseFirestore.instance
-              .collection('cash_closings')
-              .doc(closingFid)
-              .set(firestoreDoc, SetOptions(merge: true));
+          // [NEW-10 2026-09-20] Ghi qua CloudWritePolicy: timeout + báo máy khác
+          // (SyncSignal) — trước đây ghi thẳng, máy B không biết ngày đã chốt.
+          if (AppSession.syncEnabled) {
+            await CloudWritePolicy.guard(
+              () => FirebaseFirestore.instance
+                  .collection('cash_closings')
+                  .doc(closingFid)
+                  .set(firestoreDoc, SetOptions(merge: true)),
+              context: 'cash_closings',
+            );
+          }
           debugPrint('💾 [OPENING] ✅ Saved to Firestore successfully');
 
           await db.upsertCashClosing({...localData, 'isSynced': 1});
@@ -4574,14 +4582,19 @@ class CashClosingViewState extends State<CashClosingView>
     }
 
     try {
-      if (AppSession.syncEnabled) await FirebaseFirestore.instance
-          .collection('cash_closings')
-          .doc(closingFid)
-          .set({
-            ...updateData,
-            'date': dateKey,
-            'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-          }, SetOptions(merge: true));
+      if (AppSession.syncEnabled) {
+        await CloudWritePolicy.guard(
+          () => FirebaseFirestore.instance
+              .collection('cash_closings')
+              .doc(closingFid)
+              .set({
+                ...updateData,
+                'date': dateKey,
+                'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
+              }, SetOptions(merge: true)),
+          context: 'cash_closings',
+        );
+      }
       await db.upsertCashClosing({...updateData, 'isSynced': 1});
     } catch (e) {
       debugPrint('💾 [CLOSING-ADJUST] ⚠️ Firestore sync failed (local saved): $e');
@@ -5044,10 +5057,15 @@ class CashClosingViewState extends State<CashClosingView>
             'date': dateKey, // FIX: Firestore rules require 'date' field
             'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
           };
-          if (AppSession.syncEnabled) await FirebaseFirestore.instance
-              .collection('cash_closings')
-              .doc(closingFid)
-              .set(firestoreData, SetOptions(merge: true));
+          if (AppSession.syncEnabled) {
+            await CloudWritePolicy.guard(
+              () => FirebaseFirestore.instance
+                  .collection('cash_closings')
+                  .doc(closingFid)
+                  .set(firestoreData, SetOptions(merge: true)),
+              context: 'cash_closings',
+            );
+          }
           debugPrint('💾 [CLOSING] ✅ Saved to Firestore');
 
           await db.upsertCashClosing({...localData, 'isSynced': 1});
