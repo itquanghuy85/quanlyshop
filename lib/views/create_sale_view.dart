@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firestore_write_helper.dart';
 import '../services/app_session.dart';
 import '../services/cloud_write_policy.dart';
+import '../services/sale_stock_guard.dart';
 import '../utils/money_utils.dart';
 import '../data/db_helper.dart';
 import '../models/product_model.dart';
@@ -1107,6 +1108,21 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     }
   }
 
+  /// [NEW-05] Đối chiếu số lượng chọn với tồn kho LOCAL (đọc lại từ SQLite,
+  /// không tin bản trong bộ nhớ). Trả về danh sách dòng thiếu hàng dạng
+  /// "TÊN (còn: N, cần: M)" — rỗng = đủ hàng.
+  /// [NEW-05] Số lượng tối đa bán được theo tồn đang hiển thị (ô số lượng
+  /// không được vượt; SP hết hàng vẫn để 1 để ô không trống — lưu sẽ bị
+  /// `_checkLocalStock` chặn).
+  int _maxSellableQty(Product product) {
+    final m = SaleStockGuard.maxSellable(product);
+    return m > 0 ? m : 1;
+  }
+
+  /// [NEW-05] Kiểm tồn local trước khi lưu đơn theo đường local-first.
+  Future<List<String>> _checkLocalStock() =>
+      SaleStockGuard.shortages(db, _selectedItems);
+
   Future<void> _processSale() async {
     debugPrint('🛒 _processSale: Starting...');
     if (_isSaving) {
@@ -1544,6 +1560,22 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       // CHỈ trừ kho LOCAL khi là bán offline (localOnly = true)
       // Nếu Firestore transaction thành công, real-time sync sẽ tự động cập nhật local qua upsertProduct
       final isLocalOnly = transactionResult['localOnly'] == true;
+
+      // [NEW-05] Đường local-first (mất mạng / phiên offline / SP chưa có
+      // firestoreId) không có transaction cloud kiểm tồn ⇒ kiểm tồn LOCAL
+      // TRƯỚC KHI ghi bất cứ thứ gì, cùng thông điệp với nhánh OUT_OF_STOCK.
+      if (isLocalOnly) {
+        final shortages = await _checkLocalStock();
+        if (shortages.isNotEmpty) {
+          NotificationService.showSnackBar(
+            "⚠️ Không đủ hàng!\n${shortages.join('\n')}",
+            color: Colors.red,
+          );
+          await _loadData();
+          setState(() => _isSaving = false);
+          return;
+        }
+      }
 
       for (var item in _selectedItems) {
         final p = item['product'] as Product;
@@ -3454,7 +3486,22 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                         onChanged: isPhoneUnit
                             ? null
                             : (value) {
-                                final newQuantity = int.tryParse(value) ?? 1;
+                                var newQuantity = int.tryParse(value) ?? 1;
+                                if (newQuantity < 1) newQuantity = 1;
+                                // [NEW-05] Không cho nhập vượt tồn kho hiện có.
+                                final maxQty = _maxSellableQty(product);
+                                if (newQuantity > maxQty) {
+                                  newQuantity = maxQty;
+                                  final ctrl = _qtyCtrlFor(item);
+                                  ctrl.text = '$maxQty';
+                                  ctrl.selection = TextSelection.collapsed(
+                                    offset: ctrl.text.length,
+                                  );
+                                  NotificationService.showSnackBar(
+                                    '⚠️ ${product.name}: chỉ còn $maxQty trong kho',
+                                    color: Colors.orange,
+                                  );
+                                }
                                 // Only the total needs a rebuild; the field
                                 // already holds what the user typed.
                                 item['quantity'] = newQuantity;
@@ -3475,8 +3522,18 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                       onPressed: isPhoneUnit
                           ? null
                           : () {
+                              // [NEW-05] Chặn cộng vượt tồn.
+                              final maxQty = _maxSellableQty(product);
+                              if (quantity + 1 > maxQty) {
+                                NotificationService.showSnackBar(
+                                  '⚠️ ${product.name}: chỉ còn $maxQty trong kho',
+                                  color: Colors.orange,
+                                );
+                                return;
+                              }
                               setState(() {
                                 item['quantity'] = quantity + 1;
+                                _qtyCtrlFor(item).text = '${quantity + 1}';
                                 _calculateTotal();
                               });
                             },

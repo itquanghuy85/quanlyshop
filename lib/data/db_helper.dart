@@ -7152,12 +7152,20 @@ class DBHelper {
 
     final product = productResult.first;
     final currentQty = (product['quantity'] as int?) ?? 0;
-    final newQty = currentQty - amount;
+    // [NEW-05] Lưới an toàn: tồn kho KHÔNG BAO GIỜ xuống dưới 0. Caller
+    // (create_sale_view) đã kiểm tồn trước; đây là chốt chặn cuối cho mọi
+    // đường gọi khác. Trừ quá tồn ⇒ về 0 và ghi log để truy vết.
+    final newQty = (currentQty - amount) < 0 ? 0 : currentQty - amount;
+    if (currentQty - amount < 0) {
+      debugPrint(
+        '⚠️ deductProductQuantity: id=$id yêu cầu trừ $amount nhưng tồn $currentQty — chặn ở 0',
+      );
+    }
     final firestoreId = product['firestoreId'] as String?;
 
     await db.rawUpdate(
-      'UPDATE products SET quantity = quantity - ?, updatedAt = ?, isSynced = 0 WHERE id = ? AND shopId = ?',
-      [amount, DateTime.now().millisecondsSinceEpoch, id, shopId],
+      'UPDATE products SET quantity = ?, updatedAt = ?, isSynced = 0 WHERE id = ? AND shopId = ?',
+      [newQty, DateTime.now().millisecondsSinceEpoch, id, shopId],
     );
     await db.rawUpdate(
       'UPDATE products SET status = 0 WHERE id = ? AND shopId = ? AND quantity <= 0',
