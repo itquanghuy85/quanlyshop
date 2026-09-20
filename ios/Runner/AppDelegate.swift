@@ -36,8 +36,13 @@ import FirebaseMessaging
     // Set Firebase Messaging delegate
     Messaging.messaging().delegate = self
     
-    GeneratedPluginRegistrant.register(with: self)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  // UIScene lifecycle (Xcode 27 / iOS 27 SDK): plugins are registered once the
+  // implicit engine is ready, instead of inside didFinishLaunchingWithOptions.
+  override func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
+    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
   }
   
   // Handle APNs token registration
