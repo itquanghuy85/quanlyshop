@@ -4380,6 +4380,14 @@ class SyncService {
           debugPrint("Lỗi reconcile phiếu nhập kho lệch nợ NCC: $e");
         }
 
+        // [NEW-09 2026-09-20] Đơn bán còn thiếu phiếu thu do bị kill app
+        // đúng lúc giữa transaction cloud và bước tạo PaymentIntent.
+        try {
+          await PaymentIntentService.reconcileSalesMissingPaymentIntent();
+        } catch (e) {
+          debugPrint("Lỗi reconcile phiếu thu thiếu của đơn bán: $e");
+        }
+
         // Sync DELETED products → push deleted:true lên Firestore
         final deletedProducts = await dbHelper.getDeletedUnsyncedProducts();
         if (deletedProducts.isNotEmpty) {

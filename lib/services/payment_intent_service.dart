@@ -1164,6 +1164,88 @@ class PaymentIntentService {
   /// lần trả nợ MỚI, không tự sửa lại dữ liệu cũ đã lệch sẵn) — gọi định
   /// kỳ trong chu kỳ sync để tự chữa các bản ghi cũ, không cần thao tác gì
   /// thêm từ người dùng.
+  // [NEW-09 2026-09-20] App bị kill đúng lúc giữa `executeSaleTransaction`
+  // (cloud đã commit đơn + trừ tồn) và bước tạo PaymentIntent phía sau (chạy
+  // client, sau transaction) ⇒ đơn có, tồn trừ, nhưng KHÔNG có phiếu thu, tab
+  // Tiền thiếu tiền. Quét các đơn TIỀN MẶT/CHUYỂN KHOẢN đơn giản (không trả
+  // góp, không kết hợp — 2 trường hợp đó có logic tạo phiếu phức tạp hơn, để
+  // tránh suy luận sai số tiền) chưa có phiếu thu liên kết, tự tạo bù.
+  static Future<void> reconcileSalesMissingPaymentIntent() async {
+    try {
+      final db = await _db.database;
+      final rows = await db.query(
+        'sales',
+        where:
+            "deleted = 0 AND (paymentMethod = 'TIỀN MẶT' OR paymentMethod = 'CHUYỂN KHOẢN') "
+            "AND (isInstallment IS NULL OR isInstallment = 0) "
+            "AND firestoreId IS NOT NULL AND firestoreId != ''",
+      );
+      for (final s in rows) {
+        try {
+          final saleRef = s['firestoreId'] as String;
+          final cashAmt = (s['cashAmount'] as num?)?.toInt() ?? 0;
+          final transferAmt = (s['transferAmount'] as num?)?.toInt() ?? 0;
+          if (cashAmt > 0 && transferAmt > 0) continue; // KẾT HỢP — bỏ qua
+
+          final existing = await db.query(
+            'payment_intents',
+            where: "referenceId = ? AND referenceType = 'sale' AND (deleted IS NULL OR deleted = 0)",
+            whereArgs: [saleRef],
+            limit: 1,
+          );
+          if (existing.isNotEmpty) continue;
+
+          final total = (s['totalPrice'] as num?)?.toInt() ?? 0;
+          if (total <= 0) continue;
+          final soldAt =
+              (s['soldAt'] as num?)?.toInt() ??
+              DateTime.now().millisecondsSinceEpoch;
+          final method = (s['paymentMethod'] as String?) ?? 'TIỀN MẶT';
+          final walkInName = (s['walkInName'] as String?) ?? '';
+          final payerName = walkInName.trim().isNotEmpty
+              ? walkInName
+              : ((s['customerName'] as String?) ?? '');
+          final walkInPhone = (s['walkInPhone'] as String?) ?? '';
+          final payerPhone = walkInPhone.trim().isNotEmpty
+              ? walkInPhone
+              : ((s['phone'] as String?) ?? '');
+          final productNames = (s['productNames'] as String?) ?? '';
+          final sellerName = (s['sellerName'] as String?) ?? 'SYSTEM';
+
+          final intent = PaymentIntent(
+            id: 'pi_sale_${saleRef}_reconcile_$soldAt',
+            type: PaymentIntentType.salePayment,
+            amount: total,
+            description: 'Bán hàng: $payerName (tự đối soát phiếu thiếu)',
+            referenceId: saleRef,
+            referenceType: 'sale',
+            status: PaymentIntentStatus.completed,
+            createdBy: sellerName,
+            createdAt: soldAt,
+            paidAt: soldAt,
+            paymentMethod: PaymentMethod.fromCode(method),
+            personName: payerName,
+            personPhone: payerPhone,
+            metadata: {
+              'customerName': payerName,
+              'phone': payerPhone,
+              'productNames': productNames,
+              'reconciled': true,
+            },
+          );
+          await createIntent(intent);
+          debugPrint(
+            '🩹 [NEW-09] Đã tạo bù phiếu thu thiếu cho đơn bán $saleRef ($total)',
+          );
+        } catch (e) {
+          debugPrint('⚠️ Lỗi tạo bù phiếu thu cho 1 đơn bán: $e');
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Lỗi reconcile phiếu thu thiếu của đơn bán: $e');
+    }
+  }
+
   static Future<void> reconcileStaleImportOrderDebts() async {
     try {
       final db = await _db.database;

@@ -4,6 +4,14 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-20g] - release 3.7.2+561: xử lý nốt NEW-09/NEW-07/D-08 — không còn lỗi MEDIUM/HIGH mở
+
+- `PaymentIntentService.reconcileSalesMissingPaymentIntent` (mới, hook vào `syncAllToCloud`): quét đơn bán TIỀN MẶT/CHUYỂN KHOẢN đơn giản thiếu phiếu thu (do app bị kill giữa transaction cloud và bước tạo phiếu ở client) ⇒ tự tạo bù đúng số tiền. Bỏ qua CÔNG NỢ/trả góp/KẾT HỢP. Test `test/sale_payment_intent_reconcile_test.dart` (5 case).
+- `staff_list_view.dart`: thêm công tắc "Cho phép xem GIÁ VỐN SẢN PHẨM" vào sheet phân quyền (biến `_canViewCostPrice` đã có sẵn, chỉ thiếu UI) — 2 máy xác nhận bật/tắt đúng, B nhận sau khi mở lại app.
+- Bọc 7 write Firestore trực tiếp còn lại (`repair_detail_view`, `sale_list_view`, `order_list_view`, `sale_detail_view`, `parts_inventory_view`, `expense_view`) qua `CloudWritePolicy.guard` — cùng cơ chế đã dùng cho `cash_closing_view` (NEW-10): thêm timeout + báo SyncSignal, không đổi dữ liệu ghi.
+- Unit 730 PASS, analyze 0 error. `pubspec.yaml` 3.7.1+560 → **3.7.2+561**; build lại `app-release.aab` + `app-release.apk`.
+- Kết quả: **39 lỗi phát hiện / 27 đã sửa (6/6 HIGH, 15/15 MEDIUM) / 12 còn mở đều LOW + 5 INFO**.
+
 ## [2026-09-20f] - release 3.7.1+560: NEW-08 (miễn nợ lên cloud) + NEW-10 (chốt quỹ qua CloudWritePolicy) + QA đợt 6 hoàn tất + báo cáo bàn giao
 
 - `data_reconciliation_service.writeOffDebt` (+ nợ kèm khi xoá đơn sửa): enqueue `SyncOrchestrator` delete sau xoá mềm; `sync_service.syncAllToCloud` lấy thêm `DBHelper.getUnsyncedDeletedDebts()` (deleted=1 & isSynced=0 & có firestoreId) để dọn khoản kẹt, ép `deleted` bool. Test `test/debt_write_off_sync_test.dart` (2) + 2 máy (khoản kẹt được dọn, miễn mới sang B trong 4 s).

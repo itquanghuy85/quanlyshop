@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/cloud_write_policy.dart';
 import '../services/firestore_write_helper.dart';
 import '../services/app_session.dart';
 import '../services/owner_reauth_service.dart';
@@ -1677,18 +1678,26 @@ class _SaleDetailViewState extends State<SaleDetailView> {
             await db.updateProductStatus(product.id!, 1);
           }
           // Sync trực tiếp lên cloud (tránh real-time listener ghi đè)
-          if (product.firestoreId != null && product.firestoreId!.isNotEmpty) {
+          final productFid = product.firestoreId;
+          final productQty = product.quantity;
+          final productStatus = product.status;
+          if (productFid != null && productFid.isNotEmpty) {
             try {
-              if (AppSession.syncEnabled) await FirebaseFirestore.instance
-                  .collection('products')
-                  .doc(product.firestoreId)
-                  .update({
-                    'quantity': product.quantity,
-                    'status': product.status,
-                    'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-                  });
+              if (AppSession.syncEnabled) {
+                await CloudWritePolicy.guard(
+                  () => FirebaseFirestore.instance
+                      .collection('products')
+                      .doc(productFid)
+                      .update({
+                        'quantity': productQty,
+                        'status': productStatus,
+                        'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
+                      }),
+                  context: 'products',
+                );
+              }
               debugPrint(
-                '☁️ Synced product quantity to cloud: ${product.firestoreId}',
+                '☁️ Synced product quantity to cloud: $productFid',
               );
             } catch (e) {
               debugPrint('⚠️ Cloud sync failed, queueing: $e');

@@ -201,4 +201,32 @@ Máy A = CPH2203 m@m.com (chủ) · B = CPH2239 n@n.com (nhân viên). Build wor
 
 ## C. Tổng đợt 6
 Đã chạy **17** mục · **PASS 14** (3 static/N-A) · **FAIL 2** (CR-01b NEW-09 mở, SALE-23b NEW-10 đã sửa) · BLOCKED 1 (CR-05). Unit 725 PASS, analyze 0 error.
+
+Đợt 7 (19:00–19:40) khép lại NEW-09, NEW-07, D-08 — xem chi tiết bên dưới.
 Dữ liệu test để lại trên shop M: ngày 20/09 đã chốt quỹ (dùng "Sửa chốt quỹ" nếu cần bán tiếp), nợ SC 300k và nợ điều chỉnh TÉTNEG đã miễn, đơn sửa QACR7 (B tạo), sale #31 OP LUNG Y 200k không có phiếu thu (NEW-09).
+
+---
+
+# ĐỢT 7 — 2026-09-20 (19:00–19:40): xử lý nốt NEW-09, NEW-07, D-08 (theo yêu cầu "xử lý hết cho xong")
+
+## A. NEW-09 — sale không có phiếu thu do kill app giữa transaction
+- `PaymentIntentService.reconcileSalesMissingPaymentIntent()` (mới): quét `sales` đã có `firestoreId`, thanh toán đơn giản (TIỀN MẶT/CHUYỂN KHOẢN, không trả góp, không KẾT HỢP cả 2 phương thức) chưa có `payment_intents` liên kết ⇒ tạo bù đúng `totalPrice`. Không đụng đơn CÔNG NỢ/trả góp/KẾT HỢP (logic tạo phiếu phức tạp hơn, tránh suy luận sai số tiền). Hook vào `sync_service.syncAllToCloud` cạnh `reconcileStaleImportOrderDebts` — chạy mỗi lần đồng bộ thủ công/resume.
+- Test: `test/sale_payment_intent_reconcile_test.dart` (5 case: thiếu → tạo bù; đã có → không trùng kể cả chạy 2 lần; KẾT HỢP bỏ qua; CÔNG NỢ bỏ qua; trả góp bỏ qua) — 5/5 PASS.
+
+## B. NEW-07 — thiếu công tắc GIÁ VỐN trong sheet phân quyền
+- Thêm `SwitchListTile` "Cho phép xem GIÁ VỐN SẢN PHẨM" vào `staff_list_view.dart`, ngay dưới "SỔ CÔNG NỢ" (biến `_canViewCostPrice` đã có sẵn ở load/save, chỉ thiếu UI).
+- Máy thật A: mở sheet phân quyền n@n.com → bật GIÁ VỐN → lưu → log `✅ updateUserPermissions success`; máy B (n@n.com) mở lại app → `UserService: final perms … allowViewCostPrice: true` (trước: false). Đã bật/tắt lại đúng thứ tự để trả về trạng thái ban đầu (tất cả 4 công tắc OFF) sau khi xác minh.
+
+## C. D-08 — 7 write Firestore trực tiếp chưa qua CloudWritePolicy
+Bọc cả 7 site bằng `CloudWritePolicy.guard(() => …, context: '<collection>')` (không đổi logic/dữ liệu ghi, chỉ thêm timeout + báo tín hiệu SyncSignal khi thành công):
+- `repair_detail_view.dart:2625,2723` (qty linh kiện sau sửa PT, context `repair_parts`/`products`)
+- `sale_list_view.dart` (sửa tên/SĐT đơn bán, context `sales`)
+- `order_list_view.dart` (sửa tên/SĐT đơn sửa, context `repairs`)
+- `sale_detail_view.dart` (hoàn tồn kho khi trả hàng, context `products`) — sửa kèm lỗi analyze (biến `product` nullable mất type-promotion trong closure → tách `productFid/productQty/productStatus` thành biến `final` trước khi truyền vào `guard`)
+- `parts_inventory_view.dart` (nhập nhanh linh kiện, context `repair_parts`)
+- `expense_view.dart` (xoá mềm phiếu chi, context `expenses`)
+- Cả 7 site đều đã có local-write-trước + try/catch; 2 site (`sale_detail_view`, `expense_view`) đã tự enqueue `SyncOrchestrator` khi lỗi — giữ nguyên. Không đổi shape dữ liệu ghi, chỉ thêm rào timeout/mạng như đã làm với NEW-10.
+- Xác minh: `flutter analyze` 0 error (3 lỗi nullable ban đầu ở `sale_detail_view.dart` đã sửa), `flutter test` 730 PASS. Không kiểm từng site trên máy thật riêng lẻ (7 luồng nghiệp vụ khác nhau, thay đổi mang tính cơ học giống hệt NEW-10 đã kiểm máy thật) — coi là đủ nghiêm ngặt cho một thay đổi không đổi logic.
+
+## D. Tổng đợt 7
+NEW-09 FIXED (test 5/5 PASS), NEW-07 FIXED (2 máy PASS), D-08 FIXED (analyze 0 error, unit 730 PASS). Không còn lỗi MEDIUM/HIGH nào mở trong 39 lỗi phát hiện ban đầu — chỉ còn 12 LOW + 5 INFO (dọn code chết). Release **3.7.2+561**.

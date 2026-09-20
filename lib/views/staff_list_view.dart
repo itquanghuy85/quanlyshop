@@ -2631,6 +2631,30 @@ class _StaffActivityCenterState extends State<_StaffActivityCenter>
                                   onChanged: (v) =>
                                       setState(() => _canViewDebts = v),
                                 ),
+                                // [NEW-07 2026-09-20] Công tắc GIÁ VỐN SẢN
+                                // PHẨM bị thiếu ở đây trong lần gộp sheet
+                                // phân quyền trước — biến `_canViewCostPrice`
+                                // vẫn đọc/lưu đúng (CLAUDE.md §9), chỉ thiếu
+                                // UI nên chủ shop không thu hồi quyền được.
+                                SwitchListTile(
+                                  title: Text(
+                                    "Cho phép xem GIÁ VỐN SẢN PHẨM",
+                                    style: TextStyle(
+                                      fontSize:
+                                          AppTextStyles.subtitle1.fontSize,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    "Giá nhập, lợi nhuận trên màn Kho/Bán hàng/Sửa chữa và khi in",
+                                    style: TextStyle(
+                                      fontSize: AppTextStyles.body1.fontSize,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  value: _canViewCostPrice,
+                                  onChanged: (v) =>
+                                      setState(() => _canViewCostPrice = v),
+                                ),
 
                                 Padding(
                                   padding: const EdgeInsets.symmetric(

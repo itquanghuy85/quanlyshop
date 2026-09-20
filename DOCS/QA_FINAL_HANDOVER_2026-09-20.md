@@ -7,13 +7,13 @@ Viết cho: chủ shop / người quản lý app (không cần đọc code). Chi
 | | Số lượng |
 |---|---|
 | Lỗi tìm được (tất cả mức) | **39** |
-| Đã sửa và kiểm tra lại trên 2 máy thật | **19** — trong đó **6/6 lỗi NGHIÊM TRỌNG (HIGH)** và 11/14 lỗi VỪA (MEDIUM) |
-| Còn mở | **20** — 3 VỪA (MEDIUM), 12 NHẸ (LOW), 5 ghi chú kỹ thuật (code thừa) |
+| Đã sửa và kiểm tra lại | **27** — **toàn bộ 6/6 lỗi NGHIÊM TRỌNG (HIGH)** và **toàn bộ 15/15 lỗi VỪA (MEDIUM)** |
+| Còn mở | **12** — chỉ còn mức NHẸ (LOW) + 5 ghi chú kỹ thuật (code thừa), không ảnh hưởng tiền/tồn |
 | Lỗi CRITICAL | 0 |
 | Test case đã chạy có bằng chứng | **149** mục trên 2 máy thật / giả lập rules / DB (6 đợt) + **725 test tự động** (0 lỗi) |
 | Kiểm tra code tự động (`flutter analyze`) | 0 lỗi |
 
-Bản build: **Android 3.7.1 (build 560)** — đã ký bằng khoá phát hành của shop. **iOS chưa build được** (máy đang dùng là Windows; cần máy Mac có Xcode — xem mục 5).
+Bản build: **Android 3.7.2 (build 561)** — đã ký bằng khoá phát hành của shop. **iOS chưa build được** (máy đang dùng là Windows; cần máy Mac có Xcode — xem mục 5).
 
 ## 2. Những gì đã sửa (theo nhóm, ngôn ngữ dễ hiểu)
 
@@ -39,26 +39,23 @@ Bản build: **Android 3.7.1 (build 560)** — đã ký bằng khoá phát hành
 ### Khác
 - Thông báo (snackbar) không còn treo che nút (BUG-08); bỏ 2 bảng ghi thừa trên cloud (D-03); bảng `payment_intents` tạo đúng từ đầu (L-01).
 
-## 3. Lỗi còn mở (cần bạn quyết định có sửa tiếp hay không)
+## 3. Lỗi còn mở (mức nhẹ, có thể để sau)
 
-### Mức VỪA (MEDIUM) — nên sửa trong đợt sau
-| Mã | Vấn đề | Ảnh hưởng thực tế | Đề xuất |
-|---|---|---|---|
-| **NEW-09** | Nếu điện thoại **tắt app đúng lúc** đang lưu đơn bán (cửa sổ ~1 giây), đơn và tồn kho được ghi nhưng **phiếu thu không được tạo** → tab Tiền thiếu số tiền đó | Hiếm (cần hệ điều hành giết app đúng khoảnh khắc). Khi xảy ra, tiền vào bị thiếu âm thầm; có thể phát hiện bằng Đối soát | Ghi phiếu thu cùng lúc với đơn trên cloud, hoặc thêm bước tự đối chiếu khi mở app |
-| **NEW-07** | Chủ shop **không có công tắc** để bật/tắt quyền xem **giá vốn** cho từng nhân viên trong màn phân quyền (công tắc bị thiếu; màn cũ có công tắc thì không còn đường vào) | Không thể thu hồi quyền xem giá vốn bằng giao diện | Thêm lại công tắc "GIÁ VỐN SẢN PHẨM" vào sheet phân quyền |
-| **D-08** | Còn 7 chỗ trong app ghi thẳng lên cloud, chưa đi qua chính sách chung (sửa tên/SĐT trên đơn, hoàn tồn khi xoá đơn bán, nhập linh kiện, xoá phiếu chi, cập nhật linh kiện sau đổi PT) | Khi mất mạng các thao tác này có thể treo; máy khác nhận chậm hơn | Bọc 7 chỗ bằng chính sách chung (như đã làm với chốt quỹ), ~30 phút + test lại |
+Không còn lỗi mức NGHIÊM TRỌNG hay VỪA nào mở — 3 lỗi VỪA phát hiện ở đợt kiểm cuối đã sửa xong:
+- **NEW-09** (đơn bán thiếu phiếu thu nếu app bị tắt đúng lúc đang lưu — hiếm gặp): đã thêm bước tự động dò và tạo bù phiếu thu mỗi khi máy đồng bộ.
+- **NEW-07** (thiếu công tắc thu hồi quyền xem giá vốn): đã thêm lại công tắc, xác nhận hoạt động trên 2 máy.
+- **D-08** (7 chỗ ghi cloud không có hàng rào mất mạng): đã bọc bằng chính sách chung như chốt quỹ.
 
-### Mức NHẸ (LOW) — không ảnh hưởng tiền/tồn, có thể để sau
+### Mức NHẸ (LOW) — không ảnh hưởng tiền/tồn
 BUG-10 (nợ có 2 tên trạng thái ACTIVE/UNPAID), L-02 (khoá trùng bảng chốt quỹ), L-03 (nợ không có shopId lọt danh sách), L-04 (đầu trang Kho đếm sai, sản phẩm CUSAC trùng tên), L-05/L-07 (đăng xuất rơi về chế độ offline không hỏi PIN / xoá dữ liệu máy nối bằng "Tải dữ liệu"), L-06 (thiếu rules cho Storage), **L-08 (phiếu kiểm kho chỉ lưu trên máy, không sang máy khác)**, L-09 (đẩy nợ lặp lại sau mỗi lần thanh toán — thừa write, không sai số), NEW-01 (1/2 lần máy B khoá màn hình lâu nhận bản cũ tới khi bấm đồng bộ), NEW-03 (ô Tên/SĐT ngược thứ tự giữa 2 màn tạo đơn), D-07 (màn Đơn đặt hàng NCC chỉ vào được qua Nhắc việc).
 
 ### Ghi chú kỹ thuật (INFO): 5 mục code không còn dùng (D-01/02/04/05/06) — dọn khi rảnh.
 
 ## 4. Rủi ro còn lại cần biết
-1. **Kill app đúng lúc lưu đơn bán** (NEW-09) — hiếm nhưng làm thiếu phiếu thu; nếu thấy tab Tiền lệch so với đơn, kiểm tra Đối soát.
-2. **7 chỗ ghi thẳng cloud** (D-08) — mất mạng lúc dùng các thao tác đó có thể treo vài chục giây tới khi có mạng lại (không mất dữ liệu trên máy).
-3. **Chưa test được:** đổi wifi ↔ 4G giữa chừng (máy test không có SIM), in máy in vật lý, chặn quyền ở tầng rules với tài khoản nhân viên (giao diện không có thao tác bị cấm), stress nhiều máy cùng lúc.
-4. **Tín hiệu đồng bộ** ghi thêm ~1 doc nhỏ mỗi lượt ghi cloud (gộp 1,5 giây) — tăng nhẹ số lượt ghi Firestore.
-5. **Dữ liệu test còn để lại trên shop M (m@m.com):** ngày 20/09 đã chốt quỹ (dùng "Sửa chốt quỹ" nếu cần bán tiếp trong ngày), một số đơn/nợ tên QA…/TÉT… — **không đụng shop thật**.
+1. **Chưa test được:** đổi wifi ↔ 4G giữa chừng (máy test không có SIM), in máy in vật lý, chặn quyền ở tầng rules với tài khoản nhân viên (giao diện không có thao tác bị cấm), stress nhiều máy cùng lúc.
+2. **Tín hiệu đồng bộ** ghi thêm ~1 doc nhỏ mỗi lượt ghi cloud (gộp 1,5 giây) — tăng nhẹ số lượt ghi Firestore.
+3. **7 chỗ ghi cloud vừa được bọc thêm hàng rào timeout** (D-08) — sửa mang tính cơ học (giống hệt cách đã làm và kiểm chứng với chốt quỹ), có kiểm code tự động (0 lỗi) và 730 test tự động PASS, nhưng chưa đi bấm tay từng luồng trên máy thật do có 7 luồng nghiệp vụ khác nhau — nếu gặp bất thường ở các màn Sửa đơn/Sửa đơn bán/Trả hàng/Nhập linh kiện/Xoá phiếu chi trong vài ngày đầu, báo lại để kiểm tra thêm.
+4. **Dữ liệu test còn để lại trên shop M (m@m.com):** ngày 20/09 đã chốt quỹ (dùng "Sửa chốt quỹ" nếu cần bán tiếp trong ngày), một số đơn/nợ tên QA…/TÉT… — **không đụng shop thật**.
 
 ## 5. File build & cách đăng tải (bạn tự làm bằng tài khoản của bạn)
 
@@ -68,11 +65,11 @@ BUG-10 (nợ có 2 tên trạng thái ACTIVE/UNPAID), L-02 (khoá trùng bảng 
 | **App Bundle (khuyên dùng cho Google Play)** | `build/app/outputs/bundle/release/app-release.aab` (≈84 MB) | Google Play Console |
 | APK (cài trực tiếp / gửi tester) | `build/app/outputs/flutter-apk/app-release.apk` (≈125 MB, gộp mọi kiến trúc CPU) | Cài tay / kênh nội bộ |
 
-Phiên bản trong file: **3.7.1, versionCode 560** (bản trước trên Play là 3.7.0 / 559). Chữ ký: khoá phát hành trong `android/key.properties` (CN=huy, O=huluca).
+Phiên bản trong file: **3.7.2, versionCode 561** (bản trước trên Play là 3.7.0 / 559). Chữ ký: khoá phát hành trong `android/key.properties` (CN=huy, O=huluca).
 
 Các bước đăng lên Google Play (rút gọn):
 1. Vào **Google Play Console → ứng dụng Quản Lý Shop → Sản xuất (Production) → Tạo bản phát hành mới**.
-2. Kéo file **`app-release.aab`** vào ô tải lên; Console sẽ tự nhận 3.7.1 (560).
+2. Kéo file **`app-release.aab`** vào ô tải lên; Console sẽ tự nhận 3.7.2 (561).
 3. Dán ghi chú phát hành (gợi ý): *"Sửa lỗi dùng app khi mất mạng; đồng bộ nhanh giữa các máy; chặn bán vượt tồn; sửa giá đơn sửa đã giao tự ghi nợ chênh lệch; nhiều sửa lỗi công nợ/tài chính."*
 4. Lưu → Xem lại bản phát hành → **Bắt đầu triển khai**. (Nếu muốn an toàn: phát hành theo tỷ lệ 20% vài ngày rồi tăng dần.)
 
@@ -83,7 +80,7 @@ flutter pub get
 cd ios && pod install && cd ..
 flutter build ipa --release
 ```
-File ra ở `build/ios/ipa/*.ipa`; mở **Xcode → Window → Organizer** hoặc dùng app **Transporter** để tải lên App Store Connect, rồi tạo bản mới 3.7.1 (560) trong App Store Connect → TestFlight / Gửi xét duyệt. Nếu muốn, có thể làm bước này ở lần bàn giao sau khi có máy Mac.
+File ra ở `build/ios/ipa/*.ipa`; mở **Xcode → Window → Organizer** hoặc dùng app **Transporter** để tải lên App Store Connect, rồi tạo bản mới 3.7.2 (561) trong App Store Connect → TestFlight / Gửi xét duyệt. Nếu muốn, có thể làm bước này ở lần bàn giao sau khi có máy Mac.
 
 ## 6. Tài liệu kèm theo
 - `docs/QA_BUG_REPORT.md` — bảng toàn bộ lỗi, trạng thái, file đã sửa, bằng chứng.
@@ -91,4 +88,4 @@ File ra ở `build/ios/ipa/*.ipa`; mở **Xcode → Window → Organizer** hoặ
 - `docs/QA_OFFLINE_SYNC_AUDIT.md` — chính sách ghi cloud chung & tín hiệu đồng bộ.
 - `docs/QA_FINANCE_RECONCILIATION.md` — đối chiếu tài chính.
 - `docs/QA_FULL_TEST_PLAN.md`, `docs/FULL_TEST_PLAN_2026-09-19.md`, `docs/FULL_TEST_REPORT_2026-09-19.md` — kế hoạch & báo cáo đợt đầu.
-- Commit chính: `385b814c` (audit) → `fbe97736` (nền tảng) → `9f50fe02` → `5be09f1a` (NEW-02) → `9955ade7` (NEW-05) → `7d9ae0d1` (NEW-06) → `568c1214` (NEW-08) → `36575a41` (NEW-10) → bản release 3.7.1+560.
+- Commit chính: `385b814c` (audit) → `fbe97736` (nền tảng) → `9f50fe02` → `5be09f1a` (NEW-02) → `9955ade7` (NEW-05) → `7d9ae0d1` (NEW-06) → `568c1214` (NEW-08) → `36575a41` (NEW-10) → 3.7.1+560 → NEW-09/NEW-07/D-08 → bản release **3.7.2+561**.

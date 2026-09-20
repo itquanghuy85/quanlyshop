@@ -30,6 +30,7 @@ import '../services/firestore_write_helper.dart';
 import '../services/debt_summary_service.dart';
 import '../models/customer_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/cloud_write_policy.dart';
 import 'create_sales_return_view.dart';
 import 'pending_bank_settlement_view.dart';
 import '../l10n/app_localizations.dart';
@@ -2177,10 +2178,15 @@ class _SaleListViewState extends State<SaleListView> {
           'isWalkIn': newPhone.isEmpty && newName.isEmpty,
           'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
         });
-        if (AppSession.syncEnabled) await FirebaseFirestore.instance
-            .collection('sales')
-            .doc(s.firestoreId)
-            .update(encData);
+        if (AppSession.syncEnabled) {
+          await CloudWritePolicy.guard(
+            () => FirebaseFirestore.instance
+                .collection('sales')
+                .doc(s.firestoreId)
+                .update(encData),
+            context: 'sales',
+          );
+        }
       }
 
       // Save customer + recalculate stats

@@ -11,6 +11,7 @@ import '../widgets/responsive_wrapper.dart';
 import '../widgets/keyboard_aware_padding.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/cloud_write_policy.dart';
 import '../services/firestore_write_helper.dart';
 import '../data/db_helper.dart';
 import '../services/user_service.dart';
@@ -1874,14 +1875,19 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
       // Sync to Firestore immediately
       if (firestoreId != null && firestoreId.isNotEmpty) {
         try {
-          if (AppSession.syncEnabled) await FirebaseFirestore.instance
-              .collection('repair_parts')
-              .doc(firestoreId)
-              .update({
-                'quantity': newQty,
-                'cost': weightedCost,
-                'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-              });
+          if (AppSession.syncEnabled) {
+            await CloudWritePolicy.guard(
+              () => FirebaseFirestore.instance
+                  .collection('repair_parts')
+                  .doc(firestoreId)
+                  .update({
+                    'quantity': newQty,
+                    'cost': weightedCost,
+                    'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
+                  }),
+              context: 'repair_parts',
+            );
+          }
         } catch (e) {
           debugPrint('⚠️ Quick stock-in Firestore sync error: $e');
         }

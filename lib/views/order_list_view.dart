@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/cloud_write_policy.dart';
 import '../data/db_helper.dart';
 import '../services/first_time_guide_service.dart';
 import '../services/app_session.dart';
@@ -1229,10 +1230,15 @@ final results = await Future.wait([
           'isWalkIn': newPhone.isEmpty && newName.isEmpty,
           'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
         });
-        if (AppSession.syncEnabled) await FirebaseFirestore.instance
-            .collection('repairs')
-            .doc(r.firestoreId)
-            .update(encData);
+        if (AppSession.syncEnabled) {
+          await CloudWritePolicy.guard(
+            () => FirebaseFirestore.instance
+                .collection('repairs')
+                .doc(r.firestoreId)
+                .update(encData),
+            context: 'repairs',
+          );
+        }
       }
 
       // 2. Lưu vào danh sách khách hàng + tính lại stats từ tất cả đơn cũ

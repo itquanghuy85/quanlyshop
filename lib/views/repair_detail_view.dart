@@ -2622,13 +2622,18 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           final collection = p['collection'] as String;
           final newQty = p['newQty'] as int;
           try {
-            if (AppSession.syncEnabled) await FirebaseFirestore.instance
-                .collection(collection)
-                .doc(fid)
-                .update({
-                  'quantity': newQty,
-                  'updatedAt': FieldValue.serverTimestamp(),
-                });
+            if (AppSession.syncEnabled) {
+              await CloudWritePolicy.guard(
+                () => FirebaseFirestore.instance
+                    .collection(collection)
+                    .doc(fid)
+                    .update({
+                      'quantity': newQty,
+                      'updatedAt': FieldValue.serverTimestamp(),
+                    }),
+                context: collection,
+              );
+            }
           } catch (e) {
             debugPrint('⚠️ Sync $collection/$fid failed: $e');
           }
@@ -2720,13 +2725,18 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         final collection = p['collection'] as String;
         final newQty = p['newQty'] as int;
         try {
-          if (AppSession.syncEnabled) await FirebaseFirestore.instance
-              .collection(collection)
-              .doc(fid)
-              .update({
-                'quantity': newQty,
-                'updatedAt': FieldValue.serverTimestamp(),
-              });
+          if (AppSession.syncEnabled) {
+            await CloudWritePolicy.guard(
+              () => FirebaseFirestore.instance
+                  .collection(collection)
+                  .doc(fid)
+                  .update({
+                    'quantity': newQty,
+                    'updatedAt': FieldValue.serverTimestamp(),
+                  }),
+              context: collection,
+            );
+          }
         } catch (e) {
           debugPrint('⚠️ Sync $collection/$fid failed: $e');
         }

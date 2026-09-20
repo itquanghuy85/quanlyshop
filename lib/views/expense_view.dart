@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/cloud_write_policy.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -538,10 +539,15 @@ class _ExpenseViewState extends State<ExpenseView> {
           // This prevents the record from being re-synced back
           if (firestoreId != null && firestoreId.isNotEmpty) {
             try {
-              if (AppSession.syncEnabled) await FirebaseFirestore.instance
-                  .collection('expenses')
-                  .doc(firestoreId)
-                  .update(FirestoreWriteHelper.softDeletePayload());
+              if (AppSession.syncEnabled) {
+                await CloudWritePolicy.guard(
+                  () => FirebaseFirestore.instance
+                      .collection('expenses')
+                      .doc(firestoreId)
+                      .update(FirestoreWriteHelper.softDeletePayload()),
+                  context: 'expenses',
+                );
+              }
               debugPrint('Firestore soft-delete expense: $firestoreId');
             } catch (e) {
               // Firestore delete failed - queue for later sync
