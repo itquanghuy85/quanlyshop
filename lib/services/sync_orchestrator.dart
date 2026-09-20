@@ -987,6 +987,17 @@ class SyncOrchestrator {
         );
         return;
       }
+      // [NEW-06 2026-09-20] Rules đọc `resource.data` ⇒ update lên doc CHƯA
+      // TỒN TẠI trả về permission-denied (không phải not-found). Xoá mềm là
+      // `update`, thành viên shop luôn được phép ⇒ PD ở đây chỉ có nghĩa
+      // "doc chưa từng lên cloud" (tạo rồi xoá lúc offline). Coi như xong,
+      // không để item failed + badge "Lỗi đồng bộ" treo vĩnh viễn.
+      if (e.code == 'permission-denied') {
+        debugPrint(
+          '⏭️ Delete $collection/${item.firestoreId}: permission-denied (doc chưa có trên cloud), bỏ qua',
+        );
+        return;
+      }
       rethrow;
     }
   }
