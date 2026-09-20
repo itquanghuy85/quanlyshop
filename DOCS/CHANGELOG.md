@@ -11482,3 +11482,9 @@ Mô tả ngắn (1-2 dòng) về thay đổi
 ### Details
 Chi tiết thay đổi (bullet points, technical notes, etc.)
 ```
+
+## [2026-09-20j] iOS: UIScene lifecycle cho Xcode 27 / iOS 27 SDK
+- Lỗi: app không khởi động trên iPhone 18 Pro Max iOS 27 — "UIScene life cycle is required for apps built with this SDK".
+- Fix: thêm `UIApplicationSceneManifest` (FlutterSceneDelegate) vào `ios/Runner/Info.plist`; `AppDelegate.swift` đăng ký plugin qua `didInitializeImplicitFlutterEngine` thay vì trong `didFinishLaunchingWithOptions`.
+- Files: `ios/Runner/Info.plist`, `ios/Runner/AppDelegate.swift`.
+- Trạng thái: chưa nghiệm thu máy iOS thật (cần Mac).

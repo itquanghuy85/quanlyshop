@@ -7,7 +7,7 @@ import FirebaseMessaging
 // Mark AppDelegate as @MainActor to fix Sendable warnings in Xcode 16.2
 @main
 @MainActor
-@objc class AppDelegate: FlutterAppDelegate {
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private(set) static var lastApnsRegistrationError: String?
 
   override func application(
@@ -41,7 +41,7 @@ import FirebaseMessaging
 
   // UIScene lifecycle (Xcode 27 / iOS 27 SDK): plugins are registered once the
   // implicit engine is ready, instead of inside didFinishLaunchingWithOptions.
-  override func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
+  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
   }
   
