@@ -14,6 +14,8 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 **2026-09-20 (đợt 7, cuối cùng):** Theo yêu cầu "xử lý hết cho xong": NEW-09 FIXED (tự tạo bù phiếu thu nếu app bị kill giữa transaction bán), NEW-07 FIXED (thêm công tắc GIÁ VỐN vào sheet phân quyền, xác nhận 2 máy), D-08 FIXED (7 write Firestore trực tiếp còn lại đã qua CloudWritePolicy). **Không còn lỗi MEDIUM/HIGH nào mở** — chỉ còn 12 LOW + 5 INFO không ảnh hưởng tiền/tồn. Release **3.7.2+561** (aab+apk) đã build, chưa đăng Play; iOS vẫn cần máy Mac. Báo cáo cuối: `docs/QA_FINAL_HANDOVER_2026-09-20.md` (đã cập nhật số liệu).
 
+**2026-09-22 (tính năng mới):** Sửa/Tân trang sản phẩm trong kho trước khi bán — gửi đối tác sửa (ép kính, mainboard), lấy linh kiện Kho phụ tùng, hoặc chi phí khác, mỗi khoản cộng vào `refurbishCost` (tách riêng khỏi giá vốn gốc), trừ đúng kho phụ tùng, ghi đúng nợ đối tác/phiếu chi. Nút "Sửa/Tân trang" trong Kho → chi tiết sản phẩm. DB v111→v112 (`product_refurbish_items` + `products.refurbishCost`). Test 5/5 PASS, đã kiểm máy thật A (ép kính CÔNG NỢ 300k + thay PIN X). Xem `[2026-09-22a]` CHANGELOG.
+
 **2026-09-20 (đợt 3) — QA tiếp:** 31 case chạy (26 PASS), NEW-04 & D-1 đã sửa; **NEW-02 (MEDIUM: sửa giá đơn sửa sau giao không tạo bút toán) đang chờ quyết định**; máy B đang đăng nhập **n@n.com (employee)**, máy A m@m.com. Còn BLOCKED: stress, crash CR-01/02/04–07, ~20 case khác (xem QA_TEST_EXECUTION đợt 3).
 
 **2026-09-20 (chiều) — ĐÃ SỬA nhóm lỗi nền tảng** (`[2026-09-20b]`): CloudWritePolicy + SyncSignal + BUG-01…09/D-03. Regression 2 máy 12 PASS / 4 BLOCKED, unit 718 PASS. Còn mở: BUG-10 (ACTIVE/UNPAID), L-02…L-06, ~127 case chưa chạy (`docs/QA_FULL_TEST_PLAN.md`). Chưa build release.

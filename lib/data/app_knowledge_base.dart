@@ -875,6 +875,52 @@ class AppKnowledgeBase {
       audience: ['owner', 'manager'],
     ),
     KbEntry(
+      id: 'product-refurbish',
+      title: 'Sửa/Tân trang sản phẩm trong kho (trước khi bán)',
+      menuPath: 'Kho → Danh sách sản phẩm → chọn sản phẩm → "Sửa/Tân trang"',
+      whatItDoes:
+          'Ghi chi phí sửa chữa/tân trang cho 1 sản phẩm mua về còn hư (vd '
+          'máy lẻ bể kính, hư pin, hư sạc) trước khi bán: gửi đối tác sửa '
+          '(ép kính, sửa mainboard...), lấy linh kiện từ Kho phụ tùng để '
+          'thay, hoặc chi phí khác (công thợ tự làm). Mỗi khoản tự động: '
+          'cộng vào "Chi phí sửa" của sản phẩm (giá vốn hiển thị tách riêng '
+          'giá vốn gốc + chi phí sửa = tổng giá vốn), trừ đúng tồn Kho phụ '
+          'tùng nếu là linh kiện, và ghi đúng công nợ đối tác (CÔNG NỢ) hoặc '
+          'phiếu chi (TIỀN MẶT/CHUYỂN KHOẢN).',
+      whenToUse:
+          'Mua máy/hàng cũ về kho còn lỗi cần sửa trước khi bán, muốn tính '
+          'đúng giá vốn thực (đã gồm chi phí sửa) để không bán lỗ mà không biết.',
+      steps: [
+        'Vào Kho → Danh sách sản phẩm, chọn sản phẩm cần sửa.',
+        'Bấm "Sửa/Tân trang".',
+        'Chọn "Dịch vụ / Đối tác / Khác" (gửi đối tác sửa hoặc chi phí khác) '
+            'hoặc "Linh kiện kho PT" (lấy linh kiện có sẵn để thay).',
+        'Điền mô tả/số tiền/hình thức thanh toán (hoặc chọn linh kiện + số lượng), bấm Lưu.',
+        'Lặp lại cho từng khoản chi phí — có thể ghi nhiều lần cho 1 sản phẩm.',
+      ],
+      notes: [
+        'Không có bước "đã gửi/đang sửa/đã nhận về" — chỉ ghi 1 lần chi phí ngay khi nhập.',
+        'Chi phí sửa hiển thị tách riêng khỏi giá vốn gốc lúc nhập (không gộp '
+            'thẳng vào Giá nhập), tổng giá vốn = giá vốn gốc + chi phí sửa.',
+        'Lãi/lỗ của sản phẩm tính trên tổng giá vốn (đã gồm chi phí sửa).',
+        'Cần quyền xem giá vốn (allowViewCostPrice) mới thấy nút này.',
+      ],
+      sampleQuestions: [
+        'mua máy hư về sửa xong bán thì tính giá vốn thế nào',
+        'gửi đối tác ép kính thì ghi ở đâu',
+        'lấy linh kiện trong kho phụ tùng để thay cho máy trong kho',
+        'sửa/tân trang sản phẩm',
+      ],
+      tags: [
+        'sua tan trang',
+        'gia von',
+        'kho phu tung',
+        'doi tac sua chua',
+        'may cu',
+      ],
+      audience: ['owner', 'manager'],
+    ),
+    KbEntry(
       id: 'data-reconciliation',
       title: 'Công cụ điều chỉnh dữ liệu',
       menuPath: 'Cài đặt → Dữ liệu & Hệ thống → Công cụ điều chỉnh dữ liệu',

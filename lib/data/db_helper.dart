@@ -391,6 +391,135 @@ class DBHelper {
     }
   }
 
+  /// [2026-09-22] Sửa/tân trang sản phẩm trong kho trước khi bán: gửi đối tác
+  /// (ép kính, sửa mainboard...), lấy linh kiện từ kho phụ tùng, hoặc chi phí
+  /// khác — mỗi khoản cộng vào `products.refurbishCost` (giá vốn hiển thị
+  /// tách riêng "giá vốn gốc" / "chi phí sửa", theo yêu cầu 2026-09-22, không
+  /// gộp thẳng vào `products.cost` để không mất dấu giá nhập ban đầu).
+  ///
+  /// Gọi ở `onCreate` (fresh install) VÀ tự chữa ở đầu mọi hàm CRUD bên dưới —
+  /// cùng khuôn với `_ensurePaymentIntentsSchema` (L-01 2026-09-20: bảng tạo
+  /// lười từng gây "no such table" cho máy cài mới nếu chỉ nằm trong onUpgrade).
+  Future<void> _ensureProductRefurbishSchema([
+    DatabaseExecutor? executor,
+  ]) async {
+    final dbExecutor = executor ?? await database;
+    try {
+      await dbExecutor.execute('''
+        CREATE TABLE IF NOT EXISTS product_refurbish_items(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          firestoreId TEXT UNIQUE,
+          productId INTEGER,
+          productFirestoreId TEXT,
+          type TEXT NOT NULL,
+          description TEXT NOT NULL,
+          partnerId INTEGER,
+          partnerName TEXT,
+          partId INTEGER,
+          partName TEXT,
+          quantity INTEGER DEFAULT 1,
+          amount INTEGER NOT NULL,
+          paymentMethod TEXT,
+          debtFirestoreId TEXT,
+          expenseFirestoreId TEXT,
+          createdAt INTEGER,
+          createdBy TEXT,
+          shopId TEXT,
+          isSynced INTEGER DEFAULT 0,
+          deleted INTEGER DEFAULT 0
+        )
+      ''');
+      await dbExecutor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_product_refurbish_productId ON product_refurbish_items(productId)',
+      );
+      await dbExecutor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_product_refurbish_shopId ON product_refurbish_items(shopId)',
+      );
+      await _ensureColumnExists(
+        executor: dbExecutor,
+        table: 'products',
+        column: 'refurbishCost',
+        definition: 'INTEGER DEFAULT 0',
+        logScope: 'DB: ensure product_refurbish schema',
+      );
+    } catch (e) {
+      debugPrint('DB: ensure product_refurbish schema error: $e');
+    }
+  }
+
+  Future<int> insertProductRefurbishItem(Map<String, dynamic> data) async {
+    final db = await database;
+    await _ensureProductRefurbishSchema(db);
+    return db.insert('product_refurbish_items', data);
+  }
+
+  Future<List<Map<String, dynamic>>> getProductRefurbishItems(
+    int productId,
+  ) async {
+    final db = await database;
+    await _ensureProductRefurbishSchema(db);
+    return db.query(
+      'product_refurbish_items',
+      where: 'productId = ? AND (deleted = 0 OR deleted IS NULL)',
+      whereArgs: [productId],
+      orderBy: 'createdAt DESC',
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getUnsyncedProductRefurbishItems() async {
+    final db = await database;
+    await _ensureProductRefurbishSchema(db);
+    final shopId = await _getScopedShopId('getUnsyncedProductRefurbishItems');
+    if (shopId == null) return [];
+    return db.query(
+      'product_refurbish_items',
+      where: '(isSynced = 0 OR isSynced IS NULL) AND (shopId = ? OR shopId IS NULL)',
+      whereArgs: [shopId],
+    );
+  }
+
+  Future<void> markProductRefurbishItemSynced(int id, String firestoreId) async {
+    final db = await database;
+    await db.update(
+      'product_refurbish_items',
+      {'firestoreId': firestoreId, 'isSynced': 1},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  /// Cộng thêm [delta] vào `products.refurbishCost` (chi phí sửa/tân trang,
+  /// tách riêng khỏi `cost` = giá vốn gốc lúc nhập — theo quyết định
+  /// 2026-09-22). Trả về (refurbishCostMới, firestoreId) để service gọi tiếp
+  /// bước đồng bộ cloud.
+  Future<Map<String, dynamic>> addToProductRefurbishCost(
+    int productId,
+    int delta,
+  ) async {
+    final db = await database;
+    final rows = await db.query(
+      'products',
+      columns: ['refurbishCost', 'firestoreId'],
+      where: 'id = ?',
+      whereArgs: [productId],
+      limit: 1,
+    );
+    if (rows.isEmpty) return {'refurbishCost': 0, 'firestoreId': null};
+    final current = (rows.first['refurbishCost'] as num?)?.toInt() ?? 0;
+    final updated = current + delta;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await db.update(
+      'products',
+      {'refurbishCost': updated, 'updatedAt': now, 'isSynced': 0},
+      where: 'id = ?',
+      whereArgs: [productId],
+    );
+    return {
+      'refurbishCost': updated,
+      'firestoreId': rows.first['firestoreId'] as String?,
+    };
+  }
+
   Future<void> _ensurePayrollSettingsColumns(
     DatabaseExecutor executor, {
     String logScope = 'DB',
@@ -647,7 +776,7 @@ class DBHelper {
 
     final db = await openDatabase(
       path,
-      version: 111,
+      version: 112,
       onConfigure: (db) async {
         try {
           await db.execute('PRAGMA foreign_keys = ON');
@@ -687,6 +816,8 @@ class DBHelper {
         await db.execute(
           'CREATE TABLE IF NOT EXISTS products(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, shopId TEXT, name TEXT, brand TEXT, model TEXT, imei TEXT, cost INTEGER, price INTEGER, condition TEXT, status INTEGER DEFAULT 1, description TEXT, images TEXT, warranty TEXT, createdAt INTEGER, updatedAt INTEGER, supplier TEXT, type TEXT DEFAULT "DIEN_THOAI", quantity INTEGER DEFAULT 1, color TEXT, isSynced INTEGER DEFAULT 0, capacity TEXT, size TEXT, paymentMethod TEXT, labelInfo TEXT, isPending INTEGER DEFAULT 0, pendingSupplier TEXT, deleted INTEGER DEFAULT 0, labelNote TEXT, categoryId TEXT, unit TEXT, expiryDate INTEGER, batchNumber TEXT, variantParentId TEXT, customData TEXT, sku TEXT)',
         );
+        // [2026-09-22] products vừa tạo xong — an toàn để ALTER thêm cột.
+        await _ensureProductRefurbishSchema(db);
         await db.execute(
           'CREATE TABLE IF NOT EXISTS sales(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, customerName TEXT, phone TEXT, isWalkIn INTEGER DEFAULT 0, walkInName TEXT, walkInPhone TEXT, address TEXT, productNames TEXT, productImeis TEXT, itemSnapshotsJson TEXT, totalPrice INTEGER, totalCost INTEGER, discount INTEGER DEFAULT 0, paymentMethod TEXT, sellerName TEXT, sellerUid TEXT, soldAt INTEGER, notes TEXT, gifts TEXT, isInstallment INTEGER DEFAULT 0, downPayment INTEGER DEFAULT 0, downPaymentMethod TEXT, loanAmount INTEGER DEFAULT 0, installmentTerm TEXT, bankName TEXT, bankName2 TEXT, loanAmount2 INTEGER DEFAULT 0, warranty TEXT, settlementPlannedAt INTEGER, settlementReceivedAt INTEGER, settlementAmount INTEGER DEFAULT 0, settlementFee INTEGER DEFAULT 0, settlementNote TEXT, settlementCode TEXT, cashAmount INTEGER DEFAULT 0, transferAmount INTEGER DEFAULT 0, isSynced INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0)',
         );
@@ -2565,6 +2696,11 @@ class DBHelper {
               debugPrint('DB upgrade error (v111 cash_closings.$col): $e');
             }
           }
+        }
+        if (oldV < 112) {
+          // Sửa/tân trang sản phẩm trong kho trước khi bán (2026-09-22):
+          // bảng `product_refurbish_items` + cột `products.refurbishCost`.
+          await _ensureProductRefurbishSchema(db);
         }
         if (oldV < 26) {
           // Migration to remove kpkPrice and pkPrice columns from products and quick_input_codes tables

@@ -4245,6 +4245,50 @@ class SyncService {
         debugPrint("Lỗi sync expenses collection: $e");
       }
 
+      // Sync PRODUCT_REFURBISH_ITEMS (chi phí sửa/tân trang SP trong kho,
+      // 2026-09-22) — tiền thật (nợ đối tác/phiếu chi) đã đi qua sweep debts/
+      // expenses ở trên; bảng này chỉ là nhật ký chi tiết để xem lại sau.
+      try {
+        final items = await dbHelper.getUnsyncedProductRefurbishItems();
+        if (items.isNotEmpty) {
+          final WriteBatch refurbishBatch = _db.batch();
+          final List<Map<String, dynamic>> toMarkSynced = [];
+          for (final item in items) {
+            final firestoreId = item['firestoreId'] as String?;
+            if (firestoreId == null || firestoreId.isEmpty) continue;
+            final data = Map<String, dynamic>.from(item);
+            data['shopId'] = shopId;
+            data.remove('id');
+            data['deleted'] = data['deleted'] == 1 || data['deleted'] == true;
+            data['updatedAt'] = FirestoreWriteHelper.serverUpdatedAt();
+            refurbishBatch.set(
+              _db.collection('product_refurbish_items').doc(firestoreId),
+              data,
+              SetOptions(merge: true),
+            );
+            toMarkSynced.add(item);
+          }
+          if (toMarkSynced.isNotEmpty) {
+            await _cwBg(
+              () => refurbishBatch.commit(),
+              'product_refurbish_items.batch',
+              bump: true,
+            );
+            for (final item in toMarkSynced) {
+              await dbHelper.markProductRefurbishItemSynced(
+                item['id'] as int,
+                item['firestoreId'] as String,
+              );
+            }
+            debugPrint(
+              "✅ Synced ${toMarkSynced.length} product_refurbish_items to cloud",
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint("Lỗi sync product_refurbish_items: $e");
+      }
+
       // Sync PRODUCTS
       {
         final products = await dbHelper.getAllProducts();

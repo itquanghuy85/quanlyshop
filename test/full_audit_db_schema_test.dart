@@ -59,9 +59,9 @@ void main() {
     print(report);
   });
 
-  test('DB-01 version = 111 và đủ bảng onCreate', () async {
+  test('DB-01 version = 112 và đủ bảng onCreate', () async {
     final v = await db.getVersion();
-    expect(v, 111);
+    expect(v, 112);
     final rows = await db.rawQuery(
       "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'android_%'",
     );

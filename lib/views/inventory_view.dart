@@ -61,6 +61,9 @@ import '../widgets/ai_order_input_sheet.dart';
 import '../models/supplier_model.dart';
 import 'supplier_detail_view.dart';
 import '../l10n/app_localizations.dart';
+import '../services/product_refurbish_service.dart';
+import '../services/repair_partner_service.dart';
+import '../models/repair_partner_model.dart';
 
 class InventoryView extends StatefulWidget {
   final String role;
@@ -452,7 +455,10 @@ class _InventoryViewState extends State<InventoryView>
         .map((e) => e.trim())
         .firstWhere((e) => e.isNotEmpty, orElse: () => '');
     final hasLocation = (displayProduct.locationCode ?? '').isNotEmpty;
-    final profit = displayProduct.price - displayProduct.cost;
+    // Tổng giá vốn = giá vốn gốc lúc nhập + chi phí sửa/tân trang đã cộng
+    // dồn (2026-09-22) — lãi phải trừ luôn chi phí sửa, không chỉ giá nhập.
+    final totalCost = displayProduct.cost + displayProduct.refurbishCost;
+    final profit = displayProduct.price - totalCost;
 
     showModalBottomSheet(
       context: context,
@@ -718,6 +724,45 @@ class _InventoryViewState extends State<InventoryView>
                         ],
                       ],
                     ),
+                    // ── Chi phí sửa/tân trang (2026-09-22) — chỉ hiện khi có ──
+                    if (_canViewCostPrice &&
+                        displayProduct.refurbishCost > 0) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: PopupTheme.orange.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: PopupTheme.orange.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.build_circle_outlined,
+                              size: 16,
+                              color: PopupTheme.orange,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'Chi phí sửa: ${MoneyUtils.formatCurrency(displayProduct.refurbishCost)}đ · '
+                                'Tổng giá vốn: ${MoneyUtils.formatCurrency(totalCost)}đ',
+                                style: const TextStyle(
+                                  color: PopupTheme.textSecondary,
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 14),
                     // ── Info rows ─────────────────────────────────
                     Container(
@@ -1082,6 +1127,22 @@ class _InventoryViewState extends State<InventoryView>
                             ),
                             style: _compactOutlineBtn(PopupTheme.teal),
                           ),
+                        // SỬA/TÂN TRANG (2026-09-22) — gửi đối tác/lấy linh
+                        // kiện kho phụ tùng để sửa SP trước khi bán, cộng chi
+                        // phí vào giá vốn.
+                        if (_canViewCostPrice)
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              _showRefurbishSheet(p);
+                            },
+                            icon: const Icon(
+                              Icons.build_circle_outlined,
+                              size: 15,
+                            ),
+                            label: const Text('Sửa/Tân trang'),
+                            style: _compactOutlineBtn(PopupTheme.orange),
+                          ),
                         // XÓA
                         ElevatedButton.icon(
                           onPressed: () {
@@ -1102,6 +1163,371 @@ class _InventoryViewState extends State<InventoryView>
           ),
         ),
       ),
+    );
+  }
+
+  /// Sửa/Tân trang sản phẩm trong kho trước khi bán (2026-09-22): gửi đối
+  /// tác (ép kính, sửa mainboard...), lấy linh kiện từ kho phụ tùng, hoặc chi
+  /// phí khác (công thợ tự làm) — mỗi khoản cộng vào `refurbishCost` của SP,
+  /// trừ đúng kho phụ tùng nếu là linh kiện, ghi đúng công nợ đối tác/phiếu
+  /// chi. Không theo dõi trạng thái công việc — chỉ ghi 1 lần chi phí.
+  void _showRefurbishSheet(Product p) {
+    int section = 0; // 0=Dịch vụ/Khác, 1=Linh kiện
+
+    final descCtrl = TextEditingController();
+    final amountCtrl = TextEditingController();
+    String paymentMethod = 'TIỀN MẶT';
+    RepairPartner? selectedPartner;
+    List<RepairPartner> partners = [];
+    bool partnersLoading = true;
+
+    Map<String, dynamic>? selectedPart;
+    List<Map<String, dynamic>> parts = [];
+    bool partsLoading = true;
+    final qtyCtrl = TextEditingController(text: '1');
+    final unitCostCtrl = TextEditingController();
+
+    List<Map<String, dynamic>> history = [];
+    bool historyLoading = true;
+
+    Future<void> loadHistory(StateSetter setState) async {
+      final items = p.id == null
+          ? <Map<String, dynamic>>[]
+          : await ProductRefurbishService.getHistory(p.id!);
+      setState(() {
+        history = items;
+        historyLoading = false;
+      });
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setState) {
+            if (partnersLoading) {
+              partnersLoading = false;
+              RepairPartnerService().getRepairPartners().then((list) {
+                if (!ctx.mounted) return;
+                setState(() => partners = list);
+              });
+            }
+            if (partsLoading) {
+              partsLoading = false;
+              db.getAllPartsUnified().then((list) {
+                if (!ctx.mounted) return;
+                setState(() => parts = list);
+              });
+            }
+            if (historyLoading) {
+              historyLoading = false;
+              loadHistory(setState);
+            }
+
+            final totalCost = p.cost + p.refurbishCost;
+
+            Future<void> save() async {
+              if (section == 0) {
+                final desc = descCtrl.text.trim();
+                final amount = CurrencyTextField.parseValue(amountCtrl.text);
+                if (desc.isEmpty) {
+                  NotificationService.showSnackBar(
+                    'Nhập mô tả dịch vụ/chi phí',
+                    color: Colors.orange,
+                  );
+                  return;
+                }
+                if (amount <= 0) {
+                  NotificationService.showSnackBar(
+                    'Nhập số tiền hợp lệ',
+                    color: Colors.orange,
+                  );
+                  return;
+                }
+                final result =
+                    await ProductRefurbishService.addServiceOrOtherCost(
+                  productId: p.id!,
+                  productFirestoreId: p.firestoreId,
+                  description: desc,
+                  partnerId: selectedPartner?.id,
+                  partnerName: selectedPartner?.name,
+                  amount: amount,
+                  paymentMethod: paymentMethod,
+                );
+                if (!ctx.mounted) return;
+                if (result.success) {
+                  Navigator.pop(ctx);
+                  NotificationService.showSnackBar(
+                    '✅ Đã ghi chi phí sửa: ${MoneyUtils.formatCurrency(amount)}đ',
+                    color: Colors.green,
+                  );
+                  await _refresh();
+                } else {
+                  NotificationService.showSnackBar(
+                    '❌ ${result.error}',
+                    color: Colors.red,
+                  );
+                }
+              } else {
+                if (selectedPart == null) {
+                  NotificationService.showSnackBar(
+                    'Chọn linh kiện',
+                    color: Colors.orange,
+                  );
+                  return;
+                }
+                final qty = int.tryParse(qtyCtrl.text.trim()) ?? 0;
+                final override = unitCostCtrl.text.trim().isEmpty
+                    ? null
+                    : CurrencyTextField.parseValue(unitCostCtrl.text);
+                final result = await ProductRefurbishService.addPartCost(
+                  productId: p.id!,
+                  productFirestoreId: p.firestoreId,
+                  partId: selectedPart!['id'] as int,
+                  source: selectedPart!['source'] as String,
+                  partName: selectedPart!['partName'] as String? ?? '',
+                  quantity: qty,
+                  unitCostOverride: override,
+                );
+                if (!ctx.mounted) return;
+                if (result.success) {
+                  Navigator.pop(ctx);
+                  NotificationService.showSnackBar(
+                    '✅ Đã trừ kho phụ tùng và ghi vào giá vốn',
+                    color: Colors.green,
+                  );
+                  await _refresh();
+                } else {
+                  NotificationService.showSnackBar(
+                    '❌ ${result.error}',
+                    color: Colors.red,
+                  );
+                }
+              }
+            }
+
+            return DraggableScrollableSheet(
+              initialChildSize: 0.85,
+              maxChildSize: 0.95,
+              minChildSize: 0.5,
+              expand: false,
+              builder: (ctx, scrollController) {
+                return Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                  ),
+                  child: ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      Text(
+                        'Sửa/Tân trang: ${p.name}',
+                        style: AppTextStyles.headline4.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Giá vốn gốc ${MoneyUtils.formatCurrency(p.cost)}đ'
+                        '${p.refurbishCost > 0 ? ' · Đã sửa ${MoneyUtils.formatCurrency(p.refurbishCost)}đ' : ''}'
+                        ' · Tổng ${MoneyUtils.formatCurrency(totalCost)}đ',
+                        style: AppTextStyles.body2.copyWith(
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      // Segment chọn loại khoản
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ChoiceChip(
+                              label: const Text('Dịch vụ / Đối tác / Khác'),
+                              selected: section == 0,
+                              onSelected: (_) => setState(() => section = 0),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ChoiceChip(
+                              label: const Text('Linh kiện kho PT'),
+                              selected: section == 1,
+                              onSelected: (_) => setState(() => section = 1),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      if (section == 0) ...[
+                        DropdownButtonFormField<RepairPartner?>(
+                          initialValue: selectedPartner,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Đối tác (bỏ trống nếu tự làm)',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: [
+                            const DropdownMenuItem<RepairPartner?>(
+                              value: null,
+                              child: Text('— Không chọn NCC —'),
+                            ),
+                            ...partners.map(
+                              (partner) => DropdownMenuItem<RepairPartner?>(
+                                value: partner,
+                                child: Text(partner.name),
+                              ),
+                            ),
+                          ],
+                          onChanged: (v) =>
+                              setState(() => selectedPartner = v),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: descCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Mô tả dịch vụ / lý do chi phí',
+                            hintText: 'VD: Ép kính, sửa pan sạc mainboard...',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        CurrencyTextField(
+                          controller: amountCtrl,
+                          label: 'Số tiền',
+                          icon: Icons.monetization_on,
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          children: ['TIỀN MẶT', 'CHUYỂN KHOẢN', 'CÔNG NỢ']
+                              .map(
+                                (m) => ChoiceChip(
+                                  label: Text(m),
+                                  selected: paymentMethod == m,
+                                  onSelected: (_) =>
+                                      setState(() => paymentMethod = m),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ] else ...[
+                        DropdownButtonFormField<Map<String, dynamic>?>(
+                          initialValue: selectedPart,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Linh kiện (kho phụ tùng)',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: parts
+                              .map(
+                                (part) =>
+                                    DropdownMenuItem<Map<String, dynamic>?>(
+                                  value: part,
+                                  child: Text(
+                                    '${part['partName']} · còn ${part['quantity']} · '
+                                    '${MoneyUtils.formatCurrency((part['cost'] as num?)?.toInt() ?? 0)}đ',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (v) => setState(() {
+                            selectedPart = v;
+                            unitCostCtrl.text = v == null
+                                ? ''
+                                : (v['cost'] as num? ?? 0).toString();
+                          }),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: qtyCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Số lượng dùng',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        CurrencyTextField(
+                          controller: unitCostCtrl,
+                          label: 'Đơn giá (mặc định = giá vốn linh kiện)',
+                          icon: Icons.monetization_on,
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: save,
+                          icon: const Icon(Icons.save_outlined),
+                          label: const Text('Lưu, cộng vào giá vốn'),
+                          style: _compactFilledBtn(PopupTheme.orange),
+                        ),
+                      ),
+                      if (history.isNotEmpty) ...[
+                        const SizedBox(height: 20),
+                        const Divider(),
+                        Text(
+                          'Lịch sử sửa/tân trang',
+                          style: AppTextStyles.subtitle1.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ...history.map((item) {
+                          final t = item['type'] as String? ?? '';
+                          final icon = t == 'PART'
+                              ? Icons.memory
+                              : Icons.build_circle_outlined;
+                          return ListTile(
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(icon, size: 18, color: PopupTheme.orange),
+                            title: Text(
+                              item['description'] as String? ?? '',
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                            subtitle: Text(
+                              DateFormat('dd/MM/yyyy HH:mm').format(
+                                DateTime.fromMillisecondsSinceEpoch(
+                                  (item['createdAt'] as num?)?.toInt() ?? 0,
+                                ),
+                              ),
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                            trailing: Text(
+                              '${MoneyUtils.formatCurrency((item['amount'] as num?)?.toInt() ?? 0)}đ',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 

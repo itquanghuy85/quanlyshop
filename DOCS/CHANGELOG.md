@@ -4,6 +4,17 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-22a] - feat(Kho): Sửa/Tân trang sản phẩm trong kho trước khi bán — cộng chi phí sửa vào giá vốn
+
+- **Tình huống mới xử lý được**: mua máy lẻ/cũ về kho còn hư (vd bể kính, hư pin, hư sạc) → gửi đối tác sửa (ép kính, mainboard), lấy linh kiện từ Kho phụ tùng để thay, hoặc chi phí khác (công thợ) — mỗi khoản giờ ghi được ngay trên sản phẩm, tự động: cộng vào "Chi phí sửa" (tách riêng khỏi giá vốn gốc lúc nhập — Tổng giá vốn = giá vốn gốc + chi phí sửa), trừ đúng tồn Kho phụ tùng nếu là linh kiện, ghi đúng công nợ đối tác (CÔNG NỢ, qua `PaymentIntentService.createDebtRecord`) hoặc phiếu chi (TIỀN MẶT/CHUYỂN KHOẢN, qua `insertExpense` + `FinancialActivityService.logExpense`).
+- DB v111→**v112**: bảng mới `product_refurbish_items` + cột `products.refurbishCost` (migration `_ensureProductRefurbishSchema`, gọi cả ở `onCreate` lẫn `onUpgrade` — tránh bẫy L-01 "bảng tạo lười thiếu cho máy cài mới").
+- `lib/services/product_refurbish_service.dart` (mới): `addServiceOrOtherCost` (đối tác/chi phí khác) + `addPartCost` (linh kiện, dùng `deductPartQuantityUnified` nên nhận cả linh kiện nguồn `repair_parts` lẫn `products` LINH_KIEN). Local-write-trước, đẩy cloud qua `SyncOrchestrator().syncAll()` (CloudWritePolicy + SyncSignal có sẵn, không tạo cơ chế riêng); sweep dự phòng cho `product_refurbish_items` thêm vào `syncAllToCloud`.
+- `lib/views/inventory_view.dart`: nút "Sửa/Tân trang" trong sheet chi tiết sản phẩm (cần `allowViewCostPrice`); dòng "Chi phí sửa: Xđ · Tổng giá vốn: Yđ" hiện khi có; `profit` tính trên tổng giá vốn (giá vốn gốc + chi phí sửa) — lãi/lỗ phản ánh đúng thực tế, không còn ảo cao hơn.
+- Không theo dõi trạng thái "đã gửi/đang sửa/đã nhận về" (quyết định cùng ngày) — chỉ ghi 1 lần chi phí ngay khi nhập, giống cách ghi dịch vụ đối tác trong đơn sửa.
+- `lib/data/app_knowledge_base.dart`: thêm mục `product-refurbish` (AI Trợ Lý + Trung tâm trợ giúp).
+- Test: `test/product_refurbish_service_test.dart` (5 case: nợ CÔNG NỢ, phiếu chi TIỀN MẶT, trừ đúng linh kiện, báo lỗi khi không đủ tồn không trừ/không cộng, kịch bản 3 khoản cộng dồn đúng — ép kính 300k + pin 250k + mainboard 200k). Unit 735 PASS, analyze 0 error.
+- Máy thật A (CPH2203): xác nhận nút hiện đúng, form 2 mục (Dịch vụ/Đối tác/Khác, Linh kiện kho PT) hoạt động, dropdown chọn linh kiện, lưu ép kính CÔNG NỢ 300k (tạo đúng nợ SHOP_OWES) + thay PIN X (trừ tồn 9→8), sheet hiển thị "Chi phí sửa: 400.000đ · Tổng giá vốn: 3.400.000đ" đúng, lịch sử 2 dòng đúng loại. Fix kèm: `isExpanded: true` cho 2 dropdown (tràn 241px khi tên linh kiện dài + giá tiền).
+
 ## [2026-09-20g] - release 3.7.2+561: xử lý nốt NEW-09/NEW-07/D-08 — không còn lỗi MEDIUM/HIGH mở
 
 - `PaymentIntentService.reconcileSalesMissingPaymentIntent` (mới, hook vào `syncAllToCloud`): quét đơn bán TIỀN MẶT/CHUYỂN KHOẢN đơn giản thiếu phiếu thu (do app bị kill giữa transaction cloud và bước tạo phiếu ở client) ⇒ tự tạo bù đúng số tiền. Bỏ qua CÔNG NỢ/trả góp/KẾT HỢP. Test `test/sale_payment_intent_reconcile_test.dart` (5 case).
@@ -11488,3 +11499,9 @@ Chi tiết thay đổi (bullet points, technical notes, etc.)
 - Fix: thêm `UIApplicationSceneManifest` (FlutterSceneDelegate) vào `ios/Runner/Info.plist`; `AppDelegate.swift` đăng ký plugin qua `didInitializeImplicitFlutterEngine` thay vì trong `didFinishLaunchingWithOptions`.
 - Files: `ios/Runner/Info.plist`, `ios/Runner/AppDelegate.swift`.
 - Trạng thái: chưa nghiệm thu máy iOS thật (cần Mac).
+
+## [2026-09-20k] iOS: banner "Ngoại tuyến" giả khi đang có 5G
+- Lỗi: iPhone 18PM iOS 27 mở Danh sách điện thoại hiện "Ngoại tuyến — đang xem dữ liệu đã lưu" dù đang 5G.
+- Nguyên nhân: `ConnectivityService._isOnline` mặc định `false` và tin hoàn toàn kết quả `none` của connectivity_plus (Reachability iOS báo sai trên cellular / init chậm).
+- Fix: mặc định online; khi OS báo `none` thì xác minh bằng DNS lookup `firestore.googleapis.com` (timeout 3s) rồi mới chuyển offline.
+- Files: `lib/services/connectivity_service.dart`.

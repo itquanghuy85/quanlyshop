@@ -46,6 +46,12 @@ class Product {
   String? localImagePath; // Local file path for pending upload
   int? imageUpdatedAt;
 
+  // === REFURBISH COST (2026-09-22) ===
+  // Chi phí sửa/tân trang cộng dồn (gửi đối tác + linh kiện thay + chi phí
+  // khác), tách riêng khỏi `cost` = giá vốn gốc lúc nhập. Tổng giá vốn thực =
+  // cost + refurbishCost.
+  int refurbishCost;
+
   Product({
     this.id,
     this.firestoreId,
@@ -90,6 +96,7 @@ class Product {
     // Image management
     this.localImagePath,
     this.imageUpdatedAt,
+    this.refurbishCost = 0,
   });
 
   Map<String, dynamic> toMap() {
@@ -137,6 +144,7 @@ class Product {
       // Image management
       'localImagePath': localImagePath,
       'imageUpdatedAt': imageUpdatedAt,
+      'refurbishCost': refurbishCost,
     };
   }
 
@@ -227,6 +235,7 @@ class Product {
       // Image management
       localImagePath: map['localImagePath'],
       imageUpdatedAt: map['imageUpdatedAt'] is int ? map['imageUpdatedAt'] : null,
+      refurbishCost: _parseInt(map['refurbishCost']),
     );
   }
 
@@ -274,6 +283,7 @@ class Product {
     // Image management
     String? localImagePath,
     int? imageUpdatedAt,
+    int? refurbishCost,
   }) {
     return Product(
       id: id ?? this.id,
@@ -319,6 +329,7 @@ class Product {
       // Image management
       localImagePath: localImagePath ?? this.localImagePath,
       imageUpdatedAt: imageUpdatedAt ?? this.imageUpdatedAt,
+      refurbishCost: refurbishCost ?? this.refurbishCost,
     );
   }
 
