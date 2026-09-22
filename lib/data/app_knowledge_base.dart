@@ -876,8 +876,8 @@ class AppKnowledgeBase {
     ),
     KbEntry(
       id: 'product-refurbish',
-      title: 'Sửa/Tân trang sản phẩm trong kho (trước khi bán)',
-      menuPath: 'Kho → Danh sách sản phẩm → chọn sản phẩm → "Sửa/Tân trang"',
+      title: 'Tân trang sản phẩm trong kho (trước khi bán)',
+      menuPath: 'Kho → Danh sách sản phẩm → chọn sản phẩm → "Tân trang" (hoặc nút "Tân trang ngay" sau khi xác nhận nhập kho)',
       whatItDoes:
           'Ghi chi phí sửa chữa/tân trang cho 1 sản phẩm mua về còn hư (vd '
           'máy lẻ bể kính, hư pin, hư sạc) trước khi bán: gửi đối tác sửa '
@@ -892,11 +892,11 @@ class AppKnowledgeBase {
           'đúng giá vốn thực (đã gồm chi phí sửa) để không bán lỗ mà không biết.',
       steps: [
         'Vào Kho → Danh sách sản phẩm, chọn sản phẩm cần sửa.',
-        'Bấm "Sửa/Tân trang".',
+        'Bấm "Tân trang" (sau khi xác nhận nhập kho máy có IMEI cũng có nút "Tân trang ngay").',
         'Chọn "Dịch vụ / Đối tác / Khác" (gửi đối tác sửa hoặc chi phí khác) '
-            'hoặc "Linh kiện kho PT" (lấy linh kiện có sẵn để thay).',
-        'Điền mô tả/số tiền/hình thức thanh toán (hoặc chọn linh kiện + số lượng), bấm Lưu.',
-        'Lặp lại cho từng khoản chi phí — có thể ghi nhiều lần cho 1 sản phẩm.',
+            'hoặc "Linh kiện kho PT" → "Chọn linh kiện từ kho" (cùng bảng chọn phụ tùng như đơn sửa, có nút NHẬP LK MỚI).',
+        'Điền mô tả/số tiền/hình thức thanh toán rồi bấm Lưu — sheet vẫn mở, lịch sử cập nhật ngay bên dưới.',
+        'Trong "Lịch sử tân trang": menu ⋮ từng khoản để Sửa/Xoá dịch vụ, Đổi/Xoá phụ tùng (tự hoàn kho, huỷ nợ/phiếu chi, trừ lại chi phí).',
       ],
       notes: [
         'Không có bước "đã gửi/đang sửa/đã nhận về" — chỉ ghi 1 lần chi phí ngay khi nhập.',
@@ -909,7 +909,7 @@ class AppKnowledgeBase {
         'mua máy hư về sửa xong bán thì tính giá vốn thế nào',
         'gửi đối tác ép kính thì ghi ở đâu',
         'lấy linh kiện trong kho phụ tùng để thay cho máy trong kho',
-        'sửa/tân trang sản phẩm',
+        'tân trang sản phẩm',
       ],
       tags: [
         'sua tan trang',

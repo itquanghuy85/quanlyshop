@@ -19,6 +19,8 @@ import 'inventory_view.dart';
 import '../widgets/custom_app_bar.dart';
 import 'package:intl/intl.dart';
 import '../utils/money_utils.dart';
+import '../data/db_helper.dart';
+import '../widgets/product_refurbish_sheet.dart';
 import '../utils/vietnamese_utils.dart';
 
 /// Danh sách hàng chờ xác nhận (DRAFT)
@@ -291,6 +293,57 @@ class _PendingStockListViewState extends State<PendingStockListView> {
 
         await _loadData();
         if (!mounted) return;
+
+        // [2026-09-22] Máy vừa nhập (có IMEI) thường là máy cũ cần sửa
+        // trước khi bán ⇒ lối tắt mở sheet Tân trang dùng chung (cùng dữ liệu
+        // với Kho → chi tiết SP: kho phụ tùng + dịch vụ đối tác).
+        final imeiItem = entry.items
+            .where((i) => (i.imei ?? '').trim().isNotEmpty)
+            .toList();
+        if (imeiItem.isNotEmpty) {
+          final product = await DBHelper().getProductByImei(imeiItem.first.imei!.trim());
+          if (product != null && mounted) {
+            final choice = await showDialog<String>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Đã xác nhận nhập kho'),
+                content: Text(
+                  '${product.name} — máy cần sửa/thay linh kiện trước khi bán? '
+                  'Ghi chi phí tân trang ngay để giá vốn đúng.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, 'later'),
+                    child: const Text('Để sau'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, 'inventory'),
+                    child: const Text('Mở kho'),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () => Navigator.pop(ctx, 'refurbish'),
+                    icon: const Icon(Icons.build_circle_outlined, size: 18),
+                    label: const Text('Tân trang ngay'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            );
+            if (!mounted) return;
+            if (choice == 'refurbish') {
+              await showProductRefurbishSheet(context, product);
+              return;
+            }
+            if (choice == 'inventory') {
+              await _openInventoryShortcut();
+            }
+            return;
+          }
+        }
+
         final messenger = ScaffoldMessenger.of(context);
         messenger.hideCurrentSnackBar();
         messenger.showSnackBar(

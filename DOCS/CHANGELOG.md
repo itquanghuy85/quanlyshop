@@ -4,6 +4,14 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-22d] - Tân trang SP: sheet dùng chung + sửa/xoá dịch vụ, đổi/xoá phụ tùng + không tự đóng + lối tắt sau xác nhận nhập kho + đổi chữ "Tân trang"
+
+- `lib/widgets/product_refurbish_sheet.dart` (mới, `showProductRefurbishSheet(context, product)`): tách sheet khỏi `inventory_view`; **sau khi lưu KHÔNG đóng sheet** — nạp lại lịch sử + giá vốn tại chỗ (trước đây pop về list Kho nên tưởng "không thấy hiện"); nút X để đóng. Lịch sử: menu ⋮ mỗi khoản → *Sửa dịch vụ / Xoá dịch vụ* (dịch vụ, chi phí khác) hoặc *Đổi phụ tùng / Xoá phụ tùng* (linh kiện).
+- `ProductRefurbishService.deleteItem` (hoàn tồn linh kiện theo `partSource`; xoá mềm nợ + enqueue delete; xoá phiếu chi + enqueue delete; trừ lại `refurbishCost`; xoá mềm dòng lịch sử) và `updateServiceItem` (đổi mô tả/số tiền → cập nhật nợ (chặn nếu < đã trả) hoặc phiếu chi, cộng/trừ chênh lệch). Đổi PT = xoá rồi mở lại bảng chọn phụ tùng. Cột mới `product_refurbish_items.partSource`, `updatedAt` (ensure-schema idempotent, không tăng DB version).
+- Lối tắt "**Tân trang ngay**" trong hộp thoại sau khi *Xác nhận nhập kho* (`pending_stock_list_view`) cho máy có IMEI — Nhập mới lẫn Nhập nhanh đều đi qua hàng chờ này nên 1 chỗ phủ cả 2, dùng chung sheet/dữ liệu, không viết thêm.
+- Đổi chữ: nút "Tân trang", ô "Tân trang: Xđ · Tổng giá vốn", chip list Kho "Tân trang +X", dòng chọn SP bán "🔧 Tân trang +X", tiêu đề "Lịch sử tân trang". KB `product-refurbish` cập nhật.
+- Test: +2 (xoá linh kiện hoàn tồn/trừ chi phí; sửa dịch vụ CÔNG NỢ đổi tổng nợ rồi xoá → nợ deleted). 737 PASS, analyze 0. Máy thật A: thêm dịch vụ → sheet giữ nguyên, lịch sử hiện ngay; ⋮ Xoá dịch vụ → refurbishCost 1.870.000→1.820.000, phiếu chi xoá.
+
 ## [2026-09-22c] - Sửa/Tân trang: dùng chung dialog chọn phụ tùng của đơn sửa · hiện thông tin tân trang ở list Kho / chọn SP bán / chi tiết SP · giá vốn bán gồm chi phí sửa
 
 - `lib/widgets/parts_selection_dialog.dart` (mới): tách `_PartsSelectionDialog` khỏi `repair_detail_view` thành `PartsSelectionDialog` dùng chung — cùng nguồn `getAllPartsUnified()` (kho phụ tùng cũ + SP LINH_KIEN), cùng giao diện (tìm theo tên/NCC, chip NCC, Kho cũ/mới, tồn/vốn/bán, +/−, nút NHẬP LK MỚI). `repair_detail_view` chỉ đổi import, hành vi đơn sửa không đổi.

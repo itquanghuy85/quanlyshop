@@ -3004,7 +3004,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             subtitle: p.price <= 0
                 ? Text(
                     "${_terms.specialField1Label}: ${p.imei ?? 'PK'} - ⚠ Chưa định giá"
-                    "${(_canViewCostPrice && p.refurbishCost > 0) ? ' · 🔧 Đã sửa +${MoneyUtils.formatCurrency(p.refurbishCost)}' : ''}",
+                    "${(_canViewCostPrice && p.refurbishCost > 0) ? ' · 🔧 Tân trang +${MoneyUtils.formatCurrency(p.refurbishCost)}' : ''}",
                     style: const TextStyle(
                       color: AppColors.error,
                       fontWeight: FontWeight.bold,
@@ -3012,7 +3012,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                   )
                 : Text(
                     "${_terms.specialField1Label}: ${p.imei ?? 'PK'} - Giá: ${MoneyUtils.formatCurrency(p.price)}"
-                    "${(_canViewCostPrice && p.refurbishCost > 0) ? ' · 🔧 Đã sửa +${MoneyUtils.formatCurrency(p.refurbishCost)}' : ''}",
+                    "${(_canViewCostPrice && p.refurbishCost > 0) ? ' · 🔧 Tân trang +${MoneyUtils.formatCurrency(p.refurbishCost)}' : ''}",
                   ),
             // HIỂN THỊ SỐ LƯỢNG TỒN TRONG LIST CHỌN
             trailing: Column(
@@ -3164,9 +3164,9 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                   subtitle: Text(
                     p.price <= 0
                         ? '${_terms.specialField1Label}: ${p.imei ?? 'PK'} - ⚠ Chưa định giá'
-                            '${(_canViewCostPrice && p.refurbishCost > 0) ? ' · 🔧 Đã sửa +${MoneyUtils.formatCurrency(p.refurbishCost)}' : ''}'
+                            '${(_canViewCostPrice && p.refurbishCost > 0) ? ' · 🔧 Tân trang +${MoneyUtils.formatCurrency(p.refurbishCost)}' : ''}'
                         : '${_terms.specialField1Label}: ${p.imei ?? 'PK'} - Giá: ${MoneyUtils.formatCurrency(p.price)}'
-                            '${(_canViewCostPrice && p.refurbishCost > 0) ? ' · 🔧 Đã sửa +${MoneyUtils.formatCurrency(p.refurbishCost)}' : ''}',
+                            '${(_canViewCostPrice && p.refurbishCost > 0) ? ' · 🔧 Tân trang +${MoneyUtils.formatCurrency(p.refurbishCost)}' : ''}',
                     style: p.price <= 0
                         ? AppTextStyles.caption.copyWith(
                             color: AppColors.error,

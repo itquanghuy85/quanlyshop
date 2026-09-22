@@ -25,6 +25,8 @@ void main() {
       'product_refurbish_items',
       where: "productFirestoreId LIKE 'prod_refurb_%'",
     );
+    await db.delete('debts', where: "linkedType = 'PRODUCT_REFURBISH'");
+    await db.delete('expenses', where: "firestoreId LIKE 'exp_refurb_%'");
   });
   tearDownAll(AppSession.debugReset);
 
@@ -202,5 +204,42 @@ void main() {
 
     final history = await ProductRefurbishService.getHistory(productId);
     expect(history.length, 3);
+  });
+
+  test('xoá khoản linh kiện → hoàn tồn, trừ lại chi phí, ẩn khỏi lịch sử', () async {
+    final productId = await insertProduct('prod_refurb_del_part');
+    final partId = await insertPart('part_refurb_del', qty: 5, cost: 250000);
+    await ProductRefurbishService.addPartCost(
+      productId: productId, productFirestoreId: 'prod_refurb_del_part',
+      partId: partId, source: 'repair_parts', partName: 'PIN IPHONE X', quantity: 2,
+    );
+    expect((await h.getPartById(partId))!['quantity'], 3);
+    final items = await ProductRefurbishService.getHistory(productId);
+    final r = await ProductRefurbishService.deleteItem(items.first['id'] as int);
+    expect(r.success, isTrue);
+    expect((await h.getPartById(partId))!['quantity'], 5);
+    expect((await h.getProductById(productId))!.refurbishCost, 0);
+    expect(await ProductRefurbishService.getHistory(productId), isEmpty);
+  });
+
+  test('sửa khoản dịch vụ CÔNG NỢ → nợ đổi tổng, chi phí đổi theo chênh lệch', () async {
+    final productId = await insertProduct('prod_refurb_edit');
+    await ProductRefurbishService.addServiceOrOtherCost(
+      productId: productId, productFirestoreId: 'prod_refurb_edit',
+      description: 'Ép kính', partnerName: 'NCC A', amount: 300000, paymentMethod: 'CÔNG NỢ',
+    );
+    final item = (await ProductRefurbishService.getHistory(productId)).first;
+    final r = await ProductRefurbishService.updateServiceItem(
+      itemId: item['id'] as int, description: 'Ép kính + ron', amount: 350000,
+    );
+    expect(r.success, isTrue);
+    expect((await h.getProductById(productId))!.refurbishCost, 350000);
+    final debt = await h.getDebtByFirestoreId(item['debtFirestoreId'] as String);
+    expect(debt!['totalAmount'], 350000);
+
+    final d = await ProductRefurbishService.deleteItem(item['id'] as int);
+    expect(d.success, isTrue);
+    expect((await h.getProductById(productId))!.refurbishCost, 0);
+    expect((await h.getDebtByFirestoreId(item['debtFirestoreId'] as String))!['deleted'], 1);
   });
 }

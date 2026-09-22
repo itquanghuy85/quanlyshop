@@ -217,6 +217,7 @@ class ProductRefurbishService {
       'type': 'PART',
       'description': 'Thay $partName',
       'partId': partId,
+      'partSource': source,
       'partName': partName,
       'quantity': quantity,
       'amount': amount,
@@ -238,6 +239,171 @@ class ProductRefurbishService {
     _pushCloud(productId, productFirestoreId);
 
     EventBus().emit('inventory_changed');
+    return ProductRefurbishResult(
+      success: true,
+      newRefurbishCost: updated['refurbishCost'] as int?,
+    );
+  }
+
+  /// Xoá 1 khoản (đổi PT = xoá rồi chọn lại): hoàn tồn linh kiện, huỷ nợ /
+  /// phiếu chi tương ứng, trừ lại `refurbishCost`, xoá mềm dòng lịch sử.
+  static Future<ProductRefurbishResult> deleteItem(int itemId) async {
+    final db = DBHelper();
+    final item = await db.getProductRefurbishItemById(itemId);
+    if (item == null || (item['deleted'] as num?)?.toInt() == 1) {
+      return const ProductRefurbishResult(
+        success: false,
+        error: 'Không tìm thấy khoản',
+      );
+    }
+    final productId = (item['productId'] as num).toInt();
+    final amount = (item['amount'] as num?)?.toInt() ?? 0;
+    final type = item['type'] as String? ?? '';
+
+    if (type == 'PART') {
+      final partId = (item['partId'] as num?)?.toInt();
+      final qty = (item['quantity'] as num?)?.toInt() ?? 1;
+      if (partId != null) {
+        final source = item['partSource'] as String? ?? 'repair_parts';
+        if (source == 'products') {
+          await db.addProductQuantity(partId, qty);
+        } else {
+          final rp = await db.getPartById(partId);
+          if (rp != null) {
+            final cur = (rp['quantity'] as num?)?.toInt() ?? 0;
+            await db.updatePart(partId, {'quantity': cur + qty});
+          }
+        }
+      }
+    } else {
+      final debtFid = item['debtFirestoreId'] as String?;
+      final expFid = item['expenseFirestoreId'] as String?;
+      if (debtFid != null && debtFid.isNotEmpty) {
+        final debt = await db.getDebtByFirestoreId(debtFid);
+        if (debt != null) {
+          final paid = (debt['paidAmount'] as num?)?.toInt() ?? 0;
+          if (paid > 0) {
+            return const ProductRefurbishResult(
+              success: false,
+              error: 'Khoản nợ đã trả một phần, xử lý ở Công nợ trước',
+            );
+          }
+          final debtId = (debt['id'] as num).toInt();
+          await db.softDeleteDebt(debtId, reason: 'Xoá khoản tân trang');
+          await SyncOrchestrator().enqueue(
+            entityType: SyncEntityType.debt,
+            entityId: debtId,
+            firestoreId: debtFid,
+            operation: SyncOperation.delete,
+            data: {'firestoreId': debtFid, 'deleted': true},
+          );
+          EventBus().emit('debts_changed');
+        }
+      }
+      if (expFid != null && expFid.isNotEmpty) {
+        final exp = await db.getExpenseByFirestoreId(expFid);
+        await db.deleteExpenseByFirestoreId(expFid);
+        await SyncOrchestrator().enqueue(
+          entityType: SyncEntityType.expense,
+          entityId: exp?.id ?? 0,
+          firestoreId: expFid,
+          operation: SyncOperation.delete,
+          data: null,
+        );
+        EventBus().emit('expenses_changed');
+      }
+    }
+
+    await db.updateProductRefurbishItem(itemId, {
+      'deleted': 1,
+      'updatedAt': DateTime.now().millisecondsSinceEpoch,
+    });
+    final updated = await db.addToProductRefurbishCost(productId, -amount);
+    _pushCloud(productId, item['productFirestoreId'] as String?);
+    EventBus().emit('inventory_changed');
+    EventBus().emit('financial_activity_changed');
+    return ProductRefurbishResult(
+      success: true,
+      newRefurbishCost: updated['refurbishCost'] as int?,
+    );
+  }
+
+  /// Sửa mô tả / số tiền của khoản dịch vụ hoặc chi phí khác (không áp dụng
+  /// cho linh kiện — dùng đổi PT). Điều chỉnh nợ/phiếu chi + refurbishCost
+  /// theo phần chênh lệch.
+  static Future<ProductRefurbishResult> updateServiceItem({
+    required int itemId,
+    required String description,
+    required int amount,
+  }) async {
+    if (amount <= 0) {
+      return const ProductRefurbishResult(
+        success: false,
+        error: 'Số tiền phải lớn hơn 0',
+      );
+    }
+    final db = DBHelper();
+    final item = await db.getProductRefurbishItemById(itemId);
+    if (item == null || item['type'] == 'PART') {
+      return const ProductRefurbishResult(
+        success: false,
+        error: 'Không sửa được khoản này',
+      );
+    }
+    final productId = (item['productId'] as num).toInt();
+    final oldAmount = (item['amount'] as num?)?.toInt() ?? 0;
+    final delta = amount - oldAmount;
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    final debtFid = item['debtFirestoreId'] as String?;
+    final expFid = item['expenseFirestoreId'] as String?;
+    if (debtFid != null && debtFid.isNotEmpty) {
+      final debt = await db.getDebtByFirestoreId(debtFid);
+      if (debt != null) {
+        final paid = (debt['paidAmount'] as num?)?.toInt() ?? 0;
+        if (amount < paid) {
+          return ProductRefurbishResult(
+            success: false,
+            error: 'Số tiền mới nhỏ hơn đã trả ($paid đ)',
+          );
+        }
+        final debtId = (debt['id'] as num).toInt();
+        await db.updateDebt({
+          'id': debtId,
+          'totalAmount': amount,
+          'note': 'Tân trang sản phẩm: $description',
+          'status': amount > paid ? 'ACTIVE' : 'PAID',
+          'updatedAt': now,
+          'isSynced': 0,
+        });
+        await SyncOrchestrator().enqueueDebt(
+          debtId,
+          firestoreId: debtFid,
+          operation: SyncOperation.update,
+        );
+        EventBus().emit('debts_changed');
+      }
+    }
+    if (expFid != null && expFid.isNotEmpty) {
+      final exp = await db.getExpenseByFirestoreId(expFid);
+      if (exp != null) {
+        exp.amount = amount;
+        exp.title = description;
+        exp.isSynced = false;
+        await db.updateExpense(exp);
+        EventBus().emit('expenses_changed');
+      }
+    }
+
+    await db.updateProductRefurbishItem(itemId, {
+      'description': description,
+      'amount': amount,
+      'updatedAt': now,
+    });
+    final updated = await db.addToProductRefurbishCost(productId, delta);
+    _pushCloud(productId, item['productFirestoreId'] as String?);
+    EventBus().emit('inventory_changed');
+    EventBus().emit('financial_activity_changed');
     return ProductRefurbishResult(
       success: true,
       newRefurbishCost: updated['refurbishCost'] as int?,

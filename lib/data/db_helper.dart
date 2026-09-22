@@ -437,6 +437,20 @@ class DBHelper {
       );
       await _ensureColumnExists(
         executor: dbExecutor,
+        table: 'product_refurbish_items',
+        column: 'partSource',
+        definition: 'TEXT',
+        logScope: 'DB: ensure product_refurbish schema',
+      );
+      await _ensureColumnExists(
+        executor: dbExecutor,
+        table: 'product_refurbish_items',
+        column: 'updatedAt',
+        definition: 'INTEGER',
+        logScope: 'DB: ensure product_refurbish schema',
+      );
+      await _ensureColumnExists(
+        executor: dbExecutor,
         table: 'products',
         column: 'refurbishCost',
         definition: 'INTEGER DEFAULT 0',
@@ -475,6 +489,31 @@ class DBHelper {
       'product_refurbish_items',
       where: '(isSynced = 0 OR isSynced IS NULL) AND (shopId = ? OR shopId IS NULL)',
       whereArgs: [shopId],
+    );
+  }
+
+  Future<Map<String, dynamic>?> getProductRefurbishItemById(int id) async {
+    final db = await database;
+    await _ensureProductRefurbishSchema(db);
+    final rows = await db.query(
+      'product_refurbish_items',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    return rows.isEmpty ? null : rows.first;
+  }
+
+  Future<int> updateProductRefurbishItem(
+    int id,
+    Map<String, dynamic> data,
+  ) async {
+    final db = await database;
+    return db.update(
+      'product_refurbish_items',
+      {...data, 'isSynced': 0},
+      where: 'id = ?',
+      whereArgs: [id],
     );
   }
 
