@@ -4,6 +4,11 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-22f] - Đơn sửa 0đ đã tích "không tốn giá vốn" vẫn lọt danh sách "thiếu giá vốn" · deploy web
+
+- `order_list_view` (`filterMissingCost`, mở từ CẦN XỬ LÝ → "đơn sửa thiếu giá vốn"): thêm điều kiện loại đơn có `costRecordedAt > 0` — cùng quy tắc với `ReminderService._countMissingCostRepairs` (số đếm vốn đã đúng, chỉ danh sách khi bấm vào là sai).
+- Build web + deploy https://quanlyshop.web.app (gồm toàn bộ thay đổi 22/09: tân trang SP, hiện hàng hết mặc định).
+
 ## [2026-09-22e] - Kho SP & Kho linh kiện: mặc định HIỆN cả hàng hết, bấm nút mới ẩn
 
 - `inventory_view._showOutOfStock` và `parts_inventory_view._showOutOfStock` mặc định `true` (trước `false` ⇒ vào Kho chỉ thấy hàng còn tồn, máy đã bán/hết "biến mất"). Nút "Hết" / mắt vẫn bật-tắt như cũ; trạng thái ẨN giờ được coi là đang lọc (banner "đang lọc" của Kho SP đổi điều kiện `!_showOutOfStock`).

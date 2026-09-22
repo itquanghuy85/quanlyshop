@@ -522,7 +522,12 @@ final results = await Future.wait([
           !widget.statusFilter!.contains(r.status)) {
         return false;
       }
-      if (widget.filterMissingCost && (r.status != 4 || r.totalCost > 0)) {
+      // Đơn đã tích "không tốn giá vốn" (costRecordedAt > 0) không phải
+      // thiếu giá vốn — cùng điều kiện với ReminderService (2026-09-22).
+      if (widget.filterMissingCost &&
+          (r.status != 4 ||
+              r.totalCost > 0 ||
+              (r.costRecordedAt ?? 0) > 0)) {
         return false;
       }
       // Lọc đơn quá hạn (UI-only, computed từ _isOverdue — không đổi status)
