@@ -4,6 +4,12 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-22g] - Chi tiết đơn sửa: 1 trang duy nhất, chia khu vực rõ ràng (bỏ 3 tab)
+
+- `repair_detail_view`: bỏ tab Tổng quan / Dịch vụ / Lịch sử & Ghi chú (`_detailTab`, `_buildTabSelector`, `_buildOverviewTab`). Thân trang = Header → Timeline → **KHÁCH HÀNG & MÁY** (khách, vị trí cất máy) → **DỊCH VỤ & PHỤ TÙNG** (dịch vụ, phụ tùng đã dùng, THAO TÁC) → **TÀI CHÍNH** (nếu có quyền) → **LỊCH SỬ & GHI CHÚ**. Tiêu đề khu vực dùng chung `_sectionHeader(title, icon)` (icon nền primary nhạt + gạch ngang).
+- Tách các card của tab Tổng quan cũ thành `_buildStorageCard/_buildFinanceCard/_buildPartsCard/_buildQuickActionsCard/_buildCustomerCard` (nội dung card không đổi, chỉ sắp xếp lại); bỏ tiêu đề lặp bên trong card Dịch vụ / Lịch sử / Tài chính.
+- Máy thật A: đơn NOKIA X hiện đủ 4 khu vực đúng thứ tự, cuộn 1 trang, nút đáy giữ nguyên. analyze 0 error, test 737 PASS.
+
 ## [2026-09-22f] - Đơn sửa 0đ đã tích "không tốn giá vốn" vẫn lọt danh sách "thiếu giá vốn" · deploy web
 
 - `order_list_view` (`filterMissingCost`, mở từ CẦN XỬ LÝ → "đơn sửa thiếu giá vốn"): thêm điều kiện loại đơn có `costRecordedAt > 0` — cùng quy tắc với `ReminderService._countMissingCostRepairs` (số đếm vốn đã đúng, chỉ danh sách khi bấm vào là sai).

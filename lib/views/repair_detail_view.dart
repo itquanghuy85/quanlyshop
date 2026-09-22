@@ -138,7 +138,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
   StreamSubscription<String>? _eventSub;
 
   // Tab module detail: 0 = Tổng quan, 1 = Dịch vụ, 2 = Lịch sử & Ghi chú.
-  int _detailTab = 0;
   static const int _overdueThresholdDays = 7;
 
   AppLocalizations get loc => AppLocalizations.of(context)!;
@@ -4746,22 +4745,37 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         maxWidth: 900,
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Column(
+          child: Builder(builder: (context) {
+            final financeCard = _buildFinanceCard();
+            return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // [2026-09-22] Một trang duy nhất, chia khu vực rõ ràng
+              // (bỏ 3 tab Tổng quan / Dịch vụ / Lịch sử & Ghi chú).
               _buildDetailHeaderCard(),
-              if (_detailTab == 0) _buildStatusTimelineCard(),
-              _buildTabSelector(),
+              _buildStatusTimelineCard(),
 
-              if (_detailTab == 0) ..._buildOverviewTab(),
-              if (_detailTab == 1) ...[
-                _buildServicesTab(),
-              ] else if (_detailTab == 2) ...[
-                _buildHistoryTab(),
+              _sectionHeader('KHÁCH HÀNG & MÁY', Icons.person_pin_circle_outlined),
+              _buildCustomerCard(),
+              _buildStorageCard(),
+
+              _sectionHeader('DỊCH VỤ & PHỤ TÙNG', Icons.build_rounded),
+              _buildServicesTab(),
+              ?_buildPartsCard(),
+              ?_buildQuickActionsCard(),
+
+              if (financeCard != null) ...[
+                _sectionHeader('TÀI CHÍNH', Icons.account_balance_wallet_outlined),
+                financeCard,
               ],
+
+              _sectionHeader('LỊCH SỬ & GHI CHÚ', Icons.history_rounded),
+              _buildHistoryTab(),
 
               const SizedBox(height: 6),
             ],
-          ),
+            );
+          }),
         ),
       ),
       bottomNavigationBar: _buildBottomActions(),
@@ -4803,6 +4817,40 @@ class _RepairDetailViewState extends State<RepairDetailView> {
     if (idx < 0) return null;
     final after = acc.substring(idx + marker.length).split('|').first.trim();
     return after.isEmpty ? null : after;
+  }
+
+  /// Tiêu đề khu vực — trang chi tiết 1 trang (2026-09-22).
+  Widget _sectionHeader(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 10, 4, 6),
+      child: Row(
+        children: [
+          Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 15, color: AppColors.primary),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: AppTextStyles.overline.copyWith(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.6,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Container(height: 1, color: Colors.grey.shade300),
+          ),
+        ],
+      ),
+    );
   }
 
   // ─── Header Card ──────────────────────────────────────────────────
@@ -5094,68 +5142,14 @@ class _RepairDetailViewState extends State<RepairDetailView> {
 
   // ─── Tab Selector ─────────────────────────────────────────────────
 
-  Widget _buildTabSelector() {
-    const tabs = ['Tổng quan', 'Dịch vụ', 'Lịch sử & Ghi chú'];
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        children: [
-          for (int i = 0; i < tabs.length; i++)
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(right: i < tabs.length - 1 ? 4 : 0),
-                child: GestureDetector(
-                  onTap: () {
-                    if (_detailTab == i) return;
-                    setState(() => _detailTab = i);
-                  },
-                  child: Container(
-                    height: 32,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color:
-                          _detailTab == i ? AppColors.primary : AppColors.surface,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: _detailTab == i
-                            ? AppColors.primary
-                            : Colors.grey.shade300,
-                      ),
-                    ),
-                    child: Text(
-                      tabs[i],
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.caption.copyWith(
-                        color: _detailTab == i
-                            ? Colors.white
-                            : AppColors.textSecondary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
+
 
   // ─── Tab 0: Tổng quan ────────────────────────────────────────────
 
-  List<Widget> _buildOverviewTab() {
-    final displayPrice = _displayedChargePrice(r);
-    final displayProfit = displayPrice - r.cost;
-    final hideDeliveredSensitiveFinancial = _hideDeliveredSensitiveFinancial(r);
-    final canShowCost =
-        _isManagerLike && _canViewCostPrice && _canViewRevenue && !hideDeliveredSensitiveFinancial;
-    final canShowProfit =
-        _isManagerLike && _canViewRevenue && _canViewCostPrice && !hideDeliveredSensitiveFinancial;
-    return [
-      // Storage location
-      Card(
+
+
+  Widget _buildStorageCard() {
+    return Card(
         margin: const EdgeInsets.only(bottom: 6),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -5223,309 +5217,310 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             ],
           ),
         ),
-      ),
+      );
+  }
 
-      // Finance card
-      if (_canViewAnyFinancial || _canEditRepairCharge)
-        Card(
-          margin: const EdgeInsets.only(bottom: 6),
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.account_balance_wallet, size: 16, color: Colors.green.shade700),
-                    const SizedBox(width: 6),
-                    Text(
-                      loc.financeTitleUpper,
-                      style: AppTextStyles.caption.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green.shade700,
-                        fontSize: 11,
+  Widget? _buildFinanceCard() {
+    final displayPrice = _displayedChargePrice(r);
+    final displayProfit = displayPrice - r.cost;
+    final hideDeliveredSensitiveFinancial = _hideDeliveredSensitiveFinancial(r);
+    final canShowCost =
+        _isManagerLike && _canViewCostPrice && _canViewRevenue && !hideDeliveredSensitiveFinancial;
+    final canShowProfit =
+        _isManagerLike && _canViewRevenue && _canViewCostPrice && !hideDeliveredSensitiveFinancial;
+    if (!(_canViewAnyFinancial || _canEditRepairCharge)) return null;
+    return Card(
+        margin: const EdgeInsets.only(bottom: 6),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  // Tiêu đề khu vực đã có ở _sectionHeader('TÀI CHÍNH') — chỉ giữ nút Sửa.
+                  const Spacer(),
+                  if (_canEditRepairFinancial || _canEditRepairCharge)
+                    TextButton.icon(
+                      onPressed: _editFinancials,
+                      icon: const Icon(Icons.edit, size: 12),
+                      label: Text(loc.editButton, style: const TextStyle(fontSize: 11)),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        visualDensity: VisualDensity.compact,
                       ),
                     ),
-                    const Spacer(),
-                    if (_canEditRepairFinancial || _canEditRepairCharge)
-                      TextButton.icon(
-                        onPressed: _editFinancials,
-                        icon: const Icon(Icons.edit, size: 12),
-                        label: Text(loc.editButton, style: const TextStyle(fontSize: 11)),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          visualDensity: VisualDensity.compact,
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  if (canShowProfit)
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: (displayProfit >= 0 ? AppColors.success : AppColors.error)
+                              .withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(5),
                         ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    if (canShowProfit)
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: (displayProfit >= 0 ? AppColors.success : AppColors.error)
-                                .withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(loc.profitLabel,
-                                  style: AppTextStyles.overline.copyWith(
-                                    color: displayProfit >= 0 ? AppColors.success : AppColors.error,
-                                    fontSize: 9,
-                                  )),
-                              Text(
-                                "${MoneyUtils.formatCurrency(displayProfit)} đ",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(loc.profitLabel,
+                                style: AppTextStyles.overline.copyWith(
                                   color: displayProfit >= 0 ? AppColors.success : AppColors.error,
-                                ),
+                                  fontSize: 9,
+                                )),
+                            Text(
+                              "${MoneyUtils.formatCurrency(displayProfit)} đ",
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: displayProfit >= 0 ? AppColors.success : AppColors.error,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
-                    if (canShowProfit && _canViewRevenue) const SizedBox(width: 6),
-                    if (_canViewRevenue || _canEditRepairCharge)
-                      _miniFinCompact(_displayedPriceLabel(r), displayPrice, AppColors.primary),
-                    if (_canViewRevenue && canShowCost) const SizedBox(width: 6),
-                    if (canShowCost)
-                      _miniFinCompact(loc.costLabel, r.cost, AppColors.warning),
-                  ],
+                    ),
+                  if (canShowProfit && _canViewRevenue) const SizedBox(width: 6),
+                  if (_canViewRevenue || _canEditRepairCharge)
+                    _miniFinCompact(_displayedPriceLabel(r), displayPrice, AppColors.primary),
+                  if (_canViewRevenue && canShowCost) const SizedBox(width: 6),
+                  if (canShowCost)
+                    _miniFinCompact(loc.costLabel, r.cost, AppColors.warning),
+                ],
+              ),
+              if (r.pendingDeliveryApproval && r.requestedDeliveryPrice != null) ...[
+                const SizedBox(height: 3),
+                Text(
+                  'Chờ duyệt giá: ${MoneyUtils.formatCurrency(displayPrice)} đ',
+                  style: AppTextStyles.overline.copyWith(
+                    color: Colors.deepOrange.shade700,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 10,
+                  ),
                 ),
-                if (r.pendingDeliveryApproval && r.requestedDeliveryPrice != null) ...[
-                  const SizedBox(height: 3),
-                  Text(
-                    'Chờ duyệt giá: ${MoneyUtils.formatCurrency(displayPrice)} đ',
-                    style: AppTextStyles.overline.copyWith(
-                      color: Colors.deepOrange.shade700,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 10,
-                    ),
-                  ),
-                ],
-                if ((_canViewRevenue || _canEditRepairCharge) &&
-                    _historicalPricing != null) ...[
-                  const SizedBox(height: 4),
-                  InkWell(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => SimilarRepairHistoryView(
-                          repairs: _historicalPricing!.matchedRepairs,
-                          showCost: canShowCost,
-                        ),
-                      ),
-                    ),
-                    child: Text(
-                      '💡 Lịch sử tương tự (chạm để xem): '
-                      '${MoneyUtils.formatCurrency(_historicalPricing!.minPrice)}đ - '
-                      '${MoneyUtils.formatCurrency(_historicalPricing!.maxPrice)}đ '
-                      '(${_historicalPricing!.sampleCount} đơn, '
-                      'độ tin cậy: ${_historicalPricing!.confidence.label})',
-                      style: AppTextStyles.overline.copyWith(
-                        color: Colors.grey.shade600,
-                        fontSize: 10,
-                        decoration: TextDecoration.underline,
-                        decorationColor: Colors.grey.shade400,
-                      ),
-                    ),
-                  ),
-                ],
               ],
-            ),
-          ),
-        ),
-
-      // Parts card
-      if (r.partsUsed.isNotEmpty)
-        Card(
-          margin: const EdgeInsets.only(bottom: 6),
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.build, size: 14, color: Colors.blue),
-                    const SizedBox(width: 4),
-                    Text(
-                      'PHỤ TÙNG',
-                      style: AppTextStyles.overline.copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
+              if ((_canViewRevenue || _canEditRepairCharge) &&
+                  _historicalPricing != null) ...[
                 const SizedBox(height: 4),
-                if (r.partsUsedDetailed.isNotEmpty)
-                  for (final p in r.partsUsedDetailed)
-                    Builder(builder: (_) {
-                      final sup = (p.supplier ?? '').trim().isNotEmpty
-                          ? p.supplier!.trim()
-                          : (p.productId != null
-                              ? (_partSupplierByPid[p.productId] ?? '')
-                              : (_partSupplierByName[p.name] ?? ''));
-                      return InkWell(
-                        onTap: () => _openPartInInventory(p),
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 2, bottom: 2),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  '${p.name} x${p.qty}'
-                                  '${sup.isNotEmpty ? '  ·  NCC: $sup' : ''}',
-                                  style: AppTextStyles.caption.copyWith(
-                                    fontSize: 11,
-                                    color: Colors.blue,
-                                    decoration:
-                                        TextDecoration.underline,
-                                    decorationColor: Colors.blue
-                                        .withValues(alpha: 0.35),
-                                  ),
-                                ),
-                              ),
-                              const Icon(Icons.chevron_right,
-                                  size: 14, color: Colors.blue),
-                            ],
-                          ),
-                        ),
-                      );
-                    })
-                else
-                  for (final entry in _parsePartsUsedText(r.partsUsed))
-                    Builder(builder: (_) {
-                      final name = entry.$1;
-                      final qty = entry.$2;
-                      final prod = _legacyPartLookup[name];
-                      final prodSup = (prod?.supplier ?? '').trim();
-                      final sup = prodSup.isNotEmpty
-                          ? prodSup
-                          : (_partSupplierByName[name] ?? '');
-                      return InkWell(
-                        onTap: () => _openPartInInventory(
-                          PartUsedDetail(name: name, cost: 0, qty: qty),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 2, bottom: 2),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  '$name x$qty'
-                                  '${sup.isNotEmpty ? '  ·  NCC: $sup' : ''}',
-                                  style: AppTextStyles.caption.copyWith(
-                                    fontSize: 11,
-                                    color: Colors.blue,
-                                    decoration:
-                                        TextDecoration.underline,
-                                    decorationColor: Colors.blue
-                                        .withValues(alpha: 0.35),
-                                  ),
-                                ),
-                              ),
-                              const Icon(Icons.chevron_right,
-                                  size: 14, color: Colors.blue),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
-              ],
-            ),
-          ),
-        ),
-
-      // Quick actions card — chọn PT / kho lk / đổi lk / xóa PT / KTV.
-      // Luôn hiện khi có quyền để "Chọn phụ tùng" dùng được cả khi đơn chưa có PT.
-      if (_canEditRepairOrder || _canEditRepairNotes)
-        Card(
-          margin: const EdgeInsets.only(bottom: 6),
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.flash_on_rounded,
-                        size: 14, color: Colors.amber),
-                    const SizedBox(width: 4),
-                    Text(
-                      'THAO TÁC',
-                      style: AppTextStyles.overline.copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
+                InkWell(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SimilarRepairHistoryView(
+                        repairs: _historicalPricing!.matchedRepairs,
+                        showCost: canShowCost,
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: [
-                    _quickAction(
-                      loc.partsLabel,
-                      Icons.inventory_2,
-                      Colors.blue,
-                      _selectPartsFromInventory,
+                  ),
+                  child: Text(
+                    '💡 Lịch sử tương tự (chạm để xem): '
+                    '${MoneyUtils.formatCurrency(_historicalPricing!.minPrice)}đ - '
+                    '${MoneyUtils.formatCurrency(_historicalPricing!.maxPrice)}đ '
+                    '(${_historicalPricing!.sampleCount} đơn, '
+                    'độ tin cậy: ${_historicalPricing!.confidence.label})',
+                    style: AppTextStyles.overline.copyWith(
+                      color: Colors.grey.shade600,
+                      fontSize: 10,
+                      decoration: TextDecoration.underline,
+                      decorationColor: Colors.grey.shade400,
                     ),
-                    _quickAction(
-                      loc.partsInventoryShort,
-                      Icons.warehouse,
-                      Colors.teal,
-                      _navigateToPartsInventory,
-                    ),
-                    if (r.partsUsed.isNotEmpty && _canEditRepairOrder)
-                      _quickAction(
-                        'Đổi PT',
-                        Icons.swap_horiz,
-                        Colors.deepPurple,
-                        _swapPartInRepair,
-                      ),
-                    if (r.partsUsed.isNotEmpty && _canEditRepairOrder)
-                      _quickAction(
-                        'Xóa PT',
-                        Icons.delete_sweep,
-                        Colors.red,
-                        _removePartFromRepair,
-                      ),
-                    if (_canEditRepairOrder)
-                      _quickAction(
-                        'Sửa KTV',
-                        Icons.engineering_rounded,
-                        Colors.indigo,
-                        _editTechnician,
-                      ),
-                    _quickAction(
-                      loc.techShort,
-                      Icons.note_add,
-                      Colors.orange,
-                      _editTechnicianNotes,
-                    ),
-                  ],
+                  ),
                 ),
               ],
-            ),
+            ],
           ),
         ),
+      );
+  }
 
-      // Customer card — contact only, NO stage actors/images (those are in History tab)
-      Card(
+  Widget? _buildPartsCard() {
+    if (!(r.partsUsed.isNotEmpty)) return null;
+    return Card(
+        margin: const EdgeInsets.only(bottom: 6),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.build, size: 14, color: Colors.blue),
+                  const SizedBox(width: 4),
+                  Text(
+                    'PHỤ TÙNG',
+                    style: AppTextStyles.overline.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              if (r.partsUsedDetailed.isNotEmpty)
+                for (final p in r.partsUsedDetailed)
+                  Builder(builder: (_) {
+                    final sup = (p.supplier ?? '').trim().isNotEmpty
+                        ? p.supplier!.trim()
+                        : (p.productId != null
+                            ? (_partSupplierByPid[p.productId] ?? '')
+                            : (_partSupplierByName[p.name] ?? ''));
+                    return InkWell(
+                      onTap: () => _openPartInInventory(p),
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 2, bottom: 2),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${p.name} x${p.qty}'
+                                '${sup.isNotEmpty ? '  ·  NCC: $sup' : ''}',
+                                style: AppTextStyles.caption.copyWith(
+                                  fontSize: 11,
+                                  color: Colors.blue,
+                                  decoration:
+                                      TextDecoration.underline,
+                                  decorationColor: Colors.blue
+                                      .withValues(alpha: 0.35),
+                                ),
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right,
+                                size: 14, color: Colors.blue),
+                          ],
+                        ),
+                      ),
+                    );
+                  })
+              else
+                for (final entry in _parsePartsUsedText(r.partsUsed))
+                  Builder(builder: (_) {
+                    final name = entry.$1;
+                    final qty = entry.$2;
+                    final prod = _legacyPartLookup[name];
+                    final prodSup = (prod?.supplier ?? '').trim();
+                    final sup = prodSup.isNotEmpty
+                        ? prodSup
+                        : (_partSupplierByName[name] ?? '');
+                    return InkWell(
+                      onTap: () => _openPartInInventory(
+                        PartUsedDetail(name: name, cost: 0, qty: qty),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 2, bottom: 2),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '$name x$qty'
+                                '${sup.isNotEmpty ? '  ·  NCC: $sup' : ''}',
+                                style: AppTextStyles.caption.copyWith(
+                                  fontSize: 11,
+                                  color: Colors.blue,
+                                  decoration:
+                                      TextDecoration.underline,
+                                  decorationColor: Colors.blue
+                                      .withValues(alpha: 0.35),
+                                ),
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right,
+                                size: 14, color: Colors.blue),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+            ],
+          ),
+        ),
+      );
+  }
+
+  Widget? _buildQuickActionsCard() {
+    if (!(_canEditRepairOrder || _canEditRepairNotes)) return null;
+    return Card(
+        margin: const EdgeInsets.only(bottom: 6),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.flash_on_rounded,
+                      size: 14, color: Colors.amber),
+                  const SizedBox(width: 4),
+                  Text(
+                    'THAO TÁC',
+                    style: AppTextStyles.overline.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: [
+                  _quickAction(
+                    loc.partsLabel,
+                    Icons.inventory_2,
+                    Colors.blue,
+                    _selectPartsFromInventory,
+                  ),
+                  _quickAction(
+                    loc.partsInventoryShort,
+                    Icons.warehouse,
+                    Colors.teal,
+                    _navigateToPartsInventory,
+                  ),
+                  if (r.partsUsed.isNotEmpty && _canEditRepairOrder)
+                    _quickAction(
+                      'Đổi PT',
+                      Icons.swap_horiz,
+                      Colors.deepPurple,
+                      _swapPartInRepair,
+                    ),
+                  if (r.partsUsed.isNotEmpty && _canEditRepairOrder)
+                    _quickAction(
+                      'Xóa PT',
+                      Icons.delete_sweep,
+                      Colors.red,
+                      _removePartFromRepair,
+                    ),
+                  if (_canEditRepairOrder)
+                    _quickAction(
+                      'Sửa KTV',
+                      Icons.engineering_rounded,
+                      Colors.indigo,
+                      _editTechnician,
+                    ),
+                  _quickAction(
+                    loc.techShort,
+                    Icons.note_add,
+                    Colors.orange,
+                    _editTechnicianNotes,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+  }
+
+  Widget _buildCustomerCard() {
+    return Card(
         margin: const EdgeInsets.only(bottom: 6),
         child: Padding(
           padding: const EdgeInsets.all(10),
@@ -5565,9 +5560,9 @@ class _RepairDetailViewState extends State<RepairDetailView> {
             ],
           ),
         ),
-      ),
-    ];
+      );
   }
+
 
   // ─── Tab 1: Dịch vụ ─────────────────────────────────────────────
 
@@ -5580,21 +5575,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.build_rounded, size: 14, color: AppColors.primary),
-                const SizedBox(width: 4),
-                Text(
-                  'DỊCH VỤ SỬA CHỮA',
-                  style: AppTextStyles.overline.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
             if (services.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
@@ -5623,21 +5603,6 @@ class _RepairDetailViewState extends State<RepairDetailView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.history_rounded, size: 14, color: AppColors.primary),
-                const SizedBox(width: 4),
-                Text(
-                  'LỊCH SỬ & GHI CHÚ',
-                  style: AppTextStyles.overline.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
             _compactInfoRow(
               'Nhận',
               _formatStageActorWithTime(actorRaw: r.createdBy, timestamp: r.createdAt),
