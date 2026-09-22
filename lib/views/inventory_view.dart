@@ -1190,8 +1190,9 @@ class _InventoryViewState extends State<InventoryView>
                         // SỬA/TÂN TRANG (2026-09-22) — gửi đối tác/lấy linh
                         // kiện kho phụ tùng để sửa SP trước khi bán, cộng chi
                         // phí vào giá vốn.
-                        if (_canViewCostPrice)
-                          OutlinedButton.icon(
+                        // Nhân viên không có quyền giá vốn vẫn tân trang được;
+                        // các con số giá vốn ẩn bên trong sheet (2026-09-22).
+                        OutlinedButton.icon(
                             onPressed: () {
                               Navigator.pop(ctx);
                               _showRefurbishSheet(p);

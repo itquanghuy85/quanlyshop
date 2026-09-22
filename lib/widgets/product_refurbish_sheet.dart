@@ -24,16 +24,8 @@ import 'parts_selection_dialog.dart';
 
 /// Trả về true nếu có thay đổi (caller nên refresh list).
 Future<bool> showProductRefurbishSheet(BuildContext context, Product p) async {
-  // CLAUDE.md §9: giá vốn phân quyền 2 tầng — sheet này toàn giá vốn/chi phí
-  // nên chặn ngay tại cửa, không chỉ giấu nút ở màn gọi.
-  if (!await UserService.canViewCostPrice()) {
-    NotificationService.showSnackBar(
-      'Bạn không có quyền xem giá vốn nên không dùng được Tân trang',
-      color: Colors.orange,
-    );
-    return false;
-  }
-  if (!context.mounted) return false;
+  // Nhân viên không có quyền giá vốn VẪN tân trang được (yêu cầu 2026-09-22)
+  // — chỉ ẩn các con số giá vốn/chi phí bên trong sheet (CLAUDE.md §9).
   final changed = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
@@ -63,10 +55,14 @@ class _ProductRefurbishSheetState extends State<ProductRefurbishSheet> {
   RepairPartner? selectedPartner;
   List<RepairPartner> partners = [];
   List<Map<String, dynamic>> history = [];
+  bool _canViewCost = false; // mặc định ẩn tới khi đọc xong quyền
 
   @override
   void initState() {
     super.initState();
+    UserService.canViewCostPrice().then((v) {
+      if (mounted) setState(() => _canViewCost = v);
+    });
     RepairPartnerService().getRepairPartners().then((list) {
       if (mounted) setState(() => partners = list);
     });
@@ -185,10 +181,8 @@ class _ProductRefurbishSheetState extends State<ProductRefurbishSheet> {
         title: const Text('Xoá khoản tân trang?'),
         content: Text(
           it['type'] == 'PART'
-              ? 'Hoàn ${it['quantity']} ${it['partName']} về kho phụ tùng và trừ '
-                  '${MoneyUtils.formatCurrency((it['amount'] as num).toInt())}đ khỏi chi phí tân trang.'
-              : 'Huỷ nợ/phiếu chi tương ứng và trừ '
-                  '${MoneyUtils.formatCurrency((it['amount'] as num).toInt())}đ khỏi chi phí tân trang.',
+              ? 'Hoàn ${it['quantity']} ${it['partName']} về kho phụ tùng và trừ khoản này khỏi chi phí tân trang.'
+              : 'Huỷ nợ/phiếu chi tương ứng và trừ khoản này khỏi chi phí tân trang.',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
@@ -304,12 +298,13 @@ class _ProductRefurbishSheetState extends State<ProductRefurbishSheet> {
                   ),
                 ],
               ),
-              Text(
-                'Giá vốn gốc ${MoneyUtils.formatCurrency(p.cost)}đ'
-                '${p.refurbishCost > 0 ? ' · Tân trang ${MoneyUtils.formatCurrency(p.refurbishCost)}đ' : ''}'
-                ' · Tổng ${MoneyUtils.formatCurrency(totalCost)}đ',
-                style: AppTextStyles.body2.copyWith(color: Colors.grey[700]),
-              ),
+              if (_canViewCost)
+                Text(
+                  'Giá vốn gốc ${MoneyUtils.formatCurrency(p.cost)}đ'
+                  '${p.refurbishCost > 0 ? ' · Tân trang ${MoneyUtils.formatCurrency(p.refurbishCost)}đ' : ''}'
+                  ' · Tổng ${MoneyUtils.formatCurrency(totalCost)}đ',
+                  style: AppTextStyles.body2.copyWith(color: Colors.grey[700]),
+                ),
               const SizedBox(height: 14),
               Row(
                 children: [
@@ -387,8 +382,8 @@ class _ProductRefurbishSheetState extends State<ProductRefurbishSheet> {
                 ),
               ] else ...[
                 Text(
-                  'Chọn linh kiện từ Kho phụ tùng — mỗi món trừ tồn ngay và cộng '
-                  'giá vốn linh kiện × số lượng vào chi phí tân trang.',
+                  'Chọn linh kiện từ Kho phụ tùng — mỗi món trừ tồn ngay và tự cộng '
+                  'vào chi phí tân trang.',
                   style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                 ),
                 const SizedBox(height: 10),
@@ -437,10 +432,11 @@ class _ProductRefurbishSheetState extends State<ProductRefurbishSheet> {
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          '${MoneyUtils.formatCurrency((it['amount'] as num?)?.toInt() ?? 0)}đ',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                        ),
+                        if (_canViewCost)
+                          Text(
+                            '${MoneyUtils.formatCurrency((it['amount'] as num?)?.toInt() ?? 0)}đ',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
                         PopupMenuButton<String>(
                           padding: EdgeInsets.zero,
                           iconSize: 18,

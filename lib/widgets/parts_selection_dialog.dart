@@ -8,6 +8,7 @@ import '../utils/money_utils.dart';
 import '../l10n/app_localizations.dart';
 import '../data/db_helper.dart';
 import '../theme/app_text_styles.dart';
+import '../services/user_service.dart';
 
 class PartsSelectionDialog extends StatefulWidget {
   final List<Map<String, dynamic>> parts;
@@ -26,6 +27,16 @@ class PartsSelectionDialogState extends State<PartsSelectionDialog> {
   AppLocalizations get loc => AppLocalizations.of(context)!;
   final TextEditingController _searchCtrl = TextEditingController();
   final Map<String, int> selectedQuantities = {};
+  // CLAUDE.md §9: mặc định ẨN giá vốn cho tới khi đọc xong quyền.
+  bool _canViewCost = false;
+
+  @override
+  void initState() {
+    super.initState();
+    UserService.canViewCostPrice().then((v) {
+      if (mounted) setState(() => _canViewCost = v);
+    });
+  }
 
   int get totalSelected => selectedQuantities.values.fold(0, (a, b) => a + b);
 
@@ -220,12 +231,13 @@ class PartsSelectionDialogState extends State<PartsSelectionDialog> {
                                         color: Colors.grey.shade700,
                                       ),
                                     ),
-                                    Text(
-                                      loc.costPrice(
-                                        MoneyUtils.formatCurrency(partCost),
+                                    if (_canViewCost)
+                                      Text(
+                                        loc.costPrice(
+                                          MoneyUtils.formatCurrency(partCost),
+                                        ),
+                                        style: AppTextStyles.caption,
                                       ),
-                                      style: AppTextStyles.caption,
-                                    ),
                                     Text(
                                       loc.sellPrice(
                                         MoneyUtils.formatCurrency(partPrice),

@@ -517,6 +517,40 @@ class DBHelper {
     );
   }
 
+  /// Nhận doc `product_refurbish_items` từ cloud (máy khác ghi): map
+  /// `productFirestoreId` → `products.id` cục bộ (CLAUDE.md §12: id cục bộ
+  /// không dùng chung giữa máy), upsert theo firestoreId.
+  Future<void> upsertProductRefurbishItemFromCloud(
+    Map<String, dynamic> data,
+  ) async {
+    final db = await database;
+    await _ensureProductRefurbishSchema(db);
+    final fid = data['firestoreId'] as String?;
+    if (fid == null || fid.isEmpty) return;
+    final pfid = data['productFirestoreId'] as String?;
+    int? localProductId;
+    if (pfid != null && pfid.isNotEmpty) {
+      final rows = await db.query('products',
+          columns: ['id'], where: 'firestoreId = ?', whereArgs: [pfid], limit: 1);
+      if (rows.isNotEmpty) localProductId = (rows.first['id'] as num).toInt();
+    }
+    final cols = (await db.rawQuery('PRAGMA table_info(product_refurbish_items)'))
+        .map((c) => c['name'] as String)
+        .toSet();
+    final row = <String, dynamic>{};
+    for (final e in data.entries) {
+      if (cols.contains(e.key)) row[e.key] = e.value;
+    }
+    row.remove('id');
+    row['productId'] = localProductId;
+    row['isSynced'] = 1;
+    row['deleted'] = (data['deleted'] == true || data['deleted'] == 1) ? 1 : 0;
+    // partId cục bộ của máy khác không có nghĩa ở máy này — bỏ.
+    row.remove('partId');
+    await db.insert('product_refurbish_items', row,
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
   Future<void> markProductRefurbishItemSynced(int id, String firestoreId) async {
     final db = await database;
     await db.update(

@@ -4,6 +4,12 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-22i] - Tân trang: nhân viên vẫn dùng được (ẩn giá vốn) · đồng bộ lịch sử sang máy khác · rules + index
+
+- Đảo lại `[2026-09-22h]`: KHÔNG chặn cửa — nhân viên không có quyền giá vốn vẫn tân trang (ghi dịch vụ, lấy linh kiện). Trong sheet ẩn dòng "Giá vốn gốc · Tân trang · Tổng", ẩn số tiền từng dòng lịch sử, câu xoá không nêu số tiền; nút "Tân trang" ở Kho và "Tân trang ngay" sau nhập kho hiện cho mọi người. Các nơi khác (chip list, ô chi tiết, dòng chọn SP bán) vẫn gate quyền.
+- `PartsSelectionDialog` (dùng chung đơn sửa + tân trang): dòng "Vốn:" chỉ hiện khi có `allowViewCostPrice` (trước lộ cho mọi người — vi phạm CLAUDE.md §9 từ trước).
+- **Phát hiện & sửa**: `product_refurbish_items` chưa có trong `firestore.rules` (catch-all deny ⇒ push sweep bị từ chối âm thầm) và chưa có pull ⇒ máy khác không thấy lịch sử. Thêm rules (read shop, create/update employee+, delete owner), composite index (shopId, updatedAt) — đã `firebase deploy`; `SyncService` subscribe `product_refurbish_items` (cursor) + `DBHelper.upsertProductRefurbishItemFromCloud` (map `productFirestoreId` → id cục bộ, bỏ `partId` máy khác — CLAUDE.md §12). Máy thật: A đẩy 8 dòng, B kéo về 8/8 mapped, nhân viên B thấy lịch sử không có số tiền.
+
 ## [2026-09-22h] - Tân trang: chặn theo quyền giá vốn ở mọi cửa
 
 - Rà lại: nút "Tân trang" (Kho), chip list Kho, ô/lịch sử ở chi tiết SP, dòng chọn SP bán đã gate `allowViewCostPrice`. Bổ sung 2 chỗ còn hở: `showProductRefurbishSheet` tự kiểm `UserService.canViewCostPrice()` trước khi mở (báo snackbar nếu không có quyền — CLAUDE.md §9 chặn ở tầng gọi, không chỉ giấu nút); hộp thoại "Tân trang ngay" sau xác nhận nhập kho chỉ hiện khi `_canViewCostPrice`.

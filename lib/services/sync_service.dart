@@ -201,6 +201,7 @@ class SyncService {
       case 'sales_return_items':
         return _hasPermission(permissions, 'allowViewSales');
       case 'storage_locations':
+      case 'product_refurbish_items':
         return true; // visible to all roles — used for repair/product location assignment
       case 'products':
       case 'quick_input_codes':
@@ -522,6 +523,7 @@ class SyncService {
     'partner_repair_history',
     'repair_partners',
     'storage_locations',
+    'product_refurbish_items',
   };
   static final Map<String, int> _realtimeCursorCache = <String, int>{};
   static final Set<String> _incrementalRealtimeDisabled = <String>{};
@@ -1931,6 +1933,30 @@ class SyncService {
         );
       } catch (e) {
         debugPrint("Lỗi khởi tạo storage_locations sync (critical): $e");
+      }
+
+      // 9. Tân trang sản phẩm (2026-09-22) — lịch sử từng khoản; tiền đã đi
+      // qua debts/expenses, products.refurbishCost qua products.
+      try {
+        _subscribeToCollection(
+          collection: 'product_refurbish_items',
+          shopId: shopId,
+          permissions: permissions,
+          role: role,
+          isSuperAdmin: isSuperAdmin,
+          onChanged: (data, docId) async {
+            try {
+              data['firestoreId'] = docId;
+              _convertTimestampFields(data);
+              await DBHelper().upsertProductRefurbishItemFromCloud(data);
+            } catch (e) {
+              debugPrint("Lỗi sync product_refurbish_item $docId: $e");
+            }
+          },
+          onBatchDone: () => EventBus().emit('inventory_changed'),
+        );
+      } catch (e) {
+        debugPrint("Lỗi khởi tạo product_refurbish_items sync: $e");
       }
 
       // ═══════════════════════════════════════════════════════════════════════

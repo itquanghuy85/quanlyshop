@@ -1565,6 +1565,15 @@ service cloud.firestore {
       allow delete: if isAuth() && docInMyShopForDelete() && isOwner();
     }
 
+    // Tân trang sản phẩm trong kho (2026-09-22): nhật ký từng khoản chi phí.
+    // Nhân viên (không cần quyền giá vốn) vẫn ghi được; xoá mềm bằng update.
+    match /product_refurbish_items/{itemId} {
+      allow read: if isAuth() && docInMyShop();
+      allow create: if isAuth() && isEmployee() && newDocInMyShop() && has(['shopId']);
+      allow update: if isAuth() && isEmployee() && docInMyShop() && shopIdLocked();
+      allow delete: if isAuth() && docInMyShopForDelete() && isOwner();
+    }
+
     // ┌──────────────────────────────────────────────────────────────────┐
     // │                   SECTION 13: CATCH-ALL DENY                     │
     // │         CRITICAL: Any undefined collection is DENIED             │
