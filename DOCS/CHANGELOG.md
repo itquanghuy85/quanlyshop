@@ -4,6 +4,12 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-22b] - Sửa/Tân trang: lối tắt Kho phụ tùng + hiện NCC trong dropdown + gọn giao diện
+
+- Sheet "Sửa/Tân trang" (mục Linh kiện kho PT) thêm nút **"Bổ sung/sửa/xoá phụ tùng"** — mở thẳng `PartsInventoryView` (thêm/sửa/xoá linh kiện), tự nạp lại danh sách khi quay về nên dropdown khớp ngay không cần đóng mở lại sheet.
+- Dropdown chọn linh kiện đổi sang 2 dòng nhỏ gọn: tên linh kiện (13px, đậm) + **NCC: X · Còn N · Giá Yđ** (11px, xám) — trước chỉ 1 dòng không có NCC, khó phân biệt các linh kiện cùng tên khác NCC.
+- `flutter analyze` 0 lỗi, test 735 PASS. Máy thật A: xác nhận lối tắt mở đúng màn Kho phụ tùng và quay lại giữ nguyên sheet; dropdown hiện đúng NCC (vd "PIN X · NCC: NCC TÉT A · Còn 8 · 100.000đ").
+
 ## [2026-09-22a] - feat(Kho): Sửa/Tân trang sản phẩm trong kho trước khi bán — cộng chi phí sửa vào giá vốn
 
 - **Tình huống mới xử lý được**: mua máy lẻ/cũ về kho còn hư (vd bể kính, hư pin, hư sạc) → gửi đối tác sửa (ép kính, mainboard), lấy linh kiện từ Kho phụ tùng để thay, hoặc chi phí khác (công thợ) — mỗi khoản giờ ghi được ngay trên sản phẩm, tự động: cộng vào "Chi phí sửa" (tách riêng khỏi giá vốn gốc lúc nhập — Tổng giá vốn = giá vốn gốc + chi phí sửa), trừ đúng tồn Kho phụ tùng nếu là linh kiện, ghi đúng công nợ đối tác (CÔNG NỢ, qua `PaymentIntentService.createDebtRecord`) hoặc phiếu chi (TIỀN MẶT/CHUYỂN KHOẢN, qua `insertExpense` + `FinancialActivityService.logExpense`).

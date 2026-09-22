@@ -1426,26 +1426,81 @@ class _InventoryViewState extends State<InventoryView>
                               .toList(),
                         ),
                       ] else ...[
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const PartsInventoryView(),
+                                ),
+                              );
+                              // Vừa có thể thêm/sửa/xoá phụ tùng bên đó —
+                              // nạp lại danh sách để dropdown khớp ngay.
+                              if (!ctx.mounted) return;
+                              setState(() => partsLoading = true);
+                            },
+                            icon: const Icon(Icons.inventory_2_outlined, size: 16),
+                            label: const Text(
+                              'Bổ sung/sửa/xoá phụ tùng',
+                              style: TextStyle(fontSize: 12.5),
+                            ),
+                            style: TextButton.styleFrom(
+                              foregroundColor: PopupTheme.orange,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ),
+                        ),
                         DropdownButtonFormField<Map<String, dynamic>?>(
                           initialValue: selectedPart,
                           isExpanded: true,
                           decoration: const InputDecoration(
                             labelText: 'Linh kiện (kho phụ tùng)',
                             border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                           ),
-                          items: parts
-                              .map(
-                                (part) =>
-                                    DropdownMenuItem<Map<String, dynamic>?>(
-                                  value: part,
-                                  child: Text(
-                                    '${part['partName']} · còn ${part['quantity']} · '
-                                    '${MoneyUtils.formatCurrency((part['cost'] as num?)?.toInt() ?? 0)}đ',
+                          items: parts.map((part) {
+                            final supplier = (part['supplier'] as String?)
+                                    ?.trim() ??
+                                '';
+                            final meta = [
+                              if (supplier.isNotEmpty) 'NCC: $supplier',
+                              'Còn ${part['quantity']}',
+                              '${MoneyUtils.formatCurrency((part['cost'] as num?)?.toInt() ?? 0)}đ',
+                            ].join(' · ');
+                            return DropdownMenuItem<Map<String, dynamic>?>(
+                              value: part,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    part['partName'] as String? ?? '',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                                ),
-                              )
-                              .toList(),
+                                  Text(
+                                    meta,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey[600],
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
                           onChanged: (v) => setState(() {
                             selectedPart = v;
                             unitCostCtrl.text = v == null
