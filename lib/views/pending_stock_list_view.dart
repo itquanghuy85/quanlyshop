@@ -300,7 +300,7 @@ class _PendingStockListViewState extends State<PendingStockListView> {
         final imeiItem = entry.items
             .where((i) => (i.imei ?? '').trim().isNotEmpty)
             .toList();
-        if (imeiItem.isNotEmpty) {
+        if (imeiItem.isNotEmpty && _canViewCostPrice) {
           final product = await DBHelper().getProductByImei(imeiItem.first.imei!.trim());
           if (product != null && mounted) {
             final choice = await showDialog<String>(

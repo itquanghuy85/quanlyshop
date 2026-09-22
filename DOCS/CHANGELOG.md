@@ -4,6 +4,10 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-22h] - Tân trang: chặn theo quyền giá vốn ở mọi cửa
+
+- Rà lại: nút "Tân trang" (Kho), chip list Kho, ô/lịch sử ở chi tiết SP, dòng chọn SP bán đã gate `allowViewCostPrice`. Bổ sung 2 chỗ còn hở: `showProductRefurbishSheet` tự kiểm `UserService.canViewCostPrice()` trước khi mở (báo snackbar nếu không có quyền — CLAUDE.md §9 chặn ở tầng gọi, không chỉ giấu nút); hộp thoại "Tân trang ngay" sau xác nhận nhập kho chỉ hiện khi `_canViewCostPrice`.
+
 ## [2026-09-22g] - Chi tiết đơn sửa: 1 trang duy nhất, chia khu vực rõ ràng (bỏ 3 tab)
 
 - `repair_detail_view`: bỏ tab Tổng quan / Dịch vụ / Lịch sử & Ghi chú (`_detailTab`, `_buildTabSelector`, `_buildOverviewTab`). Thân trang = Header → Timeline → **KHÁCH HÀNG & MÁY** (khách, vị trí cất máy) → **DỊCH VỤ & PHỤ TÙNG** (dịch vụ, phụ tùng đã dùng, THAO TÁC) → **TÀI CHÍNH** (nếu có quyền) → **LỊCH SỬ & GHI CHÚ**. Tiêu đề khu vực dùng chung `_sectionHeader(title, icon)` (icon nền primary nhạt + gạch ngang).

@@ -14,6 +14,7 @@ import '../models/repair_partner_model.dart';
 import '../services/notification_service.dart';
 import '../services/product_refurbish_service.dart';
 import '../services/repair_partner_service.dart';
+import '../services/user_service.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/popup_theme.dart';
 import '../utils/money_utils.dart';
@@ -23,6 +24,16 @@ import 'parts_selection_dialog.dart';
 
 /// Trả về true nếu có thay đổi (caller nên refresh list).
 Future<bool> showProductRefurbishSheet(BuildContext context, Product p) async {
+  // CLAUDE.md §9: giá vốn phân quyền 2 tầng — sheet này toàn giá vốn/chi phí
+  // nên chặn ngay tại cửa, không chỉ giấu nút ở màn gọi.
+  if (!await UserService.canViewCostPrice()) {
+    NotificationService.showSnackBar(
+      'Bạn không có quyền xem giá vốn nên không dùng được Tân trang',
+      color: Colors.orange,
+    );
+    return false;
+  }
+  if (!context.mounted) return false;
   final changed = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
