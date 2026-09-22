@@ -1236,7 +1236,9 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         0,
         (sum, item) =>
             sum +
-            ((item['product'] as Product).cost * (item['quantity'] as int)),
+            (((item['product'] as Product).cost +
+                    (item['product'] as Product).refurbishCost) *
+                (item['quantity'] as int)),
       );
 
       // Debug logging
@@ -1330,7 +1332,9 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           0,
           (sum, item) =>
               sum +
-              ((item['product'] as Product).cost * (item['quantity'] as int)),
+              (((item['product'] as Product).cost +
+                      (item['product'] as Product).refurbishCost) *
+                  (item['quantity'] as int)),
         ),
         discount: discount,
         paymentMethod: _paymentMethod,
@@ -2065,7 +2069,8 @@ class _CreateSaleViewState extends State<CreateSaleView> {
               ? (product.imei ?? 'NO_IMEI')
               : 'PKx$quantity');
       final unitPrice = (item['sellPrice'] as int?) ?? product.price;
-      final unitCost = product.cost;
+      // Giá vốn thật = giá nhập + chi phí sửa/tân trang (2026-09-22).
+      final unitCost = product.cost + product.refurbishCost;
       final salePrice = (item['originalPrice'] as int?) ?? product.price;
 
       return <String, dynamic>{
@@ -2998,14 +3003,16 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             ),
             subtitle: p.price <= 0
                 ? Text(
-                    "${_terms.specialField1Label}: ${p.imei ?? 'PK'} - ⚠ Chưa định giá",
+                    "${_terms.specialField1Label}: ${p.imei ?? 'PK'} - ⚠ Chưa định giá"
+                    "${(_canViewCostPrice && p.refurbishCost > 0) ? ' · 🔧 Đã sửa +${MoneyUtils.formatCurrency(p.refurbishCost)}' : ''}",
                     style: const TextStyle(
                       color: AppColors.error,
                       fontWeight: FontWeight.bold,
                     ),
                   )
                 : Text(
-                    "${_terms.specialField1Label}: ${p.imei ?? 'PK'} - Giá: ${MoneyUtils.formatCurrency(p.price)}",
+                    "${_terms.specialField1Label}: ${p.imei ?? 'PK'} - Giá: ${MoneyUtils.formatCurrency(p.price)}"
+                    "${(_canViewCostPrice && p.refurbishCost > 0) ? ' · 🔧 Đã sửa +${MoneyUtils.formatCurrency(p.refurbishCost)}' : ''}",
                   ),
             // HIỂN THỊ SỐ LƯỢNG TỒN TRONG LIST CHỌN
             trailing: Column(
@@ -3157,7 +3164,9 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                   subtitle: Text(
                     p.price <= 0
                         ? '${_terms.specialField1Label}: ${p.imei ?? 'PK'} - ⚠ Chưa định giá'
-                        : '${_terms.specialField1Label}: ${p.imei ?? 'PK'} - Giá: ${MoneyUtils.formatCurrency(p.price)}',
+                            '${(_canViewCostPrice && p.refurbishCost > 0) ? ' · 🔧 Đã sửa +${MoneyUtils.formatCurrency(p.refurbishCost)}' : ''}'
+                        : '${_terms.specialField1Label}: ${p.imei ?? 'PK'} - Giá: ${MoneyUtils.formatCurrency(p.price)}'
+                            '${(_canViewCostPrice && p.refurbishCost > 0) ? ' · 🔧 Đã sửa +${MoneyUtils.formatCurrency(p.refurbishCost)}' : ''}',
                     style: p.price <= 0
                         ? AppTextStyles.caption.copyWith(
                             color: AppColors.error,

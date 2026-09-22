@@ -35,6 +35,7 @@ import 'smart_stock_in_view.dart';
 import 'parts_inventory_view.dart';
 import 'pty_print_designer_view.dart';
 import '../widgets/currency_text_field.dart';
+import '../widgets/parts_selection_dialog.dart';
 import '../widgets/validated_text_field.dart';
 import '../models/stock_entry_model.dart';
 import '../services/stock_entry_service.dart';
@@ -762,6 +763,67 @@ class _InventoryViewState extends State<InventoryView>
                           ],
                         ),
                       ),
+                      // Chi tiết từng khoản đã sửa (đọc SQLite, không read cloud)
+                      FutureBuilder<List<Map<String, dynamic>>>(
+                        future: displayProduct.id == null
+                            ? Future.value(const <Map<String, dynamic>>[])
+                            : ProductRefurbishService.getHistory(
+                                displayProduct.id!,
+                              ),
+                        builder: (_, snap) {
+                          final items = snap.data ?? const [];
+                          if (items.isEmpty) return const SizedBox.shrink();
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 6, left: 4),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: items.map((it) {
+                                final isPart = it['type'] == 'PART';
+                                final qty = (it['quantity'] as num?)?.toInt() ?? 1;
+                                final label = isPart && qty > 1
+                                    ? '${it['description']} x$qty'
+                                    : (it['description'] as String? ?? '');
+                                final who = (it['partnerName'] as String?)?.trim();
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 2),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        isPart
+                                            ? Icons.memory
+                                            : Icons.handyman_outlined,
+                                        size: 12,
+                                        color: PopupTheme.textMuted,
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Expanded(
+                                        child: Text(
+                                          who != null && who.isNotEmpty
+                                              ? '$label · $who'
+                                              : label,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: PopupTheme.textSecondary,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${MoneyUtils.formatCurrency((it['amount'] as num?)?.toInt() ?? 0)}đ',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: PopupTheme.textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          );
+                        },
+                      ),
                     ],
                     const SizedBox(height: 14),
                     // ── Info rows ─────────────────────────────────
@@ -1181,12 +1243,6 @@ class _InventoryViewState extends State<InventoryView>
     List<RepairPartner> partners = [];
     bool partnersLoading = true;
 
-    Map<String, dynamic>? selectedPart;
-    List<Map<String, dynamic>> parts = [];
-    bool partsLoading = true;
-    final qtyCtrl = TextEditingController(text: '1');
-    final unitCostCtrl = TextEditingController();
-
     List<Map<String, dynamic>> history = [];
     bool historyLoading = true;
 
@@ -1212,13 +1268,6 @@ class _InventoryViewState extends State<InventoryView>
               RepairPartnerService().getRepairPartners().then((list) {
                 if (!ctx.mounted) return;
                 setState(() => partners = list);
-              });
-            }
-            if (partsLoading) {
-              partsLoading = false;
-              db.getAllPartsUnified().then((list) {
-                if (!ctx.mounted) return;
-                setState(() => parts = list);
               });
             }
             if (historyLoading) {
@@ -1261,41 +1310,6 @@ class _InventoryViewState extends State<InventoryView>
                   Navigator.pop(ctx);
                   NotificationService.showSnackBar(
                     '✅ Đã ghi chi phí sửa: ${MoneyUtils.formatCurrency(amount)}đ',
-                    color: Colors.green,
-                  );
-                  await _refresh();
-                } else {
-                  NotificationService.showSnackBar(
-                    '❌ ${result.error}',
-                    color: Colors.red,
-                  );
-                }
-              } else {
-                if (selectedPart == null) {
-                  NotificationService.showSnackBar(
-                    'Chọn linh kiện',
-                    color: Colors.orange,
-                  );
-                  return;
-                }
-                final qty = int.tryParse(qtyCtrl.text.trim()) ?? 0;
-                final override = unitCostCtrl.text.trim().isEmpty
-                    ? null
-                    : CurrencyTextField.parseValue(unitCostCtrl.text);
-                final result = await ProductRefurbishService.addPartCost(
-                  productId: p.id!,
-                  productFirestoreId: p.firestoreId,
-                  partId: selectedPart!['id'] as int,
-                  source: selectedPart!['source'] as String,
-                  partName: selectedPart!['partName'] as String? ?? '',
-                  quantity: qty,
-                  unitCostOverride: override,
-                );
-                if (!ctx.mounted) return;
-                if (result.success) {
-                  Navigator.pop(ctx);
-                  NotificationService.showSnackBar(
-                    '✅ Đã trừ kho phụ tùng và ghi vào giá vốn',
                     color: Colors.green,
                   );
                   await _refresh();
@@ -1426,114 +1440,92 @@ class _InventoryViewState extends State<InventoryView>
                               .toList(),
                         ),
                       ] else ...[
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton.icon(
+                        // Chọn linh kiện bằng đúng dialog của đơn sửa (cùng
+                        // nguồn getAllPartsUnified: kho phụ tùng + SP LINH_KIEN,
+                        // cùng giao diện, có nút mở Kho LK để bổ sung/sửa/xoá).
+                        Text(
+                          'Chọn linh kiện từ Kho phụ tùng — mỗi món trừ tồn ngay và cộng '
+                          'giá vốn linh kiện × số lượng vào chi phí sửa.',
+                          style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
                             onPressed: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const PartsInventoryView(),
+                              final allParts = await db.getAllPartsUnified();
+                              if (!ctx.mounted) return;
+                              final result = await showDialog<Map<String, int>?>(
+                                context: ctx,
+                                builder: (_) => PartsSelectionDialog(
+                                  parts: allParts,
+                                  onOpenPartsInventory: () async {
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const PartsInventoryView(),
+                                      ),
+                                    );
+                                  },
                                 ),
                               );
-                              // Vừa có thể thêm/sửa/xoá phụ tùng bên đó —
-                              // nạp lại danh sách để dropdown khớp ngay.
+                              if (result == null || result.isEmpty) return;
+                              int ok = 0;
+                              final errors = <String>[];
+                              for (final e in result.entries) {
+                                final idx = e.key.lastIndexOf('_');
+                                final source = e.key.substring(0, idx);
+                                final partId = int.parse(e.key.substring(idx + 1));
+                                final part = allParts.firstWhere(
+                                  (x) => x['id'] == partId && x['source'] == source,
+                                );
+                                final res = await ProductRefurbishService.addPartCost(
+                                  productId: p.id!,
+                                  productFirestoreId: p.firestoreId,
+                                  partId: partId,
+                                  source: source,
+                                  partName: part['partName'] as String? ?? '',
+                                  quantity: e.value,
+                                );
+                                if (res.success) {
+                                  ok++;
+                                } else {
+                                  errors.add(res.error ?? '');
+                                }
+                              }
                               if (!ctx.mounted) return;
-                              setState(() => partsLoading = true);
+                              if (ok > 0) {
+                                Navigator.pop(ctx);
+                                NotificationService.showSnackBar(
+                                  '✅ Đã trừ kho $ok linh kiện và cộng vào giá vốn'
+                                  '${errors.isNotEmpty ? ' · Lỗi: ${errors.join('; ')}' : ''}',
+                                  color: errors.isEmpty ? Colors.green : Colors.orange,
+                                );
+                                await _refresh();
+                              } else {
+                                NotificationService.showSnackBar(
+                                  '❌ ${errors.join('; ')}',
+                                  color: Colors.red,
+                                );
+                              }
                             },
-                            icon: const Icon(Icons.inventory_2_outlined, size: 16),
-                            label: const Text(
-                              'Bổ sung/sửa/xoá phụ tùng',
-                              style: TextStyle(fontSize: 12.5),
-                            ),
-                            style: TextButton.styleFrom(
-                              foregroundColor: PopupTheme.orange,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                              ),
-                              visualDensity: VisualDensity.compact,
-                            ),
+                            icon: const Icon(Icons.inventory_2_outlined, size: 18),
+                            label: const Text('Chọn linh kiện từ kho'),
+                            style: _compactOutlineBtn(PopupTheme.orange),
                           ),
-                        ),
-                        DropdownButtonFormField<Map<String, dynamic>?>(
-                          initialValue: selectedPart,
-                          isExpanded: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Linh kiện (kho phụ tùng)',
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                          ),
-                          items: parts.map((part) {
-                            final supplier = (part['supplier'] as String?)
-                                    ?.trim() ??
-                                '';
-                            final meta = [
-                              if (supplier.isNotEmpty) 'NCC: $supplier',
-                              'Còn ${part['quantity']}',
-                              '${MoneyUtils.formatCurrency((part['cost'] as num?)?.toInt() ?? 0)}đ',
-                            ].join(' · ');
-                            return DropdownMenuItem<Map<String, dynamic>?>(
-                              value: part,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    part['partName'] as String? ?? '',
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  Text(
-                                    meta,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.grey[600],
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (v) => setState(() {
-                            selectedPart = v;
-                            unitCostCtrl.text = v == null
-                                ? ''
-                                : (v['cost'] as num? ?? 0).toString();
-                          }),
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: qtyCtrl,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Số lượng dùng',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        CurrencyTextField(
-                          controller: unitCostCtrl,
-                          label: 'Đơn giá (mặc định = giá vốn linh kiện)',
-                          icon: Icons.monetization_on,
                         ),
                       ],
                       const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: save,
-                          icon: const Icon(Icons.save_outlined),
-                          label: const Text('Lưu, cộng vào giá vốn'),
-                          style: _compactFilledBtn(PopupTheme.orange),
+                      if (section == 0)
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: save,
+                            icon: const Icon(Icons.save_outlined),
+                            label: const Text('Lưu, cộng vào giá vốn'),
+                            style: _compactFilledBtn(PopupTheme.orange),
+                          ),
                         ),
-                      ),
                       if (history.isNotEmpty) ...[
                         const SizedBox(height: 20),
                         const Divider(),
@@ -4115,6 +4107,17 @@ class _InventoryViewState extends State<InventoryView>
                                     color: Colors.deepPurple.shade500,
                                     bg: Colors.deepPurple.shade50,
                                     icon: Icons.account_balance_wallet_outlined,
+                                  ),
+                                // Chi phí sửa/tân trang (2026-09-22) — hiện
+                                // ngay trên thẻ để biết SP này đã tốn thêm bao
+                                // nhiêu ngoài giá nhập.
+                                if (_canViewCostPrice && p.refurbishCost > 0)
+                                  _metaChip(
+                                    label:
+                                        'Sửa +${MoneyUtils.formatCompactCurrency(p.refurbishCost)}',
+                                    color: PopupTheme.orange,
+                                    bg: Colors.orange.shade50,
+                                    icon: Icons.build_circle_outlined,
                                   ),
                                 if (_allowPendingCost &&
                                     _canViewCostPrice &&

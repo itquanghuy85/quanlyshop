@@ -243,6 +243,10 @@ class FinanceV2DataService {
     final category = (expense['category'] ?? '').toString().toUpperCase();
     return category.contains('NHẬP') ||
         category.contains('LINH KIỆN') ||
+        // Chi phí sửa/tân trang SP trong kho (2026-09-22) đã cộng vào
+        // `products.refurbishCost` ⇒ về sau ra lãi qua giá vốn lúc bán —
+        // coi như vốn hàng (capitalized) để không trừ lãi 2 lần.
+        category.contains('TÂN TRANG') ||
         title.contains('NHẬP') ||
         category.contains('PURCHASE');
   }

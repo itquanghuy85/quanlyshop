@@ -4,6 +4,14 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-22c] - Sửa/Tân trang: dùng chung dialog chọn phụ tùng của đơn sửa · hiện thông tin tân trang ở list Kho / chọn SP bán / chi tiết SP · giá vốn bán gồm chi phí sửa
+
+- `lib/widgets/parts_selection_dialog.dart` (mới): tách `_PartsSelectionDialog` khỏi `repair_detail_view` thành `PartsSelectionDialog` dùng chung — cùng nguồn `getAllPartsUnified()` (kho phụ tùng cũ + SP LINH_KIEN), cùng giao diện (tìm theo tên/NCC, chip NCC, Kho cũ/mới, tồn/vốn/bán, +/−, nút NHẬP LK MỚI). `repair_detail_view` chỉ đổi import, hành vi đơn sửa không đổi.
+- Sheet Sửa/Tân trang → mục "Linh kiện kho PT" bỏ dropdown riêng, thay bằng nút "Chọn linh kiện từ kho" mở dialog trên; chọn nhiều món cùng lúc, mỗi món gọi `addPartCost` (trừ tồn + cộng giá vốn LK × SL). Xoá code dropdown/qty/đơn giá cũ.
+- Thẻ SP trong list Kho: chip "Sửa +X" (khi có `refurbishCost`, cần quyền giá vốn). Chọn SP trong Tạo đơn bán: dòng phụ có "🔧 Đã sửa +X" (cả SP đã/chưa định giá). Sheet chi tiết SP: dưới ô "Chi phí sửa · Tổng giá vốn" liệt kê từng khoản (đọc SQLite, không read cloud).
+- **Giá vốn khi bán** (`create_sale_view` totalCost + `unitCost` snapshot) = `cost + refurbishCost` ⇒ lãi đơn bán trừ đủ chi phí sửa. Để không trừ 2 lần, `FinanceV2DataService._isImportExpense` coi phiếu chi category chứa "TÂN TRANG" là vốn hàng (như NHẬP HÀNG), không tính vào chi phí vận hành.
+- Máy thật A: dialog hiện đúng như đơn sửa; chọn QA-CAP x1 → refurbishCost 400k→430k, tồn 4→3, lịch sử ghi; list Kho hiện "Sửa +430.000"; Tạo đơn bán hiện "Đã sửa +430.000"; chi tiết SP liệt kê Thay PIN X / Ep / Thay QA-CAP. analyze 0 error, test 735 PASS.
+
 ## [2026-09-22b] - Sửa/Tân trang: lối tắt Kho phụ tùng + hiện NCC trong dropdown + gọn giao diện
 
 - Sheet "Sửa/Tân trang" (mục Linh kiện kho PT) thêm nút **"Bổ sung/sửa/xoá phụ tùng"** — mở thẳng `PartsInventoryView` (thêm/sửa/xoá linh kiện), tự nạp lại danh sách khi quay về nên dropdown khớp ngay không cần đóng mở lại sheet.
