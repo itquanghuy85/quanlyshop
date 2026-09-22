@@ -102,7 +102,7 @@ class _InventoryViewState extends State<InventoryView>
   String _searchQuery = "";
   bool _isSearchBarVisible = false;
   late TextEditingController _inlineSearchController;
-  bool _showOutOfStock = false; // Hiển thị cả hàng hết
+  bool _showOutOfStock = true; // Mặc định HIỆN cả hàng hết (2026-09-22), bấm để ẩn
   String _filterType =
       'TẤT CẢ'; // Filter theo loại: TẤT CẢ, DIEN_THOAI, PHỤ KIỆN, LINH_KIEN
   String? _filterLocationCode; // Filter theo vị trí lưu kho
@@ -3150,7 +3150,7 @@ class _InventoryViewState extends State<InventoryView>
   Widget _buildInventorySummary(int qty, int capital, int shownCount) {
     final l10n = AppLocalizations.of(context)!;
     final isFiltered =
-        _searchQuery.isNotEmpty || _filterType != 'TẤT CẢ' || _showOutOfStock;
+        _searchQuery.isNotEmpty || _filterType != 'TẤT CẢ' || !_showOutOfStock;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

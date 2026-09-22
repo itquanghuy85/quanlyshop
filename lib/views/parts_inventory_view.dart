@@ -62,7 +62,7 @@ class _PartsInventoryViewContentState extends State<PartsInventoryViewContent> {
   bool _canViewCostPrice = false; // Phân quyền xem giá vốn
   bool _isSelectionMode = false;
   final Set<int> _selectedIds = {};
-  bool _showOutOfStock = false;
+  bool _showOutOfStock = true; // Mặc định hiện cả hết hàng (2026-09-22), bấm để ẩn
   String _sortBy = 'name'; // name, quantity, cost
   StreamSubscription? _eventBusSub;
   Timer? _partsRefreshDebounce;

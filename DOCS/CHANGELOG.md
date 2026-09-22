@@ -4,6 +4,11 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-22e] - Kho SP & Kho linh kiện: mặc định HIỆN cả hàng hết, bấm nút mới ẩn
+
+- `inventory_view._showOutOfStock` và `parts_inventory_view._showOutOfStock` mặc định `true` (trước `false` ⇒ vào Kho chỉ thấy hàng còn tồn, máy đã bán/hết "biến mất"). Nút "Hết" / mắt vẫn bật-tắt như cũ; trạng thái ẨN giờ được coi là đang lọc (banner "đang lọc" của Kho SP đổi điều kiện `!_showOutOfStock`).
+- Máy thật A: Kho SP hiện "Tất cả / 27" (27 SP, 11 còn tồn) thay vì 11. analyze 0, test 737 PASS.
+
 ## [2026-09-22d] - Tân trang SP: sheet dùng chung + sửa/xoá dịch vụ, đổi/xoá phụ tùng + không tự đóng + lối tắt sau xác nhận nhập kho + đổi chữ "Tân trang"
 
 - `lib/widgets/product_refurbish_sheet.dart` (mới, `showProductRefurbishSheet(context, product)`): tách sheet khỏi `inventory_view`; **sau khi lưu KHÔNG đóng sheet** — nạp lại lịch sử + giá vốn tại chỗ (trước đây pop về list Kho nên tưởng "không thấy hiện"); nút X để đóng. Lịch sử: menu ⋮ mỗi khoản → *Sửa dịch vụ / Xoá dịch vụ* (dịch vụ, chi phí khác) hoặc *Đổi phụ tùng / Xoá phụ tùng* (linh kiện).
