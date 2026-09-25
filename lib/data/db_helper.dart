@@ -480,6 +480,31 @@ class DBHelper {
     );
   }
 
+  /// [2026-09-24] Map `products.id` → TÊN người thực hiện lần tân trang gần
+  /// nhất, cho list Kho / chi tiết SP hiển thị trong 1 query thay vì N query
+  /// theo từng thẻ hàng (đọc SQLite, KHÔNG read cloud — FirestoreService
+  /// gate sẵn 79 hàm, view không được tự mở listener mới).
+  ///
+  /// Sắp theo `updatedAt` (nếu có) rồi `createdAt` — đúng mốc dữ liệu thực
+  /// tế; tie-break theo `id` giảm dần. Bỏ dòng đã xoá mềm, bỏ dòng trống tên.
+  Future<Map<int, String>> getLatestRefurbishActors() async {
+    final db = await database;
+    await _ensureProductRefurbishSchema(db);
+    final rows = await db.rawQuery(
+      'SELECT productId, createdBy FROM product_refurbish_items '
+      'WHERE (deleted = 0 OR deleted IS NULL) '
+      "AND createdBy IS NOT NULL AND TRIM(createdBy) != '' "
+      'ORDER BY COALESCE(updatedAt, createdAt) DESC, id DESC',
+    );
+    final out = <int, String>{};
+    for (final r in rows) {
+      final pid = (r['productId'] as num?)?.toInt();
+      if (pid == null || out.containsKey(pid)) continue;
+      out[pid] = (r['createdBy'] as String? ?? '').trim();
+    }
+    return out;
+  }
+
   Future<List<Map<String, dynamic>>> getUnsyncedProductRefurbishItems() async {
     final db = await database;
     await _ensureProductRefurbishSchema(db);

@@ -1819,12 +1819,15 @@ class ExcelExportHelper {
       [TextCellValue('Tổng chi'), IntCellValue(f.totalOut as int)],
       [TextCellValue('Lợi nhuận'), IntCellValue(f.netProfit as int)],
       [TextCellValue(''), TextCellValue('')],
-      [TextCellValue('Thu bán hàng'), IntCellValue(f.saleIncome as int)],
+      // Doanh thu bán/sửa = ACCRUAL (theo ngày bán / ngày giao) — khác với
+      // "Tổng thu" phía trên vốn là TIỀN vào quỹ. Không đổi nhãn thì 2 dòng
+      // trông như phải cộng lại bằng tổng thu.
+      [TextCellValue('Doanh thu bán hàng'), IntCellValue(f.saleIncome as int)],
       [TextCellValue('Lãi bán hàng'), IntCellValue(f.saleProfit as int)],
     ];
     if (enableRepair) {
       summaryRows.addAll([
-        [TextCellValue('Thu sửa chữa'), IntCellValue(f.repairIncome as int)],
+        [TextCellValue('Doanh thu sửa chữa'), IntCellValue(f.repairIncome as int)],
         [TextCellValue('Lãi sửa chữa'), IntCellValue(f.repairProfit as int)],
       ]);
     }

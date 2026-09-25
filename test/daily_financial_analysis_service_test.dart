@@ -148,12 +148,13 @@ void main() {
         },
       ];
       final r = runAnalysis(inputs);
-      // Only downPayment counted as income
-      expect(r.saleIncome, 5000000);
+      // ACCRUAL: doanh thu + giá vốn ghi ĐỦ ngay ngày ký trả góp.
+      expect(r.saleIncome, 15000000);
+      expect(r.saleCost, 12000000);
+      expect(r.saleProfit, 3000000);
+      // TIỀN: chỉ cọc về trong kỳ.
+      expect(r.saleCash, 5000000);
       expect(r.cashIn, 5000000);
-      // Cost proportional: 12M * (5M/15M) = 4M
-      expect(r.saleCost, 4000000);
-      expect(r.saleProfit, 1000000);
     });
 
     test('installment with bank down payment', () {
@@ -171,11 +172,13 @@ void main() {
         },
       ];
       final r = runAnalysis(inputs);
-      expect(r.saleIncome, 8000000);
+      // ACCRUAL: đủ 20M ngay ngày bán.
+      expect(r.saleIncome, 20000000);
+      expect(r.saleCost, 16000000);
+      // TIỀN: chỉ cọc 8M về ngân hàng.
+      expect(r.saleCash, 8000000);
       expect(r.bankIn, 8000000);
       expect(r.cashIn, 0);
-      // Cost proportional: 16M * (8M/20M) = 6.4M
-      expect(r.saleCost, 6400000);
     });
   });
 
@@ -196,9 +199,14 @@ void main() {
       final r = runAnalysis(inputs);
       expect(r.settlementIncome, 10000000);
       expect(r.bankIn, 10000000);
-      // remainRatio = 1 - (5M/15M) = 0.6667; cost = 12M * 0.6667 = 8M
-      expect(r.saleCost, 8000000);
-      expect(r.saleProfit, 10000000 - 8000000); // settlement - cost
+      // TIỀN tất toán KHÔNG cộng thêm giá vốn: đơn trả góp đã ghi `saleCost`
+      // ĐỦ ngay ngày BÁN ở kỳ nó bán. Đây là kỳ chỉ nhận tiền tất toán nên
+      // doanh thu/vốn kỳ này = 0 (trừ khi đơn bán trong cùng kỳ).
+      expect(r.saleCost, 0);
+      expect(r.saleIncome, 0);
+      expect(r.saleProfit, 0);
+      // Tiền bán thuần (cọc + tất toán) để dùng cho bảng cơ cấu TIỀN THU.
+      expect(r.saleCash, 0);
     });
 
     test('settlement capped at total loan', () {
@@ -617,7 +625,7 @@ void main() {
       expect(r.cashOut, 500000);
     });
 
-    test('CÔNG NỢ return skipped', () {
+    test('CÔNG NỢ return: no cash out, but revenue/cost reversed (accrual)', () {
       final inputs = emptyInputs();
       inputs['salesReturns'] = [
         {
@@ -627,9 +635,14 @@ void main() {
         },
       ];
       final r = runAnalysis(inputs);
+      // Không có dòng tiền ra (khách trả hàng chứ không nhận tiền).
       expect(r.refundOut, 0);
       expect(r.cashOut, 0);
-      expect(r.saleIncome, 0);
+      expect(r.saleCash, 0);
+      // ACCRUAL: trả hàng vẫn huỷ doanh thu + thu hồi giá vốn.
+      expect(r.saleIncome, -500000);
+      expect(r.saleCost, -350000);
+      expect(r.returnCost, 350000);
     });
   });
 
@@ -823,11 +836,13 @@ void main() {
       expect(r.bankOut, 0);
       expect(r.totalOut, 4550000);
 
-      // Sale income: 170k + 18.71M + 5M(down) = 23,880,000
-      expect(r.saleIncome, 23880000);
-      // Sale cost: 140k + 16M + 4M(proportional) = 20,140,000
-      expect(r.saleCost, 20140000);
-      expect(r.saleProfit, 3740000);
+      // ACCRUAL: 170k + 18.71M + 15M (đủ giá bán trả góp) = 33,880,000
+      expect(r.saleIncome, 33880000);
+      // Giá vốn: 140k + 16M + 12M (đủ vốn trả góp) = 28,140,000
+      expect(r.saleCost, 28140000);
+      expect(r.saleProfit, 5740000);
+      // TIỀN bán thuần: 170k + 18.71M + cọc 5M = 23,880,000
+      expect(r.saleCash, 23880000);
 
       expect(r.debtCollected, 3000000);
       expect(r.supplierPaid, 3000000);
@@ -870,8 +885,9 @@ void main() {
         },
       ];
       final r = runAnalysis(inputs);
-      // netProfit = saleIncome(10M) + settlementIncome(0) + repairIncome(500k) + miscIncome(200k)
+      // netProfit = saleIncome(10M) + repairIncome(500k) + miscIncome(200k)
       //           - expenseOut(1M) - saleCost(7M) - repairCost(100k) = 2,600,000
+      // (không còn cộng `settlementIncome` — tiền tất toán là dòng tiền)
       expect(r.netProfit, 2600000);
     });
   });

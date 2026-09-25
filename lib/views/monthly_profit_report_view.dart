@@ -202,10 +202,10 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
         enableRepair: enableRepair,
       );
 
-      final revenue =
-          analysis.saleIncome +
-          analysis.settlementIncome +
-          analysis.repairIncome;
+      // [2026-09-24] Doanh thu = ACCRUAL: `saleIncome` đã ghi đủ giá bán của
+      // đơn trả góp / KẾT HỢP / CÔNG NỢ ngay tháng bán. Cộng thêm
+      // `settlementIncome` (tiền tất toán NH) là cộng doanh thu 2 lần.
+      final revenue = analysis.saleIncome + analysis.repairIncome;
 
       months.add(
         _MonthData(
@@ -219,6 +219,7 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
           totalOut: analysis.totalOut,
           saleIncome: analysis.saleIncome,
           settlementIncome: analysis.settlementIncome,
+          saleCash: analysis.saleCash,
           repairIncome: analysis.repairIncome,
           debtCollected: analysis.debtCollected,
           importOut: analysis.importOut,
@@ -875,9 +876,10 @@ class _MonthlyProfitReportViewState extends State<MonthlyProfitReportView> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
-                  // THU section
+                  // THU section — TIỀN: "Bán hàng" là tiền thu thuần (không gồm
+                  // tất toán NH, dòng kế bên) để không cộng tiền 2 lần.
                   _detailSection('📥 THU', Colors.green, [
-                    _detailRow('Bán hàng', m.saleIncome),
+                    _detailRow('Bán hàng', m.saleCash),
                     _detailRow('Tất toán NH', m.settlementIncome),
                     _detailRow('Sửa chữa', m.repairIncome),
                     _detailRow('Thu nợ KH', m.debtCollected),
@@ -1076,6 +1078,9 @@ class _MonthData {
   final int importOut;
   final int supplierPaid;
 
+  /// TIỀN bán hàng đã thu (không gồm tất toán NH) — cho bảng cơ cấu TIỀN THU.
+  final int saleCash;
+
   const _MonthData({
     required this.month,
     required this.revenue,
@@ -1091,5 +1096,6 @@ class _MonthData {
     required this.debtCollected,
     required this.importOut,
     required this.supplierPaid,
+    this.saleCash = 0,
   });
 }

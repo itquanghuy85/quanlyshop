@@ -422,4 +422,10 @@ class ProductRefurbishService {
   static Future<List<Map<String, dynamic>>> getHistory(int productId) async {
     return DBHelper().getProductRefurbishItems(productId);
   }
+
+  /// Map `products.id` → tên người tân trang lần gần nhất (1 query SQLite).
+  /// Dùng cho list Kho — không cần quyền giá vốn vì chỉ trả tên người, không
+  /// trả con số (CLAUDE.md §9).
+  static Future<Map<int, String>> latestActorByProduct() =>
+      DBHelper().getLatestRefurbishActors();
 }

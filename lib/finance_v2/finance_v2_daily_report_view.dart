@@ -655,11 +655,10 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
 
     // Kết quả kinh doanh = ACCRUAL (từ analyze()): ghi đủ doanh thu + đủ giá
     // vốn ngay khi bán, kể cả đơn công nợ chưa thu. KHÔNG lấy từ FinanceV2
-    // (cash basis) cho các dòng này.
-    final totalRevenue = analysis.saleIncome +
-        analysis.settlementIncome +
-        analysis.repairIncome +
-        analysis.miscIncome;
+    // (cash basis) cho các dòng này. KHÔNG cộng `settlementIncome` — tiền tất
+    // toán trả góp là dòng tiền, doanh thu đơn đó đã nằm trong `saleIncome`.
+    final totalRevenue =
+        analysis.saleIncome + analysis.repairIncome + analysis.miscIncome;
     final totalCost =
         analysis.saleCost + analysis.repairCost + analysis.expenseOut;
     final totalProfit = analysis.netProfit;
@@ -669,7 +668,11 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
       ['shop_name', shopInfo.shopName.isNotEmpty ? shopInfo.shopName : 'N/A', 'Tên cửa hàng'],
       ['shop_id', (shopId == null || shopId.isEmpty) ? 'N/A' : shopId, 'Mã cửa hàng'],
       ['period_label', _rangeLabel, 'Kỳ báo cáo'],
-      ['total_revenue', totalRevenue, 'Doanh thu (accrual) = bán + sửa + tất toán + thu khác — không phụ thuộc đã thu tiền'],
+      [
+        'total_revenue',
+        totalRevenue,
+        'Doanh thu (accrual) = bán + sửa + thu khác — ghi theo ngày bán/ngày giao, không phụ thuộc đã thu tiền',
+      ],
       // CLAUDE.md §9 — không có quyền xem giá vốn thì file xuất ra cũng không
       // được mang theo giá vốn / lợi nhuận.
       if (_canViewCost) ...[
@@ -690,9 +693,13 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
       ['transactions_count', s.transactionCount, 'Số giao dịch dùng để tổng hợp'],
     ];
 
+    // Sheet "cashflow" → số LIÊU TIỀN. `sale_income` cũ là doanh thu dồn tích
+    // (sau khi đổi sang accrual) nên đổi sang `sale_cash`, giữ riêng một dòng
+    // `sale_income_accrual` cho người đọc muốn so với tab Lãi.
     final cashflowRows = <List<dynamic>>[
-      ['sale_income', analysis.saleIncome],
+      ['sale_cash', analysis.saleCash],
       ['settlement_income', analysis.settlementIncome],
+      ['sale_income_accrual', analysis.saleIncome],
       ['repair_income', analysis.repairIncome],
       ['debt_collected', analysis.debtCollected],
       ['misc_income', analysis.miscIncome],
@@ -977,13 +984,14 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     lines.writeln('Giao dich:  ${s.transactionCount}');
     lines.writeln('');
 
-    // Chi tiết doanh thu theo nhóm
+    // Chi tiết doanh thu theo nhóm — TIỀN (cash): khối này nằm dưới "TONG
+    // QUAN" vốn đã in `s.totalIn`, nên phải là tiền thu vào mới cộng lại được.
     lines.writeln('[C][B]--- DOANH THU CHI TIET ---');
-    if (s.incomeFromSales > 0) {
-      lines.writeln('Ban hang:   +${MoneyUtils.formatCompactCurrency(s.incomeFromSales)}d');
+    if (s.cashFromSales > 0) {
+      lines.writeln('Ban hang:   +${MoneyUtils.formatCompactCurrency(s.cashFromSales)}d');
     }
-    if (s.incomeFromRepairs > 0) {
-      lines.writeln('Sua chua:   +${MoneyUtils.formatCompactCurrency(s.incomeFromRepairs)}d');
+    if (s.cashFromRepairs > 0) {
+      lines.writeln('Sua chua:   +${MoneyUtils.formatCompactCurrency(s.cashFromRepairs)}d');
     }
     // Thu nợ (DEBT_COLLECT)
     final debtCollectTxs = s.transactions.where((t) => t.type.toUpperCase() == 'DEBT_COLLECT');
@@ -1236,8 +1244,11 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
       title: '2. Cơ cấu thu chi',
       colHeaders: const ['Loại', 'Số tiền', '% tổng'],
       rows: [
-        ['THU — Bán hàng', (s.incomeFromSales), '${((s.incomeFromSales / totalIn) * 100).toStringAsFixed(1)}%'],
-        ['THU — Sửa chữa', (s.incomeFromRepairs), '${((s.incomeFromRepairs / totalIn) * 100).toStringAsFixed(1)}%'],
+        // THU = TIỀN (cash) — các dòng phải cộng lại gần đúng "Tổng thu".
+        // "Bán hàng" dùng `analysis.saleCash` (không gồm tất toán NH) để không
+        // cộng tiền tất toán 2 lần ở dòng kế bên; `s.cashFromSales` đã gồm nó.
+        ['THU — Bán hàng', (analysis.saleCash), '${((analysis.saleCash / totalIn) * 100).toStringAsFixed(1)}%'],
+        ['THU — Sửa chữa', (s.cashFromRepairs), '${((s.cashFromRepairs / totalIn) * 100).toStringAsFixed(1)}%'],
         ['THU — Tất toán NH', (settlement), '${((settlement / totalIn) * 100).toStringAsFixed(1)}%'],
         ['THU — Thu nợ KH', (debtCollected), '${((debtCollected / totalIn) * 100).toStringAsFixed(1)}%'],
         ['THU — Thu khác', (miscIncome), '${((miscIncome / totalIn) * 100).toStringAsFixed(1)}%'],
@@ -1445,13 +1456,17 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     );
 
     // ── Section 10: Tổng kết cuối ngày ───────────────────────────
-    final totalRevenue = s.incomeFromSales + s.incomeFromRepairs + s.incomeOther;
+    // ACCRUAL: doanh thu + giá vốn theo ngày bán / ngày giao. Không cộng
+    // `incomeOther` (thu khác) vào "Tổng doanh thu" — đó là tiền, không phải
+    // doanh thu; cộng vào là lẫn 2 khái niệm.
+    final totalRevenue = s.incomeFromSales + s.incomeFromRepairs;
     final sec10 = FinanceV2DetailedDailySection(
       title: '10. Tổng kết cuối ngày',
       colHeaders: const ['Chỉ tiêu', 'Giá trị'],
       rows: [
         ['Tổng doanh thu', (totalRevenue)],
         ['Tổng vốn hàng bán', (s.cogsFromSales)],
+        ['Giá vốn sửa chữa', (s.cogsFromRepairs)],
         ['Lãi gộp bán hàng', (s.grossProfitFromSales)],
         ['Lãi gộp sửa chữa', (s.grossProfitFromRepairs)],
         ['Lãi tổng', (s.grossProfitTotal)],
@@ -1565,11 +1580,13 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
     final settlement = analysis.settlementIncome;
 
     buf.writeln('[C][B]CO CAU THU');
-    if (s.incomeFromSales > 0) {
-      buf.writeln('Ban hang:    ${fmtM(s.incomeFromSales)}  (${((s.incomeFromSales / totalIn) * 100).round()}%)');
+    // TIỀN (cash) — % tính trên `s.totalIn`. "Ban hang" loại tiền tất toán NH
+    // (dòng kế bên) để không cộng 2 lần; `s.cashFromSales` đã gồm nó.
+    if (analysis.saleCash > 0) {
+      buf.writeln('Ban hang:    ${fmtM(analysis.saleCash)}  (${((analysis.saleCash / totalIn) * 100).round()}%)');
     }
-    if (s.incomeFromRepairs > 0) {
-      buf.writeln('Sua chua:    ${fmtM(s.incomeFromRepairs)}  (${((s.incomeFromRepairs / totalIn) * 100).round()}%)');
+    if (s.cashFromRepairs > 0) {
+      buf.writeln('Sua chua:    ${fmtM(s.cashFromRepairs)}  (${((s.cashFromRepairs / totalIn) * 100).round()}%)');
     }
     if (settlement > 0) {
       buf.writeln('Tat toan NH: ${fmtM(settlement)}  (${((settlement / totalIn) * 100).round()}%)');
@@ -1991,7 +2008,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
         children: [
           _groupHeader(context, 'KẾT QUẢ KINH DOANH (accrual)'),
           if (a != null) ...[
-            _metricRow(context, 'Doanh thu bán hàng', a.saleIncome + a.settlementIncome, AppColors.success),
+            _metricRow(context, 'Doanh thu bán hàng', a.saleIncome, AppColors.success),
             _metricRow(context, 'Doanh thu sửa chữa', a.repairIncome, AppColors.info),
             _metricRow(context, 'Thu khác', a.miscIncome, AppColors.primary),
             // CLAUDE.md §9 — "Giá vốn" là giá vốn, còn "Lợi nhuận" thì từ

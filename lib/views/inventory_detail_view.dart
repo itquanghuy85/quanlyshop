@@ -6,7 +6,9 @@ import 'package:intl/intl.dart';
 import '../data/db_helper.dart';
 import '../models/supplier_model.dart';
 import '../services/event_bus.dart';
+import '../services/product_refurbish_service.dart';
 import '../services/sync_orchestrator.dart';
+import '../services/user_service.dart';
 import '../theme/app_colors.dart';
 import '../models/product_model.dart';
 import '../theme/app_text_styles.dart';
@@ -41,10 +43,28 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
   late Product _product;
   final _db = DBHelper();
 
+  // Giá vốn / lợi nhuận chỉ hiện khi có quyền (CLAUDE.md §9) — mặc định ẩn
+  // tới khi đọc xong quyền, lỗi đọc không được rơi về true.
+  bool _canViewCost = false;
+  // Lịch sử tân trang: hiện cho mọi vai trò, chỉ SỐ TIỀN mới bị chặn quyền.
+  List<Map<String, dynamic>> _refurbishHistory = const [];
+
   @override
   void initState() {
     super.initState();
     _product = widget.product;
+    UserService.canViewCostPrice().then((v) {
+      if (mounted) setState(() => _canViewCost = v);
+    });
+    _loadRefurbishHistory();
+  }
+
+  Future<void> _loadRefurbishHistory() async {
+    final id = widget.product.id;
+    if (id == null) return;
+    final items = await ProductRefurbishService.getHistory(id);
+    if (!mounted) return;
+    setState(() => _refurbishHistory = items);
   }
 
   Future<void> _openSupplier(String name) async {
@@ -339,13 +359,17 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
                       ),
                     ],
                     _divider(),
-                    _costRow(product.cost),
-                    _divider(),
-                    _row(
-                      widget.soldPrice != null ? 'Lợi nhuận' : 'Lợi nhuận dự kiến',
-                      '${profit >= 0 ? '+' : ''}${MoneyUtils.formatCompactCurrency(profit)}',
-                      valueColor: profit >= 0 ? Colors.green.shade700 : Colors.red.shade700,
-                    ),
+                    // Giá vốn + lợi nhuận = lộ giá vốn (doanh thu − lợi nhuận
+                    // = giá vốn) → chặn theo quyền, không chỉ ẩn con số gốc.
+                    if (_canViewCost) ...[
+                      _costRow(product.cost),
+                      _divider(),
+                      _row(
+                        widget.soldPrice != null ? 'Lợi nhuận' : 'Lợi nhuận dự kiến',
+                        '${profit >= 0 ? '+' : ''}${MoneyUtils.formatCompactCurrency(profit)}',
+                        valueColor: profit >= 0 ? Colors.green.shade700 : Colors.red.shade700,
+                      ),
+                    ],
                   ],
                 );
               }),
@@ -359,6 +383,13 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
               _divider(),
               _importDateRow(product),
             ]),
+            // ── Lịch sử tân trang: hiện TỪNG khoản + người thực hiện cho mọi
+            // vai trò; chỉ số tiền mới cần quyền giá vốn (y/c 2026-09-24) ──
+            if (_refurbishHistory.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _sectionTitle('LỊCH SỬ TÂN TRANG', Icons.build_circle_outlined),
+              _sectionCard(_refurbishHistory.map(_refurbishRow).toList()),
+            ],
           ],
         ),
       ),
@@ -555,6 +586,68 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // 1 dòng lịch sử tân trang: mô tả + người thực hiện hiện cho mọi vai trò;
+  // chỉ số tiền là bị chặn theo quyền giá vốn (CLAUDE.md §9).
+  Widget _refurbishRow(Map<String, dynamic> it) {
+    final isPart = it['type'] == 'PART';
+    final qty = (it['quantity'] as num?)?.toInt() ?? 1;
+    final label = isPart && qty > 1
+        ? '${it['description']} x$qty'
+        : (it['description'] as String? ?? '');
+    final partner = (it['partnerName'] as String?)?.trim();
+    final by = (it['createdBy'] as String?)?.trim();
+    final ts = (it['createdAt'] as num?)?.toInt() ?? 0;
+    final meta = [
+      if (by != null && by.isNotEmpty) 'Người thực hiện: $by',
+      if (partner != null && partner.isNotEmpty) partner,
+      if (!isPart && it['paymentMethod'] != null) it['paymentMethod'].toString(),
+      if (ts > 0)
+        DateFormat('HH:mm dd/MM/yyyy')
+            .format(DateTime.fromMillisecondsSinceEpoch(ts)),
+    ].join(' · ');
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            isPart ? Icons.memory : Icons.handyman_outlined,
+            size: 16,
+            color: AppColors.primary,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: AppTextStyles.body1
+                      .copyWith(fontWeight: FontWeight.w600),
+                ),
+                if (meta.isNotEmpty)
+                  Text(
+                    meta,
+                    style: AppTextStyles.caption
+                        .copyWith(color: AppColors.textSecondary),
+                  ),
+              ],
+            ),
+          ),
+          if (_canViewCost)
+            Text(
+              '${MoneyUtils.formatCurrency((it['amount'] as num?)?.toInt() ?? 0)}đ',
+              style: AppTextStyles.body1.copyWith(
+                fontWeight: FontWeight.w700,
+                color: Colors.orange.shade700,
+              ),
+            ),
+        ],
       ),
     );
   }

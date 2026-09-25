@@ -4,6 +4,29 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-24b] - Tài chính: đổi toàn bộ công thức lãi sang DỒN TÍCH (accrual) + tách hẳn khỏi dòng tiền
+
+- **Nguyên tắc mới:** doanh thu / giá vốn / lãi gộp ghi nhận theo **ngày bán hoặc ngày giao**, cho **mọi PTTT** (CÔNG NỢ, TRẢ GÓP, KẾT HỢP thu thiếu, TIỀN MẶT/CK). Trả hàng trừ cả doanh thu **và** giá vốn bất kể PTTT hoàn. Còn tiền vào/ra giữ nguyên là sổ tiền mặt.
+- `FinanceV2DataService` / `FinanceV2Snapshot`: `incomeFromSales` + `incomeFromRepairs` (cùng `cogsFrom*`, `grossProfitFrom*`, `previous*`) = ACCRUAL (dồn đủ từ `salesInPeriod` / `getDeliveredRepairsByDateRange`, **không** qua `_mergeSettlementSales`); thêm `cashFromSales` / `cashFromRepairs` / `previousCashFrom*` = **đúng con số cash cũ** của bảng "Cơ cấu tiền thu vào". Thêm `debtCollectIn` (thu nợ KH là TIỀN). `_linkedRevenueOf` chỉ còn dựng **tên đơn/itemName**, không cộng doanh thu — đảo ngược "phương án A" 2026-09-18. Trả hàng: `saleRevenueNet`/`saleCogsNet` = accrual − trả hàng, `cashFromSales` = (`saleIn` − `refundOut`).
+- `DailyFinancialAnalysisService`: trả góp tính `saleIncome = finalPrice`, `saleCost = totalCost` (bỏ tỉ lệ tiền, bỏ `remainRatio` khi tất toán trong cùng kỳ); KẾT HỢP tính đủ `finalPrice`; `netProfit`/`saleProfit` không còn cộng `settlementIncome`; thêm **`saleCash`** = tiền bán thuần (không gồm tất toán NH, net refund non-CÔNG NỢ).
+- **Tiêu chí 2 bảng cơ cấu tiền thu** (tất cả bảng có dòng "Tất toán NH" riêng phải loại nó khỏi "Bán hàng" nếu dùng `cashFromSales` — nếu không tính tiền tất toán 2 lần): `finance_v2_view` (tab Tiền + sheet Excel "Cơ cấu tiền thu" + "Tiền vào/ra"), `finance_v2_daily_report_view` (cashflowRows `sale_cash`/`settlement_income`/`sale_income_accrual`, printer `DOANH THU CHI TIET`/`CO CAU THU`, metric "Doanh thu bán hàng"), `home_view` (`_todaySaleIncome = analysis.saleCash`, `_todayRepairIncome = snapshot.cashFromRepairs`), `monthly_profit_report_view` (Thêm `saleCash` vào `_MonthData`; `📥 THU ▸ Bán hàng`), `excel_export_helper` (nhãn "Doanh thu bán hàng/sửa chữa" = accrual).
+- **Consumer khác:** `finance_v2_view` — section 2 THU, `_profitSection` doc + hint, `_incomeSection` (tiền + row "Thu nợ khách hàng" → `_goTx('DEBT_COLLECT')`), text dump, sheet "Lãi" (cả nhóm TIỀN lẫn nhóm DOANH THU), Section 3 KẾT HỢP bỏ special-case `displayPrice` → `finalPrice`, Section 10 bỏ `cogsRepairActual`; `_reportInputFromSnapshot.totalRevenue = incomeFrom*` nay khớp audit log (SALE `lineAmount = finalPrice`, RETURN `= amount`, REPAIR `= price`, DEBT_COLLECT/DEBT_PAY `= 0`).
+- `FinanceV2Cache` không đổi: `sales_changed`/`repairs_changed` → còn invalidate `profit`; `debt_payments_changed` → chỉ {cash, debt, transactions} (đúng — thu nợ không đụng lãi). Idempotent, không migration ledger.
+- KB `app_knowledge_base`: mục `finance-cash-vs-accrual` viết lại theo UI mới, term `tat-toan` (tất toán KHÔNG cộng lãi lần 2), `lai-gop` (tính theo ngày bán), note tab Tài chính phân biệt TIỀN vs LÃI.
+- Test: mới `test/finance_accrual_invariants_test.dart` (15 test — A1..A7 snapshot, B1..B8 chốt quỹ/2 engine); cập nhật kỳ vọng `finance_full_scenario_test`, `daily_financial_analysis_service_test`, `ket_hop_cash_split_test`; `test/FINANCE_FULL_SCENARIO.md` viết lại §2/§3/§4.
+- Verify: `flutter analyze` **0 error** (1876 info/warning — không đổi so với baseline), `flutter test` **755 PASS / 1 SKIP / 0 FAIL**. Chưa build release, chưa commit.
+
+## [2026-09-24a] - Kho / Chi tiết SP: hiện **người tân trang** gần nhất (không gate giá vốn) + lịch sử tân trang
+
+- `DBHelper.getLatestRefurbishActors()` (mới): 1 query duy nhất `COALESCE(products.refurbishUpdatedAt, ...) DESC`, map `products.id → tên người sửa/đổi gần nhất`, loại `deleted = 1` + tên rỗng — tránh N query theo từng hạng mục, **đọc SQLite, KHÔNG read cloud** (không thêm listener; `FirestoreService` gate sẵn 79 hàm).
+- `ProductRefurbishService.latestActorByProduct()` (mới) → `Map<int, String>`.
+- `inventory_view`: chip **`🔧 <người>` ungated** ở list + đầu trang chi tiết; popup "Tân trang ngay" header + lịch sử ungated, **chỉ phần số tiền bị gate** `canViewCostPrice` (CLAUDE.md §9); thêm dòng "Người thực hiện: <createdBy>" ungated.
+- `product_refurbish_sheet.dart`: dòng "Người TC: <by>" ungated.
+- `inventory_detail_view`: section **LỊCH SỬ TÂN TRANG** mới — actor ungated, giá trị đóng góp gate `_canViewCost`, dòng cuối "Người thực hiện".
+- Test: `test/product_refurbish_service_test.dart` (3 test `getLatestRefurbishActors`), 10/10 PASS.
+
+---
+
 ## [2026-09-22i] - Tân trang: nhân viên vẫn dùng được (ẩn giá vốn) · đồng bộ lịch sử sang máy khác · rules + index
 
 - Đảo lại `[2026-09-22h]`: KHÔNG chặn cửa — nhân viên không có quyền giá vốn vẫn tân trang (ghi dịch vụ, lấy linh kiện). Trong sheet ẩn dòng "Giá vốn gốc · Tân trang · Tổng", ẩn số tiền từng dòng lịch sử, câu xoá không nêu số tiền; nút "Tân trang" ở Kho và "Tân trang ngay" sau nhập kho hiện cho mọi người. Các nơi khác (chip list, ô chi tiết, dòng chọn SP bán) vẫn gate quyền.

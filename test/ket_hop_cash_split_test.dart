@@ -59,13 +59,16 @@ void main() {
       expect(a.bankIn, 10000000);
     });
 
-    test('KẾT HỢP thu thiếu (phần còn lại ghi nợ) chỉ tính phần đã thu', () {
+    test('KẾT HỢP thu thiếu: TIỀN chỉ tính phần đã thu, doanh thu đủ 10M', () {
       final a = run([
         ketHopSale(cash: 3000000, transfer: 2000000, totalPrice: 10000000),
       ]);
       expect(a.cashIn, 3000000);
       expect(a.bankIn, 2000000);
-      expect(a.saleIncome, 5000000);
+      // ACCRUAL [2026-09-24]: lãi KẾT HỢP không được thấp hơn đơn trả hết
+      // tiền dù cùng giá bán — ghi đủ `finalPrice` ngay ngày bán.
+      expect(a.saleIncome, 10000000);
+      expect(a.saleCash, 5000000);
     });
 
     test('KẾT HỢP toàn tiền mặt vẫn vào quỹ tiền mặt', () {

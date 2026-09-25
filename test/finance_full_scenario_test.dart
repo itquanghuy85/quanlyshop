@@ -529,8 +529,15 @@ void main() {
 
     test('tiền vào: bán 49.850.000 + sửa 3.750.000 + thu nợ 2.100.000 + thu khác 300.000',
         () {
-      expect(snap.incomeFromSales, 49850000, reason: 'doanh thu bán NET (đã trừ trả hàng 150k)');
-      expect(snap.incomeFromRepairs, 3750000, reason: 'sửa chữa thực thu, loại R3 CÔNG NỢ');
+      // TIỀN (cash) — dùng cho cơ cấu "Tiền thu vào".
+      expect(snap.cashFromSales, 49850000,
+          reason: 'tiền bán NET (đã trừ trả hàng 150k), gồm cọc + tất toán trả góp');
+      expect(snap.cashFromRepairs, 3750000, reason: 'sửa chữa thực thu, loại R3 CÔNG NỢ');
+      // ACCRUAL [2026-09-24] — ghi nhận theo ngày bán / ngày giao, mọi PTTT.
+      expect(snap.incomeFromSales, 54850000,
+          reason: '55.000.000 doanh thu bán (S1..S6, gồm S4 CN) − trả hàng 150.000');
+      expect(snap.incomeFromRepairs, 4350000, reason: 'gồm cả R3 CÔNG NỢ 600.000');
+      expect(snap.debtCollectIn, 2100000, reason: 'thu nợ KH là TIỀN, không vào doanh thu');
       expect(snap.incomeOther, 300000, reason: 'thu khác KHÔNG gồm thu nợ');
       // [2026-09-20 BUG-09] Dòng tiền GROSS như Sổ quỹ: tiền bán 50.000.000
       // vẫn là Tiền vào, hoàn 150.000 là Tiền ra (trước: trừ thẳng vào Tiền vào).
@@ -563,13 +570,18 @@ void main() {
       expect(partnerTxns.single.id, startsWith('expense_'));
     });
 
-    test('vốn & lãi gộp theo tỉ lệ tiền thực thu', () {
-      expect(snap.cogsFromSales, 41596667);
-      expect(snap.cogsFromRepairs, 1950000);
-      expect(snap.grossProfitFromSales, 8253333);
-      expect(snap.grossProfitFromRepairs, 1800000);
-      expect(snap.grossProfitTotal, 10053333);
-      expect(snap.grossProfitTotal - snap.operatingExpenseOut, 3853333,
+    test('vốn & lãi gộp theo ACCRUAL — đủ ngay ngày bán/giao, mọi PTTT', () {
+      // TIỀN đối chiếu (không đổi so với trước):
+      expect(snap.cashFromSales, 49850000);
+      expect(snap.cashFromRepairs, 3750000);
+      // ACCRUAL [2026-09-24]: không còn tính theo tỉ lệ tiền thực thu —
+      // đơn trả góp / KẾT HỢP / CÔNG NỢ ghi đủ vốn ngay ngày bán.
+      expect(snap.cogsFromSales, 45930000);
+      expect(snap.cogsFromRepairs, 2150000, reason: 'gồm cả vốn R3 CÔNG NỢ 200.000');
+      expect(snap.grossProfitFromSales, 8920000);
+      expect(snap.grossProfitFromRepairs, 2200000);
+      expect(snap.grossProfitTotal, 11120000);
+      expect(snap.grossProfitTotal - snap.operatingExpenseOut, 4920000,
           reason: 'lãi sau chi vận hành — KHÔNG trừ vốn SC lần 2');
     });
 
@@ -693,8 +705,13 @@ void main() {
     });
 
     test('phân rã thu chi', () {
-      expect(a.saleIncome, 28850000, reason: 'accrual: gồm S4 CN, trừ trả hàng');
-      expect(a.settlementIncome, 24000000);
+      // ACCRUAL [2026-09-24]: đủ giá bán S1..S6 (gồm S4 CN, trả góp tính đủ)
+      // trừ trả hàng 150.000 = 54.850.000.
+      expect(a.saleIncome, 54850000, reason: 'accrual: gồm S4 CN, trừ trả hàng');
+      // TIỀN bán thuần (không gồm tất toán NH — dòng riêng bên dưới).
+      expect(a.saleCash, 25850000,
+          reason: 'S1 200k + S2 11,8tr + S3 5tr + cọc S5 5tr + cọc S6 4tr − trả hàng 150k');
+      expect(a.settlementIncome, 24000000, reason: 'tất toán S6 16tr + S7 8tr');
       expect(a.repairIncome, 4350000, reason: 'gồm R3 CN');
       expect(a.debtCollected, 2100000);
       expect(a.miscIncome, 300000);
@@ -707,9 +724,11 @@ void main() {
     });
 
     test('vốn & lợi nhuận ròng ngày', () {
-      expect(a.saleCost, 43996667);
+      expect(a.saleCost, 45930000,
+          reason: 'accrual: đủ vốn S1..S6 − trả hàng 90.000');
       expect(a.repairCost, 2150000);
-      expect(a.netProfit, 5153333);
+      expect(a.netProfit, 5220000,
+          reason: '54,85tr + 4,35tr + 0,3tr − 6,2tr − 45,93tr − 2,15tr');
     });
   });
 
@@ -764,9 +783,11 @@ void main() {
     });
   });
 
-  /// Phương án A (2026-09-18): thu nợ của đơn CÔNG NỢ = doanh thu đã thu, vốn
-  /// theo tỉ lệ — như trả góp. dp1 (1tr) + dp6 (500k) gắn vào S4 (3tr, vốn 2,4tr).
-  group('Tài chính V2 — thu nợ đơn CÔNG NỢ ghi nhận doanh thu/vốn (phương án A)', () {
+  /// [2026-09-24] ĐẢO ngược "phương án A" (2026-09-18): thu nợ của đơn CÔNG NỢ
+  /// là TIỀN THU (`debtCollectIn`), KHÔNG cộng vào doanh thu/vốn — doanh thu +
+  /// giá vốn đã ghi ĐỦ ngay ngày BÁN cho mọi PTTT (CÔNG NỢ, trả góp, KẾT HỢP).
+  /// `linkedDebtLinkedId` chỉ còn dùng để hiển thị tên đơn trên dòng thu nợ.
+  group('Tài chính V2 — thu nợ KH KHÔNG cộng doanh thu (đảo phương án A)', () {
     late FinanceV2Snapshot base;
     late FinanceV2Snapshot linked;
 
@@ -777,27 +798,30 @@ void main() {
           .loadSnapshot(start: _day, end: _day);
     });
 
-    test('tổng tiền vào KHÔNG đổi, chỉ đổi phân loại thu nợ → doanh thu', () {
+    test('gắn hay không gắn đơn, tiền vào + doanh thu đều không đổi', () {
       expect(linked.totalIn, base.totalIn);
       expect(linked.totalOut, base.totalOut);
-      expect(linked.incomeFromSales, base.incomeFromSales + 1500000);
+      expect(linked.incomeFromSales, base.incomeFromSales,
+          reason: 'doanh thu S4 đã ghi đủ 3tr từ ngày bán, không cộng thêm 1,5tr thu nợ');
       // incomeOther vốn đã loại thu nợ (extraIn − debtCollectIn) nên không đổi.
       expect(linked.incomeOther, base.incomeOther);
+      expect(linked.debtCollectIn, 2100000, reason: 'dp1 + dp3 + dp6 vẫn là TIỀN thu nợ');
     });
 
-    test('vốn theo tỉ lệ 1.500.000 / 3.000.000 × 2.400.000 = 1.200.000', () {
-      expect(linked.cogsFromSales, base.cogsFromSales + 1200000);
-      expect(linked.grossProfitTotal, base.grossProfitTotal + 300000);
+    test('giá vốn / lãi gộp không đổi — không còn cộng theo tỉ lệ thu nợ', () {
+      expect(linked.cogsFromSales, base.cogsFromSales);
+      expect(linked.grossProfitTotal, base.grossProfitTotal);
     });
 
-    test('dòng thu nợ mang vốn/lãi gộp của đơn, không tạo dòng mới', () {
+    test('dòng thu nợ không mang vốn của đơn, chỉ giữ tham chiếu tên đơn', () {
       expect(linked.transactions.length, base.transactions.length);
       final rows = linked.transactions
           .where((t) => t.type == 'DEBT_COLLECT' && t.referenceId == 'D1')
           .toList();
       expect(rows.length, 2);
-      expect(rows.map((t) => t.costAmount).toList()..sort(),
-          [400000, 800000]);
+      // costAmount = null → dòng TIỀN không suy ngược ra giá vốn (CLAUDE.md §9).
+      expect(rows.map((t) => t.costAmount), everyElement(isNull));
+      expect(rows.map((t) => t.grossProfit), everyElement(isNull));
     });
 
     test('nợ không gắn đơn (D3) vẫn là thu nợ thường', () {

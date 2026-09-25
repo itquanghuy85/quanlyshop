@@ -68,7 +68,7 @@
 | **Auth** | `lib/services/user_service.dart` | Quản lý quyền, role, shopId |
 | **Firestore** | `lib/services/firestore_service.dart` | Tất cả tương tác với Firestore |
 | **Sync** | `lib/services/sync_service.dart` | Real-time subscriptions, offline-first |
-| **Local DB** | `lib/data/db_helper.dart` | SQLite schema v111, upsert patterns |
+| **Local DB** | `lib/data/db_helper.dart` | SQLite schema v112, upsert patterns |
 | **Bảng giá** | `lib/services/price_book_service.dart` | Giá đề xuất + giá GHIM (SharedPreferences, theo máy) |
 | **Danh mục giá NCC** | `lib/services/price_catalog_service.dart` | Bảng giá từ hoá đơn NCC — SQLite + Firestore theo `shopId` |
 | **Payments** | `lib/services/payment_intent_service.dart` | Xử lý thanh toán |
@@ -240,6 +240,25 @@
   `currentUser?.email?.split('@').first ?? "NV"`.
 - Kế hoạch & quyết định: `DOCS/PLAN_OFFLINE_FIRST_2026-09-19.md`.
 
+### 15. Lãi = DỒN TÍCH (accrual) · TIỀN = sổ tiền mặt — 2 đường riêng, không lẫn
+- **Doanh thu / giá vốn / lãi gộp** ghi theo **ngày bán (`soldAt`) hoặc ngày giao
+  (`deliveredAt`)**, cho **MỌI PTTT** — kể cả CÔNG NỢ, TRẢ GÓP chưa tất toán, KẾT
+  HỢP thu thiếu. Trừ hàng trả lại thì trừ cả doanh thu **lẫn** giá vốn với mọi
+  PTTT hoàn. Nguồn: `FinanceV2Snapshot.incomeFrom*/cogsFrom*/grossProfitFrom*`
+  (chốt từ `salesInPeriod`, KHÔNG qua `_mergeSettlementSales`) và
+  `DailyFinancialAnalysisService.saleIncome/saleCost/repairIncome/repairCost`.
+- **Tiền** là chuyện khác: `totalIn/totalOut`, `cashFromSales/cashFromRepairs`
+  (FinanceV2) + `saleCash/settlementIncome/cashIn/cashOut` (Chốt quỹ) = đúng
+  sổ tiền cũ. **Không bao giờ** cộng tiền tất toán NH hay thu nợ khách vào doanh
+  thu; `debtCollectIn` / `debtCollected` / `settlementIncome` chỉ là TIỀN.
+  `linkedDebtLinkedId` chỉ để hiển thị tên đơn trên dòng thu nợ.
+- **⚠️ Bẫy nhân đôi:** bảng cơ cấu TIỀN THU nào có dòng riêng "Tất toán NH"
+  (hoặc "Thu nợ khách hàng") thì PHẢI lấy `cashFromSales`/`saleCash` (chưa gồm
+  tất toán), **không** lấy `incomeFromSales`. Nếu lấy `s.cashFromSales` ở nơi
+  đã cộng thêm dòng tất toán = cộng tiền đó 2 lần.
+- Số liệu hai nhóm lệch nhau là bình thường. Mô tả cho user → KB
+  `finance-cash-vs-accrual` (`lib/data/app_knowledge_base.dart`) + `test/FINANCE_FULL_SCENARIO.md`.
+
 ## IV. WORKFLOW PHÁT TRIỂN
 
 ### Chạy Ứng Dụng
@@ -283,7 +302,7 @@ flutter test integration_test/
 
 ### Database
 - **Local DB path:** `repair_shop_v22.db`
-- **Schema version:** 111
+- **Schema version:** 112
 - **Location:** `lib/data/db_helper.dart`
 
 ---
@@ -388,11 +407,13 @@ try {
 - **Phiên bản:** 1.x (develop)
 - **Build Status:** ✓ Passing
 - **Analyze Status:** ✓ No errors
-- **Database:** SQLite v111
+- **Database:** SQLite v112
 - **Firebase:** Integrated (Auth, Firestore, Storage, Functions)
 - **KiotViet:** Integrated (API sync)
 - **Payments:** Integrated (PaymentIntentService)
 - **Finance V2 Excel:** Tất cả nhãn kỹ thuật đã chuyển sang tiếng Việt (action types, column headers, sheet names, số tiền có dấu phẩy)
+- **Công thức lãi:** từ `[2026-09-24b]` là **DỒN TÍCH** (ngày bán/ngày giao, mọi PTTT);
+  tiền vào/ra vẫn là sổ tiền mặt — xem nguyên tắc §15.
 
 ---
 

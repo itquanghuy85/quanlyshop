@@ -95,6 +95,11 @@ class _InventoryViewState extends State<InventoryView>
   bool _canViewCostPrice = false;
   bool _isSavingPendingCost = false;
 
+  // products.id → người tân trang lần gần nhất (1 query SQLite, không read
+  // cloud). Tên người thì hiện cho mọi vai trò; chỉ số tiền mới cần quyền
+  // giá vốn (yêu cầu 2026-09-24).
+  Map<int, String> _refurbishActors = const {};
+
   // Total inventory summary from DB (not from paginated data)
   int _totalQtyFromDB = 0;
   int _totalCapitalFromDB = 0;
@@ -723,106 +728,151 @@ class _InventoryViewState extends State<InventoryView>
                         ],
                       ],
                     ),
-                    // ── Chi phí sửa/tân trang (2026-09-22) — chỉ hiện khi có ──
-                    if (_canViewCostPrice &&
-                        displayProduct.refurbishCost > 0) ...[
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: PopupTheme.orange.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: PopupTheme.orange.withValues(alpha: 0.4),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.build_circle_outlined,
-                              size: 16,
-                              color: PopupTheme.orange,
+                    // ── Sửa/tân trang: TÊN người thực hiện hiện cho mọi vai
+                    // trò; chỉ con số chi phí/tổng giá vốn mới cần quyền giá
+                    // vốn (yêu cầu 2026-09-24, CLAUDE.md §9) ──
+                    Builder(builder: (_) {
+                      final actor =
+                          (_refurbishActors[displayProduct.id] ?? '').trim();
+                      final showCost =
+                          _canViewCostPrice && displayProduct.refurbishCost > 0;
+                      if (actor.isEmpty && !showCost) {
+                        return const SizedBox.shrink();
+                      }
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
                             ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                'Tân trang: ${MoneyUtils.formatCurrency(displayProduct.refurbishCost)}đ · '
-                                'Tổng giá vốn: ${MoneyUtils.formatCurrency(totalCost)}đ',
-                                style: const TextStyle(
-                                  color: PopupTheme.textSecondary,
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w600,
+                            decoration: BoxDecoration(
+                              color: PopupTheme.orange.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color:
+                                    PopupTheme.orange.withValues(alpha: 0.4),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.build_circle_outlined,
+                                  size: 16,
+                                  color: PopupTheme.orange,
                                 ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Chi tiết từng khoản đã sửa (đọc SQLite, không read cloud)
-                      FutureBuilder<List<Map<String, dynamic>>>(
-                        future: displayProduct.id == null
-                            ? Future.value(const <Map<String, dynamic>>[])
-                            : ProductRefurbishService.getHistory(
-                                displayProduct.id!,
-                              ),
-                        builder: (_, snap) {
-                          final items = snap.data ?? const [];
-                          if (items.isEmpty) return const SizedBox.shrink();
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 6, left: 4),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: items.map((it) {
-                                final isPart = it['type'] == 'PART';
-                                final qty = (it['quantity'] as num?)?.toInt() ?? 1;
-                                final label = isPart && qty > 1
-                                    ? '${it['description']} x$qty'
-                                    : (it['description'] as String? ?? '');
-                                final who = (it['partnerName'] as String?)?.trim();
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 2),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        isPart
-                                            ? Icons.memory
-                                            : Icons.handyman_outlined,
-                                        size: 12,
-                                        color: PopupTheme.textMuted,
-                                      ),
-                                      const SizedBox(width: 5),
-                                      Expanded(
-                                        child: Text(
-                                          who != null && who.isNotEmpty
-                                              ? '$label · $who'
-                                              : label,
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            color: PopupTheme.textSecondary,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      Text(
-                                        '${MoneyUtils.formatCurrency((it['amount'] as num?)?.toInt() ?? 0)}đ',
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: PopupTheme.textSecondary,
-                                        ),
-                                      ),
-                                    ],
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    showCost
+                                        ? 'Tân trang: ${MoneyUtils.formatCurrency(displayProduct.refurbishCost)}đ · '
+                                              'Tổng giá vốn: ${MoneyUtils.formatCurrency(totalCost)}đ'
+                                              '${actor.isEmpty ? '' : ' · Người TC: $actor'}'
+                                        : 'Tân trang: $actor',
+                                    style: const TextStyle(
+                                      color: PopupTheme.textSecondary,
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
-                                );
-                              }).toList(),
+                                ),
+                              ],
                             ),
-                          );
-                        },
-                      ),
-                    ],
+                          ),
+                          // Chi tiết từng khoản đã sửa (đọc SQLite, không read
+                          // cloud). Hiện cho mọi vai trò, chỉ số tiền là bị chặn.
+                          FutureBuilder<List<Map<String, dynamic>>>(
+                            future: displayProduct.id == null
+                                ? Future.value(const <Map<String, dynamic>>[])
+                                : ProductRefurbishService.getHistory(
+                                    displayProduct.id!,
+                                  ),
+                            builder: (_, snap) {
+                              final items = snap.data ?? const [];
+                              if (items.isEmpty) return const SizedBox.shrink();
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 6, left: 4),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: items.map((it) {
+                                    final isPart = it['type'] == 'PART';
+                                    final qty =
+                                        (it['quantity'] as num?)?.toInt() ?? 1;
+                                    final label = isPart && qty > 1
+                                        ? '${it['description']} x$qty'
+                                        : (it['description'] as String? ?? '');
+                                    final who =
+                                        (it['partnerName'] as String?)?.trim();
+                                    final by =
+                                        (it['createdBy'] as String?)?.trim();
+                                    return Padding(
+                                      padding:
+                                          const EdgeInsets.only(bottom: 3),
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Icon(
+                                            isPart
+                                                ? Icons.memory
+                                                : Icons.handyman_outlined,
+                                            size: 12,
+                                            color: PopupTheme.textMuted,
+                                          ),
+                                          const SizedBox(width: 5),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  who != null && who.isNotEmpty
+                                                      ? '$label · $who'
+                                                      : label,
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    color: PopupTheme
+                                                        .textSecondary,
+                                                  ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                                if (by != null && by.isNotEmpty)
+                                                  Text(
+                                                    'Người thực hiện: $by',
+                                                    style: const TextStyle(
+                                                      fontSize: 10,
+                                                      color:
+                                                          PopupTheme.textMuted,
+                                                    ),
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                          if (_canViewCostPrice)
+                                            Text(
+                                              '${MoneyUtils.formatCurrency((it['amount'] as num?)?.toInt() ?? 0)}đ',
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                color: PopupTheme.textSecondary,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      );
+                    }),
                     const SizedBox(height: 14),
                     // ── Info rows ─────────────────────────────────
                     Container(
@@ -2458,10 +2508,12 @@ class _InventoryViewState extends State<InventoryView>
       // Load all data for filtering
       final data = await db.getAllProducts();
       data.sort((a, b) => (b.updatedAt ?? 0).compareTo(a.updatedAt ?? 0));
+      final actors = await ProductRefurbishService.latestActorByProduct();
       if (!mounted) return;
       setState(() {
         _allLoadedProducts = data;
         _products = data;
+        _refurbishActors = actors;
         _suppliers = suppliers.map((s) => s.toMap()).toList();
         _unsyncedCount = unsyncedCount;
         _totalQtyFromDB = summary['totalQty'] ?? 0;
@@ -3766,11 +3818,22 @@ class _InventoryViewState extends State<InventoryView>
                                   ),
                                 // Chi phí sửa/tân trang (2026-09-22) — hiện
                                 // ngay trên thẻ để biết SP này đã tốn thêm bao
-                                // nhiêu ngoài giá nhập.
+                                // nhiêu ngoài giá nhập. CHỈ khi có quyền giá
+                                // vốn (CLAUDE.md §9).
                                 if (_canViewCostPrice && p.refurbishCost > 0)
                                   _metaChip(
                                     label:
                                         'Tân trang +${MoneyUtils.formatCompactCurrency(p.refurbishCost)}',
+                                    color: PopupTheme.orange,
+                                    bg: Colors.orange.shade50,
+                                    icon: Icons.build_circle_outlined,
+                                  ),
+                                // Người thực hiện tân trang lần gần nhất —
+                                // không phải con số nên hiện cho MỌI vai trò
+                                // (yêu cầu 2026-09-24).
+                                if ((_refurbishActors[p.id] ?? '').isNotEmpty)
+                                  _metaChip(
+                                    label: '🔧 ${_refurbishActors[p.id]}',
                                     color: PopupTheme.orange,
                                     bg: Colors.orange.shade50,
                                     icon: Icons.build_circle_outlined,

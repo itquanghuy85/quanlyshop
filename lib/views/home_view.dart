@@ -2714,8 +2714,13 @@ class _HomeViewState extends State<HomeView>
               .length;
           _todayDebtPaidToSupplier = debtPaidConsistent;
           _todayExpenseOnly = financeSnapshot.operatingExpenseOut;
-          _todaySaleIncome = financeSnapshot.incomeFromSales;
-          _todayRepairIncome = financeSnapshot.incomeFromRepairs;
+          // "Tiền bán" là TIỀN vào quỹ và phải cộng đúng bằng tổng thu cùng
+          // với dòng "Tất toán NH" bên dưới. `cashFromSales` (FinanceV2) đã
+          // gồm cả tiền tất toán trả góp → nếu dùng thì donut cộng 2 lần.
+          // `analysis.saleCash` = tiền bán THUẦN (cọc + tiền mặt/CK), tách hẳn
+          // `settlementIncome` → không double-count.
+          _todaySaleIncome = analysis.saleCash;
+          _todayRepairIncome = financeSnapshot.cashFromRepairs;
           _todayDebtCollected = debtCollectedConsistent;
           // incomeOther đã net debt (= extraIn - debtCollectIn), không trừ tiếp
           _todayMiscIncome = financeSnapshot.incomeOther;

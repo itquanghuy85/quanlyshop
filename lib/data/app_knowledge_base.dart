@@ -129,7 +129,9 @@ class AppKnowledgeBase {
       id: 'lai-gop',
       term: 'Lãi gộp',
       definition:
-          'Giá bán − Giá vốn, chưa trừ chi phí vận hành (mặt bằng, điện, lương…).',
+          'Giá bán − Giá vốn, chưa trừ chi phí vận hành (mặt bằng, điện, '
+          'lương…). Tính theo ngày bán / ngày giao (dồn tích), kể cả đơn '
+          'công nợ hay trả góp chưa tất toán.',
     ),
     KbTerm(
       id: 'cong-no-phai-thu',
@@ -155,8 +157,9 @@ class AppKnowledgeBase {
       id: 'tat-toan',
       term: 'Tất toán (trả góp)',
       definition:
-          'Ngân hàng chuyển nốt phần vay cho shop. Lúc này mới ghi nhận đủ doanh '
-          'thu và giá vốn phần còn lại của đơn trả góp.',
+          'Ngân hàng chuyển nốt phần vay cho shop. Doanh thu và giá vốn của đơn '
+          'trả góp đã ghi đủ từ NGÀY BÁN — tất toán chỉ cộng thêm TIỀN vào mục '
+          'Tiền vào, không cộng lãi lần thứ hai.',
     ),
     KbTerm(
       id: 'coc',
@@ -955,11 +958,17 @@ class AppKnowledgeBase {
           'App tách rõ 2 cách nhìn: DÒNG TIỀN (tiền thực vào/ra) và KẾT QUẢ KINH '
           'DOANH / dồn tích (ghi nhận khi bán, dù chưa thu).',
       whenToUse:
-          'Khi thấy "Lãi gộp (phần đã thu)" khác "Lợi nhuận (accrual)" và thắc mắc.',
+          'Khi tab Lãi / Báo cáo đầy đủ (dồn tích) khác số tiền thực thu ở tab '
+          'Tiền và thắc mắc.',
       steps: [
-        'Báo cáo lãi/lỗ (tháng, năm) dùng DỒN TÍCH — phản ánh kinh doanh thật.',
-        'Sổ quỹ / "tiền vào hôm nay" dùng DÒNG TIỀN — phản ánh tiền trong két.',
-        'Khách còn nợ nhiều → 2 số lệch nhau, đó là bình thường.',
+        'Kết quả kinh doanh (tab Lãi, Báo cáo đầy đủ, Excel "Lãi") dùng DỒN TÍCH '
+            '— ghi doanh thu + giá vốn ngay ngày bán / ngày giao, kể cả bán '
+            'công nợ, trả góp, kết hợp thu thiếu.',
+        'Tab Tiền, "Cơ cấu tiền thu vào", Sổ quỹ dùng DÒNG TIỀN — phản ánh '
+            'tiền đã về két.',
+        'Khách còn nợ nhiều / chưa tất toán trả góp → 2 số lệch nhau, đó là '
+            'bình thường.',
+        'Tiền tất toán ngân hàng chỉ nằm ở DÒNG TIỀN; không cộng thêm lãi.',
       ],
       terms: ['dong-tien', 'don-tich', 'lai-gop'],
       sampleQuestions: [
@@ -1445,7 +1454,10 @@ class AppKnowledgeBase {
         'Bấm ⓘ ở thẻ Kết quả kinh doanh để xem giải thích công thức.',
       ],
       notes: [
-        'Các số ở đây là DÒNG TIỀN (tiền đã thu / đã chi), không phải lợi nhuận kế toán.',
+        'Tab **Tiền** / **Chốt quỹ** là DÒNG TIỀN (đã thu / đã chi); tab '
+            '**Lãi** là DỒN TÍCH (ghi doanh thu + giá vốn theo ngày bán / ngày '
+            'giao). Hai nhóm số lệch nhau là bình thường — xem mục "Dòng tiền vs '
+            'Dồn tích".',
         'Tab **Nợ KHÔNG theo khoảng thời gian đang chọn** — nợ là số dư còn lại '
             'tới hiện tại, không phải phát sinh trong kỳ (có dòng nhắc ở cuối tab).',
         '"Giao dịch tiền" khác "Nhật ký thao tác": cái đầu là tiền thật đã '

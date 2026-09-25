@@ -409,10 +409,14 @@ class _ProductRefurbishSheetState extends State<ProductRefurbishSheet> {
                   final isPart = it['type'] == 'PART';
                   final qty = (it['quantity'] as num?)?.toInt() ?? 1;
                   final who = (it['partnerName'] as String?)?.trim();
+                  // Người thực hiện: hiện cho MỌI vai trò (không phải con số
+                  // nên không được ẩn theo quyền giá vốn — yêu cầu 2026-09-24).
+                  final by = (it['createdBy'] as String?)?.trim();
                   final title = isPart && qty > 1
                       ? '${it['description']} x$qty'
                       : (it['description'] as String? ?? '');
                   final sub = [
+                    if (by != null && by.isNotEmpty) 'Người TC: $by',
                     if (who != null && who.isNotEmpty) who,
                     if (!isPart && it['paymentMethod'] != null) it['paymentMethod'].toString(),
                     DateFormat('dd/MM/yyyy HH:mm').format(

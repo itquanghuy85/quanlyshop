@@ -136,8 +136,31 @@ class FinanceV2Snapshot {
   final int receivableTotal;
   final int payableTotal;
   final int netCashflow;
+
+  /// Doanh thu BÁN HÀNG — ACCRUAL: cộng đủ `finalPrice` của mọi đơn bán trong
+  /// kỳ (bound theo `soldAt`), gồm cả CÔNG NỢ / TRẢ GÓP / KẾT HỢP, trừ hoàn
+  /// trả. Ghi nhận ngay NGÀY BÁN, không phụ thuộc ngày khách trả tiền — cùng
+  /// một công thức với Sale List (`finalPrice - totalCost`) và Chốt quỹ.
+  /// Muốn xem TIỀN THỰC THU dùng [cashFromSales].
   final int incomeFromSales;
+
+  /// Doanh thu SỬA CHỮA — ACCRUAL: cộng đủ `repair.price` của mọi đơn đã giao
+  /// trong kỳ (gồm cả CÔNG NỢ), trừ hoàn trả. Ghi nhận ngay NGÀY GIAO.
+  /// Muốn xem TIỀN THỰC THU dùng [cashFromRepairs].
   final int incomeFromRepairs;
+
+  /// Tiền bán hàng THỰC THU trong kỳ (cash basis) — đúng con số cũ của
+  /// `incomeFromSales` trước khi chuyển sang accrual, để bảng "Cơ cấu tiền thu
+  /// vào", Excel "Tiền bán hàng đã thu" và thẻ "Tiền bán" trên Home giữ nguyên
+  /// ý nghĩa TIỀN VÀO.
+  final int cashFromSales;
+
+  /// Tiền sửa chữa THỰC THU trong kỳ (cash basis).
+  final int cashFromRepairs;
+
+  /// Tiền THU NỢ khách hàng trong kỳ (cash basis) — bản chất là tiền vào từ
+  /// các đơn CÔNG NỢ, tách khỏi [incomeOther] để không lẫn "thu khác".
+  final int debtCollectIn;
   final int cogsFromSales;
   final int cogsFromRepairs;
   final int grossProfitFromSales;
@@ -149,6 +172,8 @@ class FinanceV2Snapshot {
   final int previousTotalIn;
   final int previousTotalOut;
   final int previousNetCashflow;
+  final int previousCashFromSales;
+  final int previousCashFromRepairs;
   final int previousCogsFromSales;
   final int previousCogsFromRepairs;
   final int previousGrossProfitFromSales;
@@ -177,6 +202,9 @@ class FinanceV2Snapshot {
     required this.netCashflow,
     required this.incomeFromSales,
     required this.incomeFromRepairs,
+    this.cashFromSales = 0,
+    this.cashFromRepairs = 0,
+    this.debtCollectIn = 0,
     required this.cogsFromSales,
     required this.cogsFromRepairs,
     required this.grossProfitFromSales,
@@ -188,6 +216,8 @@ class FinanceV2Snapshot {
     required this.previousTotalIn,
     required this.previousTotalOut,
     required this.previousNetCashflow,
+    this.previousCashFromSales = 0,
+    this.previousCashFromRepairs = 0,
     required this.previousCogsFromSales,
     required this.previousCogsFromRepairs,
     required this.previousGrossProfitFromSales,
@@ -402,7 +432,12 @@ class FinanceV2DataService {
     final customersF = _db.getCustomers();
 
     // Collect results (all DB work started above in parallel)
-    final sales = _mergeSettlementSales(await salesF, await settledF);
+    // `*InPeriod` = đơn bán bound theo soldAt — nguồn tính ACCRUAL (doanh thu/
+    // giá vốn ghi nhận ngay ngày bán). `sales` = bản gộp thêm đơn tất toán
+    // trong kỳ, chỉ dùng cho các khoản TIỀN THỰC VÀO — không được cộng doanh
+    // thu lần nữa từ những đơn đã bán từ trước đó.
+    final salesInPeriod = await salesF;
+    final sales = _mergeSettlementSales(salesInPeriod, await settledF);
     final repairs = await repairsF;
     final expenses = await expensesF;
     final repairPartnerPayments = await repairPartnerPaymentsF;
@@ -412,8 +447,9 @@ class FinanceV2DataService {
     final debts = await debtsF;
     final activities = await activitiesF;
     final costFundRepairs = await costFundRepairsF;
+    final previousSalesInPeriod = await previousSalesF;
     final previousSales =
-        _mergeSettlementSales(await previousSalesF, await previousSettledF);
+        _mergeSettlementSales(previousSalesInPeriod, await previousSettledF);
     final previousRepairs = await previousRepairsF;
     final previousExpenses = await previousExpensesF;
     final previousRepairPartnerPayments = await previousRepairPartnerPaymentsF;
@@ -422,11 +458,11 @@ class FinanceV2DataService {
     final partners = await partnersF;
     final customers = await customersF;
 
-    // Đơn bán / đơn sửa CÔNG NỢ mà khách TRẢ NỢ trong kỳ (phương án A,
-    // 2026-09-18): tra một lô theo `debts.linkedId` để ghi nhận doanh thu +
-    // vốn theo tỉ lệ số tiền thu được — xem `_linkedRevenueOf`.
-    // Không lọc theo tiền tố (`sale_` / `rep_`) — id do từng luồng tự đặt,
-    // tra cả hai bảng với cùng tập id (2 query, thường vài chục id).
+    // Phiếu thu nợ gắn với đơn CÔNG NỢ (`debts.linkedId` = `sale_…` / `rep_…`).
+    // [2026-09-24] KHÔNG còn cộng vào doanh thu/giá vốn: doanh thu đã được ghi
+    // nhận đầy đủ từ ngày BÁN (accrual), thu nợ thuần là TIỀN VÀO → rơi vào
+    // `extraIn + debtCollectIn` ("Thu nợ KH"). Vẫn tra lô để hiển thị tên đơn
+    // trong dòng giao dịch, không cộng số liệu.
     final linkedIds = <String>{};
     for (final p in [...debtPayments, ...previousDebtPayments]) {
       final linked = (p['linkedDebtLinkedId'] ?? '').toString().trim();
@@ -484,8 +520,28 @@ class FinanceV2DataService {
         0; // Trả nợ NCC/đối tác (SHOP_OWES) — tách riêng để hiển thị
     int extraIn = 0;
     int debtCollectIn = 0; // Thu nợ KH — tracked separately so incomeOther excludes it
-    int saleCogs = 0;
-    int repairCogs = 0;
+    int repairCogs = 0; // vốn SC theo TIỀN — chỉ dùng cho cơ cấu chi phí
+
+    // ── ACCRUAL: kết quả kinh doanh, ghi nhận ngay ngày bán / ngày giao ──
+    int saleAccrualRevenue = 0;
+    int saleAccrualCogs = 0;
+    int previousSaleAccrualRevenue = 0;
+    int previousSaleAccrualCogs = 0;
+    int repairAccrualRevenue = 0;
+    int repairAccrualCogs = 0;
+    int previousRepairAccrualRevenue = 0;
+    int previousRepairAccrualCogs = 0;
+
+    // Đơn bán TRONG kỳ (bound theo soldAt) — không gộp đơn tất toán: doanh
+    // thu của đơn đó đã thuộc kỳ nó bán, gộp vào đây là cộng 2 lần.
+    for (final SaleOrder sale in salesInPeriod) {
+      if (sale.finalPrice > 0) saleAccrualRevenue += sale.finalPrice;
+      if (sale.totalCost > 0) saleAccrualCogs += sale.totalCost;
+    }
+    for (final SaleOrder sale in previousSalesInPeriod) {
+      if (sale.finalPrice > 0) previousSaleAccrualRevenue += sale.finalPrice;
+      if (sale.totalCost > 0) previousSaleAccrualCogs += sale.totalCost;
+    }
 
     final transactions = <FinanceV2Txn>[];
 
@@ -514,10 +570,9 @@ class FinanceV2DataService {
       }
 
       if (actualPaid > 0) {
-        // Vốn bán hàng theo cash basis: tỉ lệ actualPaid/costDenominator.
-        // KẾT HỢP dùng actualPaid làm mẫu số → ratio=1 → ghi nhận 100% vốn.
-        // KHÔNG chặn recognizedCost ≤ actualPaid: đơn bán dưới giá vốn phải
-        // hiện lỗ (lãi gộp âm), không được kéo về 0.
+        // Vốn gắn với DÒNG TIỀN này chỉ dùng để hiển thị trên dòng giao dịch
+        // (cột vốn/lãi của từng khoản tiền). Doanh thu + giá vốn của tab Lãi
+        // tính riêng theo ACCRUAL ở trên — không lấy từ đây.
         int recognizedCost = 0;
         if (sale.totalCost > 0) {
           final costDenominator =
@@ -532,7 +587,6 @@ class FinanceV2DataService {
           }
           if (recognizedCost < 0) recognizedCost = 0;
         }
-        saleCogs += recognizedCost;
         saleIn += actualPaid;
         // Đơn góp bán TRƯỚC kỳ nhưng NH tất toán TRONG kỳ (về qua
         // `getInstallmentSalesSettledBetween`): tiền vào là khoản tất toán nên
@@ -570,16 +624,20 @@ class FinanceV2DataService {
 
     for (final Repair repair in repairs) {
       final amount = repair.price;
+      final repairCost = repair.totalCost > 0 ? repair.totalCost : 0;
+      final bool isCongNo = repair.paymentMethod.toUpperCase() == 'CÔNG NỢ';
+      // ACCRUAL: đơn đã giao trong kỳ ghi nhận đủ doanh thu + giá vốn ngay
+      // ngày GIAO, kể cả CÔNG NỢ. `repair.price` đã gồm cả phần chênh lệch sửa
+      // giá sau giao → phiếu thu nợ REPAIR_PRICE_ADJUST không được cộng thêm
+      // (tránh ghi nhận 2 lần).
+      if (amount > 0) repairAccrualRevenue += amount;
+      if (repairCost > 0) repairAccrualCogs += repairCost;
       if (amount > 0) {
-        final repairCost = repair.totalCost > 0 ? repair.totalCost : 0;
-        final bool isCongNo = repair.paymentMethod.toUpperCase() == 'CÔNG NỢ';
         if (!isCongNo) {
           repairIn += amount;
-          // Vốn sửa chữa theo cash basis — nhất quán với repairIn (chỉ tính đơn đã thanh toán, loại CÔNG NỢ chưa thu)
+          // Vốn sửa chữa theo TIỀN — chỉ dùng cho cơ cấu chi phí.
           repairCogs += repairCost;
-        }
-
-        if (!isCongNo) {
+          // Sổ giao dịch = TIỀN: đơn CÔNG NỢ chưa thu nên không có dòng tiền.
           transactions.add(
             FinanceV2Txn(
               id: 'repair_${repair.id ?? repair.firestoreId ?? repair.createdAt}',
@@ -814,22 +872,14 @@ class FinanceV2DataService {
 
       _LinkedRevenue? linked;
       if (isIncome) {
+        // [2026-09-24] Thu nợ KHÁCH = TIỀN VÀO thuần, luôn vào "Thu nợ KH".
+        // Doanh thu / giá vốn của đơn CÔNG NỢ đã ghi nhận đủ từ ngày bán /
+        // ngày giao (accrual) → cộng thêm ở đây là tính 2 lần (đó là lỗi
+        // `incomeFromSales` phình lên khi khách trả nợ). `linked` chỉ còn
+        // dùng để hiện tên đơn trong dòng giao dịch.
         linked = _linkedRevenueOf(p, amount, linkedSales, linkedRepairs);
-        if (linked != null) {
-          // Thu nợ của đơn bán/sửa CÔNG NỢ = DOANH THU đã thu (không phải
-          // "thu khác"), vốn ghi theo tỉ lệ — cùng cách với đơn trả góp.
-          // Tổng tiền vào KHÔNG đổi, chỉ đổi phân loại.
-          if (linked.isSale) {
-            saleIn += amount;
-            saleCogs += linked.cost;
-          } else {
-            repairIn += amount;
-            repairCogs += linked.cost;
-          }
-        } else {
-          extraIn += amount;
-          debtCollectIn += amount;
-        }
+        extraIn += amount;
+        debtCollectIn += amount;
       } else {
         expenseOut += amount;
         debtRepayOut += amount; // Ghi nhận riêng phần trả nợ NCC/đối tác
@@ -851,8 +901,10 @@ class FinanceV2DataService {
           referenceId: (p['debtFirestoreId'] ?? p['firestoreId'] ?? '')
               .toString(),
           itemName: linked?.itemName,
-          costAmount: linked?.cost,
-          grossProfit: linked == null ? null : amount - linked.cost,
+          // Phiếu thu nợ là dòng TIỀN, không phải dòng doanh thu → không gán
+          // vốn/lãi ở đây (vốn/lãi nằm ở đơn bán/đơn sửa theo accrual).
+          costAmount: null,
+          grossProfit: null,
         ),
       );
     }
@@ -861,8 +913,6 @@ class FinanceV2DataService {
     int previousRepairIn = 0;
     int previousExtraIn = 0;
     int previousExpenseOut = 0;
-    int previousSaleCogs = 0;
-    int previousRepairCogs = 0;
 
     for (final SaleOrder sale in previousSales) {
       final bool isCongNo = sale.paymentMethod.toUpperCase() == 'CÔNG NỢ';
@@ -879,33 +929,21 @@ class FinanceV2DataService {
       }
 
       if (actualPaid > 0) {
-        // Vốn bán hàng kỳ trước theo cash basis — nhất quán với current period.
-        int prevRecognizedCost = 0;
-        if (sale.totalCost > 0) {
-          final prevCostDenominator =
-              (prevIsKetHop && (sale.cashAmount + sale.transferAmount) > 0)
-              ? actualPaid
-              : sale.finalPrice;
-          if (prevCostDenominator > 0) {
-            prevRecognizedCost =
-                ((sale.totalCost * actualPaid) / prevCostDenominator).round();
-          } else {
-            prevRecognizedCost = sale.totalCost;
-          }
-          if (prevRecognizedCost < 0) prevRecognizedCost = 0;
-          // Nhất quán current period: không chặn ≤ actualPaid (lỗ hiện đúng).
-        }
-        previousSaleCogs += prevRecognizedCost;
+        // TIỀN bán hàng kỳ trước. Vốn/lãi kỳ trước tính theo ACCRUAL ở trên
+        // (`previousSaleAccrualRevenue` / `previousSaleAccrualCogs`).
         previousSaleIn += actualPaid;
       }
     }
 
     for (final Repair repair in previousRepairs) {
       if (repair.price > 0) {
+        // ACCRUAL kỳ trước — cùng cách với kỳ hiện tại.
+        previousRepairAccrualRevenue += repair.price;
+        if (repair.totalCost > 0) {
+          previousRepairAccrualCogs += repair.totalCost;
+        }
         if (repair.paymentMethod.toUpperCase() != 'CÔNG NỢ') {
           previousRepairIn += repair.price;
-          // Vốn sửa chữa kỳ trước theo cash basis
-          previousRepairCogs += repair.totalCost > 0 ? repair.totalCost : 0;
         }
       }
       final prevNonPartnerCost = repair.services
@@ -929,16 +967,9 @@ class FinanceV2DataService {
       if (isShopOwes) {
         previousExpenseOut += amount;
       } else {
-        final linked = _linkedRevenueOf(p, amount, linkedSales, linkedRepairs);
-        if (linked == null) {
-          previousExtraIn += amount;
-        } else if (linked.isSale) {
-          previousSaleIn += amount;
-          previousSaleCogs += linked.cost;
-        } else {
-          previousRepairIn += amount;
-          previousRepairCogs += linked.cost;
-        }
+        // Thu nợ KH = tiền vào thuần — doanh thu kỳ trước đã ghi nhận đủ từ
+        // ngày bán/ngày giao (accrual), không cộng lại (xem kỳ hiện tại).
+        previousExtraIn += amount;
       }
     }
 
@@ -1045,15 +1076,22 @@ class FinanceV2DataService {
           .toString()
           .trim()
           .toUpperCase();
-      if (method == 'CÔNG NỢ') continue; // chỉ giảm nợ, không ảnh hưởng quỹ
       final amount = _toInt(ret['totalReturnAmount']);
       if (amount <= 0) continue;
       final cost = _toInt(ret['totalReturnCost']);
 
-      // Doanh thu ròng = doanh thu bán - hoàn trả; vốn cũng được thu hồi.
-      refundOut += amount;
+      // ACCRUAL: trả hàng HUỶ doanh thu + thu hồi giá vốn của lần bán, với
+      // MỌI hình thức hoàn (gồm cả CÔNG NỢ). Bỏ qua hoàn CÔNG NỢ thì lãi gộp
+      // bị dương giả (doanh thu vẫn đứng, vốn không thu hồi).
       refundRevenue += amount;
       refundCost += cost;
+
+      // Sổ giao dịch = TIỀN: hoàn CÔNG NỢ chỉ giảm nợ, không có tiền ra nên
+      // không xuất hiện ở đây (tab Giao dịch / biểu đồ theo ngày).
+      if (method == 'CÔNG NỢ') continue;
+      // [2026-09-20 BUG-09] Dòng tiền trình bày GROSS như Sổ quỹ: tiền bán vẫn
+      // là "Tiền vào", tiền hoàn là "Tiền ra" (refundOut).
+      refundOut += amount;
 
       // Hiện trả hàng trong tab Giao dịch để dễ audit (isIncome=false → Chi).
       final retCustomer =
@@ -1079,9 +1117,16 @@ class FinanceV2DataService {
 
     final totalIn = saleIn + repairIn + extraIn;
     final totalOut = expenseOut + refundOut;
-    // Doanh thu / vốn bán hàng NET (sau hoàn trả) — dùng cho lãi.
-    final saleRevenueNet = (saleIn - refundRevenue).clamp(0, saleIn);
-    final saleCogsNet = (saleCogs - refundCost).clamp(0, saleCogs);
+    // ── ACCRUAL — Kết quả kinh doanh (tab Lãi): doanh thu / giá vốn NET sau
+    // hoàn trả, ghi nhận theo ngày bán / ngày giao cho mọi hình thức thanh
+    // toán. ──
+    final saleRevenueNet =
+        (saleAccrualRevenue - refundRevenue).clamp(0, saleAccrualRevenue);
+    final saleCogsNet = (saleAccrualCogs - refundCost).clamp(0, saleAccrualCogs);
+    // ── CASH — tiền THỰC thu trong kỳ: giữ đúng con số cũ của
+    // incomeFromSales / incomeFromRepairs cho bảng cơ cấu tiền thu vào. ──
+    final cashFromSales = (saleIn - refundOut).clamp(0, saleIn);
+    final cashFromRepairs = repairIn;
     final operatingExpenseOut =
         expenseOut -
         debtRepayOut -
@@ -1089,18 +1134,22 @@ class FinanceV2DataService {
         partnerPaymentOut -
         repairCostMirrorOut; // chi vận hành thuần, loại trả nợ NCC, nhập hàng, TT đối tác, vốn SC đã nằm trong COGS
     final netCashflow = totalIn - totalOut;
-    // Lãi gộp bán hàng theo cash basis — nhất quán với incomeFromSales (saleIn)
+    // Lãi gộp bán hàng theo ACCRUAL — nhất quán với incomeFromSales
     final grossProfitFromSales = saleRevenueNet - saleCogsNet;
-    // Lãi gộp sửa chữa theo cash basis — nhất quán với incomeFromRepairs (repairIn)
-    final grossProfitFromRepairs = repairIn - repairCogs;
+    // Lãi gộp sửa chữa theo ACCRUAL — nhất quán với incomeFromRepairs
+    final grossProfitFromRepairs =
+        repairAccrualRevenue - repairAccrualCogs;
     final grossProfitTotal = grossProfitFromSales + grossProfitFromRepairs;
+    final previousCashFromSales = previousSaleIn;
+    final previousCashFromRepairs = previousRepairIn;
     final previousTotalIn = previousSaleIn + previousRepairIn + previousExtraIn;
     final previousTotalOut = previousExpenseOut;
     final previousNetCashflow = previousTotalIn - previousTotalOut;
-    final previousGrossProfitFromSales = previousSaleIn - previousSaleCogs;
-    // Lãi gộp sửa chữa kỳ trước theo cash basis — nhất quán với previousRepairIn
+    final previousGrossProfitFromSales =
+        previousSaleAccrualRevenue - previousSaleAccrualCogs;
+    // Lãi gộp sửa chữa kỳ trước theo ACCRUAL
     final previousGrossProfitFromRepairs =
-        previousRepairIn - previousRepairCogs;
+        previousRepairAccrualRevenue - previousRepairAccrualCogs;
     final incomeTxCount = transactions.where((t) => t.isIncome).length;
     final avgIncomePerTransaction = incomeTxCount > 0
         ? (totalIn ~/ incomeTxCount)
@@ -1206,9 +1255,12 @@ class FinanceV2DataService {
       payableTotal: payableTotal,
       netCashflow: netCashflow,
       incomeFromSales: saleRevenueNet,
-      incomeFromRepairs: repairIn,
+      incomeFromRepairs: repairAccrualRevenue,
+      cashFromSales: cashFromSales,
+      cashFromRepairs: cashFromRepairs,
+      debtCollectIn: debtCollectIn,
       cogsFromSales: saleCogsNet,
-      cogsFromRepairs: repairCogs,
+      cogsFromRepairs: repairAccrualCogs,
       grossProfitFromSales: grossProfitFromSales,
       grossProfitFromRepairs: grossProfitFromRepairs,
       grossProfitTotal: grossProfitTotal,
@@ -1218,8 +1270,10 @@ class FinanceV2DataService {
       previousTotalIn: previousTotalIn,
       previousTotalOut: previousTotalOut,
       previousNetCashflow: previousNetCashflow,
-      previousCogsFromSales: previousSaleCogs,
-      previousCogsFromRepairs: previousRepairCogs,
+      previousCashFromSales: previousCashFromSales,
+      previousCashFromRepairs: previousCashFromRepairs,
+      previousCogsFromSales: previousSaleAccrualCogs,
+      previousCogsFromRepairs: previousRepairAccrualCogs,
       previousGrossProfitFromSales: previousGrossProfitFromSales,
       previousGrossProfitFromRepairs: previousGrossProfitFromRepairs,
       dashboardCards: cards,
@@ -1307,13 +1361,13 @@ class _LinkedRevenue {
   });
 }
 
-/// Phương án A (chủ shop chốt 2026-09-18): đơn bán / đơn sửa CÔNG NỢ có
-/// `actualPaid = 0` lúc bán, nên trước đây KHÔNG BAO GIỜ vào Doanh thu / Giá
-/// vốn / Lãi của tab Lãi — kể cả khi khách đã trả hết (tiền về chỉ hiện là
-/// "Thu nợ"), trong khi Chốt quỹ / Báo cáo ngày tính cả phần nợ. Nay mỗi phiếu
-/// thu nợ gắn với đơn (`debts.linkedId` = `sale_…` / `rep_…`) được ghi nhận là
-/// doanh thu đã thu, vốn theo tỉ lệ `amount / giá đơn` — đúng cách đơn trả góp
-/// đang ghi cọc/tất toán. Không gắn được đơn (nợ tay, nợ cũ) thì giữ như cũ.
+/// Tra đơn bán / đơn sửa CÔNG NỢ mà một phiếu thu nợ gắn vào
+/// (`debts.linkedId` = `sale_…` / `rep_…`).
+///
+/// [2026-09-24] CHỈ dùng để hiển thị tên đơn trong dòng giao dịch — KHÔNG còn
+/// cộng doanh thu / giá vốn: tab Lãi đã tính ACCRUAL, ghi nhận đủ từ ngày bán
+/// / ngày giao, nên thu nợ thuần là TIỀN VÀO ("Thu nợ KH"). Giữ tên + dạng hàm
+/// cũ để không phải đổi chỗ gọi. Không gắn được đơn thì trả null như cũ.
 _LinkedRevenue? _linkedRevenueOf(
   Map<String, dynamic> payment,
   int amount,

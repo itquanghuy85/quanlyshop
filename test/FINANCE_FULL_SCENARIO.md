@@ -2,6 +2,7 @@
 
 > File test tự động tương ứng: `test/finance_full_scenario_test.dart`
 > (chạy `flutter test test/finance_full_scenario_test.dart`).
+> Bất biến dồn tích / tách dòng tiền: `test/finance_accrual_invariants_test.dart`.
 > Mọi con số kỳ vọng dưới đây được **tính tay** rồi ghi cứng vào test — test
 > không tự suy ra từ công thức của app, nhờ vậy mới bắt được lỗi công thức.
 
@@ -76,16 +77,16 @@ Ký hiệu: TM = tiền mặt, CK = chuyển khoản, CN = công nợ.
 
 ---
 
-## 2. Số kỳ vọng — Tài chính V2 (tab Tiền / Lãi / Nợ, cash basis)
+## 2. Số kỳ vọng — Tài chính V2 (tab Tiền / Lãi / Nợ)
 
-### Tiền vào
+### Tiền vào (DÒNG TIỀN — tab Tiền, "Cơ cấu tiền thu vào")
 | Nguồn | Tính | Kết quả |
 |---|---|---|
 | Bán hàng thực thu | S1 200.000 + S2 11.800.000 + S3 5.000.000 + S4 **0** + S5 5.000.000 + S6 20.000.000 + S7 8.000.000 − S8 150.000 | **49.850.000** |
 | Sửa chữa thực thu | R1 800.000 + R2 1.500.000 + R3 **0** (CN) + R4 250.000 + R5 1.200.000 | **3.750.000** |
 | Thu nợ khách | dp1 1.000.000 + dp3 600.000 + dp6 500.000 | **2.100.000** |
 | Thu khác | E3 | **300.000** |
-| **TỔNG TIỀN VÀO** | | **56.000.000** |
+| **TỔNG TIỀN VÀO** | **GROSS** theo BUG-09: tiền bán 50.000.000 (hoả hàng 150.000 nằm ở TIỀN RA) + 3.750.000 + 2.100.000 + 300.000 | **56.150.000** |
 
 ### Tiền ra
 | Nguồn | Tính | Kết quả |
@@ -95,25 +96,25 @@ Ký hiệu: TM = tiền mặt, CK = chuyển khoản, CN = công nợ.
 | Trả đối tác trực tiếp | R5 700.000 | **700.000** |
 | Trả nợ NCC / đối tác | dp2 400.000 + dp4 5.000.000 + dp5 500.000 | **5.900.000** |
 | Vốn SC đã ghi sổ quỹ (mirror) | R1 300.000 + R3 200.000 + R4 50.000 | **550.000** |
-| **TỔNG TIỀN RA** | | **17.350.000** |
-| **Dòng tiền ròng** | 56.000.000 − 17.350.000 | **38.650.000** |
+| Hoàn trả hàng S8 (`refundOut`) | 150.000 | **150.000** |
+| **TỔNG TIỀN RA** | | **17.500.000** |
+| **Dòng tiền ròng** | 56.150.000 − 17.500.000 | **38.650.000** |
 
-### Vốn & Lãi gộp (cash basis — vốn ghi theo tỉ lệ tiền thực thu)
-| Đơn | Vốn ghi nhận |
-|---|---|
-| S1 | 120.000 |
-| S2 | 10.000.000 |
-| S3 (KẾT HỢP, thu đủ) | 4.000.000 |
-| S5 (thu 5/15) | 12.500.000 × 5/15 = **4.166.667** |
-| S6 (thu đủ 20/20) | **17.000.000** |
-| S7 (thu 8/10, cọc 2/10 đã ghi kỳ trước) | 8.000.000 × 8/10 = **6.400.000** |
-| S8 trả hàng | −90.000 |
-| **Vốn bán hàng** | **41.596.667** |
-| **Vốn sửa chữa** | R1 300.000 + R2 900.000 + R4 50.000 + R5 700.000 = **1.950.000** |
-| **Lãi gộp bán hàng** | 49.850.000 − 41.596.667 = **8.253.333** |
-| **Lãi gộp sửa chữa** | 3.750.000 − 1.950.000 = **1.800.000** |
-| **Lãi gộp tổng** | **10.053.333** |
-| **Lãi sau chi vận hành** | 10.053.333 − 6.200.000 = **3.853.333** |
+### Kết quả kinh doanh (DỒN TÍCH — tab Lãi, `[2026-09-24]` đổi hoàn toàn)
+| Mục | Tính | Kết quả |
+|---|---|---|
+| Doanh thu bán | S1 200.000 + S2 11.800.000 + S3 5.000.000 + S4 3.000.000 **(CÔNG NỢ)** + S5 15.000.000 **(trả góp)** + S6 20.000.000 − S8 150.000 | **54.850.000** |
+| Doanh thu sửa | R1 800.000 + R2 1.500.000 + R3 600.000 **(CÔNG NỢ)** + R4 250.000 + R5 1.200.000 | **4.350.000** |
+| Giá vốn bán | 120.000 + 10.000.000 + 4.000.000 + 2.400.000 + 12.500.000 + 17.000.000 − 90.000 | **45.930.000** |
+| Giá vốn sửa | 300.000 + 900.000 + 200.000 + 50.000 + 700.000 | **2.150.000** |
+| **Lãi gộp bán / sửa / tổng** | (54.850.000 − 45.930.000) / (4.350.000 − 2.150.000) | **8.920.000 / 2.200.000 / 11.120.000** |
+| **Lãi sau chi vận hành** | 11.120.000 − 6.200.000 | **4.920.000** |
+
+> Dồn tích = ghi theo **ngày bán / ngày giao**, mọi PTTT. Đơn **S4 CÔNG NỢ**,
+> **S5/S6 trả góp**, **S3 kết hợp thu thiếu** đều đủ doanh thu + giá vốn ngay
+> hôm nay. **Tất toán NH 24.000.000 (S6 16tr + S7 8tr) chỉ là TIỀN** — nằm ở
+> tab Tiền, **không** cộng vào doanh thu lần thứ hai.
+> Thu nợ khách 2.100.000 cũng là TIỀN (`debtCollectIn`), không vào doanh thu.
 
 ### Công nợ cuối ngày
 | Loại | Chi tiết | Tổng |
@@ -159,17 +160,18 @@ Bất biến: với mọi khoản nợ, `paidAmount == Σ debt_payments` (D1 = 1
 
 **Kiểm tra chéo:** (11.750.000 + 44.400.000) − (5.850.000 + 11.600.000) = 38.700.000 = dòng tiền ròng V2 38.650.000 + 50.000 mirror dịch vụ nội bộ R4 ✔
 
-### Lợi nhuận ngày (accrual — tính cả đơn CÔNG NỢ)
+### Lợi nhuận ngày (accrual — tính cả đơn CÔNG NỢ) `[2026-09-24]`
 | | |
 |---|---|
-| Doanh thu bán (S1..S6 kể cả S4 CN, trừ S8) | 200.000 + 11.800.000 + 5.000.000 + 3.000.000 + 5.000.000 + 4.000.000 − 150.000 = **28.850.000** |
-| Tất toán NH | 16.000.000 + 8.000.000 = **24.000.000** |
+| Doanh thu bán (S1..S6 kể cả S4 CN + S5/S6 trả góp, trừ S8) | 200.000 + 11.800.000 + 5.000.000 + 3.000.000 + 15.000.000 + 20.000.000 − 150.000 = **54.850.000** |
+| ~~Tất toán NH~~ | **24.000.000 — CHỈ LÀ TIỀN**, không cộng doanh thu (dòng riêng `settlement_income`) |
+| Tiền bán thuần (`saleCash`, không gồm tất toán NH) | 200.000 + 11.800.000 + 5.000.000 + cọc S5 5.000.000 + cọc S6 4.000.000 − 150.000 = **25.850.000** |
 | Doanh thu sửa (kể cả R3 CN) | 800.000 + 1.500.000 + 600.000 + 250.000 + 1.200.000 = **4.350.000** |
 | Thu khác | **300.000** |
 | Chi vận hành | **6.200.000** |
-| Vốn bán | 120.000 + 10.000.000 + 4.000.000 + 2.400.000 + 4.166.667 + 3.400.000 + 13.600.000 + 6.400.000 − 90.000 = **43.996.667** |
+| Vốn bán | 120.000 + 10.000.000 + 4.000.000 + 2.400.000 + 12.500.000 + 17.000.000 − 90.000 = **45.930.000** |
 | Vốn sửa | 300.000 + 900.000 + 200.000 + 50.000 + 700.000 = **2.150.000** |
-| **Lợi nhuận ròng** | 28.850.000 + 24.000.000 + 4.350.000 + 300.000 − 6.200.000 − 43.996.667 − 2.150.000 = **5.153.333** |
+| **Lợi nhuận ròng** | 54.850.000 + 4.350.000 + 300.000 − 6.200.000 − 45.930.000 − 2.150.000 = **5.220.000** |
 
 ---
 
@@ -177,9 +179,12 @@ Bất biến: với mọi khoản nợ, `paidAmount == Σ debt_payments` (D1 = 1
 
 | Chủ đề | Tài chính V2 | Chốt quỹ / Báo cáo ngày |
 |---|---|---|
-| Đơn CÔNG NỢ (S4, R3) | không tính doanh thu/vốn cho tới khi thu tiền (cash basis) | tính đủ doanh thu + vốn ngay (accrual), tiền chỉ vào khi có phiếu thu |
+| Đơn CÔNG NỢ (S4, R3), trả góp, kết hợp thu thiếu | **giống nhau** `[2026-09-24]`: đủ doanh thu + giá vốn ngay ngày bán/giao; không tạo dòng tiền | **giống nhau**: tính đủ doanh thu + vốn ngay, tiền chỉ vào khi có phiếu thu |
+| Tất toán NH | TIỀN (`cashFromSales` / dòng `settlement_income`), không cộng doanh thu | TIỀN (`settlementIncome`), không cộng doanh thu |
+| Thu nợ khách | TIỀN (`debtCollectIn`), không cộng doanh thu | TIỀN (`debtCollected`), không cộng doanh thu |
 | Trả hàng S8 | **(từ 2026-09-20 BUG-09) giống Chốt quỹ:** tiền ra 150.000 (`refundOut`) + doanh thu bán NET; trước đó trừ thẳng vào tiền vào | ghi tiền ra 150.000 + trừ doanh thu |
 | Dịch vụ nội bộ R4 (50.000) | hiện 1 dòng chi mirror `repair_cost_*` trong sổ (nằm trong tiền ra, **loại** khỏi chi vận hành) | chỉ tính vào vốn sửa, **không** tính tiền ra |
+| Dòng "Vốn" của từng giao dịch bán trong tab Tiền | theo **tỉ lệ tiền đã thu** (S5 4.166.667) — chỉ là dòng lẻ, tổng vốn lấy ở tab Lãi | — |
 
 ## 5. Lỗi thật kịch bản đã tìm ra (đã sửa `[2026-09-11e]`)
 
@@ -189,5 +194,5 @@ Bất biến: với mọi khoản nợ, `paidAmount == Σ debt_payments` (D1 = 1
 2. **Dòng tất toán đơn góp kỳ trước** (S7) mang ngày bán 15/08 thay vì ngày nhận
    tiền ⇒ rơi ngoài kỳ trên biểu đồ. Đã dùng `settlementReceivedAt`.
 
-Ghi chú: NH thực tế trả đủ khoản vay (không giữ phí) nên vốn theo tỉ lệ tiền
-nhận của V2 = vốn đủ; kịch bản dùng số tất toán = khoản vay.
+Ghi chú: NH thực tế trả đủ khoản vay (không giữ phí) nên tất toán 24.000.000
+(S6 16tr + S7 8tr) = đúng khoản vay; kịch bản dùng số tất toán = khoản vay.

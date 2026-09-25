@@ -242,4 +242,96 @@ void main() {
     expect((await h.getProductById(productId))!.refurbishCost, 0);
     expect((await h.getDebtByFirestoreId(item['debtFirestoreId'] as String))!['deleted'], 1);
   });
+
+  // ── Người tân trang cho list Kho / chi tiết SP (yêu cầu 2026-09-24) ──
+  group('getLatestRefurbishActors', () {
+    Future<int> insertItem({
+      required int productId,
+      required String fid,
+      required String createdBy,
+      required int createdAt,
+      int? updatedAt,
+      int deleted = 0,
+    }) async {
+      final db = await h.database;
+      return db.insert('product_refurbish_items', {
+        'firestoreId': fid,
+        'productId': productId,
+        'productFirestoreId': 'prod_refurb_actor_$fid',
+        'type': 'OTHER',
+        'description': 'Ép kính',
+        'quantity': 1,
+        'amount': 300000,
+        'paymentMethod': 'TIỀN MẶT',
+        'createdAt': createdAt,
+        'updatedAt': updatedAt,
+        'createdBy': createdBy,
+        'shopId': shopId,
+        'isSynced': 1,
+        'deleted': deleted,
+      });
+    }
+
+    test('chọn theo updatedAt mới nhất, fallback createdAt khi thiếu', () async {
+      final pA = await insertProduct('prod_refurb_actor_a');
+      final pB = await insertProduct('prod_refurb_actor_b');
+
+      // A: dòng cũ (NV CŨ) + dòng mới (TUẤN) — updatedAt quyết định.
+      await insertItem(
+        productId: pA, fid: 'ra_a1', createdBy: 'NV CŨ',
+        createdAt: 1000, updatedAt: 1000,
+      );
+      await insertItem(
+        productId: pA, fid: 'ra_a2', createdBy: 'TUẤN',
+        createdAt: 500, updatedAt: 9000,
+      );
+      // B: không có updatedAt → lấy theo createdAt.
+      await insertItem(
+        productId: pB, fid: 'ra_b1', createdBy: 'HÀ',
+        createdAt: 7000,
+      );
+      // Dòng xoá mềm + dòng trống tên không được phép thành "người tân trang".
+      await insertItem(
+        productId: pB, fid: 'ra_b2', createdBy: 'ĐÃ XOÁ',
+        createdAt: 99000, deleted: 1,
+      );
+      await insertItem(
+        productId: pB, fid: 'ra_b3', createdBy: '   ',
+        createdAt: 99001,
+      );
+
+      final map = await h.getLatestRefurbishActors();
+      expect(map[pA], 'TUẤN');
+      expect(map[pB], 'HÀ');
+
+      // Chỉ tên người — không kèm bất kỳ con số giá vốn nào.
+      expect(map.values.every((v) => v.trim().isNotEmpty), isTrue);
+    });
+
+    test('xoá hết dòng sống → không còn key (không hiện chip người tân trang)',
+        () async {
+      final pC = await insertProduct('prod_refurb_actor_c');
+      final id = await insertItem(
+        productId: pC, fid: 'ra_c1', createdBy: 'TUẤN',
+        createdAt: 1000,
+      );
+      expect((await h.getLatestRefurbishActors())[pC], 'TUẤN');
+
+      final db = await h.database;
+      await db.update(
+        'product_refurbish_items',
+        {'deleted': 1},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      expect((await h.getLatestRefurbishActors()).containsKey(pC), isFalse);
+    });
+
+    test('service.latestActorByProduct() trả cùng dữ liệu với helper DB',
+        () async {
+      final viaService = await ProductRefurbishService.latestActorByProduct();
+      final viaDb = await h.getLatestRefurbishActors();
+      expect(viaService, viaDb);
+    });
+  });
 }

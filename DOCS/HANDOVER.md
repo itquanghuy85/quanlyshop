@@ -6,6 +6,12 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ## ⚡ Trạng thái hiện tại
 
+**2026-09-24 (2 task trong 1 phiên):**
+1. **Kho — người tân trang** `[2026-09-24a]`: hiện "ai vừa sửa/đổi SP" ở list Kho, đầu trang chi tiết, popup "Tân trang ngay", lịch sử tân trang; **không gate** giá vốn (chỉ phần số tiền gate `allowViewCostPrice`); 1 query SQLite (`getLatestRefurbishActors`), không read cloud. Test 10/10 PASS.
+2. **Tài chính — đổi công thức lãi sang DỒN TÍCH (accrual)** `[2026-09-24b]`: doanh thu/vốn/lãi = **ngày bán/ngày giao, mọi PTTT** (CÔNG NỢ, trả góp, kết hợp thu thiếu); trả hàng trừ cả doanh thu lẫn vốn mọi PTTT; thu nợ KH + tất toán NH + tiền bán = **TIỀN thuần** (`debtCollectIn`, `settlementIncome`, `cashFromSales`/`saleCash`) tách hẳn khỏi lãi, không còn cộng theo tỉ lệ tiền thu, đảo "phương án A" 2026-09-18. Snapshot thêm `cashFrom*`/`previousCashFrom*`/`debtCollectIn`, `DailyFinancialAnalysisService` thêm `saleCash`. Chi tiết: CHANGELOG `[2026-09-24b]`, `test/FINANCE_FULL_SCENARIO.md`.
+   - Verify: `flutter analyze` 0 error (1876 info/warning = baseline), `flutter test` **755 PASS / 1 SKIP / 0 FAIL** (kèm test mới `finance_accrual_invariants_test.dart` 15 case).
+   - **Chưa làm:** build release/web deploy; `DOCS/FULL_DOCUMENTATION.md` chưa rà mục Tài chính; chạy tay trên máy thật 2 tab Tiền/Lãi với đơn trả góp + công nợ; commit (chưa được yêu cầu).
+
 **2026-09-20 (đợt 4):** NEW-02 đã sửa (`RepairPriceAdjustmentService`). **NEW-05 HIGH đang mở, chờ quyết định:** bán hàng local-first (mất mạng / phiên offline) không kiểm tồn ⇒ tồn âm; đề xuất ở QA_BUG_REPORT. Test plan còn ~15 case chưa chạy (dừng theo constraint).
 
 **2026-09-20 (đợt 5):** NEW-05 FIXED (`SaleStockGuard`), NEW-06 FIXED (queue delete permission-denied). **NEW-08 HIGH đang mở, chờ quyết định:** Miễn nợ (Công cụ điều chỉnh dữ liệu) chỉ xoá mềm local, không bao giờ lên cloud (`writeOffDebt` không enqueue; `syncAllToCloud` bỏ qua row deleted) ⇒ máy khác vẫn thấy nợ, có thể ghi đè làm nợ sống lại. NEW-07 MEDIUM: thiếu công tắc GIÁ VỐN trong sheet phân quyền nhân viên. Còn 10 case (DEBT-11, MD-10, CR-01→07, SALE-23) + Phần C (release build, báo cáo bàn giao) chưa làm.

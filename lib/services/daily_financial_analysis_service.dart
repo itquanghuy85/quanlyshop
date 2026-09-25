@@ -20,6 +20,12 @@ class DailyFinancialAnalysis {
   final int refundOut;
   final int returnCost;
 
+  /// TIỀN (cash) thực thu từ bán hàng trong kỳ, KHÔNG gồm tất toán trả góp
+  /// (`settlementIncome`) và không gồm thu nợ khách hàng (`debtCollected`).
+  /// Khác với [saleIncome] vốn là ACCRUAL (theo ngày bán, gồm đơn CÔNG NỢ
+  /// chưa thu) — dùng cho bảng cơ cấu TIỀN THU.
+  final int saleCash;
+
   const DailyFinancialAnalysis({
     required this.cashIn,
     required this.cashOut,
@@ -39,20 +45,25 @@ class DailyFinancialAnalysis {
     required this.repairCost,
     required this.refundOut,
     required this.returnCost,
+    this.saleCash = 0,
   });
 
   int get totalIn => cashIn + bankIn;
   int get totalOut => cashOut + bankOut;
+
+  /// [2026-09-24] ĐỒNG NHẤT LÃI theo ACCRUAL: bỏ `settlementIncome` — tiền tất
+  /// toán trả góp là DÒNG TIỀN, doanh thu + giá vốn của chính đơn đó đã ghi
+  /// nhận đủ ngay ngày bán (`saleIncome` / `saleCost`). Giữ ở đây là cộng
+  /// doanh thu 2 lần cho mỗi kỳ có tất toán.
   int get netProfit =>
       saleIncome +
-      settlementIncome +
       repairIncome +
       miscIncome -
       expenseOut -
       saleCost -
       repairCost;
 
-  int get saleProfit => saleIncome + settlementIncome - saleCost;
+  int get saleProfit => saleIncome - saleCost;
   int get repairProfit => repairIncome - repairCost;
 }
 
@@ -77,6 +88,7 @@ class DailyFinancialAnalysisService {
     int bankIn = 0;
     int bankOut = 0;
     int saleIncome = 0;
+    int saleCash = 0; // TIỀN thu từ bán hàng (không gồm tất toán NH / thu nợ)
     int repairIncome = 0;
     int debtCollected = 0;
     int miscIncome = 0;
@@ -115,6 +127,8 @@ class DailyFinancialAnalysisService {
       final transferAmount = _asInt(sale['transferAmount']);
 
       if (paymentMethod == 'CÔNG NỢ') {
+        // ACCRUAL: ghi nhận đủ doanh thu + giá vốn ngay ngày bán, kể cả khi
+        // chưa thu đồng nào. Không có dòng tiền.
         saleIncome += finalPrice;
         saleCost += totalCost;
         saleDebt += finalPrice;
@@ -123,10 +137,11 @@ class DailyFinancialAnalysisService {
 
       if (isInstallment) {
         final downPaid = _asInt(sale['downPayment']);
-        saleIncome += downPaid;
-
-        final ratio = finalPrice > 0 ? downPaid / finalPrice : 0.0;
-        saleCost += (totalCost * ratio).round();
+        // ACCRUAL: đủ giá bán ngay lúc ký hợp đồng — trả góp không phải trả
+        // dần doanh thu theo từng kỳ thu tiền (khác với dòng TIỀN bên dưới).
+        saleIncome += finalPrice;
+        saleCost += totalCost;
+        saleCash += downPaid;
 
         final downMethod = _asString(
           sale['downPaymentMethod'] ?? sale['paymentMethod'],
@@ -138,13 +153,18 @@ class DailyFinancialAnalysisService {
         }
       } else if (isKetHop && (cashAmount + transferAmount) > 0) {
         final actualPaid = cashAmount + transferAmount;
-        saleIncome += actualPaid;
+        // ACCRUAL: cùng một đơn KẾT HỢP phải lãi bằng nhau dù khách trả bằng
+        // tiền mặt hay trả góp — tính trên `finalPrice`, không tính trên phần
+        // đã thu (`actualPaid`).
+        saleIncome += finalPrice;
         saleCost += totalCost;
+        saleCash += actualPaid;
         cashIn += cashAmount;
         bankIn += transferAmount;
       } else {
         saleIncome += finalPrice;
         saleCost += totalCost;
+        saleCash += finalPrice;
         if (paymentMethod == 'TIỀN MẶT') {
           cashIn += finalPrice;
         } else {
@@ -161,17 +181,12 @@ class DailyFinancialAnalysisService {
       final amount = settlementAmount.clamp(0, totalLoan);
       if (amount <= 0) continue;
 
+      // TIỀN: chỉ bơm dòng tiền. KHÔNG cộng thêm giá vốn — đơn trả góp đã ghi
+      // `saleIncome`/`saleCost` ĐỦ ngay ngày bán ở vòng trên (nếu bán trong
+      // kỳ), còn bán ở kỳ trước thì doanh thu thuộc kỳ đó. Cộng thêm
+      // `remainRatio` ở đây là đếm giá vốn 2 lần cho mỗi kỳ có tất toán.
       settlementIncome += amount;
       bankIn += amount;
-
-      final totalPrice = _asInt(sale['totalPrice']);
-      final discount = _asInt(sale['discount']);
-      final finalPrice = totalPrice - discount > 0 ? totalPrice - discount : 0;
-      final totalCost = _asInt(sale['totalCost']);
-      final downPaid = _asInt(sale['downPayment']);
-      final downRatio = finalPrice > 0 ? downPaid / finalPrice : 0.0;
-      final remainRatio = 1.0 - downRatio;
-      saleCost += (totalCost * remainRatio).round();
     }
 
     if (enableRepair) {
@@ -428,13 +443,20 @@ class DailyFinancialAnalysisService {
         salesReturn['refundMethod'],
         fallback: 'TIỀN MẶT',
       );
-      if (method == 'CÔNG NỢ') continue;
+      final isCongNo = method == 'CÔNG NỢ';
 
-      refundOut += amount;
-      returnCostTotal += returnCost;
+      // ACCRUAL: trả hàng HUỶ doanh thu + thu hồi giá vốn với MỌI PTTT, kể
+      // cả hoàn CÔNG NỢ (khách trả lại hàng thay vì trả tiền) — nếu bỏ qua
+      // thì doanh thu kỳ có trả hàng bị treo cao hơn thực tế.
       saleIncome -= amount;
       saleCost -= returnCost;
+      returnCostTotal += returnCost;
+      if (!isCongNo) saleCash -= amount;
 
+      // TIỀN: chỉ PTTT thật sự có dòng tiền mới ghi tiền ra.
+      if (isCongNo) continue;
+
+      refundOut += amount;
       if (method == 'TIỀN MẶT') {
         cashOut += amount;
       } else {
@@ -450,13 +472,14 @@ class DailyFinancialAnalysisService {
       debugPrint('💵 cashIn=$cashIn, cashOut=$cashOut');
       debugPrint('🏦 bankIn=$bankIn, bankOut=$bankOut');
       debugPrint('📊 saleIncome=$saleIncome (debt=$saleDebt)');
+      debugPrint('💵 saleCash=$saleCash');
       debugPrint('🏦 settlementIncome=$settlementIncome');
       debugPrint('🔧 repairIncome=$repairIncome (debt=$repairDebt)');
       debugPrint('➕ miscIncome=$miscIncome');
       debugPrint('💳 debtCollected=$debtCollected');
       debugPrint('📤 expenseOut=$expenseOut, importOut=$importOut, supplierPaid=$supplierPaid, partnerPaid=$partnerPaid');
       debugPrint('💰 saleCost=$saleCost, repairCost=$repairCost, repairPartsCostFund=$repairPartsCostFund');
-      debugPrint('🧮 netProfit = saleIncome($saleIncome) + settlementIncome($settlementIncome) + repairIncome($repairIncome) + miscIncome($miscIncome) - expenseOut($expenseOut) - saleCost($saleCost) - repairCost($repairCost) = ${saleIncome + settlementIncome + repairIncome + miscIncome - expenseOut - saleCost - repairCost}');
+      debugPrint('🧮 netProfit = saleIncome($saleIncome) + repairIncome($repairIncome) + miscIncome($miscIncome) - expenseOut($expenseOut) - saleCost($saleCost) - repairCost($repairCost) = ${saleIncome + repairIncome + miscIncome - expenseOut - saleCost - repairCost}');
     }
 
     return DailyFinancialAnalysis(
@@ -478,6 +501,7 @@ class DailyFinancialAnalysisService {
       repairCost: repairCost,
       refundOut: refundOut,
       returnCost: returnCostTotal,
+      saleCash: saleCash,
     );
   }
 

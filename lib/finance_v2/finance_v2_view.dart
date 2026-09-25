@@ -982,8 +982,10 @@ class _FinanceV2ViewState extends State<FinanceV2View>
 
     if (idx == _tabProfit) {
       b.writeln('[L][B]LAI');
-      b.writeln('Thu tu ban   : ${_cmp(s.incomeFromSales)}');
-      b.writeln('Thu tu sua   : ${_cmp(s.incomeFromRepairs)}');
+      b.writeln('Doanh thu ban: ${_cmp(s.incomeFromSales)}');
+      b.writeln('Doanh thu sua : ${_cmp(s.incomeFromRepairs)}');
+      b.writeln('Tien ban da thu: ${_cmp(s.cashFromSales)}');
+      b.writeln('Tien sua da thu: ${_cmp(s.cashFromRepairs)}');
       b.writeln('Thu khac     : ${_cmp(s.incomeOther)}');
       b.writeln('Chi ra       : ${_cmp(s.totalOut)}');
       // CLAUDE.md §9: khong co quyen xem gia von thi ban in ra cung khong
@@ -1949,7 +1951,7 @@ class _FinanceV2ViewState extends State<FinanceV2View>
   /// Thẻ "So với kỳ trước": 3 cột Doanh thu / Giá vốn / Lãi gộp, mỗi cột có
   /// mũi tên màu, số kỳ trước và %. CHỈ gọi khi có quyền giá vốn (cột Giá vốn
   /// và Lãi gộp lộ vốn). Doanh thu kỳ trước = lãi gộp + vốn kỳ trước (snapshot
-  /// không lưu riêng; cùng cash basis, xem data service).
+  /// không lưu riêng; cùng ACCRUAL với kỳ hiện tại — xem data service).
   Widget _compSection(FinanceV2Snapshot s) {
     final revenue = s.incomeFromSales + s.incomeFromRepairs;
     final gross = s.grossProfitTotal;
@@ -2002,9 +2004,12 @@ class _FinanceV2ViewState extends State<FinanceV2View>
 
   /// Thẻ "KẾT QUẢ KINH DOANH · kỳ" — đọc theo thác nước: Doanh thu (bán /
   /// sửa) → Giá vốn → Lãi gộp → Chi phí vận hành → LÃI THỰC (ô nổi bật kèm
-  /// biên lãi). Công thức GIỮ NGUYÊN bản trước: lãi gộp = doanh thu đã thu −
-  /// vốn; lãi thực = lãi gộp − chi phí vận hành (`operatingExpenseOut`, không
-  /// gồm nhập hàng / trả nợ NCC / thanh toán đối tác).
+  /// biên lãi). Từ 2026-09-24 tính theo ACCRUAL: doanh thu + giá vốn ghi nhận
+  /// ngay NGÀY BÁN / NGÀY GIAO cho mọi hình thức thanh toán (tiền mặt, chuyển
+  /// khoản, trả góp, KẾT HỢP và CÔNG NỢ) — cùng công thức với Sale List và
+  /// Chốt quỹ, không phụ thuộc ngày khách trả tiền. Lãi thực = lãi gộp − chi
+  /// phí vận hành (`operatingExpenseOut`, không gồm nhập hàng / trả nợ NCC /
+  /// thanh toán đối tác). Xem tab Tiền để biết TIỀN THỰC THU.
   ///
   /// CLAUDE.md §9: không có quyền giá vốn thì ẩn cả vốn, lãi gộp, lãi thực,
   /// biên lãi (từ doanh thu − lãi suy ngược ra vốn được).
@@ -2026,9 +2031,12 @@ class _FinanceV2ViewState extends State<FinanceV2View>
               borderRadius: BorderRadius.circular(12),
               onTap: () => _showSectionHint(
                 'Lãi $_periodLabel',
-                'Tính trên phần tiền ĐÃ THU trong kỳ — đơn công nợ chưa thu chưa được tính.\n\n'
-                    'Doanh thu đã thu − vốn hàng/linh kiện = LÃI GỘP.\n'
+                'Ghi nhận theo NGÀY BÁN / NGÀY GIAO cho mọi hình thức thanh toán '
+                    '(tiền mặt, chuyển khoản, trả góp, KẾT HỢP và CÔNG NỢ) — '
+                    'khách trả tiền sau vẫn tính đủ vào kỳ bán.\n\n'
+                    'Doanh thu (đã bán) − giá vốn hàng/linh kiện = LÃI GỘP.\n'
                     'Lãi gộp − chi phí vận hành (điện nước, mặt bằng, lương, chi khác…) = LÃI THỰC.\n\n'
+                    'Muốn biết tiền THỰC về quỹ trong kỳ (gồm trả góp, thu nợ) hãy xem tab Tiền.\n'
                     'Chi phí vận hành không gồm tiền nhập hàng, trả nợ NCC, thanh toán đối tác '
                     '(những khoản đó là vốn, đã trừ ở dòng vốn hoặc là tiền tồn kho).',
               ),
@@ -2176,21 +2184,32 @@ class _FinanceV2ViewState extends State<FinanceV2View>
               style: FinanceV2Theme.micro,
             ),
             const SizedBox(height: 10),
-            if (s.incomeFromSales > 0)
+            // CƠ CẤU TIỀN THU VÀO = TIỀN (cash). Doanh thu theo ACCRUAL nằm ở
+            // thẻ "Kết quả kinh doanh", không dùng ở đây — nếu dùng thì các
+            // dòng không còn cộng lại bằng tổng tiền vào.
+            if (s.cashFromSales > 0)
               _ir(
                 'Thu từ bán hàng',
-                s.incomeFromSales,
+                s.cashFromSales,
                 s.totalIn,
                 const Color(0xFF1565C0),
                 () => _goTx('SALE'),
               ),
-            if (s.incomeFromRepairs > 0)
+            if (s.cashFromRepairs > 0)
               _ir(
                 'Thu từ sửa chữa',
-                s.incomeFromRepairs,
+                s.cashFromRepairs,
                 s.totalIn,
                 const Color(0xFF2E7D32),
                 () => _goTx('REPAIR'),
+              ),
+            if (s.debtCollectIn > 0)
+              _ir(
+                'Thu nợ khách hàng',
+                s.debtCollectIn,
+                s.totalIn,
+                const Color(0xFFEF6C00),
+                () => _goTx('DEBT_COLLECT'),
               ),
             if (s.incomeOther > 0)
               _ir(
@@ -3986,20 +4005,17 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       final method = _auditPaymentMethod(sale.paymentMethod);
       final saleRef = sale.firestoreId ?? (sale.id?.toString() ?? '');
 
-      // RECOGNIZED AMOUNT: Cash-basis (khớp với logic actualPaid của data service)
-      // CASH/TRANSFER: finalPrice; INSTALLMENT: downPayment + settlementAmount; DEBT: 0
-      int recognizedAmount;
+      // TIỀN (cash) — chỉ nuôi cột tiền mặt / chuyển khoản / phải thu khách.
+      // [2026-09-24] Doanh thu + giá vốn chuyển sang ACCRUAL (xem dưới) để
+      // khớp incomeFromSales / cogsFromSales của FinanceV2DataService.
       int debtCustomerChangeForSale = 0;
       int saleCashIn = 0;
       int saleTransferIn = 0;
       if (method == 'CASH') {
-        recognizedAmount = sale.finalPrice;
-        saleCashIn = recognizedAmount;
+        saleCashIn = sale.finalPrice;
       } else if (method == 'TRANSFER') {
-        recognizedAmount = sale.finalPrice;
-        saleTransferIn = recognizedAmount;
+        saleTransferIn = sale.finalPrice;
       } else if (method == 'MIXED') {
-        recognizedAmount = sale.cashAmount + sale.transferAmount;
         saleCashIn = sale.cashAmount;
         saleTransferIn = sale.transferAmount;
       } else if (method == 'INSTALLMENT') {
@@ -4007,7 +4023,6 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         final settlement = sale.settlementAmount > 0
             ? sale.settlementAmount
             : 0;
-        recognizedAmount = (downPaid + settlement).clamp(0, sale.finalPrice);
         final downMethod = _auditPaymentMethod(
           sale.downPaymentMethod ?? sale.paymentMethod,
         );
@@ -4023,42 +4038,37 @@ class _FinanceV2ViewState extends State<FinanceV2View>
             .clamp(0, sale.finalPrice);
       } else {
         // Bán công nợ: không vào quỹ ngay, ghi tăng phải thu khách
-        recognizedAmount = 0;
         debtCustomerChangeForSale = sale.finalPrice;
       }
 
-      // REVENUE COST: Tỉ lệ theo recognizedAmount/finalPrice (khớp với recognizedCost của data service)
-      int revenueCost = 0;
-      if (recognizedAmount > 0 && sale.totalCost > 0 && sale.finalPrice > 0) {
-        // Round to nearest 1000đ to avoid fractional costs in journal
-        revenueCost = (((sale.totalCost * recognizedAmount) / sale.finalPrice) / 1000).round() * 1000;
-        revenueCost = revenueCost.clamp(0, sale.totalCost);
-        revenueCost = revenueCost.clamp(0, recognizedAmount);
-      }
+      // ACCRUAL: doanh thu + giá vốn của đơn = đủ `finalPrice` / `totalCost`,
+      // ghi nhận ngay ngày BÁN cho MỌI PTTT (kể cả CÔNG NỢ, trả góp, KẾT
+      // HỢP) — cùng công thức với Sale List và tab Lãi. Tiền thực thu nằm ở
+      // cashIn / transferIn / debtCustomerChange, KHÔNG tham gia tính doanh thu.
+      final accrualAmount = sale.finalPrice;
+      final accrualCost = sale.totalCost > 0 ? sale.totalCost : 0;
 
       int distributedAmount = 0;
       int distributedCost = 0;
       for (final line in lines) {
         final qty = (line['quantity'] as int?) ?? 0;
         final baseAmount = (line['price'] as int?) ?? 0;
-        // LINE AMOUNT: Cash-basis = recognizedAmount (khớp với incomeFromSales của data service)
-        int lineAmount = recognizedAmount;
-        int lineCostTotal = revenueCost;
+        int lineAmount = accrualAmount;
+        int lineCostTotal = accrualCost;
         if (lines.length > 1 && sale.finalPrice > 0) {
           final ratio = baseAmount / sale.finalPrice;
-          lineAmount = (recognizedAmount * ratio).round();
-          // Round to nearest 1000đ for each bundle item
-          lineCostTotal = (((revenueCost * ratio) / 1000).round() * 1000);
+          lineAmount = (accrualAmount * ratio).round();
+          lineCostTotal = (accrualCost * ratio).round();
           distributedAmount += lineAmount;
           distributedCost += lineCostTotal;
         }
         if (lines.length > 1 && line == lines.last) {
-          lineAmount += (recognizedAmount - distributedAmount);
-          lineCostTotal += (revenueCost - distributedCost);
+          lineAmount += (accrualAmount - distributedAmount);
+          lineCostTotal += (accrualCost - distributedCost);
         }
         final lineUnitPrice = qty > 0 ? (lineAmount / qty).round() : lineAmount;
         final lineUnitCost = qty > 0
-            ? (((lineCostTotal / qty) / 1000).round() * 1000)
+            ? (lineCostTotal / qty).round()
             : lineCostTotal;
         int cashIn = saleCashIn;
         int transferIn = saleTransferIn;
@@ -4157,8 +4167,10 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         final unitCost = (item['cost'] as num?)?.toInt() ?? 0;
         final costTotal = unitCost * qty;
         final amount = (item['amount'] as num?)?.toInt() ?? unitPrice * qty;
-        final recognizedReturnAmount = method == 'DEBT' ? 0 : amount;
-        final recognizedReturnCost = method == 'DEBT' ? 0 : costTotal;
+        // ACCRUAL: trả hàng HUỶ doanh thu + thu hồi vốn với MỌI PTTT, kể cả
+        // hoàn CÔNG NỢ (chỉ dòng tiền là 0 — nằm ở debtCustomerChange).
+        final recognizedReturnAmount = amount;
+        final recognizedReturnCost = costTotal;
         int cashOut = 0;
         int transferOut = 0;
         int debtCustomerChange = 0;
@@ -4853,20 +4865,24 @@ class _FinanceV2ViewState extends State<FinanceV2View>
         ['Tiền ra', s.totalOut],
         ['Dòng tiền ròng', s.netCashflow],
         ['Số giao dịch', s.transactionCount],
-        // FinanceV2 = cash basis → đây là TIỀN ĐÃ THU, không phải doanh thu
-        // (accrual). Doanh thu/lợi nhuận kế toán xem "Báo cáo lợi nhuận tháng".
-        ['Tiền bán hàng đã thu', s.incomeFromSales],
-        ['Tiền sửa chữa đã thu', s.incomeFromRepairs],
+        // TIỀN (cash) — phần thực thu trong kỳ, dùng cho đối chiếu quỹ.
+        ['Tiền bán hàng đã thu', s.cashFromSales],
+        ['Tiền sửa chữa đã thu', s.cashFromRepairs],
+        ['Thu nợ khách hàng', s.debtCollectIn],
         ['Thu khác', s.incomeOther],
+        // ACCRUAL — kết quả kinh doanh, ghi nhận theo ngày bán / ngày giao
+        // cho mọi PTTT (kể cả CÔNG NỢ, trả góp) — xem "Báo cáo lợi nhuận tháng".
+        ['Doanh thu bán hàng', s.incomeFromSales],
+        ['Doanh thu sửa chữa', s.incomeFromRepairs],
         // CLAUDE.md §9: không có quyền xem giá vốn thì file Excel cũng KHÔNG
         // được có cột vốn/lãi — chặn ở giao diện mà vẫn xuất ra file thì coi
-        // như không chặn. Bỏ luôn cả lãi gộp vì từ "đã thu − lãi" ra vốn.
+        // như không chặn. Bỏ luôn cả lãi gộp vì từ "doanh thu − lãi" ra vốn.
         if (_canViewCost) ...[
-          ['Vốn (phần đã thu) - bán', s.cogsFromSales],
-          ['Vốn (phần đã thu) - sửa', s.cogsFromRepairs],
-          ['Lãi gộp (đã thu) - bán', s.grossProfitFromSales],
-          ['Lãi gộp (đã thu) - sửa', s.grossProfitFromRepairs],
-          ['Tổng lãi gộp (phần đã thu)', s.grossProfitTotal],
+          ['Giá vốn bán hàng', s.cogsFromSales],
+          ['Giá vốn sửa chữa', s.cogsFromRepairs],
+          ['Lãi gộp bán hàng', s.grossProfitFromSales],
+          ['Lãi gộp sửa chữa', s.grossProfitFromRepairs],
+          ['Tổng lãi gộp', s.grossProfitTotal],
           ['Chi phí vận hành', s.operatingExpenseOut],
           [
             'Lãi thực (sau chi phí)',
@@ -5028,10 +5044,8 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       ['Thu vào', s.totalIn],
       ['Chi ra', s.totalOut],
       ['Ròng sổ quỹ', s.netCashflow],
-      // Cùng công thức & tên với màn hình / bản in ("Lãi thực (sau chi phí)");
-      // bản cũ ghi nhãn "Lãi gộp" cho con số đã trừ chi vận hành → lệch với
-      // dòng "Tổng lãi gộp" ở sheet Lãi.
-      ['Lãi gộp (phần đã thu)', s.grossProfitTotal],
+      // Lãi gộp / lãi thực = ACCRUAL (ghi nhận theo ngày bán / ngày giao).
+      ['Tổng lãi gộp', s.grossProfitTotal],
       ['Chi phí vận hành', s.operatingExpenseOut],
       [
         'Lãi thực (sau chi phí)',
@@ -5039,9 +5053,10 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       ],
       ['Số giao dịch', s.transactionCount],
       [''],
+      // CƠ CẤU TIỀN THU = TIỀN (cash) mới cộng lại bằng "Thu vào".
       ['CƠ CẤU TIỀN THU', ''],
-      ['Bán hàng', s.incomeFromSales],
-      ['Sửa chữa', s.incomeFromRepairs],
+      ['Bán hàng', s.cashFromSales],
+      ['Sửa chữa', s.cashFromRepairs],
       ['Thu nợ KH', debtCollectedSnap],
       ['Thu khác', s.incomeOther],
       [''],
@@ -5111,15 +5126,16 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       title: '2. Cơ cấu thu chi',
       colHeaders: const ['Loại', 'Số tiền', '% tổng'],
       rows: [
+        // THU = TIỀN (cash) — khớp với "Thu vào" ở Section 1.
         [
           'THU — Bán hàng',
-          (s.incomeFromSales),
-          pct(s.incomeFromSales, totalIn),
+          (s.cashFromSales),
+          pct(s.cashFromSales, totalIn),
         ],
         [
           'THU — Sửa chữa',
-          (s.incomeFromRepairs),
-          pct(s.incomeFromRepairs, totalIn),
+          (s.cashFromRepairs),
+          pct(s.cashFromRepairs, totalIn),
         ],
         ['THU — Thu nợ KH', (debtCollected), pct(debtCollected, totalIn)],
         [
@@ -5147,18 +5163,17 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     final sec3Rows = <List<dynamic>>[];
     for (int i = 0; i < sales.length; i++) {
       final sale = sales[i];
-      final bool saleIsKetHop = sale.paymentMethod.toUpperCase() == 'KẾT HỢP';
-      final int displayPrice =
-          (saleIsKetHop && (sale.cashAmount + sale.transferAmount) > 0)
-          ? sale.cashAmount + sale.transferAmount
-          : sale.finalPrice;
-      final profit = displayPrice - sale.totalCost;
+      // [2026-09-24] ĐỒNG NHẤT công thức lãi: luôn `finalPrice − totalCost`
+      // cho MỌI PTTT. Trước đây KẾT HỢP bị tính lãi trên phần TIỀN MẶT +
+      // CHUYỂN KHOẢN → lãi KẾT HỢP thấp hơn hẳn các hình thức khác dù cùng
+      // một đơn hàng (Section 9 và Sale List đã dùng finalPrice).
+      final profit = sale.finalPrice - sale.totalCost;
       sec3Rows.add([
         i + 1,
         hm(sale.soldAt),
         sale.isWalkIn ? (sale.walkInName ?? 'Khách lẻ') : sale.customerName,
         sale.productNamesDisplay,
-        (displayPrice),
+        (sale.finalPrice),
         (sale.totalCost),
         (profit),
         sale.paymentMethod,
@@ -5390,22 +5405,22 @@ class _FinanceV2ViewState extends State<FinanceV2View>
     );
 
     // ── Section 10: Tổng kết cuối ngày ───────────────────────────────
-    final cogsRepairActual = repairs.fold<int>(0, (acc, r) => acc + r.cost);
+    // ACCRUAL: doanh thu + giá vốn theo ngày bán / ngày giao cho MỌI PTTT
+    // (tiền mặt, chuyển khoản, trả góp, KẾT HỢP, CÔNG NỢ) — cùng công thức
+    // với thẻ "Kết quả kinh doanh" và Section 9. Tiền thực thu xem Section 1-2.
     final totalRevenue = s.incomeFromSales + s.incomeFromRepairs;
     final sec10 = FinanceV2DetailedDailySection(
       title: '10. Tổng kết cuối ngày',
       colHeaders: const ['Chỉ tiêu', 'Giá trị'],
       rows: [
-        // FinanceV2 = cash basis → "phần đã thu tiền", không phải doanh thu/
-        // lợi nhuận kế toán (xem "Báo cáo lợi nhuận tháng").
-        ['Tổng tiền bán đã thu', (totalRevenue)],
-        ['Vốn (phần đã thu) - bán', (s.cogsFromSales)],
-        ['Vốn sửa chữa (thực tế)', (cogsRepairActual)],
-        ['Lãi gộp (đã thu) - bán', (s.grossProfitFromSales)],
-        ['Lãi gộp (đã thu) - sửa', (s.grossProfitFromRepairs)],
-        ['Tổng lãi gộp (phần đã thu)', (s.grossProfitTotal)],
+        ['Tổng doanh thu bán + sửa', (totalRevenue)],
+        ['Giá vốn bán hàng', (s.cogsFromSales)],
+        ['Giá vốn sửa chữa', (s.cogsFromRepairs)],
+        ['Lãi gộp bán hàng', (s.grossProfitFromSales)],
+        ['Lãi gộp sửa chữa', (s.grossProfitFromRepairs)],
+        ['Tổng lãi gộp', (s.grossProfitTotal)],
         [
-          'Lãi gộp sau chi phí (phần đã thu)',
+          'Lãi gộp sau chi phí',
           (s.grossProfitTotal - s.operatingExpenseOut),
         ],
         ['Nợ phải thu cuối kỳ', (s.receivableTotal)],
