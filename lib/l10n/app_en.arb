@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appTitle": "Shop Manager",
+  "appTitle": "Quản Lý Shop",
   "login": "Login",
   "settings": "Settings",
   "language": "Language",
@@ -119,7 +119,7 @@
   "joinShopCode": "Enter invite code to join shop",
   "cleanupManagement": "Cleanup management: Delete old repair history (optional)",
   "aboutSection": "ABOUT",
-  "appName": "Shop Manager",
+  "appName": "Quản Lý Shop",
   "appDescription": "Complete phone repair shop management solution",
   "versionNumber": "2.6.0",
   "contactSupport": "Contact support",
@@ -1058,7 +1058,7 @@
   "information": "Information",
   "free": "Free",
   "skip": "SKIP",
-  "welcomeToShopManager": "Welcome to Shop Manager",
+  "welcomeToShopManager": "Welcome to Quản Lý Shop",
   "welcomeDesc": "Phone repair & sales shop management: repair intake, sales, parts inventory, debts, attendance. Easy to use and works offline.",
   "professionalSalesManagement": "Professional Sales Management",
   "salesDesc": "Create sales orders quickly, track revenue, manage customers and product warranties easily.",
@@ -1078,7 +1078,7 @@
   "cloudDesc": "Data always safe and synchronized instantly between all devices. Manage shop remotely anytime, anywhere.",
   "startJourney": "Start Your Journey",
   "startDesc": "Explore all features and manage your shop efficiently. Wish you success!",
-  "hulucaShop": "HULUCA SHOP",
+  "hulucaShop": "QUẢN LÝ SHOP",
   "phoneRepairShopManagement": "Phone Repair Shop Management",
   "repairManagement": "Repair Management",
   "repairManagementDesc": "Track repair orders from receiving to delivery",
@@ -2034,7 +2034,7 @@
   "dongNai": "DONG NAI",
   "professionalPhoneRepairShop": "Professional shop management solution",
   "hotlineAndZalo": "Hotline & Zalo",
-  "shopManagerApp": "Shop Manager App",
+  "shopManagerApp": "Quản Lý Shop App",
   "versionLabel": "Version {version}",
   "@versionLabel": {
     "placeholders": {

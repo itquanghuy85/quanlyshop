@@ -87,7 +87,7 @@ class _WelcomeViewState extends State<WelcomeView> {
                   Image.asset('assets/images/logo.png', height: 96),
                   const SizedBox(height: 20),
                   const Text(
-                    'HULUCA Shop Manager',
+                    'Quản Lý Shop',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 22,

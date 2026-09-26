@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'Shop Manager';
+  String get appTitle => 'Quản Lý Shop';
 
   @override
   String get login => 'Login';
@@ -366,7 +366,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutSection => 'ABOUT';
 
   @override
-  String get appName => 'Shop Manager';
+  String get appName => 'Quản Lý Shop';
 
   @override
   String get appDescription => 'Complete phone repair shop management solution';
@@ -2458,7 +2458,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get skip => 'SKIP';
 
   @override
-  String get welcomeToShopManager => 'Welcome to Shop Manager';
+  String get welcomeToShopManager => 'Welcome to Quản Lý Shop';
 
   @override
   String get welcomeDesc => 'Phone repair & sales shop management: repair intake, sales, parts inventory, debts, attendance. Easy to use and works offline.';
@@ -2518,7 +2518,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get startDesc => 'Explore all features and manage your shop efficiently. Wish you success!';
 
   @override
-  String get hulucaShop => 'HULUCA SHOP';
+  String get hulucaShop => 'QUẢN LÝ SHOP';
 
   @override
   String get phoneRepairShopManagement => 'Phone Repair Shop Management';
@@ -4032,7 +4032,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hotlineAndZalo => 'Hotline & Zalo';
 
   @override
-  String get shopManagerApp => 'Shop Manager App';
+  String get shopManagerApp => 'Quản Lý Shop App';
 
   @override
   String versionLabel(String version) {

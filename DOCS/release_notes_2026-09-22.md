@@ -1,4 +1,4 @@
-# Ghi chú cập nhật — HULUCA Shop Manager (22/09/2026)
+# Ghi chú cập nhật — Quản Lý Shop (22/09/2026)
 
 **Phiên bản:** 3.7.2 (build 561)
 **Bản đang trên store:** 3.6.0 (build 557)

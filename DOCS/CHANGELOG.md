@@ -1,6 +1,22 @@
-# CHANGELOG - HULUCA Shop Manager
+# CHANGELOG - Quản Lý Shop
 
 Lịch sử tất cả thay đổi từng phiên bản.
+
+---
+
+## [2026-09-27a] - Đổi tên hiển thị toàn bộ thành "Quản Lý Shop" (bỏ "HULUCA Shop Manager")
+
+- App: màn chào (`welcome_view`), màn khởi động (`splash_view`, "QUẢN LÝ SHOP"), màn tải (`hulucaShop`), chuỗi l10n
+  `appTitle`/`appName`/`welcomeToShopManager`/`shopManagerApp` (vi + en), mô tả ở màn quản trị, trang in thử máy in
+  ("Quan Ly Shop" không dấu cho máy in nhiệt), tên dịch vụ đọc thông báo ngân hàng trong `AndroidManifest`
+  ("Đọc thông báo ngân hàng (Quản Lý Shop)").
+- Trợ lý AI: `app_knowledge_base.dart` + system prompt `chatAssistant` (functions, đã deploy riêng function này).
+- Tài liệu: tiêu đề CLAUDE.md, CHANGELOG, HANDOVER, DOCUMENTATION_INDEX, FULL_TEST_PLAN/REPORT, release notes 22/09,
+  SYNC_AUDIT_REPORT. CLAUDE.md thêm quy tắc đặt tên.
+- GIỮ NGUYÊN (không phải tên app, đổi sẽ hỏng): `com.huluca.*` (package/bundle id), email/tên miền `huluca.com`, khoá/salt
+  mã hoá, "Huluca Tech"/"Đội ngũ Huluca" (đơn vị hỗ trợ), "HULUCA STORE" (tên cửa hàng thật trong màn "Về nhà phát triển"
+  và trong nhật ký nghiệm thu), logo huluca.com. Tên trên launcher Android/iOS/web vốn đã là "Quản Lý Shop".
+- Kiểm trên máy CPH2203: màn chào hiện "Quản Lý Shop". Web đã deploy. 859 test PASS.
 
 ---
 

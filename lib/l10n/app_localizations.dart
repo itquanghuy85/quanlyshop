@@ -98,7 +98,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'Shop Manager'**
+  /// **'Quản Lý Shop'**
   String get appTitle;
 
   /// No description provided for @login.
@@ -812,7 +812,7 @@ abstract class AppLocalizations {
   /// No description provided for @appName.
   ///
   /// In en, this message translates to:
-  /// **'Shop Manager'**
+  /// **'Quản Lý Shop'**
   String get appName;
 
   /// No description provided for @appDescription.
@@ -4856,7 +4856,7 @@ abstract class AppLocalizations {
   /// No description provided for @welcomeToShopManager.
   ///
   /// In en, this message translates to:
-  /// **'Welcome to Shop Manager'**
+  /// **'Welcome to Quản Lý Shop'**
   String get welcomeToShopManager;
 
   /// No description provided for @welcomeDesc.
@@ -4976,7 +4976,7 @@ abstract class AppLocalizations {
   /// No description provided for @hulucaShop.
   ///
   /// In en, this message translates to:
-  /// **'HULUCA SHOP'**
+  /// **'QUẢN LÝ SHOP'**
   String get hulucaShop;
 
   /// No description provided for @phoneRepairShopManagement.
@@ -7772,7 +7772,7 @@ abstract class AppLocalizations {
   /// No description provided for @shopManagerApp.
   ///
   /// In en, this message translates to:
-  /// **'Shop Manager App'**
+  /// **'Quản Lý Shop App'**
   String get shopManagerApp;
 
   /// No description provided for @versionLabel.

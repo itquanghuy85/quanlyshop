@@ -476,7 +476,7 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
             end: Alignment.bottomCenter,
           ).createShader(bounds),
           child: const Text(
-            "HULUCA SHOP",
+            "QUẢN LÝ SHOP",
             style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.w900,

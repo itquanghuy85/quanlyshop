@@ -1,8 +1,11 @@
-# CLAUDE.md - Hướng Dẫn AI Agent cho HULUCA Shop Manager
+# CLAUDE.md - Hướng Dẫn AI Agent cho Quản Lý Shop
 
 ## I. TỔNG QUAN DỰ ÁN
 
-**Tên:** HULUCA Shop Manager  
+**Tên:** Quản Lý Shop  
+**Tên hiển thị:** luôn là **"Quản Lý Shop"** (không dùng "HULUCA Shop Manager"/"Shop Manager"; máy in nhiệt không dấu: "Quan Ly Shop").
+Giữ nguyên các định danh kỹ thuật `com.huluca.*`, email/tên miền `huluca.com`, khoá/salt mã hoá, và tên
+công ty/cửa hàng "Huluca Tech", "HULUCA STORE" (tên người/đơn vị, không phải tên app).  
 **Phiên bản:** 1.x  
 **Miền:** Quản lý cửa hàng sửa chữa điện thoại — **loại hình duy nhất** (từ 2026-09-11 đã gỡ hết code/dữ liệu thời trang, thực phẩm…; không thêm lại `enableExpiry` / `enableVariants` / wizard chọn ngành)  
 **Stack:** Flutter (Dart) + Firebase + SQLite  

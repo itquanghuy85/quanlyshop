@@ -715,7 +715,7 @@ class _ShopsTabState extends State<ShopsTab> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Ứng dụng quản lý cửa hàng sửa chữa & mua bán điện thoại HULUCA: đơn sửa, bán hàng (IMEI, bảo hành), kho linh kiện, công nợ, tài chính, chấm công. Hỗ trợ offline và đồng bộ thời gian thực với Firebase.',
+              'Quản Lý Shop — ứng dụng quản lý cửa hàng sửa chữa & mua bán điện thoại: đơn sửa, bán hàng (IMEI, bảo hành), kho linh kiện, công nợ, tài chính, chấm công. Hỗ trợ offline và đồng bộ thời gian thực với Firebase.',
               style: TextStyle(
                 fontSize: AppTextStyles.subtitle1.fontSize,
                 color: Colors.black87,

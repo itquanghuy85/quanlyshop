@@ -1,4 +1,4 @@
-# HANDOVER - HULUCA Shop Manager
+# HANDOVER - Quản Lý Shop
 
 Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, known issues, next steps.
 

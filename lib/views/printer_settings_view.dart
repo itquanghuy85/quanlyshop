@@ -257,7 +257,7 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
       final bytes = <int>[];
       bytes.addAll(generator.reset());
       bytes.addAll(generator.text('=== TEST WIFI PRINTER ===', styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2)));
-      bytes.addAll(generator.text('Shop Manager', styles: const PosStyles(align: PosAlign.center)));
+      bytes.addAll(generator.text('Quan Ly Shop', styles: const PosStyles(align: PosAlign.center)));
       bytes.addAll(generator.text('IP: $ip', styles: const PosStyles(align: PosAlign.center)));
       bytes.addAll(generator.text('Time: ${DateTime.now().toString().substring(0, 19)}', styles: const PosStyles(align: PosAlign.center)));
       bytes.addAll(generator.text('------------------------', styles: const PosStyles(align: PosAlign.center)));
@@ -458,7 +458,7 @@ class _PrinterSettingsViewState extends State<PrinterSettingsView> {
       final bytes = <int>[];
       bytes.addAll(generator.reset());
       bytes.addAll(generator.text('=== TEST BLUETOOTH ===', styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2)));
-      bytes.addAll(generator.text('Shop Manager', styles: const PosStyles(align: PosAlign.center)));
+      bytes.addAll(generator.text('Quan Ly Shop', styles: const PosStyles(align: PosAlign.center)));
       bytes.addAll(generator.text('Printer: ${_selectedBT!.name}', styles: const PosStyles(align: PosAlign.center)));
       bytes.addAll(generator.text('MAC: ${_selectedBT!.macAddress}', styles: const PosStyles(align: PosAlign.center)));
       bytes.addAll(generator.text('Time: ${DateTime.now().toString().substring(0, 19)}', styles: const PosStyles(align: PosAlign.center)));

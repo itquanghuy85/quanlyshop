@@ -40,7 +40,7 @@
              cấp quyền "Truy cập thông báo" của hệ thống). Plugin
              notification_listener_service. -->
         <service
-            android:label="Đọc thông báo ngân hàng (HULUCA)"
+            android:label="Đọc thông báo ngân hàng (Quản Lý Shop)"
             android:name="notification.listener.service.NotificationListener"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
             android:exported="true">

@@ -79,7 +79,7 @@ class AppKnowledgeBase {
 
   /// Bản tóm tắt cực ngắn về app — ghim vào system prompt.
   static const appOverview =
-      'HULUCA Shop Manager (Quản Lý Shop): phần mềm quản lý cửa hàng sửa chữa & '
+      'Quản Lý Shop: phần mềm quản lý cửa hàng sửa chữa & '
       'bán điện thoại. Có: đơn sửa, bán hàng, kho, công nợ, tài chính/sổ quỹ, '
       'khách hàng, nhân viên/lương, báo cáo, đồng bộ đa thiết bị, thông báo. '
       'Offline-first: dùng được khi mất mạng, có mạng thì tự đồng bộ.';
@@ -1768,7 +1768,7 @@ class AppKnowledgeBase {
       whatItDoes:
           'Khai báo Client ID / Client Secret và mã gian hàng để lấy dữ liệu '
           'sản phẩm, đơn hàng từ KiotViet về app.',
-      whenToUse: 'Khi shop đang dùng KiotViet và muốn đồng bộ sang HULUCA.',
+      whenToUse: 'Khi shop đang dùng KiotViet và muốn đồng bộ sang Quản Lý Shop.',
       steps: [
         'Vào Cài đặt → Dữ liệu & Hệ thống → Kết nối KiotViet.',
         'Nhập Client ID, Client Secret, mã gian hàng (retailer).',

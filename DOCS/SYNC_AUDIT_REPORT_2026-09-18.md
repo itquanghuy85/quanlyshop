@@ -1,4 +1,4 @@
-# Báo cáo Audit Đồng bộ 2 máy — HULUCA Shop Manager
+# Báo cáo Audit Đồng bộ 2 máy — Quản Lý Shop
 
 **Ngày:** 2026-09-18 (chiều)
 **Người thực hiện:** QA tự động qua adb/uiautomator (không sửa code)

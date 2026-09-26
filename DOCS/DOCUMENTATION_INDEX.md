@@ -1,4 +1,4 @@
-# Documentation Index — HULUCA Shop Manager
+# Documentation Index — Quản Lý Shop
 
 Chỉ mục **các tài liệu thực sự tồn tại** trong repo (đã dọn các file lỗi thời / auto-gen / một lần — xem `DOCS/CHANGELOG.md` mục `[2026-08-30o]`).
 

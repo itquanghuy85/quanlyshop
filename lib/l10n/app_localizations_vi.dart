@@ -9,7 +9,7 @@ class AppLocalizationsVi extends AppLocalizations {
   AppLocalizationsVi([String locale = 'vi']) : super(locale);
 
   @override
-  String get appTitle => 'Quản lý cửa hàng';
+  String get appTitle => 'Quản Lý Shop';
 
   @override
   String get login => 'Đăng nhập';
@@ -366,7 +366,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get aboutSection => 'GIỚI THIỆU';
 
   @override
-  String get appName => 'Shop Manager';
+  String get appName => 'Quản Lý Shop';
 
   @override
   String get appDescription => 'Giải pháp quản lý cửa hàng sửa chữa điện thoại toàn diện';
@@ -2458,7 +2458,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get skip => 'BỎ QUA';
 
   @override
-  String get welcomeToShopManager => 'Chào mừng đến với Shop Manager';
+  String get welcomeToShopManager => 'Chào mừng đến với Quản Lý Shop';
 
   @override
   String get welcomeDesc => 'Giải pháp quản lý cửa hàng sửa chữa & mua bán điện thoại: nhận máy, bán hàng, kho linh kiện, công nợ, chấm công. Dễ dùng, chạy được cả khi mất mạng.';
@@ -2518,7 +2518,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get startDesc => 'Khám phá tất cả tính năng và quản lý cửa hàng của bạn một cách hiệu quả. Chúc bạn thành công!';
 
   @override
-  String get hulucaShop => 'HULUCA SHOP';
+  String get hulucaShop => 'QUẢN LÝ SHOP';
 
   @override
   String get phoneRepairShopManagement => 'Quản lý cửa hàng sửa chữa điện thoại';
@@ -4032,7 +4032,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get hotlineAndZalo => 'Hotline & Zalo';
 
   @override
-  String get shopManagerApp => 'Shop Manager App';
+  String get shopManagerApp => 'Ứng dụng Quản Lý Shop';
 
   @override
   String versionLabel(String version) {

@@ -1,4 +1,4 @@
-# FULL TEST PLAN — HULUCA Shop Manager (sinh từ code thật, 2026-09-19)
+# FULL TEST PLAN — Quản Lý Shop (sinh từ code thật, 2026-09-19)
 
 > Vai trò: QA Lead + Senior Flutter Engineer + DB/Offline-Sync Auditor.
 > Nguồn: quét trực tiếp `lib/` (136 file view, 109 service, 45 model), `lib/data/db_helper.dart` (13.807 dòng, SQLite v111),

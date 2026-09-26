@@ -1,4 +1,4 @@
-# FULL TEST REPORT — HULUCA Shop Manager (2026-09-19 → 20)
+# FULL TEST REPORT — Quản Lý Shop (2026-09-19 → 20)
 
 Kèm theo: `docs/FULL_TEST_PLAN_2026-09-19.md` (Feature Map + Test Plan). Không sửa code app trong đợt này.
 
