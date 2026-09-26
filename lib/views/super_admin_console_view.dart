@@ -11,6 +11,7 @@ import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
 import '../services/super_admin_security_service.dart';
 import '../services/user_service.dart';
+import '../utils/dispose_after_transition.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/responsive_wrapper.dart';
@@ -341,75 +342,132 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
     final addressC = TextEditingController(
       text: (data['address'] ?? '').toString(),
     );
-    final roleC = TextEditingController(
-      text: (data['role'] ?? 'user').toString(),
-    );
+    // Role is a fixed set (functions/index.js VALID_ROLES; super_admin is
+    // only granted via the users doc + claims trigger, never here). A free
+    // text field let a typo like "admin"/"Owner" be silently dropped by
+    // updateUserInfo, with no feedback.
+    const editableRoles = ['owner', 'manager', 'employee', 'technician', 'user'];
+    final currentRole = (data['role'] ?? 'user').toString();
+    String role = currentRole;
     final shopC = TextEditingController(
       text: (data['shopId'] ?? '').toString(),
     );
+    String? shopError;
 
     final saved = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Sửa user'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameC,
-                decoration: const InputDecoration(labelText: 'Tên'),
-              ),
-              TextField(
-                controller: phoneC,
-                decoration: const InputDecoration(labelText: 'SĐT'),
-              ),
-              TextField(
-                controller: addressC,
-                decoration: const InputDecoration(labelText: 'Địa chỉ'),
-              ),
-              TextField(
-                controller: roleC,
-                decoration: const InputDecoration(labelText: 'Vai trò'),
-              ),
-              TextField(
-                controller: shopC,
-                decoration: const InputDecoration(labelText: 'Mã cửa hàng'),
-              ),
-            ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) => AlertDialog(
+          title: const Text('Sửa user'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameC,
+                  decoration: const InputDecoration(labelText: 'Tên'),
+                ),
+                TextField(
+                  controller: phoneC,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(labelText: 'SĐT'),
+                ),
+                TextField(
+                  controller: addressC,
+                  decoration: const InputDecoration(labelText: 'Địa chỉ'),
+                ),
+                DropdownButtonFormField<String>(
+                  initialValue: role,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Vai trò'),
+                  items: [
+                    for (final r in {...editableRoles, currentRole})
+                      DropdownMenuItem(
+                        value: r,
+                        // Current super_admin (or unknown) role is shown but
+                        // cannot be chosen as a new value.
+                        enabled: editableRoles.contains(r),
+                        child: Text(r),
+                      ),
+                  ],
+                  onChanged: (v) => setD(() => role = v ?? role),
+                ),
+                TextField(
+                  controller: shopC,
+                  decoration: InputDecoration(
+                    labelText: 'Mã cửa hàng',
+                    errorText: shopError,
+                  ),
+                ),
+              ],
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Hủy'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final sid = shopC.text.trim();
+                if (sid.isNotEmpty && sid != (data['shopId'] ?? '').toString()) {
+                  final doc = await FirebaseFirestore.instance
+                      .collection('shops')
+                      .doc(sid)
+                      .get();
+                  if (!doc.exists) {
+                    setD(() => shopError = 'Không có cửa hàng với mã này');
+                    return;
+                  }
+                }
+                if (ctx.mounted) Navigator.pop(ctx, true);
+              },
+              child: const Text('Lưu'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Hủy'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Lưu'),
-          ),
-        ],
       ),
     );
+    for (final c in [nameC, phoneC, addressC, shopC]) {
+      disposeAfterTransition(c);
+    }
     if (saved != true) return;
 
-    await UserService.updateUserInfo(
-      uid: uid,
-      name: nameC.text,
-      phone: phoneC.text,
-      address: addressC.text,
-      role: roleC.text,
-      shopId: shopC.text.trim().isEmpty ? null : shopC.text.trim(),
-      loc: loc,
-    );
-
-    await SuperAdminSecurityService.logAction(
-      action: 'edit_user_profile',
-      targetUserId: uid,
-      shopId: shopC.text.trim().isEmpty ? null : shopC.text.trim(),
-      metadata: {'role': roleC.text.trim()},
-      success: true,
-    );
+    final newShopId = shopC.text.trim().isEmpty ? null : shopC.text.trim();
+    try {
+      await UserService.updateUserInfo(
+        uid: uid,
+        name: nameC.text,
+        phone: phoneC.text,
+        address: addressC.text,
+        role: editableRoles.contains(role) ? role : null,
+        shopId: newShopId,
+        loc: loc,
+      );
+      await SuperAdminSecurityService.logAction(
+        action: 'edit_user_profile',
+        targetUserId: uid,
+        shopId: newShopId,
+        metadata: {'role': role},
+        success: true,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã lưu thông tin user')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Không lưu được: ${e.toString().replaceFirst('Exception: ', '')}',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _deleteUser(
@@ -1980,6 +2038,11 @@ class _UsersSectionState extends State<_UsersSection> {
   bool _hasMore = true;
   final Map<String, String> _shopNames = {};
   bool _findingDuplicates = false;
+  // Search must cover every user, not only the loaded page (same approach
+  // as the Shops section): loaded once on first search, then filtered.
+  List<(String, Map<String, dynamic>)>? _allUsersCache;
+  bool _searchLoading = false;
+  Timer? _searchDebounce;
 
   @override
   void initState() {
@@ -1990,7 +2053,42 @@ class _UsersSectionState extends State<_UsersSection> {
   @override
   void dispose() {
     _searchC.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadAllUsersForSearch() async {
+    if (_allUsersCache != null || _searchLoading) return;
+    setState(() => _searchLoading = true);
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .orderBy('email')
+          .limit(5000)
+          .get();
+      final all = snap.docs
+          .map((d) => (d.id, Map<String, dynamic>.from(d.data())))
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _allUsersCache = all;
+        _searchLoading = false;
+      });
+      _loadShopNames(all.map((p) => (p.$2['shopId'] ?? '').toString()).toList());
+    } catch (_) {
+      if (mounted) setState(() => _searchLoading = false);
+    }
+  }
+
+  void _onSearchChanged(String v) {
+    final q = v.trim();
+    setState(() => _searchQuery = q);
+    _searchDebounce?.cancel();
+    if (q.isEmpty) return;
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 300),
+      _loadAllUsersForSearch,
+    );
   }
 
   /// Quét toàn bộ /users, gom theo email (chuẩn hoá lowercase) để tìm tài
@@ -2090,6 +2188,7 @@ class _UsersSectionState extends State<_UsersSection> {
         if (reset) {
           _users.clear();
           _uids.clear();
+          _allUsersCache = null;
         }
         for (int i = 0; i < snap.docs.length; i++) {
           _users.add(newUsers[i]);
@@ -2109,7 +2208,9 @@ class _UsersSectionState extends State<_UsersSection> {
   }
 
   List<(String, Map<String, dynamic>)> get _filtered {
-    var pairs = List.generate(_users.length, (i) => (_uids[i], _users[i]));
+    var pairs = (_searchQuery.isNotEmpty && _allUsersCache != null)
+        ? List.of(_allUsersCache!)
+        : List.generate(_users.length, (i) => (_uids[i], _users[i]));
     if (_roleFilter != _UserRoleFilter.all) {
       pairs = pairs.where((p) {
         final isOwner = (p.$2['role'] ?? '').toString() == 'owner';
@@ -2177,7 +2278,7 @@ class _UsersSectionState extends State<_UsersSection> {
               isDense: true,
               border: const OutlineInputBorder(),
             ),
-            onChanged: (v) => setState(() => _searchQuery = v.trim()),
+            onChanged: _onSearchChanged,
           ),
         ),
         Padding(
@@ -2289,7 +2390,15 @@ class _UsersSectionState extends State<_UsersSection> {
                           children: [
                             IconButton(
                               visualDensity: VisualDensity.compact,
-                              onPressed: () => widget.onEdit(context, uid, u),
+                              onPressed: () async {
+                                await widget.onEdit(context, uid, u);
+                                // Show the saved values (list + search cache).
+                                if (!mounted) return;
+                                await _loadPage(reset: true);
+                                if (_searchQuery.isNotEmpty) {
+                                  _loadAllUsersForSearch();
+                                }
+                              },
                               icon: const Icon(
                                 Icons.edit,
                                 color: Colors.orange,

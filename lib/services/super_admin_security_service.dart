@@ -274,8 +274,13 @@ class SuperAdminSecurityService {
 
   /// Log shop selection
   static Future<void> logShopAccess(String shopId, String? shopName) async {
-    if (!AppSession.syncEnabled) return; // offline session: no cloud
-    await _logAdminAction('shop_access: $shopId ($shopName)');
+    // shopId as a field (not only in the text) so the shop's "Hoạt động" tab
+    // and the log's shop filter list every time the admin entered the shop.
+    await logAction(
+      action: 'shop_access',
+      shopId: shopId,
+      metadata: {'shopName': shopName},
+    );
   }
 
   /// Log super admin login

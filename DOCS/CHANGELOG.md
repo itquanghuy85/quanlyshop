@@ -4,6 +4,18 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-26g] - Super Admin (máy thật, tiếp): tìm user toàn hệ thống, hộp "Sửa user" an toàn, nhật ký vào shop có shopId
+
+- Tìm user chỉ lọc trong 20 người đã tải → không tìm được n@n.com. Nay gõ tìm thì tải toàn bộ users 1 lần (như mục Shops).
+- Hộp "Sửa user": vai trò là danh sách chọn (owner/manager/employee/technician/user; không cấp được super_admin), kiểm tra
+  mã cửa hàng có tồn tại, báo lỗi rõ khi không lưu được (trước: lỗi bị nuốt, không thông báo), danh sách tải lại sau khi lưu.
+  Thử trên máy: SĐT "123" → "Không lưu được: Số điện thoại phải từ 9-12 chữ số", dữ liệu N không đổi.
+- Nhật ký "shop_access" nay ghi `shopId` thành trường riêng (trước chỉ nằm trong chuỗi) → tab Hoạt động của shop và bộ lọc
+  theo shop thấy được các lần super admin vào shop.
+- Đã deploy web; 859 test PASS.
+
+---
+
 ## [2026-09-26f] - Super Admin trên điện thoại thật (CPH2203): 3 lỗi nữa, trong đó 1 lỗi mã hoá ảnh hưởng mọi người dùng đổi shop
 
 - **[CAO] `EncryptionService.init` bỏ qua nếu đã khởi tạo cho BẤT KỲ shop nào** → mọi lần đổi shop (super admin "Vào shop",
