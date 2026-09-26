@@ -818,76 +818,87 @@ class _SuperAdminConsoleViewState extends State<SuperAdminConsoleView> {
   void _showMoreSheet() {
     showModalBottomSheet<void>(
       context: context,
+      // Default sheet height caps at 9/16 of the screen — the 7 items
+      // overflowed and covered "Đăng xuất" on a 6.5" phone.
+      isScrollControlled: true,
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.campaign_rounded, color: Colors.indigo),
-              title: const Text('Thông báo'),
-              onTap: () {
-                Navigator.pop(ctx);
-                setState(() => _section = _AdminSection.broadcast);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.apps_rounded, color: Colors.deepPurple),
-              title: const Text('Ứng dụng khác'),
-              onTap: () {
-                Navigator.pop(ctx);
-                setState(() => _section = _AdminSection.otherApps);
-              },
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.system_update_rounded,
-                color: Colors.teal,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(
+                  Icons.campaign_rounded,
+                  color: Colors.indigo,
+                ),
+                title: const Text('Thông báo'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  setState(() => _section = _AdminSection.broadcast);
+                },
               ),
-              title: const Text('Buộc cập nhật'),
-              onTap: () {
-                Navigator.pop(ctx);
-                setState(() => _section = _AdminSection.versionGate);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.shield_outlined),
-              title: const Text('Quyền hạn'),
-              onTap: () {
-                Navigator.pop(ctx);
-                setState(() => _section = _AdminSection.permissions);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings_outlined),
-              title: const Text('Cài đặt'),
-              onTap: () {
-                Navigator.pop(ctx);
-                setState(() => _section = _AdminSection.settings);
-              },
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.warning_amber_rounded,
-                color: Colors.red,
+              ListTile(
+                leading: const Icon(
+                  Icons.apps_rounded,
+                  color: Colors.deepPurple,
+                ),
+                title: const Text('Ứng dụng khác'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  setState(() => _section = _AdminSection.otherApps);
+                },
               ),
-              title: const Text('Vùng nguy hiểm'),
-              onTap: () {
-                Navigator.pop(ctx);
-                setState(() => _section = _AdminSection.danger);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text(
-                'Đăng xuất',
-                style: TextStyle(color: Colors.red),
+              ListTile(
+                leading: const Icon(
+                  Icons.system_update_rounded,
+                  color: Colors.teal,
+                ),
+                title: const Text('Buộc cập nhật'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  setState(() => _section = _AdminSection.versionGate);
+                },
               ),
-              onTap: () {
-                Navigator.pop(ctx);
-                _handleLogout();
-              },
-            ),
-          ],
+              ListTile(
+                leading: const Icon(Icons.shield_outlined),
+                title: const Text('Quyền hạn'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  setState(() => _section = _AdminSection.permissions);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.settings_outlined),
+                title: const Text('Cài đặt'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  setState(() => _section = _AdminSection.settings);
+                },
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.red,
+                ),
+                title: const Text('Vùng nguy hiểm'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  setState(() => _section = _AdminSection.danger);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.logout, color: Colors.red),
+                title: const Text(
+                  'Đăng xuất',
+                  style: TextStyle(color: Colors.red),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _handleLogout();
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1810,7 +1821,8 @@ class _ShopsSectionState extends State<_ShopsSection> {
                                       .doc(shopId)
                                       .get();
                                   setLocks(
-                                    () => shop[flag] = doc.data()?[flag] == true,
+                                    () =>
+                                        shop[flag] = doc.data()?[flag] == true,
                                   );
                                 },
                               );

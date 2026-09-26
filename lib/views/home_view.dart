@@ -3145,6 +3145,9 @@ class _HomeViewState extends State<HomeView>
     // Always sign out — cleanup failures must not block logout.
     // Sequence (and the offline "keep SQLite" rule) lives in one place.
     await SessionLogoutService.signOut();
+    // Home may have been pushed above the AuthGate (super admin "Vào shop"):
+    // the gate switches to Login underneath, so drop the stacked routes.
+    if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
   }
 
   /// Responsive body: NavigationRail on wide screens, IndexedStack on mobile
@@ -7621,6 +7624,7 @@ class _HomeViewState extends State<HomeView>
     );
     if (confirm == true) {
       await SessionLogoutService.signOut();
+      if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
     }
   }
 

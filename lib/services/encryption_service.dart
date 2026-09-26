@@ -17,6 +17,7 @@ class EncryptionService {
   static encrypt_lib.Encrypter? _encrypter;
   static encrypt_lib.IV? _iv;
   static bool _initialized = false;
+  static String? _keyShopId;
   static bool _enabled = true;
   static DateTime? _lastDecryptErrorLogAt;
 
@@ -48,7 +49,10 @@ class EncryptionService {
 
   /// Khởi tạo service với shopId
   static Future<void> init(String shopId) async {
-    if (_initialized && _encrypter != null) return;
+    // Key is per shop: only skip when already keyed for THIS shop. The old
+    // "any shop" check kept the previous shop's key after a shop switch
+    // (super admin "Vào shop", CurrentShopService.switchShop).
+    if (_initialized && _encrypter != null && _keyShopId == shopId) return;
 
     try {
       // Tạo key từ shopId + master secret
@@ -65,6 +69,7 @@ class EncryptionService {
         encrypt_lib.AES(key, mode: encrypt_lib.AESMode.cbc),
       );
       _initialized = true;
+      _keyShopId = shopId;
 
       // Load trạng thái enabled
       final prefs = await SharedPreferences.getInstance();
@@ -242,6 +247,7 @@ class EncryptionService {
     _encrypter = null;
     _iv = null;
     _initialized = false;
+    _keyShopId = null;
     debugPrint('EncryptionService: Reset');
   }
 }

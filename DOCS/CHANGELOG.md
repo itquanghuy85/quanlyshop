@@ -4,6 +4,23 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-26f] - Super Admin trên điện thoại thật (CPH2203): 3 lỗi nữa, trong đó 1 lỗi mã hoá ảnh hưởng mọi người dùng đổi shop
+
+- **[CAO] `EncryptionService.init` bỏ qua nếu đã khởi tạo cho BẤT KỲ shop nào** → mọi lần đổi shop (super admin "Vào shop",
+  `CurrentShopService.switchShop` của chủ nhiều chi nhánh) vẫn giữ khoá shop cũ: dữ liệu shop mới giải mã lỗi, dữ liệu ghi
+  vào shop mới bị mã hoá bằng khoá shop khác. Sửa `[2026-09-26e]` trước đó KHÔNG có tác dụng vì lý do này. Nay nhớ
+  `_keyShopId`, chỉ bỏ qua khi đúng cùng shop. Test `test/encryption_shop_switch_test.dart`. Máy thật: vào shop M sau khi
+  đăng nhập với shop khác → 0 lỗi giải mã (trước: "Invalid or corrupted pad block").
+  ⚠️ Dữ liệu cũ đã bị ghi bằng khoá sai (nếu có) vẫn không đọc được — chưa rà trên production.
+- **Đăng xuất khi super admin đang ở trong shop không về màn đăng nhập:** Trang chủ shop được đẩy chồng trên AuthGate;
+  `signOut` đổi màn gốc bên dưới, Trang chủ vẫn nằm trên (không tài khoản). `home_view` 2 nút đăng xuất nay `popUntil(isFirst)`.
+- **Menu "More" của console tràn 6px che nút "Đăng xuất"** (giới hạn 9/16 chiều cao) → `isScrollControlled` + cuộn.
+- Nghiệm thu máy thật: Dashboard, Vùng nguy hiểm (bố cục đúng), tab Khóa bật/tắt "Khóa bán hàng cho nhân viên" trên shop M,
+  tab Hoạt động có nhật ký (index đã chạy), Lịch làm việc shop M không còn "Admin". Máy trả về tài khoản m@m.com.
+- 859 test PASS.
+
+---
+
 ## [2026-09-26e] - Audit Super Admin (đăng nhập thật trên web): 5 lỗi đã sửa
 
 Đăng nhập admin@huluca.com + PIN trên bản web (Chrome headless), rà mọi mục của Super Admin Console. Shop khách thật chỉ
