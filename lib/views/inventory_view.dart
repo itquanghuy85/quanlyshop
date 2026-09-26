@@ -211,9 +211,9 @@ class _InventoryViewState extends State<InventoryView>
         const GuideStep(
           title: '🎯 Màn này để làm gì?',
           description:
-              'ĐỂ LÀM GÌ: xem & quản lý toàn bộ hàng trong kho — số lượng, giá vốn, giá bán, biến thể (size/màu).\n'
-              'KHI NÀO DÙNG: kiểm tra còn bao nhiêu hàng, sửa giá bán, bổ sung giá vốn còn thiếu, thêm biến thể cho SP thời trang.\n'
-              'VÍ DỤ: áo thun có 3 size S/M/L → mỗi size là 1 "biến thể" với tồn kho riêng; SP thiếu giá vốn hiện cảnh báo để bổ sung.',
+              'ĐỂ LÀM GÌ: xem & quản lý toàn bộ hàng trong kho — điện thoại, phụ kiện, linh kiện: số lượng, giá vốn, giá bán, IMEI.\n'
+              'KHI NÀO DÙNG: kiểm tra còn bao nhiêu hàng, sửa giá bán, bổ sung giá vốn / NCC còn thiếu.\n'
+              'VÍ DỤ: lọc "Thiếu vốn/NCC" để thấy máy nhập chưa có giá vốn; bấm "HẾT HÀNG" để xem món cần nhập thêm.',
           icon: Icons.lightbulb_outline,
           iconColor: Colors.amber,
         ),

@@ -315,8 +315,9 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
             padding: const EdgeInsets.only(top: 4, bottom: 4),
             child: Text(
               'Chưa đủ dữ liệu lịch sử để đề xuất giá.',
-              style:
-                  AppTextStyles.caption.copyWith(color: Colors.grey.shade600),
+              style: AppTextStyles.caption.copyWith(
+                color: Colors.grey.shade600,
+              ),
             ),
           ),
         ],
@@ -430,8 +431,11 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
       ),
       child: Row(
         children: [
-          Icon(Icons.warning_amber_rounded,
-              size: 15, color: Colors.orange.shade800),
+          Icon(
+            Icons.warning_amber_rounded,
+            size: 15,
+            color: Colors.orange.shade800,
+          ),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
@@ -1371,15 +1375,16 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     // firestoreId → id cục bộ → tên, không khớp thì để trống.
     RepairPartner? selectedPartner;
     if (editService != null && _partners.isNotEmpty) {
-      selectedPartner = RepairPartnerService.findPartnerForService<RepairPartner>(
-        partners: _partners,
-        firestoreIdOf: (p) => p.firestoreId,
-        idOf: (p) => p.id,
-        nameOf: (p) => p.name,
-        servicePartnerFirestoreId: editService.partnerFirestoreId,
-        servicePartnerId: editService.partnerId,
-        servicePartnerName: editService.partnerName,
-      );
+      selectedPartner =
+          RepairPartnerService.findPartnerForService<RepairPartner>(
+            partners: _partners,
+            firestoreIdOf: (p) => p.firestoreId,
+            idOf: (p) => p.id,
+            nameOf: (p) => p.name,
+            servicePartnerFirestoreId: editService.partnerFirestoreId,
+            servicePartnerId: editService.partnerId,
+            servicePartnerName: editService.partnerName,
+          );
     }
 
     String? selectedPaymentMethod = editService?.paymentMethod ?? 'TIỀN MẶT';
@@ -1561,7 +1566,8 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                                     amountController: costCtrl,
                                     direction: BankPayDirection.outbound,
                                     counterpartyName: selectedPartner?.name,
-                                    refText: 'Tra doi tac '
+                                    refText:
+                                        'Tra doi tac '
                                         '${selectedPartner?.name ?? ''}',
                                   ),
                               ],
@@ -1687,56 +1693,65 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                 color: const Color(0xFFF8FAFF),
                 border: Border(top: BorderSide(color: Colors.grey.shade100)),
               ),
+              alignment: Alignment.center,
               child: SafeArea(
                 top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 132,
-                        child: OutlinedButton.icon(
-                          onPressed: _saveAndPrint,
-                          icon: const Icon(Icons.print_rounded, size: 18),
-                          label: Text(loc.saveAndPrint),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppBarAccents.repairs,
-                            side: const BorderSide(
-                              color: AppBarAccents.repairs,
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: _onlySave,
-                          icon: const Icon(Icons.save_rounded, size: 20),
-                          label: Text(
-                            loc.saveOrder,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 13),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth:
+                        MediaQuery.sizeOf(context).width >= _twoColumnMinWidth
+                        ? 1400
+                        : 800,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 132,
+                          child: OutlinedButton.icon(
+                            onPressed: _saveAndPrint,
+                            icon: const Icon(Icons.print_rounded, size: 18),
+                            label: Text(loc.saveAndPrint),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppBarAccents.repairs,
+                              side: const BorderSide(
+                                color: AppBarAccents.repairs,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _onlySave,
+                            icon: const Icon(Icons.save_rounded, size: 20),
+                            label: Text(
+                              loc.saveOrder,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -1746,8 +1761,40 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
     );
   }
 
+  static const double _twoColumnMinWidth = 1100;
+
   Widget _buildSafeFormBody() {
     try {
+      if (MediaQuery.sizeOf(context).width >= _twoColumnMinWidth) {
+        // Landscape / web: customer & device on the left, services and the
+        // (always expanded) extra fields on the right.
+        Widget column(List<Widget> children) => SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: children,
+          ),
+        );
+        return ResponsiveCenter(
+          maxWidth: 1400,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: column([_buildCompactMainSection()])),
+              Expanded(
+                child: column([
+                  _buildCompactServicesSection(),
+                  const SizedBox(height: 8),
+                  _buildCompactSecurityAccessoriesSection(),
+                  const SizedBox(height: 8),
+                  _buildCompactNotesImagesSection(),
+                  const SizedBox(height: 4),
+                ]),
+              ),
+            ],
+          ),
+        );
+      }
       return ResponsiveCenter(
         maxWidth: 800,
         child: SingleChildScrollView(
@@ -1953,7 +2000,10 @@ class _CreateRepairOrderViewState extends State<CreateRepairOrderView> {
                     const SizedBox(height: 2),
                     Text(
                       '${repair['model'] ?? ''}${repair['issue'] != null ? ' · ${repair['issue']}' : ''}${lastDate != null ? ' · $lastDate' : ''}${relativeLabel != null ? ' ($relativeLabel)' : ''}',
-                      style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),

@@ -3195,9 +3195,16 @@ class _HomeViewState extends State<HomeView>
           ),
           const VerticalDivider(thickness: 1, width: 1),
           Expanded(
-            child: IndexedStack(
-              index: _currentIndex,
-              children: List.generate(_tabWidgets.length, _buildTabHost),
+            child: Padding(
+              // Wide but without side margins: keep every tab clear of the
+              // floating quick-action / AI buttons (global overlay, right edge).
+              padding: EdgeInsets.only(
+                right: MediaQuery.sizeOf(context).width < 1100 ? 56 : 0,
+              ),
+              child: IndexedStack(
+                index: _currentIndex,
+                children: List.generate(_tabWidgets.length, _buildTabHost),
+              ),
             ),
           ),
         ],
@@ -3361,17 +3368,9 @@ class _HomeViewState extends State<HomeView>
         child: ResponsiveCenter(
           maxWidth: _useWideHome ? 1400 : null,
           child: ListView(
-            padding: EdgeInsets.fromLTRB(
-              context.responsive.horizontalPadding,
-              10,
-              // Wide but not wide enough for side margins: keep the content
-              // clear of the floating quick-action / AI buttons on the right.
-              context.responsive.horizontalPadding +
-                  (context.responsive.isWideLayout &&
-                          MediaQuery.sizeOf(context).width < 1100
-                      ? 56
-                      : 0),
-              10,
+            padding: EdgeInsets.symmetric(
+              horizontal: context.responsive.horizontalPadding,
+              vertical: 10,
             ),
             children: [
               if (_shopLocked)

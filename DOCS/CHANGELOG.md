@@ -4,6 +4,20 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-26d] - Web màn ngang (tiếp): tạo đơn sửa + tạo đơn bán 2 cột, nút nổi không che tab, dọn chữ "thời trang"
+
+- `create_repair_order_view.dart`: ≥1100px chia 2 cột cuộn riêng — trái "Khách hàng & máy", phải Dịch vụ + Bảo mật &
+  phụ kiện + Ghi chú & hình ảnh (luôn mở, bỏ nút "Ẩn bớt"); thanh Lưu/Lưu & In giới hạn cùng độ rộng. Vừa 1 màn 1366×768.
+- `create_sale_view.dart`: tách `_buildProductCustomerCard()` / `_buildCheckoutWidgets()` (không đổi logic, chỉ tách
+  hàm + định dạng lại); ≥1100px: trái Sản phẩm & Khách hàng, phải Thanh toán + HOÀN TẤT. <1100px giữ nguyên thứ tự cũ.
+- `home_view._buildResponsiveBody`: bố cục có thanh điều hướng trái mà màn <1100px ⇒ chừa lề phải 56px cho MỌI tab (thay
+  cho chỉnh riêng Trang chủ) — nút nổi ⚡/AI (lớp phủ `ai_chat_overlay`) không còn che mép phải các tab hub.
+- Hướng dẫn màn Kho (`inventory_view`) bỏ ví dụ "áo thun size S/M/L, biến thể thời trang"; mô tả ở `super_admin_view`
+  bỏ "Thực phẩm/Thời trang".
+- Test Chrome headless 1366×768 + 915×412; deploy lại https://quanlyshop.web.app. `flutter analyze` 0 error, 857 PASS.
+
+---
+
 ## [2026-09-26c] - Web: tối ưu màn hình ngang + deploy; 4 lỗi SQL chỉ lộ trên web; hướng dẫn tab ẩn bật sai chỗ
 
 - **Bố cục màn ngang (≥1100px, web/tablet ngang):**

@@ -68,29 +68,32 @@ class CreateSaleView extends StatefulWidget {
   /// When set, auto-opens the AI input sheet with this text pre-filled.
   final String? initialAiText;
 
-  const CreateSaleView({super.key, this.preSelectedProduct, this.editSale, this.initialAiText});
+  const CreateSaleView({
+    super.key,
+    this.preSelectedProduct,
+    this.editSale,
+    this.initialAiText,
+  });
   @override
   State<CreateSaleView> createState() => _CreateSaleViewState();
 }
 
 class _CreateSaleViewState extends State<CreateSaleView> {
-
-    String? _pricingTypeTag(PricingRuleType? type) {
-      switch (type) {
-        case PricingRuleType.vip:
-          return 'VIP';
-        case PricingRuleType.wholesale:
-          return 'SỈ';
-        case PricingRuleType.normal:
-        case null:
-          return null;
-      }
+  String? _pricingTypeTag(PricingRuleType? type) {
+    switch (type) {
+      case PricingRuleType.vip:
+        return 'VIP';
+      case PricingRuleType.wholesale:
+        return 'SỈ';
+      case PricingRuleType.normal:
+      case null:
+        return null;
     }
+  }
 
   String _cleanProductDisplayName(String raw) {
     return ProductConstants.cleanProductName(raw.trim());
   }
-
 
   final db = DBHelper();
   final nameCtrl = TextEditingController();
@@ -136,7 +139,8 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   Map<String, dynamic>? _lastTransaction;
   int _customerTotalOrders = 0;
   int _customerActiveDebt = 0;
-  int _customerTotalSpent = 0; // lifetime revenue (repairs + sales) for this phone
+  int _customerTotalSpent =
+      0; // lifetime revenue (repairs + sales) for this phone
 
   // Multi-Industry: Shop Settings
   ShopSettings? _shopSettings;
@@ -147,10 +151,10 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   BusinessTerminology get _terms =>
       BusinessTypeHelper.instance.getTerminology(_shopSettings);
 
-
   // Focus management cho IMEI fields
   final Map<String, FocusNode> _imeiFocusNodes = {};
   final Map<String, TextEditingController> _imeiControllers = {};
+
   /// Quantity boxes per selected product. A plain `initialValue` is applied
   /// once per widget identity, so +/- changed item['quantity'] and the total
   /// while the box kept showing the old number (báo 2026-09-19).
@@ -187,7 +191,12 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       if (phoneCtrl.text.length == 10) {
         _loadCustomerQuickData(phoneCtrl.text);
       } else if (phoneCtrl.text.length < 9) {
-        setState(() { _lastTransaction = null; _customerTotalOrders = 0; _customerActiveDebt = 0; _customerTotalSpent = 0; });
+        setState(() {
+          _lastTransaction = null;
+          _customerTotalOrders = 0;
+          _customerActiveDebt = 0;
+          _customerTotalSpent = 0;
+        });
       }
       setState(() {});
     });
@@ -318,9 +327,11 @@ class _CreateSaleViewState extends State<CreateSaleView> {
     }
 
     final totalOrders =
-        ((salesAgg.first['cnt'] as int?) ?? 0) + ((repairsAgg.first['cnt'] as int?) ?? 0);
+        ((salesAgg.first['cnt'] as int?) ?? 0) +
+        ((repairsAgg.first['cnt'] as int?) ?? 0);
     final totalSpent =
-        ((salesAgg.first['total'] as int?) ?? 0) + ((repairsAgg.first['total'] as int?) ?? 0);
+        ((salesAgg.first['total'] as int?) ?? 0) +
+        ((repairsAgg.first['total'] as int?) ?? 0);
     setState(() {
       _lastTransaction = lastTransaction;
       _customerTotalOrders = totalOrders;
@@ -420,7 +431,9 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   Widget _buildCustomerQuickCard() {
     final tx = _lastTransaction;
     final hasDebt = _customerActiveDebt != 0;
-    final debtColor = _customerActiveDebt > 0 ? Colors.red.shade700 : Colors.green.shade700;
+    final debtColor = _customerActiveDebt > 0
+        ? Colors.red.shade700
+        : Colors.green.shade700;
     final debtLabel = _customerActiveDebt > 0 ? 'Còn nợ' : 'Shop nợ';
     String? lastDate;
     String? relativeLabel;
@@ -467,19 +480,30 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                     children: [
                       Text(
                         'Khách cũ · $_customerTotalOrders giao dịch',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.green.shade700),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green.shade700,
+                        ),
                       ),
                       if (hasDebt) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: debtColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             '$debtLabel ${MoneyUtils.formatCompactCurrency(_customerActiveDebt.abs())}',
-                            style: TextStyle(fontSize: 10, color: debtColor, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: debtColor,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
@@ -489,7 +513,10 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                     const SizedBox(height: 2),
                     Text(
                       '$txPrefix: ${tx['title'] ?? ''}${txSubtitle != null && txSubtitle.isNotEmpty ? ' · $txSubtitle' : ''}${lastDate != null ? ' · $lastDate' : ''}${relativeLabel != null ? ' ($relativeLabel)' : ''}',
-                      style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -498,7 +525,11 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                     const SizedBox(height: 2),
                     Text(
                       'Đã chi: ${MoneyUtils.formatCompactCurrency(_customerTotalSpent)}',
-                      style: TextStyle(fontSize: 11, color: Colors.green.shade700, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.green.shade700,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ],
@@ -1026,14 +1057,15 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         // Sync trực tiếp lên cloud (tránh real-time listener ghi đè)
         if (product.firestoreId != null && product.firestoreId!.isNotEmpty) {
           try {
-            if (AppSession.syncEnabled) await FirebaseFirestore.instance
-                .collection('products')
-                .doc(product.firestoreId)
-                .update({
-                  'quantity': product.quantity,
-                  'status': product.status,
-                  'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
-                });
+            if (AppSession.syncEnabled)
+              await FirebaseFirestore.instance
+                  .collection('products')
+                  .doc(product.firestoreId)
+                  .update({
+                    'quantity': product.quantity,
+                    'status': product.status,
+                    'updatedAt': FirestoreWriteHelper.serverUpdatedAt(),
+                  });
           } catch (e) {
             debugPrint('⚠️ Cloud sync failed, queueing: $e');
             await SyncOrchestrator().enqueue(
@@ -1053,7 +1085,9 @@ class _CreateSaleViewState extends State<CreateSaleView> {
 
     // 2. Xóa debt cũ nếu có
     if (oldSale.firestoreId != null) {
-      final linkedDebts = await db.getDebtsByLinkedId(oldSale.firestoreId ?? '');
+      final linkedDebts = await db.getDebtsByLinkedId(
+        oldSale.firestoreId ?? '',
+      );
       for (final linkedDebt in linkedDebts) {
         final debtFId = linkedDebt['firestoreId'] as String?;
         if (debtFId != null) {
@@ -1297,7 +1331,9 @@ class _CreateSaleViewState extends State<CreateSaleView> {
               );
               final qty = e['quantity'] as int;
               final isGift = e['isGift'] as bool? ?? false;
-              final pricingTag = _pricingTypeTag(e['pricingType'] as PricingRuleType?);
+              final pricingTag = _pricingTypeTag(
+                e['pricingType'] as PricingRuleType?,
+              );
               final origPrice = e['originalPrice'] as int? ?? 0;
               final curPrice = e['sellPrice'] as int? ?? origPrice;
               final isDisc = !isGift && curPrice < origPrice;
@@ -1386,18 +1422,18 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       // Refresh token và claims để đảm bảo shopId được cập nhật trước transaction
       // (bỏ qua ở phiên offline — không có tài khoản).
       if (cloudReachable) {
-      try {
-        // Gọi Cloud Function để sync claims từ Firestore lên JWT
-        final claimsResult = await ClaimsService().refreshMyClaims();
-        debugPrint('✅ Claims refresh result: $claimsResult');
+        try {
+          // Gọi Cloud Function để sync claims từ Firestore lên JWT
+          final claimsResult = await ClaimsService().refreshMyClaims();
+          debugPrint('✅ Claims refresh result: $claimsResult');
 
-        // Force refresh token để áp dụng claims mới
-        await FirebaseAuth.instance.currentUser?.getIdToken(true);
-        debugPrint('✅ Token refreshed before sale transaction');
-      } catch (e) {
-        debugPrint('⚠️ Could not refresh claims/token: $e');
-        // Tiếp tục thử transaction, có thể vẫn hoạt động nếu claims đã đúng
-      }
+          // Force refresh token để áp dụng claims mới
+          await FirebaseAuth.instance.currentUser?.getIdToken(true);
+          debugPrint('✅ Token refreshed before sale transaction');
+        } catch (e) {
+          debugPrint('⚠️ Could not refresh claims/token: $e');
+          // Tiếp tục thử transaction, có thể vẫn hoạt động nếu claims đã đúng
+        }
       }
 
       // Kiểm tra xem tất cả sản phẩm đã có firestoreId chưa
@@ -1501,7 +1537,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         // phải lỗi dữ liệu ⇒ tự động lưu local-first, không hỏi, không mất đơn.
         if (CloudWritePolicy.isOfflineError(errorMsg)) {
           debugPrint('📴 _processSale: lỗi mạng ($errorMsg) → local-first');
-            transactionResult = {'success': true, 'localOnly': true};
+          transactionResult = {'success': true, 'localOnly': true};
         } else if (errorMsg.contains('permission-denied') || needRelogin) {
           // Nếu lỗi permission-denied, cho phép bán local và sync sau
           debugPrint(
@@ -1605,10 +1641,12 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             final sql = newStatus == 0
                 ? 'UPDATE products SET quantity = ?, status = ?, updatedAt = ?, isSynced = 1, locationId = NULL, locationCode = NULL, locationName = NULL WHERE id = ?'
                 : 'UPDATE products SET quantity = ?, status = ?, updatedAt = ?, isSynced = 1 WHERE id = ?';
-            await (await db.database).rawUpdate(
-              sql,
-              [newQty, newStatus, DateTime.now().millisecondsSinceEpoch, p.id],
-            );
+            await (await db.database).rawUpdate(sql, [
+              newQty,
+              newStatus,
+              DateTime.now().millisecondsSinceEpoch,
+              p.id,
+            ]);
             debugPrint(
               '✅ Cloud+Local: ${p.name} qty=$newQty status=$newStatus (isSynced=1)',
             );
@@ -1668,7 +1706,8 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         // ignore: unawaited_futures
         NotificationService.sendCloudNotification(
           title: '⚠️ BÁN HÀNG THIẾU GIÁ VỐN',
-          body: '👤 $sellerName\n🛒 ${sale.customerName} • ${MoneyUtils.formatCurrency(finalPrice)}đ\n📦 ${sale.productNames}\n💰 Chưa có giá vốn - cần bổ sung',
+          body:
+              '👤 $sellerName\n🛒 ${sale.customerName} • ${MoneyUtils.formatCurrency(finalPrice)}đ\n📦 ${sale.productNames}\n💰 Chưa có giá vốn - cần bổ sung',
           type: 'missing_cost_sale',
           data: {'targetType': 'sale', 'targetId': sale.firestoreId ?? ''},
         );
@@ -1741,8 +1780,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             personName: payerName,
             amount: finalPrice,
             by: userName,
-            debtFirestoreId:
-                debtDataForTransaction?['firestoreId'] as String?,
+            debtFirestoreId: debtDataForTransaction?['firestoreId'] as String?,
             note: '${_selectedItems.length} SP',
           );
 
@@ -1751,11 +1789,8 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           // ledger, KHÔNG cộng tiền mặt/NH → sổ quỹ + chốt quỹ thiếu đúng khoản
           // đã cầm về, và debts.paidAmount lệch với tổng debt_payments. Ghi nhận
           // như 1 lần thu nợ khách để book tiền + tạo phiếu + đồng bộ paidAmount.
-          final debtFid =
-              debtDataForTransaction?['firestoreId'] as String?;
-          if (downPaymentAmount > 0 &&
-              debtFid != null &&
-              debtFid.isNotEmpty) {
+          final debtFid = debtDataForTransaction?['firestoreId'] as String?;
+          if (downPaymentAmount > 0 && debtFid != null && debtFid.isNotEmpty) {
             try {
               await PaymentIntentService.executePaymentDirect(
                 type: PaymentIntentType.customerDebtCollection,
@@ -1922,7 +1957,8 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             createdAt: debtDataForTransaction['createdAt'] as int,
             note: debtDataForTransaction['note'] as String?,
             linkedId: debtDataForTransaction['linkedId'] as String?,
-            isSynced: !isLocalOnly, // Only mark synced if Firestore transaction succeeded
+            isSynced:
+                !isLocalOnly, // Only mark synced if Firestore transaction succeeded
           );
           await db.upsertDebt(debt);
         } else {
@@ -2059,34 +2095,36 @@ class _CreateSaleViewState extends State<CreateSaleView> {
   String? _buildSaleItemSnapshotsJson({required int discount}) {
     if (_selectedItems.isEmpty) return null;
 
-    final snapshots = _selectedItems.map((item) {
-      final product = item['product'] as Product;
-      final quantity = item['quantity'] as int? ?? 0;
-      final customImei = (item['imei'] as String?)?.trim() ?? '';
-      final storedImei = customImei.isNotEmpty
-          ? customImei
-          : (product.type == 'DIEN_THOAI'
-              ? (product.imei ?? 'NO_IMEI')
-              : 'PKx$quantity');
-      final unitPrice = (item['sellPrice'] as int?) ?? product.price;
-      // Giá vốn thật = giá nhập + chi phí sửa/tân trang (2026-09-22).
-      final unitCost = product.cost + product.refurbishCost;
-      final salePrice = (item['originalPrice'] as int?) ?? product.price;
+    final snapshots = _selectedItems
+        .map((item) {
+          final product = item['product'] as Product;
+          final quantity = item['quantity'] as int? ?? 0;
+          final customImei = (item['imei'] as String?)?.trim() ?? '';
+          final storedImei = customImei.isNotEmpty
+              ? customImei
+              : (product.type == 'DIEN_THOAI'
+                    ? (product.imei ?? 'NO_IMEI')
+                    : 'PKx$quantity');
+          final unitPrice = (item['sellPrice'] as int?) ?? product.price;
+          // Giá vốn thật = giá nhập + chi phí sửa/tân trang (2026-09-22).
+          final unitCost = product.cost + product.refurbishCost;
+          final salePrice = (item['originalPrice'] as int?) ?? product.price;
 
-      return <String, dynamic>{
-        'productId': product.id,
-        'productFirestoreId': product.firestoreId,
-        'productName': ProductConstants.cleanProductName(product.name),
-        'productImei': storedImei,
-        'quantity': quantity,
-        'unitPrice': unitPrice,
-        'salePrice': salePrice,
-        'unitCost': unitCost,
-        'lineAmount': unitPrice * quantity,
-        'lineCostTotal': unitCost * quantity,
-        'exactPricing': discount <= 0,
-      };
-    }).toList(growable: false);
+          return <String, dynamic>{
+            'productId': product.id,
+            'productFirestoreId': product.firestoreId,
+            'productName': ProductConstants.cleanProductName(product.name),
+            'productImei': storedImei,
+            'quantity': quantity,
+            'unitPrice': unitPrice,
+            'salePrice': salePrice,
+            'unitCost': unitCost,
+            'lineAmount': unitPrice * quantity,
+            'lineCostTotal': unitCost * quantity,
+            'exactPricing': discount <= 0,
+          };
+        })
+        .toList(growable: false);
 
     if (discount > 0 && snapshots.length == 1) {
       final snapshot = snapshots.first;
@@ -2132,7 +2170,9 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       backgroundColor: AppColors.background,
       appBar: CustomAppBar.build(
         guideKey: FirstTimeGuideService.keySalesView,
-        title: widget.editSale != null ? 'SỬA ĐƠN BÁN HÀNG' : 'TẠO ĐƠN BÁN HÀNG',
+        title: widget.editSale != null
+            ? 'SỬA ĐƠN BÁN HÀNG'
+            : 'TẠO ĐƠN BÁN HÀNG',
         subtitle: '${_selectedItems.length} sản phẩm đã chọn',
         gradient: const LinearGradient(
           colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
@@ -2159,312 +2199,307 @@ class _CreateSaleViewState extends State<CreateSaleView> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ResponsiveCenter(
-              maxWidth: 800,
-              // SafeArea(bottom) so the last item (nút HOÀN TẤT) never rests
-              // behind the system navigation bar — trước đây nút nằm ngay mép
-              // dưới window, vùng chạm của nav bar nuốt tap nên gần như bấm
-              // không được trên máy 3 nút điều hướng.
-              child: SafeArea(
-                top: false,
-                child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
+          : _buildSaleFormBody(),
+    );
+  }
+
+  static const double _twoColumnMinWidth = 1100;
+
+  Widget _buildSaleFormBody() {
+    final wide = MediaQuery.sizeOf(context).width >= _twoColumnMinWidth;
+    Widget scroll(List<Widget> children) => SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
+    );
+    // SafeArea(bottom) so the last item (nút HOÀN TẤT) never rests
+    // behind the system navigation bar — trước đây nút nằm ngay mép
+    // dưới window, vùng chạm của nav bar nuốt tap nên gần như bấm
+    // không được trên máy 3 nút điều hướng.
+    if (wide) {
+      // Landscape / web: products & customer | payment & checkout.
+      return ResponsiveCenter(
+        maxWidth: 1400,
+        child: SafeArea(
+          top: false,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: scroll([_buildProductCustomerCard()])),
+              Expanded(child: scroll(_buildCheckoutWidgets())),
+            ],
+          ),
+        ),
+      );
+    }
+    return ResponsiveCenter(
+      maxWidth: 800,
+      child: SafeArea(
+        top: false,
+        child: scroll([
+          _buildProductCustomerCard(),
+          ..._buildCheckoutWidgets(),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildProductCustomerCard() {
+    // === COMPACT: SẢN PHẨM + KHÁCH HÀNG gộp chung ===
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Search sản phẩm
+            Row(
+              children: [
+                Icon(Icons.inventory_2, size: 18, color: Colors.blue.shade700),
+                const SizedBox(width: 8),
+                Text(
+                  'SẢN PHẨM',
+                  style: AppTextStyles.caption.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade700,
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // === COMPACT: SẢN PHẨM + KHÁCH HÀNG gộp chung ===
-                    Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Search sản phẩm
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.inventory_2,
-                                  size: 18,
-                                  color: Colors.blue.shade700,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'SẢN PHẨM',
-                                  style: AppTextStyles.caption.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue.shade700,
-                                  ),
-                                ),
-                                const Spacer(),
-                                Text(
-                                  "${_selectedItems.length} đã chọn",
-                                  style: AppTextStyles.caption.copyWith(
-                                    color: Colors.blue,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            DebouncedSearchField(
-                              controller: searchProdCtrl,
-                              hint:
-                                  "Tìm sản phẩm hoặc ${_terms.specialField1Label}...",
-                              onSearch: (v) => setState(
-                                () => _filteredInStock = _allInStock
-                                    .where(
-                                      (p) =>
-                                          VietnameseUtils.containsVietnamese(
-                                            p.name,
-                                            v,
-                                          ) ||
-                                          (p.imei ?? "").contains(v),
-                                    )
-                                    .toList(),
-                              ),
-                            ),
-                            if (_allInStock.isEmpty) _buildEmptyStockGuidance(),
-                            if (searchProdCtrl.text.trim().isEmpty)
-                              _buildRecentSuggestions()
-                            else
-                              _buildSearchResults(),
-                            _buildSelectedItemsList(),
-
-                            // Divider giữa sản phẩm và khách hàng
-                            const Divider(height: 16),
-
-                            // Thông tin khách hàng compact
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.person,
-                                  size: 18,
-                                  color: Colors.blue.shade700,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  "KHÁCH HÀNG",
-                                  style: AppTextStyles.caption.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue.shade700,
-                                  ),
-                                ),
-                                const Spacer(),
-                                TextButton.icon(
-                                  onPressed: _selectCustomer,
-                                  icon: const Icon(Icons.search, size: 16),
-                                  label: const Text("Chọn KH"),
-                                  style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                    ),
-                                    visualDensity: VisualDensity.compact,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SwitchListTile.adaptive(
-                              contentPadding: EdgeInsets.zero,
-                              dense: true,
-                              title: const Text(
-                                'Khách vãng lai (không lưu danh bạ)',
-                              ),
-                              subtitle: Text(
-                                _isWalkIn
-                                    ? 'Tên/SĐT chỉ lưu trên đơn, SĐT không bắt buộc'
-                                    : 'Nhập SĐT để lưu khách vào danh bạ',
-                                style: AppTextStyles.caption,
-                              ),
-                              value: _isWalkIn,
-                              onChanged: (v) {
-                                setState(() {
-                                  _isWalkIn = v;
-                                  if (_isWalkIn &&
-                                      nameCtrl.text.trim().isEmpty) {
-                                    nameCtrl.text = 'KHÁCH VÃNG LAI';
-                                  }
-                                });
-                              },
-                            ),
-                            const SizedBox(height: 6),
-                            // 2 fields trên 1 hàng
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: nameCtrl,
-                                    focusNode: nameF,
-                                    decoration: InputDecoration(
-                                      labelText: _isWalkIn
-                                          ? "TÊN (tùy chọn)"
-                                          : "TÊN",
-                                      prefixIcon: const Icon(
-                                        Icons.person_outline,
-                                        size: 18,
-                                      ),
-                                      isDense: true,
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 10,
-                                          ),
-                                    ),
-                                    textCapitalization:
-                                        TextCapitalization.characters,
-                                    style: AppTextStyles.body2,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                SizedBox(
-                                  width: 130,
-                                  child: TextFormField(
-                                    controller: phoneCtrl,
-                                    focusNode: phoneF,
-                                    decoration: InputDecoration(
-                                      labelText: _isWalkIn
-                                          ? "SĐT (không bắt buộc)"
-                                          : "SĐT",
-                                      prefixIcon: const Icon(
-                                        Icons.phone,
-                                        size: 18,
-                                      ),
-                                      isDense: true,
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 10,
-                                          ),
-                                    ),
-                                    keyboardType: TextInputType.phone,
-                                    style: AppTextStyles.body2,
-                                  ),
-                                ),
-                                if (!_isWalkIn &&
-                                    nameCtrl.text.trim().isNotEmpty &&
-                                    phoneCtrl.text.trim().isNotEmpty)
-                                  IconButton(
-                                    onPressed: _addCustomerQuick,
-                                    icon: const Icon(
-                                      Icons.person_add,
-                                      size: 18,
-                                    ),
-                                    color: AppColors.success,
-                                    constraints: const BoxConstraints(),
-                                    padding: const EdgeInsets.only(left: 4),
-                                    tooltip: 'Thêm nhanh KH',
-                                  ),
-                              ],
-                            ),
-                            // Địa chỉ khách hàng
-                            const SizedBox(height: 6),
-                            TextFormField(
-                              controller: addressCtrl,
-                              decoration: const InputDecoration(
-                                labelText: 'Địa chỉ KH (tùy chọn)',
-                                prefixIcon: Icon(Icons.location_on, size: DesignTokens.iconLg),
-                                isDense: true,
-                                contentPadding: DesignTokens.formContentPadding,
-                              ),
-                              textCapitalization: TextCapitalization.characters,
-                              style: AppTextStyles.body2,
-                            ),
-                            if (_customerTotalOrders > 0) ...[
-                              const SizedBox(height: 6),
-                              _buildCustomerQuickCard(),
-                            ],
-                            CustomerSuggestionsPanel(
-                              active: nameF.hasFocus || phoneF.hasFocus,
-                              query: phoneF.hasFocus
-                                  ? phoneCtrl.text
-                                  : nameCtrl.text,
-                              onSelected: (c) {
-                                setState(() {
-                                  nameCtrl.text = c.name;
-                                  phoneCtrl.text = c.phone;
-                                  if ((c.address ?? '').trim().isNotEmpty) {
-                                    addressCtrl.text = c.address!;
-                                  }
-                                  _isWalkIn = false;
-                                });
-                                nameF.unfocus();
-                                phoneF.unfocus();
-                                _loadCustomerQuickData(c.phone);
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // === COMPACT: THANH TOÁN ===
-                    Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: _buildCompactPaymentSection(),
-                      ),
-                    ),
-
-                    // === NÚT HOÀN TẤT ===
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: (_isSaving || _selectedItems.isEmpty)
-                            ? null
-                            : _processSale,
-                        style: AppButtonStyles.successElevatedButtonStyle,
-                        child: _isSaving
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Text(
-                                _selectedItems.isEmpty
-                                    ? "CHƯA CHỌN SẢN PHẨM"
-                                    : "HOÀN TẤT ĐƠN HÀNG",
-                                style: AppTextStyles.button.copyWith(
-                                  color: AppColors.onSuccess,
-                                ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    // === [VAT MODULE] Nút xuất hóa đơn VAT - ẩn khi enableVAT=false ===
-                    if (const ExpansionFeatureFlags.safeDefaults().enableVAT)
-                      SizedBox(
-                        width: double.infinity,
-                        height: 44,
-                        child: OutlinedButton.icon(
-                          icon: const Icon(Icons.receipt_long_outlined),
-                          label: const Text('Xuất hóa đơn VAT'),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const CreateInvoiceView(
-                                  flags: ExpansionFeatureFlags(enableVAT: true),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    const SizedBox(height: 4),
-                  ],
+                const Spacer(),
+                Text(
+                  "${_selectedItems.length} đã chọn",
+                  style: AppTextStyles.caption.copyWith(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            DebouncedSearchField(
+              controller: searchProdCtrl,
+              hint: "Tìm sản phẩm hoặc ${_terms.specialField1Label}...",
+              onSearch: (v) => setState(
+                () => _filteredInStock = _allInStock
+                    .where(
+                      (p) =>
+                          VietnameseUtils.containsVietnamese(p.name, v) ||
+                          (p.imei ?? "").contains(v),
+                    )
+                    .toList(),
               ),
             ),
+            if (_allInStock.isEmpty) _buildEmptyStockGuidance(),
+            if (searchProdCtrl.text.trim().isEmpty)
+              _buildRecentSuggestions()
+            else
+              _buildSearchResults(),
+            _buildSelectedItemsList(),
+
+            // Divider giữa sản phẩm và khách hàng
+            const Divider(height: 16),
+
+            // Thông tin khách hàng compact
+            Row(
+              children: [
+                Icon(Icons.person, size: 18, color: Colors.blue.shade700),
+                const SizedBox(width: 8),
+                Text(
+                  "KHÁCH HÀNG",
+                  style: AppTextStyles.caption.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade700,
+                  ),
+                ),
+                const Spacer(),
+                TextButton.icon(
+                  onPressed: _selectCustomer,
+                  icon: const Icon(Icons.search, size: 16),
+                  label: const Text("Chọn KH"),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
+            ),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              title: const Text('Khách vãng lai (không lưu danh bạ)'),
+              subtitle: Text(
+                _isWalkIn
+                    ? 'Tên/SĐT chỉ lưu trên đơn, SĐT không bắt buộc'
+                    : 'Nhập SĐT để lưu khách vào danh bạ',
+                style: AppTextStyles.caption,
+              ),
+              value: _isWalkIn,
+              onChanged: (v) {
+                setState(() {
+                  _isWalkIn = v;
+                  if (_isWalkIn && nameCtrl.text.trim().isEmpty) {
+                    nameCtrl.text = 'KHÁCH VÃNG LAI';
+                  }
+                });
+              },
+            ),
+            const SizedBox(height: 6),
+            // 2 fields trên 1 hàng
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: nameCtrl,
+                    focusNode: nameF,
+                    decoration: InputDecoration(
+                      labelText: _isWalkIn ? "TÊN (tùy chọn)" : "TÊN",
+                      prefixIcon: const Icon(Icons.person_outline, size: 18),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                    ),
+                    textCapitalization: TextCapitalization.characters,
+                    style: AppTextStyles.body2,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 130,
+                  child: TextFormField(
+                    controller: phoneCtrl,
+                    focusNode: phoneF,
+                    decoration: InputDecoration(
+                      labelText: _isWalkIn ? "SĐT (không bắt buộc)" : "SĐT",
+                      prefixIcon: const Icon(Icons.phone, size: 18),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                    ),
+                    keyboardType: TextInputType.phone,
+                    style: AppTextStyles.body2,
+                  ),
+                ),
+                if (!_isWalkIn &&
+                    nameCtrl.text.trim().isNotEmpty &&
+                    phoneCtrl.text.trim().isNotEmpty)
+                  IconButton(
+                    onPressed: _addCustomerQuick,
+                    icon: const Icon(Icons.person_add, size: 18),
+                    color: AppColors.success,
+                    constraints: const BoxConstraints(),
+                    padding: const EdgeInsets.only(left: 4),
+                    tooltip: 'Thêm nhanh KH',
+                  ),
+              ],
+            ),
+            // Địa chỉ khách hàng
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: addressCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Địa chỉ KH (tùy chọn)',
+                prefixIcon: Icon(Icons.location_on, size: DesignTokens.iconLg),
+                isDense: true,
+                contentPadding: DesignTokens.formContentPadding,
+              ),
+              textCapitalization: TextCapitalization.characters,
+              style: AppTextStyles.body2,
+            ),
+            if (_customerTotalOrders > 0) ...[
+              const SizedBox(height: 6),
+              _buildCustomerQuickCard(),
+            ],
+            CustomerSuggestionsPanel(
+              active: nameF.hasFocus || phoneF.hasFocus,
+              query: phoneF.hasFocus ? phoneCtrl.text : nameCtrl.text,
+              onSelected: (c) {
+                setState(() {
+                  nameCtrl.text = c.name;
+                  phoneCtrl.text = c.phone;
+                  if ((c.address ?? '').trim().isNotEmpty) {
+                    addressCtrl.text = c.address!;
+                  }
+                  _isWalkIn = false;
+                });
+                nameF.unfocus();
+                phoneF.unfocus();
+                _loadCustomerQuickData(c.phone);
+              },
+            ),
+          ],
+        ),
+      ),
     );
+  }
+
+  List<Widget> _buildCheckoutWidgets() {
+    return [
+      // === COMPACT: THANH TOÁN ===
+      Card(
+        margin: const EdgeInsets.only(bottom: 8),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: _buildCompactPaymentSection(),
+        ),
+      ),
+
+      // === NÚT HOÀN TẤT ===
+      SizedBox(
+        width: double.infinity,
+        height: 48,
+        child: ElevatedButton(
+          onPressed: (_isSaving || _selectedItems.isEmpty)
+              ? null
+              : _processSale,
+          style: AppButtonStyles.successElevatedButtonStyle,
+          child: _isSaving
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : Text(
+                  _selectedItems.isEmpty
+                      ? "CHƯA CHỌN SẢN PHẨM"
+                      : "HOÀN TẤT ĐƠN HÀNG",
+                  style: AppTextStyles.button.copyWith(
+                    color: AppColors.onSuccess,
+                  ),
+                ),
+        ),
+      ),
+      const SizedBox(height: 8),
+      // === [VAT MODULE] Nút xuất hóa đơn VAT - ẩn khi enableVAT=false ===
+      if (const ExpansionFeatureFlags.safeDefaults().enableVAT)
+        SizedBox(
+          width: double.infinity,
+          height: 44,
+          child: OutlinedButton.icon(
+            icon: const Icon(Icons.receipt_long_outlined),
+            label: const Text('Xuất hóa đơn VAT'),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const CreateInvoiceView(
+                    flags: ExpansionFeatureFlags(enableVAT: true),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      const SizedBox(height: 4),
+    ];
   }
 
   Widget _buildCompactPaymentSection() {
@@ -2889,7 +2924,8 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                                     size: 18,
                                   ),
                                   isDense: true,
-                                  contentPadding: DesignTokens.formContentPadding,
+                                  contentPadding:
+                                      DesignTokens.formContentPadding,
                                 ),
                                 textCapitalization:
                                     TextCapitalization.characters,
@@ -3099,15 +3135,16 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         .whereType<int>()
         .toSet();
 
-    final sorted = _allInStock
-        .where((p) => p.quantity > 0)
-        .where((p) => p.id == null || !selectedIds.contains(p.id))
-        .toList()
-      ..sort((a, b) {
-        final aTs = a.updatedAt ?? a.createdAt;
-        final bTs = b.updatedAt ?? b.createdAt;
-        return bTs.compareTo(aTs);
-      });
+    final sorted =
+        _allInStock
+            .where((p) => p.quantity > 0)
+            .where((p) => p.id == null || !selectedIds.contains(p.id))
+            .toList()
+          ..sort((a, b) {
+            final aTs = a.updatedAt ?? a.createdAt;
+            final bTs = b.updatedAt ?? b.createdAt;
+            return bTs.compareTo(aTs);
+          });
 
     return sorted.take(8).toList();
   }
@@ -3131,11 +3168,7 @@ class _CreateSaleViewState extends State<CreateSaleView> {
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
             child: Row(
               children: [
-                Icon(
-                  Icons.history,
-                  size: 16,
-                  color: Colors.blue.shade700,
-                ),
+                Icon(Icons.history, size: 16, color: Colors.blue.shade700),
                 const SizedBox(width: 6),
                 Text(
                   'Sản phẩm gần đây',
@@ -3164,9 +3197,9 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                   subtitle: Text(
                     p.price <= 0
                         ? '${_terms.specialField1Label}: ${p.imei ?? 'PK'} - ⚠ Chưa định giá'
-                            '${(_canViewCostPrice && p.refurbishCost > 0) ? ' · 🔧 Tân trang +${MoneyUtils.formatCurrency(p.refurbishCost)}' : ''}'
+                              '${(_canViewCostPrice && p.refurbishCost > 0) ? ' · 🔧 Tân trang +${MoneyUtils.formatCurrency(p.refurbishCost)}' : ''}'
                         : '${_terms.specialField1Label}: ${p.imei ?? 'PK'} - Giá: ${MoneyUtils.formatCurrency(p.price)}'
-                            '${(_canViewCostPrice && p.refurbishCost > 0) ? ' · 🔧 Tân trang +${MoneyUtils.formatCurrency(p.refurbishCost)}' : ''}',
+                              '${(_canViewCostPrice && p.refurbishCost > 0) ? ' · 🔧 Tân trang +${MoneyUtils.formatCurrency(p.refurbishCost)}' : ''}',
                     style: p.price <= 0
                         ? AppTextStyles.caption.copyWith(
                             color: AppColors.error,
@@ -3258,10 +3291,10 @@ class _CreateSaleViewState extends State<CreateSaleView> {
           _calculateTotal();
         });
         if (updateInventory && product.id != null) {
-          await db.updateProductMap(
-            product.id!,
-            {'price': newPrice, 'isSynced': 0},
-          );
+          await db.updateProductMap(product.id!, {
+            'price': newPrice,
+            'isSynced': 0,
+          });
         }
         break;
     }
@@ -3273,7 +3306,8 @@ class _CreateSaleViewState extends State<CreateSaleView> {
         final product = item['product'] as Product;
         final quantity = item['quantity'] as int? ?? 1;
         // Phones with a single IMEI represent one physical unit — qty must stay at 1.
-        final isPhoneUnit = product.type == 'DIEN_THOAI' &&
+        final isPhoneUnit =
+            product.type == 'DIEN_THOAI' &&
             (product.imei ?? '').isNotEmpty &&
             !(product.imei ?? '').contains('|');
         final displayName = _cleanProductDisplayName(product.name);
@@ -3353,10 +3387,13 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                         ],
                       ),
                     ),
-                    if (const ExpansionFeatureFlags.safeDefaults().enablePricing)
+                    if (const ExpansionFeatureFlags.safeDefaults()
+                        .enablePricing)
                       IconButton(
-                        icon: const Icon(Icons.price_change_outlined,
-                            color: Colors.blueGrey),
+                        icon: const Icon(
+                          Icons.price_change_outlined,
+                          color: Colors.blueGrey,
+                        ),
                         tooltip: 'Chọn giá linh hoạt',
                         onPressed: () async {
                           final rawOriginalPrice =
@@ -3364,9 +3401,12 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                           final rawSellPrice = (item['sellPrice'] as int?) ?? 0;
                           final resolvedBasePriceInt = rawOriginalPrice > 0
                               ? rawOriginalPrice
-                              : (rawSellPrice > 0 ? rawSellPrice : product.price);
+                              : (rawSellPrice > 0
+                                    ? rawSellPrice
+                                    : product.price);
 
-                          final productId = (product.firestoreId?.isNotEmpty == true)
+                          final productId =
+                              (product.firestoreId?.isNotEmpty == true)
                               ? product.firestoreId!
                               : product.id.toString();
                           await PriceSelectorSheet.show(
@@ -3413,7 +3453,9 @@ class _CreateSaleViewState extends State<CreateSaleView> {
                           _imeiFocusNodes[productId.toString()]?.dispose();
                           _imeiControllers.remove(productId.toString());
                           _imeiFocusNodes.remove(productId.toString());
-                          _qtyControllers.remove(productId.toString())?.dispose();
+                          _qtyControllers
+                              .remove(productId.toString())
+                              ?.dispose();
                           _calculateTotal();
                         });
                       },
@@ -3918,13 +3960,19 @@ class _GiftDiscountSheetContentState extends State<_GiftDiscountSheetContent> {
           ),
           const SizedBox(height: 6),
           if (widget.canViewCost)
-            Text('Vốn: ${MoneyUtils.formatCurrency(s.medianCost)}đ',
-                style: AppTextStyles.body2),
-          Text('Bán: ${MoneyUtils.formatCurrency(s.medianSalePrice)}đ',
-              style: AppTextStyles.body2),
+            Text(
+              'Vốn: ${MoneyUtils.formatCurrency(s.medianCost)}đ',
+              style: AppTextStyles.body2,
+            ),
+          Text(
+            'Bán: ${MoneyUtils.formatCurrency(s.medianSalePrice)}đ',
+            style: AppTextStyles.body2,
+          ),
           if (widget.canViewCost)
-            Text('Lợi nhuận: ${MoneyUtils.formatCurrency(s.medianProfit)}đ',
-                style: AppTextStyles.body2),
+            Text(
+              'Lợi nhuận: ${MoneyUtils.formatCurrency(s.medianProfit)}đ',
+              style: AppTextStyles.body2,
+            ),
           const SizedBox(height: 2),
           Text(
             '${s.sampleCount} sản phẩm tương tự · Khoảng giá thường gặp: '
@@ -3951,7 +3999,10 @@ class _GiftDiscountSheetContentState extends State<_GiftDiscountSheetContent> {
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   visualDensity: VisualDensity.compact,
                 ),
-                child: const Text('DÙNG GIÁ BÁN', style: TextStyle(fontSize: 12)),
+                child: const Text(
+                  'DÙNG GIÁ BÁN',
+                  style: TextStyle(fontSize: 12),
+                ),
               ),
             ),
           ],
@@ -4020,8 +4071,9 @@ class _GiftDiscountSheetContentState extends State<_GiftDiscountSheetContent> {
                   'Giá hiện tại: ${MoneyUtils.formatCurrency(widget.currentSellPrice)}',
                 ),
                 onTap: () {
-                  _editPriceController.text =
-                      widget.formatCurrency(widget.currentSellPrice);
+                  _editPriceController.text = widget.formatCurrency(
+                    widget.currentSellPrice,
+                  );
                   setState(() => _showEditPriceInput = true);
                 },
               ),
