@@ -78,6 +78,9 @@ class FirstTimeGuideService {
     if (await hasShownGuide(screenKey)) return;
 
     if (!context.mounted) return;
+    // A screen kept alive but hidden (IndexedStack tab) must not pop its
+    // guide over whatever is actually on screen.
+    if (!Visibility.of(context)) return;
 
     await showDialog(
       context: context,

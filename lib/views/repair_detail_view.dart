@@ -4741,46 +4741,76 @@ class _RepairDetailViewState extends State<RepairDetailView> {
           ),
         ],
       ),
-      body: ResponsiveCenter(
-        maxWidth: 900,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Builder(builder: (context) {
-            final financeCard = _buildFinanceCard();
-            return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // [2026-09-22] Một trang duy nhất, chia khu vực rõ ràng
-              // (bỏ 3 tab Tổng quan / Dịch vụ / Lịch sử & Ghi chú).
-              _buildDetailHeaderCard(),
-              _buildStatusTimelineCard(),
-
-              _sectionHeader('KHÁCH HÀNG & MÁY', Icons.person_pin_circle_outlined),
-              _buildCustomerCard(),
-              _buildStorageCard(),
-
-              _sectionHeader('DỊCH VỤ & PHỤ TÙNG', Icons.build_rounded),
-              _buildServicesTab(),
-              ?_buildPartsCard(),
-              ?_buildQuickActionsCard(),
-
-              if (financeCard != null) ...[
-                _sectionHeader('TÀI CHÍNH', Icons.account_balance_wallet_outlined),
-                financeCard,
-              ],
-
-              _sectionHeader('LỊCH SỬ & GHI CHÚ', Icons.history_rounded),
-              _buildHistoryTab(),
-
-              const SizedBox(height: 6),
-            ],
+      body: LayoutBuilder(builder: (context, constraints) {
+        final financeCard = _buildFinanceCard();
+        final infoSections = <Widget>[
+          _buildDetailHeaderCard(),
+          _buildStatusTimelineCard(),
+          _sectionHeader('KHÁCH HÀNG & MÁY', Icons.person_pin_circle_outlined),
+          _buildCustomerCard(),
+          _buildStorageCard(),
+          if (financeCard != null) ...[
+            _sectionHeader('TÀI CHÍNH', Icons.account_balance_wallet_outlined),
+            financeCard,
+          ],
+        ];
+        final workSections = <Widget>[
+          _sectionHeader('DỊCH VỤ & PHỤ TÙNG', Icons.build_rounded),
+          _buildServicesTab(),
+          ?_buildPartsCard(),
+          ?_buildQuickActionsCard(),
+          _sectionHeader('LỊCH SỬ & GHI CHÚ', Icons.history_rounded),
+          _buildHistoryTab(),
+        ];
+        Widget column(List<Widget> children) => SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [...children, const SizedBox(height: 6)],
+              ),
             );
-          }),
+        // Landscape / web: two independently scrolling columns so the
+        // limited height is not spent on one long single column.
+        if (constraints.maxWidth >= _twoColumnMinWidth) {
+          return ResponsiveCenter(
+            maxWidth: _twoColumnMaxWidth,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: column(infoSections)),
+                Expanded(child: column(workSections)),
+              ],
+            ),
+          );
+        }
+        return ResponsiveCenter(
+          maxWidth: 900,
+          child: column([
+            // [2026-09-22] Một trang duy nhất, chia khu vực rõ ràng
+            // (bỏ 3 tab Tổng quan / Dịch vụ / Lịch sử & Ghi chú).
+            ...infoSections.take(5),
+            ...workSections.take(workSections.length - 2),
+            ...infoSections.skip(5),
+            ...workSections.skip(workSections.length - 2),
+          ]),
+        );
+      }),
+      bottomNavigationBar: Center(
+        heightFactor: 1,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.sizeOf(context).width >= _twoColumnMinWidth
+                ? _twoColumnMaxWidth
+                : 900,
+          ),
+          child: _buildBottomActions(),
         ),
       ),
-      bottomNavigationBar: _buildBottomActions(),
     );
   }
+
+  static const double _twoColumnMinWidth = 1100;
+  static const double _twoColumnMaxWidth = 1400;
 
   // ===================================================================
   // REDESIGN: Compact detail view — header card, timeline, tabs.

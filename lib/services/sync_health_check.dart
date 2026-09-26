@@ -890,7 +890,7 @@ class SyncHealthCheck {
     for (var table in tables) {
       try {
         await db.rawUpdate(
-          'UPDATE $table SET isSynced = 1 WHERE firestoreId IS NOT NULL AND firestoreId != ""',
+          "UPDATE $table SET isSynced = 1 WHERE firestoreId IS NOT NULL AND firestoreId != ''",
         );
         debugPrint('   ✅ Đã đánh dấu $table');
       } catch (e) {

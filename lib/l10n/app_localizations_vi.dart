@@ -369,7 +369,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get appName => 'Shop Manager';
 
   @override
-  String get appDescription => 'Giải pháp quản lý cửa hàng đa ngành toàn diện';
+  String get appDescription => 'Giải pháp quản lý cửa hàng sửa chữa điện thoại toàn diện';
 
   @override
   String get versionNumber => '2.6.0';
@@ -2461,7 +2461,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get welcomeToShopManager => 'Chào mừng đến với Shop Manager';
 
   @override
-  String get welcomeDesc => 'Giải pháp quản lý cửa hàng đa ngành: Điện tử, Thực phẩm, Thời trang & nhiều hơn nữa. Dễ sử dụng, mạnh mẽ và hiệu quả cho mọi nhu cầu kinh doanh.';
+  String get welcomeDesc => 'Giải pháp quản lý cửa hàng sửa chữa & mua bán điện thoại: nhận máy, bán hàng, kho linh kiện, công nợ, chấm công. Dễ dùng, chạy được cả khi mất mạng.';
 
   @override
   String get professionalSalesManagement => 'Quản lý bán hàng chuyên nghiệp';
@@ -2521,7 +2521,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get hulucaShop => 'HULUCA SHOP';
 
   @override
-  String get phoneRepairShopManagement => 'Quản lý cửa hàng đa ngành';
+  String get phoneRepairShopManagement => 'Quản lý cửa hàng sửa chữa điện thoại';
 
   @override
   String get repairManagement => 'Quản lý sửa chữa';
@@ -4040,7 +4040,7 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get appFullDescription => 'Ứng dụng quản lý cửa hàng đa ngành toàn diện: hỗ trợ điện tử (IMEI, bảo hành), thực phẩm (HSD), thời trang (biến thể size/màu) với đồng bộ thời gian thực.';
+  String get appFullDescription => 'Ứng dụng quản lý cửa hàng sửa chữa & mua bán điện thoại: đơn sửa, bán hàng (IMEI, bảo hành), kho linh kiện, công nợ, tài chính, chấm công — đồng bộ thời gian thực, dùng được khi mất mạng.';
 
   @override
   String get attendanceTracking => 'QUẢN LÝ CHẤM CÔNG';

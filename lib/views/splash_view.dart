@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -196,8 +197,9 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
   }
 
   Future<void> _startInit() async {
-    // Remove native splash as soon as Flutter splash is visible
-    FlutterNativeSplash.remove();
+    // Remove native splash as soon as Flutter splash is visible (web has no
+    // native splash — web: false in pubspec — and remove() throws there).
+    if (!kIsWeb) FlutterNativeSplash.remove();
     if (mounted) {
       setState(() => _status = "Đang khởi tạo hệ thống...");
     }

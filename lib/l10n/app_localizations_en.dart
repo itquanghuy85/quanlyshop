@@ -369,7 +369,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appName => 'Shop Manager';
 
   @override
-  String get appDescription => 'Multi-industry shop management solution';
+  String get appDescription => 'Complete phone repair shop management solution';
 
   @override
   String get versionNumber => '2.6.0';
@@ -2461,7 +2461,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get welcomeToShopManager => 'Welcome to Shop Manager';
 
   @override
-  String get welcomeDesc => 'Multi-industry shop management: Electronics, Food, Fashion & more. Easy to use, powerful and efficient for all business needs.';
+  String get welcomeDesc => 'Phone repair & sales shop management: repair intake, sales, parts inventory, debts, attendance. Easy to use and works offline.';
 
   @override
   String get professionalSalesManagement => 'Professional Sales Management';
@@ -2521,7 +2521,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hulucaShop => 'HULUCA SHOP';
 
   @override
-  String get phoneRepairShopManagement => 'Multi-Industry Shop Management';
+  String get phoneRepairShopManagement => 'Phone Repair Shop Management';
 
   @override
   String get repairManagement => 'Repair Management';
@@ -4040,7 +4040,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get appFullDescription => 'Comprehensive multi-industry shop management: Electronics (IMEI, warranty), Food (expiry), Fashion (size/color variants) with real-time sync.';
+  String get appFullDescription => 'Phone repair & sales shop management: repair orders, sales (IMEI, warranty), parts inventory, debts, finance, attendance - real-time sync, works offline.';
 
   @override
   String get attendanceTracking => 'ATTENDANCE TRACKING';

@@ -4,6 +4,33 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-26c] - Web: tối ưu màn hình ngang + deploy; 4 lỗi SQL chỉ lộ trên web; hướng dẫn tab ẩn bật sai chỗ
+
+- **Bố cục màn ngang (≥1100px, web/tablet ngang):**
+  - Trang chủ (`home_view.dart` `_buildModularDashboardWide`): lời chào + banner tiền ở trên, dưới chia 2 cột — trái
+    Cần xử lý/Hoạt động/Chat, phải Thao tác nhanh/Dòng tiền (giữ thứ tự người dùng trong từng cột), rộng tối đa 1400.
+    Lưới thao tác nhanh tính số cột theo độ rộng KHỐI (~130px/ô, 4–8 cột) thay vì độ rộng màn → điện thoại/tablet/desktop
+    vẫn 4/6/8 như cũ, nửa cột thì 4.
+  - Chi tiết đơn sửa (`repair_detail_view.dart`): 2 cột cuộn độc lập — trái: thông tin, tiến độ, khách & máy, vị trí,
+    tài chính; phải: dịch vụ & phụ tùng, thao tác, lịch sử & ghi chú. Thanh nút dưới giới hạn cùng độ rộng. <1100px giữ
+    nguyên 1 cột và thứ tự cũ.
+  - Điện thoại nằm ngang (cao <520px): ẩn thẻ lời chào (trang trí, ăn 1/3 chiều cao); màn rộng nhưng <1100px chừa lề
+    phải 56px để nội dung không bị nút nổi ⚡/AI che.
+- **Lỗi thật chỉ lộ trên web:** `sqlite3.wasm` của web tắt chuỗi nháy kép trong SQL → `x != ""` báo "no such column".
+  Sửa 5 câu: `product_image_service` (đẩy ảnh SP chờ — hỏng hẳn trên web), `sync_health_check` (đánh dấu đã đồng bộ),
+  `backup_service`, `db_helper` 2 câu cập nhật "ĐÃ THANH TOÁN" khi trả nợ (bán + sửa). Test `test/sql_empty_string_literal_test.dart`.
+- **Hướng dẫn lần đầu của tab Tài chính bật ngay trên Trang chủ** (mọi nền tảng — tab được dựng sẵn ẩn trong
+  IndexedStack): `FinanceV2View` chỉ gọi hướng dẫn khi `Visibility.of(context)` = true; `FirstTimeGuideService` bỏ qua
+  màn đang ẩn.
+- `splash_view.dart`: không gọi `FlutterNativeSplash.remove()` trên web (web không có native splash → GLOBAL ERROR).
+- Nội dung giới thiệu/mô tả app còn ghi "đa ngành: Thực phẩm, Thời trang" → đổi thành cửa hàng sửa chữa & mua bán điện
+  thoại (`app_vi.arb`/`app_en.arb`: `welcomeDesc`, `appDescription`, `phoneRepairShopManagement`, `appFullDescription`).
+- **Test web thật** bằng Chrome headless (puppeteer-core) ở 1366×768, 1920×1080, 915×412 với tài khoản shop M; bản live
+  https://quanlyshop.web.app đã deploy (`flutter build web --release` + `firebase deploy --only hosting`) và kiểm lại.
+- `flutter analyze` 0 error, `flutter test` 857 PASS.
+
+---
+
 ## [2026-09-26b] - Chấm công/Lương: đóng các mục audit còn lại (khoá tháng dùng chung, lương khi mất mạng, N+1, đổi giờ máy) + 3 lỗi thật tìm được khi nghiệm thu
 
 - **Khoá tháng lương (trước: chỉ có bảng SQLite theo máy, không UI):** `lib/services/payroll_lock_service.dart` (mới) — nguồn

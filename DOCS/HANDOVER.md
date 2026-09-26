@@ -6,6 +6,11 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ## ⚡ Trạng thái hiện tại
 
+**2026-09-26 (đợt 3 — web màn ngang `[2026-09-26c]`):** web đã build + deploy https://quanlyshop.web.app (gồm toàn bộ
+chấm công/lương/đổi ca/khoá tháng). Màn ngang ≥1100px: trang chủ + chi tiết đơn sửa 2 cột. Sửa 5 câu SQL `""` làm hỏng
+web, hướng dẫn Tài chính bật sai trên Trang chủ. Chưa làm: 2 cột cho màn tạo đơn/bán hàng; nút nổi ⚡/AI vẫn che mép phải
+các tab hub khi web ở điện thoại nằm ngang (<1100px).
+
 **2026-09-26 (đợt 2 — đóng audit chấm công/lương `[2026-09-26b]`):**
 - Khoá tháng lương dùng chung cả shop (cloud `settings/payroll_locks`, nút ổ khoá ở Bảng lương, chỉ chủ shop); xoá PayrollView;
   lương khi mất mạng dùng bộ đệm + cảnh báo; hoa hồng sửa chữa đọc SQLite (vá lỗi lương bị thổi phồng khi Firestore trả cache);

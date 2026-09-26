@@ -221,9 +221,6 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       _scheduleLoad();
     });
     _loadCostPermission();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _maybeShowFinanceGuide();
-    });
     _txCtrl.addListener(() {
       if (!mounted) return;
       setState(() {
@@ -1047,6 +1044,21 @@ class _FinanceV2ViewState extends State<FinanceV2View>
       case _ToolbarAction.cashClosingSearch:
         _cashClosingKey.currentState?.openTransactionSearch();
         break;
+    }
+  }
+
+  bool _guideChecked = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Home keeps this tab alive (hidden) in an IndexedStack from app start;
+    // only show the guide once the tab is actually on screen.
+    if (!_guideChecked && Visibility.of(context)) {
+      _guideChecked = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _maybeShowFinanceGuide();
+      });
     }
   }
 

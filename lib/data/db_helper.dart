@@ -10129,12 +10129,12 @@ class DBHelper {
     final db = await database;
     if (linkedId.startsWith('sale_')) {
       await db.rawUpdate(
-        'UPDATE sales SET downPayment = ?, paymentMethod = CASE WHEN ? >= totalPrice THEN "ĐÃ THANH TOÁN" ELSE paymentMethod END WHERE firestoreId = ?',
+        "UPDATE sales SET downPayment = ?, paymentMethod = CASE WHEN ? >= totalPrice THEN 'ĐÃ THANH TOÁN' ELSE paymentMethod END WHERE firestoreId = ?",
         [newPaidAmount, newPaidAmount, linkedId],
       );
     } else if (linkedId.startsWith('rep_')) {
       await db.rawUpdate(
-        'UPDATE repairs SET paymentMethod = "ĐÃ THANH TOÁN" WHERE firestoreId = ?',
+        "UPDATE repairs SET paymentMethod = 'ĐÃ THANH TOÁN' WHERE firestoreId = ?",
         [linkedId],
       );
     }

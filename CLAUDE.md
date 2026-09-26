@@ -138,6 +138,12 @@
 - **Pattern:** Upsert (insert or replace)
 - **Unique key:** `firestoreId`
 - **Conflict resolution:** `isSynced` flag
+- **Chuỗi trong SQL LUÔN nháy đơn** (`x != ''`, `= 'ĐÃ THANH TOÁN'`): `sqlite3.wasm` của bản web
+  tắt chuỗi nháy kép → `""` bị hiểu là tên cột ("no such column"), trong khi Android/FFI vẫn chạy
+  nên test không bắt được. Dart: bọc câu SQL bằng nháy kép `"... != ''"`.
+- **Màn ngang/web:** màn chi tiết/dashboard mới nên có bố cục ≥1100px (xem `home_view._useWideHome`,
+  `repair_detail_view` 2 cột). Tab trong `IndexedStack` được dựng sẵn khi ẩn — hộp thoại tự bật
+  (hướng dẫn lần đầu…) phải kiểm `Visibility.of(context)`.
 
 ### 9. Giá vốn — phân quyền BẮT BUỘC 2 tầng
 - **Quyền:** `UserService.canViewCostPrice()` (`allowViewCostPrice`; super-admin luôn true)

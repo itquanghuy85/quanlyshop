@@ -3359,10 +3359,19 @@ class _HomeViewState extends State<HomeView>
         key: const ValueKey('home_tab'), // Stable key to preserve scroll state
         onRefresh: () => _syncNow(),
         child: ResponsiveCenter(
+          maxWidth: _useWideHome ? 1400 : null,
           child: ListView(
-            padding: EdgeInsets.symmetric(
-              horizontal: context.responsive.horizontalPadding,
-              vertical: 10,
+            padding: EdgeInsets.fromLTRB(
+              context.responsive.horizontalPadding,
+              10,
+              // Wide but not wide enough for side margins: keep the content
+              // clear of the floating quick-action / AI buttons on the right.
+              context.responsive.horizontalPadding +
+                  (context.responsive.isWideLayout &&
+                          MediaQuery.sizeOf(context).width < 1100
+                      ? 56
+                      : 0),
+              10,
             ),
             children: [
               if (_shopLocked)
@@ -3390,7 +3399,10 @@ class _HomeViewState extends State<HomeView>
               _buildCurrentBranchButton(),
               _buildBranchManagementButton(),
               // MODULAR DASHBOARD - render cards based on config
-              ..._buildModularDashboard(),
+              if (_useWideHome)
+                ..._buildModularDashboardWide()
+              else
+                ..._buildModularDashboard(),
               const SizedBox(height: 50),
             ],
           ),
@@ -3428,6 +3440,57 @@ class _HomeViewState extends State<HomeView>
     return widgets;
   }
 
+  bool get _isShortLandscape {
+    final size = MediaQuery.sizeOf(context);
+    return size.width > size.height && size.height < 520;
+  }
+
+  /// Landscape / web: cards in two columns instead of one long list.
+  bool get _useWideHome =>
+      MediaQuery.sizeOf(context).width >= 1100 &&
+      _dashboardConfigLoaded &&
+      _dashboardConfigs.isNotEmpty;
+
+  /// Same cards and per-column order as [_buildModularDashboard]; list-like
+  /// cards (to-do, activity, chat) go left, tools/figures go right.
+  List<Widget> _buildModularDashboardWide() {
+    const leftTypes = {
+      DashboardCardType.actionRequired,
+      DashboardCardType.activityFeed,
+      DashboardCardType.chat,
+      DashboardCardType.community,
+    };
+    final top = <Widget>[
+      _buildPendingPaymentBanner(),
+      _buildBankNotifBanner(),
+    ];
+    final left = <Widget>[];
+    final right = <Widget>[];
+    for (final config in _dashboardConfigs) {
+      final w = _buildDashboardCardFor(config);
+      if (w == null) continue;
+      if (config.type == DashboardCardType.greeting) {
+        top.add(w);
+      } else if (leftTypes.contains(config.type)) {
+        left.add(w);
+      } else {
+        right.add(w);
+      }
+    }
+    if (left.isEmpty || right.isEmpty) return [...top, ...left, ...right];
+    return [
+      ...top,
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: Column(children: left)),
+          const SizedBox(width: 16),
+          Expanded(child: Column(children: right)),
+        ],
+      ),
+    ];
+  }
+
   bool get _canViewFinanceCards =>
       hasFullAccess || _permissions['allowViewRevenue'] == true;
 
@@ -3458,6 +3521,9 @@ class _HomeViewState extends State<HomeView>
     if (!_isDashboardCardEligible(config)) return null;
     switch (config.type) {
       case DashboardCardType.greeting:
+        // Phone held sideways: ~330px of usable height — the decorative
+        // greeting would eat a third of it.
+        if (_isShortLandscape) return null;
         // 2 banner tien nong DA DUOC tach ra ngoai vong lap (xem ben tren) —
         // truoc day gan cung o day nen an "Loi chao" (thu trang tri) la mat
         // luon canh bao "Can thanh toan" va "Giao dich ngan hang".
@@ -4873,7 +4939,10 @@ class _HomeViewState extends State<HomeView>
           LayoutBuilder(
             builder: (context, constraints) {
               final r = context.responsive;
-              final cols = r.shortcutColumns;
+              // From the grid's own width (not the screen's) so the grid
+              // also fits the half-width column of the wide home layout.
+              // ~130px per tile gives 4 on phones, 6 on tablets, 8 on desktop.
+              final cols = ((constraints.maxWidth + 8) / 130).floor().clamp(4, 8);
               final iconSize = r.isDesktop ? 18.0 : (r.isTablet ? 18.0 : 20.0);
               final vPad = r.isDesktop ? 8.0 : 10.0;
               final fontSize = r.isDesktop ? 11.5 : 12.0;

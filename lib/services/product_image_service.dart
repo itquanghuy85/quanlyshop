@@ -76,7 +76,7 @@ class ProductImageService {
       final db = DBHelper();
       final underlying = await db.database;
       final rows = await underlying.rawQuery(
-        'SELECT * FROM products WHERE shopId = ? AND localImagePath IS NOT NULL AND localImagePath != "" AND (images IS NULL OR images = "") AND (deleted = 0 OR deleted IS NULL)',
+        "SELECT * FROM products WHERE shopId = ? AND localImagePath IS NOT NULL AND localImagePath != '' AND (images IS NULL OR images = '') AND (deleted = 0 OR deleted IS NULL)",
         [shopId],
       );
 

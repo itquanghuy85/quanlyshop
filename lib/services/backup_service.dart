@@ -609,7 +609,7 @@ class BackupService {
           await db.update(
             tableName,
             {'firestoreId': null},
-            where: 'firestoreId IS NOT NULL AND firestoreId != ""',
+            where: "firestoreId IS NOT NULL AND firestoreId != ''",
           );
         }
       }

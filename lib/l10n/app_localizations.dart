@@ -818,7 +818,7 @@ abstract class AppLocalizations {
   /// No description provided for @appDescription.
   ///
   /// In en, this message translates to:
-  /// **'Multi-industry shop management solution'**
+  /// **'Complete phone repair shop management solution'**
   String get appDescription;
 
   /// No description provided for @versionNumber.
@@ -4862,7 +4862,7 @@ abstract class AppLocalizations {
   /// No description provided for @welcomeDesc.
   ///
   /// In en, this message translates to:
-  /// **'Multi-industry shop management: Electronics, Food, Fashion & more. Easy to use, powerful and efficient for all business needs.'**
+  /// **'Phone repair & sales shop management: repair intake, sales, parts inventory, debts, attendance. Easy to use and works offline.'**
   String get welcomeDesc;
 
   /// No description provided for @professionalSalesManagement.
@@ -4982,7 +4982,7 @@ abstract class AppLocalizations {
   /// No description provided for @phoneRepairShopManagement.
   ///
   /// In en, this message translates to:
-  /// **'Multi-Industry Shop Management'**
+  /// **'Phone Repair Shop Management'**
   String get phoneRepairShopManagement;
 
   /// No description provided for @repairManagement.
@@ -7784,7 +7784,7 @@ abstract class AppLocalizations {
   /// No description provided for @appFullDescription.
   ///
   /// In en, this message translates to:
-  /// **'Comprehensive multi-industry shop management: Electronics (IMEI, warranty), Food (expiry), Fashion (size/color variants) with real-time sync.'**
+  /// **'Phone repair & sales shop management: repair orders, sales (IMEI, warranty), parts inventory, debts, finance, attendance - real-time sync, works offline.'**
   String get appFullDescription;
 
   /// No description provided for @attendanceTracking.
