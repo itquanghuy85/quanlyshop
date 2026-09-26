@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../widgets/custom_app_bar.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -20,6 +21,8 @@ import '../services/unified_printer_service.dart';
 import '../services/notification_service.dart';
 import '../services/chat_service.dart';
 import '../services/audit_service.dart';
+import '../services/user_service.dart';
+import '../services/app_session.dart';
 import '../widgets/printer_selection_dialog.dart';
 import '../widgets/receipt_paper_view.dart';
 import '../constants/product_constants.dart';
@@ -103,10 +106,49 @@ class _SaleInvoicePreviewViewState extends State<SaleInvoicePreviewView> {
         rawFooter.trim().isNotEmpty;
     final useCustomTemplate = useTemplate && hasTemplate;
 
-    final bankBin = prefs.getString('bank_qr_bin') ?? '';
-    final bankName = prefs.getString('bank_qr_name') ?? '';
-    final bankAccount = prefs.getString('bank_qr_account') ?? '';
-    final bankHolder = prefs.getString('bank_qr_holder') ?? '';
+    var bankBin = prefs.getString('bank_qr_bin') ?? '';
+    var bankName = prefs.getString('bank_qr_name') ?? '';
+    var bankAccount = prefs.getString('bank_qr_account') ?? '';
+    var bankHolder = prefs.getString('bank_qr_holder') ?? '';
+
+    // Bug fix: trước đây màn xem trước/chia sẻ CHỈ đọc cache SharedPreferences
+    // cục bộ — nếu shop đã cấu hình QR chuyển khoản (bank_qr_settings_view.dart
+    // ghi cả Firestore `shops/{shopId}/settings/bank_qr` lẫn prefs) nhưng máy
+    // này chưa từng mở màn Cài đặt QR (máy khác/cài lại app/xoá dữ liệu app),
+    // prefs rỗng ⇒ `_hasBankInfo=false` ⇒ QR biến mất dù shop đã cấu hình.
+    // Fallback đọc Firestore 1 lần khi prefs rỗng, giống hệt logic
+    // `BankQrSettingsView._load()`, rồi cache lại vào prefs cho lần sau.
+    if (bankBin.isEmpty || bankAccount.isEmpty) {
+      try {
+        if (AppSession.syncEnabled) {
+          final shopId = await UserService.getCurrentShopId();
+          if (shopId != null && shopId.isNotEmpty) {
+            final doc = await FirebaseFirestore.instance
+                .collection('shops')
+                .doc(shopId)
+                .collection('settings')
+                .doc('bank_qr')
+                .get();
+            final data = doc.data();
+            if (data != null) {
+              final cloudBin = (data['bankBin'] as String?) ?? '';
+              if (cloudBin.isNotEmpty) {
+                bankBin = cloudBin;
+                bankName = (data['bankName'] as String?) ?? bankName;
+                bankAccount = (data['accountNumber'] as String?) ?? bankAccount;
+                bankHolder = (data['accountHolder'] as String?) ?? bankHolder;
+                await prefs.setString('bank_qr_bin', bankBin);
+                await prefs.setString('bank_qr_name', bankName);
+                await prefs.setString('bank_qr_account', bankAccount);
+                await prefs.setString('bank_qr_holder', bankHolder);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('SaleInvoicePreviewView: bank_qr Firestore fallback failed: $e');
+      }
+    }
 
     final remainingDebtValue = widget.saleData['remainingDebt'] is num
         ? (widget.saleData['remainingDebt'] as num).toInt()

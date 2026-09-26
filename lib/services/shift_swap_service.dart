@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
+import '../data/db_helper.dart';
 import '../models/shift_swap_request_model.dart';
 import 'event_bus.dart';
 import 'user_service.dart';
@@ -11,8 +12,17 @@ import 'firebase_usage_stats_service.dart';
 import 'app_session.dart';
 import 'cloud_write_policy.dart';
 
+/// 2026-09-26 redesign: shift swap now has a REAL effect on the effective
+/// schedule for the date it applies to (see
+/// AttendanceApprovalService.resolveComputationInputs /
+/// DBHelper.getApprovedShiftSwapRequestsForUserAndDate), so this service was
+/// rewritten SQLite-first (previously pure Firestore-direct with zero local
+/// table — a violation of the app's offline-first architecture, CLAUDE.md
+/// §13/§14). Write paths: SQLite first, then Firestore sync gated by
+/// AppSession.syncEnabled, same pattern as AttendanceApprovalService.
 class ShiftSwapService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static final _dbHelper = DBHelper();
   static int _myRequestsFetchCount = 0;
   static int _pendingRequestsFetchCount = 0;
 
@@ -28,14 +38,23 @@ class ShiftSwapService {
     required String requestedDate,
     required String currentShift,
     required String desiredShift,
+    required String newStartTime,
+    required String newEndTime,
     String? targetUserId,
     String? targetUserName,
+    String? targetNewStartTime,
+    String? targetNewEndTime,
     String? note,
   }) async {
     if (!AppSession.syncEnabled) return ''; // offline session: no cloud
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       throw Exception('Vui lòng đăng nhập lại để gửi yêu cầu đổi ca.');
+    }
+    if (targetUserId != null &&
+        targetUserId.isNotEmpty &&
+        ((targetNewStartTime ?? '').isEmpty || (targetNewEndTime ?? '').isEmpty)) {
+      throw Exception('Chọn đổi ca cùng đồng nghiệp thì phải nhập giờ ca mới của họ.');
     }
 
     final shopId = await UserService.getCurrentShopId();
@@ -45,40 +64,43 @@ class ShiftSwapService {
 
     final requesterName = await UserService.getCurrentUserName();
     final now = DateTime.now().millisecondsSinceEpoch;
-    final docRef = _db.collection('shift_swap_requests').doc();
+    final firestoreId = 'ssw_${user.uid}_${requestedDate}_$now';
 
-    await CloudWritePolicy.guard(() => docRef.set({
-      'firestoreId': docRef.id,
-      'shopId': shopId,
-      'requesterId': user.uid,
-      'requesterName': requesterName.isEmpty ? 'Nhân viên' : requesterName,
-      'requesterEmail': user.email ?? '',
-      'requestedDate': requestedDate,
-      'currentShift': currentShift,
-      'desiredShift': desiredShift,
-      'targetUserId': targetUserId,
-      'targetUserName': targetUserName,
-      'note': note,
-      'status': 'pending',
-      'reviewedBy': null,
-      'reviewedByName': null,
-      'createdAt': now,
-      'updatedAt': now,
-      'reviewedAt': null,
-      'rejectReason': null,
-      'deleted': false,
-      'serverUpdatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true)), context: 'shift_swap_requests');
+    final request = ShiftSwapRequest(
+      firestoreId: firestoreId,
+      shopId: shopId,
+      requesterId: user.uid,
+      requesterName: requesterName.isEmpty ? 'Nhân viên' : requesterName,
+      requesterEmail: user.email ?? '',
+      requestedDate: requestedDate,
+      currentShift: currentShift,
+      desiredShift: desiredShift,
+      newStartTime: newStartTime,
+      newEndTime: newEndTime,
+      targetUserId: targetUserId,
+      targetUserName: targetUserName,
+      targetNewStartTime: targetNewStartTime,
+      targetNewEndTime: targetNewEndTime,
+      note: note,
+      status: 'pending',
+      reviewedBy: null,
+      reviewedByName: null,
+      createdAt: now,
+      updatedAt: now,
+      reviewedAt: null,
+      rejectReason: null,
+      deleted: false,
+      isSynced: false,
+    );
 
+    await _dbHelper.upsertShiftSwapRequest(request);
+    await _syncToCloud(request);
     EventBus().emit('shift_swap_requests_changed');
 
-    return docRef.id;
+    return firestoreId;
   }
 
   static Stream<List<ShiftSwapRequest>> watchMyRequests({int limit = 100}) {
-    if (!AppSession.syncEnabled) {
-      return const Stream.empty(); // offline session: no cloud
-    }
     return (() async* {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
@@ -86,61 +108,22 @@ class ShiftSwapService {
         return;
       }
 
-      final shopId = await UserService.getCurrentShopId();
-      if (shopId == null || shopId.isEmpty) {
-        yield <ShiftSwapRequest>[];
-        return;
+      Future<List<ShiftSwapRequest>> loadLocal() async {
+        final all = await _dbHelper.getShiftSwapRequestsByRequester(user.uid);
+        return all.take(limit).toList();
       }
 
-      final effectiveLimit = limit.clamp(1, 20);
-      List<ShiftSwapRequest> lastData = const <ShiftSwapRequest>[];
+      yield await loadLocal();
 
-      Future<List<ShiftSwapRequest>> fetchOnce(String reason) async {
-        if (!AppSession.syncEnabled) return []; // offline session: no cloud
-        _myRequestsFetchCount += 1;
-        debugPrint(
-          '[SYNC][FETCH] collection=shift_swap_requests_my count=$_myRequestsFetchCount reason=$reason limit=$effectiveLimit',
-        );
-        final snap = await _db
-            .collection('shift_swap_requests')
-            .where('shopId', isEqualTo: shopId)
-            .where('requesterId', isEqualTo: user.uid)
-            .where('deleted', isEqualTo: false)
-            .orderBy('createdAt', descending: true)
-            .limit(effectiveLimit)
-            .get();
-        unawaited(
-          FirebaseUsageStatsService.logFetchRead(
-            collection: 'shift_swap_requests',
-            shopId: shopId,
-            docs: snap.docs.length,
-            source: 'sync-poll',
-          ),
-        );
-
-        return snap.docs.map((doc) {
-          final map = doc.data();
-          map['firestoreId'] = doc.id;
-          return ShiftSwapRequest.fromMap(map);
-        }).toList();
-      }
-
-      try {
-        lastData = await fetchOnce('initial_open');
-        yield lastData;
-      } catch (e) {
-        debugPrint('ShiftSwapService watchMyRequests initial fetch error: $e');
-        yield lastData;
-      }
+      // Pull from Firestore once (online only) to seed/refresh SQLite —
+      // display itself always reads local, matching CLAUDE.md §13.
+      unawaited(_pullMyRequestsFromCloud(user.uid, limit));
 
       await for (final event in EventBus().stream.where(_isRefreshEvent)) {
-        try {
-          lastData = await fetchOnce(event);
-          yield lastData;
-        } catch (e) {
-          debugPrint('ShiftSwapService watchMyRequests refresh error: $e');
-          yield lastData;
+        if (event == 'sync_now_completed' || event == 'app_resumed') {
+          unawaited(_pullMyRequestsFromCloud(user.uid, limit));
         }
+        yield await loadLocal();
       }
     })();
   }
@@ -148,73 +131,102 @@ class ShiftSwapService {
   static Stream<List<ShiftSwapRequest>> watchPendingRequests({
     int limit = 120,
   }) {
-    if (!AppSession.syncEnabled) {
-      return const Stream.empty(); // offline session: no cloud
-    }
     return (() async* {
-      final shopId = await UserService.getCurrentShopId();
-      if (shopId == null || shopId.isEmpty) {
-        yield <ShiftSwapRequest>[];
-        return;
+      Future<List<ShiftSwapRequest>> loadLocal() async {
+        final all = await _dbHelper.getShiftSwapRequestsByStatus('pending');
+        return all.take(limit).toList();
       }
 
-      final effectiveLimit = limit.clamp(1, 20);
-      List<ShiftSwapRequest> lastData = const <ShiftSwapRequest>[];
+      yield await loadLocal();
 
-      Future<List<ShiftSwapRequest>> fetchOnce(String reason) async {
-        if (!AppSession.syncEnabled) return []; // offline session: no cloud
-        _pendingRequestsFetchCount += 1;
-        debugPrint(
-          '[SYNC][FETCH] collection=shift_swap_requests_pending count=$_pendingRequestsFetchCount reason=$reason limit=$effectiveLimit',
-        );
-        final snap = await _db
-            .collection('shift_swap_requests')
-            .where('shopId', isEqualTo: shopId)
-            .where('status', isEqualTo: 'pending')
-            .where('deleted', isEqualTo: false)
-            .orderBy('createdAt', descending: true)
-            .limit(effectiveLimit)
-            .get();
-        unawaited(
-          FirebaseUsageStatsService.logFetchRead(
-            collection: 'shift_swap_requests',
-            shopId: shopId,
-            docs: snap.docs.length,
-            source: 'sync-poll',
-          ),
-        );
-
-        return snap.docs.map((doc) {
-          final map = doc.data();
-          map['firestoreId'] = doc.id;
-          return ShiftSwapRequest.fromMap(map);
-        }).toList();
-      }
-
-      try {
-        lastData = await fetchOnce('initial_open');
-        yield lastData;
-      } catch (e) {
-        debugPrint(
-          'ShiftSwapService watchPendingRequests initial fetch error: $e',
-        );
-        yield lastData;
-      }
+      unawaited(_pullPendingRequestsFromCloud(limit));
 
       await for (final event in EventBus().stream.where(_isRefreshEvent)) {
-        try {
-          lastData = await fetchOnce(event);
-          yield lastData;
-        } catch (e) {
-          debugPrint('ShiftSwapService watchPendingRequests refresh error: $e');
-          yield lastData;
+        if (event == 'sync_now_completed' || event == 'app_resumed') {
+          unawaited(_pullPendingRequestsFromCloud(limit));
         }
+        yield await loadLocal();
       }
     })();
   }
 
-  static Future<void> approveRequest(ShiftSwapRequest request) async {
+  static Future<void> _pullMyRequestsFromCloud(String uid, int limit) async {
     if (!AppSession.syncEnabled) return; // offline session: no cloud
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null || shopId.isEmpty) return;
+      final effectiveLimit = limit.clamp(1, 20);
+      _myRequestsFetchCount += 1;
+      debugPrint(
+        '[SYNC][FETCH] collection=shift_swap_requests_my count=$_myRequestsFetchCount limit=$effectiveLimit',
+      );
+      final snap = await _db
+          .collection('shift_swap_requests')
+          .where('shopId', isEqualTo: shopId)
+          .where('requesterId', isEqualTo: uid)
+          .where('deleted', isEqualTo: false)
+          .orderBy('createdAt', descending: true)
+          .limit(effectiveLimit)
+          .get();
+      unawaited(
+        FirebaseUsageStatsService.logFetchRead(
+          collection: 'shift_swap_requests',
+          shopId: shopId,
+          docs: snap.docs.length,
+          source: 'sync-poll',
+        ),
+      );
+      for (final doc in snap.docs) {
+        final map = doc.data();
+        map['firestoreId'] = doc.id;
+        map['isSynced'] = 1;
+        await _dbHelper.upsertShiftSwapRequest(ShiftSwapRequest.fromMap(map));
+      }
+      EventBus().emit('shift_swap_requests_changed');
+    } catch (e) {
+      debugPrint('ShiftSwapService pull my requests error: $e');
+    }
+  }
+
+  static Future<void> _pullPendingRequestsFromCloud(int limit) async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
+    try {
+      final shopId = await UserService.getCurrentShopId();
+      if (shopId == null || shopId.isEmpty) return;
+      final effectiveLimit = limit.clamp(1, 20);
+      _pendingRequestsFetchCount += 1;
+      debugPrint(
+        '[SYNC][FETCH] collection=shift_swap_requests_pending count=$_pendingRequestsFetchCount limit=$effectiveLimit',
+      );
+      final snap = await _db
+          .collection('shift_swap_requests')
+          .where('shopId', isEqualTo: shopId)
+          .where('status', isEqualTo: 'pending')
+          .where('deleted', isEqualTo: false)
+          .orderBy('createdAt', descending: true)
+          .limit(effectiveLimit)
+          .get();
+      unawaited(
+        FirebaseUsageStatsService.logFetchRead(
+          collection: 'shift_swap_requests',
+          shopId: shopId,
+          docs: snap.docs.length,
+          source: 'sync-poll',
+        ),
+      );
+      for (final doc in snap.docs) {
+        final map = doc.data();
+        map['firestoreId'] = doc.id;
+        map['isSynced'] = 1;
+        await _dbHelper.upsertShiftSwapRequest(ShiftSwapRequest.fromMap(map));
+      }
+      EventBus().emit('shift_swap_requests_changed');
+    } catch (e) {
+      debugPrint('ShiftSwapService pull pending requests error: $e');
+    }
+  }
+
+  static Future<void> approveRequest(ShiftSwapRequest request) async {
     await _updateStatus(request: request, status: 'approved');
   }
 
@@ -222,7 +234,6 @@ class ShiftSwapService {
     ShiftSwapRequest request, {
     required String reason,
   }) async {
-    if (!AppSession.syncEnabled) return; // offline session: no cloud
     await _updateStatus(
       request: request,
       status: 'rejected',
@@ -231,7 +242,6 @@ class ShiftSwapService {
   }
 
   static Future<void> cancelRequest(ShiftSwapRequest request) async {
-    if (!AppSession.syncEnabled) return; // offline session: no cloud
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || user.uid != request.requesterId) {
       throw Exception('Bạn không có quyền huỷ yêu cầu này.');
@@ -240,12 +250,13 @@ class ShiftSwapService {
       throw Exception('Yêu cầu đã xử lý, không thể huỷ.');
     }
 
-    final now = DateTime.now().millisecondsSinceEpoch;
-    await CloudWritePolicy.guard(() => _db.collection('shift_swap_requests').doc(request.firestoreId).set({
-      'status': 'cancelled',
-      'updatedAt': now,
-      'serverUpdatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true)), context: 'shift_swap_requests');
+    final updated = request.copyWith(
+      status: 'cancelled',
+      updatedAt: DateTime.now().millisecondsSinceEpoch,
+      isSynced: false,
+    );
+    await _dbHelper.upsertShiftSwapRequest(updated);
+    await _syncToCloud(updated);
     EventBus().emit('shift_swap_requests_changed');
   }
 
@@ -298,18 +309,46 @@ class ShiftSwapService {
 
     final reviewerName = await UserService.getCurrentUserName();
     final now = DateTime.now().millisecondsSinceEpoch;
-    await CloudWritePolicy.guard(() => _db.collection('shift_swap_requests').doc(request.firestoreId).set({
-      'status': status,
-      'reviewedBy': user.uid,
-      'reviewedByName': reviewerName.isEmpty
-          ? (user.email ?? 'Quản lý')
-          : reviewerName,
-      'reviewedAt': now,
-      'rejectReason': rejectReason,
-      'updatedAt': now,
-      'serverUpdatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true)), context: 'shift_swap_requests');
+    final updated = request.copyWith(
+      status: status,
+      reviewedBy: user.uid,
+      reviewedByName:
+          reviewerName.isEmpty ? (user.email ?? 'Quản lý') : reviewerName,
+      reviewedAt: now,
+      rejectReason: rejectReason,
+      updatedAt: now,
+      isSynced: false,
+    );
+
+    await _dbHelper.upsertShiftSwapRequest(updated);
+    await _syncToCloud(updated);
     EventBus().emit('shift_swap_requests_changed');
+    // An approved/rejected swap changes the effective schedule for its
+    // date — attendance late/early/OT already-computed for that date (if
+    // check-in happened before approval) is intentionally NOT retroactively
+    // recomputed here; the next edit/recompute pass (manager time edit,
+    // salary calculation) will pick up the new schedule. Documented, not a
+    // gap: retroactively rewriting isLate/isEarlyLeave on unrelated
+    // attendance rows from inside this service would be a surprising
+    // side-effect with no single obvious record to target.
+  }
+
+  static Future<void> _syncToCloud(ShiftSwapRequest request) async {
+    if (!AppSession.syncEnabled) return; // offline session: no cloud
+    try {
+      final data = request.toMap();
+      data['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
+      data['serverUpdatedAt'] = FieldValue.serverTimestamp();
+      await CloudWritePolicy.guard(
+        () => _db
+            .collection('shift_swap_requests')
+            .doc(request.firestoreId)
+            .set(data, SetOptions(merge: true)),
+        context: 'shift_swap_requests',
+      );
+    } catch (e) {
+      debugPrint('ShiftSwapService sync to cloud error: $e');
+    }
   }
 
   static void debugLog(Object message) {

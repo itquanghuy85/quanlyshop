@@ -11,8 +11,11 @@ import '../models/attendance_monthly_summary_model.dart';
 import '../models/leave_request_model.dart';
 import '../services/storage_service.dart';
 import '../services/user_service.dart';
+import '../services/app_session.dart';
+import '../services/firestore_service.dart';
 import '../services/osm_map_service.dart';
 import '../services/attendance_approval_service.dart';
+import '../services/attendance_computation_service.dart';
 import '../services/attendance_summary_service.dart';
 import '../services/notification_service.dart';
 import '../services/event_bus.dart';
@@ -153,31 +156,46 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
 
   Future<void> _loadDayAttendance() async {
     final dateKey = DateFormat('yyyy-MM-dd').format(_selectedDate);
+    final missing = <String>[];
     for (final staff in _staffList) {
       final userId = staff['id'] as String;
-      try {
-        final local = await _db.getAttendance(dateKey, userId);
-        if (local != null) {
-          _staffAttendance[userId] = [local];
-          continue;
+      final local = await _db.getAttendance(dateKey, userId);
+      _staffAttendance[userId] = local != null ? [local] : [];
+      if (local == null) missing.add(userId);
+    }
+    final cloud = await _cloudAttendanceFor(missing, dateKey, dateKey);
+    for (final userId in missing) {
+      final recs = cloud[userId];
+      if (recs != null && recs.isNotEmpty) _staffAttendance[userId] = [recs.first];
+    }
+  }
+
+  /// One whole-shop query (instead of one per staff) for staff that have no
+  /// local record yet (e.g. SyncService hasn't pulled them).
+  Future<Map<String, List<Attendance>>> _cloudAttendanceFor(
+    List<String> userIds,
+    String startKey,
+    String endKey,
+  ) async {
+    final shopId = _currentShopId;
+    if (userIds.isEmpty || shopId == null || !AppSession.syncEnabled) return {};
+    try {
+      final wanted = userIds.toSet();
+      final result = <String, List<Attendance>>{};
+      final all = await FirestoreService.getShopAttendanceByDateRange(
+        shopId: shopId,
+        startKey: startKey,
+        endKey: endKey,
+      );
+      for (final a in all) {
+        if (wanted.contains(a.userId)) {
+          (result[a.userId] ??= []).add(a);
         }
-        if (_currentShopId != null) {
-          final doc = await FirebaseFirestore.instance
-              .collection('attendance')
-              .where('shopId', isEqualTo: _currentShopId)
-              .where('userId', isEqualTo: userId)
-              .where('dateKey', isEqualTo: dateKey)
-              .limit(1)
-              .get();
-          _staffAttendance[userId] = doc.docs.isNotEmpty
-              ? [Attendance.fromMap(doc.docs.first.data())]
-              : [];
-        } else {
-          _staffAttendance[userId] = [];
-        }
-      } catch (e) {
-        _staffAttendance[userId] = [];
       }
+      return result;
+    } catch (e) {
+      debugPrint('Attendance cloud fallback failed: $e');
+      return {};
     }
   }
 
@@ -188,36 +206,59 @@ class _AttendanceManagementViewState extends State<AttendanceManagementView>
     final endKey = DateFormat('yyyy-MM-dd').format(end);
     final allLocal = await _db.getAttendanceByDateRange(startKey, endKey);
 
+    final missing = <String>[];
     for (final staff in _staffList) {
       final userId = staff['id'] as String;
-      try {
-        final records = allLocal.where((r) => r.userId == userId).toList();
-        if (records.isNotEmpty) {
-          _staffAttendance[userId] = records;
-          continue;
+      final records = allLocal.where((r) => r.userId == userId).toList();
+      _staffAttendance[userId] = records;
+      if (records.isEmpty) missing.add(userId);
+    }
+    final cloud = await _cloudAttendanceFor(missing, startKey, endKey);
+    cloud.forEach((userId, recs) => _staffAttendance[userId] = recs);
+    // Phase 5/12 fix: resolve each staff member's schedule so the dashboard
+    // "Giờ công/OT" totals and the Excel monthly-summary export use the
+    // same canonical worked/OT computation as SalaryCalculationService,
+    // instead of AttendanceSummaryService's old raw-elapsed/raw-overtimeOn
+    // math (which could silently diverge from what payroll actually pays).
+    final scheduleByUserId = <String, ResolvedScheduleConfig>{};
+    final standardHoursByUserId = <String, double>{};
+    for (final staff in _staffList) {
+      final userId = staff['id'] as String;
+      final inputs = await AttendanceApprovalService.resolveComputationInputs(userId);
+      scheduleByUserId[userId] = inputs.schedule;
+      standardHoursByUserId[userId] = inputs.standardHoursPerDay;
+    }
+
+    // 2026-09-26: per-record shift-swap override (a swap only changes ONE
+    // day, so it can't be folded into the once-per-staff map above) — same
+    // lookup SalaryCalculationService/AttendanceView use, so the dashboard
+    // "Giờ công/OT" total never disagrees with actual payroll on a
+    // swap-affected date.
+    final scheduleOverrideByKey = <String, ResolvedScheduleConfig>{};
+    for (final entry in _staffAttendance.entries) {
+      final userId = entry.key;
+      final base = scheduleByUserId[userId];
+      if (base == null) continue;
+      for (final record in entry.value) {
+        final override = await AttendanceApprovalService.getApprovedShiftSwapOverride(
+          userId,
+          record.dateKey,
+        );
+        if (override != null) {
+          scheduleOverrideByKey['$userId|${record.dateKey}'] = base.copyWith(
+            startTime: override.$1,
+            endTime: override.$2,
+          );
         }
-        if (_currentShopId != null) {
-          final snap = await FirebaseFirestore.instance
-              .collection('attendance')
-              .where('shopId', isEqualTo: _currentShopId)
-              .where('userId', isEqualTo: userId)
-              .where('dateKey', isGreaterThanOrEqualTo: startKey)
-              .where('dateKey', isLessThanOrEqualTo: endKey)
-              .get();
-          final recs = snap.docs
-              .map((d) => Attendance.fromMap(d.data()))
-              .toList();
-          _staffAttendance[userId] = recs;
-        } else {
-          _staffAttendance[userId] = [];
-        }
-      } catch (e) {
-        _staffAttendance[userId] = [];
       }
     }
+
     _monthlySummaries = AttendanceSummaryService.buildMonthlySummaries(
       staffList: _staffList,
       staffAttendance: _staffAttendance,
+      scheduleByUserId: scheduleByUserId,
+      standardHoursByUserId: standardHoursByUserId,
+      scheduleOverrideByKey: scheduleOverrideByKey,
     );
   }
 

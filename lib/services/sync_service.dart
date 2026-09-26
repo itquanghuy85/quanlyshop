@@ -15,6 +15,7 @@ import '../models/expense_model.dart';
 import '../models/debt_model.dart';
 import '../models/attendance_model.dart';
 import '../models/leave_request_model.dart';
+import '../models/shift_swap_request_model.dart';
 import '../models/quick_input_code_model.dart';
 import 'storage_service.dart';
 import 'product_image_service.dart';
@@ -240,6 +241,7 @@ class SyncService {
         return _isStaffLike(role, isSuperAdmin);
       case 'attendance':
       case 'leave_requests':
+      case 'shift_swap_requests':
       case 'audit_logs':
       case 'supplier_payments':
       case 'repair_partner_payments':
@@ -2106,6 +2108,47 @@ class SyncService {
       );
     } catch (e) {
       debugPrint("Lỗi khởi tạo leave_requests sync: $e");
+    }
+
+    // 8c. Đồng bộ SHIFT SWAP REQUESTS (Đổi ca) — 2026-09-26: trước đây
+    // collection này không có bảng SQLite/listener nào, thuần Firestore
+    // trực tiếp (vi phạm offline-first). Nay đổi ca đã DUYỆT ảnh hưởng
+    // thật tới lịch làm việc (xem AttendanceApprovalService.
+    // resolveComputationInputs), nên phải sync xuống máy khác giống mọi
+    // bảng nghiệp vụ khác để check-in offline cũng thấy được ca đã đổi.
+    try {
+      _subscribeToCollection(
+        collection: 'shift_swap_requests',
+        shopId: shopId,
+        permissions: permissions,
+        role: role,
+        isSuperAdmin: isSuperAdmin,
+        onChanged: (data, docId) async {
+          try {
+            final db = DBHelper();
+            if (data['deleted'] == true || data['deleted'] == 1) {
+              await db.deleteShiftSwapRequestByFirestoreId(docId);
+            } else {
+              data['firestoreId'] = docId;
+              data['isSynced'] = 1;
+              for (final key in ['createdAt', 'updatedAt', 'reviewedAt']) {
+                if (data[key] is Timestamp) {
+                  data[key] = (data[key] as Timestamp).millisecondsSinceEpoch;
+                }
+              }
+              await db.upsertShiftSwapRequest(ShiftSwapRequest.fromMap(data));
+            }
+          } catch (e) {
+            debugPrint("Lỗi sync shift_swap_request $docId: $e");
+          }
+        },
+        onBatchDone: () {
+          onDataChanged();
+          EventBus().emit('shift_swap_requests_changed');
+        },
+      );
+    } catch (e) {
+      debugPrint("Lỗi khởi tạo shift_swap_requests sync: $e");
     }
 
     // 9. Đồng bộ QUICK INPUT CODES

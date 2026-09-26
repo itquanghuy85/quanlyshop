@@ -15,6 +15,7 @@ import 'sales_return_service.dart';
 import 'sync_service.dart';
 import 'encryption_service.dart';
 import 'user_service.dart';
+import 'attendance_computation_service.dart';
 
 /// Service tạo dữ liệu mẫu toàn diện cho mục đích demo/kiểm thử.
 /// Bao gồm: sản phẩm, bán hàng, sửa chữa, công nợ, chấm công,
@@ -934,7 +935,18 @@ class TestDataService {
               .millisecondsSinceEpoch;
           final checkOutMs = DateTime(day.year, day.month, day.day, 17, 30)
               .millisecondsSinceEpoch;
-          final isLate = checkInHour > 8 ? 1 : 0;
+          // F-12 fix: use the same canonical late-clock rule as production
+          // (AttendanceComputationService) instead of a bare "hour > 8"
+          // comparison, so seeded/demo data never diverges from what a real
+          // check-in at the same instant would produce. No shop/staff
+          // schedule override for seed data -> engine falls back to its
+          // 08:00 default, matching this seed's implicit assumption.
+          final seedDay = DateTime(day.year, day.month, day.day);
+          final isLate = AttendanceComputationService.isLateCheckIn(
+            DateTime.fromMillisecondsSinceEpoch(checkInMs),
+            seedDay,
+            ResolvedScheduleConfig.resolve(fallbackOvertimeRatePercent: 150),
+          ) ? 1 : 0;
           final fsId = 'att_${staff['id']}_$dateKey';
 
           final attendance = Attendance(

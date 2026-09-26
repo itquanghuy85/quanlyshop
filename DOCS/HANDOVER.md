@@ -6,6 +6,35 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ## ⚡ Trạng thái hiện tại
 
+**2026-09-26 (đợt 2 — đóng audit chấm công/lương `[2026-09-26b]`):**
+- Khoá tháng lương dùng chung cả shop (cloud `settings/payroll_locks`, nút ổ khoá ở Bảng lương, chỉ chủ shop); xoá PayrollView;
+  lương khi mất mạng dùng bộ đệm + cảnh báo; hoa hồng sửa chữa đọc SQLite (vá lỗi lương bị thổi phồng khi Firestore trả cache);
+  `Attendance.fromMap` chịu Timestamp; màn quản lý chấm công 1 query/shop; chặn chấm công khi giờ máy lệch > 5 phút.
+- Đã nghiệm thu 2 máy thật (xem CHANGELOG). Tháng 09/2026 shop M đã MỞ khoá lại sau test; H có check-out test 10:01.
+- **Còn lại (cố ý):** không nối lương vào Tài chính (user quyết định 2026-09-26); khoá tháng không đóng băng số lương;
+  nhánh chặn giờ lệch chỉ test tự động; chấm công khi offline không kiểm được giờ máy.
+
+**2026-09-26 (Đổi ca có hiệu lực thật + QR công nợ):**
+- `[2026-09-25e]` QR chuyển khoản khi share đơn CÔNG NỢ: fallback Firestore `settings/bank_qr` — đã test máy thật.
+- `[2026-09-26a]` Đổi ca thiết kế lại: SQLite-first + sync, ca đã duyệt ghi đè start/end đúng ngày cho
+  check-in/lương/summary/Excel. Test 2 máy (CPH2239 + CPH2203, shop M): tạo/huỷ/duyệt/sync/isLate ✅.
+  Sửa 6 lỗi UI tìm được khi test (xem CHANGELOG).
+- **Còn treo:** (1) 2 index `shift_swap_requests` ĐÃ deploy 2026-09-26 (project còn 1 index cũ
+  không có trong file — không xoá, không dùng `--force`). (2) Phía người được đổi (target) chỉ có test tự động.
+  (3) Bản ghi test trên shop M: 2 yêu cầu đổi ca 26/09 + chấm công vào 09:16 của H.
+- Roadmap còn lại: Finance (nối lương) → Excel thực tế → UI khoá tháng lương → 2 máy/offline.
+- `flutter analyze` 0 error, `flutter test` **847 PASS**. Chưa commit/push/build release.
+
+**2026-09-25 (Attendance/Payroll — canonical engine, 3 đợt audit):**
+- **Root cause chính:** checkout từng rebuild `Attendance` mới → mất isLate/OT/approval/note/requestType/locked (F-01/F-02); schedule chỉ đọc theo uid, bỏ qua `shop_general` (F-03); breakTime/maxOtHours/holidays/weekday-weekend-holidayOtRate tồn tại trong schema+UI nhưng 0 calculator đọc (F-04); OT tự động không trừ break, sinh OT ảo (F-05); manual OT clamp hardcode 480 (F-06); overnight không hỗ trợ (F-07); requestType='overtime_edit' không được ghi (F-13); thiếu luồng quên chấm công RA (F-15).
+- **Đã tạo:** `lib/services/attendance_computation_service.dart` (MỘT engine duy nhất — late/early/dayType/worked/regular/auto-OT/manual-OT/max-OT/OT-rate/overnight), `attendance_check_service.dart` (clone-and-patch checkout), `attendance_schedule_resolver.dart` (chỉ còn resolve chuỗi giờ).
+- **Payroll lock enforce** ở `AttendanceApprovalService` (5 write path), refactor thành pure-logic `applyXxxLogic` functions để test được không cần FirebaseAuth mock (`test/attendance_approval_logic_test.dart`, 16 test).
+- **Bug phụ tìm thấy:** `_parseWorkDays` cũ chạy List từ `staff_list_view.dart` (Dart-weekday thật 1-7) qua bảng tra dành cho string UI-index → Chủ Nhật bị âm thầm loại khỏi ngày công chuẩn; holiday rơi vào ngày workDays bình thường vẫn bị tính vào mẫu số "ngày cần làm" → nghỉ lễ chung bị trừ lương như nghỉ không phép. Cả 2 đã fix.
+- **Finance:** xác nhận `PaymentIntent.forSalaryPayment` tồn tại nhưng KHÔNG được gọi ở đâu — tính lương hiện không có đường nối vào Finance/expense.
+- **Shift swap:** (đã xử lý ở `[2026-09-26a]` — ca đã duyệt có hiệu lực thật).
+- Chi tiết đầy đủ + acceptance matrix: `docs/CHANGELOG.md` mục `2026-09-25c`; kịch bản 2-máy/offline thật (chưa chạy, cần thiết bị thật): `docs/ATTENDANCE_FINAL_ACCEPTANCE_E2E.md`.
+- Verify: `flutter analyze` 0 error, `flutter test` **837 PASS / 0 FAIL**. Chưa build release, chưa commit, chưa push.
+
 **2026-09-24 (2 task trong 1 phiên):**
 1. **Kho — người tân trang** `[2026-09-24a]`: hiện "ai vừa sửa/đổi SP" ở list Kho, đầu trang chi tiết, popup "Tân trang ngay", lịch sử tân trang; **không gate** giá vốn (chỉ phần số tiền gate `allowViewCostPrice`); 1 query SQLite (`getLatestRefurbishActors`), không read cloud. Test 10/10 PASS.
 2. **Tài chính — đổi công thức lãi sang DỒN TÍCH (accrual)** `[2026-09-24b]`: doanh thu/vốn/lãi = **ngày bán/ngày giao, mọi PTTT** (CÔNG NỢ, trả góp, kết hợp thu thiếu); trả hàng trừ cả doanh thu lẫn vốn mọi PTTT; thu nợ KH + tất toán NH + tiền bán = **TIỀN thuần** (`debtCollectIn`, `settlementIncome`, `cashFromSales`/`saleCash`) tách hẳn khỏi lãi, không còn cộng theo tỉ lệ tiền thu, đảo "phương án A" 2026-09-18. Snapshot thêm `cashFrom*`/`previousCashFrom*`/`debtCollectIn`, `DailyFinancialAnalysisService` thêm `saleCash`. Chi tiết: CHANGELOG `[2026-09-24b]`, `test/FINANCE_FULL_SCENARIO.md`.

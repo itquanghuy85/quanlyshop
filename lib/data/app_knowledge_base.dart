@@ -1527,22 +1527,30 @@ class AppKnowledgeBase {
     KbEntry(
       id: 'payroll',
       title: 'Lương & Bảng lương',
-      menuPath: 'Trang chủ → Nhân viên → Bảng lương',
+      menuPath: 'Tab Nhân viên → Lương (Bảng lương nhân viên)',
       whatItDoes:
-          'Tính lương nhân viên theo lương cơ bản + hoa hồng (theo đơn bán / '
-          'đơn sửa) và ghi nhận khi trả.',
+          'Tính lương tự động từ chấm công (ca đã đổi được tính đúng), lương cơ '
+          'bản, tăng ca, hoa hồng bán hàng / sửa chữa (theo lợi nhuận), phụ cấp, '
+          'khấu trừ, bảo hiểm, thuế. Chủ shop có thể KHOÁ lương từng tháng. '
+          'Lương chưa tự ghi vào Tài chính — khi trả lương hãy tạo phiếu chi.',
       whenToUse: 'Cuối kỳ lương.',
       steps: [
-        'Vào Bảng lương, chọn kỳ.',
-        'Xem lương cơ bản + hoa hồng từng người.',
-        'Ghi nhận đã trả (chi từ quỹ) khi thanh toán.',
+        'Vào Bảng lương, chọn tháng bằng mũi tên hoặc "Chọn tháng".',
+        'Bấm từng nhân viên để xem chi tiết từng khoản; In/Chia sẻ phiếu lương.',
+        'Chốt xong: chủ shop bấm biểu tượng ổ khoá cạnh tháng để KHOÁ — mọi máy '
+            'sẽ không duyệt / sửa giờ / sửa tăng ca / bổ sung chấm công của tháng '
+            'đó nữa. Bấm lại để mở khoá (cần có mạng).',
+        'Nếu hiện dải cam "Không kết nối được máy chủ": số đang tính theo dữ '
+            'liệu lưu trên máy — có mạng rồi bấm Làm mới.',
       ],
       terms: ['dong-tien'],
       sampleQuestions: [
         'tính lương nhân viên',
         'bảng lương ở đâu',
+        'khoá lương tháng',
+        'sao không sửa được chấm công tháng trước',
       ],
-      tags: ['luong', 'bang luong', 'payroll', 'hoa hong', 'nhan vien'],
+      tags: ['luong', 'bang luong', 'payroll', 'hoa hong', 'nhan vien', 'khoa luong', 'khoa thang'],
       audience: ['owner', 'manager'],
     ),
     KbEntry(

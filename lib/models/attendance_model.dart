@@ -91,33 +91,50 @@ class Attendance {
 
   factory Attendance.fromMap(Map<String, dynamic> map) {
     return Attendance(
-      id: map['id'],
+      id: _toInt(map['id']),
       firestoreId: map['firestoreId'],
       userId: map['userId'] ?? '',
       email: map['email'] ?? '',
       name: map['name'] ?? '',
       dateKey: map['dateKey'] ?? '',
-      checkInAt: map['checkInAt'],
-      checkOutAt: map['checkOutAt'],
-      overtimeOn: map['overtimeOn'] ?? 0,
-      overtimeStartAt: map['overtimeStartAt'],
-      overtimeEndAt: map['overtimeEndAt'],
+      checkInAt: _toInt(map['checkInAt']),
+      checkOutAt: _toInt(map['checkOutAt']),
+      overtimeOn: _toInt(map['overtimeOn']) ?? 0,
+      overtimeStartAt: _toInt(map['overtimeStartAt']),
+      overtimeEndAt: _toInt(map['overtimeEndAt']),
       photoIn: map['photoIn'],
       photoOut: map['photoOut'],
       note: map['note'],
       status: map['status'] ?? 'pending',
       approvedBy: map['approvedBy'],
-      approvedAt: map['approvedAt'],
+      approvedAt: _toInt(map['approvedAt']),
       rejectReason: map['rejectReason'],
       requestType: map['requestType'],
-      locked: map['locked'] ?? 0,
-      createdAt: map['createdAt'] ?? 0,
+      locked: _toInt(map['locked']) ?? 0,
+      createdAt: _toInt(map['createdAt']) ?? 0,
       location: map['location'],
-      isLate: map['isLate'] ?? 0,
-      isEarlyLeave: map['isEarlyLeave'] ?? 0,
+      isLate: _toInt(map['isLate']) ?? 0,
+      isEarlyLeave: _toInt(map['isEarlyLeave']) ?? 0,
       workSchedule: map['workSchedule'],
-      updatedAt: map['updatedAt'],
+      updatedAt: _toInt(map['updatedAt']),
       isSynced: map['isSynced'] == 1 || map['isSynced'] == true,
     );
+  }
+
+  /// Cloud maps may carry Firestore Timestamps (e.g. server `updatedAt`),
+  /// doubles or bools where SQLite has ints; duck-typed to keep this model
+  /// free of the Firestore SDK.
+  static int? _toInt(dynamic v) {
+    if (v == null) return null;
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    if (v is bool) return v ? 1 : 0;
+    if (v is String) return int.tryParse(v);
+    if (v is DateTime) return v.millisecondsSinceEpoch;
+    try {
+      return (v as dynamic).millisecondsSinceEpoch as int;
+    } catch (_) {
+      return null;
+    }
   }
 }

@@ -259,6 +259,95 @@
 - Số liệu hai nhóm lệch nhau là bình thường. Mô tả cho user → KB
   `finance-cash-vs-accrual` (`lib/data/app_knowledge_base.dart`) + `test/FINANCE_FULL_SCENARIO.md`.
 
+### 16. Chấm công / Lương — MỘT engine tính duy nhất, không được tự tính lại
+
+- **`lib/services/attendance_computation_service.dart`** là **DUY NHẤT** nơi
+  tính: `isLate`, `isEarlyLeave`, `dayType` (holiday > ngày không thuộc
+  `workDays` > cuối tuần > ngày thường — **Sat/Sun luôn dùng `weekendOtRate`
+  kể cả khi được xếp lịch làm**, xem doc comment `resolveDayType`),
+  `workedMinutes` (= elapsed − break), `regularMinutes`
+  (= min(worked, standardHoursPerDay×60)), `automaticOvertimeMinutes` (chỉ
+  sinh khi checkout **sau** giờ kết thúc lịch **và** vượt standard — vào
+  sớm KHÔNG tự sinh OT), `effectiveOvertimeMinutes` (manual OT ưu tiên,
+  KHÔNG cộng dồn với auto), `appliedOvertimeRatePercent` (theo dayType,
+  fallback `EmployeeSalarySettings.overtimeRate`). Cap `maxOtHours` áp dụng
+  cho CẢ manual lẫn auto. Overnight (`endTime<=startTime`) tự roll sang
+  ngày kế; `dateKey`/shiftDate luôn là ngày **bắt đầu** ca.
+- **`lib/services/attendance_schedule_resolver.dart`**: CHỈ còn resolve
+  chuỗi `startTime/endTime` (staff → `shop_general` → mặc định 08:00-17:00).
+  Mọi phép tính khác đã chuyển hết sang `AttendanceComputationService` —
+  **không được thêm lại** `isAfter(startTime...)`/`isBefore(endTime)` ở bất
+  kỳ file nào khác.
+- **`lib/services/attendance_check_service.dart`**: check-in/out là
+  clone-and-patch (field-level), KHÔNG được rebuild `Attendance(...)` mới —
+  sự cố gốc (2026-09-25 audit) là checkout từng xoá sạch `isLate/overtimeOn/
+  approvedBy/status/note/requestType/locked` vì tạo lại object mới.
+- **Callers dùng chung 1 kết quả**, không tự tính lại: `AttendanceView`
+  (check-in/out), `AttendanceApprovalService` (sửa giờ, quên chấm công VÀO
+  **và RA** — `createForgotCheckoutRequest`), `AttendanceSummaryService`
+  (dashboard + Excel tổng hợp — cần `scheduleByUserId`/`standardHoursByUserId`
+  do caller truyền vào), `excel_export_helper.dart` (`exportAttendance`,
+  `exportAttendanceMonthlySummary`), `SalaryCalculationService`.
+  (`PayrollView` — máy tính lương thứ 2 dựa SharedPreferences — đã XOÁ
+  `[2026-09-26b]`; màn lương duy nhất là `StaffPerformanceView`.)
+- **`SalaryCalculationService` nguồn dữ liệu** (`[2026-09-26b]`):
+  attendance + **đơn sửa (hoa hồng sửa chữa)** đọc SQLite; bán hàng
+  cloud-primary + SQLite khi không có mạng/timeout 10s. Danh sách NV, mặc
+  định lương, khấu trừ/thuế, thưởng/trừ tuỳ chỉnh đi qua `_cloudOrCache`
+  (có mạng → cloud + lưu bộ đệm SharedPreferences theo shop; mất mạng →
+  bộ đệm) và bật `lastRunUsedLocalData` → màn lương hiện dải cảnh báo.
+  **Bẫy:** `FirestoreService.get*` nuốt lỗi thành null/[] — đừng gọi
+  thẳng khi tính lương (mất mạng = lương thiếu thuế/BH/khấu trừ âm thầm).
+  **Bẫy 2:** doc `repairs` trên cloud lưu giá vốn ở `cost`, KHÔNG có
+  `totalCost`; query (shopId,status,deliveredAt) không có index.
+- **Payroll lock** (`[2026-09-26b]`): nguồn sự thật cloud
+  `shops/{shopId}/settings/payroll_locks` (`months.{yyyy-MM}`), CHỈ chủ
+  shop khoá/mở ở `StaffPerformanceView` (icon ổ khoá cạnh tháng). Bảng
+  SQLite `payroll_locks` chỉ là cache theo key `shopId|yyyy-MM`. Dùng
+  `PayrollLockService` (đọc cloud trước khi kiểm → khoá ở máy A chặn ngay
+  máy B); online mà ghi cloud lỗi thì KHÔNG khoá cục bộ. Guard ở
+  `AttendanceApprovalService` (approve/reject/sửa giờ/sửa OT/quên chấm
+  công vào-ra) tự hiện snackbar "Tháng … đã khoá lương". Khoá KHÔNG đóng
+  băng số lương (đổi cài đặt lương vẫn đổi kết quả tháng đã khoá).
+- **Finance**: `PaymentIntent.forSalaryPayment` tồn tại trong model nhưng
+  **KHÔNG được gọi ở bất kỳ đâu** — tính lương hiện KHÔNG có đường nối vào
+  Finance/expense/cash. Nếu sau này wire vào, dùng `_insertExpenseOnce`
+  (payment_intent_service.dart, keyed theo `firestoreId` cố định) để giữ
+  idempotent, không double-count khi recalculate.
+- **Shift swap** (từ `[2026-09-26a]`): SQLite-first (`shift_swap_requests`,
+  schema tự tạo trong `db_helper`), sync qua `SyncService` 8c. Yêu cầu
+  ĐÃ DUYỆT ghi đè **chỉ startTime/endTime** của đúng (user, dateKey) —
+  có `targetUserId` ⇒ đổi 2 chiều (target dùng `targetNewStart/EndTime`),
+  không có ⇒ chỉ người yêu cầu. Nguồn DUY NHẤT:
+  `AttendanceApprovalService.getApprovedShiftSwapOverride(userId, dateKey)`;
+  mọi caller tính giờ (check-in/out, `resolveComputationInputs(dateKey:)`,
+  lương, summary `scheduleOverrideByKey`, Excel) phải áp override này —
+  caller mới không được bỏ qua. KHÔNG ghi đè `work_schedules`.
+  Bẫy UI: `OutlinedButton`/`ElevatedButton` theme rộng vô hạn — đặt
+  trong `Row` phải bọc `Expanded` (không thì cả list trắng, không log lỗi).
+- **Timezone / đổi giờ máy (F-14)**: vẫn `DateTime.now()` device-local
+  (không migrate UTC). Chống backdate: `ClockCheckService.measureSkew()`
+  so giờ máy với header `Date` của `firestore.googleapis.com` trước
+  check-in/out; lệch > 5 phút thì chặn + hướng dẫn bật giờ tự động. Không
+  đo được (offline) thì CHO chấm công (offline-first) — rủi ro còn lại chỉ
+  ở phiên mất mạng.
+- `Attendance.fromMap` chịu được Timestamp/double/bool (map thô từ
+  Firestore) — trước đây ném lỗi khiến fallback cloud của màn quản lý
+  chấm công luôn rỗng. Màn quản lý chỉ còn 1 query cho cả shop
+  (`FirestoreService.getShopAttendanceByDateRange`), không lặp từng NV.
+- Test: `test/attendance_computation_service_test.dart`,
+  `test/attendance_check_service_test.dart`,
+  `test/attendance_schedule_resolver_test.dart`,
+  `test/attendance_approval_logic_test.dart` (payroll lock, pure-logic —
+  không cần FirebaseAuth mock),
+  `test/attendance_excel_salary_consistency_test.dart`,
+  `test/attendance_datekey_consistency_test.dart`,
+  `test/salary_working_days_leave_holiday_test.dart`,
+  `test/payroll_remaining_audit_test.dart`.
+- Chi tiết đầy đủ: `docs/CHANGELOG.md` mục `2026-09-25` và
+  `docs/ATTENDANCE_FINAL_ACCEPTANCE_E2E.md` (kịch bản nghiệm thu 2 máy/
+  offline thật — chưa chạy, cần thiết bị thật).
+
 ## IV. WORKFLOW PHÁT TRIỂN
 
 ### Chạy Ứng Dụng

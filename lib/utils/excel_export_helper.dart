@@ -22,6 +22,8 @@ import '../models/import_order_model.dart';
 import '../models/inventory_check_model.dart';
 import '../services/import_order_service.dart';
 import '../services/user_service.dart';
+import '../services/attendance_approval_service.dart';
+import '../services/attendance_computation_service.dart';
 import 'money_utils.dart';
 import 'transaction_sort.dart';
 
@@ -646,15 +648,53 @@ class ExcelExportHelper {
       'Vị trí',
     ]);
 
+    // Phase 5/12 fix: "Số giờ làm"/"Tăng ca (phút)" previously used raw
+    // `checkOut - checkIn` (no break subtracted) and the raw stored
+    // `overtimeOn` (no automatic-OT fallback, no maxOtHours cap) — could
+    // silently show different numbers than what SalaryCalculationService
+    // actually pays for the same day. Both now go through the same
+    // AttendanceComputationService engine, resolved per-user (cached) the
+    // same way every other write/read path does.
+    final scheduleCache = <String, ({ResolvedScheduleConfig schedule, double standardHoursPerDay})>{};
+    // 2026-09-26: base staff/shop schedule is cached per userId (static),
+    // but an approved shift swap only changes ONE day, so it's looked up
+    // fresh per (userId, dateKey) and layered on top — same as
+    // SalaryCalculationService/attendance_management_view.dart.
+    Future<({ResolvedScheduleConfig schedule, double standardHoursPerDay})> inputsFor(
+      String userId,
+      String dateKey,
+    ) async {
+      final base = scheduleCache[userId] ??=
+          await AttendanceApprovalService.resolveComputationInputs(userId);
+      final override = await AttendanceApprovalService.getApprovedShiftSwapOverride(
+        userId,
+        dateKey,
+      );
+      if (override == null) return base;
+      return (
+        schedule: base.schedule.copyWith(startTime: override.$1, endTime: override.$2),
+        standardHoursPerDay: base.standardHoursPerDay,
+      );
+    }
+
     for (int i = 0; i < list.length; i++) {
       final a = list[i];
-      // Calculate work hours
       String workHours = '';
+      int effectiveOtMinutes = a.overtimeOn;
       if (a.checkInAt != null && a.checkOutAt != null) {
-        final minutes = ((a.checkOutAt! - a.checkInAt!) / 60000).round();
-        final h = minutes ~/ 60;
-        final m = minutes % 60;
+        final inputs = await inputsFor(a.userId, a.dateKey);
+        final result = AttendanceComputationService.compute(
+          shiftDate: DateTime.parse(a.dateKey),
+          schedule: inputs.schedule,
+          standardHoursPerDay: inputs.standardHoursPerDay,
+          checkIn: DateTime.fromMillisecondsSinceEpoch(a.checkInAt!),
+          checkOut: DateTime.fromMillisecondsSinceEpoch(a.checkOutAt!),
+          manualOvertimeMinutes: a.overtimeOn,
+        );
+        final h = result.workedMinutes ~/ 60;
+        final m = result.workedMinutes % 60;
         workHours = '${h}h${m > 0 ? ' ${m}p' : ''}';
+        effectiveOtMinutes = result.effectiveOvertimeMinutes;
       }
       _writeRow(sheet, i + 1, [
         i + 1,
@@ -664,7 +704,7 @@ class ExcelExportHelper {
         _fmtDateTime(a.checkInAt),
         _fmtDateTime(a.checkOutAt),
         workHours,
-        a.overtimeOn,
+        effectiveOtMinutes,
         _attendanceStatusLabel(a.status),
         a.isLate == 1 ? 'Có' : 'Không',
         a.isEarlyLeave == 1 ? 'Có' : 'Không',
@@ -743,6 +783,28 @@ class ExcelExportHelper {
       'Ghi chú',
     ]);
 
+    // Same canonical-engine fix as exportAttendance (Phase 5/12): detail
+    // rows must match the summary sheet above (which already goes through
+    // AttendanceSummaryService's canonical worked/OT), not raw elapsed time
+    // / raw overtimeOn.
+    final scheduleCache = <String, ({ResolvedScheduleConfig schedule, double standardHoursPerDay})>{};
+    Future<({ResolvedScheduleConfig schedule, double standardHoursPerDay})> inputsFor(
+      String userId,
+      String dateKey,
+    ) async {
+      final base = scheduleCache[userId] ??=
+          await AttendanceApprovalService.resolveComputationInputs(userId);
+      final override = await AttendanceApprovalService.getApprovedShiftSwapOverride(
+        userId,
+        dateKey,
+      );
+      if (override == null) return base;
+      return (
+        schedule: base.schedule.copyWith(startTime: override.$1, endTime: override.$2),
+        standardHoursPerDay: base.standardHoursPerDay,
+      );
+    }
+
     var rowIndex = 1;
     for (final summary in summaries) {
       final records = List<Attendance>.from(
@@ -751,9 +813,19 @@ class ExcelExportHelper {
 
       for (final record in records) {
         var workMinutes = 0;
+        var otMinutes = record.overtimeOn;
         if (record.checkInAt != null && record.checkOutAt != null) {
-          workMinutes = ((record.checkOutAt! - record.checkInAt!) / 60000)
-              .round();
+          final inputs = await inputsFor(record.userId, record.dateKey);
+          final result = AttendanceComputationService.compute(
+            shiftDate: DateTime.parse(record.dateKey),
+            schedule: inputs.schedule,
+            standardHoursPerDay: inputs.standardHoursPerDay,
+            checkIn: DateTime.fromMillisecondsSinceEpoch(record.checkInAt!),
+            checkOut: DateTime.fromMillisecondsSinceEpoch(record.checkOutAt!),
+            manualOvertimeMinutes: record.overtimeOn,
+          );
+          workMinutes = result.workedMinutes;
+          otMinutes = result.effectiveOvertimeMinutes;
         }
 
         _writeRow(detailSheet, rowIndex, [
@@ -763,7 +835,7 @@ class ExcelExportHelper {
           _fmtDateTime(record.checkInAt),
           _fmtDateTime(record.checkOutAt),
           _fmtMinutes(workMinutes),
-          _fmtMinutes(record.overtimeOn),
+          _fmtMinutes(otMinutes),
           _attendanceStatusLabel(record.status),
           record.isLate == 1 ? 'Có' : 'Không',
           record.isEarlyLeave == 1 ? 'Có' : 'Không',

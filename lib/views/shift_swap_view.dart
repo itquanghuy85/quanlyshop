@@ -6,6 +6,7 @@ import '../models/shift_swap_request_model.dart';
 import '../services/notification_service.dart';
 import '../services/shift_swap_service.dart';
 import '../services/user_service.dart';
+import '../utils/dispose_after_transition.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/custom_app_bar.dart';
@@ -31,6 +32,18 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
   bool _loadingRole = true;
   bool _canReview = false;
   String? _currentUid;
+
+  /// Extracts "(HH:mm-HH:mm)" from a shift label like "Ca sáng
+  /// (08:00-12:00)" so the 3 fixed presets never need a manual time picker
+  /// — only "Ca linh hoạt" (no embedded range) falls back to custom
+  /// pickers. This is what turns the dropdown selection into the
+  /// structured newStartTime/newEndTime the canonical attendance engine
+  /// needs (2026-09-26 — shift swap now has a real schedule effect).
+  static (String, String)? _parseShiftRange(String label) {
+    final match = RegExp(r'\((\d{2}:\d{2})-(\d{2}:\d{2})\)').firstMatch(label);
+    if (match == null) return null;
+    return (match.group(1)!, match.group(2)!);
+  }
 
   @override
   void initState() {
@@ -152,8 +165,9 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
   }
 
   Widget _buildMyRequestsTab() {
-    return StreamBuilder<List<ShiftSwapRequest>>(
-      stream: ShiftSwapService.watchMyRequests(),
+    return _OwnedStreamTab(
+      key: const PageStorageKey('shift_swap_my'),
+      streamFactory: ShiftSwapService.watchMyRequests,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -177,8 +191,9 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
   }
 
   Widget _buildPendingRequestsTab() {
-    return StreamBuilder<List<ShiftSwapRequest>>(
-      stream: ShiftSwapService.watchPendingRequests(),
+    return _OwnedStreamTab(
+      key: const PageStorageKey('shift_swap_pending'),
+      streamFactory: ShiftSwapService.watchPendingRequests,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -258,8 +273,18 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
             const SizedBox(height: 6),
             Text('Ngày đổi ca: ${_fmtDate(item.requestedDate)}'),
             Text('Từ: ${item.currentShift}'),
-            Text('Sang: ${item.desiredShift}'),
-            if ((item.targetUserName ?? '').isNotEmpty) Text('Đổi với: ${item.targetUserName}'),
+            Text(
+              item.hasStructuredSchedule &&
+                      !item.desiredShift.contains('${item.newStartTime}-${item.newEndTime}')
+                  ? 'Sang: ${item.desiredShift}  (${item.newStartTime}-${item.newEndTime})'
+                  : 'Sang: ${item.desiredShift}',
+            ),
+            if ((item.targetUserName ?? '').isNotEmpty)
+              Text(
+                item.hasStructuredTargetSchedule
+                    ? 'Đổi với: ${item.targetUserName} (ca mới ${item.targetNewStartTime}-${item.targetNewEndTime})'
+                    : 'Đổi với: ${item.targetUserName}',
+              ),
             if ((item.note ?? '').trim().isNotEmpty) ...[
               const SizedBox(height: 4),
               Text('Ghi chú: ${item.note}'),
@@ -282,11 +307,15 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
             const SizedBox(height: 8),
             Row(
               children: [
+                // Expanded: the app theme gives OutlinedButton an infinite
+                // minimum width, which breaks layout inside an unbounded Row.
                 if (_canCancel(item) && !showReviewActions)
-                  OutlinedButton.icon(
-                    onPressed: () => _cancelRequest(item),
-                    icon: const Icon(Icons.close, size: 16),
-                    label: const Text('HUỶ'),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _cancelRequest(item),
+                      icon: const Icon(Icons.close, size: 16),
+                      label: const Text('HUỶ'),
+                    ),
                   ),
                 if (showReviewActions) ...[
                   Expanded(
@@ -330,6 +359,17 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
     String? targetUid;
     String? targetName;
     bool submitting = false;
+    // Only used when the selected label has no embedded "(HH:mm-HH:mm)"
+    // (i.e. "Ca linh hoạt").
+    TimeOfDay? customNewStart;
+    TimeOfDay? customNewEnd;
+    TimeOfDay? customTargetStart;
+    TimeOfDay? customTargetEnd;
+
+    String fmtTime(TimeOfDay? t) =>
+        t == null ? '--:--' : '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+    String timeToHHmm(TimeOfDay t) =>
+        '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
     await showDialog(
       context: context,
@@ -366,6 +406,7 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
                       value: currentShift,
+                      isExpanded: true,
                       items: _shifts
                           .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                           .toList(),
@@ -378,6 +419,7 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
                       value: desiredShift,
+                      isExpanded: true,
                       items: _shifts
                           .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                           .toList(),
@@ -387,6 +429,47 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
                         setS(() => desiredShift = v);
                       },
                     ),
+                    if (_parseShiftRange(desiredShift) == null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'Ca linh hoạt — chọn giờ ca mới của bạn:',
+                        style: AppTextStyles.body2.copyWith(color: AppColors.textSecondary),
+                      ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ListTile(
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              title: Text('Từ: ${fmtTime(customNewStart)}'),
+                              trailing: const Icon(Icons.access_time, size: 18),
+                              onTap: () async {
+                                final t = await showTimePicker(
+                                  context: ctx,
+                                  initialTime: customNewStart ?? const TimeOfDay(hour: 8, minute: 0),
+                                );
+                                if (t != null) setS(() => customNewStart = t);
+                              },
+                            ),
+                          ),
+                          Expanded(
+                            child: ListTile(
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              title: Text('Đến: ${fmtTime(customNewEnd)}'),
+                              trailing: const Icon(Icons.access_time, size: 18),
+                              onTap: () async {
+                                final t = await showTimePicker(
+                                  context: ctx,
+                                  initialTime: customNewEnd ?? const TimeOfDay(hour: 17, minute: 0),
+                                );
+                                if (t != null) setS(() => customNewEnd = t);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
                       value: targetUid,
@@ -415,6 +498,47 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
                         });
                       },
                     ),
+                    if (targetUid != null && _parseShiftRange(currentShift) == null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'Ca hiện tại của bạn là "Ca linh hoạt" — chọn giờ ca mới của ${targetName ?? 'đồng nghiệp'}:',
+                        style: AppTextStyles.body2.copyWith(color: AppColors.textSecondary),
+                      ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ListTile(
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              title: Text('Từ: ${fmtTime(customTargetStart)}'),
+                              trailing: const Icon(Icons.access_time, size: 18),
+                              onTap: () async {
+                                final t = await showTimePicker(
+                                  context: ctx,
+                                  initialTime: customTargetStart ?? const TimeOfDay(hour: 8, minute: 0),
+                                );
+                                if (t != null) setS(() => customTargetStart = t);
+                              },
+                            ),
+                          ),
+                          Expanded(
+                            child: ListTile(
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              title: Text('Đến: ${fmtTime(customTargetEnd)}'),
+                              trailing: const Icon(Icons.access_time, size: 18),
+                              onTap: () async {
+                                final t = await showTimePicker(
+                                  context: ctx,
+                                  initialTime: customTargetEnd ?? const TimeOfDay(hour: 17, minute: 0),
+                                );
+                                if (t != null) setS(() => customTargetEnd = t);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 10),
                     TextField(
                       controller: noteController,
@@ -444,14 +568,50 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
                             return;
                           }
 
+                          // Requester's new schedule = the shift they're
+                          // switching TO (desiredShift). Target's new
+                          // schedule = requester's OLD shift (currentShift)
+                          // — the natural outcome of a 2-way swap. "Ca linh
+                          // hoạt" has no embedded time range, so it falls
+                          // back to the custom pickers above.
+                          final desiredRange = _parseShiftRange(desiredShift);
+                          final newStart = desiredRange?.$1 ?? (customNewStart != null ? timeToHHmm(customNewStart!) : null);
+                          final newEnd = desiredRange?.$2 ?? (customNewEnd != null ? timeToHHmm(customNewEnd!) : null);
+                          if (newStart == null || newEnd == null) {
+                            NotificationService.showSnackBar(
+                              'Chọn giờ bắt đầu/kết thúc cho ca linh hoạt',
+                              color: Colors.orange,
+                            );
+                            return;
+                          }
+
+                          String? targetNewStart;
+                          String? targetNewEnd;
+                          if (targetUid != null) {
+                            final currentRange = _parseShiftRange(currentShift);
+                            targetNewStart = currentRange?.$1 ?? (customTargetStart != null ? timeToHHmm(customTargetStart!) : null);
+                            targetNewEnd = currentRange?.$2 ?? (customTargetEnd != null ? timeToHHmm(customTargetEnd!) : null);
+                            if (targetNewStart == null || targetNewEnd == null) {
+                              NotificationService.showSnackBar(
+                                'Chọn giờ ca mới cho đồng nghiệp (ca hiện tại của bạn là ca linh hoạt)',
+                                color: Colors.orange,
+                              );
+                              return;
+                            }
+                          }
+
                           setS(() => submitting = true);
                           try {
                             await ShiftSwapService.createRequest(
                               requestedDate: dateController.text.trim(),
                               currentShift: currentShift,
                               desiredShift: desiredShift,
+                              newStartTime: newStart,
+                              newEndTime: newEnd,
                               targetUserId: targetUid,
                               targetUserName: targetName,
+                              targetNewStartTime: targetNewStart,
+                              targetNewEndTime: targetNewEnd,
                               note: noteController.text.trim(),
                             );
                             if (!ctx.mounted) return;
@@ -484,8 +644,16 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
       },
     );
 
-    dateController.dispose();
-    noteController.dispose();
+    // Bug fix (crash reproduced live 2026-09-26, exact known pattern —
+    // see lib/utils/dispose_after_transition.dart doc comment): disposing
+    // right after `await showDialog` returns races the dialog's ~300ms
+    // close animation. If anything rebuilds the still-alive dialog tree in
+    // that window (EventBus refresh, StatefulBuilder setState from a
+    // pending Future), a TextFormField re-attaches a listener to an
+    // already-disposed controller → release-mode red screen
+    // `_dependents.isEmpty` (framework.dart:6268).
+    disposeAfterTransition(dateController);
+    disposeAfterTransition(noteController);
   }
 
   Future<void> _approve(ShiftSwapRequest item) async {
@@ -520,7 +688,7 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
         ],
       ),
     );
-    reasonController.dispose();
+    disposeAfterTransition(reasonController);
 
     if (result == null) return;
     try {
@@ -592,5 +760,37 @@ class _ShiftSwapViewState extends State<ShiftSwapView>
     if (value <= 0) return '-';
     final dt = DateTime.fromMillisecondsSinceEpoch(value);
     return DateFormat('dd/MM/yyyy HH:mm').format(dt);
+  }
+}
+
+/// Owns its (single-subscription, async*) stream in State so each page
+/// instance listens exactly once. Creating the stream inside the parent's
+/// build() broke on tab switch: TabBarView recreates the page State from the
+/// same cached child widget, re-listening the already-listened stream →
+/// red screen "Bad state: Stream has already been listened to"
+/// (reproduced on device 2026-09-26).
+class _OwnedStreamTab extends StatefulWidget {
+  final Stream<List<ShiftSwapRequest>> Function() streamFactory;
+  final AsyncWidgetBuilder<List<ShiftSwapRequest>> builder;
+
+  const _OwnedStreamTab({
+    super.key,
+    required this.streamFactory,
+    required this.builder,
+  });
+
+  @override
+  State<_OwnedStreamTab> createState() => _OwnedStreamTabState();
+}
+
+class _OwnedStreamTabState extends State<_OwnedStreamTab> {
+  late final Stream<List<ShiftSwapRequest>> _stream = widget.streamFactory();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<ShiftSwapRequest>>(
+      stream: _stream,
+      builder: widget.builder,
+    );
   }
 }

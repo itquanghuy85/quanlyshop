@@ -9,12 +9,83 @@ import '../models/shop_deduction_settings.dart';
 import 'firestore_service.dart';
 import 'user_service.dart';
 import 'app_session.dart';
+import 'attendance_computation_service.dart';
+import 'attendance_approval_service.dart';
+import 'cloud_write_policy.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Service tính lương nhân viên tự động
 /// Kết hợp: Cài đặt lương + Chấm công + Doanh số + Thuế + Bảo hiểm + Khấu trừ
 class SalaryCalculationService {
   static final DBHelper _db = DBHelper();
-  static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static FirebaseFirestore get _firestore => FirebaseFirestore.instance;
+
+  /// True when the last calculation could not reach the cloud and used the
+  /// settings cached on this device + local SQLite sales/repairs instead.
+  static bool lastRunUsedLocalData = false;
+
+  static const Duration _cloudReadTimeout = Duration(seconds: 10);
+
+  static Future<bool> _cloudReachable() async =>
+      AppSession.syncEnabled && await CloudWritePolicy.hasNetwork();
+
+  static String _cacheKey(String shopId, String name) =>
+      'salary_cache_v1_${shopId}_$name';
+
+  static Object? _jsonSafe(Object? v) {
+    if (v is Timestamp) return v.millisecondsSinceEpoch;
+    if (v is DateTime) return v.millisecondsSinceEpoch;
+    if (v is Map) return v.map((k, e) => MapEntry(k.toString(), _jsonSafe(e)));
+    if (v is List) return v.map(_jsonSafe).toList();
+    if (v is num || v is String || v is bool || v == null) return v;
+    return v.toString();
+  }
+
+  @visibleForTesting
+  static Future<void> cachePut(String shopId, String name, Object? value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_cacheKey(shopId, name), jsonEncode(_jsonSafe(value)));
+    } catch (e) {
+      debugPrint('SalaryCalc cachePut $name: $e');
+    }
+  }
+
+  @visibleForTesting
+  static Future<Object?> cacheGet(String shopId, String name) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_cacheKey(shopId, name));
+      return raw == null ? null : jsonDecode(raw);
+    } catch (e) {
+      debugPrint('SalaryCalc cacheGet $name: $e');
+      return null;
+    }
+  }
+
+  /// Cloud when reachable (and refreshes the device cache); otherwise the
+  /// last cloud value cached on this device. FirestoreService swallows
+  /// errors into null/[] — without this, losing network silently produced
+  /// a payroll with no tax/insurance/deductions/bonuses.
+  static Future<Object?> _cloudOrCache(
+    String shopId,
+    String name,
+    Future<Object?> Function() fetch,
+  ) async {
+    if (await _cloudReachable()) {
+      try {
+        final v = await fetch().timeout(_cloudReadTimeout);
+        await cachePut(shopId, name, v);
+        return v;
+      } catch (e) {
+        debugPrint('SalaryCalc $name cloud read failed, using device cache: $e');
+      }
+    }
+    lastRunUsedLocalData = true;
+    return cacheGet(shopId, name);
+  }
 
   static bool _matchesStaffUid(String? value, String staffId) {
     if (value == null || value.isEmpty) return false;
@@ -60,7 +131,15 @@ class SalaryCalculationService {
       notes.add('📋 Dùng cài đặt riêng của nhân viên');
     } else {
       // Dùng shop defaults
-      final defaults = await FirestoreService.getShopDefaultSalarySettings();
+      final defaultsShopId = await UserService.getCurrentShopId() ?? '';
+      final defaultsRaw = await _cloudOrCache(
+        defaultsShopId,
+        'defaults',
+        () => FirestoreService.getShopDefaultSalarySettings(),
+      );
+      final defaults = defaultsRaw is Map
+          ? Map<String, dynamic>.from(defaultsRaw)
+          : null;
       if (defaults != null) {
         settings = EmployeeSalarySettings(
           id: '',
@@ -104,24 +183,27 @@ class SalaryCalculationService {
     // ===== 2. LẤY CÀI ĐẶT KHẤU TRỪ/THUẾ CỦA SHOP =====
     deductionSettings ??= await getShopDeductionSettings();
 
-    // ===== 2.5 LẤY LỊCH LÀM VIỆC CỦA NHÂN VIÊN =====
-    List<int> configuredWorkDays = [1, 2, 3, 4, 5, 6]; // Default Mon-Sat (Dart weekday)
-    try {
-      // Ưu tiên lịch riêng của nhân viên, fallback sang shop_general
-      var schedule = await _db.getWorkSchedule(staffId);
-      if (schedule == null || schedule['workDays'] == null) {
-        schedule = await _db.getWorkSchedule('shop_general');
-      }
-      if (schedule != null && schedule['workDays'] != null) {
-        final wd = schedule['workDays'];
-        configuredWorkDays = _parseWorkDays(wd);
-        debugPrint('📊 [SalaryCalc] $staffName: workDays config (Dart weekday) = $configuredWorkDays');
-      }
-    } catch (e) {
-      debugPrint('📊 [SalaryCalc] Error loading work schedule: $e');
-    }
+    // ===== 2.5 LỊCH LÀM VIỆC HIỆU LỰC (canonical resolver, Phase 2/3) =====
+    // staff-specific -> shop_general -> default, field-by-field. Also
+    // resolves breakTime/maxOtHours/holidays/weekday-weekend-holiday OT
+    // rates (F-04 fix — these were previously stored but never read by any
+    // calculator).
+    final staffScheduleMap = await _db.getWorkSchedule(staffId);
+    final shopScheduleMap = await _db.getWorkSchedule('shop_general');
+    final resolvedSchedule = ResolvedScheduleConfig.resolve(
+      staffSchedule: staffScheduleMap,
+      shopSchedule: shopScheduleMap,
+      fallbackOvertimeRatePercent: settings.overtimeRate,
+    );
+    final configuredWorkDays = resolvedSchedule.workDays;
+    debugPrint('📊 [SalaryCalc] $staffName: workDays config (Dart weekday) = $configuredWorkDays');
 
-    // ===== 3. LẤY DỮ LIỆU CHẤM CÔNG TỪ FIRESTORE =====
+    // ===== 3. LẤY DỮ LIỆU CHẤM CÔNG (SQLite-first, Phase 10) =====
+    // SyncService đã đồng bộ bảng `attendance` xuống SQLite ở nền theo
+    // shopId (xem sync_collections.dart); tính lương không còn query
+    // Firestore trực tiếp mỗi lần mở Finance/Payroll — giảm read, hoạt
+    // động được khi offline, và không còn 2 nguồn dữ liệu có thể lệch nhau
+    // giữa online/offline.
     final startDate = DateTime(year, month, 1);
     final endDate = DateTime(year, month + 1, 0); // Ngày cuối tháng
     final startKey = DateFormat('yyyy-MM-dd').format(startDate);
@@ -129,81 +211,75 @@ class SalaryCalculationService {
 
     debugPrint('📊 [SalaryCalc] $staffName: Lọc chấm công từ $startKey đến $endKey');
 
-    // Tính toán chấm công
+    // Lương giờ chuẩn (cần TRƯỚC vòng lặp OT vì mỗi ngày có thể có OT rate
+    // khác nhau theo dayType — weekday/weekend/holiday).
+    double hourlyRate;
+    if (settings.salaryType == 'hourly') {
+      hourlyRate = settings.baseSalary;
+    } else if (settings.salaryType == 'daily') {
+      hourlyRate = settings.dailyRate / settings.standardHoursPerDay;
+    } else {
+      // monthly: chia cho 26 ngày, rồi chia cho giờ chuẩn
+      hourlyRate = settings.baseSalary / 26 / settings.standardHoursPerDay;
+    }
+
+    // Tính toán chấm công — canonical engine (AttendanceComputationService)
     int workDays = 0;
     double totalWorkHours = 0;
     double overtimeHours = 0;
+    double calculatedOT = 0;
     int lateDays = 0;
     int earlyLeaveDays = 0;
 
-    try {
-      final shopId = await UserService.getCurrentShopId();
-      if (shopId != null) {
-        // Lấy chấm công từ Firestore theo dateKey range
-        final attendanceSnapshot = await _firestore
-            .collection('attendance')
-            .where('shopId', isEqualTo: shopId)
-            .where('userId', isEqualTo: staffId)
-            .where('dateKey', isGreaterThanOrEqualTo: startKey)
-            .where('dateKey', isLessThanOrEqualTo: endKey)
-            .get();
-        
-        debugPrint('📊 [SalaryCalc] $staffName: Firestore tìm thấy ${attendanceSnapshot.docs.length} bản ghi chấm công');
-        
-        for (final doc in attendanceSnapshot.docs) {
-          var data = doc.data();
-          data = EncryptionService.decryptMap(data);
-          
-          final deleted = data['deleted'] == true;
-          final checkInAt = data['checkInAt'] as int?;
-          final checkOutAt = data['checkOutAt'] as int?;
-          
-          final status = (data['status'] ?? 'pending').toString();
-          if (!deleted && checkInAt != null && status == 'approved') {
-            workDays++;
+    final attendanceRecords = await _db.getAttendanceByDateRange(startKey, endKey);
+    final staffAttendance = attendanceRecords.where(
+      (r) => r.userId == staffId && r.status == 'approved' && r.checkInAt != null,
+    );
 
-            // Tính giờ làm
-            if (checkOutAt != null) {
-              final hours = (checkOutAt - checkInAt) / 3600000.0;
-              totalWorkHours += hours;
+    for (final record in staffAttendance) {
+      workDays++;
+      // F-15 (unchanged policy, now enforced by the single engine too):
+      // missing checkout contributes 0 hours/OT and cannot be approved
+      // through the normal flow anyway (see AttendanceApprovalService) —
+      // it must go through createForgotCheckoutRequest first.
+      if (record.checkOutAt == null) continue;
 
-              // OT: prefer recorded overtimeOn; fall back to computed from hours
-              final overtimeOn = (data['overtimeOn'] ?? 0).toDouble();
-              if (overtimeOn > 0) {
-                overtimeHours += overtimeOn / 60.0;
-              } else if (hours > settings.standardHoursPerDay) {
-                overtimeHours += hours - settings.standardHoursPerDay;
-              }
-            }
-
-            // Đếm đi muộn/về sớm
-            if (data['isLate'] == 1) lateDays++;
-            if (data['isEarlyLeave'] == 1) earlyLeaveDays++;
-          }
-        }
+      final shiftDate = DateTime.parse(record.dateKey);
+      // 2026-09-26: an approved shift swap only changes ONE day's
+      // start/end time, so it must be checked per-record (not once per
+      // staff like the base `resolvedSchedule`) — same lookup AttendanceView
+      // uses at check-in time, so a record computed here can never disagree
+      // with what the employee saw when they checked in/out.
+      var effectiveSchedule = resolvedSchedule;
+      final swapOverride = await AttendanceApprovalService.getApprovedShiftSwapOverride(
+        staffId,
+        record.dateKey,
+      );
+      if (swapOverride != null) {
+        effectiveSchedule = resolvedSchedule.copyWith(
+          startTime: swapOverride.$1,
+          endTime: swapOverride.$2,
+        );
       }
-    } catch (e) {
-      debugPrint('Error fetching attendance from Firestore: $e');
-      // Fallback to local DB
-      final attendanceRecords = await _db.getAttendanceByDateRange(startKey, endKey);
-      final staffAttendance = attendanceRecords.where((r) => r.userId == staffId).toList();
-      
-      for (final record in staffAttendance) {
-        if (record.checkInAt != null && record.status == 'approved') {
-          workDays++;
-          if (record.checkOutAt != null) {
-            final hours = (record.checkOutAt! - record.checkInAt!) / 3600000.0;
-            totalWorkHours += hours;
-            if (record.overtimeOn > 0) {
-              overtimeHours += record.overtimeOn / 60.0;
-            } else if (hours > settings.standardHoursPerDay) {
-              overtimeHours += hours - settings.standardHoursPerDay;
-            }
-          }
-          if (record.isLate == 1) lateDays++;
-          if (record.isEarlyLeave == 1) earlyLeaveDays++;
-        }
+      final result = AttendanceComputationService.compute(
+        shiftDate: shiftDate,
+        schedule: effectiveSchedule,
+        standardHoursPerDay: settings.standardHoursPerDay,
+        checkIn: DateTime.fromMillisecondsSinceEpoch(record.checkInAt!),
+        checkOut: DateTime.fromMillisecondsSinceEpoch(record.checkOutAt!),
+        manualOvertimeMinutes: record.overtimeOn,
+      );
+
+      totalWorkHours += result.workedMinutes / 60.0;
+      if (result.effectiveOvertimeMinutes > 0) {
+        final otHoursThisDay = result.effectiveOvertimeMinutes / 60.0;
+        overtimeHours += otHoursThisDay;
+        calculatedOT +=
+            otHoursThisDay * hourlyRate * (result.appliedOvertimeRatePercent / 100);
       }
+
+      if (record.isLate == 1) lateDays++;
+      if (record.isEarlyLeave == 1) earlyLeaveDays++;
     }
 
     debugPrint('📊 [SalaryCalc] $staffName: Tìm thấy $workDays ngày chấm công (đã duyệt) trong tháng $month/$year');
@@ -236,7 +312,12 @@ class SalaryCalculationService {
     }
 
     // Tính số ngày nghỉ (dựa trên số ngày làm việc tiêu chuẩn trong tháng)
-    final workingDaysInMonth = _getWorkingDaysInMonth(year, month, configuredWorkDays);
+    final workingDaysInMonth = getWorkingDaysInMonth(
+      year,
+      month,
+      configuredWorkDays,
+      resolvedSchedule.holidayDateKeys,
+    );
     // Ngày nghỉ không phép = tổng ngày cần làm - ngày đã chấm công - ngày nghỉ phép có lương
     final absentDays = (workingDaysInMonth - workDays - paidLeaveDays.round()).clamp(0, workingDaysInMonth);
 
@@ -280,6 +361,9 @@ class SalaryCalculationService {
     List<double> saleOrderValues = []; // Lưu giá trị từng đơn cho tính tiered
     
     try {
+      if (!await _cloudReachable()) {
+        throw const _UseLocalData();
+      }
       final shopId = await UserService.getCurrentShopId();
       if (shopId != null) {
         final salesSnapshot = await _firestore
@@ -287,7 +371,8 @@ class SalaryCalculationService {
             .where('shopId', isEqualTo: shopId)
             .where('soldAt', isGreaterThanOrEqualTo: startMs)
             .where('soldAt', isLessThanOrEqualTo: endMs)
-            .get();
+            .get()
+            .timeout(_cloudReadTimeout);
         
         for (final doc in salesSnapshot.docs) {
           var data = doc.data();
@@ -314,7 +399,8 @@ class SalaryCalculationService {
         }
       }
     } catch (e) {
-      debugPrint('Error fetching sales from Firestore: $e');
+      debugPrint('Sales for salary from local SQLite: $e');
+      if (e is! _UseLocalData) lastRunUsedLocalData = true;
       // Fallback to local DB if Firestore fails
       final allSales = await _db.getAllSales();
       final staffSales = allSales
@@ -336,84 +422,33 @@ class SalaryCalculationService {
       );
     }
 
-    // ===== 5. LẤY DOANH SỐ SỬA CHỮA TỪ FIRESTORE =====
-    int repairOrderCount = 0;
-    double repairRevenue = 0;
-    double repairProfit = 0;
-    
-    try {
-      final shopId = await UserService.getCurrentShopId();
-      if (shopId != null) {
-        // Lấy repairs đã giao trong tháng (status = 4)
-        final repairsSnapshot = await _firestore
-            .collection('repairs')
-            .where('shopId', isEqualTo: shopId)
-            .where('status', isEqualTo: 4)
-            .where('deliveredAt', isGreaterThanOrEqualTo: startMs)
-            .where('deliveredAt', isLessThanOrEqualTo: endMs)
-            .get();
-        
-        for (final doc in repairsSnapshot.docs) {
-          var data = doc.data();
-          // Decrypt if needed
-          data = EncryptionService.decryptMap(data);
-          
-          // Doanh số sửa chữa chỉ tính cho người sửa xong (repairedBy), không tính cho người nhận/giao
-          final repairedBy = (data['repairedBy'] ?? '').toString();
-            final repairedByUid = (data['repairedByUid'] ?? '').toString();
-          final createdBy = (data['createdBy'] ?? '').toString();
-            final createdByUid = (data['createdByUid'] ?? '').toString();
-          final deleted = data['deleted'] == true;
-          final deliveredAt = data['deliveredAt'] as int?;
-          
-          // Match by repairedBy, or fallback to createdBy for old repairs
-            final matchesByRepaired =
-              _matchesStaffUid(repairedByUid, staffId) ||
-              _matchesStaff(repairedBy, emailPrefix, displayName);
-            final matchesByCreated =
-              repairedByUid.isEmpty &&
-              repairedBy.isEmpty &&
-              (_matchesStaffUid(createdByUid, staffId) ||
-                _matchesStaff(createdBy, emailPrefix, displayName));
-          
-          if (!deleted && 
-              (matchesByRepaired || matchesByCreated) &&
-              deliveredAt != null &&
-              deliveredAt >= startMs &&
-              deliveredAt <= endMs) {
-            repairOrderCount++;
-            final price = (data['price'] ?? 0).toDouble();
-            final totalCost = (data['totalCost'] ?? 0).toDouble();
-            repairRevenue += price;
-            repairProfit += (price - totalCost);
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint('Error fetching repairs from Firestore: $e');
-      // Fallback to local DB if Firestore fails
-      final allRepairs = await _db.getAllRepairs();
-      final staffRepairs = allRepairs
-          .where((r) {
-            final matchRepaired =
-              _matchesStaffUid(r.repairedByUid, staffId) ||
-              _matchesStaff(r.repairedBy, emailPrefix, displayName);
-            final matchCreated =
-              (r.repairedByUid == null || r.repairedByUid!.isEmpty) &&
-              (r.repairedBy == null || r.repairedBy!.isEmpty) &&
-              (_matchesStaffUid(r.createdByUid, staffId) ||
-                _matchesStaff(r.createdBy, emailPrefix, displayName));
-              return (matchRepaired || matchCreated) &&
-                  r.status == 4 &&
-                  r.deliveredAt != null &&
-                  r.deliveredAt! >= startMs &&
-                  r.deliveredAt! <= endMs;
-          })
-          .toList();
-      repairOrderCount = staffRepairs.length;
-      repairRevenue = staffRepairs.fold(0.0, (sum, r) => sum + r.price);
-      repairProfit = staffRepairs.fold(0.0, (sum, r) => sum + (r.price - r.totalCost));
-    }
+    // ===== 5. DOANH SỐ SỬA CHỮA — SQLite (nguồn sự thật đơn sửa, §13) =====
+    // The old cloud query (shopId+status+deliveredAt) had no composite index
+    // and always failed server-side; when the device was offline Firestore
+    // answered it from its cache instead, where repair docs have `cost` not
+    // `totalCost` → repair cost 0 → commission paid on revenue. SQLite only.
+    final allRepairs = await _db.getAllRepairs();
+    final staffRepairs = allRepairs
+        .where((r) {
+          final matchRepaired =
+            _matchesStaffUid(r.repairedByUid, staffId) ||
+            _matchesStaff(r.repairedBy, emailPrefix, displayName);
+          final matchCreated =
+            (r.repairedByUid == null || r.repairedByUid!.isEmpty) &&
+            (r.repairedBy == null || r.repairedBy!.isEmpty) &&
+            (_matchesStaffUid(r.createdByUid, staffId) ||
+              _matchesStaff(r.createdBy, emailPrefix, displayName));
+            return (matchRepaired || matchCreated) &&
+                r.status == 4 &&
+                r.deliveredAt != null &&
+                r.deliveredAt! >= startMs &&
+                r.deliveredAt! <= endMs;
+        })
+        .toList();
+    final repairOrderCount = staffRepairs.length;
+    final repairRevenue = staffRepairs.fold(0.0, (sum, r) => sum + r.price);
+    final repairProfit =
+        staffRepairs.fold(0.0, (sum, r) => sum + (r.price - r.totalCost));
 
     if (repairOrderCount > 0) {
       notes.add(
@@ -525,24 +560,15 @@ class SalaryCalculationService {
       }
     }
 
-    // (4) TIỀN OT
-    double calculatedOT = 0;
+    // (4) TIỀN OT — đã tính sẵn trong vòng lặp chấm công ở trên (mỗi ngày
+    // có thể có appliedOvertimeRatePercent khác nhau theo dayType, nên
+    // không thể nhân một lần cho cả tháng bằng settings.overtimeRate như
+    // trước — xem AttendanceComputationService.overtimeRateFor / F-04+F-09
+    // canonical engine).
     if (overtimeHours > 0) {
-      // Tính lương giờ chuẩn
-      double hourlyRate;
-      if (settings.salaryType == 'hourly') {
-        hourlyRate = settings.baseSalary;
-      } else if (settings.salaryType == 'daily') {
-        hourlyRate = settings.dailyRate / settings.standardHoursPerDay;
-      } else {
-        // monthly: chia cho 26 ngày, rồi chia cho giờ chuẩn
-        hourlyRate = settings.baseSalary / 26 / settings.standardHoursPerDay;
-      }
-
-      // Tiền OT = Giờ OT × Lương giờ × Hệ số OT
-      calculatedOT = overtimeHours * hourlyRate * (settings.overtimeRate / 100);
       notes.add(
-        '⏰ OT: ${overtimeHours.toStringAsFixed(1)}h × ${_formatCurrency(hourlyRate)} × ${(settings.overtimeRate / 100).toStringAsFixed(1)} = ${_formatCurrency(calculatedOT)}',
+        '⏰ OT: ${overtimeHours.toStringAsFixed(1)}h → ${_formatCurrency(calculatedOT)} '
+        '(lương giờ ${_formatCurrency(hourlyRate)}, có thể gồm nhiều mức % theo ngày thường/cuối tuần/lễ)',
       );
     }
 
@@ -827,9 +853,13 @@ class SalaryCalculationService {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return ShopDeductionSettings();
 
-      final settings = await FirestoreService.getShopDeductionSettings(shopId);
-      if (settings != null) {
-        return ShopDeductionSettings.fromMap(settings);
+      final settings = await _cloudOrCache(
+        shopId,
+        'deductions',
+        () => FirestoreService.getShopDeductionSettings(shopId),
+      );
+      if (settings is Map) {
+        return ShopDeductionSettings.fromMap(Map<String, dynamic>.from(settings));
       }
     } catch (e) {
       debugPrint('Error getting shop deduction settings: $e');
@@ -951,78 +981,34 @@ class SalaryCalculationService {
     }
   }
 
-  /// Tính số ngày làm việc trong tháng theo config workDays
-  /// workDays: [1,2,3,4,5,6] = Mon-Sat, [1,2,3,4,5,6,7] = Mon-Sun
-  static int _getWorkingDaysInMonth(int year, int month, [List<int> workDays = const [1, 2, 3, 4, 5, 6]]) {
+  /// Tính số ngày làm việc trong tháng theo config workDays.
+  /// workDays: [1,2,3,4,5,6] = Mon-Sat, [1,2,3,4,5,6,7] = Mon-Sun.
+  /// [holidayDateKeys] (yyyy-MM-dd, F-11 fix): một ngày lễ rơi vào ngày
+  /// workDays bình thường (VD thứ Hai) trước đây vẫn bị tính vào mẫu số
+  /// "ngày cần làm" — khiến nhân viên nghỉ lễ chung của cả shop (không có
+  /// đơn xin nghỉ riêng) bị trừ lương như nghỉ không phép.
+  /// Public (`@visibleForTesting`) — pure function, unit-testable without
+  /// Firestore/DB IO.
+  @visibleForTesting
+  static int getWorkingDaysInMonth(
+    int year,
+    int month, [
+    List<int> workDays = const [1, 2, 3, 4, 5, 6],
+    Set<String> holidayDateKeys = const {},
+  ]) {
     final lastDay = DateTime(year, month + 1, 0);
     int workingDays = 0;
 
     for (int day = 1; day <= lastDay.day; day++) {
       final date = DateTime(year, month, day);
-      // Chỉ tính những ngày trong workDays config
-      if (workDays.contains(date.weekday)) {
+      final dateKey = AttendanceComputationService.dateKeyOf(date);
+      // Chỉ tính những ngày trong workDays config, trừ ngày lễ đã cấu hình
+      if (workDays.contains(date.weekday) && !holidayDateKeys.contains(dateKey)) {
         workingDays++;
       }
     }
 
     return workingDays;
-  }
-
-  /// Convert workDays from any stored format to Dart weekday list [1..7]
-  /// Handles:
-  /// - Shop general format: "1,1,1,1,1,1,1" (7 booleans, index 0=CN, 1=T2, ..., 6=T7)
-  /// - Staff individual format: "0,1,2,3,4,5,6" (UI indices where 0=CN, 1=T2, ..., 6=T7)  
-  /// - List<int> format: [0,1,2,3,4,5,6] (same UI indices)
-  /// - JSON string: "[1,2,3,4,5,6]" (Dart weekday format - legacy)
-  /// Returns List<int> with Dart weekday values (1=Mon, 2=Tue, ..., 7=Sun)
-  static List<int> _parseWorkDays(dynamic wd) {
-    // UI index to Dart weekday mapping:
-    // UI: 0=CN(Sun) 1=T2(Mon) 2=T3(Tue) 3=T4(Wed) 4=T5(Thu) 5=T6(Fri) 6=T7(Sat)
-    // Dart: 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat 7=Sun
-    const uiToDartWeekday = [7, 1, 2, 3, 4, 5, 6]; // index=UI, value=Dart
-
-    if (wd is List) {
-      // List format - convert UI indices to Dart weekday
-      final result = <int>[];
-      for (final v in wd) {
-        final idx = (v is int) ? v : int.tryParse(v.toString()) ?? -1;
-        if (idx >= 0 && idx < 7) {
-          result.add(uiToDartWeekday[idx]);
-        }
-      }
-      return result.isNotEmpty ? result : [1, 2, 3, 4, 5, 6];
-    }
-
-    if (wd is String) {
-      final stripped = wd.replaceAll('[', '').replaceAll(']', '').trim();
-      if (stripped.isEmpty) return [1, 2, 3, 4, 5, 6];
-
-      final parts = stripped.split(',').map((s) => s.trim()).toList();
-
-      // Detect format: shop general has exactly 7 items all "0" or "1"
-      if (parts.length == 7 && parts.every((p) => p == '0' || p == '1')) {
-        // Boolean format: "0,1,1,1,1,1,0" or "1,1,1,1,1,1,1"
-        final result = <int>[];
-        for (int i = 0; i < 7; i++) {
-          if (parts[i] == '1') {
-            result.add(uiToDartWeekday[i]);
-          }
-        }
-        return result.isNotEmpty ? result : [1, 2, 3, 4, 5, 6];
-      }
-
-      // Index format: "0,1,2,3,4,5,6" (UI indices)
-      final result = <int>[];
-      for (final p in parts) {
-        final idx = int.tryParse(p) ?? -1;
-        if (idx >= 0 && idx < 7) {
-          result.add(uiToDartWeekday[idx]);
-        }
-      }
-      return result.isNotEmpty ? result : [1, 2, 3, 4, 5, 6];
-    }
-
-    return [1, 2, 3, 4, 5, 6]; // Default Mon-Sat
   }
 
   /// Tính lương cho tất cả nhân viên trong tháng
@@ -1032,6 +1018,7 @@ class SalaryCalculationService {
   }) async {
     if (!AppSession.syncEnabled) return []; // offline session: no cloud
     final results = <SalaryBreakdown>[];
+    lastRunUsedLocalData = false;
 
     debugPrint('📊 [SalaryCalc] Đang tính lương tháng $month/$year...');
 
@@ -1040,21 +1027,32 @@ class SalaryCalculationService {
       final shopId = await UserService.getCurrentShopId();
       if (shopId == null) return results;
 
-      final staffList = await FirestoreService.getShopStaffList(shopId);
+      final staffRaw = await _cloudOrCache(
+        shopId,
+        'staff',
+        () => FirestoreService.getShopStaffList(shopId),
+      );
+      final staffList = staffRaw is List
+          ? staffRaw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
+          : <Map<String, dynamic>>[];
       debugPrint('📊 [SalaryCalc] Tìm thấy ${staffList.length} nhân viên');
 
       // Lấy cài đặt khấu trừ của shop 1 lần
       final deductionSettings = await getShopDeductionSettings();
 
       // Lấy tất cả custom adjustments của shop trong tháng
-      final allAdjustments =
-          await FirestoreService.getAllCustomSalaryAdjustments(
-            shopId: shopId,
-            month: month,
-            year: year,
-          );
-      final customAdjustments = allAdjustments
-          .map((e) => CustomSalaryAdjustment.fromMap(e))
+      final adjRaw = await _cloudOrCache(
+        shopId,
+        'adjustments_${year}_$month',
+        () => FirestoreService.getAllCustomSalaryAdjustments(
+          shopId: shopId,
+          month: month,
+          year: year,
+        ),
+      );
+      final customAdjustments = (adjRaw is List ? adjRaw : const [])
+          .whereType<Map>()
+          .map((e) => CustomSalaryAdjustment.fromMap(Map<String, dynamic>.from(e)))
           .toList();
 
       final futures = <Future<SalaryBreakdown>>[];
@@ -1062,7 +1060,7 @@ class SalaryCalculationService {
         final staffId = staff['uid'] ?? staff['id'] ?? '';
         final staffName = staff['name'] ?? staff['displayName'] ?? 'NV';
         final staffEmail = staff['email'] as String? ?? '';
-        final numDependents = (staff['numDependents'] ?? 0) as int;
+        final numDependents = (staff['numDependents'] as num?)?.toInt() ?? 0;
 
         if (staffId.isEmpty) continue;
 
@@ -1100,3 +1098,6 @@ class SalaryCalculationService {
   static String formatCurrency(double amount) => _formatCurrency(amount);
 }
 
+class _UseLocalData implements Exception {
+  const _UseLocalData();
+}

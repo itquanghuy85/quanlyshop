@@ -3,6 +3,9 @@ import 'package:intl/intl.dart';
 import '../widgets/responsive_wrapper.dart';
 import '../models/salary_breakdown_model.dart';
 import '../services/salary_calculation_service.dart';
+import '../services/payroll_lock_service.dart';
+import '../services/cloud_write_policy.dart';
+import '../services/notification_service.dart';
 import '../services/salary_slip_pdf_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
@@ -23,6 +26,11 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
   List<SalaryBreakdown> _salaryReports = [];
   DateTime _selectedMonth = DateTime.now();
   final _currencyFormat = NumberFormat('#,###', 'vi_VN');
+  bool _monthLocked = false;
+  bool _canManageLocks = false;
+  bool _lockBusy = false;
+
+  String get _monthKey => PayrollLockService.monthKeyOf(_selectedMonth);
 
   @override
   void initState() {
@@ -37,11 +45,61 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
       month: _selectedMonth.month,
       year: _selectedMonth.year,
     );
+    final monthKey = _monthKey;
+    final locked = await PayrollLockService.isMonthLocked(monthKey);
+    final canManage = await PayrollLockService.canManageLocks();
 
+    if (!mounted) return;
     setState(() {
       _salaryReports = results;
+      if (monthKey == _monthKey) _monthLocked = locked;
+      _canManageLocks = canManage;
       _loading = false;
     });
+  }
+
+  Future<void> _toggleMonthLock() async {
+    final monthKey = _monthKey;
+    final newLocked = !_monthLocked;
+    final label = '${_selectedMonth.month.toString().padLeft(2, '0')}/${_selectedMonth.year}';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(newLocked ? 'KHOÁ LƯƠNG THÁNG $label' : 'MỞ KHOÁ LƯƠNG THÁNG $label'),
+        content: Text(
+          newLocked
+              ? 'Sau khi khoá, không ai (trên mọi máy) được duyệt, từ chối, sửa giờ, sửa tăng ca hay bổ sung chấm công trong tháng này.'
+              : 'Mở khoá để cho phép sửa lại chấm công của tháng này.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('HUỶ')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(newLocked ? 'KHOÁ' : 'MỞ KHOÁ'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _lockBusy = true);
+    try {
+      await PayrollLockService.setMonthLock(monthKey, locked: newLocked);
+      if (!mounted) return;
+      if (monthKey == _monthKey) setState(() => _monthLocked = newLocked);
+      NotificationService.showSnackBar(
+        newLocked ? 'Đã khoá lương tháng $label' : 'Đã mở khoá lương tháng $label',
+        color: Colors.green,
+      );
+    } on CloudOfflineException {
+      NotificationService.showSnackBar(
+        'Cần có mạng để khoá/mở khoá lương (áp dụng cho mọi máy).',
+        color: Colors.orange,
+      );
+    } catch (e) {
+      NotificationService.showSnackBar('Không khoá được: $e', color: Colors.red);
+    } finally {
+      if (mounted) setState(() => _lockBusy = false);
+    }
   }
 
   /// Xử lý action in bảng lương
@@ -132,6 +190,16 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
           : Column(
               children: [
                 _buildMonthHeader(),
+                if (SalaryCalculationService.lastRunUsedLocalData)
+                  Container(
+                    width: double.infinity,
+                    color: Colors.orange.shade50,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Text(
+                      'Không kết nối được máy chủ — đang tính theo dữ liệu đã lưu trên máy. Kết nối mạng rồi bấm Làm mới để có số chính xác.',
+                      style: TextStyle(color: Colors.orange.shade900, fontSize: AppTextStyles.body1.fontSize),
+                    ),
+                  ),
                 _buildTotalSummary(),
                 Expanded(
                   child: _salaryReports.isEmpty
@@ -197,6 +265,15 @@ class _StaffPerformanceViewState extends State<StaffPerformanceView> {
             },
             icon: const Icon(Icons.chevron_right, color: Colors.white),
           ),
+          if (_monthLocked || _canManageLocks)
+            IconButton(
+              tooltip: _monthLocked ? 'Lương tháng đã khoá' : 'Khoá lương tháng',
+              onPressed: (_canManageLocks && !_lockBusy) ? _toggleMonthLock : null,
+              icon: Icon(
+                _monthLocked ? Icons.lock : Icons.lock_open,
+                color: _monthLocked ? Colors.amberAccent : Colors.white70,
+              ),
+            ),
         ],
       ),
     );

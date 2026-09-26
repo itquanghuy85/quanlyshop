@@ -16,6 +16,7 @@ import '../models/debt_model.dart';
 import '../models/purchase_order_model.dart';
 import '../models/attendance_model.dart';
 import '../models/leave_request_model.dart';
+import '../models/shift_swap_request_model.dart';
 import '../models/quick_input_code_model.dart';
 import '../models/storage_location_model.dart';
 import '../models/price_catalog_models.dart';
@@ -458,6 +459,74 @@ class DBHelper {
       );
     } catch (e) {
       debugPrint('DB: ensure product_refurbish schema error: $e');
+    }
+  }
+
+  /// [2026-09-26] Đổi ca có hiệu lực thật lên lịch làm việc: trước đây
+  /// `shift_swap_requests` chỉ tồn tại trên Firestore (0 bảng SQLite, 0 wire
+  /// vào SyncService) — vi phạm nguyên tắc offline-first/SQLite-first của
+  /// app (CLAUDE.md §13/§14/§16). Dùng đúng khuôn "self-healing ensure
+  /// schema" như `_ensureProductRefurbishSchema` (L-01 2026-09-20) thay vì
+  /// version-bump onUpgrade — an toàn hơn cho app live, không cần chờ mọi
+  /// máy chạy qua đúng chuỗi migration.
+  ///
+  /// Trường mới `newStartTime/newEndTime` (giờ ca MỚI của requester) và
+  /// `targetNewStartTime/targetNewEndTime` (giờ ca MỚI của người được chọn
+  /// đổi cùng, nếu có `targetUserId`) là nguồn duy nhất
+  /// `AttendanceApprovalService`/`SalaryCalculationService`/`AttendanceView`
+  /// dùng để override effective schedule của MỘT ngày cụ thể — xem
+  /// `getApprovedShiftSwapOverride`. `currentShift`/`desiredShift` (text tự
+  /// do "Ca sáng"/"Ca chiều") giữ lại chỉ để hiển thị lịch sử các bản ghi cũ
+  /// trước khi có trường giờ có cấu trúc.
+  Future<void> _ensureShiftSwapSchema([DatabaseExecutor? executor]) async {
+    final dbExecutor = executor ?? await database;
+    try {
+      await dbExecutor.execute('''
+        CREATE TABLE IF NOT EXISTS shift_swap_requests(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          firestoreId TEXT UNIQUE,
+          shopId TEXT,
+          requesterId TEXT,
+          requesterName TEXT,
+          requesterEmail TEXT,
+          requestedDate TEXT,
+          currentShift TEXT,
+          desiredShift TEXT,
+          newStartTime TEXT,
+          newEndTime TEXT,
+          targetUserId TEXT,
+          targetUserName TEXT,
+          targetNewStartTime TEXT,
+          targetNewEndTime TEXT,
+          note TEXT,
+          status TEXT DEFAULT "pending",
+          reviewedBy TEXT,
+          reviewedByName TEXT,
+          createdAt INTEGER,
+          updatedAt INTEGER,
+          reviewedAt INTEGER,
+          rejectReason TEXT,
+          isSynced INTEGER DEFAULT 0,
+          deleted INTEGER DEFAULT 0
+        )
+      ''');
+      await dbExecutor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_shift_swap_shopId ON shift_swap_requests(shopId)',
+      );
+      await dbExecutor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_shift_swap_requesterId ON shift_swap_requests(requesterId)',
+      );
+      await dbExecutor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_shift_swap_targetUserId ON shift_swap_requests(targetUserId)',
+      );
+      await dbExecutor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_shift_swap_requestedDate ON shift_swap_requests(requestedDate)',
+      );
+      await dbExecutor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_shift_swap_status ON shift_swap_requests(status)',
+      );
+    } catch (e) {
+      debugPrint('DB: ensure shift_swap_requests schema error: $e');
     }
   }
 
@@ -937,6 +1006,7 @@ class DBHelper {
         await db.execute(
           'CREATE TABLE IF NOT EXISTS leave_requests(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, userId TEXT, email TEXT, name TEXT, leaveType TEXT, startDate TEXT, endDate TEXT, totalDays REAL, reason TEXT, status TEXT DEFAULT "pending", approvedBy TEXT, approvedAt INTEGER, rejectReason TEXT, createdAt INTEGER, updatedAt INTEGER, isSynced INTEGER DEFAULT 0, shopId TEXT, deleted INTEGER DEFAULT 0)',
         );
+        await _ensureShiftSwapSchema(db);
         await db.execute(
           'CREATE TABLE IF NOT EXISTS audit_logs(id INTEGER PRIMARY KEY AUTOINCREMENT, firestoreId TEXT UNIQUE, userId TEXT, userName TEXT, action TEXT, targetType TEXT, targetId TEXT, description TEXT, createdAt INTEGER, updatedAt INTEGER, isSynced INTEGER DEFAULT 0, shopId TEXT, summary TEXT, role TEXT, email TEXT, payload TEXT, entityType TEXT, entityId TEXT)',
         );
@@ -9035,6 +9105,110 @@ class DBHelper {
       orderBy: 'startDate ASC',
     );
     return maps.map((m) => LeaveRequest.fromMap(m)).toList();
+  }
+
+  // --- SHIFT SWAP REQUESTS ---
+  Future<void> upsertShiftSwapRequest(ShiftSwapRequest r) async {
+    final db = await database;
+    await _ensureShiftSwapSchema(db);
+    await _upsert(
+      'shift_swap_requests',
+      r.toMap(),
+      r.firestoreId.isNotEmpty
+          ? r.firestoreId
+          : 'ssw_${r.requesterId}_${r.requestedDate}_${r.createdAt}',
+    );
+  }
+
+  Future<int> deleteShiftSwapRequestByFirestoreId(String fId) async {
+    final db = await database;
+    await _ensureShiftSwapSchema(db);
+    return db.delete(
+      'shift_swap_requests',
+      where: 'firestoreId = ?',
+      whereArgs: [fId],
+    );
+  }
+
+  Future<List<ShiftSwapRequest>> getAllShiftSwapRequests() async {
+    final db = await database;
+    await _ensureShiftSwapSchema(db);
+    final shopId = UserService.getShopIdSync();
+    String where = 'deleted = 0';
+    List<dynamic> args = [];
+    if (shopId != null && shopId.isNotEmpty) {
+      where += ' AND shopId = ?';
+      args.add(shopId);
+    }
+    final maps = await db.query(
+      'shift_swap_requests',
+      where: where,
+      whereArgs: args,
+      orderBy: 'createdAt DESC',
+    );
+    return maps.map((m) => ShiftSwapRequest.fromMap(m)).toList();
+  }
+
+  Future<List<ShiftSwapRequest>> getShiftSwapRequestsByRequester(
+    String userId,
+  ) async {
+    final db = await database;
+    await _ensureShiftSwapSchema(db);
+    final shopId = UserService.getShopIdSync();
+    String where = 'requesterId = ? AND deleted = 0';
+    List<dynamic> args = [userId];
+    if (shopId != null && shopId.isNotEmpty) {
+      where += ' AND shopId = ?';
+      args.add(shopId);
+    }
+    final maps = await db.query(
+      'shift_swap_requests',
+      where: where,
+      whereArgs: args,
+      orderBy: 'createdAt DESC',
+    );
+    return maps.map((m) => ShiftSwapRequest.fromMap(m)).toList();
+  }
+
+  Future<List<ShiftSwapRequest>> getShiftSwapRequestsByStatus(
+    String status,
+  ) async {
+    final db = await database;
+    await _ensureShiftSwapSchema(db);
+    final shopId = UserService.getShopIdSync();
+    String where = 'status = ? AND deleted = 0';
+    List<dynamic> args = [status];
+    if (shopId != null && shopId.isNotEmpty) {
+      where += ' AND shopId = ?';
+      args.add(shopId);
+    }
+    final maps = await db.query(
+      'shift_swap_requests',
+      where: where,
+      whereArgs: args,
+      orderBy: 'createdAt DESC',
+    );
+    return maps.map((m) => ShiftSwapRequest.fromMap(m)).toList();
+  }
+
+  /// Đổi ca đã DUYỆT ảnh hưởng tới [userId] vào đúng [dateKey] — dùng bởi
+  /// `AttendanceApprovalService.resolveComputationInputs` làm override ưu
+  /// tiên cao nhất trên effective schedule ngày đó (cả khi [userId] là
+  /// requester lẫn khi là target được chọn đổi cùng). Không lọc theo
+  /// shopId riêng (đã lọc theo userId, đủ chọn đúng — tránh 1 query thừa).
+  Future<List<ShiftSwapRequest>> getApprovedShiftSwapRequestsForUserAndDate(
+    String userId,
+    String dateKey,
+  ) async {
+    final db = await database;
+    await _ensureShiftSwapSchema(db);
+    final maps = await db.query(
+      'shift_swap_requests',
+      where:
+          'requestedDate = ? AND status = ? AND deleted = 0 AND (requesterId = ? OR targetUserId = ?)',
+      whereArgs: [dateKey, 'approved', userId, userId],
+    );
+    return maps.map((m) => ShiftSwapRequest.fromMap(m)).toList();
   }
 
   Future<List<Attendance>> getPendingAttendanceRequests() async {

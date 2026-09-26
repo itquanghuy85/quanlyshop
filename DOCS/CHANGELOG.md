@@ -4,6 +4,137 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-26b] - Chấm công/Lương: đóng các mục audit còn lại (khoá tháng dùng chung, lương khi mất mạng, N+1, đổi giờ máy) + 3 lỗi thật tìm được khi nghiệm thu
+
+- **Khoá tháng lương (trước: chỉ có bảng SQLite theo máy, không UI):** `lib/services/payroll_lock_service.dart` (mới) — nguồn
+  sự thật `shops/{shopId}/settings/payroll_locks` (rules `settings/*`: chủ shop ghi, thành viên đọc); SQLite chỉ là cache key
+  `shopId|yyyy-MM`. Nút ổ khoá cạnh tháng ở **Bảng lương nhân viên** (`staff_performance_view.dart`, chỉ chủ shop). Guard
+  `AttendanceApprovalService.isLockedForDateKey` đọc cloud trước → khoá ở máy A chặn ngay máy B, kèm snackbar
+  "Tháng MM/yyyy đã khoá lương…". Ghi cloud lỗi/timeout ⇒ không khoá cục bộ, báo "Cần có mạng".
+- **Xoá `lib/views/payroll_view.dart`** (dead code, máy tính lương thứ 2 dựa SharedPreferences, bug `overtimeOn==1`).
+- **Tính lương khi mất mạng (trước: `FirestoreService` nuốt lỗi → lương thiếu thuế/BH/khấu trừ/thưởng, danh sách NV rỗng —
+  âm thầm):** `SalaryCalculationService._cloudOrCache` (NV, mặc định lương, khấu trừ, thưởng/trừ tháng) + bộ đệm theo shop;
+  bán hàng timeout 10s → SQLite; `lastRunUsedLocalData` → dải cảnh báo cam trên màn lương.
+- **LỖI TIỀN THẬT — hoa hồng sửa chữa:** query cloud `repairs` (shopId+status+deliveredAt) không có index nên luôn lỗi →
+  rơi về SQLite (đúng). Nhưng khi máy mất Internet mà vẫn báo có Wi-Fi, Firestore trả query từ cache nội bộ, doc cloud
+  lưu giá vốn ở `cost` còn code đọc `totalCost` → giá vốn = 0 → **hoa hồng tính trên doanh thu**. Tái hiện trên shop M:
+  lương H 2.373.000đ thay vì 1.792.533đ (lệch đúng 6.204.666đ = giá vốn đơn sửa T9). Fix: hoa hồng sửa chữa đọc thẳng
+  SQLite (nguồn sự thật đơn sửa, CLAUDE.md §13).
+- **LỖI — màn Quản lý chấm công không thấy chấm công của máy khác:** `Attendance.fromMap` ném
+  `Timestamp is not a subtype of int?` với map thô từ Firestore (`updatedAt` server timestamp) → fallback cloud luôn rỗng.
+  Fix `_toInt` duck-typed trong model. Đồng thời bỏ N+1: 1 query `FirestoreService.getShopAttendanceByDateRange` cho cả shop
+  (dùng index sẵn có shopId+dateKey+createdAt↓), chỉ khi có NV chưa có bản ghi local, gate `AppSession.syncEnabled`.
+- **Đổi giờ máy (F-14):** `lib/services/clock_check_service.dart` (mới) — trước check-in/out so giờ máy với header `Date`
+  của `firestore.googleapis.com`; lệch > 5 phút ⇒ chặn + hướng dẫn bật giờ tự động. Offline ⇒ cho chấm công.
+- **Nghiệm thu 2 máy (shop M, CPH2239 + CPH2203):** khoá T9 ở A → B sửa giờ bị chặn + snackbar ✅; A mất DNS → khoá báo
+  cần mạng, không khoá cục bộ ✅; tắt Wi-Fi → bảng lương hiện cảnh báo + số từ bộ đệm ✅; có mạng lại → online = offline
+  (1.919.833đ / LN 42.545.734đ) ✅; B thấy chấm công 09:16 của A ✅; check-out 10:01 qua bước so giờ, `isEarlyLeave=1` theo
+  ca đã đổi 13:00-17:00, giữ `isLate=0`/status ✅; mở khoá lại T9 ✅. Nhánh "giờ máy lệch" chỉ test tự động (đổi giờ máy
+  cần quyền không có qua adb).
+- Test mới `test/payroll_remaining_audit_test.dart` (so giờ, bộ đệm lương + Timestamp, key khoá, `Attendance.fromMap`);
+  `attendance_approval_logic_test.dart` chuyển sang `PayrollLockService` + test cô lập theo shop. `flutter analyze` 0 error,
+  `flutter test` 856 PASS.
+
+---
+
+## [2026-09-26a] - Đổi ca: thiết kế lại — ca đã DUYỆT đổi thật lịch làm việc ngày đó (SQLite-first, sync 2 máy)
+
+- **Trước:** `ShiftSwapService` đọc/ghi Firestore trực tiếp, ca chỉ là text tự do, duyệt chỉ đổi
+  `status` → không ảnh hưởng chấm công/lương.
+- **Model** `shift_swap_request_model.dart`: thêm `newStartTime/newEndTime` (người yêu cầu),
+  `targetNewStartTime/targetNewEndTime` (người được đổi), `isSynced`.
+- **SQLite** `db_helper.dart`: bảng `shift_swap_requests` tự tạo (`_ensureShiftSwapSchema`, không
+  tăng version DB) + CRUD + `getApprovedShiftSwapRequestsForUserAndDate`.
+- **Service** `shift_swap_service.dart`: SQLite-first, đẩy cloud qua `AppSession.syncEnabled` +
+  `CloudWritePolicy`; `SyncService` mục 8c sync collection xuống máy khác (manager-like).
+- **Hiệu lực:** `AttendanceApprovalService.getApprovedShiftSwapOverride(userId, dateKey)` trả
+  (start,end) — có `targetUserId` ⇒ đổi 2 chiều A↔B, không có ⇒ chỉ đổi giờ người yêu cầu. Áp dụng
+  ở MỌI caller: check-in/out (`AttendanceView`), `resolveComputationInputs(dateKey:)`,
+  `SalaryCalculationService`, `AttendanceSummaryService` (`scheduleOverrideByKey`),
+  `excel_export_helper` (2 hàm export). Chỉ ghi đè start/end, không đổi ngày nghỉ/OT rate.
+- **UI** `shift_swap_view.dart`: ca có giờ trong nhãn tự lấy giờ; "Ca linh hoạt" chọn giờ tay
+  (cả người được đổi); thẻ hiện giờ mới.
+- **Lỗi thật phát hiện khi test máy và đã sửa:**
+  1. Crash `_dependents.isEmpty` khi bấm Gửi → `disposeAfterTransition`.
+  2. Dropdown ca "OVERFLOWED BY 12 PIXELS" → `isExpanded: true`.
+  3. Đổi tab → màn đỏ "Stream has already been listened to" → `_OwnedStreamTab` giữ stream trong State.
+  4. Tab "YÊU CẦU CỦA TÔI" trắng trơn, không log lỗi: nút HUỶ (`OutlinedButton` theme có
+     `minimumSize` rộng vô hạn) nằm trong `Row` → layout vỡ âm thầm → bọc `Expanded`.
+  5. Nhãn giờ lặp "(13:00-17:00) (13:00-17:00)".
+  6. (`attendance_view`) cảnh báo "Chưa chấm công ra hôm nay…" + nút "Bổ sung giờ chấm công ra"
+     hiện NGAY sau check-in dù đang trong ca → giờ chỉ hiện khi đã qua giờ kết thúc ca hiệu lực
+     (tính cả ca đã đổi).
+- **Index:** thêm 2 composite index `shift_swap_requests` vào `firestore.indexes.json` (query kéo
+  về của `watchMyRequests/watchPendingRequests` báo `failed-precondition`). Đã deploy 2026-09-26
+  (`firebase deploy --only firestore:indexes`, không `--force`).
+- **Test máy thật 2 máy (shop M):** CPH2239 tạo → huỷ 1 yêu cầu → duyệt 1 yêu cầu; CPH2203 nhận
+  đủ 2 bản ghi đúng trạng thái (cancelled/approved) qua poll. Check-in 09:16 với ca gốc 08:00
+  (trễ 76′ > grace 15′) nhưng ca đã đổi 13:00 → `isLate=0` ✅. Phía người được đổi (target) chỉ
+  test tự động (không có tài khoản trên máy).
+- Test: `test/shift_swap_db_schema_test.dart`, `test/shift_swap_schedule_override_test.dart`.
+  `flutter analyze` 0 error, `flutter test` 847 PASS. Chưa commit/push/build release.
+
+---
+
+## [2026-09-25e] - Fix: QR chuyển khoản biến mất khi chia sẻ đơn CÔNG NỢ (nếu máy chưa cấu hình QR cục bộ)
+
+- **Triệu chứng:** người dùng báo "share đơn bán công nợ không còn thấy QR chuyển khoản".
+- **Root cause:** `sale_invoice_preview_view.dart._loadPreview()` chỉ đọc thông tin ngân hàng
+  (`bank_qr_bin/name/account/holder`) từ `SharedPreferences` **cục bộ theo máy** — không có
+  fallback Firestore. `BankQrSettingsView` ghi CẢ Firestore (`shops/{shopId}/settings/bank_qr`)
+  lẫn prefs, nhưng màn xem trước/chia sẻ chưa từng đọc Firestore. Máy chưa từng mở màn Cài đặt
+  QR (máy khác, cài lại app, xoá dữ liệu app) → prefs rỗng → `_hasBankInfo=false` → QR biến mất
+  dù shop đã cấu hình đầy đủ trên cloud. Đây KHÔNG phải lỗi loại trừ theo `paymentMethod`
+  (không có điều kiện nào so sánh `paymentMethod=='CÔNG NỢ'` trong luồng QR).
+- **Fix:** `sale_invoice_preview_view.dart` — khi prefs rỗng, fallback đọc đúng doc Firestore
+  `shops/{shopId}/settings/bank_qr` (gate `AppSession.syncEnabled`, cùng field name với
+  `BankQrSettingsView._load()`), rồi cache lại vào prefs cho lần sau.
+- **Test máy thật (CPH2239):** xoá 4 key `bank_qr_*` khỏi `FlutterSharedPreferences.xml` qua
+  `adb run-as` để mô phỏng máy "sạch", mở lại đơn CÔNG NỢ "QACR7" (12tr) → share → QR chuyển
+  khoản xuất hiện đúng (Vietcombank • TRANMINH • 0071000123456 • Số tiền 12.000.000đ), prefs
+  được tự động điền lại từ Firestore. Xác nhận qua ảnh chụp màn hình trực tiếp.
+- Verify: `flutter analyze` 0 error, `flutter test` 837 PASS / 0 FAIL (không liên quan QR nhưng
+  chạy lại để đảm bảo không có regression). Chưa commit, chưa push, chưa build release.
+
+---
+
+## [2026-09-25d] - Chấm công/Lương: FINAL CLOSURE — payroll lock testable, UI=Salary=Excel, leave/holiday/day-type/finance/shift-swap audit
+
+Tiếp nối `[2026-09-25c]`. Đóng các mục "NOT VERIFIED"/"PARTIAL" còn lại từ báo cáo nghiệm thu trước.
+
+- **Item 1 — Payroll lock, PARTIAL → PASS:** refactor `AttendanceApprovalService` — mỗi write path (approve/reject/editOvertime/editAttendanceTimes/forgot-checkin/forgot-checkout) tách thành `applyXxxLogic` pure function (`@visibleForTesting`, không IO Firebase/DB) + wrapper mỏng lo auth+DB+sync. `isLockedForDateKey` cũng public/`@visibleForTesting`. Test mới `test/attendance_approval_logic_test.dart` (16 case) chứng minh guard chặn đúng cả 6 write path bằng SQLite FFI thật, không cần mock FirebaseAuth (project chưa có hạ tầng mock Firebase).
+- **Item 2 — Leave/day-off audit:** xác nhận qua đọc code (không sửa vì đã đúng): approved leave trừ khỏi `absentDays`, pending/rejected leave bị lọc bỏ, ngày nghỉ không tạo attendance record nên không thể có late/early/OT sai. **Bug tìm thấy & fix:** `getWorkingDaysInMonth` (đổi tên từ `_getWorkingDaysInMonth`, nay `@visibleForTesting`) trước đây không loại trừ ngày lễ (`holidays`) khỏi mẫu số "ngày cần làm" → nghỉ lễ chung cả shop (không có đơn xin nghỉ riêng) bị trừ lương như nghỉ không phép. Test mới `test/salary_working_days_leave_holiday_test.dart` (4 case).
+- **Item 3 — Shift swap audit:** xác nhận `ShiftSwapView` **reachable** (route từ cả `attendance_view.dart` và `attendance_management_view.dart`) nên KHÔNG phải dead code, nhưng `ShiftSwapRequest.currentShift/desiredShift` là text tự do ("Ca sáng"/"Ca chiều", không có giờ start/end có cấu trúc) và `ShiftSwapService.approveRequest` chỉ đổi `status` — **không có bất kỳ write nào vào `work_schedules`**. Kết luận: KHÔNG WIRED vào schedule/attendance/OT — không sửa vì cần thiết kế lại data model (invent business rule mới, không có evidence).
+- **Item 4 — Day-type judgment call, đã document + test:** `resolveDayType` giữ nguyên quyết định Sat/Sun luôn dùng `weekendOtRate` kể cả khi được xếp lịch làm (diễn giải hợp lý nhất từ UI label "Cuối tuần" — không có evidence khác trong codebase); test `attendance_computation_service_test.dart` đã khoá rule này rõ ràng bằng tên test giải thích lý do.
+- **Item 5 — Excel/report audit, bug tìm thấy & fix:** `exportAttendance`/`exportAttendanceMonthlySummary` (`excel_export_helper.dart`) và `AttendanceSummaryService.buildMonthlySummaries` (dùng bởi dashboard header "Giờ công • OT" VÀ Excel) trước đây tính "Số giờ làm" bằng `checkOut - checkIn` thô (không trừ break) và "Tăng ca" bằng `record.overtimeOn` thô (không có auto-OT fallback, không cap `maxOtHours`) — **có thể lệch với số liệu SalaryCalculationService thực trả lương**. Đã sửa cả 3 điểm dùng chung `AttendanceComputationService.compute()`, resolve schedule per-user (cache). `AttendanceSummaryService.buildMonthlySummaries` thêm tham số `scheduleByUserId`/`standardHoursByUserId` (mặc định `{}` giữ tương thích ngược, dùng default schedule 08:00-17:00). Test mới `test/attendance_excel_salary_consistency_test.dart` (2 case, chứng minh cùng fixture → cùng số liệu qua cả 2 đường).
+- **Item 6 — Finance audit:** grep xác nhận `PaymentIntent.forSalaryPayment` (payment_intent_model.dart:478) **không được gọi ở bất kỳ đâu** trong repo — `SalaryCalculationService` hoàn toàn không có đường nối vào Finance/expense/cash. Kết luận: không double-count vì không có write path nào tồn tại để double. `_insertExpenseOnce` (payment_intent_service.dart, D-3) đã idempotent sẵn theo `firestoreId` cố định — nếu sau này wire salary payment vào, dùng lại cơ chế này.
+- **Item 7 — Offline salary:** xác nhận `SalaryCalculationService` không còn `_firestore.collection('attendance')` nào (chỉ còn dùng `_firestore` cho sales/repairs — ngoài phạm vi F-04..F-15, không đổi). Chưa full-offline (settings mặc định shop + khấu trừ/thuế vẫn Firestore-primary, không có SQLite fallback) — ghi nhận là remaining risk, không mở rộng scope.
+- **Item 9 — Firestore read static audit:** grep toàn bộ `FirebaseFirestore`/`collection('attendance')` trong phạm vi attendance/salary — phân loại LEGITIMATE (own-scoped pull, write, settings-screen read) vs. **1 phát hiện N+1**: `attendance_management_view.dart` (`_loadDayAttendance`/`_loadMonthAttendance`) fallback sang Firestore **per-staff trong vòng lặp** khi SQLite local trống cho staff đó — không sửa (rủi ro phá fallback đang hoạt động, cần refactor sang 1 query `whereIn` để làm đúng, ngoài phạm vi audit này).
+- **Item 11 — Timezone (F-14):** không tự ý migrate UTC. Thêm test `test/attendance_datekey_consistency_test.dart` khoá: mọi nơi tạo `dateKey` dùng cùng format `yyyy-MM-dd`, overnight giữ `dateKey` = ngày bắt đầu ca, cùng timestamp luôn ra cùng `dateKey`. Giới hạn còn tồn tại (không sửa): không có server-timestamp cho `checkInAt/checkOutAt`, đổi giờ máy vẫn có thể backdate.
+- **Item 10:** `docs/ATTENDANCE_FINAL_ACCEPTANCE_E2E.md` (mới) — kịch bản nghiệm thu 2 máy/offline/overnight/Excel thật, đánh dấu READY FOR REAL-DEVICE ACCEPTANCE, chưa chạy.
+- **Item 12:** `CLAUDE.md` thêm mục III.16 (canonical engine, single source of truth, payroll lock, finance, shift swap, timezone). `docs/HANDOVER.md` cập nhật trạng thái. `DOCS/FULL_DOCUMENTATION.md` **KHÔNG** cập nhật (ngoài ngân sách phiên này).
+- Test mới đợt này: `attendance_approval_logic_test.dart` (16), `attendance_excel_salary_consistency_test.dart` (2), `attendance_datekey_consistency_test.dart` (4), `salary_working_days_leave_holiday_test.dart` (4) = 26 test mới. Cộng dồn: **837 PASS / 0 FAIL**, `flutter analyze` 0 error.
+- Chưa commit, chưa push, chưa build release.
+
+## [2026-09-25c] - Chấm công/Lương: canonical attendance/OT engine (audit 3 đợt, chưa commit/push/build)
+
+- **Root cause đợt 1 (đã ghi nhận trước, nay hoàn thiện):** checkout từng rebuild `Attendance` mới làm mất `isLate/overtimeOn/approvedBy/status/note/requestType/locked` (F-01/F-02) — `attendance_check_service.dart` (clone-and-patch). Schedule chỉ đọc theo uid, fallback thẳng 08:00-17:00, bỏ qua `shop_general` (F-03) — `attendance_schedule_resolver.dart` (staff→shop_general→default, chỉ còn giữ *string resolution*).
+- **Canonical engine mới:** `lib/services/attendance_computation_service.dart` — MỘT nơi duy nhất tính `isLate/isEarlyLeave/dayType/workedMinutes/regularMinutes/automaticOvertimeMinutes/effectiveOvertimeMinutes/appliedOvertimeRatePercent`, dùng bởi `AttendanceView` (check-in/out), `AttendanceApprovalService` (sửa giờ, quên chấm công, quên chấm công RA mới), `SalaryCalculationService` (tính lương).
+  - **F-04 FIXED:** `breakTime/maxOtHours/holidays/weekdayOtRate/weekendOtRate/holidayOtRate` — tồn tại trong schema+UI từ trước nhưng KHÔNG calculator nào đọc — nay nối dây đầy đủ, resolve field-by-field staff→shop_general→default (đúng theo cách 2 editor thực tế ghi: staff editor không bao giờ ghi holidays/rates).
+  - **F-05:** worked/regular/OT giờ trừ `breakTime`, OT chỉ sinh khi checkout SAU giờ kết thúc lịch VÀ vượt `standardHoursPerDay` (không còn OT ảo do "vào sớm" hay do không trừ break).
+  - **F-06 FIXED:** `maxOtHours` (giờ→phút) áp dụng nhất quán cho cả manual OT (`editOvertime`) lẫn automatic OT (thay hardcode 480 phút trong `attendance_management_view.dart` — UI clamp đó vẫn còn nhưng chỉ là hiển thị, giới hạn thật nằm ở write path).
+  - **F-07 FIXED (trước là UNSUPPORTED):** ca qua đêm (`endTime <= startTime` → anchor sang ngày kế). `dateKey`/`shiftDate` luôn là ngày BẮT ĐẦU ca.
+  - **F-09 FIXED (mở rộng):** sửa giờ / tạo yêu cầu quên chấm công/chấm công ra đều recompute `isLate/isEarlyLeave` qua engine — không còn 3 chỗ tính late/early khác nhau.
+  - **F-11 FIXED:** `resolveDayType` — holiday > ngày không thuộc `workDays` > cuối tuần (Sat/Sun luôn dùng `weekendOtRate` kể cả khi được xếp lịch làm) > ngày thường; `overtimeRateFor` chọn đúng rate, fallback `EmployeeSalarySettings.overtimeRate` khi schedule chưa cấu hình rate riêng.
+  - **F-13 FIXED:** `editOvertime` nay ghi `requestType='overtime_edit'` (trước đó UI đọc field này cho badge "Sửa tăng ca" nhưng writer duy nhất chưa từng ghi).
+  - **F-15:** giữ nguyên chính sách (chưa checkout = không vào lương cho tới khi approved), nhưng thêm **luồng quên chấm công RA đối xứng** (`AttendanceApprovalService.createForgotCheckoutRequest` + UI banner "Chưa chấm công ra" + nút "BỔ SUNG GIỜ CHẤM CÔNG RA" trong `attendance_view.dart`) — trước đây chỉ có quên chấm công VÀO.
+  - **Bug phụ tìm thấy khi audit `workDays`:** `SalaryCalculationService._parseWorkDays` (đã xoá, thay bằng `AttendanceComputationService.parseWorkDays`) chạy List từ `staff_list_view.dart` (giá trị Dart-weekday thật 1..7, T2=1..CN=7) qua bảng tra dành cho format STRING (UI-index 0..6) → **Chủ Nhật (7) bị âm thầm loại khỏi `workingDaysInMonth`** nếu nhân viên có lịch riêng bao gồm CN. Đã sửa: List dùng trực tiếp giá trị Dart-weekday, không qua bảng tra.
+  - **Payroll lock (F- mục §8, trước chưa enforce):** `payroll_locks`/`isPayrollMonthLocked` trước chỉ được đọc/ghi bởi `PayrollView` (đã xác nhận unreachable — không route nào trỏ tới). Thêm guard `_isLockedForDateKey` chặn `approveAttendance/editOvertime/editAttendanceTimes/createForgotCheckinRequest/createForgotCheckoutRequest` khi tháng bị khoá — hiện là no-op vì chưa có UI live nào gọi `setPayrollMonthLock`, chỉ có hiệu lực khi tính năng khoá tháng được kích hoạt lại.
+  - **Phase 10 (SQLite-first):** `SalaryCalculationService.calculateMonthlySalary` bỏ hẳn query Firestore trực tiếp cho `attendance` (trước: Firestore primary + SQLite fallback khi lỗi) → đọc thẳng `DBHelper.getAttendanceByDateRange` (SyncService đã đồng bộ `attendance` xuống SQLite ở nền theo `sync_collections.dart`). Giảm read khi mở Finance/Payroll, tính lương được khi offline.
+- **KHÔNG fix (documented, cố ý):** F-14 (timezone — vẫn device-local, không có shop/user timezone abstraction; rủi ro backdate qua đổi giờ máy vẫn tồn tại, không tự ý làm kiến trúc timezone lớn); payroll lock chỉ có DB primitive + guard, KHÔNG có UI mới để khoá tháng (PayrollView vẫn dead code, không được kích hoạt lại); Excel/report field-source audit và Finance double-count audit KHÔNG thực hiện (ngoài phạm vi các file đã đọc); test 2-máy/offline thực tế/đếm Firestore read thực tế KHÔNG chạy được (không có thiết bị/Firebase project thật trong phiên này) — chỉ suy luận từ code (mọi ghi attendance đều `record.toMap()` đầy đủ + `merge:true`, không có kiểu partial-payload đã biết của `repairs`).
+- Test mới: `test/attendance_computation_service_test.dart` (41 test — schedule fallback, `parseWorkDays` Sunday-drop fix, day-type priority, rate selection, late/early boundary 14:59/15:00/15:01, ví dụ nghiệm thu 08:00-17:00/08:00-18:30/17:30/18:00, early-arrival không sinh OT, max OT cap, manual-override-auto không cộng dồn, overnight 4 biến thể 22:00-06:00/06:30, 22:15-06:00/06:30, invariants không âm/không vượt cap/determinism); `test/attendance_schedule_resolver_test.dart` rút gọn về scope thật (chỉ còn `effectiveTimes`).
+- Verify: `flutter analyze` **0 error** (1878 info/warning, không đổi so với baseline); `flutter test` **810 PASS / 0 FAIL**. Chưa build release, chưa commit, chưa push.
+
 ## [2026-09-24b] - Tài chính: đổi toàn bộ công thức lãi sang DỒN TÍCH (accrual) + tách hẳn khỏi dòng tiền
 
 - **Nguyên tắc mới:** doanh thu / giá vốn / lãi gộp ghi nhận theo **ngày bán hoặc ngày giao**, cho **mọi PTTT** (CÔNG NỢ, TRẢ GÓP, KẾT HỢP thu thiếu, TIỀN MẶT/CK). Trả hàng trừ cả doanh thu **và** giá vốn bất kể PTTT hoàn. Còn tiền vào/ra giữ nguyên là sổ tiền mặt.

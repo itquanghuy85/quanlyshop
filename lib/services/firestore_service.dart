@@ -2451,6 +2451,37 @@ class FirestoreService {
   }
 
   /// Alias cho getStaffByShopId - dùng trong SalaryCalculationService
+  /// Whole-shop attendance for an inclusive dateKey range in ONE query
+  /// (index shopId + dateKey + createdAt DESC). Replaces a per-staff loop.
+  static Future<List<Attendance>> getShopAttendanceByDateRange({
+    required String shopId,
+    required String startKey,
+    required String endKey,
+  }) async {
+    if (_cloudOff) return [];
+    final snap = await _db
+        .collection('attendance')
+        .where('shopId', isEqualTo: shopId)
+        .where('dateKey', isGreaterThanOrEqualTo: startKey)
+        .where('dateKey', isLessThanOrEqualTo: endKey)
+        .orderBy('dateKey')
+        .orderBy('createdAt', descending: true)
+        .get()
+        .timeout(const Duration(seconds: 10));
+    unawaited(
+      FirebaseUsageStatsService.logFetchRead(
+        collection: 'attendance',
+        shopId: shopId,
+        docs: snap.docs.length,
+        source: 'shop-date-range',
+      ),
+    );
+    return snap.docs
+        .where((d) => d.data()['deleted'] != true)
+        .map((d) => Attendance.fromMap(d.data()))
+        .toList();
+  }
+
   static Future<List<Map<String, dynamic>>> getShopStaffList(
     String shopId,
   ) async {

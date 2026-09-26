@@ -10,7 +10,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../data/db_helper.dart';
 import '../models/attendance_model.dart';
 import '../models/leave_request_model.dart';
+import '../models/shift_swap_request_model.dart';
 import '../services/attendance_approval_service.dart';
+import '../services/clock_check_service.dart';
 import '../services/encryption_service.dart';
 import '../services/user_service.dart';
 import '../services/notification_service.dart';
@@ -34,6 +36,8 @@ import '../finance_v2/finance_v2_theme.dart';
 import '../theme/popup_theme.dart';
 import '../widgets/app_popup.dart';
 import '../services/cloud_write_policy.dart';
+import '../services/attendance_check_service.dart';
+import '../services/attendance_computation_service.dart';
 
 class AttendanceView extends StatefulWidget {
   const AttendanceView({super.key});
@@ -46,6 +50,15 @@ class _AttendanceViewState extends State<AttendanceView>
   final db = DBHelper();
   bool _loading = true;
   Attendance? _today;
+  // End of today's effective shift (incl. approved swap); the "missing
+  // checkout" warning must not show while the shift is still running.
+  DateTime? _todayShiftEnd;
+
+  bool get _missingCheckoutAfterShift =>
+      _today?.checkInAt != null &&
+      _today?.checkOutAt == null &&
+      _todayShiftEnd != null &&
+      DateTime.now().isAfter(_todayShiftEnd!);
   String _role = 'employee';
   late TabController _tabController;
   Timer? _clockTimer;
@@ -54,7 +67,9 @@ class _AttendanceViewState extends State<AttendanceView>
   DateTime _clockNow = DateTime.now();
   String _userName = '';
 
-  Map<String, dynamic> _workSchedule = {};
+  Map<String, dynamic>? _staffSchedule;
+  Map<String, dynamic>? _shopSchedule;
+  double _staffOvertimeRatePercent = 150.0;
   List<Attendance> _history = [];
   List<LeaveRequest> _leaveRequests = [];
   static const int _historyPageSize = 60;
@@ -229,14 +244,46 @@ class _AttendanceViewState extends State<AttendanceView>
         DateFormat('yyyy-MM-dd').format(DateTime.now()),
         uid,
       );
-      final schedule = await db.getWorkSchedule(uid);
+      // Resolution chain: staff-specific -> shop_general -> default. Kept
+      // as two raw maps (not one merged map) so AttendanceComputationService
+      // can fall back field-by-field — the staff editor only ever writes
+      // startTime/endTime/breakTime/maxOtHours/workDays (see
+      // staff_list_view.dart), never holidays/OT rates, so those must
+      // always come from shop_general even when a staff override exists.
+      final staffSchedule = await db.getWorkSchedule(uid);
+      final shopSchedule = await db.getWorkSchedule('shop_general');
+      final salarySettingsMap = await db.getEmployeeSalarySettingByStaffId(uid);
+      final overtimeRatePercent =
+          (salarySettingsMap?['overtimeRate'] as num?)?.toDouble() ?? 150.0;
       final history = await db.getAttendanceByUser(uid, limit: _historyLimit);
       final leaveRequests = await db.getLeaveRequestsByUser(uid);
+
+      final todayDate = DateTime.now();
+      var todaySchedule = ResolvedScheduleConfig.resolve(
+        staffSchedule: staffSchedule,
+        shopSchedule: shopSchedule,
+        fallbackOvertimeRatePercent: overtimeRatePercent,
+      );
+      final swapOverride = await AttendanceApprovalService.getApprovedShiftSwapOverride(
+        uid,
+        DateFormat('yyyy-MM-dd').format(todayDate),
+      );
+      if (swapOverride != null) {
+        todaySchedule = todaySchedule.copyWith(
+          startTime: swapOverride.$1,
+          endTime: swapOverride.$2,
+        );
+      }
+      final todayShiftEnd =
+          AttendanceComputationService.effectiveWindow(todayDate, todaySchedule).end;
 
       if (!mounted) return;
       setState(() {
         _today = rec;
-        _workSchedule = schedule ?? {};
+        _todayShiftEnd = todayShiftEnd;
+        _staffSchedule = staffSchedule;
+        _shopSchedule = shopSchedule;
+        _staffOvertimeRatePercent = overtimeRatePercent;
         _history = history;
         _leaveRequests = leaveRequests;
         _loading = false;
@@ -307,6 +354,33 @@ class _AttendanceViewState extends State<AttendanceView>
         _normalizeTimestampField(data, 'approvedAt');
         await db.upsertLeaveRequest(LeaveRequest.fromMap(data));
       }
+
+      // 2026-09-26: the shop-wide `shift_swap_requests` SyncService
+      // listener is manager-gated (matches `attendance`'s own gating), so a
+      // regular employee's device needs this same targeted self-pull to
+      // get their OWN approved swaps (as requester or as the colleague
+      // selected to swap with) into SQLite — otherwise
+      // AttendanceApprovalService.resolveComputationInputs would never see
+      // an approved override for a non-manager checking in on THEIR device.
+      Future<void> pullSwaps(String field) async {
+        final snap = await FirebaseFirestore.instance
+            .collection('shift_swap_requests')
+            .where('shopId', isEqualTo: shopId)
+            .where(field, isEqualTo: uid)
+            .get();
+        for (final doc in snap.docs) {
+          final data = doc.data();
+          data['firestoreId'] = doc.id;
+          data['isSynced'] = 1;
+          _normalizeTimestampField(data, 'createdAt');
+          _normalizeTimestampField(data, 'updatedAt');
+          _normalizeTimestampField(data, 'reviewedAt');
+          await db.upsertShiftSwapRequest(ShiftSwapRequest.fromMap(data));
+        }
+      }
+
+      await pullSwaps('requesterId');
+      await pullSwaps('targetUserId');
     } catch (e) {
       debugPrint('Error pulling personal attendance data: $e');
     }
@@ -333,6 +407,19 @@ class _AttendanceViewState extends State<AttendanceView>
     if (_locationRequired) {
       final locationOk = await _verifyLocation();
       if (!locationOk) return;
+    }
+
+    // Device time is the attendance clock; refuse when it was moved.
+    final skew = await ClockCheckService.measureSkew();
+    if (skew != null && ClockCheckService.isSkewTooLarge(skew)) {
+      final mins = skew.inMinutes.abs();
+      NotificationService.showSnackBar(
+        '⚠️ Giờ trên máy đang ${skew.isNegative ? 'chậm' : 'nhanh'} $mins phút so với giờ chuẩn. '
+        'Vào Cài đặt điện thoại → bật "Ngày giờ tự động" rồi chấm công lại.',
+        color: Colors.red,
+        duration: const Duration(seconds: 6),
+      );
+      return;
     }
 
     final picker = ImagePicker();
@@ -370,61 +457,91 @@ class _AttendanceViewState extends State<AttendanceView>
         locationStr = '${position.latitude},${position.longitude}';
       } catch (_) {}
 
-      bool isLate = false;
-      bool isEarly = false;
-
-      // Lấy lịch làm việc thực tế từ Database
-      String startStr = _workSchedule['startTime'] ?? '08:00';
-      String endStr = _workSchedule['endTime'] ?? '17:00';
-
-      final startHour = int.tryParse(startStr.split(':')[0]) ?? 8;
-      final startMinute = int.tryParse(startStr.split(':')[1]) ?? 0;
-      final endHour = int.tryParse(endStr.split(':')[0]) ?? 17;
-      final endMinute = int.tryParse(endStr.split(':')[1]) ?? 0;
-
-      final startTime = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        startHour,
-        startMinute,
+      // Canonical engine: schedule resolved field-by-field
+      // (staff -> shop_general -> default), overnight-aware. shiftDate is
+      // the day the shift STARTS — for checkout that's the check-in's own
+      // dateKey (_today), not necessarily "now" if the shift crosses
+      // midnight.
+      var resolvedSchedule = ResolvedScheduleConfig.resolve(
+        staffSchedule: _staffSchedule,
+        shopSchedule: _shopSchedule,
+        fallbackOvertimeRatePercent: _staffOvertimeRatePercent,
       );
-      final endTime = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        endHour,
-        endMinute,
+      final shiftDate = isIn
+          ? now
+          : (_today?.dateKey != null
+              ? DateTime.parse(_today!.dateKey)
+              : now);
+      // 2026-09-26: an APPROVED shift swap for today overrides the normal
+      // start/end time (see AttendanceApprovalService.
+      // getApprovedShiftSwapOverride — same lookup SalaryCalculationService
+      // uses, so late/early/OT computed at check-in time and at payroll
+      // time never disagree).
+      final swapOverride = await AttendanceApprovalService.getApprovedShiftSwapOverride(
+        user.uid,
+        DateFormat('yyyy-MM-dd').format(shiftDate),
       );
-
-      if (isIn && now.isAfter(startTime.add(const Duration(minutes: 15)))) {
-        isLate = true;
+      if (swapOverride != null) {
+        resolvedSchedule = resolvedSchedule.copyWith(
+          startTime: swapOverride.$1,
+          endTime: swapOverride.$2,
+        );
       }
-      if (!isIn && now.isBefore(endTime)) {
-        isEarly = true;
-      }
+      final isLate = isIn
+          ? AttendanceComputationService.isLateCheckIn(
+              now,
+              shiftDate,
+              resolvedSchedule,
+            )
+          : false;
+      final isEarly = !isIn
+          ? AttendanceComputationService.isEarlyCheckOut(
+              now,
+              shiftDate,
+              resolvedSchedule,
+            )
+          : false;
 
       final firestoreId =
           "att_${DateFormat('yyyyMMdd').format(now)}_${user.uid}";
       final shopId = await UserService.getCurrentShopId();
 
-      final attendance = Attendance(
-        userId: user.uid,
-        email: user.email!,
-        name: _userName,
-        dateKey: DateFormat('yyyy-MM-dd').format(now),
-        checkInAt: isIn ? timestamp : _today?.checkInAt,
-        checkOutAt: isIn ? null : timestamp,
-        photoIn: isIn ? localPhotoPath : _today?.photoIn,
-        photoOut: isIn ? null : localPhotoPath,
-        status: 'pending',
-        isLate: isLate ? 1 : 0,
-        isEarlyLeave: isEarly ? 1 : 0,
-        location: locationStr ?? _today?.location,
-        createdAt: _today?.createdAt ?? timestamp,
-        updatedAt: timestamp,
-        firestoreId: firestoreId,
-      );
+      // Field-level update (ROOT A fix): mutate the existing record instead
+      // of rebuilding a new Attendance(...), so checkout can never wipe
+      // isLate, overtimeOn/Start/End, approvedBy/At, status, note,
+      // requestType or locked that a manager already set. See
+      // AttendanceCheckService doc comment for the incident this fixes.
+      Attendance? attendance;
+      if (isIn) {
+        attendance = AttendanceCheckService.applyCheckIn(
+          existing: _today,
+          userId: user.uid,
+          email: user.email!,
+          name: _userName,
+          dateKey: DateFormat('yyyy-MM-dd').format(now),
+          firestoreId: firestoreId,
+          timestamp: timestamp,
+          isLate: isLate,
+          photoPath: localPhotoPath,
+          location: locationStr,
+        );
+      } else {
+        attendance = AttendanceCheckService.applyCheckOut(
+          existing: _today,
+          timestamp: timestamp,
+          isEarly: isEarly,
+          photoPath: localPhotoPath,
+          location: locationStr,
+        );
+        if (attendance == null) {
+          NotificationService.showSnackBar(
+            "Chưa chấm công vào, không thể chấm công ra!",
+            color: Colors.red,
+          );
+          if (mounted) setState(() => _loading = false);
+          return;
+        }
+      }
 
       await db.upsertAttendance(attendance);
 
@@ -962,6 +1079,32 @@ class _AttendanceViewState extends State<AttendanceView>
             'Gửi yêu cầu quên chấm công hoặc xin nghỉ mà không cần vào màn quản lý.',
             style: FinanceV2Theme.bodySm.copyWith(color: FinanceV2Theme.subInk),
           ),
+          // Phase 7 (F-15/forgot-checkout symmetric flow): if today's record
+          // already has a check-in but no check-out, surface it clearly
+          // instead of letting it silently stay incomplete (incomplete
+          // records never reach payroll — see SalaryCalculationService).
+          if (_missingCheckoutAfterShift) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber, size: 16, color: AppColors.warning),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Chưa chấm công ra hôm nay — chưa được tính vào lương cho đến khi bổ sung và được duyệt.',
+                      style: FinanceV2Theme.bodySm.copyWith(color: AppColors.warning),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           Row(
             children: [
@@ -986,6 +1129,18 @@ class _AttendanceViewState extends State<AttendanceView>
               ),
             ],
           ),
+          if (_missingCheckoutAfterShift) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _showForgotCheckoutRequestDialog,
+                icon: const Icon(Icons.logout),
+                label: const Text('BỔ SUNG GIỜ CHẤM CÔNG RA'),
+                style: OutlinedButton.styleFrom(foregroundColor: AppColors.warning),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1333,6 +1488,188 @@ class _AttendanceViewState extends State<AttendanceView>
                                   color: AppColors.success,
                                 );
                                 await _refreshAttendanceData();
+                              }
+                            },
+                            child: const Text('GỬI YÊU CẦU'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Phase 7 forgot-checkout flow (symmetric to _showForgotCheckinRequestDialog):
+  /// only offered when today's record already has a check-in but no
+  /// check-out. Delegates to AttendanceApprovalService.createForgotCheckoutRequest,
+  /// which requires the existing check-in and goes back to 'pending' for
+  /// manager approval — same as every other correction.
+  void _showForgotCheckoutRequestDialog() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || _today?.checkInAt == null) return;
+
+    TimeOfDay? checkOutTime;
+    String note = '';
+    final dateKey = _today!.dateKey;
+
+    showAppBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlg) {
+          return KeyboardAwarePadding(
+            child: Container(
+              decoration: const BoxDecoration(
+                color: PopupTheme.bgDark,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(PopupTheme.radiusSheet),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const PopupDragHandle(),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+                    child: Row(
+                      children: [
+                        Icon(Icons.logout, color: PopupTheme.blue),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'BỔ SUNG GIỜ CHẤM CÔNG RA',
+                            style: TextStyle(
+                              color: PopupTheme.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Ngày: ${DateFormat('dd/MM/yyyy').format(DateTime.parse(dateKey))}',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: PopupTheme.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          ListTile(
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              'Giờ ra: ${checkOutTime?.format(ctx) ?? '--:--'}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: PopupTheme.textPrimary,
+                              ),
+                            ),
+                            trailing: const Icon(
+                              Icons.access_time,
+                              size: 18,
+                              color: PopupTheme.textSecondary,
+                            ),
+                            onTap: () async {
+                              final t = await showTimePicker(
+                                context: ctx,
+                                initialTime: const TimeOfDay(hour: 17, minute: 0),
+                              );
+                              if (t != null) setDlg(() => checkOutTime = t);
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            style: const TextStyle(
+                              color: PopupTheme.textPrimary,
+                              fontSize: 13,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: 'Ghi chú',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            onChanged: (v) => note = v,
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              FocusScope.of(ctx).unfocus();
+                              Navigator.pop(ctx);
+                            },
+                            child: const Text('HỦY'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () async {
+                              if (checkOutTime == null) {
+                                NotificationService.showSnackBar(
+                                  'Chọn giờ ra',
+                                  color: Colors.red,
+                                );
+                                return;
+                              }
+                              final shiftDate = DateTime.parse(dateKey);
+                              final outMs = DateTime(
+                                shiftDate.year,
+                                shiftDate.month,
+                                shiftDate.day,
+                                checkOutTime!.hour,
+                                checkOutTime!.minute,
+                              ).millisecondsSinceEpoch;
+                              FocusManager.instance.primaryFocus?.unfocus();
+                              Navigator.pop(ctx);
+                              final ok =
+                                  await AttendanceApprovalService.createForgotCheckoutRequest(
+                                    userId: user.uid,
+                                    dateKey: dateKey,
+                                    checkOutAt: outMs,
+                                    note: note.isNotEmpty ? note : null,
+                                  );
+                              if (ok) {
+                                NotificationService.showSnackBar(
+                                  'Đã gửi yêu cầu bổ sung giờ ra',
+                                  color: AppColors.success,
+                                );
+                                await _refreshAttendanceData();
+                              } else {
+                                NotificationService.showSnackBar(
+                                  'Không thể gửi yêu cầu (có thể tháng đã bị khóa bảng lương)',
+                                  color: Colors.red,
+                                );
                               }
                             },
                             child: const Text('GỬI YÊU CẦU'),
