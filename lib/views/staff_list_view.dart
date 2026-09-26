@@ -738,13 +738,13 @@ class _StaffListViewState extends State<StaffListView> {
                   // Hide super admin from non-super-admin users
                   final users = _isSuperAdmin
                       ? allDocs
-                      : allDocs.where((doc) {
-                          final data = doc.data() as Map<String, dynamic>;
-                          final email = (data['email'] ?? '')
-                              .toString()
-                              .toLowerCase();
-                          return email != 'admin@huluca.com';
-                        }).toList();
+                      : allDocs
+                            .where(
+                              (doc) => !UserService.isPlatformAdminUser(
+                                doc.data() as Map<String, dynamic>,
+                              ),
+                            )
+                            .toList();
                   if (users.isEmpty) {
                     return Center(
                       child: Text(

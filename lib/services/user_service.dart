@@ -473,6 +473,13 @@ class UserService {
     _adminSelectedShopId = shopId;
     _cachedShopId = shopId;
     _cachedUid = FirebaseAuth.instance.currentUser?.uid;
+    // Field encryption is keyed per shop: without this the admin kept the
+    // key of the shop it logged in with — decrypting the selected shop's
+    // data failed and anything it saved there was encrypted with the wrong
+    // key (unreadable for that shop's own users).
+    if (shopId != null && shopId.isNotEmpty) {
+      EncryptionService.init(shopId);
+    }
     debugPrint('Super admin selected shop: $shopId');
   }
 
@@ -902,6 +909,14 @@ final shopDoc = await _db.collection('shops').doc(shopId).get();
           .limit(1),
     );
   }
+
+  /// True for the platform super admin's `users/{uid}` doc. Super admin
+  /// writes the shop it is inspecting into its own `shopId` (for claims), so
+  /// every "users where shopId == X" query also returns it — it must never be
+  /// listed as a member/staff of a customer's shop. Role is the source the
+  /// claims are built from (functions/index.js), not the email.
+  static bool isPlatformAdminUser(Map<String, dynamic>? data) =>
+      (data?['role'] ?? '').toString() == 'super_admin';
 
   /// Stream lấy users theo shopId cụ thể (dùng khi cần đảm bảo có shopId)
   static Stream<QuerySnapshot> getUsersStreamByShopId(String shopId) {

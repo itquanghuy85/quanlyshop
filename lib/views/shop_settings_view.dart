@@ -1834,6 +1834,7 @@ class _ShopSettingsViewState extends State<ShopSettingsView> {
       final members = <Map<String, dynamic>>[];
       for (var doc in usersSnapshot.docs) {
         final data = doc.data();
+        if (UserService.isPlatformAdminUser(data)) continue;
         data['id'] = doc.id;
         members.add(data);
       }

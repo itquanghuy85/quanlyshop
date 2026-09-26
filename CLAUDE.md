@@ -101,6 +101,10 @@
 - **Quyền hạn:** super admin KHÔNG bypass `shopId` ở tầng dữ liệu. Cách hoạt động là
   **chọn shop** → `getShopIdSync()` trả `_adminSelectedShopId`, mọi truy vấn vẫn lọc
   theo `shopId` như người thường (`firestore_service.dart` có 0 tham chiếu `isSuperAdmin`).
+- **Super admin "Vào shop"** ghi `shopId` vào doc user của chính nó (để claims có quyền) ⇒ mọi truy vấn
+  `users where shopId == X` trả cả super admin. Danh sách thành viên/nhân viên PHẢI lọc
+  `UserService.isPlatformAdminUser(data)` (role `super_admin`, không dùng email). Đổi shop của super admin
+  chỉ qua `UserService.setAdminSelectedShop` — hàm này init lại `EncryptionService` theo shop mới.
 - **Server luôn kiểm lại:** `firestore.rules` → `isSuperAdmin()` chỉ đọc
   `request.auth.token` (~30 chỗ dùng). Client bị sửa cũng không qua được.
 

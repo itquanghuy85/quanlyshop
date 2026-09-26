@@ -6,6 +6,11 @@ Trạng thái hiện tại dự án, tasks đã hoàn thành, tasks pending, kno
 
 ## ⚡ Trạng thái hiện tại
 
+**2026-09-26 (đợt 5 — audit Super Admin `[2026-09-26e]`):** sửa khoá mã hoá khi super admin vào shop, super admin lọt vào
+danh sách nhân viên shop khách, Vùng nguy hiểm vỡ bố cục, tab Khóa không bật được, tab Hoạt động quay mãi. Còn treo:
+shop "M" trùng của m@m.com, lệch số shop 152/148, khoá mã hoá viết cứng. Doc user super admin hiện đang mang shopId của
+shop test (sau khi thử "Vào shop").
+
 **2026-09-26 (đợt 3 — web màn ngang `[2026-09-26c]`):** web đã build + deploy https://quanlyshop.web.app (gồm toàn bộ
 chấm công/lương/đổi ca/khoá tháng). Màn ngang ≥1100px: trang chủ + chi tiết đơn sửa 2 cột. Sửa 5 câu SQL `""` làm hỏng
 web, hướng dẫn Tài chính bật sai trên Trang chủ. Đợt 4 `[2026-09-26d]`: tạo đơn sửa + tạo đơn bán cũng 2 cột, nút nổi

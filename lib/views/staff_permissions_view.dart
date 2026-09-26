@@ -260,6 +260,9 @@ class _StaffPermissionsViewState extends State<StaffPermissionsView> {
           final users = snapshot.data!.docs.where((doc) {
             final data = doc.data() as Map<String, dynamic>;
             final shopId = data['shopId'];
+            if (!_isSuperAdmin && UserService.isPlatformAdminUser(data)) {
+              return false;
+            }
             // Chỉ hiển thị nhân viên của shop hiện tại hoặc super admin
             return _isSuperAdmin || shopId == _currentShopId;
           }).toList();

@@ -500,7 +500,7 @@ class _FinanceV2DailyReportViewState extends State<FinanceV2DailyReportView> {
           .get();
 
       final users = usersSnap.docs
-          .where((d) => (d.data()['email'] ?? '').toString().toLowerCase() != 'admin@huluca.com')
+          .where((d) => !UserService.isPlatformAdminUser(d.data()))
           .map((d) {
             final data = d.data();
             final name = (data['name'] ?? '').toString().trim();

@@ -299,6 +299,7 @@ class _WorkScheduleSettingsViewState extends State<WorkScheduleSettingsView> {
         for (var doc in snapshot.docs) {
           if (!addedIds.contains(doc.id)) {
             final data = doc.data();
+            if (UserService.isPlatformAdminUser(data)) continue;
             allStaff.add({
               'id': doc.id,
               'name':

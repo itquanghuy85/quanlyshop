@@ -4,6 +4,35 @@ Lịch sử tất cả thay đổi từng phiên bản.
 
 ---
 
+## [2026-09-26e] - Audit Super Admin (đăng nhập thật trên web): 5 lỗi đã sửa
+
+Đăng nhập admin@huluca.com + PIN trên bản web (Chrome headless), rà mọi mục của Super Admin Console. Shop khách thật chỉ
+XEM; mọi thao tác ghi làm trên shop test M (m@m.com). Không bấm Thông báo toàn hệ thống / Buộc cập nhật / Vùng nguy hiểm.
+
+- **[CAO] Super admin "Vào shop" dùng sai khoá mã hoá:** `ShopSelectorView._selectShop` không `EncryptionService.init`
+  shop mới → giải mã dữ liệu shop được chọn lỗi ("Invalid or corrupted pad block") và mọi trường nhạy cảm super admin
+  lưu trong shop khách sẽ bị mã hoá bằng khoá của shop CŨ (chủ shop không đọc được). Sửa gốc trong
+  `UserService.setAdminSelectedShop` (mọi đường đổi shop của super admin đi qua đây).
+- **[CAO] Super admin hiện như nhân viên của shop khách:** vào shop thì super admin ghi `shopId` vào doc user của mình
+  (để claims có quyền) ⇒ mọi truy vấn `users where shopId == X` lôi cả super admin vào danh sách thành viên/nhân viên của
+  shop khách (Cài đặt shop, Lịch làm việc, Đổi ca, Phân quyền…). Thêm `UserService.isPlatformAdminUser(data)` (theo
+  `role == 'super_admin'` — nguồn cấp claims, không dùng email cứng) và áp vào `staff_list_view`, `staff_permissions_view`,
+  `shop_settings_view`, `work_schedule_settings_view`, `shift_swap_service`, `finance_v2_daily_report_view`,
+  `attendance_management_view`, `FirestoreService.getStaffByShopId` (3 chỗ trước lọc bằng email `admin@huluca.com`).
+- **Vùng nguy hiểm vỡ bố cục:** nút theme rộng vô hạn trong `trailing` ⇒ mã shop xuống dòng từng ký tự, nút "Đặt lại"
+  kéo dài đè lên "Xóa". Đặt `minimumSize` + Row gọn.
+- **4 khoá nhân viên + khoá tài chính quản lý không có chỗ bật/tắt:** tab "Khóa" trong chi tiết shop là `onChanged: null`,
+  màn cũ duy nhất ghi được (`super_admin_view.dart`) là code chết. Nối vào `onToggleLock` (khoá tài chính vẫn đòi PIN),
+  đọc lại shop sau khi đổi. Đã bật/tắt thử "Khóa kho cho nhân viên" trên shop M.
+- **Tab "Hoạt động" của shop + Nhật ký lọc theo shop/action quay mãi:** thiếu index `admin_audit_log` và `StreamBuilder`
+  không xử lý lỗi. Thêm 4 index (shopId/action/action+shopId/uid + timestamp↓, đã deploy) + hiện thông báo lỗi.
+- Ghi nhận, CHƯA sửa: tài khoản m@m.com có 2 shop tên "M" (`geqXPHQ…` đang dùng, `1Wlja…` còn dữ liệu cũ); Dashboard
+  152 shop vs Vùng nguy hiểm 148; khoá mã hoá = shopId + "master secret" viết cứng trong app (không phải bảo mật thật —
+  đổi cần migration dữ liệu); trang "Buộc cập nhật" có khoảng trống lớn phía trên (thẩm mỹ).
+- `flutter analyze` 0 error, `flutter test` 857 PASS; đã deploy web.
+
+---
+
 ## [2026-09-26d] - Web màn ngang (tiếp): tạo đơn sửa + tạo đơn bán 2 cột, nút nổi không che tab, dọn chữ "thời trang"
 
 - `create_repair_order_view.dart`: ≥1100px chia 2 cột cuộn riêng — trái "Khách hàng & máy", phải Dịch vụ + Bảo mật &

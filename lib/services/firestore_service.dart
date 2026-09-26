@@ -2427,7 +2427,7 @@ class FirestoreService {
         final data = doc.data();
         data['uid'] = doc.id;
         // Hide super admin from staff lists
-        if (data['email'] == 'admin@huluca.com') continue;
+        if (UserService.isPlatformAdminUser(data)) continue;
         staffList.add(data);
       }
 

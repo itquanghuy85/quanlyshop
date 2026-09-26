@@ -1788,29 +1788,53 @@ class _ShopsSectionState extends State<_ShopsSection> {
                         ],
                       ),
                       _ShopUsersTab(shopId: (shop['id'] ?? '').toString()),
-                      ListView(
-                        children: [
-                          SwitchListTile(
-                            value: shop['adminFinanceLocked'] == true,
-                            onChanged: null,
-                            title: const Text('Khóa tài chính quản lý'),
-                          ),
-                          SwitchListTile(
-                            value: shop['staffInventoryLocked'] == true,
-                            onChanged: null,
-                            title: const Text('Khóa kho cho nhân viên'),
-                          ),
-                          SwitchListTile(
-                            value: shop['staffSalesLocked'] == true,
-                            onChanged: null,
-                            title: const Text('Khóa bán hàng cho nhân viên'),
-                          ),
-                          SwitchListTile(
-                            value: shop['staffDebtLocked'] == true,
-                            onChanged: null,
-                            title: const Text('Khóa công nợ cho nhân viên'),
-                          ),
-                        ],
+                      StatefulBuilder(
+                        builder: (ctx, setLocks) {
+                          final shopId = (shop['id'] ?? '').toString();
+                          Widget lockSwitch(String flag, String label) =>
+                              SwitchListTile(
+                                value: shop[flag] == true,
+                                title: Text(label),
+                                onChanged: (v) async {
+                                  await widget.onToggleLock(
+                                    shopId: shopId,
+                                    flagName: flag,
+                                    newValue: v,
+                                    // Snackbar reads "Đã khóa <label>".
+                                    label: label.replaceFirst('Khóa ', ''),
+                                  );
+                                  // Re-read: the toggle may have been
+                                  // cancelled at the PIN prompt.
+                                  final doc = await widget.db
+                                      .collection('shops')
+                                      .doc(shopId)
+                                      .get();
+                                  setLocks(
+                                    () => shop[flag] = doc.data()?[flag] == true,
+                                  );
+                                },
+                              );
+                          return ListView(
+                            children: [
+                              lockSwitch(
+                                'adminFinanceLocked',
+                                'Khóa tài chính quản lý',
+                              ),
+                              lockSwitch(
+                                'staffInventoryLocked',
+                                'Khóa kho cho nhân viên',
+                              ),
+                              lockSwitch(
+                                'staffSalesLocked',
+                                'Khóa bán hàng cho nhân viên',
+                              ),
+                              lockSwitch(
+                                'staffDebtLocked',
+                                'Khóa công nợ cho nhân viên',
+                              ),
+                            ],
+                          );
+                        },
                       ),
                       _ShopActivityTab(shopId: (shop['id'] ?? '').toString()),
                     ],
@@ -1876,6 +1900,9 @@ class _ShopActivityTab extends StatelessWidget {
           .limit(50)
           .snapshots(),
       builder: (_, snap) {
+        if (snap.hasError) {
+          return Center(child: Text('Không tải được hoạt động: ${snap.error}'));
+        }
         if (!snap.hasData)
           return const Center(child: CircularProgressIndicator());
         if (snap.data!.docs.isEmpty)
@@ -3205,6 +3232,11 @@ class _AuditSection extends StatelessWidget {
           child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
             stream: query.snapshots(),
             builder: (_, snap) {
+              if (snap.hasError) {
+                return Center(
+                  child: Text('Không tải được nhật ký: ${snap.error}'),
+                );
+              }
               if (!snap.hasData)
                 return const Center(child: CircularProgressIndicator());
               final docs = snap.data!.docs.where((d) {
@@ -4100,17 +4132,25 @@ class _DangerSection extends StatelessWidget {
                       child: ListTile(
                         title: Text((s['name'] ?? 'Shop').toString()),
                         subtitle: Text('ID: ${(s['id'] ?? '').toString()}'),
-                        trailing: Wrap(
-                          spacing: 8,
+                        // Theme buttons have an infinite minimum width: without
+                        // an explicit size they swallow the tile (ID rendered
+                        // one char per line, "Đặt lại" overlapping "Xóa").
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(0, 36),
+                              ),
                               onPressed: () => onResetShop(s),
                               icon: const Icon(Icons.restart_alt),
                               label: const Text('Đặt lại'),
                             ),
+                            const SizedBox(width: 16),
                             FilledButton.icon(
                               style: FilledButton.styleFrom(
                                 backgroundColor: AppColors.error,
+                                minimumSize: const Size(0, 36),
                               ),
                               onPressed: () => onDeleteShop(s),
                               icon: const Icon(Icons.delete_forever),

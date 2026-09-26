@@ -273,6 +273,7 @@ class ShiftSwapService {
     final out = <Map<String, String>>[];
     for (final doc in snap.docs) {
       final data = doc.data();
+      if (UserService.isPlatformAdminUser(data)) continue;
       final name = (data['name']?.toString().trim() ?? '');
       final email = (data['email']?.toString().trim() ?? '');
       out.add({
